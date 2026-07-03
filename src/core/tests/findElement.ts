@@ -61,9 +61,10 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Multi-surface Phase 3: focus the requested window/tab first. The tab stays
-  // focused afterward (active = most recently focused). click delegates here,
-  // so its `surface` rides along in the constructed find step.
+  // Multi-surface Phase 3/4: focus the requested session + window/tab first.
+  // The surface stays active afterward (active = most recently focused).
+  // click delegates here, so its `surface` rides along in the constructed
+  // find step. A cross-session reference resolves to that session's driver.
   if (typeof step.find === "object" && step.find.surface !== undefined) {
     const switched = await switchToSurface(driver, step.find.surface);
     if (!switched.ok) {
@@ -71,6 +72,7 @@ async function findElement({ config, step, driver, click }: { config: any; step:
       result.description = switched.message;
       return result;
     }
+    driver = switched.driver ?? driver;
   }
 
   // Handle combo selector/text string

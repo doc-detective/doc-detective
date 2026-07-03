@@ -2168,11 +2168,11 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("type to a browser surface of a DIFFERENT engine FAILs naming the active browser (Phase 3)", async () => {
-    // Phase 3 resolves engine keywords to the ACTIVE browser. Pin the context
-    // to firefox so `surface: "chrome"` is deterministically a mismatch, and
-    // assert the loud engine-mismatch FAIL (forward-compatible: the same spec
-    // starts working when multi-browser lands).
+  it("type to an UNOPENED browser surface FAILs pointing at goTo (Phase 4)", async () => {
+    // Phase 4 keys browser surfaces on the session registry; only goTo may
+    // open one. Pin the context to firefox so `surface: "chrome"` is
+    // deterministically unopened, and assert the loud FAIL with the
+    // open-it-with-goTo guidance.
     const t = {
       tests: [
         {
@@ -2200,8 +2200,8 @@ describe("getRunner() function", function () {
         .flatMap((c) => c.steps || [])
         .find((s) => s.result === "FAIL");
       assert.ok(step, "expected a failing step");
-      assert.match(step.resultDescription, /not the active browser/);
-      assert.match(step.resultDescription, /firefox/);
+      assert.match(step.resultDescription, /No browser surface named "chrome"/);
+      assert.match(step.resultDescription, /goTo/);
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -2252,10 +2252,10 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("type to a NAMED browser surface FAILs as a later-phase feature (Phase 3)", async () => {
-    // The `name` field is reserved for multi-browser targeting. The check is
-    // categorical (runs before the engine check), so the message is stable on
-    // any engine.
+  it("type to an unopened NAMED browser surface FAILs pointing at goTo (Phase 4)", async () => {
+    // Named surfaces resolve against the session registry. A name nothing has
+    // opened is a targeting error naming the surface, with the
+    // open-it-with-goTo guidance — stable on any engine.
     const t = {
       tests: [
         {
@@ -2279,7 +2279,8 @@ describe("getRunner() function", function () {
       assert.equal(result.summary.steps.fail, 1);
       const step = result.specs[0].tests[0].contexts[0].steps[0];
       assert.equal(step.result, "FAIL");
-      assert.match(step.resultDescription, /later phase/);
+      assert.match(step.resultDescription, /No browser surface named "secondary"/);
+      assert.match(step.resultDescription, /goTo/);
     } finally {
       fs.unlinkSync(tempFilePath);
     }

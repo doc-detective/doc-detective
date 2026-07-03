@@ -67,6 +67,13 @@ import { runCode } from "./tests/runCode.js";
 import { closeSurface } from "./tests/closeSurface.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
+import {
+  createSessionRegistry,
+  registerSession,
+  activeDriver,
+  sweepSessions,
+  type BrowserSessionRegistry,
+} from "./tests/browserSessions.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID, createHash } from "node:crypto";
@@ -2735,6 +2742,11 @@ async function runContext({
 
   let driver: any;
   let appiumPort: number | undefined;
+  // Multi-surface Phase 4 (ADR 01019): the context's browser-session registry.
+  // Holds every live session keyed by surface name (the default session
+  // registers under its engine name) plus the active-surface pointer. Created
+  // once the default driver starts; swept in the finally below.
+  let browserSessions: BrowserSessionRegistry | undefined;
   // Layer 5 bookkeeping: set when the context ran on a different engine than
   // requested, so the final result can be annotated — and downgraded PASS →
   // WARNING when an explicitly pinned engine was substituted.
@@ -2927,13 +2939,28 @@ async function runContext({
         clog("warning", fellBackNote);
       }
 
-      // Multi-surface Phase 3: stash the engine the session actually runs so
-      // browser `surface` references can be checked against it at step time.
-      // Initialize `state` if a step hasn't yet, so the engine is recorded even
-      // when the very first surfaced step is the one to read it.
+      // Multi-surface Phase 4 (ADR 01019): register the default session in the
+      // context's session registry under its engine name, so it resolves like
+      // any named surface. The launcher closure lets goTo open ADDITIONAL
+      // sessions on this context's already-acquired Appium port, with the same
+      // capability path (and headed→headless fallback) the default used —
+      // exactly the requested engine, no cross-engine fallback: the author
+      // named it, so substituting silently would be wrong. registerSession
+      // stamps driver.state.engine and back-links driver.state.sessionRegistry.
       if (driver) {
-        driver.state = driver.state ?? {};
-        driver.state.engine = String(startedName).toLowerCase();
+        browserSessions = createSessionRegistry({
+          open: async (engine: string) => {
+            const res = await startDriverForBrowser(engine);
+            if (!res.ok) throw new Error(res.error);
+            return res.driver;
+          },
+          isNameTaken: (name: string) => !!processRegistry?.has(name),
+        });
+        registerSession(browserSessions, {
+          name: String(startedName).toLowerCase(),
+          engine: String(startedName).toLowerCase(),
+          driver,
+        });
       }
 
       if (
@@ -3187,12 +3214,19 @@ async function runContext({
 
       // Run the step once: execute it, normalize the result, and build the
       // step report. Used by the initial run and each retry attempt.
+      // Surface-less steps act on the ACTIVE browser surface (Phase 4) —
+      // re-resolved per attempt, since a step can change the active session.
+      // The `?? driver` fallback matters when every session has been explicitly
+      // closed: `driver` is then deleted, but it still carries
+      // `state.sessionRegistry`, so a later goTo can re-open a browser through
+      // it. Surface-less browser steps in that (pathological) state fail on the
+      // dead session — acceptable; the run closed its own browser mid-test.
       const runStepOnce = async () => {
         const r = await runStep({
           config: config,
           context: context,
           step: step,
-          driver: driver,
+          driver: activeDriver(browserSessions) ?? driver,
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
@@ -3276,15 +3310,16 @@ async function runContext({
       // Note: the filename derives from `stepIndex`, so a backward `goToStep`
       // re-visit of the same step overwrites the prior visit's image
       // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
+      const autoScreenshotDriver = activeDriver(browserSessions) ?? driver;
       if (
         autoScreenshotEnabled &&
-        driver &&
+        autoScreenshotDriver &&
         typeof step.screenshot === "undefined" &&
         isDriverRequired({ test: { steps: [step] } })
       ) {
         const capturedPath = await captureAutoScreenshot({
           config,
-          driver,
+          driver: autoScreenshotDriver,
           spec,
           test,
           context,
@@ -3348,7 +3383,10 @@ async function runContext({
     // Stop every recording still active at the end of the context (the
     // synthetic autoRecord capture plus any explicit record steps the author
     // didn't stop). Each produces an ordered stopRecord step report.
-    await stopAllRecordings({ config, context, driver, contextReport });
+    // Recordings live per session, so sweep every registered driver.
+    for (const d of sessionDrivers(browserSessions, driver)) {
+      await stopAllRecordings({ config, context, driver: d, contextReport });
+    }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
     // are still active. Stop them now — while the driver session is still alive
@@ -3360,13 +3398,21 @@ async function runContext({
       // On the normal path the step loop above already drained every recording,
       // so this is a no-op; it only does work when the context threw before the
       // in-loop sweep, finalizing recordings before deleteSession kills them.
-      await stopAllRecordings({ config, context, driver, contextReport });
+      for (const d of sessionDrivers(browserSessions, driver)) {
+        await stopAllRecordings({ config, context, driver: d, contextReport });
+      }
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
     }
-    // Close driver. In a finally so an unexpected throw can't leak a session
-    // while sibling contexts keep running.
-    if (driver) {
+    // Close every session still registered (the default driver registers at
+    // start, so the sweep covers it; sessions a closeSurface step already
+    // ended are gone from the registry). In a finally so an unexpected throw
+    // can't leak sessions while sibling contexts keep running.
+    if (browserSessions) {
+      await sweepSessions(browserSessions);
+    } else if (driver) {
+      // Registry creation is unconditional after a driver starts, so this
+      // fallback only runs if the start path threw between the two.
       try {
         await driver.deleteSession();
       } catch (error: any) {
@@ -3395,6 +3441,25 @@ async function runContext({
       : fellBackNote;
   }
   return contextReport;
+}
+
+// Every live session driver in the context, falling back to the lone default
+// driver when no registry exists (driver-start throw, or a driverless
+// context). Recording sweeps iterate this — recordings live per session.
+function sessionDrivers(
+  registry: BrowserSessionRegistry | undefined,
+  fallback: any
+): any[] {
+  // A live registry is the source of truth: its sessions are exactly the open
+  // drivers. An EMPTY-but-present registry means every session was explicitly
+  // closed (closeSurface, which refuses while a recording is active), so the
+  // default driver is already deleted AND no recording can be pending — return
+  // nothing rather than sweep a dead session. The fallback is only for a
+  // context that never built a registry (driverless, or a driver-start throw).
+  if (registry) {
+    return [...registry.sessions.values()].map((s) => s.driver);
+  }
+  return fallback ? [fallback] : [];
 }
 
 // Stop every recording still active on the driver, pushing an ordered
@@ -3535,7 +3600,7 @@ async function runStep({
       driver.state.recordings.push(handle);
     }
   } else if (typeof step.runCode !== "undefined") {
-    actionResult = await runCode({ config: config, step: step, processRegistry });
+    actionResult = await runCode({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.runBrowserScript !== "undefined") {
     actionResult = await runBrowserScript({
       config: config,
@@ -3543,7 +3608,7 @@ async function runStep({
       driver: driver,
     });
   } else if (typeof step.runShell !== "undefined") {
-    actionResult = await runShell({ config: config, step: step, processRegistry });
+    actionResult = await runShell({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.closeSurface !== "undefined") {
     actionResult = await closeSurface({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.screenshot !== "undefined") {

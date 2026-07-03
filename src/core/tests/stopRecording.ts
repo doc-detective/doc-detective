@@ -37,16 +37,39 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     return result;
   }
 
-  // Resolve which active recording to stop. Recordings are per-context (they
+  // Resolve which active recording to stop. Recordings are per-session (they
   // live on driver.state.recordings), so concurrent contexts can't see each
   // other's recordings. `__stopAny` (set by end-of-context cleanup) lets a
   // generic stop also drain the synthetic autoRecord recording.
-  const recordings: any[] = Array.isArray(driver?.state?.recordings)
+  let recordings: any[] = Array.isArray(driver?.state?.recordings)
     ? driver.state.recordings
     : [];
-  const recording = selectRecordingToStop(recordings, step.stopRecord, {
+  let recording = selectRecordingToStop(recordings, step.stopRecord, {
     includeSynthetic: step?.__stopAny === true,
   });
+  // Phase 4 (ADR 01019): the recording may live on a browser session other
+  // than the active one (record targeted a surface, then focus moved on).
+  // A stop that finds nothing on this session searches the context's other
+  // sessions and stops against the owning session's driver.
+  if (!recording && driver?.state?.sessionRegistry) {
+    for (const entry of driver.state.sessionRegistry.sessions.values()) {
+      if (entry.driver === driver) continue;
+      const sessionRecordings: any[] = Array.isArray(
+        entry.driver?.state?.recordings
+      )
+        ? entry.driver.state.recordings
+        : [];
+      const found = selectRecordingToStop(sessionRecordings, step.stopRecord, {
+        includeSynthetic: step?.__stopAny === true,
+      });
+      if (found) {
+        driver = entry.driver;
+        recordings = sessionRecordings;
+        recording = found;
+        break;
+      }
+    }
+  }
   if (!recording) {
     result.status = "SKIPPED";
     const target = stopRecordTargetName(step.stopRecord);

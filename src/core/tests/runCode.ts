@@ -44,10 +44,12 @@ function createTempScript(code: string, language: string) {
 async function runCode({
   config,
   step,
+  driver,
   processRegistry,
 }: {
   config: any;
   step: any;
+  driver?: any;
   processRegistry?: Map<string, any>;
 }) {
   const result: any = {
@@ -161,6 +163,7 @@ async function runCode({
     const shellResult = await runShell({
       config: config,
       step: shellStep,
+      driver,
       processRegistry,
     });
 

@@ -215,6 +215,7 @@ webdriverio
 appium
 geckodriver
 chromedriver
+safaridriver
 subcommand
 subcommands
 postinstall
