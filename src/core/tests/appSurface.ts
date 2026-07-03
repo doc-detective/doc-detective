@@ -8,6 +8,7 @@
 // the app-side implementations of startSurface / find / click / type /
 // screenshot / closeSurface.
 
+import fs from "node:fs";
 import path from "node:path";
 import {
   resolveHeavyDepPath,
@@ -251,6 +252,29 @@ function resolveAppSurfaceRef(
   return null;
 }
 
+// Appium discovers extensions by scanning <APPIUM_HOME>/node_modules — but
+// only when its manifest cache (node_modules/.cache/appium/extensions.yaml)
+// doesn't exist yet; an existing manifest is trusted as-is. A driver
+// lazy-installed into a home whose manifest predates it is therefore
+// invisible ("Could not find a driver for automationName …") even though the
+// package is right there. Deleting the manifest cache makes the next server
+// start rebuild it from what's actually installed. No-op when the manifest
+// is absent or already lists the driver.
+function invalidateStaleAppiumManifest(home: string): void {
+  const cacheDir = path.join(home, "node_modules", ".cache", "appium");
+  try {
+    const manifest = fs.readFileSync(
+      path.join(cacheDir, "extensions.yaml"),
+      "utf8"
+    );
+    if (!manifest.includes(APP_DRIVER_PACKAGE)) {
+      fs.rmSync(cacheDir, { recursive: true, force: true });
+    }
+  } catch {
+    // Manifest absent/unreadable — appium builds it fresh on start.
+  }
+}
+
 // Preflight for app surfaces: platform support and driver availability.
 // Returns { ok: true } or a skip reason — an unmet environment is a gating
 // fact (SKIPPED), never a FAIL, matching the `requires` gate semantics.
@@ -314,6 +338,7 @@ async function appSurfacePreflight({
     const home = driverEntry ? appiumHomeForDriverPath(driverEntry) : null;
     const appiumEntry = resolvePath("appium", ctx);
     if (home && appiumEntry) {
+      invalidateStaleAppiumManifest(home);
       return { ok: true, appiumEntry, appiumHome: home };
     }
     // Fall through to the cache path when the shim layout is unexpected.
@@ -335,7 +360,9 @@ async function appSurfacePreflight({
       reason: `Skipping context: Appium did not resolve from the runtime cache after install.`,
     };
   }
-  return { ok: true, appiumEntry, appiumHome: getRuntimeDir(ctx) };
+  const appiumHome = getRuntimeDir(ctx);
+  invalidateStaleAppiumManifest(appiumHome);
+  return { ok: true, appiumEntry, appiumHome };
 }
 
 // Build a driver locator from a step's element criteria (the shared semantic

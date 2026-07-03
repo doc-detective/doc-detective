@@ -3721,6 +3721,10 @@ async function runStep({
         platform: context?.platform ?? "",
         serverDeps: {
           startServer: async (appiumEntry: string, appiumHome: string) => {
+            // APPIUM_HOME points the server at the node_modules that holds
+            // the native driver (shim or runtime cache). The preflight has
+            // already invalidated a stale extensions manifest there, so the
+            // server's startup scan discovers the driver.
             const server = await startAppiumServer(appiumEntry, config, undefined, {
               APPIUM_HOME: appiumHome,
             });

@@ -1,10 +1,10 @@
 {
   "specId": "app-surfaces-a1",
-  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Gated to Windows hosts with the app binary present; on Linux/macOS the app preflight lands the context as SKIPPED (asserted behavior, not a gap). Notepad exercises the path-launch + semantic-find + type flow; the unsupported-platform permutation asserts the preflight skip everywhere else.",
+  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Character Map (charmap.exe) is the target app because it is a real Win32 executable on every Windows edition including Server CI runners — unlike notepad.exe, which on Windows 11 clients is a stub that hands off to the Store app, so the launched process never owns a window. Gated to Windows hosts with the binary present; on Linux/macOS the app preflight lands the context as SKIPPED (asserted behavior, not a gap).",
   "tests": [
     {
-      "testId": "app-notepad-flow",
-      "description": "Launch Notepad by path, find its edit surface via elementAria role, type text into it, and close the surface explicitly.",
+      "testId": "app-charmap-flow",
+      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, and close the surface explicitly.",
       "runOn": [
         {
           "platforms": [
@@ -12,7 +12,7 @@
           ],
           "requires": {
             "files": [
-              "C:\\Windows\\System32\\notepad.exe"
+              "C:\\Windows\\System32\\charmap.exe"
             ]
           }
         }
@@ -20,37 +20,47 @@
       "steps": [
         {
           "startSurface": {
-            "app": "C:\\Windows\\System32\\notepad.exe",
+            "app": "C:\\Windows\\System32\\charmap.exe",
             "timeout": 120000,
             "waitUntil": {
-              "delayMs": 1000
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
             }
           }
         },
         {
           "type": {
             "keys": [
-              "Hello from Doc Detective!"
+              "AB"
             ],
-            "elementText": "Text Editor",
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
             "surface": {
-              "app": "notepad"
+              "app": "charmap"
             },
             "timeout": 30000
           }
         },
         {
           "find": {
-            "elementText": "Text Editor",
+            "elementText": "Copy",
             "surface": {
-              "app": "notepad"
+              "app": "charmap"
             },
             "timeout": 15000
           }
         },
         {
           "closeSurface": {
-            "app": "notepad"
+            "app": "charmap"
           }
         }
       ]
