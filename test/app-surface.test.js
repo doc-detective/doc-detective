@@ -505,6 +505,25 @@ describe("startAppSurface", function () {
     assert.equal(failSession.surfaces.size, 0);
   });
 
+  it("fails cleanly when the app automation server can't start", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "C:\\x\\app.exe" } },
+      appSession,
+      platform: "windows",
+      serverDeps: {
+        startServer: async () => {
+          throw new Error("port already bound");
+        },
+        startDriver: async () => fakeDriver(),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't start the app automation server/);
+    assert.match(result.description, /port already bound/);
+  });
+
   it("fails cleanly when the session can't start", async function () {
     const appSession = preflighted();
     const result = await startAppSurface({

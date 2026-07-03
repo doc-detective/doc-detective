@@ -2843,8 +2843,8 @@ async function runContext({
   let fellBackPinned = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
-      "Driver requested but no Appium server pool was created; " +
-        "driverJobCount and isDriverRequired(context) disagreed; this is a bug."
+      "Browser driver requested but no Appium server pool was created; " +
+        "driverJobCount (isDriverRequired) and isBrowserRequired(context) disagreed; this is a bug."
     );
   }
 

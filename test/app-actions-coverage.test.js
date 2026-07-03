@@ -306,6 +306,36 @@ describe("closeSurface app-surface branch", function () {
     assert.deepEqual(absent.outputs.absent, ["charmap"]);
   });
 
+  it("prefers the process when a bare string names both a process and an app surface", async function () {
+    // The ambiguity is logged (debug) and the process wins — the pre-app
+    // behavior; the object form ({"app": …}) targets the app unambiguously.
+    const appSession = fakeAppSession({ name: "shared" });
+    let killed = 0;
+    const processRegistry = new Map([
+      [
+        "shared",
+        {
+          bg: {
+            async kill() {
+              killed++;
+            },
+          },
+        },
+      ],
+    ]);
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: "shared" },
+      driver: undefined,
+      processRegistry,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.outputs.closed, ["shared"]);
+    assert.equal(killed, 1, "the process should close, not the app");
+    assert.equal(appSession.surfaces.size, 1, "the app surface stays open");
+  });
+
   it("rejects window-scoped app closes and resolves bare strings via the app registry", async function () {
     const appSession = fakeAppSession({});
     const windowClose = await closeSurface({

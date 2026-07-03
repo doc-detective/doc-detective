@@ -25,7 +25,7 @@ export interface StartSurface {
    */
   name?: string;
   /**
-   * Launch arguments (desktop apps).
+   * Launch arguments (desktop apps). Entries join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
   /**

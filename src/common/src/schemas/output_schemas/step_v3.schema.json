@@ -35504,7 +35504,7 @@
                         "items": {
                           "type": "string"
                         },
-                        "description": "Launch arguments (desktop apps)."
+                        "description": "Launch arguments (desktop apps). Entries join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
                       },
                       "workingDirectory": {
                         "type": "string",
@@ -35849,7 +35849,7 @@
                   "items": {
                     "type": "string"
                   },
-                  "description": "Launch arguments (desktop apps)."
+                  "description": "Launch arguments (desktop apps). Entries join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
                 },
                 "workingDirectory": {
                   "type": "string",

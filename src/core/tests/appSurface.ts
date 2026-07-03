@@ -547,10 +547,18 @@ async function startAppSurface({
         "App session is not preflighted; this is a runner bug (runContext must run appSurfacePreflight before app steps).";
       return result;
     }
-    appSession.server = await serverDeps.startServer(
-      appSession.appiumEntry,
-      appSession.appiumHome
-    );
+    try {
+      appSession.server = await serverDeps.startServer(
+        appSession.appiumEntry,
+        appSession.appiumHome
+      );
+    } catch (error: any) {
+      // Post-preflight server-start failures (port race, resource pressure)
+      // become a clean step FAIL instead of a context-level exception.
+      result.status = "FAIL";
+      result.description = `Couldn't start the app automation server: ${error?.message ?? error}`;
+      return result;
+    }
   }
 
   const capabilities: Record<string, any> = {
