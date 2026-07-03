@@ -491,6 +491,22 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     assert.match(unmappable.error, /CSS selectors/);
   });
 
+  it("findAppElement distinguishes a dead session from a criteria miss", async function () {
+    // driver.$() itself throwing means the session is broken — the error
+    // must say so, not blame the author's criteria.
+    const broken = await findAppElement({
+      driver: {
+        $: async () => {
+          throw new Error("invalid session id");
+        },
+      },
+      criteria: { elementText: "Save" },
+      timeout: 10,
+    });
+    assert.match(broken.error, /App driver error/);
+    assert.match(broken.error, /invalid session id/);
+  });
+
   it("closeAppSurface deregisters and ends the session idempotently", async function () {
     const appSession = createAppSessionState();
     let deleted = 0;

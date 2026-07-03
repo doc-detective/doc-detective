@@ -3252,6 +3252,34 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should reject crop on an app-surface screenshot at validation time", function () {
+        const invalid = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "app.png",
+              surface: { app: "notepad" },
+              crop: "Select",
+            },
+          },
+        });
+        expect(invalid.valid).to.be.false;
+
+        // The same crop stays valid on a browser surface.
+        const browserCrop = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "page.png",
+              surface: { browser: "chrome" },
+              crop: "#header",
+            },
+          },
+        });
+        expect(browserCrop.valid).to.be.true;
+        expect(browserCrop.errors).to.equal("");
+      });
+
       it("should validate app surfaces on find/click/screenshot", function () {
         const steps = [
           { find: { elementText: "Text Editor", surface: { app: "notepad" } } },

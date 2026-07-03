@@ -16,7 +16,7 @@ description: "Reference for the `Type keys (detailed)` schema."
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 keys | one of:<br/>- string<br/>- array of string | Required. Sequence of keys to enter. | 
-inputDelay | number | Optional. Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. | `100`
+inputDelay | number | Optional. Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically. | `100`
 surface | one of:<br/>- string<br/>- object([Process surface](/reference/schemas/process-surface))<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows. | 
 waitUntil | one of:<br/>- object([Process readiness](/reference/schemas/process-readiness))<br/>- object([Browser readiness](/reference/schemas/browser-readiness))<br/>- object([App readiness](/reference/schemas/app-readiness)) | Optional. After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default. | 
 timeout | integer | Optional. Maximum time in milliseconds to wait for `waitUntil` after sending the keys.<br/><br/>Minimum: 0 | `5000`

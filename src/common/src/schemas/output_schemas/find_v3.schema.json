@@ -1097,7 +1097,7 @@
                         },
                         "inputDelay": {
                           "type": "number",
-                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                           "default": 100
                         },
                         "surface": {
@@ -2590,7 +2590,7 @@
                           },
                           "inputDelay": {
                             "type": "number",
-                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                             "default": 100
                           },
                           "surface": {
@@ -5215,7 +5215,7 @@
                           },
                           "inputDelay": {
                             "type": "number",
-                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                             "default": 100
                           },
                           "surface": {
@@ -6708,7 +6708,7 @@
                             },
                             "inputDelay": {
                               "type": "number",
-                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                               "default": 100
                             },
                             "surface": {

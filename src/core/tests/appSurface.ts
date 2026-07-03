@@ -166,12 +166,9 @@ function buildUiaLocator(criteria: {
   if (!tag && predicates.length === 0) return null;
 
   // Fast path: a lone AutomationId maps to the accessibility id strategy.
-  if (
-    automationId !== undefined &&
-    predicates.length === 1 &&
-    !tag &&
-    criteria.elementText === undefined
-  ) {
+  // (predicates.length === 1 with automationId set already implies no
+  // elementText/aria-name predicate joined it.)
+  if (automationId !== undefined && predicates.length === 1 && !tag) {
     return { strategy: "accessibility id", value: automationId };
   }
 
@@ -351,7 +348,13 @@ async function appSurfacePreflight({
       invalidateStaleAppiumManifest(home);
       return { ok: true, appiumEntry, appiumHome: home };
     }
-    // Fall through to the cache path when the shim layout is unexpected.
+    // Fall through to the cache path when the shim layout is unexpected —
+    // logged so a spurious cache-side Appium install is diagnosable.
+    log(
+      config,
+      "debug",
+      `The Windows app driver resolved from the shim but its Appium home/entry did not (home: ${home}, appium: ${appiumEntry}); falling back to a cache-side Appium install.`
+    );
   }
   if (!resolvePathInCache("appium", ctx)) {
     try {
@@ -445,8 +448,19 @@ async function findAppElement({
     locator.strategy === "accessibility id"
       ? `~${locator.value}`
       : locator.value;
+  // Locate and wait in separate try blocks: driver.$() normally returns a
+  // lazy handle without touching the session, so a throw there means the
+  // session itself is broken (app crash, dead server) — a driver error, not
+  // a criteria miss. Only the waitForExist timeout is the not-found path.
+  let element: any;
   try {
-    const element = await driver.$(selector);
+    element = await driver.$(selector);
+  } catch (error: any) {
+    return {
+      error: `App driver error while locating an element (locator: ${selector}): ${error?.message ?? error}`,
+    };
+  }
+  try {
     await element.waitForExist({ timeout });
     return { element };
   } catch {

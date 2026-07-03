@@ -239,8 +239,17 @@ async function closeSurface({
     if (ref.kind !== "process" || !ref.name) continue;
     const name = ref.name;
     // A bare string can name a process OR an app surface; processes resolve
-    // first (the pre-app behavior), then the app registry.
+    // first (the pre-app behavior), then the app registry. A collision is
+    // logged so the priority is visible; the object form ({"app": …}) always
+    // targets the app unambiguously.
     const appEntry = appSession?.surfaces.get(name);
+    if (processRegistry?.get(name) && appEntry) {
+      log(
+        config,
+        "debug",
+        `"${name}" names both a background process and an app surface; closing the process (processes resolve first). Use {"app": "${name}"} to close the app surface.`
+      );
+    }
     if (!processRegistry?.get(name) && appEntry) {
       await closeAppSurface({ entry: appEntry, appSession: appSession! });
       log(config, "debug", `Closed app surface "${name}".`);

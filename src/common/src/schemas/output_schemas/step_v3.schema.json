@@ -6712,7 +6712,7 @@
                                     },
                                     "inputDelay": {
                                       "type": "number",
-                                      "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                                      "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                                       "default": 100
                                     },
                                     "surface": {
@@ -8205,7 +8205,7 @@
                                       },
                                       "inputDelay": {
                                         "type": "number",
-                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                                         "default": 100
                                       },
                                       "surface": {
@@ -10830,7 +10830,7 @@
                                       },
                                       "inputDelay": {
                                         "type": "number",
-                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                                         "default": 100
                                       },
                                       "surface": {
@@ -12323,7 +12323,7 @@
                                         },
                                         "inputDelay": {
                                           "type": "number",
-                                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                                           "default": 100
                                         },
                                         "surface": {
@@ -22984,7 +22984,7 @@
                         },
                         "inputDelay": {
                           "type": "number",
-                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                           "default": 100
                         },
                         "surface": {
@@ -24477,7 +24477,7 @@
                           },
                           "inputDelay": {
                             "type": "number",
-                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.",
+                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                             "default": 100
                           },
                           "surface": {
@@ -26952,9 +26952,35 @@
                 {
                   "type": "object",
                   "additionalProperties": false,
+                  "allOf": [
+                    {
+                      "title": "App captures don't support crop yet",
+                      "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                      "if": {
+                        "required": [
+                          "surface"
+                        ],
+                        "properties": {
+                          "surface": {
+                            "type": "object",
+                            "required": [
+                              "app"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "not": {
+                          "required": [
+                            "crop"
+                          ]
+                        }
+                      }
+                    }
+                  ],
                   "properties": {
                     "surface": {
-                      "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -27418,9 +27444,35 @@
                   "object": {
                     "type": "object",
                     "additionalProperties": false,
+                    "allOf": [
+                      {
+                        "title": "App captures don't support crop yet",
+                        "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                        "if": {
+                          "required": [
+                            "surface"
+                          ],
+                          "properties": {
+                            "surface": {
+                              "type": "object",
+                              "required": [
+                                "app"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "crop"
+                            ]
+                          }
+                        }
+                      }
+                    ],
                     "properties": {
                       "surface": {
-                        "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",

@@ -15,7 +15,7 @@ export type TypeKeysSimple = string | string[];
 export type TypeKeysDetailed = {
   keys: TypeKeysSimple1;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
    */
   inputDelay?: number;
   surface?: Surface;

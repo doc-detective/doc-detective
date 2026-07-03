@@ -526,7 +526,7 @@ export type TypeKeysSimple = string | string[];
 export type TypeKeysDetailed = {
   keys: TypeKeysSimple1;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
    */
   inputDelay?: number;
   surface?: Surface;
@@ -674,60 +674,7 @@ export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | Capture
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
-/**
- * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
- */
-export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
-/**
- * Which window to act on. Omit to use the active window.
- */
-export type WindowTabSelector6 = ByIndex7 | ByName7 | ByCriteria7;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex7 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName7 = string;
-/**
- * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
- */
-export type WindowTabSelector7 = ByIndex8 | ByName8 | ByCriteria8;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex8 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName8 = string;
-/**
- * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
- */
-export type AppWindowSelector1 = ByIndex9 | ByName9 | ByCriteria9;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
- */
-export type ByIndex9 = number;
-/**
- * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName9 = string;
-/**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
- */
-export type ScreenshotSimple1 = string;
-/**
- * Display text or selector of the element to screenshot.
- */
-export type CropByElementSimple = string;
-/**
- * Crop the screenshot to a specific element.
- */
-export type CropByElementDetailed = {
-  [k: string]: unknown;
-};
+export type CaptureScreenshotDetailed = AppCapturesDonTSupportCropYet;
 /**
  * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
  */
@@ -818,31 +765,31 @@ export type RecordSimple = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine3 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector8 = ByIndex10 | ByName10 | ByCriteria10;
+export type WindowTabSelector6 = ByIndex7 | ByName7 | ByCriteria7;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex10 = number;
+export type ByIndex7 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName10 = string;
+export type ByName7 = string;
 /**
  * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type WindowTabSelector9 = ByIndex11 | ByName11 | ByCriteria11;
+export type WindowTabSelector7 = ByIndex8 | ByName8 | ByCriteria8;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex11 = number;
+export type ByIndex8 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName11 = string;
+export type ByName8 = string;
 /**
  * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
  */
@@ -942,11 +889,55 @@ export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
 /**
  * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
  */
-export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface5 | AppSurface2;
+export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface4 | AppSurface1;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName1 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector8 = ByIndex9 | ByName9 | ByCriteria9;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex9 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName9 = string;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector9 = ByIndex10 | ByName10 | ByCriteria10;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex10 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName10 = string;
+/**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector1 = ByIndex11 | ByName11 | ByCriteria11;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex11 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName11 = string;
+/**
+ * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
+ */
+export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface5 | AppSurface2;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ */
+export type SurfaceByName2 = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -983,50 +974,6 @@ export type ByIndex14 = number;
  * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
 export type ByName14 = string;
-/**
- * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
- */
-export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface6 | AppSurface3;
-/**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
- */
-export type SurfaceByName2 = string;
-/**
- * Which window to act on. Omit to use the active window.
- */
-export type WindowTabSelector12 = ByIndex15 | ByName15 | ByCriteria15;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex15 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName15 = string;
-/**
- * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
- */
-export type WindowTabSelector13 = ByIndex16 | ByName16 | ByCriteria16;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex16 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName16 = string;
-/**
- * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
- */
-export type AppWindowSelector3 = ByIndex17 | ByName17 | ByCriteria17;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
- */
-export type ByIndex17 = number;
-/**
- * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName17 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1151,31 +1098,31 @@ export type ElementDetailed1 = {
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine4 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine3 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector14 = ByIndex18 | ByName18 | ByCriteria18;
+export type WindowTabSelector12 = ByIndex15 | ByName15 | ByCriteria15;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex18 = number;
+export type ByIndex15 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName18 = string;
+export type ByName15 = string;
 /**
  * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type WindowTabSelector15 = ByIndex19 | ByName19 | ByCriteria19;
+export type WindowTabSelector13 = ByIndex16 | ByName16 | ByCriteria16;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex19 = number;
+export type ByIndex16 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName19 = string;
+export type ByName16 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3206,121 +3153,8 @@ export interface Screenshot {
   screenshot: Screenshot1;
   [k: string]: unknown;
 }
-export interface CaptureScreenshotDetailed {
-  /**
-   * The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }).
-   */
-  surface?: SurfaceByBrowserEngine2 | BrowserSurface3 | AppSurface1;
-  path?: ScreenshotSimple1;
-  /**
-   * Directory of the PNG file. If the directory doesn't exist, creates the directory.
-   */
-  directory?: string;
-  /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
-   */
-  maxVariation?: number;
-  /**
-   * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
-   */
-  overwrite?: "true" | "false" | "aboveVariation";
-  crop?: CropByElementSimple | CropByElementDetailed;
-  sourceIntegration?: SourceIntegration;
-}
-export interface BrowserSurface3 {
-  /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
-   */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
-  /**
-   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
-   */
-  name?: string;
-  window?: WindowTabSelector6;
-  tab?: WindowTabSelector7;
-}
-export interface ByCriteria7 {
-  /**
-   * Name assigned when the window/tab was opened.
-   */
-  name?: string;
-  /**
-   * Index in creation order. Negative counts from the end.
-   */
-  index?: number;
-  /**
-   * Page title to match. Substring, or /regex/.
-   */
-  title?: string;
-  /**
-   * Page URL to match. Substring, or /regex/.
-   */
-  url?: string;
-}
-export interface ByCriteria8 {
-  /**
-   * Name assigned when the window/tab was opened.
-   */
-  name?: string;
-  /**
-   * Index in creation order. Negative counts from the end.
-   */
-  index?: number;
-  /**
-   * Page title to match. Substring, or /regex/.
-   */
-  title?: string;
-  /**
-   * Page URL to match. Substring, or /regex/.
-   */
-  url?: string;
-}
-export interface AppSurface1 {
-  /**
-   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
-   */
-  app: string;
-  window?: AppWindowSelector1;
-}
-export interface ByCriteria9 {
-  /**
-   * Assigned window name.
-   */
-  name?: string;
-  /**
-   * Index in creation order. Negative counts from the end.
-   */
-  index?: number;
-  /**
-   * Window title to match. Substring, or /regex/.
-   */
-  title?: string;
-}
-/**
- * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
- */
-export interface SourceIntegration {
-  /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
-   */
-  type: "heretto";
-  /**
-   * The name of the integration configuration in the config file. Used to look up authentication credentials.
-   */
-  integrationName: string;
-  /**
-   * The unique identifier (UUID) of the file in the source CMS. If not provided, the file will be looked up by path.
-   */
-  fileId?: string;
-  /**
-   * The path of the file in the source CMS. Used for lookup if fileId is not available.
-   */
-  filePath?: string;
-  /**
-   * The local path to the file that references this source. Used for resolving relative paths.
-   */
-  contentPath?: string;
+export interface AppCapturesDonTSupportCropYet {
+  [k: string]: unknown;
 }
 export interface Common10 {
   /**
@@ -3624,7 +3458,7 @@ export interface RecordDetailed {
   /**
    * The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByBrowserEngine3 | BrowserSurface4;
+  surface?: SurfaceByBrowserEngine2 | BrowserSurface3;
   /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
@@ -3644,7 +3478,7 @@ export interface RecordDetailed {
   engine?: RecordingEngine;
   [k: string]: unknown;
 }
-export interface BrowserSurface4 {
+export interface BrowserSurface3 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
@@ -3653,10 +3487,10 @@ export interface BrowserSurface4 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector8;
-  tab?: WindowTabSelector9;
+  window?: WindowTabSelector6;
+  tab?: WindowTabSelector7;
 }
-export interface ByCriteria10 {
+export interface ByCriteria7 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3674,7 +3508,7 @@ export interface ByCriteria10 {
    */
   url?: string;
 }
-export interface ByCriteria11 {
+export interface ByCriteria8 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -4016,6 +3850,81 @@ export interface ProcessSurface1 {
    */
   process: string;
 }
+export interface BrowserSurface4 {
+  /**
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
+   */
+  name?: string;
+  window?: WindowTabSelector8;
+  tab?: WindowTabSelector9;
+}
+export interface ByCriteria9 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria10 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface AppSurface1 {
+  /**
+   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
+   */
+  app: string;
+  window?: AppWindowSelector1;
+}
+export interface ByCriteria11 {
+  /**
+   * Assigned window name.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Window title to match. Substring, or /regex/.
+   */
+  title?: string;
+}
+export interface ProcessSurface2 {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
+}
 export interface BrowserSurface5 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
@@ -4072,81 +3981,6 @@ export interface AppSurface2 {
   window?: AppWindowSelector2;
 }
 export interface ByCriteria14 {
-  /**
-   * Assigned window name.
-   */
-  name?: string;
-  /**
-   * Index in creation order. Negative counts from the end.
-   */
-  index?: number;
-  /**
-   * Window title to match. Substring, or /regex/.
-   */
-  title?: string;
-}
-export interface ProcessSurface2 {
-  /**
-   * Name of a background process started by a runShell/runCode `background` step.
-   */
-  process: string;
-}
-export interface BrowserSurface6 {
-  /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
-   */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
-  /**
-   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
-   */
-  name?: string;
-  window?: WindowTabSelector12;
-  tab?: WindowTabSelector13;
-}
-export interface ByCriteria15 {
-  /**
-   * Name assigned when the window/tab was opened.
-   */
-  name?: string;
-  /**
-   * Index in creation order. Negative counts from the end.
-   */
-  index?: number;
-  /**
-   * Page title to match. Substring, or /regex/.
-   */
-  title?: string;
-  /**
-   * Page URL to match. Substring, or /regex/.
-   */
-  url?: string;
-}
-export interface ByCriteria16 {
-  /**
-   * Name assigned when the window/tab was opened.
-   */
-  name?: string;
-  /**
-   * Index in creation order. Negative counts from the end.
-   */
-  index?: number;
-  /**
-   * Page title to match. Substring, or /regex/.
-   */
-  title?: string;
-  /**
-   * Page URL to match. Substring, or /regex/.
-   */
-  url?: string;
-}
-export interface AppSurface3 {
-  /**
-   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
-   */
-  app: string;
-  window?: AppWindowSelector3;
-}
-export interface ByCriteria17 {
   /**
    * Assigned window name.
    */
@@ -4722,10 +4556,10 @@ export interface DragAndDrop1 {
   /**
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByBrowserEngine4 | BrowserSurface7;
+  surface?: SurfaceByBrowserEngine3 | BrowserSurface6;
   [k: string]: unknown;
 }
-export interface BrowserSurface7 {
+export interface BrowserSurface6 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
@@ -4734,10 +4568,10 @@ export interface BrowserSurface7 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector14;
-  tab?: WindowTabSelector15;
+  window?: WindowTabSelector12;
+  tab?: WindowTabSelector13;
 }
-export interface ByCriteria18 {
+export interface ByCriteria15 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -4755,7 +4589,7 @@ export interface ByCriteria18 {
    */
   url?: string;
 }
-export interface ByCriteria19 {
+export interface ByCriteria16 {
   /**
    * Name assigned when the window/tab was opened.
    */
