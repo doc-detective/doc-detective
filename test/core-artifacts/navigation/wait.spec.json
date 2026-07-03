@@ -3,7 +3,7 @@
     {
       "steps": [
         {
-          "loadVariables": "env"
+          "loadVariables": "../env"
         },
         {
           "wait": true

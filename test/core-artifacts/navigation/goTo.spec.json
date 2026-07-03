@@ -3,7 +3,7 @@
     {
       "steps": [
         {
-          "loadVariables": "env"
+          "loadVariables": "../env"
         },
         {
           "goTo": "http://localhost:8092"

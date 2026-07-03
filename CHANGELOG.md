@@ -1,3 +1,10 @@
+# [4.19.0](https://github.com/doc-detective/doc-detective/compare/v4.18.0...v4.19.0) (2026-07-03)
+
+
+### Features
+
+* multiple concurrent browser surfaces (multi-surface Phase 4) ([#483](https://github.com/doc-detective/doc-detective/issues/483)) ([8c521a2](https://github.com/doc-detective/doc-detective/commit/8c521a22c094144ca394692f635eb3b25c369e2d))
+
 # [4.18.0](https://github.com/doc-detective/doc-detective/compare/v4.17.1...v4.18.0) (2026-07-02)
 
 
