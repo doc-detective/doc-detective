@@ -249,7 +249,9 @@ tab so they don't sit inside the user-facing Documentation tab.
 
 ### Support — `support.mdx`, `legal/`
 
-Support · Resources · Legal / Privacy policy.
+Support · Resources · Legal / Privacy policy · Telemetry and data collection (what anonymous
+telemetry Doc Detective collects and how to turn it off; cross-cutting trust concern, serves all
+personas).
 
 ---
 

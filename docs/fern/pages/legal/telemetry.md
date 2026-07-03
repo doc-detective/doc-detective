@@ -1,0 +1,78 @@
+---
+title: Telemetry and data collection
+description: What anonymous telemetry Doc Detective collects, why, and how to turn it off.
+---
+
+Doc Detective collects basic anonymous telemetry to help the team understand product issues and usage. Telemetry is on by default, never sends personal or documentation content, and you can turn it off with a single config setting.
+
+## The notice you see
+
+The first time you run Doc Detective, it prints a telemetry notice at the `info` log level.
+
+When telemetry is on (the default):
+
+```text
+Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file.
+```
+
+When you turn telemetry off:
+
+```text
+Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file.
+```
+
+## What Doc Detective collects
+
+Each telemetry event records the command you ran (for example, `runTests`) and a set of anonymous environment properties:
+
+Property | Description
+:-- | :--
+`distribution` | The Doc Detective distribution, such as `doc-detective`.
+`dist_interface` | The interface used to run Doc Detective, such as `package`.
+`core_version`, `dist_version` | The Doc Detective version.
+`core_platform`, `dist_platform` | The operating system: `windows`, `mac`, or `linux`.
+`core_platform_version`, `dist_platform_version` | The operating system release.
+`core_platform_arch`, `dist_platform_arch` | The CPU architecture, such as `x64` or `arm64`.
+`core_deployment`, `dist_deployment` | The runtime, such as `node`.
+`core_deployment_version`, `dist_deployment_version` | The runtime version, such as the Node.js version.
+
+For `runTests` commands, Doc Detective also sends a flattened summary of the run: pass and fail counts for specs, tests, and contexts. It sends result counts only, never the contents of your documentation, tests, URLs, or screenshots.
+
+Doc Detective attributes each event to the identifier `anonymous` unless you set a `userId` (see [Identify your runs](#identify-your-runs)), and sends telemetry to [PostHog](https://posthog.com).
+
+## Turn telemetry off
+
+To disable telemetry, set `telemetry.send` to `false` in your `.doc-detective.json` config file:
+
+```json
+{
+  "telemetry": {
+    "send": false
+  }
+}
+```
+
+When `telemetry.send` is `false`, Doc Detective returns before it assembles or sends any telemetry data. For the full field reference, see [Telemetry options](/reference/schemas/telemetry-options).
+
+## Identify your runs
+
+By default, telemetry events are anonymous. To attribute your runs to an organization, group, or individual, set `telemetry.userId`:
+
+```json
+{
+  "telemetry": {
+    "send": true,
+    "userId": "your-team-name"
+  }
+}
+```
+
+## Override metadata with `DOC_DETECTIVE_META`
+
+Distributions that wrap Doc Detective can identify themselves through the `DOC_DETECTIVE_META` environment variable. Set it to a JSON object whose fields seed the telemetry metadata, for example to record a custom deployment:
+
+```bash
+export DOC_DETECTIVE_META='{"dist_deployment":"docker","dist_interface":"cli"}'
+```
+
+Doc Detective merges these values into the properties it collects. Any field you don't set falls back to the value Doc Detective detects automatically. Setting `DOC_DETECTIVE_META` doesn't enable telemetry on its own: if `telemetry.send` is `false`, Doc Detective sends nothing.
