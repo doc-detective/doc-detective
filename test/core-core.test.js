@@ -72,6 +72,9 @@ describe("Run tests successfully", function () {
       const unmet = tests.find((t) => t.testId === "gate-unmet");
       const met = tests.find((t) => t.testId === "gate-met");
 
+      // Guard first so an empty contexts array can't render the per-context
+      // assertions vacuously true.
+      assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
       for (const ctx of unmet.contexts) {
         assert.equal(ctx.result, "SKIPPED");
         assert.match(ctx.resultDescription, /unmet requirements/);
