@@ -103,7 +103,7 @@
                         "webkit",
                         "edge"
                       ],
-                      "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
                     },
                     "name": {
                       "type": "string",
@@ -112,7 +112,7 @@
                       "transform": [
                         "trim"
                       ],
-                      "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
                     },
                     "window": {
                       "description": "Which window to act on. Omit to use the active window.",
@@ -350,7 +350,7 @@
                           "webkit",
                           "edge"
                         ],
-                        "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
                       },
                       "name": {
                         "type": "string",
@@ -359,7 +359,7 @@
                         "transform": [
                           "trim"
                         ],
-                        "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                        "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
                       },
                       "window": {
                         "description": "Which window to act on. Omit to use the active window.",
@@ -653,6 +653,10 @@
                   "tab": {
                     "title": "/Checkout/"
                   }
+                },
+                {
+                  "browser": "chrome",
+                  "name": "shopper"
                 },
                 {
                   "app": "notepad"
@@ -1592,7 +1596,7 @@
                           "webkit",
                           "edge"
                         ],
-                        "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
                       },
                       "name": {
                         "type": "string",
@@ -1601,7 +1605,7 @@
                         "transform": [
                           "trim"
                         ],
-                        "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                        "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
                       },
                       "window": {
                         "description": "Which window to act on. Omit to use the active window.",
@@ -1839,7 +1843,7 @@
                             "webkit",
                             "edge"
                           ],
-                          "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
                         },
                         "name": {
                           "type": "string",
@@ -1848,7 +1852,7 @@
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+                          "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
                         },
                         "window": {
                           "description": "Which window to act on. Omit to use the active window.",
@@ -2142,6 +2146,10 @@
                     "tab": {
                       "title": "/Checkout/"
                     }
+                  },
+                  {
+                    "browser": "chrome",
+                    "name": "shopper"
                   },
                   {
                     "app": "notepad"

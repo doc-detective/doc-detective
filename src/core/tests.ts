@@ -3503,10 +3503,23 @@ async function runContext({
       }
     }
     // Tear down app surfaces: close every remaining app session (the driver
-    // terminates apps it launched) and stop the app Appium server.
+    // terminates apps it launched) and stop the app Appium server. Tree-kill
+    // in callback form so the server process is actually gone before the
+    // context returns (mirrors the run-level killTree closure in runSpecs).
     if (appSession) {
       try {
-        await teardownAppSession(appSession, (pid) => killTree(pid));
+        await teardownAppSession(
+          appSession,
+          (pid) =>
+            new Promise<void>((resolve) => {
+              if (!pid) return resolve();
+              try {
+                kill(pid, "SIGTERM", () => resolve());
+              } catch {
+                resolve();
+              }
+            })
+        );
       } catch (error: any) {
         clog("error", `Failed to tear down app surfaces: ${error?.message ?? error}`);
       }

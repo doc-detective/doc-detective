@@ -5751,11 +5751,11 @@ export interface GoTo {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector;
@@ -6610,11 +6610,11 @@ export interface RunBrowserScriptDetailed {
 }
 export interface BrowserSurface1 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector2;
@@ -6815,11 +6815,11 @@ export interface ProcessSurface {
 }
 export interface BrowserSurface2 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector4;
@@ -7103,11 +7103,11 @@ export interface CaptureScreenshotDetailed {
 }
 export interface BrowserSurface3 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector6;
@@ -7523,11 +7523,11 @@ export interface RecordDetailed {
 }
 export interface BrowserSurface4 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector8;
@@ -7899,11 +7899,11 @@ export interface ProcessSurface1 {
 }
 export interface BrowserSurface5 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector10;
@@ -7974,11 +7974,11 @@ export interface ProcessSurface2 {
 }
 export interface BrowserSurface6 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector12;
@@ -8614,11 +8614,11 @@ export interface DragAndDrop1 {
 }
 export interface BrowserSurface7 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector14;
@@ -9664,11 +9664,11 @@ export interface GoTo2 {
 }
 export interface BrowserSurface8 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector16;
@@ -10523,11 +10523,11 @@ export interface RunBrowserScriptDetailed1 {
 }
 export interface BrowserSurface9 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector18;
@@ -10728,11 +10728,11 @@ export interface ProcessSurface3 {
 }
 export interface BrowserSurface10 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector20;
@@ -11016,11 +11016,11 @@ export interface CaptureScreenshotDetailed1 {
 }
 export interface BrowserSurface11 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector22;
@@ -11436,11 +11436,11 @@ export interface RecordDetailed1 {
 }
 export interface BrowserSurface12 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector24;
@@ -11812,11 +11812,11 @@ export interface ProcessSurface4 {
 }
 export interface BrowserSurface13 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector26;
@@ -11887,11 +11887,11 @@ export interface ProcessSurface5 {
 }
 export interface BrowserSurface14 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector28;
@@ -12527,11 +12527,11 @@ export interface DragAndDrop3 {
 }
 export interface BrowserSurface15 {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector30;
