@@ -99,7 +99,7 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.group }} fixtures
-        uses: doc-detective/github-action@eedc136bc5e1dfab18aeb81402539126f7565cc4 # feat/empty-version-runs-local-build (PR #70)
+        uses: doc-detective/github-action@922131748e00f25f608fcfd7742d6f65b1cc6cb9 # v1.5.0
         with:
           version: ''
           working_directory: .
