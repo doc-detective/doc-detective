@@ -83,7 +83,9 @@ async function findElement({ config, step, driver, click, appSession }: { config
       const found = await findAppElement({
         driver: appDriver,
         criteria: step.find,
-        timeout: step.find.timeout || 5000,
+        // ?? so an explicit `timeout: 0` (schema minimum) stays an
+        // immediate check instead of being clobbered to the default.
+        timeout: step.find.timeout ?? 5000,
       });
       if (found.error) {
         result.description = found.error;
