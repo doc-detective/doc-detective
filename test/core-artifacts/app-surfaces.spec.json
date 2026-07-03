@@ -59,6 +59,15 @@
           }
         },
         {
+          "screenshot": {
+            "path": "charmap-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
           "closeSurface": {
             "app": "charmap"
           }
