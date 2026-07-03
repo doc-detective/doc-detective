@@ -239,8 +239,8 @@ Same shared shape as every kind; apps have **windows, no tabs**:
 ```
 
 - `window` uses the **shared selector grammar** (name / index / `-1` / criteria)
-  minus `url` (meaningless for native windows). Dialogs and secondary windows an
-  app opens on its own are addressable by `title`/index, mirroring the browser
+  minus `url` (meaningless for native windows). Dialogs and secondary windows
+  that an app opens on its own are addressable by `title`/index, mirroring the browser
   caveat about page-opened tabs. Mobile apps are effectively single-window;
   `window` is legal but rarely needed there.
 - Window addressing depends on per-driver window-handle support. The **schema
@@ -311,7 +311,7 @@ adapter maps them onto its platform's accessibility properties:
 | `elementId` | `id` attr | `AutomationId` | `AXIdentifier` | accessibility id | `resource-id` |
 | `elementAria` `{ role, name }` | ARIA role/name | `ControlType` + `Name` | `AXRole` + `AXTitle` | element type + `label` | class + content-desc |
 | `elementTestId` | `data-testid` | → `AutomationId` | → `AXIdentifier` | → accessibility id | → `resource-id` |
-| `selector` | CSS | **native escape hatch** | ” | ” | ” |
+| `selector` | CSS | native escape hatch | native escape hatch | native escape hatch | native escape hatch |
 
 Principles:
 
