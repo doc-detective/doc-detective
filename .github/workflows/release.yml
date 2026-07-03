@@ -42,8 +42,14 @@ jobs:
       HERETTO_USERNAME: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_USERNAME || '' }}
       HERETTO_TOKEN: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && secrets.HERETTO_TOKEN || '' }}
 
+  # Per-feature Doc Detective fixtures (group x OS), the release-side counterpart
+  # of the PR gate's `fixtures` job. Release must not publish on a fixture
+  # regression, so `release` waits on this too.
+  fixtures:
+    uses: ./.github/workflows/fixtures.yml
+
   release:
-    needs: test
+    needs: [test, fixtures]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:

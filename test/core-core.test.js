@@ -11,24 +11,25 @@ describe("Run tests successfully", function () {
   // 30 minutes for the combined core test suite (runs all specs in one Appium session)
   this.timeout(1800000);
   describe("Core test suite", function () {
-    // Run the ENTIRE core suite in ONE concurrent pass (concurrentRunners=2) on
-    // every OS. The resource-aware scheduler auto-serializes display-bound
-    // ffmpeg recordings on a shared "display" mutex while everything else runs
-    // in parallel, so the recording specs (recording, recording-permutations,
-    // autorecord, "Do all the things!") no longer need a separate serial pass.
-    // cookie-tests is self-contained and ordered (its Docker container is
-    // started in the first step and removed in the last), so it is safe here
-    // too. concurrentRunners is set here (not in config.json) so the shared
-    // config_base stays serial for other consumers like
-    // appium-port-conflict.test.js, which probes single-Appium port behavior.
-    it("All core specs pass under concurrentRunners=2", async () => {
+    // Minimal smoke. The bulk of the fixtures now run OUTSIDE mocha, in the
+    // per-feature Doc Detective GitHub Action jobs (one group dir under
+    // test/core-artifacts/<group> per job, fanned across all 3 OSes) — see
+    // .github/workflows/fixtures.yml and adrs/01022-*. This pass only exercises
+    // the broad "Do all the things!" spec (test.spec.json: checkLink +
+    // httpRequest + goTo + find/type + recording in one test), so a gross
+    // breakage in the combined runTests() pipeline still fails fast under mocha.
+    // Deep per-feature coverage lives in the group jobs; the recording/display-
+    // mutex concurrency behavior is covered by the recording group job and
+    // test/concurrency.test.js. concurrentRunners is set here (not in
+    // config.json) so the shared config_base stays serial for other consumers
+    // like appium-port-conflict.test.js, which probes single-Appium port behavior.
+    it("Smoke: the 'do all the things' spec passes end-to-end", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
-      config_tests.input = artifactPath;
+      config_tests.input = path.resolve(artifactPath, "test.spec.json");
       config_tests.concurrentRunners = 2;
       const result = await runTests(config_tests);
       if (result === null) assert.fail("Expected result to be non-null");
-      // The run must NOT collapse to whole-run serial — recordings serialize on
-      // the display mutex while the rest of the contexts run in parallel.
+      // A single-spec run must not collapse to whole-run serial.
       assert.notEqual(
         result.recordingForcedSerial,
         true,

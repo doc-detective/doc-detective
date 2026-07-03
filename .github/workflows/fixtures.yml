@@ -1,0 +1,124 @@
+# Reusable feature-fixture matrix. The core Doc Detective *.spec.json fixtures
+# no longer run inside the mocha suite (that combined pass timed out at 90 min
+# on Windows — see adrs/01022-*). Instead they live in per-feature subdirectories
+# under test/core-artifacts/<group>/ and run here, one small job per
+# (group x OS), fanned out so no single job is a monolith.
+#
+# Each job builds the PR's own code, `npm link`s it, and drives it through the
+# Doc Detective GitHub Action with an empty `version` so the action's
+# `npx doc-detective` resolves THIS build — not the published npm package — and
+# the gate exercises the change under review (see doc-detective/github-action#70).
+# The action writes results to $RUNNER_TEMP/doc-detective-output.json; each job
+# runs scripts/check-fixture-results.cjs against it to fail the job on any FAILed
+# spec (or a zero-spec, mis-pointed run). Per policy every spec must resolve to
+# PASS or SKIPPED, so display/engine-gated permutations (recording on headless
+# Linux, browser engines, etc.) land as SKIPPED where they can't run and still
+# pass the gate.
+#
+# Callers: npm-test.yaml (PR gate) and release.yml (release gate).
+
+name: Fixture Matrix
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    name: ${{ matrix.group }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        # One directory under test/core-artifacts/ per group. Keep this list in
+        # sync with the subdirectories there (a group with no specs fails its
+        # job via check-fixture-results.cjs, so a typo can't pass silently).
+        group:
+          - navigation
+          - interactions
+          - capture
+          - recording
+          - routing
+          - guards
+          - http
+          - process
+          - sessions
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          # Fixture runtime behavior is node-line-independent; the smoke +
+          # unit matrix in test.yml still exercises node 22 and 24. Pin the
+          # fixture jobs to one line to keep the job count at group x OS.
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      # Expose the freshly-built package so the action's `npx doc-detective`
+      # (run with an empty `version`, see below) resolves THIS build instead of
+      # fetching the published one from the registry.
+      - name: Link local build
+        run: npm link
+
+      # Bring up the static/echo test servers (8092 main, 8093 API) that the
+      # browser and http fixtures hit. Backgrounded, then gated on readiness by
+      # a dependency-free poll. Groups that don't touch the servers just ignore
+      # them. bash is used so the same script works on the Windows runner too.
+      - name: Start test servers
+        shell: bash
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      # Diagnostic: make the CI log show which doc-detective the action will run,
+      # so a silent fallback to the published package is visible. The linked
+      # build's version and the global link should both point at this checkout.
+      - name: Resolution diagnostic
+        shell: bash
+        run: |
+          echo "local package version: $(node -p "require('./package.json').version")"
+          npm ls -g doc-detective || true
+          npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+
+      # Run the group through the Doc Detective GitHub Action, against the linked
+      # local build (version: "" → bare `npx doc-detective`, see
+      # doc-detective/github-action#70). The action writes its results to
+      # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
+      # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
+      - name: Run ${{ matrix.group }} fixtures
+        uses: doc-detective/github-action@eedc136bc5e1dfab18aeb81402539126f7565cc4 # feat/empty-version-runs-local-build (PR #70)
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/${{ matrix.group }}
+
+      # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
+      # job. PASS and SKIPPED both pass the gate.
+      - name: Gate on results
+        shell: bash
+        run: |
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.group }}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${{ matrix.group }}.json"
+
+      # Preserve the run's JSON for debugging a failure.
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-${{ matrix.group }}-${{ matrix.os }}
+          path: dd-output-${{ matrix.group }}.json
+          retention-days: 3
+          if-no-files-found: warn
