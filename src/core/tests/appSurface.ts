@@ -19,6 +19,7 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
+import { resolveCropGeometry } from "./ffmpegRecorder.js";
 
 export {
   classifyAppIdentifier,
@@ -189,17 +190,21 @@ interface AppSurfaceEntry {
 // Per-context app-session state, created by runContext and threaded through
 // runStep. The app session owns its own Appium server because the native
 // driver may be lazy-installed into the runtime cache, whose APPIUM_HOME
-// differs from the browser pool's (shim) home.
+// differs from the browser pool's (shim) home. `recordingHost` gives
+// recordings a `driver.state.recordings`-shaped home in app-only contexts
+// (no browser driver), so ffmpeg captures — including autoRecord — ride the
+// existing per-session recording machinery unchanged.
 interface AppSessionState {
   server?: { port: number; process: any };
   appiumEntry?: string;
   appiumHome?: string;
   surfaces: Map<string, AppSurfaceEntry>;
   activeApp?: string;
+  recordingHost: { state: { recordings: any[] } };
 }
 
 function createAppSessionState(): AppSessionState {
-  return { surfaces: new Map() };
+  return { surfaces: new Map(), recordingHost: { state: { recordings: [] } } };
 }
 
 // Steps that provision or (by object form) target an app surface. Used by
@@ -562,6 +567,28 @@ async function startAppSurface({
     launchedByUs: true,
   });
   appSession.activeApp = name;
+
+  // Late-bind window crops: an autoRecord capture in an app-only context
+  // starts before any app window exists, so it records the full display with
+  // a pending marker. The first app surface to open supplies its window rect
+  // as the crop — scoping the recording to the app under test — which the
+  // stop-side transcode then applies.
+  const pendingHandles = (
+    appSession.recordingHost?.state?.recordings ?? []
+  ).filter((handle: any) => handle?.pendingAppWindowCrop && !handle.crop);
+  for (const handle of pendingHandles) {
+    try {
+      handle.crop = await resolveCropGeometry({ driver, target: "window" });
+      handle.pendingAppWindowCrop = false;
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Couldn't resolve the app window geometry for the active recording; it stays full-display. ${error?.message ?? error}`
+      );
+    }
+  }
+
   log(config, "debug", `Opened app surface "${name}" (${appId}).`);
   result.description = `Opened app surface "${name}" (${appId}).`;
   result.outputs = { name, app: appId };

@@ -434,11 +434,15 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
 
 // Like isDriverRequired, but only counts driver steps that need a BROWSER: a
 // step whose payload targets an app surface (object form) is driven by the
-// app session instead, so it must not force a default browser into existence.
+// app session instead, and the synthetic autoRecord capture is an ffmpeg
+// screen grab — neither may force a default browser into existence (in a
+// browser test the authored steps already require one, so excluding the
+// synthetic step never changes the outcome there).
 function isBrowserRequired({ test }: { test: any }): boolean {
   if (!Array.isArray(test?.steps)) return false;
   return test.steps.some(
     (step: any) =>
+      !step?.__autoRecord &&
       driverActions.some((action) => typeof step[action] !== "undefined") &&
       !stepTargetsAppSurface(step)
   );
@@ -3466,9 +3470,18 @@ async function runContext({
     // Stop every recording still active at the end of the context (the
     // synthetic autoRecord capture plus any explicit record steps the author
     // didn't stop). Each produces an ordered stopRecord step report.
-    // Recordings live per session, so sweep every registered driver.
+    // Recordings live per session, so sweep every registered driver — and the
+    // app session's recordingHost, which holds app-only-context recordings.
     for (const d of sessionDrivers(browserSessions, driver)) {
       await stopAllRecordings({ config, context, driver: d, contextReport });
+    }
+    if (appSession?.recordingHost.state.recordings.length) {
+      await stopAllRecordings({
+        config,
+        context,
+        driver: appSession.recordingHost,
+        contextReport,
+      });
     }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
@@ -3483,6 +3496,14 @@ async function runContext({
       // in-loop sweep, finalizing recordings before deleteSession kills them.
       for (const d of sessionDrivers(browserSessions, driver)) {
         await stopAllRecordings({ config, context, driver: d, contextReport });
+      }
+      if (appSession?.recordingHost.state.recordings.length) {
+        await stopAllRecordings({
+          config,
+          context,
+          driver: appSession.recordingHost,
+          contextReport,
+        });
       }
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
@@ -3666,7 +3687,12 @@ async function runStep({
   } else if (typeof step.find !== "undefined") {
     actionResult = await findElement({ config: config, step: step, driver, appSession });
   } else if (typeof step.stopRecord !== "undefined") {
-    actionResult = await stopRecording({ config: config, step: step, driver });
+    actionResult = await stopRecording({
+      config: config,
+      step: step,
+      // App-only contexts keep recordings on the app session's host.
+      driver: driver ?? appSession?.recordingHost,
+    });
   } else if (typeof step.goTo !== "undefined") {
     actionResult = await goTo({ config: config, step: step, driver: driver });
   } else if (typeof step.loadVariables !== "undefined") {
@@ -3699,13 +3725,23 @@ async function runStep({
     // Push the started recording onto the per-context stack so several can
     // overlap. Carry the step's `id`/`name` so a later stopRecord can target
     // it (by name) and end-of-context cleanup can identify the synthetic one.
+    // App-only contexts have no browser driver: recordings live on the app
+    // session's recordingHost (same `.state.recordings` shape) instead.
     if (actionResult.recording) {
-      if (!Array.isArray(driver.state.recordings)) driver.state.recordings = [];
+      const recordingHost = driver ?? appSession?.recordingHost;
+      if (!Array.isArray(recordingHost.state.recordings))
+        recordingHost.state.recordings = [];
       const handle = actionResult.recording;
       handle.id = handle.id ?? randomUUID();
       handle.name = handle.name ?? recordStepName(step.record);
-      if (step.__autoRecord) handle.synthetic = true;
-      driver.state.recordings.push(handle);
+      if (step.__autoRecord) {
+        handle.synthetic = true;
+        // App-only context: no window exists yet to crop to. Mark the handle
+        // so the first app surface to open late-binds its window rect as the
+        // crop (startAppSurface), scoping the capture to the app under test.
+        if (!driver && appSession) handle.pendingAppWindowCrop = true;
+      }
+      recordingHost.state.recordings.push(handle);
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step, driver, processRegistry });
@@ -3771,8 +3807,10 @@ async function runStep({
       description: `Unknown step action: ${JSON.stringify(step)}`,
     };
   }
-  // If recording, wait until browser is loaded, then instantiate cursor
-  if (isRecordingActive(driver)) {
+  // If recording, wait until browser is loaded, then instantiate cursor.
+  // The `getUrl` guard skips the synthetic-cursor dance when `driver` is the
+  // app session's recordingHost (a bare state holder, not a browser session).
+  if (isRecordingActive(driver) && typeof driver.getUrl === "function") {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;

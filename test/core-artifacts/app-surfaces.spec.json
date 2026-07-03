@@ -4,7 +4,8 @@
   "tests": [
     {
       "testId": "app-charmap-flow",
-      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, and close the surface explicitly.",
+      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, and close the surface explicitly. autoRecord proves app-context recording: the capture starts full-display (no window exists yet), and the first app surface to open late-binds its window rect as the crop, so the finished recording is scoped to the Character Map window.",
+      "autoRecord": true,
       "runOn": [
         {
           "platforms": [

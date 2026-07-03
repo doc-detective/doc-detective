@@ -360,6 +360,34 @@ describe("startAppSurface", function () {
     assert.match(collision.description, /already open/);
   });
 
+  it("late-binds pending window crops from the first opened app surface", async function () {
+    const appSession = preflighted();
+    // A synthetic autoRecord capture started before any app window existed:
+    // full-display with a pending marker.
+    const handle = { type: "ffmpeg", pendingAppWindowCrop: true };
+    appSession.recordingHost.state.recordings.push(handle);
+    const driver = {
+      async deleteSession() {},
+      async getWindowRect() {
+        return { x: 10, y: 20, width: 800, height: 600 };
+      },
+      async execute() {
+        // NovaWindows: execute is unimplemented -> dpr falls back to 1.
+        throw new Error("Method is not implemented");
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "C:\\x\\app.exe" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(handle.crop, { x: 10, y: 20, w: 800, h: 600 });
+    assert.equal(handle.pendingAppWindowCrop, false);
+  });
+
   it("fails cleanly when the session can't start", async function () {
     const appSession = preflighted();
     const result = await startAppSurface({
