@@ -406,10 +406,19 @@ driver**, which is the natural seam.
   {app, args, workingDirectory}` (subsumes `openApp`) + app `window` selectors, via
   a lazily-installed native Appium driver (mac2 / windows), graceful skip when
   absent. Add the `context_v3.requires` gate so app/CLI tests SKIP cleanly.
+  **Expanded into its own phased roadmap** (Windows → macOS → emulated Android →
+  emulated iOS → mobile browsers → mobile vocabulary → app recording → Linux
+  spike, phases A1–A8) in [native app surfaces](native-app-surfaces.md); that
+  doc also pulls `startSurface`'s app branch forward into its first phase and
+  adds `android`/`ios` to `runOn.platforms` (with `hosts` + `device` context
+  fields) as the mobile environment model.
 - **Phase 6 — convergence & ergonomics.** Generic `startSurface` incl. the parallel
   array form (browser/process too); extend `closeSurface` to browser/app surfaces;
   factor `browserConfig` and apply the `window`→`size` rename (deprecated alias)
-  shared by `runOn` + `startSurface`. (`closeSurface` itself ships in Phase 1.)
+  shared by `runOn` + `startSurface`. (`closeSurface` itself ships in Phase 1;
+  the `startSurface` step and its app branch ship first in
+  [native app surfaces](native-app-surfaces.md) phase A1 — Phase 6 adds the
+  remaining kind branches and the array form.)
 
 Phase 1 is fully specified in the companion plan file; later phases reuse the
 schema and registry it establishes.
