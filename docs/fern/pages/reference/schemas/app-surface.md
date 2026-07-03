@@ -8,7 +8,10 @@ description: "Reference for the `App surface` schema."
 
 ## Referenced In
 
+- [Click element (detailed)](/reference/schemas/click-element-detailed)
+- [Find element (detailed)](/reference/schemas/find-element-detailed)
 - [Type keys (detailed)](/reference/schemas/type-keys-detailed)
+- [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
 - [closeSurface](/reference/schemas/closesurface)
 
 ## Fields
