@@ -95,7 +95,8 @@
     "yargs": "^18.0.0"
   },
   "ddRuntimeDependencies": {
-    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1"
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
+    "appium-novawindows-driver": "^1.4.1"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

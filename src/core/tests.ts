@@ -66,6 +66,15 @@ import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
 import { closeSurface } from "./tests/closeSurface.js";
+import {
+  createAppSessionState,
+  appSurfacePreflight,
+  isAppDriverRequired,
+  stepTargetsAppSurface,
+  startAppSurface,
+  teardownAppSession,
+  type AppSessionState,
+} from "./tests/appSurface.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import {
@@ -421,6 +430,18 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   }
   // Return boolean
   return Boolean(isSupportedApp && isSupportedPlatform);
+}
+
+// Like isDriverRequired, but only counts driver steps that need a BROWSER: a
+// step whose payload targets an app surface (object form) is driven by the
+// app session instead, so it must not force a default browser into existence.
+function isBrowserRequired({ test }: { test: any }): boolean {
+  if (!Array.isArray(test?.steps)) return false;
+  return test.steps.some(
+    (step: any) =>
+      driverActions.some((action) => typeof step[action] !== "undefined") &&
+      !stepTargetsAppSurface(step)
+  );
 }
 
 // Evaluate a context's `requires` capability gate. Returns null when the gate
@@ -2612,8 +2633,11 @@ async function runContext({
     ];
   }
 
-  // If "browser" isn't defined but is required by the test, set it to the first available browser in the sequence of Firefox, Chrome, Safari
-  if (!context.browser && isDriverRequired({ test: context })) {
+  // If "browser" isn't defined but is required by the test, set it to the
+  // first available browser in the sequence of Firefox, Chrome, Safari.
+  // App-targeted steps don't count: they run on the app session, so an
+  // app-only test never boots a browser it won't use.
+  if (!context.browser && isBrowserRequired({ test: context })) {
     context.browser = getDefaultBrowser({ runnerDetails });
   }
 
@@ -2643,11 +2667,30 @@ async function runContext({
     }
   }
 
+  // App-surface preflight (native app phase A1): when the test provisions or
+  // targets app surfaces, verify the platform supports them and the native
+  // driver is (or can be) installed. Unmet -> SKIPPED with the reason, same
+  // gating semantics as `requires`. On success, the context gets an app
+  // session primed with the resolved Appium entry/home for the app server.
+  let appSession: AppSessionState | undefined;
+  if (isAppDriverRequired({ test: context })) {
+    const preflight = await appSurfacePreflight({ config, platform });
+    if (!preflight.ok) {
+      clog("warning", preflight.reason);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = preflight.reason;
+      return contextReport;
+    }
+    appSession = createAppSessionState();
+    appSession.appiumEntry = preflight.appiumEntry;
+    appSession.appiumHome = preflight.appiumHome;
+  }
+
   // If a driver is required but no browser could be resolved (e.g.
   // getDefaultBrowser found nothing installed, or the context supplied a
   // browser object with no name), skip with an explicit reason instead of
   // letting it fail later as "Failed to start context 'undefined'".
-  if (isDriverRequired({ test: context }) && !context.browser?.name) {
+  if (isBrowserRequired({ test: context }) && !context.browser?.name) {
     const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
     clog("warning", errorMessage);
     contextReport.result = "SKIPPED";
@@ -2733,7 +2776,8 @@ async function runContext({
   // Context-level browserFallback (authored on the runOn entry) overrides the
   // config-level policy; config defaults to "auto".
   const fallbackPolicy = resolveBrowserFallbackPolicy({ context, config });
-  const driverRequired = isDriverRequired({ test: context });
+  // Browser-required (not app): app-targeted steps run on the app session.
+  const driverRequired = isBrowserRequired({ test: context });
 
   const candidateEngines =
     platformMatches && driverRequired
@@ -3270,6 +3314,7 @@ async function runContext({
             openApiDefinitions: context.openApi || [],
           },
           processRegistry: processRegistry,
+          appSession: appSession,
         });
         clog(
           "debug",
@@ -3457,6 +3502,15 @@ async function runContext({
         clog("error", `Failed to delete driver session: ${error.message}`);
       }
     }
+    // Tear down app surfaces: close every remaining app session (the driver
+    // terminates apps it launched) and stop the app Appium server.
+    if (appSession) {
+      try {
+        await teardownAppSession(appSession, (pid) => killTree(pid));
+      } catch (error: any) {
+        clog("error", `Failed to tear down app surfaces: ${error?.message ?? error}`);
+      }
+    }
     // Return the Appium server to the pool for the next queued context. Always
     // runs (even on the driver-start-failure early return) so a port can't
     // leak out of the pool and starve later contexts.
@@ -3567,6 +3621,7 @@ async function runStep({
   metaValues = {},
   options = {},
   processRegistry,
+  appSession,
 }: {
   config?: any;
   context?: any;
@@ -3575,6 +3630,7 @@ async function runStep({
   metaValues?: any;
   options?: any;
   processRegistry?: Map<string, any>;
+  appSession?: AppSessionState;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -3584,6 +3640,7 @@ async function runStep({
       config: config,
       step: step,
       driver: driver,
+      appSession,
     });
   } else if (typeof step.dragAndDrop !== "undefined") {
     actionResult = await dragAndDropElement({
@@ -3594,7 +3651,7 @@ async function runStep({
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
-    actionResult = await findElement({ config: config, step: step, driver });
+    actionResult = await findElement({ config: config, step: step, driver, appSession });
   } else if (typeof step.stopRecord !== "undefined") {
     actionResult = await stopRecording({ config: config, step: step, driver });
   } else if (typeof step.goTo !== "undefined") {
@@ -3648,12 +3705,38 @@ async function runStep({
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.closeSurface !== "undefined") {
-    actionResult = await closeSurface({ config: config, step: step, driver, processRegistry });
+    actionResult = await closeSurface({ config: config, step: step, driver, processRegistry, appSession });
+  } else if (typeof step.startSurface !== "undefined") {
+    if (!appSession) {
+      actionResult = {
+        status: "FAIL",
+        description:
+          "startSurface ran without an app session; this is a runner bug (runContext must preflight app-driver tests).",
+      };
+    } else {
+      actionResult = await startAppSurface({
+        config: config,
+        step: step,
+        appSession,
+        platform: context?.platform ?? "",
+        serverDeps: {
+          startServer: async (appiumEntry: string, appiumHome: string) => {
+            const server = await startAppiumServer(appiumEntry, config, undefined, {
+              APPIUM_HOME: appiumHome,
+            });
+            return { port: server.port, process: server.process };
+          },
+          startDriver: (capabilities: any, port: number) =>
+            driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+        },
+      });
+    }
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,
       step: step,
       driver: driver,
+      appSession,
     });
   } else if (typeof step.type !== "undefined") {
     actionResult = await typeKeys({
@@ -3661,6 +3744,7 @@ async function runStep({
       step: step,
       driver: driver,
       processRegistry,
+      appSession,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });
@@ -3731,14 +3815,20 @@ async function runStep({
 async function startAppiumServer(
   appiumEntry: string,
   config: any,
-  display?: string
+  display?: string,
+  extraEnv?: Record<string, string>
 ): Promise<{ port: number; process: any; display?: string }> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
   // When a virtual display is supplied (Linux Xvfb recording), launch the
   // server with DISPLAY set so the browser it spawns (via chromedriver)
   // renders on that display — which is what ffmpeg x11grab then captures.
-  const env = display ? { ...process.env, DISPLAY: display } : process.env;
+  // `extraEnv` overrides (e.g. APPIUM_HOME for the app-surface server, which
+  // must be homed where the lazily-installed native driver lives).
+  const env =
+    display || extraEnv
+      ? { ...process.env, ...(display ? { DISPLAY: display } : {}), ...extraEnv }
+      : process.env;
   const proc: any = spawn(
     process.execPath,
     [appiumEntry, "-a", "127.0.0.1", "-p", String(port)],

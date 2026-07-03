@@ -3252,6 +3252,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should validate app surfaces on find/click/screenshot", function () {
+        const steps = [
+          { find: { elementText: "Text Editor", surface: { app: "notepad" } } },
+          { click: { elementText: "Save", surface: { app: "notepad", window: -1 } } },
+          { screenshot: { path: "app.png", surface: { app: "notepad" } } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
       it("should validate type to an app surface with app readiness", function () {
         const result = validate({
           schemaKey: "step_v3",

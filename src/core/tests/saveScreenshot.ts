@@ -1,6 +1,7 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
+import { resolveAppSurfaceRef } from "./appSurface.js";
 import {
   log,
   fetchFile,
@@ -95,7 +96,7 @@ function aspectRatiosMatch(
   return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
 }
 
-async function saveScreenshot({ config, step, driver }: { config: any; step: any; driver: any }) {
+async function saveScreenshot({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -182,6 +183,21 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
     step.screenshot !== null &&
     step.screenshot.surface !== undefined
   ) {
+    // Native app surfaces (phase A1): capture through the app session's
+    // driver instead — the browser-focused capture path below (viewport
+    // math, crop, comparison) doesn't apply to native windows yet.
+    const appRef = resolveAppSurfaceRef(step.screenshot.surface, appSession);
+    if (appRef) {
+      if (appRef.error) {
+        result.status = "FAIL";
+        result.description = appRef.error;
+        return result;
+      }
+      result.status = "FAIL";
+      result.description =
+        "Screenshots of app surfaces aren't wired up yet in this build; they land later in this phase. Capture the screen with an OS-level tool via runShell in the meantime.";
+      return result;
+    }
     const switched = await switchToSurface(driver, step.screenshot.surface);
     if (!switched.ok) {
       result.status = "FAIL";

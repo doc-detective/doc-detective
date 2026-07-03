@@ -10,6 +10,7 @@ import {
   reinterpretForSessions,
   switchToSurface,
 } from "./browserSurface.js";
+import { resolveAppSurfaceRef, findAppElement } from "./appSurface.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
   buildConditionContext,
@@ -308,11 +309,13 @@ async function typeKeys({
   step,
   driver,
   processRegistry,
+  appSession,
 }: {
   config: any;
   step: any;
   driver: any;
   processRegistry?: Map<string, any>;
+  appSession?: any;
 }) {
   // `assertions` starts empty: the no-criteria (active-element) path types into
   // the focused element with no existence check, so zero applicable specs roll
@@ -363,9 +366,91 @@ async function typeKeys({
   // Process-surface branch: when `surface` targets a background process, send
   // the keystrokes to its stdin instead of the browser/active element. Runs
   // BEFORE the element/active-element path (which stays untouched). This path is
-  // webdriverio-free — it never loads the heavy browser dep. A bare string is
-  // identity-only (Phase 4): when a browser session owns the name, it routes
-  // to the browser branch instead of the process lookup.
+  // webdriverio-free — it never loads the heavy browser dep.
+  // App-surface branch (native app phase A1): type into an element on the
+  // app session's driver. Element criteria are required — focused-window
+  // typing and the device $KEY$ vocabulary land in later phases. Checked
+  // before the session reinterpretation below: an app registry hit is
+  // authoritative for its name.
+  const appRef = resolveAppSurfaceRef(step.type.surface, appSession);
+  if (appRef) {
+    if (appRef.error) {
+      result.status = "FAIL";
+      result.description = appRef.error;
+      return result;
+    }
+    const wu = step.type.waitUntil;
+    if (
+      wu &&
+      (wu.networkIdleTime !== undefined ||
+        wu.domIdleTime !== undefined ||
+        wu.stdio !== undefined)
+    ) {
+      result.status = "FAIL";
+      result.description =
+        "App surfaces accept only delayMs/find readiness conditions.";
+      return result;
+    }
+    const specialTokens = (step.type.keys as any[]).filter(
+      (key) => typeof key === "string" && /^\$[A-Z_]+\$$/.test(key)
+    );
+    if (specialTokens.length) {
+      result.status = "FAIL";
+      result.description = `Special key tokens (${specialTokens.join(", ")}) aren't supported on app surfaces yet; the device key vocabulary lands in a later phase.`;
+      return result;
+    }
+    const hasAppElementCriteria =
+      step.type.selector ||
+      step.type.elementText ||
+      step.type.elementId ||
+      step.type.elementTestId ||
+      step.type.elementAria;
+    if (!hasAppElementCriteria) {
+      result.status = "FAIL";
+      result.description =
+        "Typing on an app surface requires element criteria (elementText, elementId, elementAria, or a native selector) in this phase.";
+      return result;
+    }
+    const found = await findAppElement({
+      driver: appRef.entry!.driver,
+      criteria: step.type,
+      timeout: step.type.timeout || 5000,
+    });
+    if (found.error) {
+      result.status = "FAIL";
+      result.description = found.error;
+      return result;
+    }
+    try {
+      await found.element.click();
+      await found.element.addValue(step.type.keys.join(""));
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't type into the app element: ${error.message}`;
+      return result;
+    }
+    if (wu?.delayMs) {
+      await new Promise((resolve) => setTimeout(resolve, wu.delayMs));
+    }
+    if (wu?.find) {
+      const ready = await findAppElement({
+        driver: appRef.entry!.driver,
+        criteria: wu.find,
+        timeout: step.type.timeout || 5000,
+      });
+      if (ready.error) {
+        result.status = "FAIL";
+        result.description = `Typed, but the readiness element never appeared: ${ready.error}`;
+        return result;
+      }
+    }
+    result.description = `Typed keys into the app surface.`;
+    result.outputs = { keys: step.type.keys };
+    return result;
+  }
+
+  // A bare string is identity-only (Phase 4): when a browser session owns the
+  // name, it routes to the browser branch instead of the process lookup.
   const resolved = reinterpretForSessions(
     driver,
     resolveSurface(step.type.surface)

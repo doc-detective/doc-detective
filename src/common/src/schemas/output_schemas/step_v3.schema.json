@@ -4033,7 +4033,7 @@
                       ]
                     },
                     "surface": {
-                      "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -4183,6 +4183,72 @@
                               ]
                             }
                           }
+                        },
+                        {
+                          "title": "App surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "app"
+                          ],
+                          "properties": {
+                            "app": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                            },
+                            "window": {
+                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                              "title": "App window selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Window title to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -4310,7 +4376,7 @@
                         ]
                       },
                       "surface": {
-                        "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -4454,6 +4520,72 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "description": "Page URL to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "title": "App surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "app"
+                            ],
+                            "properties": {
+                              "app": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                              },
+                              "window": {
+                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                "title": "App window selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
                                       }
                                     }
                                   }
@@ -5534,7 +5666,7 @@
                   "additionalProperties": false,
                   "properties": {
                     "surface": {
-                      "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -5684,6 +5816,72 @@
                               ]
                             }
                           }
+                        },
+                        {
+                          "title": "App surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "app"
+                          ],
+                          "properties": {
+                            "app": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                            },
+                            "window": {
+                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                              "title": "App window selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Window title to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -5812,7 +6010,7 @@
                                   ]
                                 },
                                 "surface": {
-                                  "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                                  "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                                   "anyOf": [
                                     {
                                       "title": "Surface (by browser engine)",
@@ -5962,6 +6160,72 @@
                                           ]
                                         }
                                       }
+                                    },
+                                    {
+                                      "title": "App surface",
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "app"
+                                      ],
+                                      "properties": {
+                                        "app": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "transform": [
+                                            "trim"
+                                          ],
+                                          "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                        },
+                                        "window": {
+                                          "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                          "title": "App window selector",
+                                          "anyOf": [
+                                            {
+                                              "title": "By index",
+                                              "type": "integer",
+                                              "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                            },
+                                            {
+                                              "title": "By name",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                            },
+                                            {
+                                              "title": "By criteria",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "minProperties": 1,
+                                              "properties": {
+                                                "name": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "pattern": "\\S",
+                                                  "transform": [
+                                                    "trim"
+                                                  ],
+                                                  "description": "Assigned window name."
+                                                },
+                                                "index": {
+                                                  "type": "integer",
+                                                  "description": "Index in creation order. Negative counts from the end."
+                                                },
+                                                "title": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Window title to match. Substring, or /regex/."
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
                                     }
                                   ]
                                 },
@@ -6089,7 +6353,7 @@
                                     ]
                                   },
                                   "surface": {
-                                    "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                                     "anyOf": [
                                       {
                                         "title": "Surface (by browser engine)",
@@ -6233,6 +6497,72 @@
                                                     "type": "string",
                                                     "minLength": 1,
                                                     "description": "Page URL to match. Substring, or /regex/."
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "title": "App surface",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "app"
+                                        ],
+                                        "properties": {
+                                          "app": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                          },
+                                          "window": {
+                                            "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                            "title": "App window selector",
+                                            "anyOf": [
+                                              {
+                                                "title": "By index",
+                                                "type": "integer",
+                                                "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                              },
+                                              {
+                                                "title": "By name",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "pattern": "\\S",
+                                                "transform": [
+                                                  "trim"
+                                                ],
+                                                "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                              },
+                                              {
+                                                "title": "By criteria",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "minProperties": 1,
+                                                "properties": {
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
+                                                    "description": "Assigned window name."
+                                                  },
+                                                  "index": {
+                                                    "type": "integer",
+                                                    "description": "Index in creation order. Negative counts from the end."
+                                                  },
+                                                  "title": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Window title to match. Substring, or /regex/."
                                                   }
                                                 }
                                               }
@@ -9446,7 +9776,7 @@
                     "additionalProperties": false,
                     "properties": {
                       "surface": {
-                        "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -9596,6 +9926,72 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "title": "App surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "app"
+                            ],
+                            "properties": {
+                              "app": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                              },
+                              "window": {
+                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                "title": "App window selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
                           }
                         ]
                       },
@@ -9724,7 +10120,7 @@
                                     ]
                                   },
                                   "surface": {
-                                    "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                                     "anyOf": [
                                       {
                                         "title": "Surface (by browser engine)",
@@ -9874,6 +10270,72 @@
                                             ]
                                           }
                                         }
+                                      },
+                                      {
+                                        "title": "App surface",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "app"
+                                        ],
+                                        "properties": {
+                                          "app": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
+                                            "transform": [
+                                              "trim"
+                                            ],
+                                            "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                          },
+                                          "window": {
+                                            "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                            "title": "App window selector",
+                                            "anyOf": [
+                                              {
+                                                "title": "By index",
+                                                "type": "integer",
+                                                "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                              },
+                                              {
+                                                "title": "By name",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "pattern": "\\S",
+                                                "transform": [
+                                                  "trim"
+                                                ],
+                                                "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                              },
+                                              {
+                                                "title": "By criteria",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "minProperties": 1,
+                                                "properties": {
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "pattern": "\\S",
+                                                    "transform": [
+                                                      "trim"
+                                                    ],
+                                                    "description": "Assigned window name."
+                                                  },
+                                                  "index": {
+                                                    "type": "integer",
+                                                    "description": "Index in creation order. Negative counts from the end."
+                                                  },
+                                                  "title": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Window title to match. Substring, or /regex/."
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
                                       }
                                     ]
                                   },
@@ -10001,7 +10463,7 @@
                                       ]
                                     },
                                     "surface": {
-                                      "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+                                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                                       "anyOf": [
                                         {
                                           "title": "Surface (by browser engine)",
@@ -10145,6 +10607,72 @@
                                                       "type": "string",
                                                       "minLength": 1,
                                                       "description": "Page URL to match. Substring, or /regex/."
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "title": "App surface",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "app"
+                                          ],
+                                          "properties": {
+                                            "app": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
+                                              "transform": [
+                                                "trim"
+                                              ],
+                                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                                            },
+                                            "window": {
+                                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                              "title": "App window selector",
+                                              "anyOf": [
+                                                {
+                                                  "title": "By index",
+                                                  "type": "integer",
+                                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                                },
+                                                {
+                                                  "title": "By name",
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "pattern": "\\S",
+                                                  "transform": [
+                                                    "trim"
+                                                  ],
+                                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                                },
+                                                {
+                                                  "title": "By criteria",
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "minProperties": 1,
+                                                  "properties": {
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "pattern": "\\S",
+                                                      "transform": [
+                                                        "trim"
+                                                      ],
+                                                      "description": "Assigned window name."
+                                                    },
+                                                    "index": {
+                                                      "type": "integer",
+                                                      "description": "Index in creation order. Negative counts from the end."
+                                                    },
+                                                    "title": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "Window title to match. Substring, or /regex/."
                                                     }
                                                   }
                                                 }
@@ -26402,7 +26930,7 @@
                   "additionalProperties": false,
                   "properties": {
                     "surface": {
-                      "description": "The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.",
+                      "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -26546,6 +27074,72 @@
                                       "type": "string",
                                       "minLength": 1,
                                       "description": "Page URL to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "title": "App surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "app"
+                          ],
+                          "properties": {
+                            "app": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                            },
+                            "window": {
+                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                              "title": "App window selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Window title to match. Substring, or /regex/."
                                     }
                                   }
                                 }
@@ -26802,7 +27396,7 @@
                     "additionalProperties": false,
                     "properties": {
                       "surface": {
-                        "description": "The browser window/tab to capture. Omit to capture the active tab. The targeted tab stays focused afterward.",
+                        "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -26946,6 +27540,72 @@
                                         "type": "string",
                                         "minLength": 1,
                                         "description": "Page URL to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "title": "App surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "app"
+                            ],
+                            "properties": {
+                              "app": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                              },
+                              "window": {
+                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                "title": "App window selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
                                       }
                                     }
                                   }

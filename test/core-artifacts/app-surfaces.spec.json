@@ -1,0 +1,78 @@
+{
+  "specId": "app-surfaces-a1",
+  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Gated to Windows hosts with the app binary present; on Linux/macOS the app preflight lands the context as SKIPPED (asserted behavior, not a gap). Notepad exercises the path-launch + semantic-find + type flow; the unsupported-platform permutation asserts the preflight skip everywhere else.",
+  "tests": [
+    {
+      "testId": "app-notepad-flow",
+      "description": "Launch Notepad by path, find its edit surface via elementAria role, type text into it, and close the surface explicitly.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\notepad.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\notepad.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "delayMs": 1000
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Hello from Doc Detective!"
+            ],
+            "elementText": "Text Editor",
+            "surface": {
+              "app": "notepad"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Text Editor",
+            "surface": {
+              "app": "notepad"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "notepad"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-preflight-skip",
+      "description": "On non-Windows hosts the app preflight SKIPs the context with an actionable reason. platforms is unrestricted on purpose: this permutation asserts the skip path itself.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/usr/bin/never-launched"
+          }
+        }
+      ]
+    }
+  ]
+}
