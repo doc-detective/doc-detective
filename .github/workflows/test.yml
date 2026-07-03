@@ -128,12 +128,17 @@ jobs:
         working-directory: src/common
 
   # Coverage ratchet for the ROOT doc-detective package — cross-platform union.
-  # Every matrix cell above collects raw V8 coverage (NODE_V8_COVERAGE) from the
-  # full end-to-end run and uploads its pruned, OS-agnostic slice. This job waits
-  # on the whole matrix, re-roots each cell's paths to its own dist, and runs
-  # `c8 report` over the UNION — so Windows/macOS-only branches that a single-OS
-  # run could never reach now count toward the measured percentage, and the
-  # ratchet enforces coverage-thresholds.json against that honest union. Both
+  # Every matrix cell above collects raw V8 coverage (NODE_V8_COVERAGE) from its
+  # `npm test` run (unit/integration suites + the single `test.spec.json` smoke)
+  # and uploads its pruned, OS-agnostic slice. NOTE: the bulk of the *.spec.json
+  # fixtures no longer run under `npm test` — they run in the separate
+  # fixtures.yml jobs, which do NOT collect coverage (see ADR 01022). So this
+  # union no longer counts fixture-driven E2E execution, and coverage-thresholds.json
+  # was re-baselined downward accordingly. This job waits on the whole matrix,
+  # re-roots each cell's paths to its own dist, and runs `c8 report` over the
+  # UNION — so Windows/macOS-only branches that a single-OS run could never reach
+  # still count toward the measured percentage, and the ratchet enforces
+  # coverage-thresholds.json against that honest union. Both
   # callers (PR gate + release gate) wait on the whole reusable workflow, so a
   # coverage regression blocks merges and releases. Reusing the matrix's runs
   # means no separate full-suite coverage run is needed. The merged report is
