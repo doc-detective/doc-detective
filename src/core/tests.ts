@@ -3719,19 +3719,35 @@ async function runStep({
       openApiDefinitions: options?.openApiDefinitions,
     });
   } else if (typeof step.record !== "undefined") {
+    // App-only contexts have no browser driver: recordings live on the app
+    // session's recordingHost (same `.state.recordings` shape) instead.
+    // Threaded into startRecording too, so its already-recording dedupe
+    // checks consult the same store this block pushes into.
+    const recordingHost = driver ?? appSession?.recordingHost;
     actionResult = await startRecording({
       config: config,
       context: context,
       step: step,
       driver: driver,
+      recordingHost,
     });
     // Push the started recording onto the per-context stack so several can
     // overlap. Carry the step's `id`/`name` so a later stopRecord can target
     // it (by name) and end-of-context cleanup can identify the synthetic one.
-    // App-only contexts have no browser driver: recordings live on the app
-    // session's recordingHost (same `.state.recordings` shape) instead.
-    if (actionResult.recording) {
-      const recordingHost = driver ?? appSession?.recordingHost;
+    if (actionResult.recording && !recordingHost) {
+      // Defensive: no driver session AND no app session — nowhere to track
+      // the handle, so the end-of-context sweep could never stop it. Kill
+      // the capture now and FAIL loudly rather than leak the process.
+      try {
+        actionResult.recording.process?.kill?.();
+      } catch {
+        // best-effort
+      }
+      delete actionResult.recording;
+      actionResult.status = "FAIL";
+      actionResult.description =
+        "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+    } else if (actionResult.recording) {
       if (!Array.isArray(recordingHost.state.recordings))
         recordingHost.state.recordings = [];
       const handle = actionResult.recording;
