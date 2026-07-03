@@ -237,7 +237,7 @@ This context targets Windows or Linux:
 
 ## Requirements (`requires`)
 
-Use `requires` to gate a context on host capabilities beyond the operating system: commands on the PATH, files on disk, or environment variables. If any requirement is unmet, the context is skipped — the same non-failing outcome as a `platforms` mismatch — with a message naming each missing requirement.
+Use `requires` to gate a context on host capabilities beyond the operating system: commands on the PATH, files on disk, or environment variables. If any requirement is unmet, Doc Detective skips the context (the same non-failing outcome as a `platforms` mismatch) and reports each missing requirement.
 
 `requires` accepts three shapes:
 
@@ -258,7 +258,7 @@ Use `requires` to gate a context on host capabilities beyond the operating syste
   }
   ```
 
-- An object checks commands, files, and environment variables. File paths support `$VAR` expansion, and `$HOME` falls back to `USERPROFILE` on Windows. Environment variables must be set to a non-empty value.
+- An object checks commands, files, and environment variables. File paths support `$VAR` expansion, and `$HOME` falls back to `USERPROFILE` on Windows. Environment variables must have a non-empty value.
 
   ```json
   {
@@ -271,9 +271,9 @@ Use `requires` to gate a context on host capabilities beyond the operating syste
   }
   ```
 
-All entries are combined with AND. A context can consist of only a `requires` gate — with `platforms` omitted, it runs on the current platform whenever the requirements are met.
+All entries combine with AND. A context can consist of only a `requires` gate: with `platforms` omitted, it runs on the current platform whenever the environment meets every requirement.
 
-You don't need `requires` for browsers or drivers: Doc Detective's own preflight detects, installs, and repairs those automatically.
+You don't need `requires` for browsers or drivers, because Doc Detective's own preflight detects, installs, and repairs those automatically.
 
 ## Examples
 
