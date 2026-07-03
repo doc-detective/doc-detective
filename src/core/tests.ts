@@ -2676,8 +2676,11 @@ async function runContext({
   // driver is (or can be) installed. Unmet -> SKIPPED with the reason, same
   // gating semantics as `requires`. On success, the context gets an app
   // session primed with the resolved Appium entry/home for the app server.
+  // Scoped to the current platform like the `requires` gate above: a context
+  // targeting another platform must skip with the platform-mismatch reason,
+  // not pay (or misreport) a driver-install attempt on this host.
   let appSession: AppSessionState | undefined;
-  if (isAppDriverRequired({ test: context })) {
+  if (context.platform === platform && isAppDriverRequired({ test: context })) {
     const preflight = await appSurfacePreflight({ config, platform });
     if (!preflight.ok) {
       clog("warning", preflight.reason);

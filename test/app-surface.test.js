@@ -224,6 +224,18 @@ describe("buildAppLocator", function () {
     );
     assert.match(buildAppLocator({}).error, /No app-mappable/);
   });
+
+  it("rejects conflicting elementText/elementAria names and dedupes equal ones", function () {
+    // Different values: both map to @Name, so no element can match — error.
+    const conflict = buildAppLocator({
+      elementText: "Save",
+      elementAria: "Cancel",
+    });
+    assert.match(conflict.error, /both map to the accessible Name/);
+    // Equal values: one predicate, not a redundant AND.
+    const merged = buildAppLocator({ elementText: "Save", elementAria: "Save" });
+    assert.deepEqual(merged, { strategy: "xpath", value: '//*[@Name="Save"]' });
+  });
 });
 
 describe("appSurfacePreflight", function () {
@@ -358,6 +370,19 @@ describe("startAppSurface", function () {
       serverDeps: okServerDeps(fakeDriver()),
     });
     assert.match(collision.description, /already open/);
+  });
+
+  it("fails cleanly on a malformed descriptor (missing app) instead of throwing", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { name: "calc" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid step definition/);
   });
 
   it("late-binds pending window crops from the first opened app surface", async function () {

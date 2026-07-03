@@ -20,6 +20,7 @@ import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
+import { validate } from "../../common/src/validate.js";
 
 export {
   classifyAppIdentifier,
@@ -153,7 +154,11 @@ function buildUiaLocator(criteria: {
     predicates.push(`@AutomationId=${xpathLiteral(automationId)}`);
   if (criteria.elementText !== undefined)
     predicates.push(`@Name=${xpathLiteral(criteria.elementText)}`);
-  if (aria?.name !== undefined)
+  // elementText and elementAria's name both map to @Name on Windows; when
+  // they carry the same value, one predicate suffices (two would be
+  // redundant; two DIFFERENT values are rejected upstream in buildAppLocator
+  // as an impossible match).
+  if (aria?.name !== undefined && aria.name !== criteria.elementText)
     predicates.push(`@Name=${xpathLiteral(aria.name)}`);
 
   const tag = aria?.role ? uiaControlType(aria.role) : undefined;
@@ -397,6 +402,22 @@ function buildAppLocator(criteria: {
       error: `${unsupported.join(" and ")} ${unsupported.length > 1 ? "are" : "is"} not supported on app surfaces; use elementText, elementId, elementAria, or a native selector.`,
     };
   }
+  // elementText and elementAria's accessible name both map to the SAME
+  // property (@Name) on Windows, so two different values can never match one
+  // element — surface the conflict instead of failing silently as not-found.
+  const ariaName =
+    typeof criteria.elementAria === "string"
+      ? criteria.elementAria
+      : criteria.elementAria?.name;
+  if (
+    criteria.elementText !== undefined &&
+    ariaName !== undefined &&
+    criteria.elementText !== ariaName
+  ) {
+    return {
+      error: `elementText ("${criteria.elementText}") and elementAria ("${ariaName}") both map to the accessible Name on app surfaces but have different values — no element can match both. Specify one of them.`,
+    };
+  }
   const locator = buildUiaLocator(criteria);
   if (!locator) {
     return {
@@ -461,6 +482,16 @@ async function startAppSurface({
   };
 }): Promise<any> {
   const result: any = { status: "PASS", description: "", outputs: {} };
+
+  // Validate the step payload like every other handler, so a malformed
+  // descriptor (e.g. missing `app`) fails cleanly instead of throwing.
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    return result;
+  }
+  step = isValidStep.object;
   const descriptor = step.startSurface;
 
   // Reserved fields land in later phases — fail with the roadmap named

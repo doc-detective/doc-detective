@@ -98,13 +98,18 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         });
       }
     });
-    // For each static context, check if a matching object already exists in resolvedContexts.
+    // For each static context, check if a matching object already exists in
+    // resolvedContexts. `requires` participates in identity: two entries that
+    // differ only in their capability gate must stay distinct, or one gate
+    // would silently swallow the other.
     staticContexts.forEach((staticContext) => {
       const existingContext = resolvedContexts.find((resolvedContext) => {
         return (
           resolvedContext.platform === staticContext.platform &&
           JSON.stringify(resolvedContext.browser) ===
-            JSON.stringify(staticContext.browser)
+            JSON.stringify(staticContext.browser) &&
+          JSON.stringify(resolvedContext.requires) ===
+            JSON.stringify(staticContext.requires)
         );
       });
       if (!existingContext) {

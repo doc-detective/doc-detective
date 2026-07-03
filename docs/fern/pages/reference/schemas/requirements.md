@@ -22,8 +22,23 @@ env | array of string | Optional. Environment variables that must be set to a no
 
 ```json
 {
-  "commands": [],
-  "files": [],
-  "env": []
+  "commands": [
+    "node",
+    "ffmpeg"
+  ]
+}
+```
+
+```json
+{
+  "commands": [
+    "adb"
+  ],
+  "files": [
+    "$HOME/.config/app.toml"
+  ],
+  "env": [
+    "API_TOKEN"
+  ]
 }
 ```

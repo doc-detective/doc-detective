@@ -170,6 +170,23 @@ describe("resolveContexts with platform-less runOn entries", function () {
     assert.equal(contexts[0].requires, "node");
   });
 
+  it("keeps entries that differ only by requires distinct (dedupe identity)", function () {
+    const contexts = resolveContexts({
+      contexts: [
+        { platforms: ["linux"], requires: "node" },
+        { platforms: ["linux"], requires: "ffmpeg" },
+        { platforms: ["linux"] },
+      ],
+      test: { testId: "t", steps: [nonDriverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 3);
+    assert.deepEqual(
+      contexts.map((c) => c.requires),
+      ["node", "ffmpeg", undefined]
+    );
+  });
+
   it("carries requires onto each platform-expanded static context", function () {
     const contexts = resolveContexts({
       contexts: [{ platforms: ["linux", "windows"], requires: ["node"] }],
