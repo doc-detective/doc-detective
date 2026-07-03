@@ -89,7 +89,7 @@ jobs:
       - name: Resolution diagnostic
         shell: bash
         run: |
-          echo "local package version: $(node -p "require('./package.json').version")"
+          echo "local package version: $(node -p 'require("./package.json").version')"
           npm ls -g doc-detective || true
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 

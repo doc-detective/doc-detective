@@ -457,7 +457,25 @@ async function evaluateExpression(expression: string, context: any): Promise<any
       // preserves the original {{...}}. (The condition path — evaluateAssertion —
       // still calls the swallowing resolveExpression boundary, so a jq error
       // there is unchanged by this PR; reconciling that path is out of scope.)
-      jq: (json: any, query: string) => jq.then((j: any) => j.json(json, query)),
+      jq: (json: any, query: string) =>
+        jq.then((j: any) => {
+          // jq-web is an emscripten/WASM build of jq. On a jq COMPILE error
+          // (e.g. an invalid query) its runtime leaks jq's own exit code (3)
+          // into process.exitCode as a side effect — which would make the host
+          // process exit non-zero even though the rejection is handled and the
+          // original {{...}} is preserved (#423/#424). The clobber happens
+          // during the synchronous j.json() WASM call (as it throws), so snapshot
+          // and restore process.exitCode around it: a gracefully-handled bad
+          // jq() query must never redden the caller's exit code.
+          const prevExitCode = process.exitCode;
+          try {
+            return j.json(json, query);
+          } finally {
+            if (process.exitCode !== prevExitCode) {
+              process.exitCode = prevExitCode;
+            }
+          }
+        }),
     };
 
     // Use Function constructor for safer evaluation. The expression's string

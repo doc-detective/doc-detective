@@ -8,7 +8,7 @@
 // background, before invoking doc-detective, then wait for the port to open:
 //
 //   node test/server/start.js &
-//   npx --no wait-on http://localhost:8092
+//   node test/server/wait-ready.js
 //
 // It stays alive until it receives SIGINT/SIGTERM, then shuts the servers down
 // cleanly. EADDRINUSE is tolerated (a stray or parallel instance shouldn't fail

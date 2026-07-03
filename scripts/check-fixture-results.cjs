@@ -45,7 +45,7 @@ if (failed.length > 0) {
 }
 
 const skipped = specs.filter((s) => s.result === "SKIPPED").length;
-console.error(
+console.log(
   `All ${specs.length} spec(s) passed or skipped (${skipped} skipped).`
 );
 process.exit(0);
