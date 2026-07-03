@@ -143,11 +143,21 @@ async function closeSurface({
       }
       // A ref with BOTH window and tab closes the selected TAB (the window
       // only scopes the search — see resolveCloseTargets), so label by what
-      // actually closes: tab whenever a tab selector is present. `item` is
-      // always an object here — a bare-string surface has no window/tab
-      // selector and is handled by the whole-browser close above.
+      // actually closes: tab whenever a tab selector is present.
       const closesTab = item.tab !== undefined;
-      const label = `${ref.engine} ${closesTab ? "tab" : "window"} ${JSON.stringify(closesTab ? item.tab : item.window)}`;
+      // A string browser ref (a bare engine keyword with no window/tab) is
+      // rejected as a whole-browser close by resolveCloseTargets above and
+      // returns before this label is built, so `item` is always an object here
+      // and the string arm is defensively unreachable. The tab-vs-window
+      // labeling is still asserted by the tests; c8's ternary-branch mapping
+      // can't isolate the dead string arm from this covered expression, so the
+      // whole label build is excluded (ADR 01017).
+      /* c8 ignore start */
+      const label =
+        typeof item === "string"
+          ? item
+          : `${ref.engine} ${closesTab ? "tab" : "window"} ${JSON.stringify(closesTab ? item.tab : item.window)}`;
+      /* c8 ignore stop */
       if (!targets.handles.length) {
         // Idempotent: nothing matched the selector — a no-op, still PASS.
         absent.push(label);
@@ -171,17 +181,32 @@ async function closeSurface({
       }
       for (const handle of targets.handles) {
         const closedResult = await closeHandle(targetDriver, handle);
+        /* c8 ignore start - defensive: unreachable given the per-entry preflight
+         * above. resolveCloseTargets returns distinct, still-live handles (a
+         * window's children then its lead), and the survivors>0 guard above has
+         * already refused this entry unless a non-closing user tab survives. So
+         * in this loop closeHandle never trips its own last-tab guard (a survivor
+         * always remains), never resolves entry-not-found (each distinct target
+         * is still open on its turn), and always finds a `next` handle to focus
+         * -- it cannot return ok:false here. No hermetic input drives this
+         * branch (ADR 01017). */
         if (!closedResult.ok) {
           result.status = "FAIL";
           result.description = closedResult.message;
           return result;
         }
+        /* c8 ignore stop */
       }
       log(config, "debug", `Closed ${label}.`);
       closed.push(label);
       continue;
     }
 
+    // Every item reaching this loop passed surface_v3 validation, so it is
+    // either a browser ref (handled and `continue`d above) or a process ref
+    // with a non-empty name; a kind-less or nameless surface cannot pass the
+    // schema, so this guard's `continue` arm is unreachable (ADR 01017).
+    /* c8 ignore next */
     if (ref.kind !== "process" || !ref.name) continue;
     const name = ref.name;
     const entry = processRegistry?.get(name);
@@ -227,6 +252,10 @@ async function closeSurface({
         .join(", ")} not open; nothing to close.`
     );
   result.status = "PASS";
+  // `items` has >=1 schema-validated entry and each lands in `closed` or
+  // `absent` (or returns early on a browser FAIL), so `parts` is never empty
+  // and the "No surfaces to close." fallback is unreachable (ADR 01017).
+  /* c8 ignore next */
   result.description = parts.join(" ") || "No surfaces to close.";
   result.outputs = {
     closed,

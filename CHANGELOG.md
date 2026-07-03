@@ -1,3 +1,17 @@
+# [4.18.0](https://github.com/doc-detective/doc-detective/compare/v4.17.1...v4.18.0) (2026-07-02)
+
+
+### Bug Fixes
+
+* **click:** run click sub-effect for string shorthand ([#470](https://github.com/doc-detective/doc-detective/issues/470)) ([935a2b1](https://github.com/doc-detective/doc-detective/commit/935a2b101fc39818124d41d0ce05ed78fa28fff9))
+* **core:** await Appium server tree-kill so browsers don't orphan ([#480](https://github.com/doc-detective/doc-detective/issues/480)) ([22d019c](https://github.com/doc-detective/doc-detective/commit/22d019c9793a12475f41006e51059e748dca5853))
+* **core:** tolerate missing config.environment on pre-resolved API configs ([#478](https://github.com/doc-detective/doc-detective/issues/478)) ([09eee9c](https://github.com/doc-detective/doc-detective/commit/09eee9cb5ca33fe35c876b3b3c7a015edec64a6d))
+
+
+### Features
+
+* browser multi-tab and multi-window targeting (multi-surface Phase 3) ([#468](https://github.com/doc-detective/doc-detective/issues/468)) ([90233b5](https://github.com/doc-detective/doc-detective/commit/90233b5e2f2f0d9ca043f47839f4fe8795144d2b))
+
 ## [4.17.1](https://github.com/doc-detective/doc-detective/compare/v4.17.0...v4.17.1) (2026-07-01)
 
 
