@@ -17,7 +17,7 @@ Wait for a specific element to be present. At least one finding field must be sp
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-selector | string | Optional. CSS selector for the element to wait for. | 
+selector | string | Optional. Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime. | 
 elementText | string | Optional. Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax. | 
 elementId | string | Optional. ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax. | 
 elementTestId | string | Optional. data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax. | 
