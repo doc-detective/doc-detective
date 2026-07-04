@@ -129,9 +129,9 @@ You don't have to close every app explicitly. Doc Detective closes any app surfa
       ],
       "steps": [
         {
-          "description": "Launch Notepad.",
+          "description": "Launch Character Map.",
           "startSurface": {
-            "app": "C:\\Windows\\System32\\notepad.exe"
+            "app": "C:\\Windows\\System32\\charmap.exe"
           }
         }
       ]
@@ -139,6 +139,10 @@ You don't have to close every app explicitly. Doc Detective closes any app surfa
   ]
 }
 ```
+
+<Note>
+On Windows 11, `notepad.exe` launches a Store app that hands off to a separate process and never owns its own window, so the app driver times out waiting for it. Pick an app that owns its window, such as `charmap.exe`, which ships on every Windows edition.
+</Note>
 
 ### Launch an app and name the surface
 
