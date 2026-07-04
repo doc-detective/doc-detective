@@ -1,3 +1,10 @@
+# [4.20.0](https://github.com/doc-detective/doc-detective/compare/v4.19.0...v4.20.0) (2026-07-04)
+
+
+### Features
+
+* native Windows app surfaces via startSurface (native-app phase A1) ([#491](https://github.com/doc-detective/doc-detective/issues/491)) ([2ef5d5c](https://github.com/doc-detective/doc-detective/commit/2ef5d5c92d6af78e3cb9c781d3d4b8982a6675f3)), closes [#483](https://github.com/doc-detective/doc-detective/issues/483)
+
 # [4.19.0](https://github.com/doc-detective/doc-detective/compare/v4.18.0...v4.19.0) (2026-07-03)
 
 
