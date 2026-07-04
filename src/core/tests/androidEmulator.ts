@@ -6,12 +6,14 @@
 // polling) are all injected so the orchestration is testable with fakes.
 
 import { execFile, spawn, spawnSync } from "node:child_process";
+import fs from "node:fs";
 import {
   pickSystemImage,
   DEVICE_TYPE_PROFILES,
   DEFAULT_AVD_NAME,
   listInstalledSystemImages,
   winShellCommand,
+  androidAvdHome,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
 
@@ -479,10 +481,11 @@ async function teardownDeviceRegistry(
 function runTool(
   command: string,
   args: string[],
-  timeout = 30000
+  timeout = 30000,
+  env?: NodeJS.ProcessEnv
 ): Promise<{ code: number | null; stdout: string }> {
   return new Promise((resolve) => {
-    execFile(command, args, { timeout }, (error: any, stdout) => {
+    execFile(command, args, { timeout, env }, (error: any, stdout) => {
       resolve({ code: error?.code ?? 0, stdout: String(stdout ?? "") });
     });
   });
@@ -527,7 +530,12 @@ async function listRunningEmulators(
 
 async function realCreateAvd(
   avdmanagerPath: string,
-  { name, systemImage, device }: { name: string; systemImage: string; device: string }
+  {
+    name,
+    systemImage,
+    device,
+  }: { name: string; systemImage: string; device: string },
+  env: NodeJS.ProcessEnv
 ): Promise<void> {
   // avdmanager is a `.bat` shim on Windows — spawn it through the shell as a
   // single validated command string (Node 20.12+/22 EINVAL on `.bat` without
@@ -550,8 +558,9 @@ async function realCreateAvd(
       ? spawn(winShellCommand(avdmanagerPath, args), {
           stdio: ["pipe", "ignore", "pipe"],
           shell: true,
+          env,
         })
-      : spawn(avdmanagerPath, args, { stdio: ["pipe", "ignore", "pipe"] });
+      : spawn(avdmanagerPath, args, { stdio: ["pipe", "ignore", "pipe"], env });
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString()));
     child.on("error", reject);
@@ -569,6 +578,7 @@ async function realBootEmulator(
   adbPath: string,
   desc: DeviceDescriptor,
   port: number,
+  env: NodeJS.ProcessEnv,
   timeout = 180000
 ): Promise<{ udid: string; process: any }> {
   const udid = udidForPort(port);
@@ -582,6 +592,7 @@ async function realBootEmulator(
   const child = spawn(emulatorPath, bootArgs, {
     detached: false,
     stdio: ["ignore", "pipe", "pipe"],
+    env,
   });
   let diag = "";
   const capture = (d: Buffer) => {
@@ -631,19 +642,27 @@ function buildAcquireDeviceDeps(sdk: AndroidSdk, abi: string, log?: (m: string) 
     const { status } = spawnSync("java", ["-version"], { stdio: "ignore" });
     return status === 0;
   };
+  // Pin ANDROID_AVD_HOME so avdmanager (create), `emulator -list-avds`, and
+  // `emulator -avd` all agree on ONE AVD directory (shared with the installer) —
+  // otherwise the host's ANDROID_USER_HOME / ANDROID_SDK_HOME can split them and
+  // the emulator reports "Unknown AVD name" for an AVD we just created.
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    ANDROID_AVD_HOME: androidAvdHome(),
+  };
   return {
     listRunning: () => listRunningEmulators(adb),
     listAvds: async () => {
-      const { stdout } = await runTool(emulator, ["-list-avds"]);
+      const { stdout } = await runTool(emulator, ["-list-avds"], 30000, env);
       return parseListAvds(stdout);
     },
     installedImages: () => listInstalledSystemImages(sdk.sdkRoot),
     javaPresent,
     abi,
     createAvd: (a: { name: string; systemImage: string; device: string }) =>
-      realCreateAvd(avdmanager, a),
+      realCreateAvd(avdmanager, a, env),
     boot: (desc: DeviceDescriptor, port: number) =>
-      realBootEmulator(emulator, adb, desc, port),
+      realBootEmulator(emulator, adb, desc, port, env),
     kill: (entry: DeviceEntry) => realKillEmulator(adb, entry.udid),
     log,
   };

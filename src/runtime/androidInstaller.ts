@@ -621,6 +621,23 @@ function realJavaPresent(): boolean {
   }
 }
 
+// The single AVD directory Doc Detective pins for BOTH avdmanager (create) and
+// the emulator (list/boot), via ANDROID_AVD_HOME. Without pinning, a host's
+// ANDROID_USER_HOME / ANDROID_SDK_HOME can send avdmanager and the emulator to
+// different dirs, so the emulator reports "Unknown AVD name" for an AVD we just
+// created (seen on GitHub's hosted Linux runners). Creates the dir so avdmanager
+// can write its `.ini` immediately. Shared by the installer and the runtime
+// device layer so `install android` and test-time boot agree on one location.
+export function androidAvdHome(): string {
+  const home = path.join(os.homedir(), ".android", "avd");
+  try {
+    fs.mkdirSync(home, { recursive: true });
+  } catch {
+    /* best-effort; avdmanager surfaces a real failure if it can't write */
+  }
+  return home;
+}
+
 async function realRun(
   command: string,
   args: string[],
@@ -630,16 +647,24 @@ async function realRun(
   // to spawn `.bat`/`.cmd` without `shell: true` (CVE-2024-27980). Run those
   // through the shell as a single pre-quoted command string (winShellCommand
   // validates every token first), so paths with spaces survive cmd.exe's parse.
+  // Pin ANDROID_AVD_HOME so the AVD avdmanager creates lands where the emulator
+  // later looks for it.
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    ANDROID_AVD_HOME: androidAvdHome(),
+  };
   const useShell = process.platform === "win32" && /\.(bat|cmd)$/i.test(command);
   const child = useShell
     ? spawn(winShellCommand(command, args), {
         cwd: opts.cwd,
         stdio: ["pipe", "pipe", "pipe"],
         shell: true,
+        env,
       })
     : spawn(command, args, {
         cwd: opts.cwd,
         stdio: ["pipe", "pipe", "pipe"],
+        env,
       });
   return await new Promise((resolve, reject) => {
     let out = "";
