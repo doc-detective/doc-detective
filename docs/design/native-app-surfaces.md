@@ -110,26 +110,41 @@ managed emulator/simulator (or, later, a real device).
 Used in two places with one shape: `startSurface.…device` (object form) and
 `context_v3.device` (refining a mobile context's default device).
 
+> **Revised in phase A3a (ADR 01024).** The shape below supersedes an earlier
+> hardware-model spec (`{ name: "Pixel_7", osVersion, headless }`). The reserved
+> `type` field was dropped in favor of an abstract `deviceType`, and `name` now
+> carries **reuse-or-create** semantics. Hardware-model names never appear in
+> the schema — `deviceType` is abstract and portable across android/ios.
+
 ```jsonc
 "device": {
-  "platform": "android" | "ios",   // required in startSurface; implied by the context in runOn
-  "name": "Pixel_7",               // AVD name (android) / simulator device name (ios); ALSO the device's registry identity
-  "osVersion": "14",               // platform version; default: newest available
+  "platform": "android" | "ios",   // required in startSurface; implied by the context
+  "name": "pixel7",                // device identity + AVD name. Reuse-or-create: reuse an
+                                    //   existing AVD by this name, else CREATE one under it
+  "deviceType": "phone",           // abstract hardware profile ("phone" | "tablet"); used only
+                                    //   when creating. Default: "phone"
+  "osVersion": "14",               // used only when creating; must match an INSTALLED system
+                                    //   image (install more via `doc-detective install android`)
   "headless": false,               // android emulator -no-window; ignored where N/A
   "orientation": "portrait",       // RESERVED — initial orientation ("portrait" | "landscape")
-  "type": "emulator",              // RESERVED — "emulator"/"simulator" (default, inferred) | "device" (real hardware, later)
   "udid": "…",                     // RESERVED — pin a specific instance / real device
-  "provider": { … }                // RESERVED — cloud device farms (BrowserStack/Sauce/AWS); object keyed by provider
+  "provider": { … }                // RESERVED — cloud device farms (BrowserStack/Sauce/AWS)
 }
 ```
 
-- **`name` is the device's identity** in the run's device registry: two
-  descriptors with the same name resolve to the same device; distinct concurrent
-  devices need distinct names (one booted instance per AVD/simulator device —
-  an emulator image can't be double-booted, so "two of the same phone" means
-  two AVDs/simulator clones, which stays a user-side setup task).
-- `orientation`, `type`, `udid`, and `provider` are **schema-reserved from day
-  one** (validated shapes, documented "not yet implemented" runtime errors) so
+- **`name` is the device's identity** in the run's device registry and its AVD
+  name. Two descriptors with the same name resolve to the same device. When no
+  AVD by that name exists, Doc Detective **creates one** (from `deviceType`'s
+  default hardware profile and an installed system image matching `osVersion`,
+  or the newest installed image) — provided the creation dependencies are
+  present (an installed image + a Java runtime for `avdmanager`); a missing
+  dependency SKIPs with a pointer to `doc-detective install android`. Distinct
+  concurrent devices need distinct names (one booted instance per AVD).
+- **`deviceType`** is an abstract profile (`phone` | `tablet`) Doc Detective
+  maps to a built-in `avdmanager --device` profile. Portable across
+  android/ios; ignored when `name` already matches an existing device.
+- `orientation`, `udid`, and `provider` are **schema-reserved from day one**
+  (validated shapes, documented "not yet implemented" runtime errors) so
   orientation control, real devices, and cloud farms are purely additive later.
   Real-device *implementation* concerns (code signing, WebDriverAgent
   provisioning, ADB authorization UX) stay out of scope until their own phase.
@@ -170,13 +185,13 @@ split. The rules:
 - **A mobile entry provisions a default device** for the context (managed boot
   above). No other context is required: `"runOn": [{ "platforms": "android" }]`
   is a complete, working matrix entry.
-- **`hosts` (new, optional)** gates host OS explicitly when capability isn't
-  enough — e.g. a team that wants Android tests only on its Linux CI leg writes
-  `{ "platforms": "android", "hosts": ["linux"] }`. Without it, a mobile entry
-  runs on **every capable host**, which in a multi-OS CI matrix means redundant
-  (harmless, but paid-for) runs — the docs call this out and recommend pinning
-  `hosts` in CI. For desktop entries `hosts` is redundant (host = target) but
-  legal.
+- **No `hosts` field** (revised in A3a, ADR 01024). A mobile entry runs on
+  **every capable host** — capability (SDK present, emulator acceleration) is
+  the gate, never host identity. In a multi-OS CI matrix that means android runs
+  on every capable leg and SKIPs fast on the rest; the redundant capable-leg
+  runs are accepted as harmless rather than pruned by a host-pinning knob that
+  would have to be kept in sync. (An earlier draft of this plan proposed a
+  `hosts` field; it was dropped.)
 - **`device` (new, optional)** refines the default device — same descriptor as
   `startSurface`, `platform` implied by the entry:
 
@@ -185,8 +200,8 @@ split. The rules:
 "runOn": [ { "platforms": "android" } ]
 "runOn": [ { "platforms": "ios" } ]
 "runOn": [ { "platforms": ["android", "ios"] } ]                     // fans out: one context per target
-"runOn": [ { "platforms": "android", "hosts": ["linux"],
-             "device": { "name": "Pixel_7", "osVersion": "14", "headless": true } } ]
+"runOn": [ { "platforms": "android",
+             "device": { "name": "phone", "deviceType": "phone", "osVersion": "14", "headless": true } } ]
 
 // Mobile WEB — the browser fans out on the device, same as desktop
 "runOn": [ { "platforms": "android", "browsers": "chrome" } ]
@@ -203,8 +218,9 @@ the context report the way resolved browser versions do):
 - **Android:** a running emulator, if one is attached → else the newest-API
   existing AVD → else **create** a `doc-detective` AVD from the newest
   *installed* system image → else SKIP with guidance. Downloading system images
-  (multi-GB) is never implicit; it joins the existing browser-install machinery
-  (`doc-detective install android`, reserved) as an explicit opt-in.
+  (multi-GB) is never implicit; it lives only in **`doc-detective install
+  android`** (shipped in A3a — augment an existing SDK or bootstrap
+  commandline-tools into the cache), as an explicit opt-in.
 - **iOS:** the newest installed iPhone device type + runtime via
   `xcrun simctl` (present with any Xcode install) → boot. No Xcode → SKIP.
 
@@ -414,19 +430,17 @@ screenshots, and the session registry are shared code.
 ## Gating recap
 
 `platforms` gates the **target** (host implied for desktop, capability-inferred
-for mobile), `hosts` optionally pins host OS, `requires` gates what preflight
-can't infer (app binaries, env vars), and surfaces are opened by steps.
+for mobile), `requires` gates what preflight can't infer (app binaries, env
+vars), and surfaces are opened by steps. There is no host-pinning knob — a
+mobile entry runs on every capable host and SKIPs on the rest (ADR 01024).
 
 ```jsonc
 // Windows desktop app test
 "runOn": [ { "platforms": ["windows"],
              "requires": { "files": ["C:\\Windows\\System32\\notepad.exe"] } } ]
 
-// Android app test — any capable host; SDK/emulator preflight is automatic
+// Android app test — runs on every capable host; SDK/emulator preflight is automatic
 "runOn": [ { "platforms": "android" } ]
-
-// …pinned to the Linux CI leg
-"runOn": [ { "platforms": "android", "hosts": ["linux"] } ]
 
 // iOS — capability-gated to macOS hosts automatically
 "runOn": [ { "platforms": "ios" } ]
@@ -444,14 +458,15 @@ preflight handles "driver missing / not installable" automatically.
   entries. A1 ships the **app branch only**; browser/process branches land in
   multi-surface Phase 6 as designed.
 - **`appDescriptor`** and **`deviceDescriptor`** components (shapes above) —
-  `deviceDescriptor` includes the reserved
-  `orientation`/`type`/`udid`/`provider` fields with full validation from day
-  one, and is `$ref`'d by both `startSurface` and `context_v3.device` so they
-  never drift (the `browserConfig` precedent).
+  `deviceDescriptor` carries `deviceType` (`phone`|`tablet`) plus the reserved
+  `orientation`/`udid`/`provider` fields with full validation from day one, and
+  is `$ref`'d by both `startSurface` and `context_v3.device` so they never drift
+  (the `browserConfig` precedent). Revised in A3a (ADR 01024): the reserved
+  `type` field was dropped in favor of `deviceType`.
 - `context_v3`: **`platforms` enum += `android`, `ios`**; new optional
-  **`hosts`** (desktop-OS enum array) and **`device`** (`deviceDescriptor`,
-  `platform` implied). All additive. A `device` *array* (device fan-out matrix)
-  is deliberately not included — reserved as a possible future additive change.
+  **`device`** (`deviceDescriptor`, `platform` implied). All additive. No
+  `hosts` field (ADR 01024). A `device` *array* (device fan-out matrix) is
+  deliberately not included — reserved as a possible future additive change.
 - **`waitUntilApp`** readiness shape (`{ delayMs, find }`), joining
   `waitUntilBrowser`/`waitUntilProcess` in the kind-shaped `if/then` guards.
 - **`swipe_v3.schema.json`** (new, phase A6): direction string |
@@ -482,13 +497,17 @@ fixtures.
 - **Phase A2 — macOS desktop (Mac2).** Bundle-ID and `.app` resolution, TCC
   preflight with the settings walkthrough, the AX mapping column, `args`/`env`
   launch options. Fixtures: TextEdit + Calculator, headed macOS only.
-- **Phase A3 — Android apps + the `android` platform (UiAutomator2).** First
-  `device` consumer: `platforms: "android"` with capability gating and `hosts`,
-  default-device resolution, the device registry, managed AVD boot/reuse/
-  teardown, context `device` refinement, `install` (.apk), `activity`, headless
-  emulator, the UiAutomator2 mapping column, multi-app-per-device switching.
-  Runs on any host OS with the SDK; CI recipe (Linux runner + KVM) documented
-  and exercised.
+- **Phase A3 — Android apps + the `android` platform (UiAutomator2).** Splits
+  into two shippable PRs (ADR 01024/01025). **A3a** (schema-first, no emulator):
+  `platforms: "android"`/`"ios"` enum values, the revised device descriptor
+  (`deviceType`, reuse-or-create), capability gating (mobile contexts SKIP with
+  a roadmap reason — no `hosts` knob), lazy SDK detection, and the opt-in
+  `doc-detective install android` toolchain installer. **A3b** (the device
+  layer): first `device` consumer — default-device resolution, the device
+  registry, managed AVD boot/reuse/teardown, context `device` refinement,
+  `install` (.apk), `activity`, headless emulator, the UiAutomator2 mapping
+  column, multi-app-per-device switching. Runs on any capable host OS; CI recipe
+  (Linux runner + KVM) documented and exercised.
 - **Phase A4 — iOS apps + the `ios` platform (XCUITest).** simctl
   boot/reuse/teardown, `install` (.app), WebDriverAgent build/caching preflight,
   the XCUITest mapping column. macOS hosts only.
@@ -536,8 +555,8 @@ reuse the device layer those phases build.
   where they can pass.
 - **CI coverage is per-platform best-effort and honest about it:** Windows
   fixtures run headed on Windows runners (interactive-session preflight decides,
-  not hope); Android fixtures run where the emulator can boot (Linux + KVM),
-  with `hosts` pinning to avoid redundant matrix legs. macOS turned out better
+  not hope); Android fixtures run where the emulator can boot (Linux + KVM) and
+  SKIP on the incapable legs (no `hosts` pinning — capability decides). macOS turned out better
   than feared: GitHub's macOS runner images pre-grant `kTCCServiceAccessibility`
   to `com.apple.dt.Xcode-Helper` (which WebDriverAgentMac runs under),
   `/usr/bin/osascript`, and `/bin/bash` in the system TCC.db, so phase A2's
@@ -552,7 +571,10 @@ reuse the device layer those phases build.
 
 - **`apps` on `context_v3`** (the issues' and prototype's model) — rejected;
   provisioning is a step concern. The context gains *environment* (`platforms`
-  values, `hosts`, `device`) — never surfaces.
+  values, `device`) — never surfaces.
+- **`hosts` on `context_v3`** (an earlier draft of this plan) — rejected in A3a
+  (ADR 01024); host *capability* is the mobile gate, so a host-identity pin is
+  redundant and a maintenance burden.
 - **`goTo` launching or focusing apps** — rejected; `startSurface` opens,
   `surface` focuses. (`goTo`-as-deep-link on an already-open app surface is
   reserved, not rejected — it's navigation.)
@@ -579,6 +601,9 @@ reuse the device layer those phases build.
 Nothing existing changes shape. New steps (`startSurface`, `swipe`), new
 `oneOf` branches (`surfaceApp`, app `waitUntil`), new enum values
 (`platforms`: `android`/`ios`), new optional context fields (`requires`,
-`hosts`, `device`), one new optional step field (`click.duration`), new schema
-files. Specs that never mention apps or mobile platforms validate and run
-identically before and after every phase.
+`device`), one new optional step field (`click.duration`), new schema files.
+The one deliberate exception (ADR 01024): the device descriptor's reserved
+`type` field was replaced by `deviceType` in A3a — safe because `type` was
+validated-but-always-FAIL, so no working spec carried it. Specs that never
+mention apps or mobile platforms validate and run identically before and after
+every phase.
