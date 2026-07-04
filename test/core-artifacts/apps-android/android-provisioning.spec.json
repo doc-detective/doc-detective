@@ -1,6 +1,6 @@
 {
   "specId": "android-provisioning-a3b",
-  "description": "Native app surfaces phase A3b: the provisioning (create-and-boot) path. A `device` naming an AVD that doesn't exist, with a `deviceType` and `osVersion`, makes Doc Detective create the AVD from an installed system image and boot it headless. Gated by `requires.env` on DD_FIXTURE_PROVISION, which only the managed-boot CI job sets (after `doc-detective install android --yes` provisions an image) — so the reuse leg and every other host SKIP. osVersion is supplied by the job via $DD_FIXTURE_ANDROID_VERSION to match the image it installed.",
+  "description": "Native app surfaces phase A3b: the provisioning (create-and-boot) path. A `device` naming an AVD that doesn't exist, with a `deviceType`, makes Doc Detective create the AVD from the newest installed system image and boot it headless. Gated by `requires.env` on DD_FIXTURE_PROVISION, which only the managed-boot CI job sets (after `doc-detective install android --yes` provisions an image) — so the reuse leg and every other host SKIP. No `osVersion` is pinned here, so creation uses whatever image the job installed.",
   "tests": [
     {
       "testId": "android-create-avd",
