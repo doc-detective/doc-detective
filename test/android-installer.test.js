@@ -408,6 +408,7 @@ describe("android installer: installAndroid orchestration", function () {
         deps: {
           // No SDK anywhere -> bootstrap path.
           detect: () => null,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           fs: { existsSync: () => false, readdirSync: () => [] },
           bootstrap: (url, dest) => {
@@ -445,6 +446,7 @@ describe("android installer: installAndroid orchestration", function () {
         yes: true,
         deps: {
           detect: () => null,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           fs: { existsSync: () => false, readdirSync: () => [] },
           bootstrap: () => Promise.reject(new Error("network down")),
