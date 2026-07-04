@@ -31,6 +31,10 @@ export {
   buildAxLocator,
   createAppSessionState,
   appSurfacePreflight,
+  // Exported as a test seam: the JXA probe must return a definitive boolean
+  // on a real macOS host (a null there means the AXIsProcessTrusted bind
+  // regressed), which the injectable `deps.probeAccessibility` can't catch.
+  probeMacAccessibility,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -506,6 +510,13 @@ function invalidateStaleAppiumManifest(
 // which approximates — but does not guarantee — what WebDriverAgentMac gets;
 // an inconclusive or wrong-way-trusted probe is therefore never fatal, and
 // the session-start error path carries the same walkthrough as a backstop.
+//
+// AXIsProcessTrusted is a plain C function, not an Objective-C method, so
+// ObjC.import() alone does NOT expose it on `$` — it must be registered with
+// ObjC.bindFunction (name + [returnType, [argTypes]]) first. Without the bind
+// the call throws inside osascript, which exits non-zero and collapses every
+// verdict to null (inconclusive) — making the definitive-denied SKIP path
+// unreachable.
 async function probeMacAccessibility(): Promise<boolean | null> {
   return await new Promise((resolve) => {
     execFile(
@@ -514,7 +525,7 @@ async function probeMacAccessibility(): Promise<boolean | null> {
         "-l",
         "JavaScript",
         "-e",
-        "ObjC.import('ApplicationServices'); $.AXIsProcessTrusted()",
+        "ObjC.import('ApplicationServices'); ObjC.bindFunction('AXIsProcessTrusted', ['bool', []]); $.AXIsProcessTrusted()",
       ],
       { timeout: 10000 },
       (error, stdout) => {
@@ -676,10 +687,11 @@ function buildAppLocator(
       error: `${unsupported.join(" and ")} ${unsupported.length > 1 ? "are" : "is"} not supported on app surfaces; use elementText, elementId, elementAria, or a native selector.`,
     };
   }
-  // elementText and elementAria's accessible name both map to the SAME
-  // property (@Name on Windows, title/label on macOS), so two different
-  // values can never match one element — surface the conflict instead of
-  // failing silently as not-found.
+  // elementText and elementAria's accessible name overlap in what they match
+  // (@Name on Windows; title/label on macOS — elementText also reaches
+  // @value there), so two different values compile to contradictory name
+  // predicates that all-but-never co-occur on one element. Surface the
+  // conflict instead of failing silently as not-found.
   const ariaName =
     typeof criteria.elementAria === "string"
       ? criteria.elementAria
@@ -690,7 +702,7 @@ function buildAppLocator(
     criteria.elementText !== ariaName
   ) {
     return {
-      error: `elementText ("${criteria.elementText}") and elementAria ("${ariaName}") both map to the accessible Name on app surfaces but have different values — no element can match both. Specify one of them.`,
+      error: `elementText ("${criteria.elementText}") and elementAria ("${ariaName}") give the element two different accessible names, which compile to conflicting predicates on app surfaces. Specify one of them.`,
     };
   }
   const platformDriver =

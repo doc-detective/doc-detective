@@ -78,7 +78,11 @@ apps legs**. Key mechanics:
   Settings → Privacy & Security → Accessibility walkthrough; inconclusive → proceed (the probe
   reports on the probing process's TCC attribution, which approximates but does not guarantee
   WebDriverAgentMac's). Accessibility-shaped session-start errors append the same walkthrough as
-  the backstop.
+  the backstop. `AXIsProcessTrusted` is a C function, so the JXA script must register it with
+  `ObjC.bindFunction('AXIsProcessTrusted', ['bool', []])` before calling it — `ObjC.import` alone
+  does not expose C functions, and an unbound call collapses every verdict to inconclusive,
+  silently unreachable-ing the denied-→-SKIP path. A darwin-gated unit test calls the real probe
+  and asserts a definitive boolean (not the deps-injected stub) to guard the bind.
 * **CI runs macOS for real.** GitHub's macOS runner images pre-grant `kTCCServiceAccessibility`
   to `com.apple.dt.Xcode-Helper` (the process WebDriverAgentMac runs under), `/usr/bin/osascript`
   (so the probe answers truthfully), and `/bin/bash` in the system TCC.db

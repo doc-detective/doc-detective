@@ -15,6 +15,7 @@ import {
   buildAxLocator,
   createAppSessionState,
   appSurfacePreflight,
+  probeMacAccessibility,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -338,7 +339,7 @@ describe("buildAppLocator", function () {
     assert.match(
       buildAppLocator({ elementText: "Save", elementAria: "Cancel" }, "mac")
         .error,
-      /both map to the accessible Name/
+      /compile to conflicting predicates/
     );
   });
 
@@ -348,7 +349,7 @@ describe("buildAppLocator", function () {
       elementText: "Save",
       elementAria: "Cancel",
     });
-    assert.match(conflict.error, /both map to the accessible Name/);
+    assert.match(conflict.error, /compile to conflicting predicates/);
     // Equal values: one predicate, not a redundant AND.
     const merged = buildAppLocator({ elementText: "Save", elementAria: "Save" });
     assert.deepEqual(merged, { strategy: "xpath", value: '//*[@Name="Save"]' });
@@ -540,6 +541,23 @@ describe("appSurfacePreflight", function () {
     });
     assert.equal(win.ok, true);
     assert.equal(probed, 0);
+  });
+
+  it("the real macOS probe returns a definitive boolean (AXIsProcessTrusted is bound)", async function () {
+    // The deps-injected probe tests above never exercise the real JXA script,
+    // so a broken AXIsProcessTrusted bind is invisible to them. On a real
+    // macOS host osascript exists and the (correctly bound) call runs cleanly,
+    // so the verdict must be a real boolean — a null means the script errored
+    // (e.g. the C function was never bound via ObjC.bindFunction), which is
+    // exactly the regression that makes the definitive-denied SKIP unreachable.
+    // Skipped off-macOS, where osascript is absent and null is expected.
+    if (process.platform !== "darwin") this.skip();
+    const verdict = await probeMacAccessibility();
+    assert.equal(
+      typeof verdict,
+      "boolean",
+      `expected a definitive boolean from the JXA probe, got ${verdict}`
+    );
   });
 
   it("installs appium into the cache when the driver is cache-resolved", async function () {

@@ -45,7 +45,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: 'npm'
@@ -82,9 +82,12 @@ jobs:
         shell: bash
         env:
           DD_FIXTURES_REQUIRE_PASS: ${{ inputs.require_pass && '1' || '0' }}
+          # Route the free-form workflow_dispatch input through env rather than
+          # interpolating ${{ inputs.group }} straight into the shell body.
+          FIXTURE_GROUP: ${{ inputs.group }}
         run: |
-          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ inputs.group }}.json"
-          node scripts/check-fixture-results.cjs "dd-output-${{ inputs.group }}.json"
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${FIXTURE_GROUP}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${FIXTURE_GROUP}.json"
 
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
