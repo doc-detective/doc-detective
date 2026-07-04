@@ -139,9 +139,21 @@ function nextEmulatorPort(usedPorts: Iterable<number>): number {
 // fast and deterministic; headless adds `-no-window -no-audio`.
 function emulatorBootArgs(desc: DeviceDescriptor, port: number): string[] {
   const args = ["-avd", String(desc.name), "-port", String(port)];
-  if (desc.headless) args.push("-no-window", "-no-audio");
-  args.push("-no-snapshot-save", "-no-boot-anim");
+  // Headless needs a software renderer — a windowless emulator with the default
+  // (host) GPU has no surface and exits immediately on a headless CI runner.
+  if (desc.headless)
+    args.push("-no-window", "-no-audio", "-gpu", "swiftshader_indirect");
+  // Cold boot (no snapshot load/save) for a deterministic, clean start.
+  args.push("-no-snapshot", "-no-boot-anim");
   return args;
+}
+
+// Whether a boot should be headless: an explicit `headless` wins, otherwise
+// default to headless on a Linux host with no X display (a CI runner) — a
+// windowed emulator can't start there regardless of the descriptor.
+function effectiveHeadless(desc: DeviceDescriptor): boolean {
+  if (typeof desc.headless === "boolean") return desc.headless;
+  return process.platform === "linux" && !process.env.DISPLAY;
 }
 
 // --- Toolchain lazy-install decision (pure) ---
@@ -532,7 +544,10 @@ async function realBootEmulator(
   timeout = 180000
 ): Promise<{ udid: string; process: any }> {
   const udid = udidForPort(port);
-  const child = spawn(emulatorPath, emulatorBootArgs(desc, port), {
+  // Force headless when there's no display (CI) so a windowed emulator doesn't
+  // exit immediately on a headless runner.
+  const bootDesc = { ...desc, headless: effectiveHeadless(desc) };
+  const child = spawn(emulatorPath, emulatorBootArgs(bootDesc, port), {
     detached: false,
     stdio: "ignore",
   });

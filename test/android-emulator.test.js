@@ -84,13 +84,16 @@ describe("androidEmulator: descriptor + boot computation", function () {
     expect(nextEmulatorPort([5554, 5556])).to.equal(5558);
   });
 
-  it("emulatorBootArgs adds headless + deterministic flags", function () {
+  it("emulatorBootArgs adds headless + software GPU + deterministic flags", function () {
     expect(emulatorBootArgs({ name: "phone" }, 5554)).to.deep.equal([
-      "-avd", "phone", "-port", "5554", "-no-snapshot-save", "-no-boot-anim",
+      "-avd", "phone", "-port", "5554", "-no-snapshot", "-no-boot-anim",
     ]);
+    // Headless adds a software renderer — a windowless emulator with the host
+    // GPU has no surface and exits immediately on a headless CI runner.
     expect(emulatorBootArgs({ name: "phone", headless: true }, 5556)).to.deep.equal([
       "-avd", "phone", "-port", "5556",
-      "-no-window", "-no-audio", "-no-snapshot-save", "-no-boot-anim",
+      "-no-window", "-no-audio", "-gpu", "swiftshader_indirect",
+      "-no-snapshot", "-no-boot-anim",
     ]);
   });
 });
