@@ -587,16 +587,27 @@ async function androidContextPreflight({
   let sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
 
   // Host capability: with an SDK, probe acceleration (or reuse a running
-  // emulator); without one, fall back to the cheap /dev/kvm check so we never
-  // trigger a multi-GB install on a host that couldn't run the emulator anyway.
+  // emulator). Without one, we can't run `emulator -accel-check`, so on Linux
+  // fall back to the cheap /dev/kvm proxy (avoids a multi-GB install on a host
+  // that couldn't run the emulator anyway). On macOS/Windows there's no cheap
+  // proxy — HVF/WHPX can only be probed via the emulator binary — so we can't
+  // claim "no acceleration"; point at the SDK instead of dead-ending.
   let capable: boolean;
   if (sdk?.emulator) {
     const probeDeps = buildAcquireDeviceDeps(sdk, abi);
     const running = await probeDeps.listRunning();
     capable =
       running.length > 0 || (await checkEmulatorAcceleration(sdk.emulator));
-  } else {
+  } else if (process.platform === "linux") {
     capable = await hostHasKvm();
+  } else {
+    const hostName = process.platform === "darwin" ? "macOS" : "Windows";
+    const accel = process.platform === "darwin" ? "HVF" : "WHPX";
+    return {
+      ok: false,
+      level: "warning",
+      reason: `Skipping context on 'android': the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
+    };
   }
 
   const requiredOsVersions = requiredAndroidOsVersions(context);
