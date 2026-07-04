@@ -1943,10 +1943,14 @@ function selectWarmUpTargets(
     // `undefined::<browser>`, fails the support check, and is skipped — which
     // would defeat the warm-up/install de-racing the pre-pass exists for.
     if (!context.platform) context.platform = platform;
-    if (!context.browser && isDriverRequired({ test: context })) {
+    // Size and target the warm-up by isBrowserRequired (not isDriverRequired):
+    // app-only contexts run on their own per-context Appium server, so they
+    // must not pull a browser into the pre-pass or get a default browser
+    // written onto their context. Mirrors the browser pool sizing.
+    if (!context.browser && isBrowserRequired({ test: context })) {
       context.browser = getDefaultBrowser({ runnerDetails });
     }
-    if (!isDriverRequired({ test: context })) continue;
+    if (!isBrowserRequired({ test: context })) continue;
     // No resolvable browser — runContext skips these per-context with its own
     // message; nothing to warm up.
     if (!context.browser?.name) continue;

@@ -1146,7 +1146,28 @@ type RequirementDeps = {
   env?: Record<string, string | undefined>;
   existsSync?: (candidate: string) => boolean;
   commandExists?: (command: string) => boolean;
+  platform?: NodeJS.Platform;
 };
+
+// Look up an env var's value. On Windows env vars are case-insensitive and may
+// surface under a different case (e.g. `Path` for `PATH`), so fall back to a
+// case-insensitive scan there — mirroring commandOnPath's PATH/Path handling.
+// Elsewhere the lookup stays exact.
+function lookupEnvValue(
+  env: Record<string, string | undefined>,
+  name: string,
+  platform: NodeJS.Platform
+): string | undefined {
+  const direct = env[name];
+  if (direct !== undefined) return direct;
+  if (platform === "win32") {
+    const lower = name.toLowerCase();
+    for (const key of Object.keys(env)) {
+      if (key.toLowerCase() === lower) return env[key];
+    }
+  }
+  return undefined;
+}
 
 // Trim and drop empty/non-string entries — defense-in-depth mirroring the
 // multi-value flag convention; AJV enforces the same shape for schema users.
@@ -1212,6 +1233,7 @@ function evaluateContextRequirements({
 }): { met: boolean; missing: string[] } {
   const env = deps.env ?? (process.env as Record<string, string | undefined>);
   const existsSync = deps.existsSync ?? fs.existsSync;
+  const platform = deps.platform ?? process.platform;
   const commandExists =
     deps.commandExists ??
     ((command: string) => commandOnPath(command, env, existsSync));
@@ -1235,7 +1257,7 @@ function evaluateContextRequirements({
       missing.push(`file "${file}"`);
   }
   for (const name of envVars) {
-    const value = env[name];
+    const value = lookupEnvValue(env, name, platform);
     if (value === undefined || value === "")
       missing.push(`environment variable "${name}"`);
   }

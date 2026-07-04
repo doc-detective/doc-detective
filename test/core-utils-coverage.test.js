@@ -625,6 +625,48 @@ describe("core/utils coverage", function () {
       assert.match(result.missing[0], /EMPTY/);
     });
 
+    it("matches env var names case-insensitively on Windows", function () {
+      // Windows env vars are case-insensitive and may surface as mixed case
+      // (e.g. `Path`). `requires.env: ["PATH"]` must be met when the injected
+      // env only holds `Path`, mirroring commandOnPath's PATH/Path handling.
+      const win = evaluateContextRequirements({
+        requires: { env: ["PATH"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: () => true,
+          env: { Path: "C:\\Windows" },
+          platform: "win32",
+        },
+      });
+      assert.deepEqual(win, { met: true, missing: [] });
+
+      // A case-insensitive match to an empty value is still unmet.
+      const winEmpty = evaluateContextRequirements({
+        requires: { env: ["PATH"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: () => true,
+          env: { Path: "" },
+          platform: "win32",
+        },
+      });
+      assert.equal(winEmpty.met, false);
+    });
+
+    it("keeps env var matching case-sensitive off Windows", function () {
+      const result = evaluateContextRequirements({
+        requires: { env: ["PATH"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: () => true,
+          env: { Path: "/usr/bin" },
+          platform: "linux",
+        },
+      });
+      assert.equal(result.met, false);
+      assert.match(result.missing[0], /PATH/);
+    });
+
     it("expands $VAR in file entries against the injected env", function () {
       const seen = [];
       const result = evaluateContextRequirements({

@@ -306,7 +306,7 @@ describe("closeSurface app-surface branch", function () {
     assert.deepEqual(absent.outputs.absent, ["charmap"]);
   });
 
-  it("prefers the process when a bare string names both a process and an app surface", async function () {
+  it("prefers the process when a bare string names both a process and an app surface, and logs the ambiguity", async function () {
     // The ambiguity is logged (debug) and the process wins — the pre-app
     // behavior; the object form ({"app": …}) targets the app unambiguously.
     const appSession = fakeAppSession({ name: "shared" });
@@ -323,17 +323,32 @@ describe("closeSurface app-surface branch", function () {
         },
       ],
     ]);
-    const result = await closeSurface({
-      config: {},
-      step: { closeSurface: "shared" },
-      driver: undefined,
-      processRegistry,
-      appSession,
-    });
+    // Capture console output so we can assert the documented debug log fires.
+    const logged = [];
+    const realLog = console.log;
+    console.log = (...args) => logged.push(args.join(" "));
+    let result;
+    try {
+      result = await closeSurface({
+        config: { logLevel: "debug" },
+        step: { closeSurface: "shared" },
+        driver: undefined,
+        processRegistry,
+        appSession,
+      });
+    } finally {
+      console.log = realLog;
+    }
     assert.equal(result.status, "PASS");
     assert.deepEqual(result.outputs.closed, ["shared"]);
     assert.equal(killed, 1, "the process should close, not the app");
     assert.equal(appSession.surfaces.size, 1, "the app surface stays open");
+    assert.ok(
+      logged.some((line) =>
+        /names both a background process and an app surface/.test(line)
+      ),
+      "the ambiguity should be logged at debug level"
+    );
   });
 
   it("rejects window-scoped app closes and resolves bare strings via the app registry", async function () {
