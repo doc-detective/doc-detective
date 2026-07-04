@@ -6,10 +6,10 @@ description: Launch a native desktop application as a surface that later steps c
 
 The `startSurface` action launches a native desktop application and registers it as a surface, so later steps can target it with `surface`. Once an app surface is open, `find`, `click`, `type`, and `screenshot` steps can act on it, and `closeSurface` can close it.
 
-App surfaces are the third kind of surface, alongside background processes and browser windows and tabs. In this phase, `startSurface` supports **native Windows desktop apps only**. On macOS and Linux, Doc Detective skips the context with an actionable reason instead of failing, so cross-platform specs stay green (see [Platform support](#platform-support)).
+App surfaces are the third kind of surface, alongside background processes and browser windows and tabs. `startSurface` supports **native Windows and macOS desktop apps**. On Linux, Doc Detective skips the context with an actionable reason instead of failing, so cross-platform specs stay green (see [Platform support](#platform-support)).
 
 <Note>
-The Windows app driver (`appium-novawindows-driver`) is a heavy dependency that Doc Detective installs on demand the first time an app surface starts. To install it ahead of time, run `doc-detective install runtime appium-novawindows-driver`.
+Doc Detective drives native apps through a platform-specific Appium driver — `appium-novawindows-driver` on Windows, `appium-mac2-driver` on macOS — and installs it on demand the first time an app surface starts. To install one ahead of time, run `doc-detective install runtime appium-novawindows-driver` on Windows or `doc-detective install runtime appium-mac2-driver` on macOS.
 </Note>
 
 ## Descriptor
@@ -17,15 +17,16 @@ The Windows app driver (`appium-novawindows-driver`) is a heavy dependency that 
 Provide an object as the value for the `startSurface` key. Only `app` is required.
 
 - `app`: (Required) The application to launch. Doc Detective identifies the kind from the value's syntax, never from a separate type field:
-  - An **executable path**, such as `C:\Windows\System32\notepad.exe`.
-  - A **`.app` path** (macOS, later phase), such as `/Applications/Calculator.app`.
-  - A **bundle ID or package name**, such as `com.apple.TextEdit`.
-  - A **UWP AppUserModelID**, such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`.
-- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`notepad.exe` becomes `notepad`), the final dot-segment of an ID (`com.apple.TextEdit` becomes `TextEdit`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`).
-- `args`: (Optional) An array of launch arguments to pass to the app.
-- `workingDirectory`: (Optional) The working directory for the launched app. Defaults to the run's working directory.
+  - An **executable path** (Windows), such as `C:\Windows\System32\charmap.exe`.
+  - A **`.app` path** (macOS), such as `/System/Applications/Calculator.app`.
+  - A **bundle ID or package name** (macOS), such as `com.apple.TextEdit`.
+  - A **UWP AppUserModelID** (Windows), such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`.
+- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`charmap.exe` becomes `charmap`), the final dot-segment of a bundle ID (`com.apple.TextEdit` becomes `TextEdit`), the base name of a `.app` path (`/System/Applications/Calculator.app` becomes `Calculator`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`).
+- `args`: (Optional) An array of launch arguments to pass to the app. On macOS they reach the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument that contains spaces must carry its own quotes.
+- `env`: (Optional, macOS only) Extra environment variables for the launched app. The Windows driver doesn't support `env`, and setting it there fails the step with guidance. Instead, set variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell).
+- `workingDirectory`: (Optional, Windows only) The working directory for the launched app. Defaults to the run's working directory. macOS launches apps through LaunchServices, which offers no working-directory control, so a non-default value fails the step there with guidance; use [`runShell`](/docs/actions/runshell) if the working directory matters.
 - `waitUntil`: (Optional) A readiness condition that must hold before the surface is considered open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
-- `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`.
+- `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode, which can take several minutes on a cold machine; Doc Detective raises the server startup ceiling to at least 120000 ms for that first build regardless of `timeout`.
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
 Opening two app surfaces with the same `name` in one context fails. Pass a distinct `name` when you launch more than one app.
@@ -42,24 +43,24 @@ After `startSurface` registers an app, reference it from a later step with a `su
 }
 ```
 
-Doc Detective locates elements on an app surface through the platform's accessibility layer (UI Automation on Windows), so the element criteria you already use in the browser map onto native controls:
+Doc Detective locates elements on an app surface through the platform's accessibility layer (UI Automation on Windows, the macOS accessibility (AX) tree on macOS), so the element criteria you already use in the browser map onto native controls:
 
-- `elementText` matches a control's accessible name.
-- `elementId` and `elementTestId` match a control's automation ID.
-- `elementAria` matches a control's role, and its name when you provide one.
+- `elementText` matches a control's visible text. On macOS this covers a control's title, label, or value, so it also matches the content of text views and value displays.
+- `elementId` and `elementTestId` match a control's automation ID (its accessibility identifier on macOS).
+- `elementAria` matches a control's role, and its accessible name when you provide one. Pass the accessible name as a string; the `{ role, name }` object form isn't available yet.
 
 For controls the semantic fields can't reach, `selector` accepts a native locator instead of a CSS selector:
 
-- An **XPath**, such as `//Button[@Name="Save"]`.
+- An **XPath**. On Windows the element names are UIA control types, such as `//Button[@Name="Save"]`; on macOS they're XCUIElementType tags, such as `//XCUIElementTypeButton[@title="Add"]`.
 - An **accessibility ID**, prefixed with `~`, such as `~SaveButton`.
 
 CSS selectors are browser-only and fail on app surfaces, as do the `elementClass` and `elementAttribute` fields. The error message names the supported alternatives.
 
 ## Platform support
 
-`startSurface` launches native apps on Windows in this phase. On macOS and Linux, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run.
+`startSurface` launches native apps on Windows and macOS. On Linux, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run.
 
-To make the skip explicit and avoid launching an app where it can't run, gate app tests to Windows with a [context](/docs/test-docs/platforms-and-browsers) that targets the `windows` platform:
+Because an app targets one platform, gate app tests to the platform they run on with a [context](/docs/test-docs/platforms-and-browsers). A Windows app targets the `windows` platform:
 
 ```json
 {
@@ -71,7 +72,19 @@ To make the skip explicit and avoid launching an app where it can't run, gate ap
 }
 ```
 
-You can also require the app's binary so the context skips cleanly on Windows editions that don't ship it, using the context [`requires`](/docs/test-docs/platforms-and-browsers) capability gate:
+A macOS app targets the `mac` platform:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["mac"]
+    }
+  ]
+}
+```
+
+You can also require the app's binary so the context skips cleanly on machines that don't ship it, using the context [`requires`](/docs/test-docs/platforms-and-browsers) capability gate:
 
 ```json
 {
@@ -86,12 +99,21 @@ You can also require the app's binary so the context skips cleanly on Windows ed
 }
 ```
 
+### Grant Accessibility permission on macOS
+
+macOS gates app automation behind the Accessibility (TCC) permission. The process that runs Doc Detective (your terminal, IDE, or CI runner process) needs permission to control your computer, or the app driver can't drive apps.
+
+Before launching an app, Doc Detective checks whether you granted the permission. If macOS reports it as denied, the app preflight skips the context with a walkthrough rather than failing:
+
+> Open System Settings → Privacy & Security → Accessibility and enable the app that launches Doc Detective (your terminal, IDE, or CI runner process), then rerun.
+
+Grant the permission there, then rerun. If the launch still fails with an accessibility-related error, Doc Detective repeats the same walkthrough in the failure message.
+
 ## Reserved fields
 
 The descriptor validates a few fields that are reserved for later phases of the native app roadmap. Setting any of them today fails the step with a message that names the roadmap, rather than silently ignoring what you asked for:
 
 - `device`, `install`, and `activity` are reserved for the mobile phases.
-- `env` isn't supported by the Windows app driver, so set environment variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell) instead.
 
 ## Wait for the app to be ready
 
@@ -222,6 +244,81 @@ This example launches Character Map, waits until its **Select** button exists, c
         {
           "description": "Close Character Map.",
           "closeSurface": { "app": "charmap" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Launch a macOS app and act on it
+
+This example launches Calculator by its `.app` path, waits until a digit button exists, computes `1 + 2`, checks that the display reads `3`, captures the window, and closes the surface. The digit buttons match by accessible name with `elementAria`. The operator keys use a native XPath selector because their accessible names are words (`Add`, `Equals`) rather than the symbols on screen.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["mac"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch Calculator and wait until it's ready.",
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "waitUntil": {
+              "find": { "elementAria": "1" }
+            }
+          }
+        },
+        {
+          "description": "Press 1.",
+          "click": {
+            "elementAria": "1",
+            "surface": { "app": "Calculator" }
+          }
+        },
+        {
+          "description": "Press the add key.",
+          "click": {
+            "selector": "//XCUIElementTypeButton[@title=\"Add\" or @label=\"Add\"]",
+            "surface": { "app": "Calculator" }
+          }
+        },
+        {
+          "description": "Press 2.",
+          "click": {
+            "elementAria": "2",
+            "surface": { "app": "Calculator" }
+          }
+        },
+        {
+          "description": "Press the equals key.",
+          "click": {
+            "selector": "//XCUIElementTypeButton[@title=\"Equals\" or @label=\"Equals\"]",
+            "surface": { "app": "Calculator" }
+          }
+        },
+        {
+          "description": "Check the result.",
+          "find": {
+            "elementText": "3",
+            "surface": { "app": "Calculator" }
+          }
+        },
+        {
+          "description": "Capture the window.",
+          "screenshot": {
+            "path": "calculator-app.png",
+            "surface": { "app": "Calculator" }
+          }
+        },
+        {
+          "description": "Close Calculator.",
+          "closeSurface": { "app": "Calculator" }
         }
       ]
     }

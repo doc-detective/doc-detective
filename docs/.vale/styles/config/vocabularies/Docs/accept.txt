@@ -222,3 +222,4 @@ postinstall
 Geckodriver
 ChromeDriver
 Xvfb
+Xcode

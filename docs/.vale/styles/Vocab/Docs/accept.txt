@@ -118,3 +118,4 @@ autoUpdate
 cacheDir
 Geckodriver
 ChromeDriver
+Xcode
