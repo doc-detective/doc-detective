@@ -1227,7 +1227,15 @@ async function ensureAppForeground(
 ): Promise<{ error?: string }> {
   if (!entry.deviceName || !appSession) return {};
   const session = appSession.deviceSessions?.get(entry.deviceName);
-  if (!session || session.foregroundApp === entry.appId) return {};
+  // A surface carrying a deviceName must have a live device session. A missing
+  // one is an internal inconsistency — fail loudly instead of skipping the
+  // foreground switch and letting the next find/click act on the wrong app.
+  if (!session) {
+    return {
+      error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}): no active session for device "${entry.deviceName}".`,
+    };
+  }
+  if (session.foregroundApp === entry.appId) return {};
   try {
     await session.driver.activateApp(entry.appId);
   } catch (error: any) {

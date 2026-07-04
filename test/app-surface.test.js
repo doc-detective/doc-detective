@@ -1354,4 +1354,14 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     await ensureAppForeground({ name: "c", appId: "x" }, appSession);
     assert.deepEqual(activated, ["com.example.b"]);
   });
+
+  it("ensureAppForeground errors when the device session is missing (android)", async function () {
+    const appSession = createAppSessionState();
+    // Surface carries a deviceName but no session was registered for it.
+    const { error } = await ensureAppForeground(
+      { name: "a", appId: "com.example.a", deviceName: "pixel7" },
+      appSession
+    );
+    assert.match(error, /no active session for device "pixel7"/);
+  });
 });
