@@ -751,7 +751,7 @@
                       "properties": {
                         "selector": {
                           "type": "string",
-                          "description": "CSS selector for the element to wait for."
+                          "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                         },
                         "elementText": {
                           "type": "string",
@@ -860,7 +860,7 @@
                       "properties": {
                         "selector": {
                           "type": "string",
-                          "description": "CSS selector for the element to wait for."
+                          "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                         },
                         "elementText": {
                           "type": "string",
@@ -1166,7 +1166,7 @@
                     "properties": {
                       "selector": {
                         "type": "string",
-                        "description": "CSS selector for the element to wait for."
+                        "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                       },
                       "elementText": {
                         "type": "string",
@@ -1296,7 +1296,7 @@
                     "properties": {
                       "selector": {
                         "type": "string",
-                        "description": "CSS selector for the element to wait for."
+                        "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                       },
                       "elementText": {
                         "type": "string",
@@ -1435,7 +1435,7 @@
                     "properties": {
                       "selector": {
                         "type": "string",
-                        "description": "CSS selector for the element to wait for."
+                        "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                       },
                       "elementText": {
                         "type": "string",
@@ -2244,7 +2244,7 @@
                         "properties": {
                           "selector": {
                             "type": "string",
-                            "description": "CSS selector for the element to wait for."
+                            "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                           },
                           "elementText": {
                             "type": "string",
@@ -2353,7 +2353,7 @@
                         "properties": {
                           "selector": {
                             "type": "string",
-                            "description": "CSS selector for the element to wait for."
+                            "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                           },
                           "elementText": {
                             "type": "string",
@@ -2659,7 +2659,7 @@
                       "properties": {
                         "selector": {
                           "type": "string",
-                          "description": "CSS selector for the element to wait for."
+                          "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                         },
                         "elementText": {
                           "type": "string",
@@ -2789,7 +2789,7 @@
                       "properties": {
                         "selector": {
                           "type": "string",
-                          "description": "CSS selector for the element to wait for."
+                          "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                         },
                         "elementText": {
                           "type": "string",
@@ -2928,7 +2928,7 @@
                       "properties": {
                         "selector": {
                           "type": "string",
-                          "description": "CSS selector for the element to wait for."
+                          "description": "Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime."
                         },
                         "elementText": {
                           "type": "string",

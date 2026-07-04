@@ -448,6 +448,19 @@ function isBrowserRequired({ test }: { test: any }): boolean {
   );
 }
 
+// Size the browser Appium server pool: the number of concurrent runner jobs
+// that will actually create a BROWSER session. App-only jobs are excluded —
+// they provision their own per-context Appium server (homed where the native
+// driver resolves), so counting them here would start an idle browser server
+// (and, on Linux, an unused Xvfb display). Using isBrowserRequired keeps this
+// count in lockstep with the per-context acquire predicate. Exported for a
+// focused unit test; the deep pool wiring is exercised end-to-end by CI.
+export function browserJobCount(jobs: any[]): number {
+  if (!Array.isArray(jobs)) return 0;
+  return jobs.filter((job: any) => isBrowserRequired({ test: job?.context }))
+    .length;
+}
+
 // Evaluate a context's `requires` capability gate. Returns null when the gate
 // is absent or fully met; otherwise a skip message naming every unmet
 // requirement, so the context lands as SKIPPED (the same non-failing outcome
@@ -1174,14 +1187,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     );
   }
 
-  // Start one Appium server per concurrent runner that will actually use a
-  // driver (capped at the number of driver contexts). Each server owns a
-  // distinct port, so parallel contexts never create sessions on the same
-  // server — that contention crashed ChromeDriver when every context shared
-  // one server. Non-driver runs start none.
-  const driverJobCount = sizingJobs.filter((job: any) =>
-    isDriverRequired({ test: job.context })
-  ).length;
+  // Start one Appium server per concurrent runner that will actually create a
+  // BROWSER session (capped at the number of browser contexts). Each server
+  // owns a distinct port, so parallel contexts never create sessions on the
+  // same server — that contention crashed ChromeDriver when every context
+  // shared one server. App-only contexts run on their own per-context server
+  // (see startAppSurface) and are excluded here, so an app-only run starts no
+  // browser server. Non-driver runs start none.
+  const browserPoolJobCount = browserJobCount(sizingJobs);
   let appiumServers: Array<{ port: number; process: any; display?: string }> =
     [];
   let appiumPool:
@@ -1194,7 +1207,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
 
-  if (driverJobCount > 0) {
+  if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     // Resolve appium's actual JS entrypoint via `require.resolve` (shim
     // node_modules first, runtime cache second) and invoke it with
@@ -1211,7 +1224,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
       );
     }
-    const serverCount = Math.min(limit, driverJobCount);
+    const serverCount = Math.min(limit, browserPoolJobCount);
     log(config, "debug", `Starting ${serverCount} Appium server(s).`);
     // Start servers one at a time rather than all at once: concurrent
     // findFreePort() calls share a close-to-rebind window (two could hand out
@@ -2844,7 +2857,8 @@ async function runContext({
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
-        "driverJobCount (isDriverRequired) and isBrowserRequired(context) disagreed; this is a bug."
+        "the pool sizing (browserJobCount) and this context's isBrowserRequired " +
+        "predicate disagreed; this is a bug."
     );
   }
 

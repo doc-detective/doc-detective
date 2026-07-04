@@ -972,6 +972,42 @@ describe("Intelligent goTo behavior", function () {
   });
 });
 
+describe("browserJobCount() Appium pool sizing", function () {
+  let browserJobCount;
+  before(async function () {
+    const testsModule = await import("../dist/core/tests.js");
+    browserJobCount = testsModule.browserJobCount;
+  });
+
+  it("counts only contexts whose steps need a browser, excluding app-only and driver-free jobs", function () {
+    const jobs = [
+      // Browser context: a `find` with a CSS selector needs a real browser.
+      { context: { steps: [{ find: { selector: ".ready" } }] } },
+      // App-only context: startSurface + an app-targeted find run on the app
+      // session's own Appium server — no browser pool server is ever acquired.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { find: { elementText: "Select", surface: { app: "charmap" } } },
+          ],
+        },
+      },
+      // Driver-free context: pure shell, no Appium at all.
+      { context: { steps: [{ runShell: { command: "echo hi" } }] } },
+    ];
+    // Only the first context sizes the browser pool. Sizing with the old
+    // isDriverRequired predicate would have wrongly counted the app-only
+    // context and started an idle browser Appium server.
+    assert.equal(browserJobCount(jobs), 1);
+  });
+
+  it("tolerates stepless or malformed jobs without throwing", function () {
+    assert.equal(browserJobCount([]), 0);
+    assert.equal(browserJobCount([{ context: {} }, { context: { steps: [] } }, {}]), 0);
+  });
+});
+
 describe("getRunner() function", function () {
   // 5 minutes per test
   this.timeout(300000);
