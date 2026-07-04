@@ -80,6 +80,17 @@ import {
   mobileContextSkipReason,
 } from "./tests/mobilePlatform.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
+import { hostAbi } from "../runtime/androidInstaller.js";
+import {
+  buildAcquireDeviceDeps,
+  checkEmulatorAcceleration,
+  planDeviceAcquisition,
+  normalizeDeviceDescriptor,
+  acquireDevice,
+  createDeviceRegistry,
+  teardownDeviceRegistry,
+  type DeviceRegistry,
+} from "./tests/androidEmulator.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import {
@@ -400,7 +411,13 @@ function jobDisplayResources(
   }
 ): string[] {
   const base = jobExclusiveResources(job, ctx);
-  if (base.length) return base;
+  // Android emulator contexts (phase A3b) serialize against each other: each
+  // emulator is GBs of RAM, so bound their concurrency to one at a time. This
+  // is exclusivity-as-bound on a single resource name (a counted semaphore is
+  // future work); it composes with any recording "display" resource above.
+  const extra =
+    job.context?.platform === "android" ? ["android-emulator"] : [];
+  if (base.length || extra.length) return [...new Set([...base, ...extra])];
   if (
     ctx.runHasDisplayRecording &&
     isDriverRequired({ test: { steps: job.context?.steps } })
@@ -486,6 +503,110 @@ function contextRequirementsSkipMessage({
   });
   if (met) return null;
   return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
+}
+
+// The device descriptors a test needs: each startSurface's `device` (undefined
+// when it omits one — the context default / auto device). At least one entry so
+// a test with no explicit device still validates the default device.
+function collectDeviceDescriptors(context: any): any[] {
+  const out: any[] = [];
+  for (const step of context?.steps ?? []) {
+    if (step?.startSurface) out.push(step.startSurface.device);
+  }
+  return out.length ? out : [undefined];
+}
+
+// Android context preflight (native app phase A3b): compose SDK detection, the
+// emulator-acceleration probe, per-device resolvability (the device plan), and
+// the UiAutomator2 driver install into one ok/skip verdict. Every gap is a
+// gating SKIP (never FAIL), same semantics as `requires`. On ok, returns the
+// Appium entry/home for the app server plus the SDK root and injected device-
+// effect bundle the run's device layer needs.
+async function androidContextPreflight({
+  config,
+  context,
+  clog,
+}: {
+  config: any;
+  context: any;
+  clog: (level: string, msg: string) => void;
+}): Promise<
+  | {
+      ok: true;
+      appiumEntry: string;
+      appiumHome: string;
+      sdkRoot: string;
+      deviceDeps: any;
+    }
+  | { ok: false; level: "warning" | "info"; reason: string }
+> {
+  const hasBrowserStep = isBrowserRequired({ test: context });
+  const sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
+  if (!sdk || hasBrowserStep) {
+    const { level, reason } = mobileContextSkipReason({
+      platform: "android",
+      sdkPresent: sdk !== null,
+      hasBrowserStep,
+    });
+    return { ok: false, level, reason };
+  }
+  /* c8 ignore start */
+  // Everything below needs a real SDK + emulator, so it's exercised on the CI
+  // emulator legs (and dev boxes), not the unit suite — which covers the
+  // sdk-missing / browser-step / ios skip paths above via core-core.test.js and
+  // the decision logic (planDeviceAcquisition, capabilities) in its own module.
+  const abi = hostAbi();
+  const deviceDeps = buildAcquireDeviceDeps(sdk, abi, (m: string) =>
+    clog("debug", m)
+  );
+
+  // Acceleration probe — skipped when an emulator is already running (reuse).
+  const running = await deviceDeps.listRunning();
+  const accelerated =
+    running.length > 0 ||
+    (sdk.emulator ? await checkEmulatorAcceleration(sdk.emulator) : false);
+  if (!accelerated) {
+    return {
+      ok: false,
+      level: "warning",
+      reason: `Skipping context on 'android': this host can't run the Android emulator (no KVM/HVF/WHPX hardware acceleration detected, and no emulator is already running). Android tests run on hosts with virtualization enabled (e.g. a Linux CI runner with KVM).`,
+    };
+  }
+
+  // Device plan: every device the test needs must resolve (reuse an existing
+  // AVD/emulator, or create one from an installed image + Java). A gap SKIPs.
+  const avds = await deviceDeps.listAvds();
+  const installedImages = deviceDeps.installedImages();
+  const javaPresent = deviceDeps.javaPresent();
+  for (const stepDevice of collectDeviceDescriptors(context)) {
+    const desc = normalizeDeviceDescriptor({
+      contextDevice: context.device,
+      stepDevice,
+      platform: "android",
+    });
+    const plan = planDeviceAcquisition(desc, {
+      running,
+      avds,
+      installedImages,
+      abi,
+      javaPresent,
+    });
+    if (plan.action === "skip") {
+      return { ok: false, level: "warning", reason: plan.reason };
+    }
+  }
+
+  // Driver install (uiautomator2) + Appium home, via the shared app preflight.
+  const pre = await appSurfacePreflight({ config, platform: "android" });
+  if (!pre.ok) return { ok: false, level: "warning", reason: pre.reason };
+  return {
+    ok: true,
+    appiumEntry: pre.appiumEntry,
+    appiumHome: pre.appiumHome,
+    sdkRoot: sdk.sdkRoot,
+    deviceDeps,
+  };
+  /* c8 ignore stop */
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -1285,6 +1406,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // or the run-end sweep in the `finally` below.
   const processRegistry = new Map<string, any>();
 
+  // Run-level device registry (native app phase A3b): booted/reused Android
+  // emulators keyed by device name, shared across specs/tests so two contexts
+  // wanting the same device converge on one boot. Swept in the `finally` below —
+  // only devices Doc Detective booted are killed (launch-ownership).
+  const deviceRegistry: DeviceRegistry = createDeviceRegistry();
+
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
   // actually gone before the run returns. Idempotent: closeSurface already
@@ -1386,6 +1513,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           installAttempts,
           warmUpResults,
           processRegistry,
+          deviceRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -1480,6 +1608,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           installAttempts,
           warmUpResults,
           processRegistry,
+          deviceRegistry,
           platform,
           markAutoRecord,
           limit,
@@ -1534,6 +1663,18 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // Process may already be terminated
       }
     }
+    // Sweep the Android device registry (native app phase A3b): kill only the
+    // emulators Doc Detective booted (they carry a `process`), leaving
+    // pre-existing ones (bootedByUs=false, no process) running. tree-kill the
+    // emulator process the same way Appium servers are swept above.
+    /* c8 ignore start */
+    if (deviceRegistry.size > 0) {
+      await teardownDeviceRegistry(deviceRegistry, async (entry) => {
+        log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
+        await killTree(entry.process?.pid);
+      });
+    }
+    /* c8 ignore stop */
     process.off("SIGINT", onSignal);
     process.off("SIGTERM", onSignal);
   }
@@ -1613,6 +1754,7 @@ async function runRoutedSpec({
   installAttempts,
   warmUpResults,
   processRegistry,
+  deviceRegistry,
   platform,
   markAutoRecord,
   limit,
@@ -1632,6 +1774,7 @@ async function runRoutedSpec({
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
   processRegistry?: Map<string, any>;
+  deviceRegistry?: DeviceRegistry;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -1817,6 +1960,7 @@ async function runRoutedSpec({
           installAttempts,
           warmUpResults,
           processRegistry,
+          deviceRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2608,6 +2752,7 @@ async function runContext({
   installAttempts,
   warmUpResults,
   processRegistry,
+  deviceRegistry,
   logPrefix = "",
 }: {
   config: any;
@@ -2623,6 +2768,7 @@ async function runContext({
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
   processRegistry?: Map<string, any>;
+  deviceRegistry?: DeviceRegistry;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -2688,6 +2834,11 @@ async function runContext({
   // `requires` gate below is scoped to host == target and never fires for a
   // mobile context. The branch returns early, so none of the desktop
   // engine/platform skips run for mobile contexts.
+  // App session — created for desktop app contexts below, and for an android
+  // context that passes its preflight (phase A3b). Declared here so the mobile
+  // branch can set it and fall through to the shared step-execution path.
+  let appSession: AppSessionState | undefined;
+
   const mobileTarget = isMobileTargetPlatform(context.platform);
   if (mobileTarget) {
     const requirementsSkip = contextRequirementsSkipMessage({ context });
@@ -2697,21 +2848,40 @@ async function runContext({
       contextReport.resultDescription = requirementsSkip;
       return contextReport;
     }
-    // Android SDK detection is lazy — probed only here, only for android
-    // contexts — so a run that never targets android pays nothing.
-    const sdkPresent =
-      mobileTarget === "android"
-        ? detectAndroidSdk({ cacheDir: config.cacheDir }) !== null
-        : false;
-    const { level, reason } = mobileContextSkipReason({
-      platform: mobileTarget,
-      sdkPresent,
-      hasBrowserStep: isBrowserRequired({ test: context }),
-    });
-    clog(level, reason);
-    contextReport.result = "SKIPPED";
-    contextReport.resultDescription = reason;
-    return contextReport;
+    if (mobileTarget === "ios") {
+      // iOS has no PASS path yet — point at phase A4.
+      const { level, reason } = mobileContextSkipReason({ platform: "ios" });
+      clog(level, reason);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = reason;
+      return contextReport;
+    }
+    // Android (phase A3b): full preflight. SDK detection is lazy (probed only
+    // here, only for android contexts), so a run that never targets android
+    // pays nothing. On skip, land SKIPPED with the actionable reason; on ok,
+    // prime the app session with the device layer and FALL THROUGH to run the
+    // steps — none of the desktop engine/platform skips below apply to it (the
+    // `!platformMatches` skip is guarded on `!appSession`).
+    const pre = await androidContextPreflight({ config, context, clog });
+    if (!pre.ok) {
+      clog(pre.level, pre.reason);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = pre.reason;
+      return contextReport;
+    }
+    /* c8 ignore start */
+    // The ok path only runs on a host with a real SDK + emulator (CI legs).
+    appSession = createAppSessionState();
+    appSession.appiumEntry = pre.appiumEntry;
+    appSession.appiumHome = pre.appiumHome;
+    appSession.defaultDevice = context.device;
+    appSession.androidSdkRoot = pre.sdkRoot;
+    appSession.androidDeviceRegistry = deviceRegistry;
+    appSession.androidDeviceDeps = pre.deviceDeps;
+    // resolved device (name) joins the context report the way resolved browser
+    // versions do; the concrete udid is known once a surface boots it.
+    contextReport.device = context.device ?? { platform: "android" };
+    /* c8 ignore stop */
   }
 
   // `requires` capability gate: any unmet requirement skips the context with a
@@ -2735,8 +2905,8 @@ async function runContext({
   // session primed with the resolved Appium entry/home for the app server.
   // Scoped to the current platform like the `requires` gate above: a context
   // targeting another platform must skip with the platform-mismatch reason,
-  // not pay (or misreport) a driver-install attempt on this host.
-  let appSession: AppSessionState | undefined;
+  // not pay (or misreport) a driver-install attempt on this host. (An android
+  // context already set up its app session in the mobile branch above.)
   if (context.platform === platform && isAppDriverRequired({ test: context })) {
     const preflight = await appSurfacePreflight({ config, platform });
     if (!preflight.ok) {
@@ -2874,8 +3044,11 @@ async function runContext({
     contextReport.resultDescription = errorMessage;
     return contextReport;
   }
-  // A non-driver context that targets a different platform has nothing to run.
-  if (!driverRequired && !platformMatches) {
+  // A non-driver context that targets a different platform has nothing to run —
+  // UNLESS it's an android app context, which legitimately targets a platform
+  // (android) different from the host and already primed its app session in the
+  // mobile branch above.
+  if (!driverRequired && !platformMatches && !appSession) {
     const errorMessage = `Skipping context. The current system doesn't support this context: {"platform": "${
       context.platform
     }", "apps": ${JSON.stringify(context.apps)}}`;
@@ -3850,14 +4023,38 @@ async function runStep({
             // APPIUM_HOME points the server at the node_modules that holds
             // the native driver (shim or runtime cache). The preflight has
             // already invalidated a stale extensions manifest there, so the
-            // server's startup scan discovers the driver.
-            const server = await startAppiumServer(appiumEntry, config, undefined, {
-              APPIUM_HOME: appiumHome,
-            });
+            // server's startup scan discovers the driver. On Android the
+            // UiAutomator2 driver locates adb/emulator through ANDROID_HOME /
+            // ANDROID_SDK_ROOT, so pass the resolved SDK root too.
+            const env: Record<string, string> = { APPIUM_HOME: appiumHome };
+            if (appSession?.androidSdkRoot) {
+              env.ANDROID_HOME = appSession.androidSdkRoot;
+              env.ANDROID_SDK_ROOT = appSession.androidSdkRoot;
+            }
+            const server = await startAppiumServer(
+              appiumEntry,
+              config,
+              undefined,
+              env
+            );
             return { port: server.port, process: server.process };
           },
           startDriver: (capabilities: any, port: number) =>
             driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+          // Android device acquisition (boot/create-and-boot, or reuse),
+          // bound to the run-level registry stashed on the app session. Only
+          // set for android app sessions (which only exist on a capable host).
+          /* c8 ignore start */
+          acquireDevice: appSession?.androidDeviceDeps
+            ? (desc: any) =>
+                acquireDevice({
+                  desc,
+                  registry: appSession!.androidDeviceRegistry,
+                  sdkRoot: appSession!.androidSdkRoot!,
+                  deps: appSession!.androidDeviceDeps,
+                })
+            : undefined,
+          /* c8 ignore stop */
         },
       });
     }

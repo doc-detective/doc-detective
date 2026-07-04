@@ -97,7 +97,8 @@
   "ddRuntimeDependencies": {
     "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
     "appium-mac2-driver": "^4.0.3",
-    "appium-novawindows-driver": "^1.4.1"
+    "appium-novawindows-driver": "^1.4.1",
+    "appium-uiautomator2-driver": "^4.2.0"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

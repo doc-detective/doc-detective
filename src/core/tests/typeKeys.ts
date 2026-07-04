@@ -10,7 +10,11 @@ import {
   reinterpretForSessions,
   switchToSurface,
 } from "./browserSurface.js";
-import { resolveAppSurfaceRef, findAppElement } from "./appSurface.js";
+import {
+  resolveAppSurfaceRef,
+  findAppElement,
+  ensureAppForeground,
+} from "./appSurface.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
   buildConditionContext,
@@ -409,6 +413,12 @@ async function typeKeys({
       result.status = "FAIL";
       result.description =
         "Typing on an app surface requires element criteria (elementText, elementId, elementAria, or a native selector) in this phase.";
+      return result;
+    }
+    const switched = await ensureAppForeground(appRef.entry!, appSession);
+    if (switched.error) {
+      result.status = "FAIL";
+      result.description = switched.error;
       return result;
     }
     const found = await findAppElement({
