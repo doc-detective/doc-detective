@@ -350,7 +350,78 @@ describe("android installer: installAndroid orchestration", function () {
             Promise.resolve(args.includes("--list") ? "Available Packages:\n" : ""),
         },
       });
-      expect(reports[0].action).to.equal("blocked");
+      // The blocked report is the terminal one (after licenses); no AVD created.
+      expect(reports.some((r) => r.action === "blocked")).to.equal(true);
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(false);
+    });
+  });
+
+  it("bootstraps the SDK from nothing: download → licenses → tools → image → AVD", async function () {
+    await withTmpCache(async () => {
+      const runCalls = [];
+      const bootstrapCalls = [];
+      const listOutput = [
+        "Available Packages:",
+        "  system-images;android-34;google_apis;x86_64 | 3 | Google APIs",
+      ].join("\n");
+      const reports = await installAndroid({
+        yes: true,
+        deps: {
+          // No SDK anywhere -> bootstrap path.
+          detect: () => null,
+          javaPresent: () => true,
+          fs: { existsSync: () => false, readdirSync: () => [] },
+          bootstrap: (url, dest) => {
+            bootstrapCalls.push({ url, dest });
+            return Promise.resolve();
+          },
+          run: (command, args) => {
+            runCalls.push(args.join(" "));
+            if (args.includes("--list")) return Promise.resolve(listOutput);
+            return Promise.resolve("");
+          },
+        },
+      });
+      // Command-line tools were downloaded into the cache SDK root.
+      expect(bootstrapCalls).to.have.length(1);
+      expect(bootstrapCalls[0].url).to.match(/commandlinetools-/);
+      expect(bootstrapCalls[0].dest).to.match(/android-sdk$/);
+      // Then: licenses, platform-tools + emulator (nothing pre-detected),
+      // the system image, and the AVD — in order.
+      const joined = runCalls.join(" | ");
+      expect(joined).to.match(/--licenses/);
+      expect(joined).to.match(/platform-tools/);
+      expect(joined).to.match(/emulator/);
+      expect(joined).to.match(/system-images;android-34;google_apis;x86_64/);
+      expect(joined).to.match(/create avd -n doc-detective/);
+      expect(reports[0].assetId).to.equal("cmdline-tools");
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
+    });
+  });
+
+  it("reports a bootstrap download failure without proceeding", async function () {
+    await withTmpCache(async () => {
+      const runCalls = [];
+      const reports = await installAndroid({
+        yes: true,
+        deps: {
+          detect: () => null,
+          javaPresent: () => true,
+          fs: { existsSync: () => false, readdirSync: () => [] },
+          bootstrap: () => Promise.reject(new Error("network down")),
+          run: (command, args) => {
+            runCalls.push(args.join(" "));
+            return Promise.resolve("");
+          },
+        },
+      });
+      expect(reports[0]).to.deep.equal({
+        kind: "android",
+        assetId: "cmdline-tools",
+        action: "failed",
+      });
+      // Nothing ran after the failed bootstrap.
+      expect(runCalls).to.deep.equal([]);
     });
   });
 

@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import https from "node:https";
 import { spawn, spawnSync } from "node:child_process";
 import {
   getCacheDir,
@@ -389,101 +391,105 @@ export async function installAndroid({
   }
 
   // --- Real execution (yes && !dryRun). Effects are injected for tests. ---
+  // Imperative and bootstrap-aware: cmdline-tools may not exist yet, and the
+  // system image can't be chosen until sdkmanager can query what's available —
+  // so the flow is bootstrap → licenses → platform-tools/emulator → resolve &
+  // install image → create AVD, working the same for a from-nothing bootstrap
+  // and an augment of an existing SDK.
   const run = deps.run ?? realRun;
   const bootstrap = deps.bootstrap ?? realBootstrap;
+  const reports: InstallReport[] = [];
+  const sdkRoot = plan.sdkRoot;
+  const sdkArg = "--sdk_root=" + sdkRoot;
 
-  // No installed image matched, but an SDK exists — query what's available to
-  // install (`sdkmanager --list` hits the network, so it's confined to this
-  // opt-in path) and rebuild the plan so the image download is included. The
-  // bootstrap-from-nothing case can't query until cmdline-tools exist, so it
-  // relies on `availableImages` staying empty and blocking with guidance.
-  if (!plan.systemImage && detected) {
-    const sdkmanager = toolPath(detected.sdkRoot, "sdkmanager", platform);
+  // 1. Bootstrap the command-line tools when no SDK exists (the "portable
+  //    Android" download: fetch + unzip + relocate into the cache).
+  if (plan.bootstrapped) {
+    logger(
+      `Downloading Android command-line tools into ${sdkRoot} (one-time)…`,
+      "info"
+    );
+    try {
+      await bootstrap(cmdlineToolsUrl(platform), sdkRoot);
+    } catch (error: any) {
+      logger(
+        `Failed to bootstrap the Android command-line tools: ${error?.message ?? error}`,
+        "error"
+      );
+      return [{ kind: "android", assetId: "cmdline-tools", action: "failed" }];
+    }
+    reports.push({ kind: "android", assetId: "cmdline-tools", action: "installed" });
+  }
+
+  const sdkmanager = toolPath(sdkRoot, "sdkmanager", platform);
+  const avdmanager = toolPath(sdkRoot, "avdmanager", platform);
+
+  // 2. Accept licenses (sdkmanager exists now, from the bootstrap or the SDK).
+  await run(sdkmanager, [sdkArg, "--licenses"], { input: "y\n".repeat(50) });
+  reports.push({ kind: "android", assetId: "licenses", action: "accepted" });
+
+  // 3. Ensure platform-tools (adb) + emulator are present. sdkmanager is a
+  //    no-op when they already are, so this is safe on an augment too.
+  for (const pkg of ["platform-tools", "emulator"]) {
+    const alreadyHave =
+      (pkg === "platform-tools" && detected?.adb) ||
+      (pkg === "emulator" && detected?.emulator);
+    if (alreadyHave) continue;
+    await run(sdkmanager, [sdkArg, pkg]);
+    reports.push({ kind: "android", assetId: pkg, action: "installed" });
+  }
+
+  // 4. Resolve the system image: an installed match first, else query what's
+  //    available (`sdkmanager --list`) and install it.
+  let systemImage = pickSystemImage(listInstalledSystemImages(sdkRoot, fsDeps), {
+    osVersion,
+    abi,
+  });
+  if (!systemImage) {
     let listOut = "";
     try {
-      listOut = await run(sdkmanager, [
-        "--sdk_root=" + detected.sdkRoot,
-        "--list",
-      ]);
+      listOut = await run(sdkmanager, [sdkArg, "--list"]);
     } catch {
-      // Leave availableImages empty; the rebuilt plan stays blocked below.
+      // Leave empty; blocked below with guidance.
     }
-    availableImages = parseSdkmanagerList(listOut).filter((p) =>
+    const available = parseSdkmanagerList(listOut).filter((p) =>
       p.startsWith("system-images;")
     );
-    plan = buildAndroidInstallPlan({ ...planInput, availableImages });
-  }
-  if (plan.blocked) {
-    logger(
-      `${plan.blocked} Install a matching system image (Android Studio, or \`sdkmanager\`), or rerun with --os-version set to an available level.`,
-      "error"
-    );
-    return [{ kind: "android", assetId: "system-image", action: "blocked" }];
-  }
-
-  const reports: InstallReport[] = [];
-  let sdkRoot = plan.sdkRoot;
-
-  for (const action of plan.actions) {
-    /* c8 ignore start */
-    // Bootstrap-from-nothing execution is the deferred path (ADR 01024): a
-    // no-SDK host has no installed image and can't query available ones until
-    // cmdline-tools exist, so the plan blocks before reaching here. The augment
-    // path (an existing SDK) is the exercised flow. Kept wired for when the
-    // real download+unzip bootstrap lands.
-    if (action.type === "bootstrap-cmdline-tools") {
-      await bootstrap(action.url, action.dest);
-      sdkRoot = action.dest;
-      reports.push({ kind: "android", assetId: "cmdline-tools", action: "installed" });
-      continue;
-    }
-    /* c8 ignore stop */
-    const sdkmanager = toolPath(sdkRoot, "sdkmanager", platform);
-    const avdmanager = toolPath(sdkRoot, "avdmanager", platform);
-    if (action.type === "accept-licenses") {
-      // sdkmanager --licenses reads repeated "y" from stdin.
-      await run(sdkmanager, ["--sdk_root=" + sdkRoot, "--licenses"], {
-        input: "y\n".repeat(50),
-      });
-      reports.push({ kind: "android", assetId: "licenses", action: "accepted" });
-    } else if (action.type === "install-package") {
-      await run(sdkmanager, ["--sdk_root=" + sdkRoot, action.pkg]);
-      reports.push({ kind: "android", assetId: action.pkg, action: "installed" });
-    } else if (action.type === "create-avd") {
-      if (force) {
-        // Best-effort delete so a re-create doesn't error on an existing AVD.
-        try {
-          await run(avdmanager, ["delete", "avd", "-n", action.name]);
-        } catch {
-          // no such avd — fine
-        }
-      }
-      await run(
-        avdmanager,
-        [
-          "create",
-          "avd",
-          "-n",
-          action.name,
-          "-k",
-          action.systemImage,
-          "--device",
-          action.device,
-          "--force",
-        ],
-        { input: "no\n" }
+    systemImage = pickSystemImage(available, { osVersion, abi });
+    if (!systemImage) {
+      logger(
+        `No ${osVersion ? `Android ${osVersion} ` : ""}${abi} google_apis system image is available to install. Rerun with --os-version set to an available level.`,
+        "error"
       );
-      reports.push({ kind: "android", assetId: `avd:${action.name}`, action: "created" });
+      return [...reports, { kind: "android", assetId: "system-image", action: "blocked" }];
+    }
+    await run(sdkmanager, [sdkArg, systemImage]);
+    reports.push({ kind: "android", assetId: systemImage, action: "installed" });
+  }
+
+  // 5. Create the default AVD from the resolved image.
+  const avdName = DEFAULT_AVD_NAME;
+  const device =
+    DEVICE_TYPE_PROFILES[deviceType ?? "phone"] ?? DEVICE_TYPE_PROFILES.phone;
+  if (force) {
+    try {
+      await run(avdmanager, ["delete", "avd", "-n", avdName]);
+    } catch {
+      // no such avd — fine
     }
   }
+  await run(
+    avdmanager,
+    ["create", "avd", "-n", avdName, "-k", systemImage, "--device", device, "--force"],
+    { input: "no\n" }
+  );
+  reports.push({ kind: "android", assetId: `avd:${avdName}`, action: "created" });
 
   recordAndroidInstall(ctx, {
     sdkRoot,
     bootstrapped: plan.bootstrapped,
-    systemImage: plan.systemImage,
-    avdName: plan.actions.find((a) => a.type === "create-avd") as
-      | (AndroidInstallAction & { type: "create-avd" })
-      | undefined,
+    systemImage,
+    avdName: { name: avdName },
   });
   return reports;
 }
@@ -604,14 +610,106 @@ async function realRun(
   });
 }
 
+// Bootstrap the Android command-line tools from nothing: download the platform
+// zip, extract it, and relocate its inner `cmdline-tools/` to
+// `<destSdkRoot>/cmdline-tools/latest/` (the layout sdkmanager requires). This
+// is the "portable Android" install — a self-contained SDK root under the Doc
+// Detective cache, no system Android Studio needed. (A JRE 17+ is still a host
+// prerequisite for sdkmanager/avdmanager; checked before this runs.)
 async function realBootstrap(url: string, destSdkRoot: string): Promise<void> {
-  // Bootstrapping commandline-tools (download + unzip + relocate the inner
-  // `cmdline-tools/` to `<destSdkRoot>/cmdline-tools/latest/`) needs a zip
-  // extractor and network; it's exercised on the CI managed-boot leg and dev
-  // boxes, not the unit suite. Until wired, the augment path (an existing SDK)
-  // is the supported flow — hosted CI runners and most dev machines have one.
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-android-cli-"));
+  try {
+    const zipPath = path.join(tmpDir, "cmdline-tools.zip");
+    await downloadFile(url, zipPath);
+    const extractDir = path.join(tmpDir, "extracted");
+    fs.mkdirSync(extractDir, { recursive: true });
+    await extractZip(zipPath, extractDir);
+    // The archive holds a top-level `cmdline-tools/` directory.
+    const inner = path.join(extractDir, "cmdline-tools");
+    if (!fs.existsSync(inner)) {
+      throw new Error(
+        "unexpected command-line tools archive layout (no top-level cmdline-tools/)"
+      );
+    }
+    const dest = path.join(destSdkRoot, "cmdline-tools", "latest");
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.rmSync(dest, { recursive: true, force: true });
+    try {
+      fs.renameSync(inner, dest);
+    } catch {
+      // rename fails across filesystems (tmp -> cache); fall back to a copy.
+      fs.cpSync(inner, dest, { recursive: true });
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// Download a URL to a file, following redirects (dl.google.com redirects to a
+// CDN). Fails on any non-2xx final status.
+async function downloadFile(
+  url: string,
+  dest: string,
+  redirects = 0
+): Promise<void> {
+  if (redirects > 10) throw new Error(`too many redirects fetching ${url}`);
+  await new Promise<void>((resolve, reject) => {
+    const req = https.get(url, (res) => {
+      const status = res.statusCode ?? 0;
+      if (status >= 300 && status < 400 && res.headers.location) {
+        res.resume();
+        downloadFile(res.headers.location, dest, redirects + 1).then(
+          resolve,
+          reject
+        );
+        return;
+      }
+      if (status !== 200) {
+        res.resume();
+        reject(new Error(`download failed (HTTP ${status}) for ${url}`));
+        return;
+      }
+      const file = fs.createWriteStream(dest);
+      res.pipe(file);
+      file.on("finish", () => file.close(() => resolve()));
+      file.on("error", reject);
+    });
+    req.on("error", reject);
+  });
+}
+
+// Extract a .zip cross-platform, trying the extractors likely to be present:
+// unzip / bsdtar on POSIX, bsdtar / PowerShell Expand-Archive on Windows.
+async function extractZip(zipPath: string, destDir: string): Promise<void> {
+  const attempts: [string, string[]][] =
+    process.platform === "win32"
+      ? [
+          ["tar", ["-xf", zipPath, "-C", destDir]],
+          [
+            "powershell",
+            [
+              "-NoProfile",
+              "-NonInteractive",
+              "-Command",
+              `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${destDir}' -Force`,
+            ],
+          ],
+        ]
+      : [
+          ["unzip", ["-q", "-o", zipPath, "-d", destDir]],
+          ["tar", ["-xf", zipPath, "-C", destDir]],
+        ];
+  let lastError: any;
+  for (const [cmd, args] of attempts) {
+    try {
+      await realRun(cmd, args);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
   throw new Error(
-    `Android commandline-tools bootstrap from ${url} into ${destSdkRoot} is not wired in this build; install the Android SDK manually (Android Studio or commandline-tools) and set ANDROID_HOME/ANDROID_SDK_ROOT, then rerun \`doc-detective install android --yes\`.`
+    `couldn't extract ${zipPath}: no working zip extractor found (${lastError?.message ?? lastError})`
   );
 }
 /* c8 ignore stop */

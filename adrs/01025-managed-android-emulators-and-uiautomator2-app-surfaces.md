@@ -121,8 +121,9 @@ work).
 * Bad / accepted: the emulator PASS path is validated only on the KVM CI legs, not locally or on the
   general matrix — those legs are expected to need boot-timeout and locator tuning as system images
   evolve.
-* Bad / accepted: the `install android` bootstrap-from-nothing path is still deferred (A3a); the
-  managed-boot CI leg exercises the augment path against the runner's preinstalled SDK.
+* Good: both installer paths are wired — a bare host with no Android SDK bootstraps the portable
+  command-line tools into the cache and proceeds; the orchestration is unit-tested (injected
+  download/extract), and the augment path is exercised by the managed-boot CI leg.
 
 ### Confirmation
 

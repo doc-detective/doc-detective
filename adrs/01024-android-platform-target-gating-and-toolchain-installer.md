@@ -132,9 +132,9 @@ omission of the design doc's originally-planned `hosts` extension.
   skip reasons read as roadmap, not breakage.
 * Bad / accepted: redundant android CI legs on multi-OS matrices (mitigated: they SKIP fast where
   incapable).
-* Bad / accepted: the bootstrap-from-nothing installer path (download + unzip commandline-tools) is
-  deferred to the CI-emulator / dev-box verified path; the augment path (existing SDK) is fully
-  wired, and hosted CI runners have an SDK.
+* Both installer paths are wired: **augment** (an existing SDK) and **bootstrap-from-nothing**
+  (download + unzip the command-line tools into `<cacheDir>/android-sdk` — the "portable Android"
+  install). A JRE 17+ remains a host prerequisite for sdkmanager/avdmanager.
 
 ### Confirmation
 
@@ -169,9 +169,11 @@ omission of the design doc's originally-planned `hosts` extension.
 
 ### Augment-or-bootstrap installer
 
-* Good, because it works whether or not an SDK exists.
-* Bad, because the bootstrap path (no SDK) needs a zip extractor + network and is deferred to the
-  verified path; augment (existing SDK) is fully wired and covers hosted CI + most dev machines.
+* Good, because it works whether or not an SDK exists — bootstrap downloads and unzips the
+  command-line tools into `<cacheDir>/android-sdk` (cross-platform: unzip/bsdtar/Expand-Archive),
+  then drives sdkmanager/avdmanager exactly as the augment path does.
+* Neutral: a JRE 17+ is still a host prerequisite (sdkmanager/avdmanager are Java tools); Doc
+  Detective doesn't bundle a JRE, and reports its absence actionably.
 
 ### Reuse-or-create device descriptor with abstract `deviceType`
 
