@@ -529,16 +529,30 @@ function toolPath(
   return path.join(sdkRoot, "cmdline-tools", "latest", "bin", tool + suffix);
 }
 
-// Build a single cmd.exe command line from a command + args, quoting only the
-// tokens that need it (whitespace or a cmd metacharacter). sdkmanager/avdmanager
-// are `.bat` shims Node 20.12+/22 refuses to `spawn` without shell:true
-// (CVE-2024-27980); this feeds the shell:true no-args form so paths with spaces
-// survive and the DEP0190 array-arg warning is avoided. Exported for testing —
-// the quoting is the bug-prone part.
+// The only characters an Android SDK command/arg legitimately needs: letters,
+// digits, space, and path/arg punctuation (`. _ : ; = \ / @ + ~ ( ) -`). Every
+// cmd.exe metacharacter (`& | < > ^ " ' $ % !` and backtick) is excluded, so a
+// validated token cannot break out of the command line.
+const SAFE_SHELL_TOKEN = /^[A-Za-z0-9 ._:;=\\/@+~()-]*$/;
+
+// Build a single cmd.exe command line from a command + args. sdkmanager and
+// avdmanager are `.bat` shims Node 20.12+/22 refuses to `spawn` without
+// shell:true (CVE-2024-27980); this feeds the shell:true no-args form (which
+// also avoids the DEP0190 array-arg warning). Every token is validated against
+// SAFE_SHELL_TOKEN first and rejected otherwise — a hard barrier against
+// command injection through a config-derived path or arg (not just a quoting
+// convention). Exported for testing.
 export function winShellCommand(command: string, args: string[]): string {
-  const quote = (s: string) =>
-    /[\s&|<>^"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  return [command, ...args].map(quote).join(" ");
+  const tokens = [command, ...args];
+  for (const token of tokens) {
+    if (!SAFE_SHELL_TOKEN.test(token)) {
+      throw new Error(
+        `Refusing to run an Android SDK command with an unsafe token: ${JSON.stringify(token)}`
+      );
+    }
+  }
+  // Only whitespace needs quoting now; no metacharacter (incl. `"`) survives.
+  return tokens.map((s) => (/\s/.test(s) ? `"${s}"` : s)).join(" ");
 }
 
 function recordAndroidInstall(

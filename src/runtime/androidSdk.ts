@@ -37,12 +37,23 @@ export interface AndroidSdkDeps {
 
 // Join with the separator of the TARGET platform (not the host's) so detection
 // is deterministic under an injected platform in tests and on the real host.
+// Strip trailing path separators with a linear scan (not a `/[\\/]+$/` regex,
+// which backtracks super-linearly on long all-separator strings — CodeQL's
+// polynomial-ReDoS rule flags it).
+function trimTrailingSeparators(s: string): string {
+  let end = s.length;
+  while (end > 0) {
+    const code = s.charCodeAt(end - 1);
+    if (code !== 47 && code !== 92) break; // '/' and '\'
+    end--;
+  }
+  return s.slice(0, end);
+}
+
 function joinFor(platform: NodeJS.Platform, ...parts: string[]): string {
   const sep = platform === "win32" ? "\\" : "/";
-  // Trim a single trailing separator on the head so we don't double it.
-  return parts
-    .map((p, i) => (i === 0 ? p.replace(/[\\/]+$/, "") : p))
-    .join(sep);
+  // Trim trailing separators on the head so we don't double them.
+  return parts.map((p, i) => (i === 0 ? trimTrailingSeparators(p) : p)).join(sep);
 }
 
 // Executable suffixes to try, per platform. adb/emulator are real binaries
@@ -202,6 +213,6 @@ function adbOnPath(
 
 function parentDir(dir: string, platform: NodeJS.Platform): string {
   const sep = platform === "win32" ? "\\" : "/";
-  const idx = dir.replace(/[\\/]+$/, "").lastIndexOf(sep);
+  const idx = trimTrailingSeparators(dir).lastIndexOf(sep);
   return idx > 0 ? dir.slice(0, idx) : dir;
 }

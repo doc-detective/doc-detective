@@ -57,6 +57,21 @@ describe("android installer: pure helpers", function () {
     ).to.equal('"C:\\Program Files\\sdk\\sdkmanager.bat" --licenses');
   });
 
+  it("refuses tokens carrying a shell metacharacter (injection barrier)", function () {
+    for (const bad of [
+      "C:\\sdk & calc.exe",
+      "--sdk_root=C:\\sdk|whoami",
+      "img>out",
+      'a"b',
+      "x`y`",
+      "$(rm -rf)",
+    ]) {
+      expect(() => winShellCommand("sdkmanager.bat", [bad]), bad).to.throw(
+        /unsafe token/
+      );
+    }
+  });
+
   it("builds a platform-specific commandline-tools URL", function () {
     expect(cmdlineToolsUrl("linux")).to.match(/commandlinetools-linux-\d+_latest\.zip$/);
     expect(cmdlineToolsUrl("darwin")).to.match(/commandlinetools-mac-/);

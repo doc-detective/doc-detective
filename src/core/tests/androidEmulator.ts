@@ -11,6 +11,7 @@ import {
   DEVICE_TYPE_PROFILES,
   DEFAULT_AVD_NAME,
   listInstalledSystemImages,
+  winShellCommand,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
 
@@ -477,12 +478,10 @@ async function realCreateAvd(
   { name, systemImage, device }: { name: string; systemImage: string; device: string }
 ): Promise<void> {
   // avdmanager is a `.bat` shim on Windows — spawn it through the shell as a
-  // single pre-quoted command string (Node 20.12+/22 EINVAL on `.bat` without
-  // shell:true; the no-args form avoids the DEP0190 array-arg warning).
+  // single validated command string (Node 20.12+/22 EINVAL on `.bat` without
+  // shell:true; winShellCommand rejects any shell-metacharacter token).
   const useShell =
     process.platform === "win32" && /\.(bat|cmd)$/i.test(avdmanagerPath);
-  const quote = (s: string) =>
-    /[\s&|<>^"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   const args = [
     "create",
     "avd",
@@ -496,7 +495,7 @@ async function realCreateAvd(
   ];
   await new Promise<void>((resolve, reject) => {
     const child = useShell
-      ? spawn([avdmanagerPath, ...args].map(quote).join(" "), {
+      ? spawn(winShellCommand(avdmanagerPath, args), {
           stdio: ["pipe", "ignore", "pipe"],
           shell: true,
         })

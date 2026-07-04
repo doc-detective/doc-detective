@@ -95,7 +95,7 @@ Install the Android SDK toolchain (platform-tools, emulator, a system image) and
 doc-detective install android --yes
 ```
 
-This command **augments an existing SDK** when one is found (via `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`): it uses that SDK's `sdkmanager`/`avdmanager` to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's commandline-tools into `<cacheDir>/android-sdk` first.
+This command **augments an existing SDK** when one is found (via `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`): it runs `sdkmanager` and `avdmanager` from that SDK to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's command-line tools into `<cacheDir>/android-sdk` first.
 
 Because the system image is multi-GB, this command **never downloads without `--yes`** — run it with `--dry-run` first to preview the plan:
 
@@ -105,7 +105,7 @@ doc-detective install android --dry-run
 
 | Option | Description |
 |--------|-------------|
-| `--os-version` | Android version for the system image and AVD (e.g. `14`, or a raw API level like `34`). Default: the newest available. |
+| `--os-version` | Android version for the system image and AVD (for example, `14`, or a raw API level like `34`). Default: the newest available. |
 | `--device-type` | Abstract hardware profile for the default AVD: `phone` or `tablet`. Default: `phone`. |
 
 <Note>
