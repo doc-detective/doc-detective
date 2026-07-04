@@ -15,19 +15,17 @@ function isMobileTargetPlatform(platform: unknown): MobileTarget | null {
   return null;
 }
 
-// Compose the SKIP reason (and log level) for a mobile context in phase A3a.
-// android:
-//   - no SDK        -> point at `doc-detective install android` (most actionable)
-//   - browser step  -> mobile browsers land in A5
-//   - otherwise     -> managed devices land in A3b (the common capable-host case)
-// ios: lands in A4.
+// Compose the SKIP reason (and log level) for the mobile-context cases still
+// gated by a not-yet-implemented phase:
+//   - ios                         -> app surfaces land in A4
+//   - android with a browser step -> mobile browsers land in A5
+// (Android native app runs are handled by androidContextPreflight, which
+// capability-gates and lazily installs the toolchain rather than skipping.)
 function mobileContextSkipReason({
   platform,
-  sdkPresent,
   hasBrowserStep,
 }: {
   platform: MobileTarget;
-  sdkPresent?: boolean;
   hasBrowserStep?: boolean;
 }): { level: "warning" | "info"; reason: string } {
   const roadmap = "docs/design/native-app-surfaces.md";
@@ -37,20 +35,9 @@ function mobileContextSkipReason({
       reason: `Skipping context on 'ios': iOS app surfaces land in phase A4 of the native app roadmap (${roadmap}). Gate iOS tests with runOn platforms so this skip is intentional.`,
     };
   }
-  if (!sdkPresent) {
-    return {
-      level: "warning",
-      reason: `Skipping context on 'android': no Android SDK was found (checked ANDROID_HOME, ANDROID_SDK_ROOT, the Doc Detective cache, and PATH). Install one with \`doc-detective install android\`.`,
-    };
-  }
-  if (hasBrowserStep) {
-    return {
-      level: "warning",
-      reason: `Skipping context on 'android': mobile browser testing on Android lands in phase A5 of the native app roadmap (${roadmap}).`,
-    };
-  }
+  // android + a browser step: mobile-web testing on Android is phase A5.
   return {
     level: "warning",
-    reason: `Skipping context on 'android': managed Android devices land in phase A3b of the native app roadmap (${roadmap}). This Doc Detective version validates and gates android contexts but does not run them yet.`,
+    reason: `Skipping context on 'android': mobile browser testing on Android lands in phase A5 of the native app roadmap (${roadmap}). Native Android app tests (no browser steps) run today.`,
   };
 }

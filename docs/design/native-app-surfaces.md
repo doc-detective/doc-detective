@@ -165,9 +165,12 @@ Any step or context that needs a device **owns the device lifecycle**:
    pre-existing ones running. `closeSurface` on an app closes the app session
    only; the device follows at sweep.
 
-Boot infrastructure absent (no `adb`/`emulator`/AVD; no macOS/Xcode for iOS) is
-a **gating** outcome, not a failure: the `requires` gate and preflight checks
-land the context as SKIPPED with an actionable message.
+Boot infrastructure absent is handled per platform. For **Android** on a
+capable host, the SDK/system image is **lazily installed** on first need (with a
+loud warning) rather than skipped; only a host that can't run the emulator, an
+install failure, or `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1` lands the context
+SKIPPED. For **iOS** (no macOS/Xcode) it stays a **gating** SKIP with an
+actionable message.
 
 ## `runOn`: mobile target platforms
 
@@ -216,11 +219,15 @@ split. The rules:
 the context report the way resolved browser versions do):
 
 - **Android:** a running emulator, if one is attached → else the newest-API
-  existing AVD → else **create** a `doc-detective` AVD from the newest
-  *installed* system image → else SKIP with guidance. Downloading system images
-  (multi-GB) is never implicit; it lives only in **`doc-detective install
-  android`** (shipped in A3a — augment an existing SDK or bootstrap
-  commandline-tools into the cache), as an explicit opt-in.
+  existing AVD → else **create** a `doc-detective` AVD from an *installed*
+  system image. When the SDK or a matching image is missing on a **capable**
+  host (one that can run the emulator), Doc Detective **lazily installs** it
+  (loud warning to terminal + report), rather than skipping — see the lazy
+  toolchain install below. `doc-detective install android` remains the way to
+  **pre-warm** that toolchain (CI images, containers) so the download isn't paid
+  mid-run; `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1` forbids the lazy install and
+  restores the skip-with-pointer. A host that *can't* run the emulator always
+  SKIPs without downloading anything.
 - **iOS:** the newest installed iPhone device type + runtime via
   `xcrun simctl` (present with any Xcode install) → boot. No Xcode → SKIP.
 

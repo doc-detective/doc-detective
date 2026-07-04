@@ -80,11 +80,17 @@ import {
   mobileContextSkipReason,
 } from "./tests/mobilePlatform.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
-import { hostAbi } from "../runtime/androidInstaller.js";
+import {
+  hostAbi,
+  listInstalledSystemImages,
+  installAndroid,
+} from "../runtime/androidInstaller.js";
 import {
   buildAcquireDeviceDeps,
   checkEmulatorAcceleration,
+  hostHasKvm,
   planDeviceAcquisition,
+  planAndroidToolchain,
   normalizeDeviceDescriptor,
   acquireDevice,
   createDeviceRegistry,
@@ -516,12 +522,27 @@ function collectDeviceDescriptors(context: any): any[] {
   return out.length ? out : [undefined];
 }
 
-// Android context preflight (native app phase A3b): compose SDK detection, the
-// emulator-acceleration probe, per-device resolvability (the device plan), and
-// the UiAutomator2 driver install into one ok/skip verdict. Every gap is a
-// gating SKIP (never FAIL), same semantics as `requires`. On ok, returns the
-// Appium entry/home for the app server plus the SDK root and injected device-
-// effect bundle the run's device layer needs.
+// The osVersions a test's device descriptors request (undefined = "newest"),
+// used to decide which system image the lazy toolchain install must fetch.
+function requiredAndroidOsVersions(context: any): (string | undefined)[] {
+  return collectDeviceDescriptors(context).map(
+    (stepDevice) =>
+      normalizeDeviceDescriptor({
+        contextDevice: context.device,
+        stepDevice,
+        platform: "android",
+      }).osVersion
+  );
+}
+
+// Android context preflight (native app phase A3b): host-capability probe →
+// lazy toolchain install (when the run needs it) → per-device resolvability →
+// UiAutomator2 driver install. Every gap is a gating SKIP (never FAIL). The
+// toolchain (SDK + system image) is NOT installed by default, but IS lazily
+// installed — with a loud warning surfaced to the terminal AND the output
+// report — when a run that reaches a capable host actually needs it. On ok,
+// returns the Appium entry/home, SDK root, injected device-effect bundle, and
+// any warnings to attach to the context report.
 async function androidContextPreflight({
   config,
   context,
@@ -537,44 +558,104 @@ async function androidContextPreflight({
       appiumHome: string;
       sdkRoot: string;
       deviceDeps: any;
+      warnings: string[];
     }
   | { ok: false; level: "warning" | "info"; reason: string }
 > {
   const hasBrowserStep = isBrowserRequired({ test: context });
-  const sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
-  if (!sdk || hasBrowserStep) {
+  if (hasBrowserStep) {
     const { level, reason } = mobileContextSkipReason({
       platform: "android",
-      sdkPresent: sdk !== null,
       hasBrowserStep,
     });
     return { ok: false, level, reason };
   }
   /* c8 ignore start */
-  // Everything below needs a real SDK + emulator, so it's exercised on the CI
-  // emulator legs (and dev boxes), not the unit suite — which covers the
-  // sdk-missing / browser-step / ios skip paths above via core-core.test.js and
-  // the decision logic (planDeviceAcquisition, capabilities) in its own module.
+  // The rest is effectful (SDK detect/install, emulator probes) so it's
+  // exercised on the CI emulator legs + dev boxes, not the unit suite — which
+  // covers the decision logic (planAndroidToolchain, planDeviceAcquisition,
+  // capabilities) in its own module and the skip paths via core-core.test.js.
   const abi = hostAbi();
-  const deviceDeps = buildAcquireDeviceDeps(sdk, abi, (m: string) =>
+  let sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
+
+  // Host capability: with an SDK, probe acceleration (or reuse a running
+  // emulator); without one, fall back to the cheap /dev/kvm check so we never
+  // trigger a multi-GB install on a host that couldn't run the emulator anyway.
+  let capable: boolean;
+  if (sdk?.emulator) {
+    const probeDeps = buildAcquireDeviceDeps(sdk, abi);
+    const running = await probeDeps.listRunning();
+    capable =
+      running.length > 0 || (await checkEmulatorAcceleration(sdk.emulator));
+  } else {
+    capable = await hostHasKvm();
+  }
+
+  const requiredOsVersions = requiredAndroidOsVersions(context);
+  const warnings: string[] = [];
+  const toolchain = planAndroidToolchain({
+    capable,
+    sdkPresent: sdk !== null,
+    requiredOsVersions,
+    installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
+    abi,
+  });
+  if (toolchain.action === "skip") {
+    return { ok: false, level: "warning", reason: toolchain.reason };
+  }
+  if (toolchain.action === "install") {
+    // Escape hatch: DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1 turns the lazy
+    // install back into a SKIP with the manual-install pointer, for
+    // environments that must never trigger a surprise multi-GB download (CI
+    // legs that only assert the skip paths, air-gapped hosts, etc.).
+    if (process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL === "1") {
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain isn't fully installed and auto-install is disabled (DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1). Install it with \`doc-detective install android\`.`,
+      };
+    }
+    // Loud warning to the terminal AND the report, then run the installer.
+    clog("warning", toolchain.reason);
+    warnings.push(toolchain.reason);
+    try {
+      await installAndroid({
+        yes: true,
+        osVersion: toolchain.osVersion,
+        ctx: { cacheDir: config.cacheDir },
+        deps: { logger: (m: string) => clog("debug", m) },
+      });
+    } catch (error: any) {
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
+      };
+    }
+    sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
+    const recheck = planAndroidToolchain({
+      capable: true,
+      sdkPresent: sdk !== null,
+      requiredOsVersions,
+      installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
+      abi,
+    });
+    if (recheck.action !== "ready") {
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain is still incomplete after an install attempt. Install it manually with \`doc-detective install android\`.`,
+      };
+    }
+  }
+
+  const deviceDeps = buildAcquireDeviceDeps(sdk!, abi, (m: string) =>
     clog("debug", m)
   );
 
-  // Acceleration probe — skipped when an emulator is already running (reuse).
-  const running = await deviceDeps.listRunning();
-  const accelerated =
-    running.length > 0 ||
-    (sdk.emulator ? await checkEmulatorAcceleration(sdk.emulator) : false);
-  if (!accelerated) {
-    return {
-      ok: false,
-      level: "warning",
-      reason: `Skipping context on 'android': this host can't run the Android emulator (no KVM/HVF/WHPX hardware acceleration detected, and no emulator is already running). Android tests run on hosts with virtualization enabled (e.g. a Linux CI runner with KVM).`,
-    };
-  }
-
   // Device plan: every device the test needs must resolve (reuse an existing
   // AVD/emulator, or create one from an installed image + Java). A gap SKIPs.
+  const running = await deviceDeps.listRunning();
   const avds = await deviceDeps.listAvds();
   const installedImages = deviceDeps.installedImages();
   const javaPresent = deviceDeps.javaPresent();
@@ -603,8 +684,9 @@ async function androidContextPreflight({
     ok: true,
     appiumEntry: pre.appiumEntry,
     appiumHome: pre.appiumHome,
-    sdkRoot: sdk.sdkRoot,
+    sdkRoot: sdk!.sdkRoot,
     deviceDeps,
+    warnings,
   };
   /* c8 ignore stop */
 }
@@ -2881,6 +2963,10 @@ async function runContext({
     // resolved device (name) joins the context report the way resolved browser
     // versions do; the concrete udid is known once a surface boots it.
     contextReport.device = context.device ?? { platform: "android" };
+    // Surface any preflight warnings (e.g. a lazy toolchain install) in the
+    // output report — not just the terminal — so a run that quietly downloaded
+    // the multi-GB SDK is auditable after the fact.
+    if (pre.warnings.length) contextReport.warnings = pre.warnings;
     /* c8 ignore stop */
   }
 

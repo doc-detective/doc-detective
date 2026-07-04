@@ -12,9 +12,11 @@ import {
   nextEmulatorPort,
   udidForPort,
   planDeviceAcquisition,
+  planAndroidToolchain,
   createDeviceRegistry,
   acquireDevice,
   teardownDeviceRegistry,
+  hostHasKvm,
 } from "../dist/core/tests/androidEmulator.js";
 
 before(async function () {
@@ -90,6 +92,67 @@ describe("androidEmulator: descriptor + boot computation", function () {
       "-avd", "phone", "-port", "5556",
       "-no-window", "-no-audio", "-no-snapshot-save", "-no-boot-anim",
     ]);
+  });
+});
+
+describe("androidEmulator: planAndroidToolchain (lazy-install decision)", function () {
+  const base = {
+    capable: true,
+    sdkPresent: true,
+    requiredOsVersions: [],
+    installedImages: ["system-images;android-34;google_apis;x86_64"],
+    abi: "x86_64",
+  };
+
+  it("SKIPs (no install) when the host can't run the emulator", function () {
+    const plan = planAndroidToolchain({ ...base, capable: false });
+    expect(plan.action).to.equal("skip");
+    expect(plan.reason).to.match(/can't run the Android emulator/);
+  });
+
+  it("is ready when the SDK + a matching image are already installed", function () {
+    expect(planAndroidToolchain(base).action).to.equal("ready");
+    expect(
+      planAndroidToolchain({ ...base, requiredOsVersions: ["14"] }).action
+    ).to.equal("ready");
+  });
+
+  it("INSTALLs when the SDK is absent (capable host)", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      sdkPresent: false,
+      installedImages: [],
+    });
+    expect(plan.action).to.equal("install");
+    expect(plan.reason).to.match(/multi-GB/);
+    expect(plan.reason).to.match(/install android/);
+  });
+
+  it("INSTALLs the specific missing version and names it", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      requiredOsVersions: ["14", "13"],
+    });
+    // 14 is installed, 13 is not -> install 13.
+    expect(plan.action).to.equal("install");
+    expect(plan.osVersion).to.equal("13");
+  });
+
+  it("never installs on an incapable host even when the SDK is missing", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      capable: false,
+      sdkPresent: false,
+      installedImages: [],
+    });
+    expect(plan.action).to.equal("skip");
+  });
+});
+
+describe("androidEmulator: hostHasKvm", function () {
+  it("returns false on non-Linux hosts (no cheap accel signal there)", async function () {
+    if (process.platform === "linux") this.skip();
+    expect(await hostHasKvm()).to.equal(false);
   });
 });
 

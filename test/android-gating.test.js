@@ -36,42 +36,13 @@ describe("native app surfaces (A3a): mobileContextSkipReason", function () {
     expect(level).to.equal("info");
   });
 
-  it("points a missing Android SDK at `doc-detective install android`", function () {
-    const { reason } = mobileContextSkipReason({
+  it("points a mobile-browser step on android at phase A5", function () {
+    const { level, reason } = mobileContextSkipReason({
       platform: "android",
-      sdkPresent: false,
-      hasBrowserStep: false,
-    });
-    expect(reason).to.match(/install android/);
-    expect(reason).to.match(/SDK/i);
-  });
-
-  it("SDK-missing takes precedence over a mobile-browser step", function () {
-    const { reason } = mobileContextSkipReason({
-      platform: "android",
-      sdkPresent: false,
-      hasBrowserStep: true,
-    });
-    expect(reason).to.match(/install android/);
-  });
-
-  it("points a mobile-browser step at phase A5 when the SDK is present", function () {
-    const { reason } = mobileContextSkipReason({
-      platform: "android",
-      sdkPresent: true,
       hasBrowserStep: true,
     });
     expect(reason).to.match(/A5/);
     expect(reason).to.match(/browser/i);
-  });
-
-  it("points a capable Android host at phase A3b (no PASS path in A3a)", function () {
-    const { level, reason } = mobileContextSkipReason({
-      platform: "android",
-      sdkPresent: true,
-      hasBrowserStep: false,
-    });
-    expect(reason).to.match(/A3b/);
     expect(level).to.equal("warning");
   });
 });

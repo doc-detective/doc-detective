@@ -116,6 +116,11 @@ jobs:
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.group }} fixtures
         uses: doc-detective/github-action@922131748e00f25f608fcfd7742d6f65b1cc6cb9 # v1.5.0
+        # The general matrix only asserts the SKIP paths. Disable the android
+        # lazy-install here so no general leg ever triggers a multi-GB SDK
+        # download — the real install/boot coverage lives in the KVM jobs below.
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.group == 'apps-android' && '1' || '' }}
         with:
           version: ''
           working_directory: .

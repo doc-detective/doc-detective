@@ -79,11 +79,31 @@ Because `@text` and `@content-desc` are **distinct** attributes, the elementText
 rule is now per-platform (`nameFieldsCollide`, true for Windows/macOS, false for Android). The
 `~id` escape hatch stays "accessibility id" and therefore means content-desc on Android — documented.
 
+### Lazy toolchain install (behavior change)
+
+The Android SDK + system image are **never installed by default**, but they **are lazily installed
+when a run actually needs them on a capable host** — rather than SKIPping with a "run
+`doc-detective install android`" pointer. `androidContextPreflight` probes host capability first
+(so a host that couldn't run the emulator never triggers a multi-GB download), and only then, if the
+toolchain/image is missing, runs the installer (the same augment-or-bootstrap `installAndroid` from
+A3a). The install is **loud**: a clear warning is emitted to **both** the terminal and the output
+report (`contextReport.warnings`), so a run that quietly downloaded the SDK is auditable. Order
+matters: **capability → lazy install → device plan → driver** — installing before confirming the
+host can run the emulator would waste the download.
+
+`doc-detective install android` is therefore no longer *required*; it stays the way to **pre-warm**
+CI images / containers so the cost isn't paid at test time. An escape hatch,
+`DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`, turns the lazy install back into a SKIP-with-pointer for
+environments that must never auto-download (air-gapped hosts; the general fixture-matrix legs, which
+only assert the skip paths). Capability without an SDK is probed cheaply (Linux `/dev/kvm`
+read/write access — exactly what enabling the KVM udev rule grants); with an SDK it's the real
+`emulator -accel-check` (or an already-running emulator).
+
 ### Runtime wiring (`tests.ts`)
 
-`androidContextPreflight` composes SDK detection → acceleration probe (SKIP with a KVM/HVF/WHPX
-message when unaccelerated and no emulator is running) → device-plan validation → UiAutomator2 driver
-install (via the shared `appSurfacePreflight` with `platform: "android"`). On ok, `runContext` primes
+`androidContextPreflight` composes host-capability probe → lazy toolchain install (above) →
+device-plan validation → UiAutomator2 driver install (via the shared `appSurfacePreflight` with
+`platform: "android"`). On ok, `runContext` primes
 the app session with the device layer and **falls through** to the shared step-execution path (the
 one desktop `!platformMatches` skip is guarded on `!appSession`). `startAppSurface`'s android branch
 acquires the device, gets-or-creates its shared session (first app launches; subsequent apps

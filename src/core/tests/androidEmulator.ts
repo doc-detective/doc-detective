@@ -24,12 +24,14 @@ export {
   nextEmulatorPort,
   udidForPort,
   planDeviceAcquisition,
+  planAndroidToolchain,
   createDeviceRegistry,
   acquireDevice,
   teardownDeviceRegistry,
   // Effectful helpers + the deps builder that wires them for a detected SDK.
   buildAcquireDeviceDeps,
   checkEmulatorAcceleration,
+  hostHasKvm,
 };
 export type { DeviceDescriptor, DeviceRegistry, DeviceEntry, DeviceAcquisition };
 
@@ -139,6 +141,63 @@ function emulatorBootArgs(desc: DeviceDescriptor, port: number): string[] {
   if (desc.headless) args.push("-no-window", "-no-audio");
   args.push("-no-snapshot-save", "-no-boot-anim");
   return args;
+}
+
+// --- Toolchain lazy-install decision (pure) ---
+
+type ToolchainPlan =
+  | { action: "ready" }
+  | { action: "skip"; reason: string }
+  | { action: "install"; osVersion?: string; reason: string };
+
+// Decide whether an android run's toolchain is ready, needs a lazy install, or
+// the host simply can't run the emulator. `requiredOsVersions` are the versions
+// the test's device descriptors ask for (an `undefined` entry means "newest").
+//
+// - Not capable (no hardware acceleration) -> SKIP; never install on a host
+//   that couldn't use the emulator anyway (don't waste a multi-GB download).
+// - Capable but the SDK is absent, or an image for a requested version is
+//   missing -> INSTALL (the caller warns loudly and runs the installer).
+// - Otherwise -> READY.
+function planAndroidToolchain({
+  capable,
+  sdkPresent,
+  requiredOsVersions,
+  installedImages,
+  abi,
+}: {
+  capable: boolean;
+  sdkPresent: boolean;
+  requiredOsVersions: (string | undefined)[];
+  installedImages: string[];
+  abi: string;
+}): ToolchainPlan {
+  if (!capable) {
+    return {
+      action: "skip",
+      reason: `Skipping context on 'android': this host can't run the Android emulator (no KVM/HVF/WHPX hardware acceleration detected, and no emulator is already running). Android tests run on hosts with virtualization enabled (e.g. a Linux CI runner with KVM).`,
+    };
+  }
+  const versions = requiredOsVersions.length ? requiredOsVersions : [undefined];
+  // The first requested version with no installed image (SDK absent counts as
+  // "everything missing"). Drives which image the installer fetches.
+  let missingVersion: string | undefined;
+  let needsInstall = !sdkPresent;
+  for (const osVersion of versions) {
+    if (!sdkPresent || pickSystemImage(installedImages, { osVersion, abi }) === null) {
+      needsInstall = true;
+      missingVersion = osVersion;
+      break;
+    }
+  }
+  if (needsInstall) {
+    return {
+      action: "install",
+      osVersion: missingVersion,
+      reason: `Android tests require the Android SDK toolchain and a system image, which aren't fully installed. Doc Detective is installing them now — this is a one-time, multi-GB download. Pre-install with \`doc-detective install android\` to avoid this delay at test time.`,
+    };
+  }
+  return { action: "ready" };
 }
 
 // --- Reuse-or-create decision (pure) ---
@@ -380,6 +439,23 @@ function runTool(
 async function checkEmulatorAcceleration(emulatorPath: string): Promise<boolean> {
   const { code, stdout } = await runTool(emulatorPath, ["-accel-check"], 15000);
   return parseAccelCheck({ code, text: stdout });
+}
+
+// Cheap host-capability probe when no SDK exists yet (so `emulator -accel-check`
+// isn't available): on Linux, KVM acceleration means /dev/kvm is present and
+// read/write accessible to this process — which is exactly what enabling the
+// KVM udev rule grants. On non-Linux hosts without an SDK we can't cheaply
+// confirm HVF/WHPX and hosted CI runners can't nest-virtualize, so treat them as
+// not capable (a real dev machine with an SDK takes the accel-check path).
+async function hostHasKvm(): Promise<boolean> {
+  if (process.platform !== "linux") return false;
+  try {
+    const fs = await import("node:fs");
+    fs.accessSync("/dev/kvm", fs.constants.R_OK | fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // List running emulators with their AVD names (adb devices + emu avd name).
