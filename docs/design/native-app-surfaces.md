@@ -341,6 +341,15 @@ Principles:
   with a pointer to the escape-hatch syntax. This gives power users full driver
   reach (predicate strings and class chains ride XPath/`driverOptions`) without
   bifurcating the authoring model.
+- **Android nuance (A3b, ADR 01025):** a lone `elementId`/`elementTestId`
+  compiles to UiAutomator2's **`id`** strategy (resource-id, auto-prefixed with
+  the app's package) — *not* "accessibility id", which on UiAutomator2 means
+  **content-desc**. So `~foo` in the escape hatch matches a content-desc on
+  Android. Combined criteria compile to a `@resource-id` XPath, where the value
+  must be the fully-qualified `pkg:id/name`. Because `@text` (elementText) and
+  `@content-desc` (elementAria name) are distinct attributes, both can apply at
+  once — the "two different accessible names conflict" rule fires only on
+  Windows/macOS, never Android.
 - **Portability where it's real:** a test written with `elementText`/`elementId`
   against a well-labeled app is portable across web and native. Tests using
   `selector` escape hatches are explicitly platform-pinned — the docs say so.
