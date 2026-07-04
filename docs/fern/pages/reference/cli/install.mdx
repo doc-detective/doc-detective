@@ -20,13 +20,13 @@ doc-detective install <subcommand> [options]
 
 ### `install all`
 
-Install all runtime assets: agent tools, npm packages, and browsers.
+Install the lazy-installed runtime assets: npm packages and browser binaries.
 
 ```bash
 doc-detective install all [options]
 ```
 
-This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays. It does **not** include the Android toolchain (`install android`) — those multi-GB downloads stay opt-in.
+This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays. It does **not** include agent tools (`install agents`, which needs an interactive picker) or the Android toolchain (`install android`, whose multi-GB downloads stay opt-in) — install those separately.
 
 ### `install agents`
 
