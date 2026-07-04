@@ -119,3 +119,5 @@ cacheDir
 Geckodriver
 ChromeDriver
 Xcode
+toolchain
+widget
