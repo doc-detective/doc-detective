@@ -528,9 +528,14 @@ reuse the device layer those phases build.
 - **CI coverage is per-platform best-effort and honest about it:** Windows
   fixtures run headed on Windows runners (interactive-session preflight decides,
   not hope); Android fixtures run where the emulator can boot (Linux + KVM),
-  with `hosts` pinning to avoid redundant matrix legs; macOS TCC and iOS WDA
-  are expected to SKIP on hosted runners until a self-hosted/pre-granted lane
-  exists — the SKIP paths are themselves asserted behavior, not gaps.
+  with `hosts` pinning to avoid redundant matrix legs. macOS turned out better
+  than feared: GitHub's macOS runner images pre-grant `kTCCServiceAccessibility`
+  to `com.apple.dt.Xcode-Helper` (which WebDriverAgentMac runs under),
+  `/usr/bin/osascript`, and `/bin/bash` in the system TCC.db, so phase A2's
+  fixtures run for real on hosted macos-latest — and the apps legs on Windows
+  and macOS gate on ≥1 actual PASS (`DD_FIXTURES_REQUIRE_PASS`, ADR 01023) so
+  an environment regression can't hide as all-SKIPPED. iOS WDA on hosted
+  runners remains a phase A4 question.
 - Cross-platform coverage merging already unions OS-specific lines; adapter
   columns land with their platform's matrix leg.
 

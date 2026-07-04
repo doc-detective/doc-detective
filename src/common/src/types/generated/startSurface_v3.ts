@@ -13,7 +13,7 @@ export type ElementCriteria = {
 };
 
 /**
- * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phase A1 ships the native app branch: launch a desktop application by executable path, bundle ID, or UWP AppUserModelID. The mobile fields (`install`, `activity`, `device`) are validated now and land in later phases; browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
+ * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the native app branch: launch a Windows or macOS desktop application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. The mobile fields (`install`, `activity`, `device`) are validated now and land in later phases; browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
  */
 export interface StartSurface {
   /**
@@ -25,15 +25,15 @@ export interface StartSurface {
    */
   name?: string;
   /**
-   * Launch arguments (desktop apps). Entries join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
+   * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
   /**
-   * Working directory for the launched app (desktop apps). Default: the run's working directory.
+   * Working directory for the launched app (Windows desktop apps). Not supported on macOS — the driver launches apps through LaunchServices, which offers no working-directory control, so a non-default value fails with guidance there. Default: the run's working directory.
    */
   workingDirectory?: string;
   /**
-   * Extra environment variables for the launched app (desktop apps). Driver support varies; unmapped variables fail with a clear runtime error.
+   * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
   env?: {
     [k: string]: string;
