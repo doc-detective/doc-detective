@@ -497,12 +497,28 @@ describe("appSurfacePreflight", function () {
   it("proceeds on mac when the TCC probe is inconclusive, and never probes on Windows", async function () {
     // An erroring/unknown probe must NOT false-skip — a real TCC failure
     // still surfaces at session start with the same walkthrough.
+    // Paths are built with path.sep and the cache resolvers are stubbed:
+    // a foreign-separator path makes appiumHomeForDriverPath return null,
+    // which falls through to the REAL runtime cache (a force appium install
+    // + manifest invalidation) — that stomped the browser drivers' Appium
+    // home mid-suite on the Windows CI leg.
+    const sep = path.sep;
+    const hermeticDeps = {
+      resolveSource: () => "shim",
+      resolvePath: (name) =>
+        `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
+      resolvePathInCache: () => {
+        throw new Error("test must not reach the real runtime cache");
+      },
+      ensureInstalled: async () => {
+        throw new Error("test must not install anything");
+      },
+    };
     const inconclusive = await appSurfacePreflight({
       config: {},
       platform: "mac",
       deps: {
-        resolveSource: () => "shim",
-        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        ...hermeticDeps,
         probeAccessibility: async () => {
           throw new Error("osascript unavailable");
         },
@@ -515,8 +531,7 @@ describe("appSurfacePreflight", function () {
       config: {},
       platform: "windows",
       deps: {
-        resolveSource: () => "shim",
-        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        ...hermeticDeps,
         probeAccessibility: async () => {
           probed++;
           return false;
