@@ -2944,13 +2944,15 @@ async function runContext({
 
   // Mobile target platforms (native app phase A3): `android`/`ios` name the
   // TARGET a context runs against, gated by host *capability* rather than host
-  // identity (host != target for mobile). Phase A3a ships the gate but no PASS
-  // path — every mobile context resolves SKIPPED with an actionable, roadmap-
+  // identity (host != target for mobile). As of A3b an android native app
+  // context can PASS (androidContextPreflight sets up the emulator + app session
+  // and the branch falls through to shared step execution); iOS (A4) and
+  // android+browser (A5) still resolve SKIPPED with an actionable, roadmap-
   // shaped reason. `requires` still applies (it's a host fact) and is evaluated
   // here on whatever capable host the context reached, because the desktop
   // `requires` gate below is scoped to host == target and never fires for a
-  // mobile context. The branch returns early, so none of the desktop
-  // engine/platform skips run for mobile contexts.
+  // mobile context. The branch owns mobile contexts fully — none of the desktop
+  // engine/platform skips run for them.
   // App session — created for desktop app contexts below, and for an android
   // context that passes its preflight (phase A3b). Declared here so the mobile
   // branch can set it and fall through to the shared step-execution path.

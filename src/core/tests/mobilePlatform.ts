@@ -1,9 +1,11 @@
 // Native app surfaces phase A3: the `android`/`ios` target platforms. Unlike
 // desktop platforms (where host == target), a mobile platform names the
 // TARGET a context runs against and is gated by host *capability*, not host
-// identity. Phase A3a wires the gate but ships no PASS path: every mobile
-// context resolves SKIPPED with an actionable, roadmap-shaped reason. The
-// reason composer is pure so it's unit-testable without probing an SDK.
+// identity. As of A3b, android native app contexts can PASS (via
+// androidContextPreflight, which capability-gates and lazily installs the
+// toolchain); the cases this module composes SKIP reasons for are the ones
+// still gated by a later phase — iOS (A4) and android+browser (A5). The reason
+// composer is pure so it's unit-testable without probing an SDK.
 
 export { isMobileTargetPlatform, mobileContextSkipReason };
 

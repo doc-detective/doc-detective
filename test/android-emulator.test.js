@@ -308,8 +308,9 @@ describe("androidEmulator: acquireDevice + teardown (injected effects)", functio
     expect(bootPort).to.equal(5558);
   });
 
-  it("reuses a running emulator without booting (bootedByUs false)", async function () {
+  it("reuses a running emulator without booting or listing AVDs (bootedByUs false)", async function () {
     let booted = false;
+    let listedAvds = false;
     const registry = createDeviceRegistry();
     const res = await acquireDevice({
       desc: { name: "pixel7" },
@@ -317,6 +318,11 @@ describe("androidEmulator: acquireDevice + teardown (injected effects)", functio
       sdkRoot: "/sdk",
       deps: makeDeps({
         listRunning: async () => [{ udid: "emulator-5554", name: "pixel7" }],
+        // The named-reuse fast path must not shell out to `emulator -list-avds`.
+        listAvds: async () => {
+          listedAvds = true;
+          return ["pixel7"];
+        },
         boot: async () => {
           booted = true;
           return { udid: "x", process: {} };
@@ -325,6 +331,9 @@ describe("androidEmulator: acquireDevice + teardown (injected effects)", functio
     });
     expect(res.entry.bootedByUs).to.equal(false);
     expect(booted).to.equal(false);
+    expect(listedAvds, "listAvds should not be called on named reuse").to.equal(
+      false
+    );
   });
 
   it("creates the AVD before booting when it is missing", async function () {

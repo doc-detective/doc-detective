@@ -11,7 +11,7 @@ import {
   DEVICE_TYPE_PROFILES,
   DEFAULT_AVD_NAME,
   listInstalledSystemImages,
-  winBatchSpawn,
+  winShellCommand,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
 
@@ -352,6 +352,34 @@ async function acquireDevice({
   { entry: DeviceEntry } | { skip: string }
 > {
   const running = await deps.listRunning();
+
+  // Fast reuse path for a NAMED device: if it's already acquired this run, or an
+  // emulator is already running under that name, we can decide without
+  // enumerating AVDs. Enumerating shells out to `emulator -list-avds`, and the
+  // reuse path shouldn't depend on that tool being present/working. (Mirrors
+  // planDeviceAcquisition step 1, where plan.name === desc.name for a named
+  // device.)
+  if (desc.name) {
+    const registered = registry.get(desc.name);
+    if (registered) {
+      const entry = registered.ready ? await registered.ready : registered;
+      return { entry };
+    }
+    const hit = running.find((r) => r.name === desc.name);
+    if (hit) {
+      const entry: DeviceEntry = {
+        name: desc.name,
+        udid: hit.udid,
+        bootedByUs: false,
+        sdkRoot,
+      };
+      registry.set(desc.name, entry);
+      return { entry };
+    }
+  }
+
+  // Full plan (needs the AVD list) — create/boot, or the unnamed/default device
+  // whose name resolution depends on the installed AVDs.
   const avds = await deps.listAvds();
   const plan = planDeviceAcquisition(desc, {
     running,
@@ -501,10 +529,10 @@ async function realCreateAvd(
   avdmanagerPath: string,
   { name, systemImage, device }: { name: string; systemImage: string; device: string }
 ): Promise<void> {
-  // avdmanager is a `.bat` shim on Windows — route it through cmd.exe with an
-  // args array (winBatchSpawn) rather than shell:true (Node 20.12+/22 EINVAL on
-  // `.bat` without a shell; winBatchSpawn validates every token first).
-  const isWinBatch =
+  // avdmanager is a `.bat` shim on Windows — spawn it through the shell as a
+  // single validated command string (Node 20.12+/22 EINVAL on `.bat` without
+  // shell:true; winShellCommand rejects any shell-metacharacter token).
+  const useShell =
     process.platform === "win32" && /\.(bat|cmd)$/i.test(avdmanagerPath);
   const args = [
     "create",
@@ -518,12 +546,12 @@ async function realCreateAvd(
     "--force",
   ];
   await new Promise<void>((resolve, reject) => {
-    const stdio: Parameters<typeof spawn>[2] = {
-      stdio: ["pipe", "ignore", "pipe"],
-    };
-    const child = isWinBatch
-      ? winBatchSpawn(avdmanagerPath, args, stdio)
-      : spawn(avdmanagerPath, args, stdio);
+    const child = useShell
+      ? spawn(winShellCommand(avdmanagerPath, args), {
+          stdio: ["pipe", "ignore", "pipe"],
+          shell: true,
+        })
+      : spawn(avdmanagerPath, args, { stdio: ["pipe", "ignore", "pipe"] });
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString()));
     child.on("error", reject);
@@ -548,16 +576,19 @@ async function realBootEmulator(
   // exit immediately on a headless runner.
   const bootDesc = { ...desc, headless: effectiveHeadless(desc) };
   const bootArgs = emulatorBootArgs(bootDesc, port);
-  // Capture stderr so an emulator that dies on boot reports WHY (missing accel,
-  // bad AVD config, …) instead of an opaque "exited (code 1)".
+  // Capture stdout AND stderr so an emulator that dies on boot reports WHY
+  // (missing accel, bad AVD config, …) instead of an opaque "exited (code 1)".
+  // The emulator writes most fatal errors to stdout, not stderr.
   const child = spawn(emulatorPath, bootArgs, {
     detached: false,
-    stdio: ["ignore", "ignore", "pipe"],
+    stdio: ["ignore", "pipe", "pipe"],
   });
   let diag = "";
-  child.stderr?.on("data", (d) => {
-    diag = (diag + d.toString()).slice(-1200);
-  });
+  const capture = (d: Buffer) => {
+    diag = (diag + d.toString()).slice(-1500);
+  };
+  child.stdout?.on("data", capture);
+  child.stderr?.on("data", capture);
   // Track an early exit so a crashed emulator fails fast instead of burning the
   // whole timeout on getprop polls against a dead process.
   let exited: number | null = null;

@@ -2,12 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import https from "node:https";
-import {
-  spawn,
-  spawnSync,
-  type ChildProcess,
-  type SpawnOptions,
-} from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   getCacheDir,
   readInstalledRecord,
@@ -540,37 +535,34 @@ function toolPath(
 // validated token cannot break out of the command line.
 const SAFE_SHELL_TOKEN = /^[A-Za-z0-9 ._:;=\\/@+~()-]*$/;
 
-// Validate every token of an Android SDK command before it reaches the process
-// layer. sdkmanager/avdmanager are `.bat` shims that must run via cmd.exe on
-// Windows (see winBatchSpawn); this is a hard barrier — reject, don't quote —
-// against command injection through a config-derived path or arg. Exported for
-// testing.
-export function assertSafeAndroidTokens(command: string, args: string[]): void {
-  for (const token of [command, ...args]) {
+// Build a single cmd.exe command line from a command + args. sdkmanager and
+// avdmanager are `.bat` shims Node 20.12+/22 refuses to `spawn` without
+// shell:true (CVE-2024-27980); this feeds the shell:true no-args form (which
+// also avoids the DEP0190 array-arg warning). Every token is validated against
+// SAFE_SHELL_TOKEN first and rejected otherwise — a hard barrier against command
+// injection through a config-derived path or arg (not just a quoting
+// convention): with no metacharacter surviving, the assembled line cannot break
+// out into a second command. Only whitespace tokens are quoted, so the
+// `;`-laden system-image id (a cmd.exe non-metacharacter) is passed verbatim.
+// Exported for testing.
+//
+// NOTE: CodeQL flags the downstream shell:true spawn as js/command-line-injection
+// — a known false positive for this managed-tool exec (Doc Detective runs its
+// OWN sdkmanager/avdmanager from its own cache dir; the "user input" is a
+// DD-controlled path), the same class already dismissed for verifyDriverBinary.
+// The SAFE_SHELL_TOKEN barrier above is the real mitigation. This Windows-only
+// path is never exercised by CI (the emulator legs are Linux/KVM).
+export function winShellCommand(command: string, args: string[]): string {
+  const tokens = [command, ...args];
+  for (const token of tokens) {
     if (!SAFE_SHELL_TOKEN.test(token)) {
       throw new Error(
         `Refusing to run an Android SDK command with an unsafe token: ${JSON.stringify(token)}`
       );
     }
   }
-}
-
-// Spawn a Windows `.bat`/`.cmd` (sdkmanager/avdmanager) via cmd.exe. Node
-// 20.12+/22 refuse to spawn `.bat`/`.cmd` directly (CVE-2024-27980). The command
-// name is the constant "cmd.exe" and the tool + args are passed as an ARGS ARRAY
-// (never shell:true / a concatenated string), so Node escapes each element and
-// nothing is re-parsed by a shell — the injection-safe form. Tokens are still
-// validated first as defense-in-depth. Exported for testing.
-export function winBatchSpawn(
-  command: string,
-  args: string[],
-  options: SpawnOptions
-): ChildProcess {
-  assertSafeAndroidTokens(command, args);
-  // "/c <tool> <args...>" with the tool as a separate argv element: cmd.exe
-  // keeps the quotes cmd.exe adds around a spaced path (no /s), so paths with
-  // spaces survive.
-  return spawn("cmd.exe", ["/c", command, ...args], options);
+  // Only whitespace needs quoting now; no metacharacter (incl. `"`) survives.
+  return tokens.map((s) => (/\s/.test(s) ? `"${s}"` : s)).join(" ");
 }
 
 function recordAndroidInstall(
@@ -634,16 +626,21 @@ async function realRun(
   args: string[],
   opts: { input?: string; cwd?: string } = {}
 ): Promise<string> {
-  // sdkmanager/avdmanager are `.bat` shims on Windows; Node 20.12+/22 refuse to
-  // spawn `.bat`/`.cmd` directly (CVE-2024-27980). Route those through cmd.exe
-  // with an args array (winBatchSpawn), never shell:true, so no token is
-  // re-parsed by a shell. Everything else spawns directly.
-  const isWinBatch =
-    process.platform === "win32" && /\.(bat|cmd)$/i.test(command);
-  const stdio: SpawnOptions = { cwd: opts.cwd, stdio: ["pipe", "pipe", "pipe"] };
-  const child = isWinBatch
-    ? winBatchSpawn(command, args, stdio)
-    : spawn(command, args, stdio);
+  // sdkmanager/avdmanager are `.bat` shims on Windows, and Node 20.12+/22 refuse
+  // to spawn `.bat`/`.cmd` without `shell: true` (CVE-2024-27980). Run those
+  // through the shell as a single pre-quoted command string (winShellCommand
+  // validates every token first), so paths with spaces survive cmd.exe's parse.
+  const useShell = process.platform === "win32" && /\.(bat|cmd)$/i.test(command);
+  const child = useShell
+    ? spawn(winShellCommand(command, args), {
+        cwd: opts.cwd,
+        stdio: ["pipe", "pipe", "pipe"],
+        shell: true,
+      })
+    : spawn(command, args, {
+        cwd: opts.cwd,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
   return await new Promise((resolve, reject) => {
     let out = "";
     let err = "";
