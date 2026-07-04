@@ -1,0 +1,95 @@
+# Manual single-leg fixture runner for iterating on platform-specific fixture
+# work from a machine that can't run that platform (e.g. developing macOS app
+# surfaces from a Windows box, or an iOS phase later). Mirrors one
+# (group x OS) leg of fixtures.yml without burning the full 30-job matrix:
+#
+#   gh workflow run fixtures-debug.yml --ref <branch> -f os=macos-latest -f group=apps
+#   gh run watch
+#
+# Keep the steps in sync with fixtures.yml — this is deliberately a copy of a
+# single leg, not a reusable-workflow call, because fixtures.yml pins its own
+# full matrix.
+
+name: Fixture Debug (single leg)
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Runner image
+        type: choice
+        default: macos-latest
+        options:
+          - macos-latest
+          - windows-latest
+          - ubuntu-latest
+      group:
+        description: Fixture group (directory under test/core-artifacts/)
+        type: string
+        default: apps
+      require_pass:
+        description: Fail if no spec actually PASSes (DD_FIXTURES_REQUIRE_PASS)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    name: ${{ inputs.group }} (${{ inputs.os }})
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Link local build
+        run: npm link
+
+      - name: Start test servers
+        shell: bash
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      - name: Resolution diagnostic
+        shell: bash
+        run: |
+          echo "local package version: $(node -p 'require("./package.json").version')"
+          npm ls -g doc-detective || true
+          npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+
+      - name: Run ${{ inputs.group }} fixtures
+        uses: doc-detective/github-action@922131748e00f25f608fcfd7742d6f65b1cc6cb9 # v1.5.0
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/${{ inputs.group }}
+
+      - name: Gate on results
+        shell: bash
+        env:
+          DD_FIXTURES_REQUIRE_PASS: ${{ inputs.require_pass && '1' || '0' }}
+        run: |
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ inputs.group }}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${{ inputs.group }}.json"
+
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-${{ inputs.group }}-${{ inputs.os }}
+          path: dd-output-${{ inputs.group }}.json
+          retention-days: 3
+          if-no-files-found: warn

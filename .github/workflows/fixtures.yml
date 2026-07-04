@@ -29,7 +29,9 @@ jobs:
   fixtures:
     name: ${{ matrix.group }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # The apps group gets headroom: the first Mac2 session on a macOS runner
+    # builds WebDriverAgentMac via xcodebuild (minutes on a cold runner).
+    timeout-minutes: ${{ matrix.group == 'apps' && 30 || 20 }}
     strategy:
       fail-fast: false
       matrix:
@@ -115,9 +117,16 @@ jobs:
           input: test/core-artifacts/${{ matrix.group }}
 
       # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
-      # job. PASS and SKIPPED both pass the gate.
+      # job. PASS and SKIPPED both pass the gate. The apps legs on Windows and
+      # macOS additionally require at least one PASS: those runners are known
+      # to support native app surfaces (macOS images pre-grant Accessibility
+      # to Xcode-Helper, which WebDriverAgentMac runs under), so an
+      # all-SKIPPED run there means the environment regressed, not that
+      # skipping is expected. Linux stays skip-tolerant until phase A8.
       - name: Gate on results
         shell: bash
+        env:
+          DD_FIXTURES_REQUIRE_PASS: ${{ (matrix.group == 'apps' && matrix.os != 'ubuntu-latest') && '1' || '0' }}
         run: |
           cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.group }}.json"
           node scripts/check-fixture-results.cjs "dd-output-${{ matrix.group }}.json"
