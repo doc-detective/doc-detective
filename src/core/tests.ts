@@ -575,6 +575,9 @@ async function androidContextPreflight({
   // exercised on the CI emulator legs + dev boxes, not the unit suite — which
   // covers the decision logic (planAndroidToolchain, planDeviceAcquisition,
   // capabilities) in its own module and the skip paths via core-core.test.js.
+  // Wrapped so a misconfigured toolchain (adb/emulator that throw when probed)
+  // gates as a SKIP — "every gap is a gating SKIP" — instead of crashing the run.
+  try {
   const abi = hostAbi();
   let sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
 
@@ -708,6 +711,13 @@ async function androidContextPreflight({
     deviceDeps,
     warnings,
   };
+  } catch (error: any) {
+    return {
+      ok: false,
+      level: "warning",
+      reason: `Skipping context on 'android': couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
+    };
+  }
   /* c8 ignore stop */
 }
 
