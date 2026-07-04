@@ -137,8 +137,14 @@ export function detectAndroidSdk(
     deps.env ?? (process.env as Record<string, string | undefined>);
   const existsSync = deps.existsSync ?? fs.existsSync;
   const platform = deps.platform ?? process.platform;
+  // Compute the cache candidate only when the cache dir resolves; an empty
+  // safeCacheDir (getCacheDir threw on a bad config.cacheDir) would otherwise
+  // join to the RELATIVE "android-sdk", which could false-match a cwd-local
+  // folder. Skip the candidate entirely in that case.
+  const cacheRoot = safeCacheDir(ctx);
   const cacheAndroidSdk =
-    deps.cacheAndroidSdk ?? joinFor(platform, safeCacheDir(ctx), "android-sdk");
+    deps.cacheAndroidSdk ??
+    (cacheRoot ? joinFor(platform, cacheRoot, "android-sdk") : undefined);
 
   const candidates: { root: string | undefined; source: AndroidSdkSource }[] = [
     { root: trimmed(env.ANDROID_HOME), source: "ANDROID_HOME" },

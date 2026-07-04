@@ -123,21 +123,23 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("An android target context SKIPs via the mobile gate (native app phase A3a)", async function () {
-    // Covers runContext's mobile-platform branch. `platforms: "android"`
-    // resolves a context whose platform is a mobile TARGET (not the host), so
-    // it never matches the desktop platform and instead lands SKIPPED with an
-    // actionable reason — install-android when no SDK is found, or the A3b
-    // roadmap pointer on a capable host. The precise message composition is
-    // unit-tested hermetically in test/android-gating.test.js; here we assert
-    // the stable outcome across hosts (SKIPPED, never FAIL) since SDK presence
-    // varies by runner.
+  it("An android target context SKIPs via the mobile gate (native app phase A3)", async function () {
+    // Covers runContext's mobile-platform branch. A *native* android context can
+    // legitimately PASS on a capable host under A3b (and could lazily install
+    // the toolchain), so this test deliberately includes a browser step: mobile-
+    // web on Android is phase A5, whose gate returns SKIPPED *before* any SDK
+    // detection/install/boot — a deterministic, hermetic outcome on every host.
+    // NO_ANDROID_AUTOINSTALL is belt-and-suspenders against any toolchain
+    // download. (The native-android gate paths are covered hermetically with
+    // injected deps in test/android-gating.test.js.)
+    const prevNoInstall = process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
+    process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = "1";
     const androidTest = {
       tests: [
         {
           testId: "android-gate",
-          runOn: [{ platforms: "android" }],
-          steps: [{ startSurface: { app: "com.android.settings" } }],
+          runOn: [{ platforms: "android", browsers: "chrome" }],
+          steps: [{ goTo: "https://example.com" }],
         },
       ],
     };
@@ -150,9 +152,13 @@ describe("Run tests successfully", function () {
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
         assert.match(ctx.resultDescription, /Skipping context on 'android'/);
+        assert.match(ctx.resultDescription, /phase A5/);
       }
       assert.equal(result.summary.specs.fail, 0);
     } finally {
+      if (prevNoInstall === undefined)
+        delete process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
+      else process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = prevNoInstall;
       fs.unlinkSync(tempFilePath);
     }
   });

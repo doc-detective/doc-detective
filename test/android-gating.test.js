@@ -157,6 +157,22 @@ describe("native app surfaces (A3a): detectAndroidSdk", function () {
     expect(sdk).to.equal(null);
   });
 
+  it("never false-matches a relative 'android-sdk' when the cache dir can't be computed", function () {
+    // If getCacheDir throws, the cache candidate must be OMITTED — not joined to
+    // a relative "android-sdk" that could match a cwd-local folder. existsSync
+    // here would happily confirm a relative "android-sdk/..." tree; detection
+    // must still return null because that candidate is skipped.
+    const sdk = detectAndroidSdk(
+      { cacheDir: "/bad;path" },
+      {
+        platform: "linux",
+        env: {},
+        existsSync: (p) => p.startsWith("android-sdk"),
+      }
+    );
+    expect(sdk).to.equal(null);
+  });
+
   it("resolves .exe/.bat tool suffixes on Windows", function () {
     const r = "C:\\Android";
     const winRoot = {

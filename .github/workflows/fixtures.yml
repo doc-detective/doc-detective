@@ -158,8 +158,8 @@ jobs:
   # here would mean the emulator or driver regressed, not that skipping is
   # expected. Expect boot-time/locator tuning as Android system images evolve.
   #
-  # NOTE: reactivecircus/android-emulator-runner is pinned to a tag here; pin it
-  # to a commit SHA to match this repo's action-pinning policy before merge.
+  # reactivecircus/android-emulator-runner is pinned to a commit SHA (v2.37.0)
+  # to match this repo's action-pinning policy.
 
   # Reuse leg: the emulator-runner boots an emulator, and Doc Detective detects
   # and REUSES it (bootedByUs=false, left running) — the default-device path.
@@ -194,7 +194,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run apps-android on a booted emulator (reuse)
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 34
           target: google_apis
