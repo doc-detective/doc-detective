@@ -618,8 +618,9 @@ async function androidContextPreflight({
     // Loud warning to the terminal AND the report, then run the installer.
     clog("warning", toolchain.reason);
     warnings.push(toolchain.reason);
+    let reports: any[] = [];
     try {
-      await installAndroid({
+      reports = await installAndroid({
         yes: true,
         osVersion: toolchain.osVersion,
         ctx: { cacheDir: config.cacheDir },
@@ -630,6 +631,25 @@ async function androidContextPreflight({
         ok: false,
         level: "warning",
         reason: `Skipping context on 'android': the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
+      };
+    }
+    // installAndroid reports terminal conditions by RETURN, not by throwing
+    // (no Java, a failed download, a blocked image). Surface the actionable
+    // reason instead of falling through to the generic "still incomplete".
+    const terminal = reports.find((r) =>
+      ["missing", "failed", "blocked", "declined"].includes(r.action)
+    );
+    if (terminal) {
+      const detail =
+        terminal.assetId === "java"
+          ? "a Java runtime (JRE 17+) is required for the Android SDK tools — install one and rerun"
+          : terminal.action === "blocked"
+            ? `no matching Android system image is available (${terminal.assetId})`
+            : `the '${terminal.assetId}' step ${terminal.action}`;
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain couldn't be installed — ${detail}. See \`doc-detective install android\`.`,
       };
     }
     sdk = detectAndroidSdk({ cacheDir: config.cacheDir });

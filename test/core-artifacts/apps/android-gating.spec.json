@@ -1,20 +1,19 @@
 {
   "specId": "android-gating-a3a",
-  "description": "Native app surfaces phase A3a (docs/design/native-app-surfaces.md): the `android` and `ios` target platforms are validated and capability-gated, but neither runs yet — android devices land in phase A3b, iOS in A4. Every context here must resolve SKIPPED (never FAIL) on every host: a mobile platform names a TARGET, not the host, so it never matches the host platform and instead lands SKIPPED with an actionable, roadmap-shaped reason (install-android when no SDK is found, or the A3b/A4 pointer). This is the asserted gate, not a gap — when phase A3b lands, the android test starts running on capable hosts with no fixture change.",
+  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): the `android` and `ios` target platforms are validated and gated on the general matrix. This spec is deterministic on EVERY host — it asserts the always-SKIP phase gates (android+browser -> A5, ios -> A4), which return before any SDK/emulator detection, so no host lazily installs a toolchain or boots an emulator here. (Native android app runs — which can PASS on a capable host under A3b — are exercised in the apps-android group's KVM jobs, not here.)",
   "tests": [
     {
-      "testId": "android-context-gates",
-      "description": "An android target context is SKIPPED by the mobile gate. On hosts with no Android SDK the reason points at `doc-detective install android`; on a capable host it points at phase A3b. The startSurface step never runs — the context skips before any step or driver work.",
+      "testId": "android-mobile-web-gates",
+      "description": "An android context with a browser step is SKIPPED pointing at phase A5 (mobile web on Android). This gate fires before any SDK detection, so the outcome is deterministic on every host and never triggers a toolchain install or emulator boot.",
       "runOn": [
         {
-          "platforms": "android"
+          "platforms": "android",
+          "browsers": "chrome"
         }
       ],
       "steps": [
         {
-          "startSurface": {
-            "app": "com.android.settings"
-          }
+          "goTo": "https://example.com"
         }
       ]
     },
