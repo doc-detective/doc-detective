@@ -202,11 +202,11 @@ jobs:
           force-avd-creation: true
           emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
+          # Single-line the doc-detective command: the emulator-runner passes
+          # `script` to the shell in a way that doesn't preserve backslash
+          # line-continuations (they reach doc-detective as a literal `\` arg).
           script: |
-            npx doc-detective runTests \
-              --config test/core-artifacts/config.groups.json \
-              --input test/core-artifacts/apps-android \
-              --output dd-output-apps-android.json || true
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
             DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
 
       - if: always()
