@@ -476,12 +476,31 @@ async function realCreateAvd(
   avdmanagerPath: string,
   { name, systemImage, device }: { name: string; systemImage: string; device: string }
 ): Promise<void> {
+  // avdmanager is a `.bat` shim on Windows — spawn it through the shell as a
+  // single pre-quoted command string (Node 20.12+/22 EINVAL on `.bat` without
+  // shell:true; the no-args form avoids the DEP0190 array-arg warning).
+  const useShell =
+    process.platform === "win32" && /\.(bat|cmd)$/i.test(avdmanagerPath);
+  const quote = (s: string) =>
+    /[\s&|<>^"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const args = [
+    "create",
+    "avd",
+    "-n",
+    name,
+    "-k",
+    systemImage,
+    "--device",
+    device,
+    "--force",
+  ];
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(
-      avdmanagerPath,
-      ["create", "avd", "-n", name, "-k", systemImage, "--device", device, "--force"],
-      { stdio: ["pipe", "ignore", "pipe"] }
-    );
+    const child = useShell
+      ? spawn([avdmanagerPath, ...args].map(quote).join(" "), {
+          stdio: ["pipe", "ignore", "pipe"],
+          shell: true,
+        })
+      : spawn(avdmanagerPath, args, { stdio: ["pipe", "ignore", "pipe"] });
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString()));
     child.on("error", reject);

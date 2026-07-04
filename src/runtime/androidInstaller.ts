@@ -529,6 +529,18 @@ function toolPath(
   return path.join(sdkRoot, "cmdline-tools", "latest", "bin", tool + suffix);
 }
 
+// Build a single cmd.exe command line from a command + args, quoting only the
+// tokens that need it (whitespace or a cmd metacharacter). sdkmanager/avdmanager
+// are `.bat` shims Node 20.12+/22 refuses to `spawn` without shell:true
+// (CVE-2024-27980); this feeds the shell:true no-args form so paths with spaces
+// survive and the DEP0190 array-arg warning is avoided. Exported for testing —
+// the quoting is the bug-prone part.
+export function winShellCommand(command: string, args: string[]): string {
+  const quote = (s: string) =>
+    /[\s&|<>^"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return [command, ...args].map(quote).join(" ");
+}
+
 function recordAndroidInstall(
   ctx: CacheDirContext,
   {
@@ -590,11 +602,23 @@ async function realRun(
   args: string[],
   opts: { input?: string; cwd?: string } = {}
 ): Promise<string> {
+  // sdkmanager/avdmanager are `.bat` shims on Windows, and Node 20.12+/22
+  // refuse to spawn `.bat`/`.cmd` without `shell: true` (CVE-2024-27980). Run
+  // those through the shell as a single pre-quoted command string (the no-args
+  // form, which avoids the DEP0190 warning about unescaped array args), so
+  // paths with spaces survive cmd.exe's parse.
+  const useShell = process.platform === "win32" && /\.(bat|cmd)$/i.test(command);
+  const child = useShell
+    ? spawn(winShellCommand(command, args), {
+        cwd: opts.cwd,
+        stdio: ["pipe", "pipe", "pipe"],
+        shell: true,
+      })
+    : spawn(command, args, {
+        cwd: opts.cwd,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
   return await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: opts.cwd,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
     let out = "";
     let err = "";
     child.stdout?.on("data", (d) => (out += d.toString()));

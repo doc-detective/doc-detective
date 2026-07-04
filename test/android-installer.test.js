@@ -13,6 +13,7 @@ import {
   listInstalledSystemImages,
   buildAndroidInstallPlan,
   installAndroid,
+  winShellCommand,
   DEFAULT_AVD_NAME,
   DEVICE_TYPE_PROFILES,
 } from "../dist/runtime/androidInstaller.js";
@@ -37,6 +38,23 @@ describe("android installer: pure helpers", function () {
     expect(androidVersionToApi("10")).to.equal(29);
     expect(androidVersionToApi("nonsense")).to.equal(null);
     expect(androidVersionToApi("5")).to.equal(null); // too old to be an API
+  });
+
+  it("quotes only the tokens that need it for the Windows .bat shell form", function () {
+    // No spaces -> passed through verbatim (incl. the ';'-laden image id,
+    // which cmd.exe doesn't treat specially).
+    expect(
+      winShellCommand("C:\\sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat", [
+        "--sdk_root=C:\\sdk",
+        "system-images;android-34;google_apis;x86_64",
+      ])
+    ).to.equal(
+      'C:\\sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat --sdk_root=C:\\sdk system-images;android-34;google_apis;x86_64'
+    );
+    // A path with a space gets quoted so cmd.exe keeps it as one token.
+    expect(
+      winShellCommand("C:\\Program Files\\sdk\\sdkmanager.bat", ["--licenses"])
+    ).to.equal('"C:\\Program Files\\sdk\\sdkmanager.bat" --licenses');
   });
 
   it("builds a platform-specific commandline-tools URL", function () {
