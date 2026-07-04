@@ -421,8 +421,13 @@ function jobDisplayResources(
   // emulator is GBs of RAM, so bound their concurrency to one at a time. This
   // is exclusivity-as-bound on a single resource name (a counted semaphore is
   // future work); it composes with any recording "display" resource above.
-  const extra =
-    job.context?.platform === "android" ? ["android-emulator"] : [];
+  // Only android contexts that will actually attempt the emulator take it — an
+  // android+browser context deterministically SKIPs (phase A5) before any
+  // emulator/toolchain work, so it must not needlessly serialize other jobs.
+  const attemptsEmulator =
+    job.context?.platform === "android" &&
+    !isBrowserRequired({ test: job.context });
+  const extra = attemptsEmulator ? ["android-emulator"] : [];
   if (base.length || extra.length) return [...new Set([...base, ...extra])];
   if (
     ctx.runHasDisplayRecording &&
