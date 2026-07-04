@@ -1,0 +1,186 @@
+{
+  "specId": "app-surfaces-a2-macos",
+  "description": "Native app surfaces phase A2 (docs/design/native-app-surfaces.md): startSurface launches macOS desktop apps through the lazily-installed Mac2 driver, find/click/type act on them via the AX semantic mapping, and closeSurface terminates them. TextEdit exercises the bundle-ID launch form plus args (a file path argument that must visibly open, proving the arguments capability); Calculator exercises the .app-path launch form plus AX-column clicks; the env permutation exercises the appium:environment capability path (stock apps offer nothing that renders an env var, so readiness is the assertion — noted here so the weaker check is a documented choice, not an oversight). Gated to macOS hosts; on Windows/Linux every test lands SKIPPED via runOn. The macOS runner needs Accessibility (TCC) granted — without it the app preflight lands the context as SKIPPED with the System Settings walkthrough (asserted behavior on unprovisioned machines, actively granted in CI so these tests PASS).",
+  "tests": [
+    {
+      "testId": "app-textedit-flow",
+      "description": "Launch TextEdit by bundle ID with a file-path launch argument, wait for the document window that proves the args flowed, type into the text view via the native-selector escape hatch, screenshot, and close the surface. autoRecord proves app-context recording on macOS: the capture starts full-display and the first app surface late-binds its window rect as the crop.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "printf 'Doc Detective phase A2\\n' > /tmp/dd-a2-textedit.txt"
+          }
+        },
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "/tmp/dd-a2-textedit.txt"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementText": "dd-a2-textedit.txt"
+              }
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Typed by Doc Detective. "
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "textedit-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-calculator-flow",
+      "description": "Launch Calculator by .app path, click 1 + 2 = through the AX semantic column (elementAria accessible-name matching — the string form; the { role, name } object form is not yet schema-reachable, see ADR 01023), verify the result renders, screenshot, and close the surface.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "1",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "+",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "2",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "=",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "3",
+            "surface": {
+              "app": "Calculator"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "calculator-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "Calculator"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-env-launch",
+      "description": "Launch Calculator by bundle ID with env set, proving the appium:environment capability path end-to-end. Stock apps render nothing env-derived, so launch readiness is the assertion (documented trade-off in the spec description).",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.calculator",
+            "name": "calc-env",
+            "env": {
+              "DD_A2_ENV": "1"
+            },
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "calc-env"
+          }
+        }
+      ]
+    }
+  ]
+}
