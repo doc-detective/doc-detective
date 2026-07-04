@@ -27,6 +27,7 @@ export {
   defaultAppSurfaceName,
   classifyNativeSelector,
   buildUiaLocator,
+  buildAxLocator,
   createAppSessionState,
   appSurfacePreflight,
   isAppDriverRequired,
@@ -179,17 +180,141 @@ function buildUiaLocator(criteria: {
   return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
 }
 
+// Map an ARIA-ish role to an XCUIElementType tag (XPath element name in the
+// Mac2 driver's XML view). Unknown roles pass through capitalized so new
+// element types work without a table update (image → XCUIElementTypeImage).
+function xcuiElementType(role: string): string {
+  const known: Record<string, string> = {
+    button: "Button",
+    checkbox: "CheckBox",
+    combobox: "ComboBox",
+    dialog: "Dialog",
+    link: "Link",
+    list: "Table",
+    listitem: "Cell",
+    menu: "Menu",
+    menuitem: "MenuItem",
+    radio: "RadioButton",
+    slider: "Slider",
+    tab: "TabGroup",
+    table: "Table",
+    text: "StaticText",
+    textbox: "TextField",
+    toolbar: "Toolbar",
+    tree: "Outline",
+    treeitem: "OutlineRow",
+    window: "Window",
+  };
+  const tag =
+    known[role.toLowerCase()] ?? role.charAt(0).toUpperCase() + role.slice(1);
+  return `XCUIElementType${tag}`;
+}
+
+// Build a macOS (AX) locator from the shared semantic element fields — the A2
+// column of the design's mapping table: elementText → AXTitle, elementId →
+// AXIdentifier, elementAria → AXRole (+ AXTitle), elementTestId →
+// AXIdentifier. Returns null when no supported field is present. A lone
+// elementId/elementTestId uses the driver's "accessibility id" strategy (the
+// AXIdentifier fast path); anything combined compiles to XPath. Accessible
+// names deviate from the pure-AXTitle column on purpose: macOS controls split
+// their name across the Mac2 view's `title` and `label` attributes (buttons
+// carry title, static text carries label), so name predicates match either.
+function buildAxLocator(criteria: {
+  elementText?: string;
+  elementId?: string;
+  elementTestId?: string;
+  elementAria?: { role?: string; name?: string } | string;
+  [key: string]: any;
+}): { strategy: string; value: string } | null {
+  const identifier = criteria.elementId ?? criteria.elementTestId;
+  const aria =
+    typeof criteria.elementAria === "string"
+      ? { name: criteria.elementAria }
+      : criteria.elementAria;
+
+  const namePredicate = (value: string) =>
+    `(@title=${xpathLiteral(value)} or @label=${xpathLiteral(value)})`;
+
+  const predicates: string[] = [];
+  if (identifier !== undefined)
+    predicates.push(`@identifier=${xpathLiteral(identifier)}`);
+  if (criteria.elementText !== undefined)
+    predicates.push(namePredicate(criteria.elementText));
+  // elementText and elementAria's name both map to the accessible name on
+  // macOS; when they carry the same value, one predicate suffices (two
+  // DIFFERENT values are rejected upstream in buildAppLocator as an
+  // impossible match).
+  if (aria?.name !== undefined && aria.name !== criteria.elementText)
+    predicates.push(namePredicate(aria.name));
+
+  const tag = aria?.role ? xcuiElementType(aria.role) : undefined;
+
+  if (!tag && predicates.length === 0) return null;
+
+  // Fast path: a lone AXIdentifier maps to the accessibility id strategy.
+  if (identifier !== undefined && predicates.length === 1 && !tag) {
+    return { strategy: "accessibility id", value: identifier };
+  }
+
+  const joined = predicates
+    .map((p, i) =>
+      // The or-group already carries its own parens; a lone or-group drops
+      // the redundant outer pair when it is the only predicate.
+      predicates.length === 1 && p.startsWith("(") && i === 0
+        ? p.slice(1, -1)
+        : p
+    )
+    .join(" and ");
+  const predicate = predicates.length ? `[${joined}]` : "";
+  return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
+}
+
 // ---------------------------------------------------------------------------
 // Runtime: app sessions, preflight, and app-side step implementations.
 // ---------------------------------------------------------------------------
 
-const APP_DRIVER_PACKAGE = "appium-novawindows-driver";
+// Per-platform native-driver table — the adapter seam from
+// docs/design/native-app-surfaces.md §Driver architecture. Driver choice is
+// an implementation detail behind this table: descriptors never name a
+// driver, so swapping one is a code change here, not a schema change. Each
+// platform phase adds its row (A1 windows/NovaWindows, A2 mac/Mac2).
+interface AppDriverPlatform {
+  driverPackage: string;
+  // Human label for skip/fail guidance ("the Windows app driver (…)").
+  driverLabel: string;
+  platformName: string;
+  automationName: string;
+  // The platform's semantic-locator column (UIA on Windows, AX on macOS).
+  buildLocator(criteria: {
+    [key: string]: any;
+  }): { strategy: string; value: string } | null;
+}
+
+const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
+  windows: {
+    driverPackage: "appium-novawindows-driver",
+    driverLabel: "Windows app driver",
+    platformName: "Windows",
+    automationName: "NovaWindows",
+    buildLocator: (criteria) => buildUiaLocator(criteria),
+  },
+  mac: {
+    driverPackage: "appium-mac2-driver",
+    driverLabel: "macOS app driver",
+    platformName: "mac",
+    automationName: "Mac2",
+    buildLocator: (criteria) => buildAxLocator(criteria),
+  },
+};
 
 interface AppSurfaceEntry {
   name: string;
   appId: string;
   driver: any;
   launchedByUs: boolean;
+  // Which platform column the entry's locators compile against. Optional for
+  // pre-A2 callers/tests; absent means the Windows/UIA column.
+  platform?: string;
 }
 
 // Per-context app-session state, created by runContext and threaded through
@@ -270,14 +395,17 @@ function resolveAppSurfaceRef(
 // package is right there. Deleting the manifest cache makes the next server
 // start rebuild it from what's actually installed. No-op when the manifest
 // is absent or already lists the driver.
-function invalidateStaleAppiumManifest(home: string): void {
+function invalidateStaleAppiumManifest(
+  home: string,
+  driverPackage: string
+): void {
   const cacheDir = path.join(home, "node_modules", ".cache", "appium");
   try {
     const manifest = fs.readFileSync(
       path.join(cacheDir, "extensions.yaml"),
       "utf8"
     );
-    if (!manifest.includes(APP_DRIVER_PACKAGE)) {
+    if (!manifest.includes(driverPackage)) {
       fs.rmSync(cacheDir, { recursive: true, force: true });
     }
   } catch {
@@ -307,12 +435,15 @@ async function appSurfacePreflight({
   | { ok: true; appiumEntry: string; appiumHome: string }
   | { ok: false; reason: string }
 > {
-  if (platform !== "windows") {
+  const platformDriver = APP_DRIVER_PLATFORMS[platform];
+  if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipping context on '${platform}': native app surfaces run on Windows only in this phase. Gate the test with runOn platforms (["windows"]) so this skip is intentional.`,
+      reason: `Skipping context on '${platform}': native app surfaces run on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]) so this skip is intentional.`,
     };
   }
+  const driverPackage = platformDriver.driverPackage;
+  const driverLabel = platformDriver.driverLabel;
   const ctx = { cacheDir: config?.cacheDir };
   const resolveSource = deps.resolveSource ?? resolveHeavyDepSource;
   const resolvePath = deps.resolvePath ?? resolveHeavyDepPath;
@@ -320,21 +451,21 @@ async function appSurfacePreflight({
     deps.resolvePathInCache ?? resolveHeavyDepPathInCache;
   const ensureInstalled = deps.ensureInstalled ?? ensureRuntimeInstalled;
 
-  let source = resolveSource(APP_DRIVER_PACKAGE, ctx);
+  let source = resolveSource(driverPackage, ctx);
   if (!source) {
     try {
-      await ensureInstalled([APP_DRIVER_PACKAGE], { ctx });
+      await ensureInstalled([driverPackage], { ctx });
     } catch (error: any) {
       return {
         ok: false,
-        reason: `Skipping context: the Windows app driver (${APP_DRIVER_PACKAGE}) is not installed and could not be installed (${error?.message ?? error}). Install it with \`doc-detective install runtime ${APP_DRIVER_PACKAGE}\` or check network access.`,
+        reason: `Skipping context: the ${driverLabel} (${driverPackage}) is not installed and could not be installed (${error?.message ?? error}). Install it with \`doc-detective install runtime ${driverPackage}\` or check network access.`,
       };
     }
-    source = resolveSource(APP_DRIVER_PACKAGE, ctx);
+    source = resolveSource(driverPackage, ctx);
     if (!source) {
       return {
         ok: false,
-        reason: `Skipping context: the Windows app driver (${APP_DRIVER_PACKAGE}) did not resolve after install. Inspect the runtime cache and reinstall with \`doc-detective install runtime ${APP_DRIVER_PACKAGE}\`.`,
+        reason: `Skipping context: the ${driverLabel} (${driverPackage}) did not resolve after install. Inspect the runtime cache and reinstall with \`doc-detective install runtime ${driverPackage}\`.`,
       };
     }
   }
@@ -344,11 +475,11 @@ async function appSurfacePreflight({
   // shares the shim's home with appium; a cache-resolved driver needs an
   // appium copy in the cache too (a one-time install).
   if (source === "shim") {
-    const driverEntry = resolvePath(APP_DRIVER_PACKAGE, ctx);
+    const driverEntry = resolvePath(driverPackage, ctx);
     const home = driverEntry ? appiumHomeForDriverPath(driverEntry) : null;
     const appiumEntry = resolvePath("appium", ctx);
     if (home && appiumEntry) {
-      invalidateStaleAppiumManifest(home);
+      invalidateStaleAppiumManifest(home, driverPackage);
       return { ok: true, appiumEntry, appiumHome: home };
     }
     // Fall through to the cache path when the shim layout is unexpected —
@@ -356,7 +487,7 @@ async function appSurfacePreflight({
     log(
       config,
       "debug",
-      `The Windows app driver resolved from the shim but its Appium home/entry did not (home: ${home}, appium: ${appiumEntry}); falling back to a cache-side Appium install.`
+      `The ${driverLabel} resolved from the shim but its Appium home/entry did not (home: ${home}, appium: ${appiumEntry}); falling back to a cache-side Appium install.`
     );
   }
   if (!resolvePathInCache("appium", ctx)) {
@@ -365,7 +496,7 @@ async function appSurfacePreflight({
     } catch (error: any) {
       return {
         ok: false,
-        reason: `Skipping context: Appium could not be installed alongside the Windows app driver (${error?.message ?? error}).`,
+        reason: `Skipping context: Appium could not be installed alongside the ${driverLabel} (${error?.message ?? error}).`,
       };
     }
   }
@@ -377,17 +508,22 @@ async function appSurfacePreflight({
     };
   }
   const appiumHome = getRuntimeDir(ctx);
-  invalidateStaleAppiumManifest(appiumHome);
+  invalidateStaleAppiumManifest(appiumHome, driverPackage);
   return { ok: true, appiumEntry, appiumHome };
 }
 
 // Build a driver locator from a step's element criteria (the shared semantic
-// fields) or the native `selector` escape hatch. Returns the locator or an
-// error message naming what is unsupported on app surfaces.
-function buildAppLocator(criteria: {
-  selector?: string;
-  [key: string]: any;
-}): { strategy: string; value: string } | { error: string } {
+// fields) or the native `selector` escape hatch, compiled against the
+// platform's locator column (UIA on Windows, AX on macOS; Windows when
+// unspecified, the pre-A2 behavior). Returns the locator or an error message
+// naming what is unsupported on app surfaces.
+function buildAppLocator(
+  criteria: {
+    selector?: string;
+    [key: string]: any;
+  },
+  platform?: string
+): { strategy: string; value: string } | { error: string } {
   if (typeof criteria.selector === "string") {
     const kind = classifyNativeSelector(criteria.selector);
     if (kind === "xpath") return { strategy: "xpath", value: criteria.selector };
@@ -409,8 +545,9 @@ function buildAppLocator(criteria: {
     };
   }
   // elementText and elementAria's accessible name both map to the SAME
-  // property (@Name) on Windows, so two different values can never match one
-  // element — surface the conflict instead of failing silently as not-found.
+  // property (@Name on Windows, title/label on macOS), so two different
+  // values can never match one element — surface the conflict instead of
+  // failing silently as not-found.
   const ariaName =
     typeof criteria.elementAria === "string"
       ? criteria.elementAria
@@ -424,7 +561,9 @@ function buildAppLocator(criteria: {
       error: `elementText ("${criteria.elementText}") and elementAria ("${ariaName}") both map to the accessible Name on app surfaces but have different values — no element can match both. Specify one of them.`,
     };
   }
-  const locator = buildUiaLocator(criteria);
+  const platformDriver =
+    APP_DRIVER_PLATFORMS[platform ?? "windows"] ?? APP_DRIVER_PLATFORMS.windows;
+  const locator = platformDriver.buildLocator(criteria);
   if (!locator) {
     return {
       error:
@@ -440,12 +579,14 @@ async function findAppElement({
   driver,
   criteria,
   timeout = 5000,
+  platform,
 }: {
   driver: any;
   criteria: any;
   timeout?: number;
+  platform?: string;
 }): Promise<{ element?: any; error?: string }> {
-  const locator = buildAppLocator(criteria);
+  const locator = buildAppLocator(criteria, platform);
   if ("error" in locator) return { error: locator.error };
   const selector =
     locator.strategy === "accessibility id"
@@ -603,6 +744,7 @@ async function startAppSurface({
       driver,
       criteria: descriptor.waitUntil.find,
       timeout,
+      platform,
     });
     if (found.error) {
       try {
@@ -621,6 +763,7 @@ async function startAppSurface({
     appId,
     driver,
     launchedByUs: true,
+    platform,
   });
   appSession.activeApp = name;
 

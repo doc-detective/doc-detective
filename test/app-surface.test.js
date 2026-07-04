@@ -12,6 +12,7 @@ import {
   defaultAppSurfaceName,
   classifyNativeSelector,
   buildUiaLocator,
+  buildAxLocator,
   createAppSessionState,
   appSurfacePreflight,
   isAppDriverRequired,
@@ -149,6 +150,96 @@ describe("buildUiaLocator", function () {
   });
 });
 
+describe("buildAxLocator", function () {
+  it("maps a lone elementId to the accessibility id strategy (AXIdentifier fast path)", function () {
+    assert.deepEqual(buildAxLocator({ elementId: "saveButton" }), {
+      strategy: "accessibility id",
+      value: "saveButton",
+    });
+    assert.deepEqual(buildAxLocator({ elementTestId: "saveButton" }), {
+      strategy: "accessibility id",
+      value: "saveButton",
+    });
+  });
+
+  it("maps elementText to an XPath matching title OR label", function () {
+    // macOS controls split their accessible name across AXTitle and label
+    // (buttons carry title, static text carries label/value), so the
+    // pragmatic contract matches either.
+    assert.deepEqual(buildAxLocator({ elementText: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save"]',
+    });
+  });
+
+  it("ANDs combined semantic criteria into one XPath", function () {
+    assert.deepEqual(
+      buildAxLocator({ elementId: "saveButton", elementText: "Save" }),
+      {
+        strategy: "xpath",
+        value:
+          '//*[@identifier="saveButton" and (@title="Save" or @label="Save")]',
+      }
+    );
+  });
+
+  it("maps elementAria role+name to an XCUIElementType tag with title/label", function () {
+    assert.deepEqual(
+      buildAxLocator({ elementAria: { role: "button", name: "Save" } }),
+      {
+        strategy: "xpath",
+        value: '//XCUIElementTypeButton[@title="Save" or @label="Save"]',
+      }
+    );
+  });
+
+  it("maps a role-only elementAria to a bare XCUIElementType tag", function () {
+    assert.deepEqual(buildAxLocator({ elementAria: { role: "button" } }), {
+      strategy: "xpath",
+      value: "//XCUIElementTypeButton",
+    });
+  });
+
+  it("maps the aria-ish role names onto XCUIElementType tags", function () {
+    const cases = [
+      ["textbox", "XCUIElementTypeTextField"],
+      ["text", "XCUIElementTypeStaticText"],
+      ["checkbox", "XCUIElementTypeCheckBox"],
+      ["menuitem", "XCUIElementTypeMenuItem"],
+      ["window", "XCUIElementTypeWindow"],
+    ];
+    for (const [role, tag] of cases) {
+      assert.deepEqual(buildAxLocator({ elementAria: { role } }), {
+        strategy: "xpath",
+        value: `//${tag}`,
+      });
+    }
+    // Unknown roles pass through capitalized so new element types work
+    // without a table update (XCUIElementTypeImage exists, for example).
+    assert.deepEqual(buildAxLocator({ elementAria: { role: "image" } }), {
+      strategy: "xpath",
+      value: "//XCUIElementTypeImage",
+    });
+  });
+
+  it("treats a string elementAria as a name-only match", function () {
+    assert.deepEqual(buildAxLocator({ elementAria: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save"]',
+    });
+  });
+
+  it("escapes double quotes in values", function () {
+    const { value } = buildAxLocator({ elementText: 'Say "hi"' });
+    assert.equal(value.includes("concat("), true);
+  });
+
+  it("returns null for criteria with no AX mapping", function () {
+    assert.equal(buildAxLocator({}), null);
+    assert.equal(buildAxLocator({ elementClass: "x" }), null);
+  });
+});
+
 // --- runtime helpers (hermetic: injected deps, fake drivers, temp dirs) ---
 
 describe("isAppDriverRequired / stepTargetsAppSurface", function () {
@@ -228,6 +319,28 @@ describe("buildAppLocator", function () {
     assert.match(buildAppLocator({}).error, /No app-mappable/);
   });
 
+  it("selects the platform's locator column (mac → AX, default → UIA)", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "mac"), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save"]',
+    });
+    // No platform argument stays the Windows/UIA column (A1 behavior).
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@Name="Save"]',
+    });
+    // The escape hatch and the shared guards are platform-independent.
+    assert.match(
+      buildAppLocator({ selector: "#save" }, "mac").error,
+      /CSS selectors/
+    );
+    assert.match(
+      buildAppLocator({ elementText: "Save", elementAria: "Cancel" }, "mac")
+        .error,
+      /both map to the accessible Name/
+    );
+  });
+
   it("rejects conflicting elementText/elementAria names and dedupes equal ones", function () {
     // Different values: both map to @Name, so no element can match — error.
     const conflict = buildAppLocator({
@@ -252,7 +365,7 @@ describe("invalidateStaleAppiumManifest", function () {
       path.join(manifestDir(home), "extensions.yaml"),
       "drivers:\n  chromium: {}\n"
     );
-    invalidateStaleAppiumManifest(home);
+    invalidateStaleAppiumManifest(home, "appium-novawindows-driver");
     assert.equal(fs.existsSync(manifestDir(home)), false);
     fs.rmSync(home, { recursive: true, force: true });
   });
@@ -264,25 +377,74 @@ describe("invalidateStaleAppiumManifest", function () {
       path.join(manifestDir(home), "extensions.yaml"),
       "drivers:\n  novawindows:\n    pkgName: appium-novawindows-driver\n"
     );
-    invalidateStaleAppiumManifest(home);
+    invalidateStaleAppiumManifest(home, "appium-novawindows-driver");
     assert.equal(fs.existsSync(manifestDir(home)), true);
     fs.rmSync(home, { recursive: true, force: true });
 
     // Absent manifest: nothing to do, nothing thrown.
     invalidateStaleAppiumManifest(
-      fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"))
+      fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-")),
+      "appium-novawindows-driver"
     );
+  });
+
+  it("checks for the PLATFORM'S driver: a novawindows-only manifest is stale for mac2", function () {
+    // A2: the staleness check is per-driver, not hard-coded to novawindows —
+    // a home whose manifest lists only the Windows driver must rescan when
+    // the mac driver installs into it, and vice versa.
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"));
+    fs.mkdirSync(manifestDir(home), { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir(home), "extensions.yaml"),
+      "drivers:\n  novawindows:\n    pkgName: appium-novawindows-driver\n"
+    );
+    invalidateStaleAppiumManifest(home, "appium-mac2-driver");
+    assert.equal(fs.existsSync(manifestDir(home)), false);
+    fs.rmSync(home, { recursive: true, force: true });
+
+    const freshHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"));
+    fs.mkdirSync(manifestDir(freshHome), { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir(freshHome), "extensions.yaml"),
+      "drivers:\n  mac2:\n    pkgName: appium-mac2-driver\n"
+    );
+    invalidateStaleAppiumManifest(freshHome, "appium-mac2-driver");
+    assert.equal(fs.existsSync(manifestDir(freshHome)), true);
+    fs.rmSync(freshHome, { recursive: true, force: true });
   });
 });
 
 describe("appSurfacePreflight", function () {
-  it("skips non-Windows platforms with gating guidance", async function () {
+  it("skips unsupported platforms with gating guidance naming the supported set", async function () {
     const outcome = await appSurfacePreflight({
       config: {},
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows only in this phase/);
+    assert.match(outcome.reason, /Windows and macOS/);
+  });
+
+  it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
+    // A2: the preflight is platform-tabled — on mac it must resolve/install
+    // the Mac2 driver, never the Windows one.
+    const sep = path.sep;
+    const requested = [];
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "mac",
+      deps: {
+        resolveSource: (name) => {
+          requested.push(name);
+          return "shim";
+        },
+        resolvePath: (name) =>
+          `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
+        probeAccessibility: async () => true,
+      },
+    });
+    assert.equal(outcome.ok, true);
+    assert.equal(outcome.appiumHome, `${sep}repo`);
+    assert.deepEqual(requested, ["appium-mac2-driver"]);
   });
 
   it("skips when the driver cannot be installed", async function () {
@@ -600,6 +762,22 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
       criteria: { selector: "#css" },
     });
     assert.match(unmappable.error, /CSS selectors/);
+  });
+
+  it("findAppElement builds the locator for the requested platform", async function () {
+    const selectors = [];
+    const driver = {
+      $: async (sel) => {
+        selectors.push(sel);
+        return { async waitForExist() {} };
+      },
+    };
+    await findAppElement({
+      driver,
+      criteria: { elementText: "Save" },
+      platform: "mac",
+    });
+    assert.match(selectors[0], /@title="Save"/);
   });
 
   it("findAppElement distinguishes a dead session from a criteria miss", async function () {
