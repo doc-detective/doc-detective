@@ -503,7 +503,16 @@ fixtures.
 - **Phase A7 — app window recording.** `record` on app surfaces via ffmpeg
   native-window/region capture, joining the display mutex; subsumes the
   standalone "recording for all apps" thread (doc-detective#220, #345
-  interactions documented).
+  interactions documented). **Known scaling gap to fix here (found in A2):**
+  the autoRecord window-crop scaler probes `devicePixelRatio` via browser-JS
+  `execute`, which the native drivers (NovaWindows, Mac2) don't support, so it
+  falls back to 1. Correct on scale-1 displays (CI-verified on macOS: the
+  TextEdit autoRecord crop bound exactly to the window rect), but on a Retina /
+  scaled display the capture is in physical pixels while `getWindowRect`
+  returns points — the crop would land half-sized and misplaced. A7 should
+  derive the scale factor from capture-frame size ÷ display size in points
+  (per capture backend: avfoundation / gdigrab / x11grab) instead of a DOM
+  probe.
 - **Phase A8 — Linux investigation + remote groundwork.** Time-boxed spike on
   `selenium-webdriver-at-spi` (maturity, Wayland, packaging) → ADR with a
   go/no-go; specify (still without implementing) the runtime semantics of the
