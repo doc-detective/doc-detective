@@ -11,7 +11,7 @@ import {
   DEVICE_TYPE_PROFILES,
   DEFAULT_AVD_NAME,
   listInstalledSystemImages,
-  winShellCommand,
+  winBatchSpawn,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
 
@@ -501,10 +501,10 @@ async function realCreateAvd(
   avdmanagerPath: string,
   { name, systemImage, device }: { name: string; systemImage: string; device: string }
 ): Promise<void> {
-  // avdmanager is a `.bat` shim on Windows — spawn it through the shell as a
-  // single validated command string (Node 20.12+/22 EINVAL on `.bat` without
-  // shell:true; winShellCommand rejects any shell-metacharacter token).
-  const useShell =
+  // avdmanager is a `.bat` shim on Windows — route it through cmd.exe with an
+  // args array (winBatchSpawn) rather than shell:true (Node 20.12+/22 EINVAL on
+  // `.bat` without a shell; winBatchSpawn validates every token first).
+  const isWinBatch =
     process.platform === "win32" && /\.(bat|cmd)$/i.test(avdmanagerPath);
   const args = [
     "create",
@@ -518,12 +518,12 @@ async function realCreateAvd(
     "--force",
   ];
   await new Promise<void>((resolve, reject) => {
-    const child = useShell
-      ? spawn(winShellCommand(avdmanagerPath, args), {
-          stdio: ["pipe", "ignore", "pipe"],
-          shell: true,
-        })
-      : spawn(avdmanagerPath, args, { stdio: ["pipe", "ignore", "pipe"] });
+    const stdio: Parameters<typeof spawn>[2] = {
+      stdio: ["pipe", "ignore", "pipe"],
+    };
+    const child = isWinBatch
+      ? winBatchSpawn(avdmanagerPath, args, stdio)
+      : spawn(avdmanagerPath, args, stdio);
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString()));
     child.on("error", reject);
@@ -547,9 +547,16 @@ async function realBootEmulator(
   // Force headless when there's no display (CI) so a windowed emulator doesn't
   // exit immediately on a headless runner.
   const bootDesc = { ...desc, headless: effectiveHeadless(desc) };
-  const child = spawn(emulatorPath, emulatorBootArgs(bootDesc, port), {
+  const bootArgs = emulatorBootArgs(bootDesc, port);
+  // Capture stderr so an emulator that dies on boot reports WHY (missing accel,
+  // bad AVD config, …) instead of an opaque "exited (code 1)".
+  const child = spawn(emulatorPath, bootArgs, {
     detached: false,
-    stdio: "ignore",
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+  let diag = "";
+  child.stderr?.on("data", (d) => {
+    diag = (diag + d.toString()).slice(-1200);
   });
   // Track an early exit so a crashed emulator fails fast instead of burning the
   // whole timeout on getprop polls against a dead process.
@@ -562,8 +569,10 @@ async function realBootEmulator(
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 3000));
     if (exited !== null) {
+      const why = diag.trim() ? ` — ${diag.trim()}` : "";
       throw new Error(
-        `Emulator "${desc.name}" exited (code ${exited}) before finishing boot.`
+        `Emulator "${desc.name}" exited (code ${exited}) before finishing boot` +
+          ` (\`emulator ${bootArgs.join(" ")}\`)${why}`
       );
     }
     const { stdout } = await runTool(adbPath, ["-s", udid, "shell", "getprop", "sys.boot_completed"], 8000);

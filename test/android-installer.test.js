@@ -13,7 +13,7 @@ import {
   listInstalledSystemImages,
   buildAndroidInstallPlan,
   installAndroid,
-  winShellCommand,
+  assertSafeAndroidTokens,
   DEFAULT_AVD_NAME,
   DEVICE_TYPE_PROFILES,
 } from "../dist/runtime/androidInstaller.js";
@@ -40,21 +40,17 @@ describe("android installer: pure helpers", function () {
     expect(androidVersionToApi("5")).to.equal(null); // too old to be an API
   });
 
-  it("quotes only the tokens that need it for the Windows .bat shell form", function () {
-    // No spaces -> passed through verbatim (incl. the ';'-laden image id,
-    // which cmd.exe doesn't treat specially).
-    expect(
-      winShellCommand("C:\\sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat", [
+  it("accepts the tokens a real SDK command uses (path, sdk_root, image id)", function () {
+    // A spaced path, the '='-arg, and the ';'-laden image id are all legitimate
+    // and must pass — they're carried to cmd.exe as separate argv elements, not
+    // concatenated into a shell string, so no quoting is involved.
+    expect(() =>
+      assertSafeAndroidTokens("C:\\Program Files\\sdk\\sdkmanager.bat", [
         "--sdk_root=C:\\sdk",
         "system-images;android-34;google_apis;x86_64",
+        "--licenses",
       ])
-    ).to.equal(
-      'C:\\sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat --sdk_root=C:\\sdk system-images;android-34;google_apis;x86_64'
-    );
-    // A path with a space gets quoted so cmd.exe keeps it as one token.
-    expect(
-      winShellCommand("C:\\Program Files\\sdk\\sdkmanager.bat", ["--licenses"])
-    ).to.equal('"C:\\Program Files\\sdk\\sdkmanager.bat" --licenses');
+    ).to.not.throw();
   });
 
   it("refuses tokens carrying a shell metacharacter (injection barrier)", function () {
@@ -66,7 +62,7 @@ describe("android installer: pure helpers", function () {
       "x`y`",
       "$(rm -rf)",
     ]) {
-      expect(() => winShellCommand("sdkmanager.bat", [bad]), bad).to.throw(
+      expect(() => assertSafeAndroidTokens("sdkmanager.bat", [bad]), bad).to.throw(
         /unsafe token/
       );
     }
