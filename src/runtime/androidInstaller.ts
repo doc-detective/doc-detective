@@ -38,6 +38,7 @@ const ANDROID_VERSION_TO_API: Record<string, number> = {
   "10": 29,
   "11": 30,
   "12": 31,
+  "12L": 32,
   "13": 33,
   "14": 34,
   "15": 35,

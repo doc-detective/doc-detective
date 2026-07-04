@@ -36,6 +36,7 @@ describe("android installer: pure helpers", function () {
     expect(androidVersionToApi("14")).to.equal(34);
     expect(androidVersionToApi("34")).to.equal(34); // raw API passthrough
     expect(androidVersionToApi("10")).to.equal(29);
+    expect(androidVersionToApi("12L")).to.equal(32); // 12L is its own API level
     expect(androidVersionToApi("nonsense")).to.equal(null);
     expect(androidVersionToApi("5")).to.equal(null); // too old to be an API
   });
