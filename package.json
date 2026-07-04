@@ -96,6 +96,7 @@
   },
   "ddRuntimeDependencies": {
     "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
+    "appium-mac2-driver": "^4.0.3",
     "appium-novawindows-driver": "^1.4.1"
   },
   "optionalDependencies": {

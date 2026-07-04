@@ -417,6 +417,7 @@ async function typeKeys({
       // ?? so an explicit `timeout: 0` (schema minimum) stays an
       // immediate check instead of being clobbered to the default.
       timeout: step.type.timeout ?? 5000,
+      platform: appRef.entry!.platform,
     });
     if (found.error) {
       result.status = "FAIL";
@@ -439,6 +440,7 @@ async function typeKeys({
         driver: appRef.entry!.driver,
         criteria: wu.find,
         timeout: step.type.timeout ?? 5000,
+        platform: appRef.entry!.platform,
       });
       if (ready.error) {
         result.status = "FAIL";

@@ -1,6 +1,6 @@
 {
   "specId": "app-surfaces-a1",
-  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Character Map (charmap.exe) is the target app because it is a real Win32 executable on every Windows edition including Server CI runners — unlike notepad.exe, which on Windows 11 clients is a stub that hands off to the Store app, so the launched process never owns a window. Gated to Windows hosts with the binary present; on Linux/macOS the app preflight lands the context as SKIPPED (asserted behavior, not a gap).",
+  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Character Map (charmap.exe) is the target app because it is a real Win32 executable on every Windows edition including Server CI runners — unlike notepad.exe, which on Windows 11 clients is a stub that hands off to the Store app, so the launched process never owns a window. Gated to Windows hosts with the binary present; on Linux the app preflight lands the context as SKIPPED (asserted behavior, not a gap), and macOS runs its own flows in app-surfaces-macos.spec.json (phase A2).",
   "tests": [
     {
       "testId": "app-charmap-flow",
@@ -77,12 +77,11 @@
     },
     {
       "testId": "app-preflight-skip",
-      "description": "On non-Windows hosts the app preflight SKIPs the context with an actionable reason. platforms is unrestricted on purpose: this permutation asserts the skip path itself.",
+      "description": "On hosts with no native app driver (Linux, until phase A8) the app preflight SKIPs the context with an actionable reason — this permutation asserts the skip path itself. macOS left this list in phase A2: it is a supported platform now, covered by app-surfaces-macos.spec.json.",
       "runOn": [
         {
           "platforms": [
-            "linux",
-            "mac"
+            "linux"
           ]
         }
       ],

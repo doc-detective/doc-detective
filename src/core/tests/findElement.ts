@@ -86,6 +86,7 @@ async function findElement({ config, step, driver, click, appSession }: { config
         // ?? so an explicit `timeout: 0` (schema minimum) stays an
         // immediate check instead of being clobbered to the default.
         timeout: step.find.timeout ?? 5000,
+        platform: appRef.entry!.platform,
       });
       if (found.error) {
         result.description = found.error;
