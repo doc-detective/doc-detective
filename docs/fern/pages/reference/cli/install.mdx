@@ -26,7 +26,7 @@ Install all runtime assets: agent tools, npm packages, and browsers.
 doc-detective install all [options]
 ```
 
-This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays.
+This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays. It does **not** include the Android toolchain (`install android`) — those multi-GB downloads stay opt-in.
 
 ### `install agents`
 
@@ -86,6 +86,33 @@ doc-detective install browsers chrome chromedriver
 ```
 
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
+
+### `install android`
+
+Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run. Required for native Android app testing (native app phase A3).
+
+```bash
+doc-detective install android --yes
+```
+
+This command **augments an existing SDK** when one is found (via `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`): it uses that SDK's `sdkmanager`/`avdmanager` to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's commandline-tools into `<cacheDir>/android-sdk` first.
+
+Because the system image is multi-GB, this command **never downloads without `--yes`** — run it with `--dry-run` first to preview the plan:
+
+```bash
+doc-detective install android --dry-run
+```
+
+| Option | Description |
+|--------|-------------|
+| `--os-version` | Android version for the system image and AVD (e.g. `14`, or a raw API level like `34`). Default: the newest available. |
+| `--device-type` | Abstract hardware profile for the default AVD: `phone` or `tablet`. Default: `phone`. |
+
+<Note>
+
+`install android` requires a **Java runtime (JRE 17+)** for `sdkmanager`/`avdmanager`. It is **not** part of `install all` — the multi-GB downloads are opt-in, so you install the Android toolchain deliberately, not as a side effect of preparing a general test environment. A test run never downloads it: a run that targets `android` on a host with no SDK simply SKIPs the context with a pointer to this command.
+
+</Note>
 
 ### `install status`
 
