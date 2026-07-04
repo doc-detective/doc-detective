@@ -162,13 +162,14 @@ describe("buildAxLocator", function () {
     });
   });
 
-  it("maps elementText to an XPath matching title OR label", function () {
-    // macOS controls split their accessible name across AXTitle and label
-    // (buttons carry title, static text carries label/value), so the
-    // pragmatic contract matches either.
+  it("maps elementText to an XPath matching title OR label OR value", function () {
+    // macOS controls split their visible text across AXTitle (buttons),
+    // label (static text), and AXValue (text views, the Calculator display),
+    // so the pragmatic contract matches any of them — CI-verified against
+    // real apps in phase A2.
     assert.deepEqual(buildAxLocator({ elementText: "Save" }), {
       strategy: "xpath",
-      value: '//*[@title="Save" or @label="Save"]',
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
     });
   });
 
@@ -178,7 +179,7 @@ describe("buildAxLocator", function () {
       {
         strategy: "xpath",
         value:
-          '//*[@identifier="saveButton" and (@title="Save" or @label="Save")]',
+          '//*[@identifier="saveButton" and (@title="Save" or @label="Save" or @value="Save")]',
       }
     );
   });
@@ -222,7 +223,7 @@ describe("buildAxLocator", function () {
     });
   });
 
-  it("treats a string elementAria as a name-only match", function () {
+  it("treats a string elementAria as a name-only match (no value — a name is not a value)", function () {
     assert.deepEqual(buildAxLocator({ elementAria: "Save" }), {
       strategy: "xpath",
       value: '//*[@title="Save" or @label="Save"]',
@@ -322,7 +323,7 @@ describe("buildAppLocator", function () {
   it("selects the platform's locator column (mac → AX, default → UIA)", function () {
     assert.deepEqual(buildAppLocator({ elementText: "Save" }, "mac"), {
       strategy: "xpath",
-      value: '//*[@title="Save" or @label="Save"]',
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
     });
     // No platform argument stays the Windows/UIA column (A1 behavior).
     assert.deepEqual(buildAppLocator({ elementText: "Save" }), {

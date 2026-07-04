@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "app-textedit-flow",
-      "description": "Launch TextEdit by bundle ID with a file-path launch argument, wait for the document window that proves the args flowed, type into the text view via the native-selector escape hatch, screenshot, and close the surface. autoRecord proves app-context recording on macOS: the capture starts full-display and the first app surface late-binds its window rect as the crop.",
+      "description": "Launch TextEdit by bundle ID with launch arguments that must visibly take effect: the argv user-defaults pair -NSShowAppCentricOpenPanelInsteadOfUntitledFile NO makes TextEdit open an untitled document instead of its open panel, so the text view the readiness check waits on only exists when the args flowed. (A file-path argument was the first attempt; TextEdit is sandboxed and cannot open an arbitrary /tmp path from argv.) Then type into the text view via the native-selector escape hatch, assert the typed content back out via elementText (which matches AXValue on text views), screenshot, and close the surface. autoRecord proves app-context recording on macOS: the capture starts full-display and the first app surface late-binds its window rect as the crop.",
       "autoRecord": true,
       "runOn": [
         {
@@ -15,20 +15,16 @@
       ],
       "steps": [
         {
-          "runShell": {
-            "command": "printf 'Doc Detective phase A2\\n' > /tmp/dd-a2-textedit.txt"
-          }
-        },
-        {
           "startSurface": {
             "app": "com.apple.TextEdit",
             "args": [
-              "/tmp/dd-a2-textedit.txt"
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
             ],
             "timeout": 300000,
             "waitUntil": {
               "find": {
-                "elementText": "dd-a2-textedit.txt"
+                "selector": "//XCUIElementTypeTextView"
               }
             }
           }
@@ -36,7 +32,7 @@
         {
           "type": {
             "keys": [
-              "Typed by Doc Detective. "
+              "Typed by Doc Detective"
             ],
             "selector": "//XCUIElementTypeTextView",
             "surface": {
@@ -47,7 +43,7 @@
         },
         {
           "find": {
-            "selector": "//XCUIElementTypeTextView",
+            "elementText": "Typed by Doc Detective",
             "surface": {
               "app": "TextEdit"
             },
@@ -72,7 +68,7 @@
     },
     {
       "testId": "app-calculator-flow",
-      "description": "Launch Calculator by .app path, click 1 + 2 = through the AX semantic column (elementAria accessible-name matching — the string form; the { role, name } object form is not yet schema-reachable, see ADR 01023), verify the result renders, screenshot, and close the surface.",
+      "description": "Launch Calculator by .app path, click digits through the AX semantic column (elementAria accessible-name matching — the string form; the { role, name } object form is not yet schema-reachable, see ADR 01023) and the operator keys through the native-selector escape hatch (their accessible names are words like Add/Equals, not symbols — the OR-candidates absorb casing differences across macOS versions), verify the result renders via elementText (matches the display's AXValue), screenshot, and close the surface.",
       "runOn": [
         {
           "platforms": [
@@ -102,7 +98,7 @@
         },
         {
           "click": {
-            "elementAria": "+",
+            "selector": "//XCUIElementTypeButton[@title=\"+\" or @label=\"+\" or @title=\"Add\" or @label=\"Add\" or @label=\"add\"]",
             "surface": {
               "app": "Calculator"
             }
@@ -118,7 +114,7 @@
         },
         {
           "click": {
-            "elementAria": "=",
+            "selector": "//XCUIElementTypeButton[@title=\"=\" or @label=\"=\" or @title=\"Equals\" or @label=\"Equals\" or @label=\"equals\"]",
             "surface": {
               "app": "Calculator"
             }

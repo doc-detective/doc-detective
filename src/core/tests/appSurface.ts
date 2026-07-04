@@ -235,12 +235,18 @@ function buildAxLocator(criteria: {
 
   const namePredicate = (value: string) =>
     `(@title=${xpathLiteral(value)} or @label=${xpathLiteral(value)})`;
+  // elementText means "the element's visible text", which macOS controls
+  // expose as AXTitle (buttons), label (static text), or AXValue (text
+  // views, value displays) — so text matching also covers @value, while
+  // elementAria's accessible-NAME matching deliberately does not.
+  const textPredicate = (value: string) =>
+    `(@title=${xpathLiteral(value)} or @label=${xpathLiteral(value)} or @value=${xpathLiteral(value)})`;
 
   const predicates: string[] = [];
   if (identifier !== undefined)
     predicates.push(`@identifier=${xpathLiteral(identifier)}`);
   if (criteria.elementText !== undefined)
-    predicates.push(namePredicate(criteria.elementText));
+    predicates.push(textPredicate(criteria.elementText));
   // elementText and elementAria's name both map to the accessible name on
   // macOS; when they carry the same value, one predicate suffices (two
   // DIFFERENT values are rejected upstream in buildAppLocator as an

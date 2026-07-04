@@ -63,9 +63,11 @@ apps legs**. Key mechanics:
   tolerated so only authored values trip the guard. Reserved fields (`device`, `install`,
   `activity`) keep failing with the roadmap named.
 * **AX locator column:** `elementId`/`elementTestId` → accessibility id (AXIdentifier fast
-  path); `elementText` → XPath matching `@title` **or** `@label` — a deliberate deviation from
-  the design table's pure-AXTitle column, because macOS controls split their accessible name
-  across the Mac2 XML view's `title` (buttons) and `label` (static text) attributes;
+  path); `elementText` → XPath matching `@title` **or** `@label` **or** `@value` — a deliberate
+  deviation from the design table's pure-AXTitle column, because macOS controls split their
+  visible text across the Mac2 XML view's `title` (buttons), `label` (static text), and `value`
+  (text views, value displays — CI-verified against TextEdit and Calculator) attributes;
+  `elementAria`'s accessible-*name* matching stays title/label (a name is not a value);
   `elementAria` `{ role, name }` → `XCUIElementType<Role>` tag + title/label predicate, with
   unknown roles passing through capitalized. Note: the `elementAria` **object** form is not yet
   schema-reachable (the schema accepts the accessible-name string form only — an A1-era
@@ -99,9 +101,10 @@ apps legs**. Key mechanics:
   if a future image drops the Xcode-Helper TCC pre-grant, the leg fails (loudly, with skip
   reasons in the artifact) and needs a grant step or a gate downgrade — chosen over silently
   losing all macOS coverage.
-* Bad, because `elementText` matching title-or-label can over-match controls whose title and
-  label differ across elements sharing a value; the escape hatch (`//…` XPath, `~…`
-  accessibility id) covers precision needs, same trade-off as A1's star-matched `@Name`.
+* Bad, because `elementText` matching title-or-label-or-value can over-match when several
+  elements share a string; the escape hatch (`//…` XPath, `~…` accessibility id) covers
+  precision needs, same trade-off as A1's star-matched `@Name`. Control names that are words
+  rather than symbols (Calculator's `+` is "Add") also route to the escape hatch.
 * Neutral: the mac2 driver JIT-installs like every heavy dep (`ddRuntimeDependencies`,
   `^4.0.3`); a stale Appium manifest is now invalidated per-driver rather than
   novawindows-hard-coded.
