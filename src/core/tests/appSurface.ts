@@ -10,6 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { execFile } from "node:child_process";
 import {
   resolveHeavyDepPath,
   resolveHeavyDepPathInCache,
@@ -288,6 +289,16 @@ interface AppDriverPlatform {
   buildLocator(criteria: {
     [key: string]: any;
   }): { strategy: string; value: string } | null;
+  // Session capabilities for launching `appId` with this platform's driver.
+  buildCapabilities(descriptor: any, appId: string): Record<string, any>;
+  // Descriptor fields this platform's driver cannot honor — FAIL with the
+  // alternative named rather than silently ignoring what the author asked
+  // for. `isSet` distinguishes an authored value from a schema default.
+  unsupportedFields: {
+    field: string;
+    isSet(value: any): boolean;
+    guidance: string;
+  }[];
 }
 
 const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
@@ -297,6 +308,33 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
     platformName: "Windows",
     automationName: "NovaWindows",
     buildLocator: (criteria) => buildUiaLocator(criteria),
+    buildCapabilities(descriptor, appId) {
+      const capabilities: Record<string, any> = {
+        platformName: "Windows",
+        "appium:automationName": "NovaWindows",
+        "appium:app": appId,
+        "appium:newCommandTimeout": 600,
+        "wdio:enforceWebDriverClassic": true,
+      };
+      if (Array.isArray(descriptor.args) && descriptor.args.length) {
+        // NovaWindows (like WinAppDriver) takes appArguments as one string.
+        capabilities["appium:appArguments"] = descriptor.args.join(" ");
+      }
+      if (descriptor.workingDirectory && descriptor.workingDirectory !== ".") {
+        capabilities["appium:appWorkingDir"] = path.resolve(
+          descriptor.workingDirectory
+        );
+      }
+      return capabilities;
+    },
+    unsupportedFields: [
+      {
+        field: "env",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.",
+      },
+    ],
   },
   mac: {
     driverPackage: "appium-mac2-driver",
@@ -304,8 +342,51 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
     platformName: "mac",
     automationName: "Mac2",
     buildLocator: (criteria) => buildAxLocator(criteria),
+    buildCapabilities(descriptor, appId) {
+      const capabilities: Record<string, any> = {
+        platformName: "mac",
+        "appium:automationName": "Mac2",
+        "appium:newCommandTimeout": 600,
+        "wdio:enforceWebDriverClassic": true,
+      };
+      // Reverse-DNS identifiers launch by bundle id; everything else is a
+      // filesystem path to the .app (or its executable).
+      if (classifyAppIdentifier(appId) === "id") {
+        capabilities["appium:bundleId"] = appId;
+      } else {
+        capabilities["appium:appPath"] = appId;
+      }
+      if (Array.isArray(descriptor.args) && descriptor.args.length) {
+        // Mac2 takes launch arguments as an array (unlike NovaWindows).
+        capabilities["appium:arguments"] = descriptor.args;
+      }
+      if (descriptor.env && Object.keys(descriptor.env).length) {
+        capabilities["appium:environment"] = descriptor.env;
+      }
+      // The first-ever session builds WebDriverAgentMac via xcodebuild —
+      // minutes on a cold CI runner — so the WDA startup ceiling gets a
+      // floor above the driver's default even when the descriptor keeps
+      // its 60s step timeout.
+      const timeout = descriptor.timeout ?? 60000;
+      capabilities["appium:serverStartupTimeout"] = Math.max(timeout, 120000);
+      return capabilities;
+    },
+    unsupportedFields: [
+      {
+        field: "workingDirectory",
+        // "." is the schema's injected default, not an author request.
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance:
+          "The macOS app driver launches apps through LaunchServices, which offers no working-directory control; launch via runShell if the cwd matters.",
+      },
+    ],
   },
 };
+
+// The System Settings walkthrough for macOS Accessibility (TCC) — used by
+// both the preflight probe and accessibility-shaped launch failures.
+const MAC_TCC_WALKTHROUGH =
+  "Open System Settings → Privacy & Security → Accessibility and enable the app that launches Doc Detective (your terminal, IDE, or CI runner process), then rerun.";
 
 interface AppSurfaceEntry {
   name: string;
@@ -413,11 +494,38 @@ function invalidateStaleAppiumManifest(
   }
 }
 
-// Preflight for app surfaces: platform support and driver availability.
-// Returns { ok: true } or a skip reason — an unmet environment is a gating
-// fact (SKIPPED), never a FAIL, matching the `requires` gate semantics.
-// Installing the driver (and, when needed, an Appium copy in the same home)
-// happens here so the failure mode is a clean skip before any step runs.
+// Probe macOS Accessibility (TCC) without prompting: JXA can reach
+// AXIsProcessTrusted through the ObjC bridge. The verdict applies to the
+// probing process's TCC attribution (usually the launching terminal/runner),
+// which approximates — but does not guarantee — what WebDriverAgentMac gets;
+// an inconclusive or wrong-way-trusted probe is therefore never fatal, and
+// the session-start error path carries the same walkthrough as a backstop.
+async function probeMacAccessibility(): Promise<boolean | null> {
+  return await new Promise((resolve) => {
+    execFile(
+      "osascript",
+      [
+        "-l",
+        "JavaScript",
+        "-e",
+        "ObjC.import('ApplicationServices'); $.AXIsProcessTrusted()",
+      ],
+      { timeout: 10000 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        const verdict = String(stdout).trim();
+        resolve(verdict === "true" ? true : verdict === "false" ? false : null);
+      }
+    );
+  });
+}
+
+// Preflight for app surfaces: platform support, driver availability, and (on
+// macOS) the Accessibility permission. Returns { ok: true } or a skip reason
+// — an unmet environment is a gating fact (SKIPPED), never a FAIL, matching
+// the `requires` gate semantics. Installing the driver (and, when needed, an
+// Appium copy in the same home) happens here so the failure mode is a clean
+// skip before any step runs.
 async function appSurfacePreflight({
   config,
   platform,
@@ -430,6 +538,7 @@ async function appSurfacePreflight({
     resolvePath?: typeof resolveHeavyDepPath;
     resolvePathInCache?: typeof resolveHeavyDepPathInCache;
     ensureInstalled?: typeof ensureRuntimeInstalled;
+    probeAccessibility?: () => Promise<boolean | null>;
   };
 }): Promise<
   | { ok: true; appiumEntry: string; appiumHome: string }
@@ -441,6 +550,23 @@ async function appSurfacePreflight({
       ok: false,
       reason: `Skipping context on '${platform}': native app surfaces run on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]) so this skip is intentional.`,
     };
+  }
+  if (platform === "mac") {
+    const probe = deps.probeAccessibility ?? probeMacAccessibility;
+    let trusted: boolean | null = null;
+    try {
+      trusted = await probe();
+    } catch {
+      // Inconclusive probes never skip — a real TCC gap still surfaces at
+      // session start with the same walkthrough.
+      trusted = null;
+    }
+    if (trusted === false) {
+      return {
+        ok: false,
+        reason: `Skipping context: macOS Accessibility (TCC) permission is not granted, so the macOS app driver cannot control apps. ${MAC_TCC_WALKTHROUGH}`,
+      };
+    }
   }
   const driverPackage = platformDriver.driverPackage;
   const driverLabel = platformDriver.driverLabel;
@@ -661,15 +787,18 @@ async function startAppSurface({
       return result;
     }
   }
-  if (descriptor.env !== undefined) {
+  const platformDriver = APP_DRIVER_PLATFORMS[platform];
+  if (!platformDriver) {
     result.status = "FAIL";
-    result.description = `startSurface.env is not supported by the Windows app driver. Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.`;
+    result.description = `startSurface (app) runs on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]).`;
     return result;
   }
-  if (platform !== "windows") {
-    result.status = "FAIL";
-    result.description = `startSurface (app) runs on Windows only in this phase. Gate the test with runOn platforms (["windows"]).`;
-    return result;
+  for (const { field, isSet, guidance } of platformDriver.unsupportedFields) {
+    if (isSet(descriptor[field])) {
+      result.status = "FAIL";
+      result.description = `startSurface.${field} is not supported by the ${platformDriver.driverLabel}. ${guidance}`;
+      return result;
+    }
   }
 
   const appId = descriptor.app.trim();
@@ -702,22 +831,7 @@ async function startAppSurface({
     }
   }
 
-  const capabilities: Record<string, any> = {
-    platformName: "Windows",
-    "appium:automationName": "NovaWindows",
-    "appium:app": appId,
-    "appium:newCommandTimeout": 600,
-    "wdio:enforceWebDriverClassic": true,
-  };
-  if (Array.isArray(descriptor.args) && descriptor.args.length) {
-    // NovaWindows (like WinAppDriver) takes appArguments as a single string.
-    capabilities["appium:appArguments"] = descriptor.args.join(" ");
-  }
-  if (descriptor.workingDirectory && descriptor.workingDirectory !== ".") {
-    capabilities["appium:appWorkingDir"] = path.resolve(
-      descriptor.workingDirectory
-    );
-  }
+  const capabilities = platformDriver.buildCapabilities(descriptor, appId);
   Object.assign(capabilities, descriptor.driverOptions ?? {});
 
   let driver: any;
@@ -727,8 +841,15 @@ async function startAppSurface({
       appSession.server.port
     );
   } catch (error: any) {
+    const message = `${error?.message ?? error}`;
     result.status = "FAIL";
-    result.description = `Couldn't launch app "${appId}": ${error?.message ?? error}. Check the path/AUMID and that the session is interactive.`;
+    result.description = `Couldn't launch app "${appId}": ${message}. Check the app identifier and that the session is interactive.`;
+    // A TCC-shaped launch failure on macOS gets the settings walkthrough —
+    // the probe can miss (it reports on the probing process, not
+    // WebDriverAgentMac), so the session error is the backstop.
+    if (platform === "mac" && /accessib|trusted|tcc/i.test(message)) {
+      result.description += ` ${MAC_TCC_WALKTHROUGH}`;
+    }
     return result;
   }
 

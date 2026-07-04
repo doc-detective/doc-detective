@@ -478,6 +478,54 @@ describe("appSurfacePreflight", function () {
     assert.equal(outcome.appiumHome, `${sep}repo`);
   });
 
+  it("skips on mac when TCC accessibility is definitively denied, with the settings walkthrough", async function () {
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "mac",
+      deps: {
+        resolveSource: () => "shim",
+        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        probeAccessibility: async () => false,
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /Accessibility/);
+    assert.match(outcome.reason, /Privacy & Security/);
+  });
+
+  it("proceeds on mac when the TCC probe is inconclusive, and never probes on Windows", async function () {
+    // An erroring/unknown probe must NOT false-skip — a real TCC failure
+    // still surfaces at session start with the same walkthrough.
+    const inconclusive = await appSurfacePreflight({
+      config: {},
+      platform: "mac",
+      deps: {
+        resolveSource: () => "shim",
+        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        probeAccessibility: async () => {
+          throw new Error("osascript unavailable");
+        },
+      },
+    });
+    assert.equal(inconclusive.ok, true);
+
+    let probed = 0;
+    const win = await appSurfacePreflight({
+      config: {},
+      platform: "windows",
+      deps: {
+        resolveSource: () => "shim",
+        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        probeAccessibility: async () => {
+          probed++;
+          return false;
+        },
+      },
+    });
+    assert.equal(win.ok, true);
+    assert.equal(probed, 0);
+  });
+
   it("installs appium into the cache when the driver is cache-resolved", async function () {
     const installed = [];
     let cacheHasAppium = false;
@@ -532,7 +580,7 @@ describe("startAppSurface", function () {
     assert.equal(appSession.activeApp, "charmap");
   });
 
-  it("fails reserved fields, env, non-Windows, and name collisions with guidance", async function () {
+  it("fails reserved fields, env, unsupported platforms, and name collisions with guidance", async function () {
     const appSession = preflighted();
     const cases = [
       [{ app: "x", device: "phone" }, /reserved for the mobile phases/],
@@ -551,14 +599,14 @@ describe("startAppSurface", function () {
       assert.match(result.description, pattern);
     }
 
-    const nonWindows = await startAppSurface({
+    const unsupportedPlatform = await startAppSurface({
       config: {},
       step: { startSurface: { app: "x" } },
       appSession,
-      platform: "mac",
+      platform: "linux",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.match(nonWindows.description, /Windows only in this phase/);
+    assert.match(unsupportedPlatform.description, /Windows and macOS/);
 
     appSession.surfaces.set("x", { name: "x", appId: "x", driver: {} });
     const collision = await startAppSurface({
@@ -703,6 +751,123 @@ describe("startAppSurface", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Couldn't launch app/);
     assert.equal(appSession.surfaces.size, 0);
+  });
+
+  it("launches macOS apps with Mac2 capabilities (bundleId form)", async function () {
+    const appSession = preflighted();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "com.apple.TextEdit",
+          args: ["/tmp/dd-a2.txt"],
+          env: { DD_A2: "1" },
+          timeout: 300000,
+          driverOptions: { "appium:skipAppKill": true },
+        },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (capabilities) => {
+          caps = capabilities;
+          return fakeDriver();
+        },
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(appSession.surfaces.get("TextEdit").platform, "mac");
+    assert.equal(caps.platformName, "mac");
+    assert.equal(caps["appium:automationName"], "Mac2");
+    assert.equal(caps["appium:bundleId"], "com.apple.TextEdit");
+    assert.equal(caps["appium:appPath"], undefined);
+    // Mac2 takes launch arguments as an ARRAY (NovaWindows joins a string).
+    assert.deepEqual(caps["appium:arguments"], ["/tmp/dd-a2.txt"]);
+    assert.deepEqual(caps["appium:environment"], { DD_A2: "1" });
+    // The descriptor timeout must also cover WebDriverAgentMac's startup
+    // (first session builds it via xcodebuild).
+    assert.equal(caps["appium:serverStartupTimeout"], 300000);
+    assert.equal(caps["appium:skipAppKill"], true);
+  });
+
+  it("launches macOS apps by .app path with a forgiving default WDA startup timeout", async function () {
+    const appSession = preflighted();
+    let caps;
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "/System/Applications/Calculator.app" },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (capabilities) => {
+          caps = capabilities;
+          return fakeDriver();
+        },
+      },
+    });
+    assert.equal(
+      caps["appium:appPath"],
+      "/System/Applications/Calculator.app"
+    );
+    assert.equal(caps["appium:bundleId"], undefined);
+    // Default descriptor timeout is 60s, but the first-ever session builds
+    // WebDriverAgentMac (minutes on CI) — the WDA startup floor is higher.
+    assert.equal(caps["appium:serverStartupTimeout"], 120000);
+    assert.equal(appSession.surfaces.get("Calculator").platform, "mac");
+  });
+
+  it("fails workingDirectory on macOS with guidance but tolerates the schema default", async function () {
+    const appSession = preflighted();
+    const explicit = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.TextEdit", workingDirectory: "/tmp" },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(explicit.status, "FAIL");
+    assert.match(explicit.description, /not supported by the macOS app driver/);
+
+    // "." is the schema's injected default, not an author request — it must
+    // not trip the unsupported-field guard.
+    const defaulted = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.Notes", workingDirectory: "." },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(defaulted.status, "PASS");
+  });
+
+  it("appends the TCC walkthrough when a mac launch fails with an accessibility-shaped error", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.TextEdit" } },
+      appSession,
+      platform: "mac",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => {
+          throw new Error(
+            "WebDriverAgentMac process is not trusted for Accessibility"
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't launch app/);
+    assert.match(result.description, /Privacy & Security/);
   });
 
   it("maps args and workingDirectory into driver capabilities", async function () {
