@@ -177,4 +177,38 @@ describe("runtime/inferRuntimeNeeds", function () {
     ]);
     expect(needs.npmPackages.has("sharp")).to.equal(true);
   });
+
+  // Zero-cost-unless-android invariant (native-app phase A3): the Android
+  // toolchain (SDK, adb, emulator) and the UiAutomator2 driver are NEVER
+  // provisioned through inferRuntimeNeeds — they are detected lazily in the
+  // android context preflight, only for contexts that actually target
+  // android. So no matter what an android spec contains, this pure inference
+  // never adds an android-specific package: a run that never targets android
+  // pays nothing toward the (very heavy) emulator/SDK.
+  //
+  // Note the generic driver stack (webdriverio/appium/chromium) IS still
+  // inferred here, because `find`/`click`/`type` are surface-agnostic step
+  // keys shared with browser tests — the same pre-existing behavior A1/A2 app
+  // specs already have. That stack is not the Android toolchain; the invariant
+  // this locks is specifically that the Android SDK + uiautomator2 driver are
+  // never reached from inference.
+  it("never provisions the Android toolchain from inference (lazy-in-preflight)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec(
+        [
+          { startSurface: { app: "com.android.settings" } },
+          { find: { elementText: "Network & internet" } },
+          { click: { elementText: "Network & internet" } },
+          { type: { keys: ["airplane"] } },
+        ],
+        { runOn: [{ platforms: "android" }] }
+      ),
+    ]);
+    expect(needs.npmPackages.has("appium-uiautomator2-driver")).to.equal(false);
+    for (const pkg of [...needs.npmPackages]) {
+      expect(pkg, `unexpected android-flavored dep: ${pkg}`).to.not.match(
+        /android|uiautomator|emulator|sdk/i
+      );
+    }
+  });
 });

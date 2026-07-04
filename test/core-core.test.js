@@ -123,6 +123,67 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("An android target context SKIPs via the mobile gate (native app phase A3a)", async function () {
+    // Covers runContext's mobile-platform branch. `platforms: "android"`
+    // resolves a context whose platform is a mobile TARGET (not the host), so
+    // it never matches the desktop platform and instead lands SKIPPED with an
+    // actionable reason — install-android when no SDK is found, or the A3b
+    // roadmap pointer on a capable host. The precise message composition is
+    // unit-tested hermetically in test/android-gating.test.js; here we assert
+    // the stable outcome across hosts (SKIPPED, never FAIL) since SDK presence
+    // varies by runner.
+    const androidTest = {
+      tests: [
+        {
+          testId: "android-gate",
+          runOn: [{ platforms: "android" }],
+          steps: [{ startSurface: { app: "com.android.settings" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(androidTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /Skipping context on 'android'/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An ios target context SKIPs pointing at phase A4", async function () {
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-gate",
+          runOn: [{ platforms: "ios" }],
+          steps: [{ startSurface: { app: "com.apple.Preferences" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /iOS/);
+        assert.match(ctx.resultDescription, /A4/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [

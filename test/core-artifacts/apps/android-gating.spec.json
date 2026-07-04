@@ -1,0 +1,38 @@
+{
+  "specId": "android-gating-a3a",
+  "description": "Native app surfaces phase A3a (docs/design/native-app-surfaces.md): the `android` and `ios` target platforms are validated and capability-gated, but neither runs yet — android devices land in phase A3b, iOS in A4. Every context here must resolve SKIPPED (never FAIL) on every host: a mobile platform names a TARGET, not the host, so it never matches the host platform and instead lands SKIPPED with an actionable, roadmap-shaped reason (install-android when no SDK is found, or the A3b/A4 pointer). This is the asserted gate, not a gap — when phase A3b lands, the android test starts running on capable hosts with no fixture change.",
+  "tests": [
+    {
+      "testId": "android-context-gates",
+      "description": "An android target context is SKIPPED by the mobile gate. On hosts with no Android SDK the reason points at `doc-detective install android`; on a capable host it points at phase A3b. The startSurface step never runs — the context skips before any step or driver work.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ios-context-gates",
+      "description": "An ios target context is SKIPPED pointing at phase A4 (iOS app surfaces). Validated and gated now so A4 is purely additive.",
+      "runOn": [
+        {
+          "platforms": "ios"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences"
+          }
+        }
+      ]
+    }
+  ]
+}

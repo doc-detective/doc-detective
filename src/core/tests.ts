@@ -75,6 +75,11 @@ import {
   teardownAppSession,
   type AppSessionState,
 } from "./tests/appSurface.js";
+import {
+  isMobileTargetPlatform,
+  mobileContextSkipReason,
+} from "./tests/mobilePlatform.js";
+import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import {
@@ -2673,6 +2678,41 @@ async function runContext({
   metaValues.specs[spec.specId].tests[test.testId].contexts[
     context.contextId
   ] ??= { steps: {} };
+
+  // Mobile target platforms (native app phase A3): `android`/`ios` name the
+  // TARGET a context runs against, gated by host *capability* rather than host
+  // identity (host != target for mobile). Phase A3a ships the gate but no PASS
+  // path — every mobile context resolves SKIPPED with an actionable, roadmap-
+  // shaped reason. `requires` still applies (it's a host fact) and is evaluated
+  // here on whatever capable host the context reached, because the desktop
+  // `requires` gate below is scoped to host == target and never fires for a
+  // mobile context. The branch returns early, so none of the desktop
+  // engine/platform skips run for mobile contexts.
+  const mobileTarget = isMobileTargetPlatform(context.platform);
+  if (mobileTarget) {
+    const requirementsSkip = contextRequirementsSkipMessage({ context });
+    if (requirementsSkip) {
+      clog("warning", requirementsSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = requirementsSkip;
+      return contextReport;
+    }
+    // Android SDK detection is lazy — probed only here, only for android
+    // contexts — so a run that never targets android pays nothing.
+    const sdkPresent =
+      mobileTarget === "android"
+        ? detectAndroidSdk({ cacheDir: config.cacheDir }) !== null
+        : false;
+    const { level, reason } = mobileContextSkipReason({
+      platform: mobileTarget,
+      sdkPresent,
+      hasBrowserStep: isBrowserRequired({ test: context }),
+    });
+    clog(level, reason);
+    contextReport.result = "SKIPPED";
+    contextReport.resultDescription = reason;
+    return contextReport;
+  }
 
   // `requires` capability gate: any unmet requirement skips the context with a
   // message naming what's missing. Evaluated only on the platform the context
