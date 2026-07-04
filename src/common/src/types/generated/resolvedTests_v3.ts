@@ -235,6 +235,10 @@ export interface Context {
    * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
    */
   browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
+   */
+  requires?: string | [string, ...string[]] | Requirements;
 }
 /**
  * Browser configuration.
@@ -325,6 +329,26 @@ export interface BrowserViewport1 {
    * Height of the viewport in pixels.
    */
   height?: number;
+}
+export interface Requirements {
+  /**
+   * Commands that must be resolvable on the PATH.
+   *
+   * @minItems 1
+   */
+  commands?: [string, ...string[]];
+  /**
+   * Files that must exist. Entries support `$VAR` and `$HOME` expansion.
+   *
+   * @minItems 1
+   */
+  files?: [string, ...string[]];
+  /**
+   * Environment variables that must be set to a non-empty value.
+   *
+   * @minItems 1
+   */
+  env?: [string, ...string[]];
 }
 export interface FileTypeExecutable {
   /**
@@ -613,6 +637,10 @@ export interface Context1 {
    * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
    */
   browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
+   */
+  requires?: string | [string, ...string[]] | Requirements1;
 }
 /**
  * Browser configuration.
@@ -703,6 +731,26 @@ export interface BrowserViewport3 {
    * Height of the viewport in pixels.
    */
   height?: number;
+}
+export interface Requirements1 {
+  /**
+   * Commands that must be resolvable on the PATH.
+   *
+   * @minItems 1
+   */
+  commands?: [string, ...string[]];
+  /**
+   * Files that must exist. Entries support `$VAR` and `$HOME` expansion.
+   *
+   * @minItems 1
+   */
+  files?: [string, ...string[]];
+  /**
+   * Environment variables that must be set to a non-empty value.
+   *
+   * @minItems 1
+   */
+  env?: [string, ...string[]];
 }
 export interface OpenAPIDescriptionTest1 {
   [k: string]: unknown;

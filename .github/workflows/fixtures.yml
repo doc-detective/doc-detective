@@ -50,6 +50,14 @@ jobs:
           - http
           - process
           - sessions
+          # Native app surfaces (phase A1). Deliberately its own job: the app
+          # context's NovaWindows/console side effects on a service-session
+          # runner deterministically wedged a LATER ConPTY spawn when both ran
+          # in one process (the pre-split combined pass froze 4/4 at the first
+          # `tty` fixture ~11 min after the app fixture passed). Isolating the
+          # groups per job dissolves that interaction; the in-process pairing
+          # is tracked separately.
+          - apps
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

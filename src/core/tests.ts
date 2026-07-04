@@ -31,6 +31,7 @@ import {
   getRunOutputDir,
   runArchivesArtifacts,
   sanitizeFilesystemName,
+  evaluateContextRequirements,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -65,6 +66,15 @@ import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
 import { closeSurface } from "./tests/closeSurface.js";
+import {
+  createAppSessionState,
+  appSurfacePreflight,
+  isAppDriverRequired,
+  stepTargetsAppSurface,
+  startAppSurface,
+  teardownAppSession,
+  type AppSessionState,
+} from "./tests/appSurface.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import {
@@ -120,6 +130,7 @@ export {
   resolveBrowserFallbackPolicy,
   shouldRepairBeforeFallback,
   isSupportedContext,
+  contextRequirementsSkipMessage,
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
@@ -419,6 +430,57 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
   }
   // Return boolean
   return Boolean(isSupportedApp && isSupportedPlatform);
+}
+
+// Like isDriverRequired, but only counts driver steps that need a BROWSER: a
+// step whose payload targets an app surface (object form) is driven by the
+// app session instead, and the synthetic autoRecord capture is an ffmpeg
+// screen grab — neither may force a default browser into existence (in a
+// browser test the authored steps already require one, so excluding the
+// synthetic step never changes the outcome there).
+function isBrowserRequired({ test }: { test: any }): boolean {
+  if (!Array.isArray(test?.steps)) return false;
+  return test.steps.some(
+    (step: any) =>
+      !step?.__autoRecord &&
+      driverActions.some((action) => typeof step[action] !== "undefined") &&
+      !stepTargetsAppSurface(step)
+  );
+}
+
+// Size the browser Appium server pool: the number of concurrent runner jobs
+// that will actually create a BROWSER session. App-only jobs are excluded —
+// they provision their own per-context Appium server (homed where the native
+// driver resolves), so counting them here would start an idle browser server
+// (and, on Linux, an unused Xvfb display). Using isBrowserRequired keeps this
+// count in lockstep with the per-context acquire predicate. Exported for a
+// focused unit test; the deep pool wiring is exercised end-to-end by CI.
+export function browserJobCount(jobs: any[]): number {
+  if (!Array.isArray(jobs)) return 0;
+  return jobs.filter((job: any) => isBrowserRequired({ test: job?.context }))
+    .length;
+}
+
+// Evaluate a context's `requires` capability gate. Returns null when the gate
+// is absent or fully met; otherwise a skip message naming every unmet
+// requirement, so the context lands as SKIPPED (the same non-failing outcome
+// as a `platforms` mismatch). `deps` is passed through to
+// evaluateContextRequirements for hermetic tests.
+function contextRequirementsSkipMessage({
+  context,
+  deps,
+}: {
+  context: any;
+  deps?: any;
+}): string | null {
+  if (context?.requires === undefined || context?.requires === null)
+    return null;
+  const { met, missing } = evaluateContextRequirements({
+    requires: context.requires,
+    deps,
+  });
+  if (met) return null;
+  return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -1125,14 +1187,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     );
   }
 
-  // Start one Appium server per concurrent runner that will actually use a
-  // driver (capped at the number of driver contexts). Each server owns a
-  // distinct port, so parallel contexts never create sessions on the same
-  // server — that contention crashed ChromeDriver when every context shared
-  // one server. Non-driver runs start none.
-  const driverJobCount = sizingJobs.filter((job: any) =>
-    isDriverRequired({ test: job.context })
-  ).length;
+  // Start one Appium server per concurrent runner that will actually create a
+  // BROWSER session (capped at the number of browser contexts). Each server
+  // owns a distinct port, so parallel contexts never create sessions on the
+  // same server — that contention crashed ChromeDriver when every context
+  // shared one server. App-only contexts run on their own per-context server
+  // (see startAppSurface) and are excluded here, so an app-only run starts no
+  // browser server. Non-driver runs start none.
+  const browserPoolJobCount = browserJobCount(sizingJobs);
   let appiumServers: Array<{ port: number; process: any; display?: string }> =
     [];
   let appiumPool:
@@ -1145,7 +1207,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
 
-  if (driverJobCount > 0) {
+  if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
     // Resolve appium's actual JS entrypoint via `require.resolve` (shim
     // node_modules first, runtime cache second) and invoke it with
@@ -1162,7 +1224,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         "appium is not installed. The runtime pre-flight should have installed it; check DOC_DETECTIVE_CACHE_DIR / config.cacheDir or run `doc-detective install runtime appium`."
       );
     }
-    const serverCount = Math.min(limit, driverJobCount);
+    const serverCount = Math.min(limit, browserPoolJobCount);
     log(config, "debug", `Starting ${serverCount} Appium server(s).`);
     // Start servers one at a time rather than all at once: concurrent
     // findFreePort() calls share a close-to-rebind window (two could hand out
@@ -1881,10 +1943,14 @@ function selectWarmUpTargets(
     // `undefined::<browser>`, fails the support check, and is skipped — which
     // would defeat the warm-up/install de-racing the pre-pass exists for.
     if (!context.platform) context.platform = platform;
-    if (!context.browser && isDriverRequired({ test: context })) {
+    // Size and target the warm-up by isBrowserRequired (not isDriverRequired):
+    // app-only contexts run on their own per-context Appium server, so they
+    // must not pull a browser into the pre-pass or get a default browser
+    // written onto their context. Mirrors the browser pool sizing.
+    if (!context.browser && isBrowserRequired({ test: context })) {
       context.browser = getDefaultBrowser({ runnerDetails });
     }
-    if (!isDriverRequired({ test: context })) continue;
+    if (!isBrowserRequired({ test: context })) continue;
     // No resolvable browser — runContext skips these per-context with its own
     // message; nothing to warm up.
     if (!context.browser?.name) continue;
@@ -2588,8 +2654,11 @@ async function runContext({
     ];
   }
 
-  // If "browser" isn't defined but is required by the test, set it to the first available browser in the sequence of Firefox, Chrome, Safari
-  if (!context.browser && isDriverRequired({ test: context })) {
+  // If "browser" isn't defined but is required by the test, set it to the
+  // first available browser in the sequence of Firefox, Chrome, Safari.
+  // App-targeted steps don't count: they run on the app session, so an
+  // app-only test never boots a browser it won't use.
+  if (!context.browser && isBrowserRequired({ test: context })) {
     context.browser = getDefaultBrowser({ runnerDetails });
   }
 
@@ -2605,11 +2674,47 @@ async function runContext({
     context.contextId
   ] ??= { steps: {} };
 
+  // `requires` capability gate: any unmet requirement skips the context with a
+  // message naming what's missing. Evaluated only on the platform the context
+  // targets — a different-platform context keeps its platform skip reason, and
+  // requirements are host facts that would be meaningless to probe elsewhere.
+  if (context.platform === platform) {
+    const requirementsSkip = contextRequirementsSkipMessage({ context });
+    if (requirementsSkip) {
+      clog("warning", requirementsSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = requirementsSkip;
+      return contextReport;
+    }
+  }
+
+  // App-surface preflight (native app phase A1): when the test provisions or
+  // targets app surfaces, verify the platform supports them and the native
+  // driver is (or can be) installed. Unmet -> SKIPPED with the reason, same
+  // gating semantics as `requires`. On success, the context gets an app
+  // session primed with the resolved Appium entry/home for the app server.
+  // Scoped to the current platform like the `requires` gate above: a context
+  // targeting another platform must skip with the platform-mismatch reason,
+  // not pay (or misreport) a driver-install attempt on this host.
+  let appSession: AppSessionState | undefined;
+  if (context.platform === platform && isAppDriverRequired({ test: context })) {
+    const preflight = await appSurfacePreflight({ config, platform });
+    if (!preflight.ok) {
+      clog("warning", preflight.reason);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = preflight.reason;
+      return contextReport;
+    }
+    appSession = createAppSessionState();
+    appSession.appiumEntry = preflight.appiumEntry;
+    appSession.appiumHome = preflight.appiumHome;
+  }
+
   // If a driver is required but no browser could be resolved (e.g.
   // getDefaultBrowser found nothing installed, or the context supplied a
   // browser object with no name), skip with an explicit reason instead of
   // letting it fail later as "Failed to start context 'undefined'".
-  if (isDriverRequired({ test: context }) && !context.browser?.name) {
+  if (isBrowserRequired({ test: context }) && !context.browser?.name) {
     const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
     clog("warning", errorMessage);
     contextReport.result = "SKIPPED";
@@ -2695,7 +2800,8 @@ async function runContext({
   // Context-level browserFallback (authored on the runOn entry) overrides the
   // config-level policy; config defaults to "auto".
   const fallbackPolicy = resolveBrowserFallbackPolicy({ context, config });
-  const driverRequired = isDriverRequired({ test: context });
+  // Browser-required (not app): app-targeted steps run on the app session.
+  const driverRequired = isBrowserRequired({ test: context });
 
   const candidateEngines =
     platformMatches && driverRequired
@@ -2754,8 +2860,9 @@ async function runContext({
   let fellBackPinned = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
-      "Driver requested but no Appium server pool was created; " +
-        "driverJobCount and isDriverRequired(context) disagreed; this is a bug."
+      "Browser driver requested but no Appium server pool was created; " +
+        "the pool sizing (browserJobCount) and this context's isBrowserRequired " +
+        "predicate disagreed; this is a bug."
     );
   }
 
@@ -3232,6 +3339,7 @@ async function runContext({
             openApiDefinitions: context.openApi || [],
           },
           processRegistry: processRegistry,
+          appSession: appSession,
         });
         clog(
           "debug",
@@ -3383,9 +3491,18 @@ async function runContext({
     // Stop every recording still active at the end of the context (the
     // synthetic autoRecord capture plus any explicit record steps the author
     // didn't stop). Each produces an ordered stopRecord step report.
-    // Recordings live per session, so sweep every registered driver.
+    // Recordings live per session, so sweep every registered driver — and the
+    // app session's recordingHost, which holds app-only-context recordings.
     for (const d of sessionDrivers(browserSessions, driver)) {
       await stopAllRecordings({ config, context, driver: d, contextReport });
+    }
+    if (appSession?.recordingHost.state.recordings.length) {
+      await stopAllRecordings({
+        config,
+        context,
+        driver: appSession.recordingHost,
+        contextReport,
+      });
     }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
@@ -3400,6 +3517,14 @@ async function runContext({
       // in-loop sweep, finalizing recordings before deleteSession kills them.
       for (const d of sessionDrivers(browserSessions, driver)) {
         await stopAllRecordings({ config, context, driver: d, contextReport });
+      }
+      if (appSession?.recordingHost.state.recordings.length) {
+        await stopAllRecordings({
+          config,
+          context,
+          driver: appSession.recordingHost,
+          contextReport,
+        });
       }
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
@@ -3417,6 +3542,28 @@ async function runContext({
         await driver.deleteSession();
       } catch (error: any) {
         clog("error", `Failed to delete driver session: ${error.message}`);
+      }
+    }
+    // Tear down app surfaces: close every remaining app session (the driver
+    // terminates apps it launched) and stop the app Appium server. Tree-kill
+    // in callback form so the server process is actually gone before the
+    // context returns (mirrors the run-level killTree closure in runSpecs).
+    if (appSession) {
+      try {
+        await teardownAppSession(
+          appSession,
+          (pid) =>
+            new Promise<void>((resolve) => {
+              if (!pid) return resolve();
+              try {
+                kill(pid, "SIGTERM", () => resolve());
+              } catch {
+                resolve();
+              }
+            })
+        );
+      } catch (error: any) {
+        clog("error", `Failed to tear down app surfaces: ${error?.message ?? error}`);
       }
     }
     // Return the Appium server to the pool for the next queued context. Always
@@ -3529,6 +3676,7 @@ async function runStep({
   metaValues = {},
   options = {},
   processRegistry,
+  appSession,
 }: {
   config?: any;
   context?: any;
@@ -3537,6 +3685,7 @@ async function runStep({
   metaValues?: any;
   options?: any;
   processRegistry?: Map<string, any>;
+  appSession?: AppSessionState;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -3546,6 +3695,7 @@ async function runStep({
       config: config,
       step: step,
       driver: driver,
+      appSession,
     });
   } else if (typeof step.dragAndDrop !== "undefined") {
     actionResult = await dragAndDropElement({
@@ -3556,9 +3706,14 @@ async function runStep({
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
-    actionResult = await findElement({ config: config, step: step, driver });
+    actionResult = await findElement({ config: config, step: step, driver, appSession });
   } else if (typeof step.stopRecord !== "undefined") {
-    actionResult = await stopRecording({ config: config, step: step, driver });
+    actionResult = await stopRecording({
+      config: config,
+      step: step,
+      // App-only contexts keep recordings on the app session's host.
+      driver: driver ?? appSession?.recordingHost,
+    });
   } else if (typeof step.goTo !== "undefined") {
     actionResult = await goTo({ config: config, step: step, driver: driver });
   } else if (typeof step.loadVariables !== "undefined") {
@@ -3582,22 +3737,48 @@ async function runStep({
       openApiDefinitions: options?.openApiDefinitions,
     });
   } else if (typeof step.record !== "undefined") {
+    // App-only contexts have no browser driver: recordings live on the app
+    // session's recordingHost (same `.state.recordings` shape) instead.
+    // Threaded into startRecording too, so its already-recording dedupe
+    // checks consult the same store this block pushes into.
+    const recordingHost = driver ?? appSession?.recordingHost;
     actionResult = await startRecording({
       config: config,
       context: context,
       step: step,
       driver: driver,
+      recordingHost,
     });
     // Push the started recording onto the per-context stack so several can
     // overlap. Carry the step's `id`/`name` so a later stopRecord can target
     // it (by name) and end-of-context cleanup can identify the synthetic one.
-    if (actionResult.recording) {
-      if (!Array.isArray(driver.state.recordings)) driver.state.recordings = [];
+    if (actionResult.recording && !recordingHost) {
+      // Defensive: no driver session AND no app session — nowhere to track
+      // the handle, so the end-of-context sweep could never stop it. Kill
+      // the capture now and FAIL loudly rather than leak the process.
+      try {
+        actionResult.recording.process?.kill?.();
+      } catch {
+        // best-effort
+      }
+      delete actionResult.recording;
+      actionResult.status = "FAIL";
+      actionResult.description =
+        "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+    } else if (actionResult.recording) {
+      if (!Array.isArray(recordingHost.state.recordings))
+        recordingHost.state.recordings = [];
       const handle = actionResult.recording;
       handle.id = handle.id ?? randomUUID();
       handle.name = handle.name ?? recordStepName(step.record);
-      if (step.__autoRecord) handle.synthetic = true;
-      driver.state.recordings.push(handle);
+      if (step.__autoRecord) {
+        handle.synthetic = true;
+        // App-only context: no window exists yet to crop to. Mark the handle
+        // so the first app surface to open late-binds its window rect as the
+        // crop (startAppSurface), scoping the capture to the app under test.
+        if (!driver && appSession) handle.pendingAppWindowCrop = true;
+      }
+      recordingHost.state.recordings.push(handle);
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step, driver, processRegistry });
@@ -3610,12 +3791,42 @@ async function runStep({
   } else if (typeof step.runShell !== "undefined") {
     actionResult = await runShell({ config: config, step: step, driver, processRegistry });
   } else if (typeof step.closeSurface !== "undefined") {
-    actionResult = await closeSurface({ config: config, step: step, driver, processRegistry });
+    actionResult = await closeSurface({ config: config, step: step, driver, processRegistry, appSession });
+  } else if (typeof step.startSurface !== "undefined") {
+    if (!appSession) {
+      actionResult = {
+        status: "FAIL",
+        description:
+          "startSurface ran without an app session; this is a runner bug (runContext must preflight app-driver tests).",
+      };
+    } else {
+      actionResult = await startAppSurface({
+        config: config,
+        step: step,
+        appSession,
+        platform: context?.platform ?? "",
+        serverDeps: {
+          startServer: async (appiumEntry: string, appiumHome: string) => {
+            // APPIUM_HOME points the server at the node_modules that holds
+            // the native driver (shim or runtime cache). The preflight has
+            // already invalidated a stale extensions manifest there, so the
+            // server's startup scan discovers the driver.
+            const server = await startAppiumServer(appiumEntry, config, undefined, {
+              APPIUM_HOME: appiumHome,
+            });
+            return { port: server.port, process: server.process };
+          },
+          startDriver: (capabilities: any, port: number) =>
+            driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+        },
+      });
+    }
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
       config: config,
       step: step,
       driver: driver,
+      appSession,
     });
   } else if (typeof step.type !== "undefined") {
     actionResult = await typeKeys({
@@ -3623,6 +3834,7 @@ async function runStep({
       step: step,
       driver: driver,
       processRegistry,
+      appSession,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });
@@ -3632,8 +3844,10 @@ async function runStep({
       description: `Unknown step action: ${JSON.stringify(step)}`,
     };
   }
-  // If recording, wait until browser is loaded, then instantiate cursor
-  if (isRecordingActive(driver)) {
+  // If recording, wait until browser is loaded, then instantiate cursor.
+  // The `getUrl` guard skips the synthetic-cursor dance when `driver` is the
+  // app session's recordingHost (a bare state holder, not a browser session).
+  if (isRecordingActive(driver) && typeof driver.getUrl === "function") {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
@@ -3693,14 +3907,24 @@ async function runStep({
 async function startAppiumServer(
   appiumEntry: string,
   config: any,
-  display?: string
+  display?: string,
+  extraEnv?: Record<string, string>
 ): Promise<{ port: number; process: any; display?: string }> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
   // When a virtual display is supplied (Linux Xvfb recording), launch the
   // server with DISPLAY set so the browser it spawns (via chromedriver)
   // renders on that display — which is what ffmpeg x11grab then captures.
-  const env = display ? { ...process.env, DISPLAY: display } : process.env;
+  // `extraEnv` overrides (e.g. APPIUM_HOME for the app-surface server, which
+  // must be homed where the lazily-installed native driver lives).
+  const env =
+    display || extraEnv
+      ? {
+          ...process.env,
+          ...(display ? { DISPLAY: display } : {}),
+          ...(extraEnv ?? {}),
+        }
+      : process.env;
   const proc: any = spawn(
     process.execPath,
     [appiumEntry, "-a", "127.0.0.1", "-p", String(port)],

@@ -1,0 +1,98 @@
+{
+  "specId": "app-surfaces-a1",
+  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Character Map (charmap.exe) is the target app because it is a real Win32 executable on every Windows edition including Server CI runners — unlike notepad.exe, which on Windows 11 clients is a stub that hands off to the Store app, so the launched process never owns a window. Gated to Windows hosts with the binary present; on Linux/macOS the app preflight lands the context as SKIPPED (asserted behavior, not a gap).",
+  "tests": [
+    {
+      "testId": "app-charmap-flow",
+      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, and close the surface explicitly. autoRecord proves app-context recording: the capture starts full-display (no window exists yet), and the first app surface to open late-binds its window rect as the crop, so the finished recording is scoped to the Character Map window.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "AB"
+            ],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "charmap-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-preflight-skip",
+      "description": "On non-Windows hosts the app preflight SKIPs the context with an actionable reason. platforms is unrestricted on purpose: this permutation asserts the skip path itself.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/usr/bin/never-launched"
+          }
+        }
+      ]
+    }
+  ]
+}

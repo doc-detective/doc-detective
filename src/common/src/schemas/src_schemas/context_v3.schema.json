@@ -61,6 +61,72 @@
       "description": "Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).",
       "type": "string",
       "enum": ["auto", "explicit", "off"]
+    },
+    "requires": {
+      "description": "Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.",
+      "examples": [
+        "node",
+        ["node", "ffmpeg"],
+        {
+          "commands": ["adb"],
+          "files": ["$HOME/.config/app.toml"],
+          "env": ["API_TOKEN"]
+        }
+      ],
+      "anyOf": [
+        {
+          "$ref": "#/components/schemas/requirement"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/requirement"
+          },
+          "minItems": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "commands": {
+              "description": "Commands that must be resolvable on the PATH.",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/requirement"
+              },
+              "minItems": 1
+            },
+            "files": {
+              "description": "Files that must exist. Entries support `$VAR` and `$HOME` expansion.",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/requirement"
+              },
+              "minItems": 1
+            },
+            "env": {
+              "description": "Environment variables that must be set to a non-empty value.",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/requirement"
+              },
+              "minItems": 1
+            }
+          },
+          "title": "Requirements",
+          "examples": [
+            {
+              "commands": ["node", "ffmpeg"]
+            },
+            {
+              "commands": ["adb"],
+              "files": ["$HOME/.config/app.toml"],
+              "env": ["API_TOKEN"]
+            }
+          ]
+        }
+      ]
     }
   },
   "components": {
@@ -68,6 +134,12 @@
       "platform": {
         "type": "string",
         "enum": ["linux", "mac", "windows"]
+      },
+      "requirement": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S",
+        "examples": ["node", "ffmpeg"]
       },
       "browserName": {
         "type": "string",

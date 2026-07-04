@@ -44,6 +44,83 @@ describe("Run tests successfully", function () {
     });
   });
 
+  it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
+    // Two tests: one gated on a command that cannot exist (context must land
+    // SKIPPED with a reason naming the missing command — never FAIL), and one
+    // gated on `node` (must actually run and PASS, proving the gate doesn't
+    // over-skip). Non-driver steps only, so this is hermetic on every OS.
+    const requiresTest = {
+      tests: [
+        {
+          testId: "gate-unmet",
+          runOn: [{ requires: "doc-detective-no-such-binary-xyz" }],
+          steps: [{ runShell: "echo should-never-run" }],
+        },
+        {
+          testId: "gate-met",
+          runOn: [{ requires: "node" }],
+          steps: [{ runShell: "echo ran" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-requires-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(requiresTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const tests = result.specs[0].tests;
+      const unmet = tests.find((t) => t.testId === "gate-unmet");
+      const met = tests.find((t) => t.testId === "gate-met");
+
+      // Guard first so an empty contexts array can't render the per-context
+      // assertions vacuously true.
+      assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
+      for (const ctx of unmet.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /unmet requirements/);
+        assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
+      }
+      assert.equal(unmet.result, "SKIPPED");
+
+      assert.equal(met.result, "PASS");
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An app-driver test on a non-Windows host SKIPs via the app preflight with gating guidance", async function () {
+    // Covers runContext's app-surface preflight block (native app phase A1).
+    // Windows hosts would attempt a REAL driver install here, and launching
+    // native sessions inside the mocha process is exactly the interaction
+    // #501 tracks — so this asserts the SKIP leg on the platforms where the
+    // preflight gates, and the fixture matrix's apps group covers the
+    // Windows launch out-of-process.
+    if (process.platform === "win32") this.skip();
+    const appTest = {
+      tests: [
+        {
+          testId: "app-preflight",
+          steps: [{ startSurface: { app: "/usr/bin/never-launched" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-app-preflight-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(appTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /Windows only in this phase/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [
@@ -892,6 +969,42 @@ describe("Intelligent goTo behavior", function () {
     } finally {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     }
+  });
+});
+
+describe("browserJobCount() Appium pool sizing", function () {
+  let browserJobCount;
+  before(async function () {
+    const testsModule = await import("../dist/core/tests.js");
+    browserJobCount = testsModule.browserJobCount;
+  });
+
+  it("counts only contexts whose steps need a browser, excluding app-only and driver-free jobs", function () {
+    const jobs = [
+      // Browser context: a `find` with a CSS selector needs a real browser.
+      { context: { steps: [{ find: { selector: ".ready" } }] } },
+      // App-only context: startSurface + an app-targeted find run on the app
+      // session's own Appium server — no browser pool server is ever acquired.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { find: { elementText: "Select", surface: { app: "charmap" } } },
+          ],
+        },
+      },
+      // Driver-free context: pure shell, no Appium at all.
+      { context: { steps: [{ runShell: { command: "echo hi" } }] } },
+    ];
+    // Only the first context sizes the browser pool. Sizing with the old
+    // isDriverRequired predicate would have wrongly counted the app-only
+    // context and started an idle browser Appium server.
+    assert.equal(browserJobCount(jobs), 1);
+  });
+
+  it("tolerates stepless or malformed jobs without throwing", function () {
+    assert.equal(browserJobCount([]), 0);
+    assert.equal(browserJobCount([{ context: {} }, { context: { steps: [] } }, {}]), 0);
   });
 });
 

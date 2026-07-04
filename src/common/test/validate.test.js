@@ -1299,6 +1299,112 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("context_v3 requires", function () {
+      it("should validate a context_v3 object with a string requirement", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"], requires: "node" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires).to.equal("node");
+      });
+
+      it("should validate a context_v3 object with an array of requirements", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"], requires: ["node", "ffmpeg"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires).to.deep.equal(["node", "ffmpeg"]);
+      });
+
+      it("should validate a context_v3 object with a full requires object", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: {
+            platforms: ["windows", "mac", "linux"],
+            requires: {
+              commands: ["node", "ffmpeg"],
+              files: ["$HOME/.config/app.toml"],
+              env: ["API_TOKEN"],
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires.commands).to.deep.equal(["node", "ffmpeg"]);
+        expect(result.object.requires.files).to.deep.equal(["$HOME/.config/app.toml"]);
+        expect(result.object.requires.env).to.deep.equal(["API_TOKEN"]);
+      });
+
+      it("should validate a requires object with a single category", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: { env: ["ANTHROPIC_API_KEY"] } },
+        });
+        expect(result.valid).to.be.true;
+      });
+
+      it("should reject an empty or whitespace-only requires string", function () {
+        for (const requires of ["", "   "]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { requires },
+          });
+          expect(result.valid, `requires: ${JSON.stringify(requires)}`).to.be
+            .false;
+        }
+      });
+
+      it("should reject an empty requires array", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: [] },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a requires array with an empty entry", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: ["node", " "] },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject an empty requires object", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: {} },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a requires object with unknown categories", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: { binaries: ["node"] } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a requires object whose category is not an array of strings", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: { commands: "node" } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should coerce a numeric requires value to a string (validator-wide coerceTypes policy)", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { requires: 42 },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.requires).to.equal("42");
+      });
+    });
+
     describe("context_v3 transformations", function () {
       it("should transform context_v2 to context_v3", function () {
         const result = transformToSchemaKey({
@@ -2965,6 +3071,256 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("native app surfaces (phase A1): startSurface + app surface branch", function () {
+      // --- startSurface: the app opener ---
+
+      it("should validate a minimal startSurface (app path only)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "C:\\Windows\\System32\\notepad.exe" },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a full desktop startSurface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "/Applications/Calculator.app",
+              name: "calc",
+              args: ["--reset"],
+              workingDirectory: "./sandbox",
+              env: { LOG_LEVEL: "debug" },
+              driverOptions: { "appium:newCommandTimeout": 300 },
+              waitUntil: { delayMs: 500, find: { elementText: "Ready" } },
+              timeout: 30000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate the reserved mobile fields (install/activity/device object)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.myapp",
+              install: "./build/MyApp.apk",
+              activity: ".MainActivity",
+              device: {
+                platform: "android",
+                name: "Pixel_7",
+                osVersion: "14",
+                headless: true,
+              },
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a device string reference and the reserved device fields", function () {
+        const byRef = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "com.example.chat", device: "second-phone" },
+          },
+        });
+        expect(byRef.valid).to.be.true;
+
+        const reserved = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.myapp",
+              device: {
+                platform: "ios",
+                name: "iPhone 15",
+                orientation: "landscape",
+                type: "device",
+                udid: "00008110-001234567890ABCD",
+                provider: { browserstack: { app: "bs://abc123" } },
+              },
+            },
+          },
+        });
+        expect(reserved.valid).to.be.true;
+        expect(reserved.errors).to.equal("");
+      });
+
+      it("should reject a startSurface without app", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { startSurface: { name: "calc" } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject an empty app identifier", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { startSurface: { app: " " } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a device without platform", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "com.example.app", device: { name: "Pixel_7" } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a desktop OS as a device platform", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { platform: "windows" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject unknown startSurface fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "notepad.exe", automationName: "NovaWindows" },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a startSurface waitUntil.find with no finding fields", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { app: "notepad.exe", waitUntil: { find: {} } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // --- surface: the app reference branch ---
+
+      it("should validate an app surface reference with window selectors", function () {
+        for (const window of [undefined, "main", -1, { title: "/Find/" }]) {
+          const surface =
+            window === undefined ? { app: "notepad" } : { app: "notepad", window };
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { closeSurface: surface },
+          });
+          expect(result.valid, JSON.stringify(surface)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject a url criterion on an app window selector", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: { app: "notepad", window: { url: "/x/" } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a tab selector on an app surface (apps have windows, no tabs)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            closeSurface: { app: "notepad", tab: "cart" },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject crop on an app-surface screenshot at validation time", function () {
+        const invalid = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "app.png",
+              surface: { app: "notepad" },
+              crop: "Select",
+            },
+          },
+        });
+        expect(invalid.valid).to.be.false;
+
+        // The same crop stays valid on a browser surface.
+        const browserCrop = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "page.png",
+              surface: { browser: "chrome" },
+              crop: "#header",
+            },
+          },
+        });
+        expect(browserCrop.valid).to.be.true;
+        expect(browserCrop.errors).to.equal("");
+      });
+
+      it("should validate app surfaces on find/click/screenshot", function () {
+        const steps = [
+          { find: { elementText: "Text Editor", surface: { app: "notepad" } } },
+          { click: { elementText: "Save", surface: { app: "notepad", window: -1 } } },
+          { screenshot: { path: "app.png", surface: { app: "notepad" } } },
+        ];
+        for (const step of steps) {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, JSON.stringify(step)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate type to an app surface with app readiness", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["hello"],
+              surface: { app: "notepad" },
+              waitUntil: { delayMs: 250 },
+              timeout: 5000,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject process readiness (stdio) on an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: ["hello"],
+              surface: { app: "notepad" },
+              waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
       });
     });
 

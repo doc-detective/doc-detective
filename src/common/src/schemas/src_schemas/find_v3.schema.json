@@ -60,13 +60,16 @@
         "additionalProperties": false,
         "properties": {
           "surface": {
-            "description": "The browser window/tab this step acts on. Omit to act on the active tab. The targeted tab stays focused afterward.",
+            "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
             "anyOf": [
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
               },
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/browser"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/app"
               }
             ]
           },

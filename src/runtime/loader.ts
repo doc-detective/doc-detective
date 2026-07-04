@@ -138,6 +138,20 @@ export function resolveHeavyDepPath(
 }
 
 /**
+ * Resolve a heavy dep's entry path from the runtime cache ONLY (no shim
+ * fallback). Callers that must co-locate packages in one APPIUM_HOME (e.g.
+ * a lazily-installed native Appium driver plus the Appium copy that loads
+ * it) use this to confirm the cache-side copy specifically — the
+ * shim-preferring resolveHeavyDepPath would mask a missing cache install.
+ */
+export function resolveHeavyDepPathInCache(
+  name: string,
+  ctx: CacheDirContext = {}
+): string | null {
+  return tryResolveFromCache(name, ctx);
+}
+
+/**
  * Where a heavy dep resolves from, or `null` if it doesn't resolve.
  * "shim" = the doc-detective package's own node_modules (a pre-installed
  * optionalDependency or dev checkout); "cache" = <cacheDir>/runtime. The

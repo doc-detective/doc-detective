@@ -14,6 +14,7 @@ description: "Reference for the `Browser surface` schema."
 - [Go to URL (detailed)](/reference/schemas/go-to-url-detailed)
 - [Run browser script (detailed)](/reference/schemas/run-browser-script-detailed)
 - [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
+- [Capture screenshot fields](/reference/schemas/capture-screenshot-fields)
 - [Record (detailed)](/reference/schemas/record-detailed)
 - [closeSurface](/reference/schemas/closesurface)
 - [dragAndDrop](/reference/schemas/draganddrop)

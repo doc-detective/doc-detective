@@ -4,7 +4,7 @@ import { findElement } from "./findElement.js";
 export { clickElement };
 
 // Click an element.
-async function clickElement({ config, step, driver }: { config: any; step: any; driver: any }) {
+async function clickElement({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
   const result: any = {
     status: "PASS",
     description: "Clicked element.",
@@ -41,6 +41,7 @@ async function clickElement({ config, step, driver }: { config: any; step: any; 
     step: findStep,
     driver,
     click: true,
+    appSession,
   });
 
   // Unified model: click delegates element EXISTENCE (the implicit verification)

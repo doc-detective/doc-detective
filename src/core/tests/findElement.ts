@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { switchToSurface } from "./browserSurface.js";
+import { resolveAppSurfaceRef, findAppElement } from "./appSurface.js";
 import {
   findElementByShorthand,
   findElementByCriteria,
@@ -44,7 +45,7 @@ async function finalizeFound({ result }: { result: any }) {
 }
 
 // Find a single element
-async function findElement({ config, step, driver, click }: { config: any; step: any; driver: any; click?: any }) {
+async function findElement({ config, step, driver, click, appSession }: { config: any; step: any; driver: any; click?: any; appSession?: any }) {
   let result: any = {
     status: "PASS",
     description: "Found an element matching selector.",
@@ -60,6 +61,62 @@ async function findElement({ config, step, driver, click }: { config: any; step:
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // Native app surfaces (phase A1): a find whose surface names an app runs on
+  // the app session's driver via the platform's semantic-locator mapping.
+  // click delegates here, so app clicks ride the same path.
+  if (typeof step.find === "object" && step.find.surface !== undefined) {
+    const appRef = resolveAppSurfaceRef(step.find.surface, appSession);
+    if (appRef) {
+      if (appRef.error) {
+        result.status = "FAIL";
+        result.description = appRef.error;
+        return result;
+      }
+      if (appRef.window !== undefined) {
+        result.status = "FAIL";
+        result.description =
+          "Window selectors on app surfaces land in a later part of this phase; act on the app's active window for now (omit `window`).";
+        return result;
+      }
+      const appDriver = appRef.entry!.driver;
+      const found = await findAppElement({
+        driver: appDriver,
+        criteria: step.find,
+        // ?? so an explicit `timeout: 0` (schema minimum) stays an
+        // immediate check instead of being clobbered to the default.
+        timeout: step.find.timeout ?? 5000,
+      });
+      if (found.error) {
+        result.description = found.error;
+        result.outputs.found = false;
+        return await finalizeFound({ result });
+      }
+      result.outputs.found = true;
+      try {
+        result.outputs.element = { text: await found.element.getText() };
+      } catch {
+        // Text extraction is best-effort on native elements.
+      }
+      await finalizeFound({ result });
+      if (step.find.moveTo || step.find.type) {
+        result.status = "FAIL";
+        result.description +=
+          " The moveTo/type sub-effects aren't supported on app surfaces; use a separate `type` step targeting the app surface.";
+        return result;
+      }
+      if (click || step.find.click) {
+        try {
+          await found.element.click();
+          result.description += " Clicked element.";
+        } catch (error: any) {
+          result.status = "FAIL";
+          result.description += ` Couldn't click element. Error: ${error.message}`;
+        }
+      }
+      return result;
+    }
+  }
 
   // Multi-surface Phase 3/4: focus the requested session + window/tab first.
   // The surface stays active afterward (active = most recently focused).
