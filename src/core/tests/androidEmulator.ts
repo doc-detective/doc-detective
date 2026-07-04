@@ -6,7 +6,6 @@
 // polling) are all injected so the orchestration is testable with fakes.
 
 import { execFile, spawn, spawnSync } from "node:child_process";
-import fs from "node:fs";
 import {
   pickSystemImage,
   DEVICE_TYPE_PROFILES,
