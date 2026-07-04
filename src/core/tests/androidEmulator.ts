@@ -370,11 +370,16 @@ async function acquireDevice({
   }
 
   // boot / create-boot: register a placeholder carrying the in-flight boot
-  // promise BEFORE awaiting, so a concurrent acquirer shares it.
-  const usedPorts = [...registry.values()].map((e) =>
-    Number(e.udid.replace("emulator-", ""))
-  );
-  const port = nextEmulatorPort(usedPorts.filter((n) => !Number.isNaN(n)));
+  // promise BEFORE awaiting, so a concurrent acquirer shares it. Reserve away
+  // from BOTH registry devices and any already-running emulators outside the
+  // registry, so a fresh boot never collides with a pre-existing one.
+  const usedPorts = [
+    ...[...registry.values()].map((e) => e.udid),
+    ...running.map((r) => r.udid),
+  ]
+    .map((udid) => Number(udid.replace("emulator-", "")))
+    .filter((n) => !Number.isNaN(n));
+  const port = nextEmulatorPort(usedPorts);
   const placeholder: DeviceEntry = {
     name: plan.name,
     udid: udidForPort(port),
@@ -399,7 +404,14 @@ async function acquireDevice({
   })();
   placeholder.ready = readyPromise;
   registry.set(plan.name, placeholder);
-  await readyPromise;
+  try {
+    await readyPromise;
+  } catch (error) {
+    // A failed create/boot must not leave a broken placeholder wedging every
+    // later acquire of this device — drop it so a retry can start fresh.
+    if (registry.get(plan.name) === placeholder) registry.delete(plan.name);
+    throw error;
+  }
   return { entry: placeholder };
 }
 
@@ -524,10 +536,21 @@ async function realBootEmulator(
     detached: false,
     stdio: "ignore",
   });
+  // Track an early exit so a crashed emulator fails fast instead of burning the
+  // whole timeout on getprop polls against a dead process.
+  let exited: number | null = null;
+  child.on("exit", (code) => {
+    exited = code ?? 0;
+  });
   const deadline = Date.now() + timeout;
   // Give adb a moment, then poll the boot flag.
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 3000));
+    if (exited !== null) {
+      throw new Error(
+        `Emulator "${desc.name}" exited (code ${exited}) before finishing boot.`
+      );
+    }
     const { stdout } = await runTool(adbPath, ["-s", udid, "shell", "getprop", "sys.boot_completed"], 8000);
     if (stdout.trim() === "1") return { udid, process: child };
   }

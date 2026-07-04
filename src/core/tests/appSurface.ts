@@ -1103,12 +1103,21 @@ async function startAppSurface({
       });
     } else {
       // Subsequent app on the same device: install it if requested, then bring
-      // it to the foreground on the existing session.
+      // it to the foreground on the existing session. Honor an explicit
+      // `activity` here too (activateApp alone launches the default/last
+      // activity) — mirroring appActivity in the first app's capabilities.
       driver = deviceSession.driver;
       try {
         if (descriptor.install)
           await driver.installApp(path.resolve(descriptor.install));
-        await driver.activateApp(appId);
+        if (descriptor.activity) {
+          await driver.execute("mobile: startActivity", {
+            appPackage: appId,
+            appActivity: descriptor.activity,
+          });
+        } else {
+          await driver.activateApp(appId);
+        }
       } catch (error: any) {
         result.status = "FAIL";
         result.description = `Couldn't bring app "${appId}" to the foreground on device "${deviceName}": ${error?.message ?? error}.`;

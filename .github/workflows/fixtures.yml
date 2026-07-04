@@ -183,9 +183,11 @@ jobs:
       # The install/activity fixture is gated on this file (requires.files); the
       # sample is Appium's stable ApiDemos APK (io.appium.android.apis).
       - name: Fetch sample APK
+        # Pinned to an immutable commit (not the mutable `master` ref) so the
+        # fixture can't break under us. Appium's stable ApiDemos sample.
         run: |
           curl -fsSL -o test/core-artifacts/apps-android/sample.apk \
-            https://github.com/appium/appium/raw/master/packages/appium/sample-code/apps/ApiDemos-debug.apk
+            https://github.com/appium/appium/raw/a1a7b7e981335da5f21304635969ee4222e3ba56/packages/appium/sample-code/apps/ApiDemos-debug.apk
 
       - name: Enable KVM
         run: |

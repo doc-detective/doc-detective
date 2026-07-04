@@ -264,6 +264,47 @@ describe("androidEmulator: acquireDevice + teardown (injected effects)", functio
     expect(registry.get("pixel7")).to.equal(res.entry);
   });
 
+  it("drops the placeholder from the registry when the boot fails", async function () {
+    const registry = createDeviceRegistry();
+    let error;
+    try {
+      await acquireDevice({
+        desc: { name: "pixel7" },
+        registry,
+        sdkRoot: "/sdk",
+        deps: makeDeps({ boot: async () => { throw new Error("boot crashed"); } }),
+      });
+    } catch (e) {
+      error = e;
+    }
+    // The failed boot rethrows AND leaves no broken placeholder wedging retries.
+    expect(error?.message).to.match(/boot crashed/);
+    expect(registry.size).to.equal(0);
+  });
+
+  it("reserves a boot port away from already-running emulators outside the registry", async function () {
+    const registry = createDeviceRegistry();
+    let bootPort;
+    await acquireDevice({
+      desc: { name: "brand-new" },
+      registry,
+      sdkRoot: "/sdk",
+      deps: makeDeps({
+        // A foreign emulator already on 5554/5556; the new boot must avoid them.
+        listRunning: async () => [
+          { udid: "emulator-5554", name: "someone-else" },
+          { udid: "emulator-5556", name: "another" },
+        ],
+        listAvds: async () => ["brand-new"],
+        boot: async (desc, port) => {
+          bootPort = port;
+          return { udid: `emulator-${port}`, process: {} };
+        },
+      }),
+    });
+    expect(bootPort).to.equal(5558);
+  });
+
   it("reuses a running emulator without booting (bootedByUs false)", async function () {
     let booted = false;
     const registry = createDeviceRegistry();

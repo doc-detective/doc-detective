@@ -712,6 +712,9 @@ async function downloadFile(
       file.on("finish", () => file.close(() => resolve()));
       file.on("error", reject);
     });
+    // Fail a stalled connection rather than hanging installAndroid forever: 60s
+    // to first response, and an idle-socket timeout once streaming.
+    req.setTimeout(60000, () => req.destroy(new Error(`download timed out: ${url}`)));
     req.on("error", reject);
   });
 }

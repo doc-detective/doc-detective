@@ -1111,6 +1111,45 @@ describe("startAppSurface", function () {
     assert.equal(appSession.surfaces.get("b").deviceName, "pixel7");
   });
 
+  it("android: a reused app with an activity launches it via mobile: startActivity", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.execArgs = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    driver.execute = async (cmd, arg) => driver.execArgs.push([cmd, arg]);
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => driver,
+      acquireDevice: async () => ({
+        entry: { name: "pixel7", udid: "emulator-5554" },
+      }),
+    };
+    // First app creates the session (no reuse).
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a", name: "a" } },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    // Second app on the same device WITH an activity -> startActivity, not activateApp.
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.example.b", name: "b", activity: ".Main" },
+      },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    assert.deepEqual(driver.execArgs, [
+      ["mobile: startActivity", { appPackage: "com.example.b", appActivity: ".Main" }],
+    ]);
+    // The second app was NOT brought up via the plain activateApp path.
+    assert.deepEqual(driver.activated, []);
+  });
+
   it("android: an acquire skip becomes a step FAIL naming the reason", async function () {
     const appSession = preflighted();
     const result = await startAppSurface({
