@@ -254,6 +254,7 @@ describe("android installer: installAndroid orchestration", function () {
         dryRun: true,
         deps: {
           detect: () => detectedSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           fs: { existsSync: () => false, readdirSync: () => [] },
           run: (...a) => {
@@ -274,6 +275,7 @@ describe("android installer: installAndroid orchestration", function () {
         yes: false,
         deps: {
           detect: () => detectedSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           run: (...a) => {
             calls.push(a);
@@ -290,7 +292,7 @@ describe("android installer: installAndroid orchestration", function () {
     await withTmpCache(async () => {
       const reports = await installAndroid({
         yes: true,
-        deps: { detect: () => detectedSdk, javaPresent: () => false },
+        deps: { detect: () => detectedSdk, arch: "x64", javaPresent: () => false },
       });
       expect(reports[0].assetId).to.equal("java");
       expect(reports[0].action).to.equal("missing");
@@ -305,6 +307,7 @@ describe("android installer: installAndroid orchestration", function () {
         osVersion: "14",
         deps: {
           detect: () => detectedSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           // Already-installed image so no image download is needed.
           fs: {
@@ -353,6 +356,7 @@ describe("android installer: installAndroid orchestration", function () {
         yes: true,
         deps: {
           detect: () => detectedSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           // No installed images -> must query available and install one.
           fs: { existsSync: () => false, readdirSync: () => [] },
@@ -378,6 +382,7 @@ describe("android installer: installAndroid orchestration", function () {
         osVersion: "14",
         deps: {
           detect: () => detectedSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           fs: { existsSync: () => false, readdirSync: () => [] },
           run: (command, args) =>
@@ -467,6 +472,7 @@ describe("android installer: installAndroid orchestration", function () {
         force: true,
         deps: {
           detect: () => detectedSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
           fs: {
             existsSync: (p) => p.replace(/\\/g, "/").endsWith("system-images"),
