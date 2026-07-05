@@ -257,6 +257,32 @@ describe("iosSimulator: planSimulatorAcquisition", function () {
     assert.equal(plan.runtimeId, RT_180); // newest runtime
   });
 
+  it("creates on the newest runtime that already has simulators, not a device-less newer one", function () {
+    // iOS 18.0 is newer but carries no simulators (freshly downloaded / partial);
+    // 17.5 already has one, so it is the proven-usable runtime to create on.
+    const devices = parseSimctlDevices(
+      JSON.stringify({
+        devices: {
+          [RT_175]: [{ udid: "U", name: "iPhone 15", state: "Shutdown", isAvailable: true, deviceTypeIdentifier: DT_IPHONE15 }],
+        },
+      })
+    );
+    const runtimes = parseSimctlRuntimes(
+      JSON.stringify({
+        runtimes: [
+          { identifier: RT_175, version: "17.5", name: "iOS 17.5", isAvailable: true, platform: "iOS" },
+          { identifier: RT_180, version: "18.0", name: "iOS 18.0", isAvailable: true, platform: "iOS" },
+        ],
+      })
+    );
+    const plan = planSimulatorAcquisition(
+      { platform: "ios", name: "dd-new" },
+      { devices, runtimes, deviceTypes: parseSimctlDeviceTypes(deviceTypesJson) }
+    );
+    assert.equal(plan.action, "create-boot");
+    assert.equal(plan.runtimeId, RT_175);
+  });
+
   it("creates the newest iPhone when no simulators exist at all", function () {
     const plan = planSimulatorAcquisition(
       { platform: "ios" },

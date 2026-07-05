@@ -307,7 +307,7 @@ function planSimulatorAcquisition(
     if (existing)
       return { action: "boot", name: desc.name, udid: existing.udid };
     // Create it under the requested name.
-    return planCreate(desc, runtimes, deviceTypes, desc.name);
+    return planCreate(desc, runtimes, deviceTypes, devices, desc.name);
   }
 
   // Default device: reuse any booted candidate, else boot the newest existing
@@ -319,7 +319,13 @@ function planSimulatorAcquisition(
   const existing = newestOf(candidates);
   if (existing)
     return { action: "boot", name: existing.name, udid: existing.udid };
-  return planCreate(desc, runtimes, deviceTypes, defaultSimulatorName(desc));
+  return planCreate(
+    desc,
+    runtimes,
+    deviceTypes,
+    devices,
+    defaultSimulatorName(desc)
+  );
 }
 
 // The registry name for a created default simulator: stable so a second
@@ -332,18 +338,31 @@ function defaultSimulatorName(desc: DeviceDescriptor): string {
 
 // Resolve the create-boot plan (or a skip) for a device that must be created:
 // needs an available iOS runtime (honoring osVersion) and a device type of the
-// requested family.
+// requested family. When no osVersion is pinned, prefer the newest runtime that
+// ALREADY has simulators (a proven-usable runtime) over the absolute-newest —
+// a freshly-downloaded/partial newest runtime can have a very slow or unusable
+// first boot + WebDriverAgent build, whereas a runtime that already carries
+// devices is known good. Fall back to the newest available runtime when none
+// has devices yet.
 function planCreate(
   desc: DeviceDescriptor,
   runtimes: SimRuntime[],
   deviceTypes: SimDeviceType[],
+  devices: SimDevice[],
   name: string
 ): SimulatorAcquisition {
   const family = productFamilyForDeviceType(desc.deviceType);
   const available = runtimes.filter((r) => r.isAvailable && isIosRuntime(r));
-  const runtime = desc.osVersion
-    ? available.find((r) => r.version === desc.osVersion)
-    : newestRuntime(available);
+  let runtime: SimRuntime | null | undefined;
+  if (desc.osVersion) {
+    runtime = available.find((r) => r.version === desc.osVersion);
+  } else {
+    const warmedIds = new Set(
+      devices.filter((d) => d.isAvailable !== false).map((d) => d.runtime)
+    );
+    const warmed = available.filter((r) => warmedIds.has(r.identifier));
+    runtime = (warmed.length ? newestRuntime(warmed) : null) ?? newestRuntime(available);
+  }
   if (!runtime) {
     return {
       action: "skip",
