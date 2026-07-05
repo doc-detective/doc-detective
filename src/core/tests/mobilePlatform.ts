@@ -17,28 +17,24 @@ function isMobileTargetPlatform(platform: unknown): MobileTarget | null {
   return null;
 }
 
-// Compose the SKIP reason (and log level) for the mobile-context cases still
-// gated by a not-yet-implemented phase:
-//   - android with a browser step -> mobile browsers land in A5
-//   - ios with a browser step     -> mobile browsers land in A5
+// Compose the SKIP reason (and log level) for the one mobile-context case still
+// gated by a later phase: a mobile-web (browser) step on either target — mobile
+// browsers land in A5. Native app contexts (no browser step) are NOT routed
+// here; they pass through their platform's context preflight (androidContext-
+// Preflight / iosContextPreflight), which capability-gates and runs them. So
+// this composer is only ever called with `hasBrowserStep` true, and it branches
+// on the target platform alone.
 function mobileContextSkipReason({
   platform,
-  hasBrowserStep,
 }: {
   platform: MobileTarget;
   hasBrowserStep?: boolean;
 }): { level: "warning" | "info"; reason: string } {
   const roadmap = "docs/design/native-app-surfaces.md";
-  if (platform === "ios" && hasBrowserStep) {
+  if (platform === "ios") {
     return {
       level: "warning",
       reason: `Skipping context on 'ios': mobile browser testing on iOS lands in phase A5 of the native app roadmap (${roadmap}). Native iOS app tests run on capable macOS hosts.`,
-    };
-  }
-  if (platform === "ios") {
-    return {
-      level: "info",
-      reason: `Skipping context on 'ios': no runnable mobile path matched this context.`,
     };
   }
   // android + a browser step: mobile-web testing on Android is phase A5.

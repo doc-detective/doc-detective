@@ -34,7 +34,6 @@ export async function installIos({
   deps = {},
 }: {
   yes?: boolean;
-  force?: boolean;
   dryRun?: boolean;
   ctx?: CacheDirContext;
   deps?: IOSInstallerDeps;

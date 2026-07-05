@@ -108,7 +108,6 @@
     "appium-chromium-driver": "^3.0.2",
     "appium-geckodriver": "^3.0.6",
     "appium-safari-driver": "^5.0.2",
-    "appium-xcuitest-driver": "^10.6.0",
     "geckodriver": "^6.1.0",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",

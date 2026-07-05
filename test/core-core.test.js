@@ -164,6 +164,12 @@ describe("Run tests successfully", function () {
   });
 
   it("An ios target context SKIPs on a non-mac host with toolchain guidance", async function () {
+    // Host != target for mobile, so an ios context resolves on any host. On a
+    // NON-mac host the toolchain probe fails and the context SKIPs with macOS
+    // guidance (asserted here). On a macOS host iOS actually executes against a
+    // managed simulator (phase A4) — a real PASS/SKIP that needs a booted
+    // simulator, so it's covered by the apps-ios fixtures, not this unit leg.
+    if (process.platform === "darwin") this.skip();
     const iosTest = {
       tests: [
         {
