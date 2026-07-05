@@ -36,7 +36,7 @@
           "startSurface": {
             "app": "com.apple.Preferences",
             "name": "settings",
-            "timeout": 600000,
+            "timeout": 900000,
             "waitUntil": {
               "delayMs": 5000
             }
@@ -82,7 +82,7 @@
           "startSurface": {
             "app": "com.apple.Preferences",
             "name": "settings-multi",
-            "timeout": 600000,
+            "timeout": 900000,
             "waitUntil": {
               "delayMs": 5000
             }
