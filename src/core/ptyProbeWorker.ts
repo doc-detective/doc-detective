@@ -1,7 +1,8 @@
-// Worker-thread half of the ConPTY watchdog (issue #501). Runs in the SAME
-// process as the runner (worker threads share the process's console subsystem),
-// so a throwaway ConPTY allocation here reproduces the poisoned-console state a
-// prior native app-surface context may have left behind.
+// Worker-thread half of the ConPTY watchdog (issue #501, ADR 01024). Runs in
+// the SAME process as the runner (worker threads share the process's state and
+// console attachment), so a throwaway ConPTY allocation here exercises the
+// conditions the real spawn would hit — where a child process, with its own
+// fresh state, could report a false "healthy".
 //
 // Protocol: post exactly one message to the parent.
 //   { ok: true }            — a throwaway ConPTY allocated and exited: healthy.

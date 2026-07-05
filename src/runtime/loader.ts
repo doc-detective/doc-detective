@@ -287,10 +287,11 @@ function ensureRuntimePackageJson(runtimeDir: string): void {
 //
 // Called before each install (so this install's reify keeps existing
 // siblings) and again after a successful one (so the new arrivals are
-// protected from the NEXT install). Candidate names come from installed.json,
-// the manifest's current dependencies, and the runtime cache itself — but only
-// names physically on disk are recorded, so a package whose install failed
-// (e.g. the best-effort PTY backend on an exotic platform) is never
+// protected from the NEXT install). Candidate names come from installed.json
+// and the manifest's current dependencies — both doc-detective-managed sets,
+// so hoisted transitives are never promoted to direct dependencies. Physical
+// presence on disk then filters the candidates: a package whose install
+// failed (e.g. the best-effort PTY backend on an exotic platform) is never
 // resurrected into future installs' ideal trees, where its permanent failure
 // would fail every subsequent install.
 function recordRuntimeDependencies(

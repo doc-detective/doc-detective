@@ -1,29 +1,36 @@
-// ConPTY allocation watchdog (issue #501).
+// Guards for the `tty` spawn path (issue #501, ADR 01024).
 //
-// On a Windows service-session runner, a prior native app-surface (NovaWindows)
-// context in the SAME process can leave the console subsystem unable to
-// allocate a new pseudo-terminal. The next `pty.spawn` then blocks the libuv
-// event loop FOREVER — both concurrent runners go silent at once and the job
-// dies at its timeout. Because the block is a *synchronous* native call, a
-// same-thread `Promise.race([spawn, setTimeout])` cannot rescue it: the timer
-// callback never fires while the loop is wedged.
+// On Windows, `pty.spawn` can block the libuv event loop FOREVER inside a
+// synchronous native call — no timer, log line, or step result ever fires
+// again, and the run dies at an external timeout. The proven #501 mechanism
+// was a mid-run JIT install pruning node-pty's files from the runtime cache
+// while the module stayed loaded (see `ensurePtyBackendOnDisk`, the targeted
+// fix, and ADR 01025 for the root fix); the same wedged-spawn symptom also
+// exists upstream for other reasons (microsoft/node-pty #640/#532 — the
+// native connect runs inline on the calling thread with no timeout).
 //
-// So the watchdog probes the allocation off the main thread, in a WORKER
-// THREAD. A worker shares this process's console subsystem (same conhost
-// attachment), so it reproduces the exact poison a *child process* would not
-// (a fresh process has its own healthy console — it would give a false
-// "healthy"). The probe spawns a throwaway ConPTY that exits immediately:
+// Two layers, ordered:
 //
-//   - it exits fast              → console is healthy   → "healthy"
-//   - the worker errors / can't
-//     host the native addon      → probe inconclusive   → "inconclusive"
-//   - no response within budget  → the #501 freeze      → "wedged"
+// 1. `ensurePtyBackendOnDisk` — the backend's files must physically exist
+//    before any spawn; heals a pruned cache by force-reinstalling.
+// 2. `probePtyAllocation` / `assertConptyAllocatable` — defense-in-depth for
+//    wedges the disk check can't see. Because a wedged spawn blocks the event
+//    loop, a same-thread `Promise.race([spawn, setTimeout])` can never fire;
+//    the probe must run OFF the main thread, in a WORKER THREAD. A worker
+//    shares this process's state (module tree, console attachment) where a
+//    child process would not — a fresh process could report a false
+//    "healthy". The probe spawns a throwaway ConPTY that exits immediately:
 //
-// Only "wedged" (a genuine timeout) is treated as a reason to SKIP the step.
-// "inconclusive" falls through to the direct spawn, so a platform where workers
-// can't host node-pty behaves exactly as before — the happy path can never
-// regress; the watchdog only ever converts an otherwise-infinite freeze into a
-// bounded, observable outcome.
+//      - it exits fast              → allocation works    → "healthy"
+//      - the worker errors / can't
+//        host the native addon      → probe inconclusive  → "inconclusive"
+//      - no response within budget  → a wedged allocation → "wedged"
+//
+//    Only "wedged" (a genuine timeout) is treated as a reason to SKIP the
+//    step. "inconclusive" falls through to the direct spawn, so a platform
+//    where workers can't host node-pty behaves exactly as before — the happy
+//    path can never regress; the watchdog only ever converts an
+//    otherwise-infinite freeze into a bounded, observable outcome.
 
 import fs from "node:fs";
 import { Worker } from "node:worker_threads";
