@@ -31,8 +31,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     # The apps and apps-ios groups get headroom: the first Mac2/XCUITest session
     # on a macOS runner builds WebDriverAgent(Mac) via xcodebuild (minutes on a
-    # cold runner).
-    timeout-minutes: ${{ (matrix.group == 'apps' || matrix.group == 'apps-ios') && 30 || 20 }}
+    # cold runner). apps-ios gets the most: it can cold-build WDA for two
+    # simulators (the default reuse device + a created named device).
+    timeout-minutes: ${{ matrix.group == 'apps-ios' && 45 || (matrix.group == 'apps' && 30 || 20) }}
     strategy:
       fail-fast: false
       matrix:

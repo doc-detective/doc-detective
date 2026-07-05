@@ -175,6 +175,42 @@ describe("iosSimulator: planSimulatorAcquisition", function () {
     assert.equal(plan.udid, "UDID-15-180"); // iOS 18.0 beats 17.5
   });
 
+  it("excludes non-iOS devices (visionOS/watchOS) from the iPhone default", function () {
+    // Regression: hosted runners ship visionOS/watchOS/tvOS runtimes + devices;
+    // the default picked an Apple Vision Pro and built a slow-failing WDA.
+    const devices = parseSimctlDevices(
+      JSON.stringify({
+        devices: {
+          "com.apple.CoreSimulator.SimRuntime.xrOS-2-0": [
+            { udid: "VISION", name: "Apple Vision Pro", state: "Shutdown", isAvailable: true, deviceTypeIdentifier: "com.apple.CoreSimulator.SimDeviceType.Apple-Vision-Pro" },
+          ],
+          "com.apple.CoreSimulator.SimRuntime.watchOS-11-0": [
+            { udid: "WATCH", name: "Apple Watch Series 10", state: "Booted", isAvailable: true, deviceTypeIdentifier: "com.apple.CoreSimulator.SimDeviceType.Apple-Watch-Series-10" },
+          ],
+          [RT_180]: [
+            { udid: "IPHONE", name: "iPhone 15", state: "Shutdown", isAvailable: true, deviceTypeIdentifier: DT_IPHONE15 },
+          ],
+        },
+      })
+    );
+    const runtimes = parseSimctlRuntimes(
+      JSON.stringify({
+        runtimes: [
+          { identifier: "com.apple.CoreSimulator.SimRuntime.xrOS-2-0", version: "2.0", name: "visionOS 2.0", isAvailable: true, platform: "xrOS" },
+          { identifier: "com.apple.CoreSimulator.SimRuntime.watchOS-11-0", version: "11.0", name: "watchOS 11.0", isAvailable: true, platform: "watchOS" },
+          { identifier: RT_180, version: "18.0", name: "iOS 18.0", isAvailable: true, platform: "iOS" },
+        ],
+      })
+    );
+    const plan = planSimulatorAcquisition(
+      { platform: "ios" },
+      { devices, runtimes, deviceTypes: parseSimctlDeviceTypes(deviceTypesJson) }
+    );
+    // The booted Apple Watch is NOT reused; the iPhone is booted instead.
+    assert.equal(plan.action, "boot");
+    assert.equal(plan.udid, "IPHONE");
+  });
+
   it("default device reuses any already-booted candidate", function () {
     const booted = ctx.devices.map((d) =>
       d.udid === "UDID-15-175" ? { ...d, state: "Booted" } : d
@@ -278,20 +314,34 @@ describe("iosSimulator: planSimulatorAcquisition", function () {
     assert.equal(plan.runtimeId, RT_180);
   });
 
-  it("keeps a device with no deviceTypeIdentifier and tolerates an unknown runtime", function () {
+  it("keeps an iOS-runtime device with no deviceTypeIdentifier via its name, excluding non-iOS runtimes", function () {
     const devices = parseSimctlDevices(
       JSON.stringify({
         devices: {
-          "unknown-runtime": [{ udid: "U-NOTYPE", name: "Mystery", state: "Shutdown" }],
+          "com.apple.CoreSimulator.SimRuntime.tvOS-18-0": [
+            { udid: "TV", name: "Apple TV 4K", state: "Shutdown", isAvailable: true },
+          ],
+          [RT_175]: [
+            // No deviceTypeIdentifier — family matches on the name instead.
+            { udid: "IPHONE-NOTYPE", name: "iPhone Mystery", state: "Shutdown", isAvailable: true },
+          ],
         },
+      })
+    );
+    const runtimes = parseSimctlRuntimes(
+      JSON.stringify({
+        runtimes: [
+          { identifier: "com.apple.CoreSimulator.SimRuntime.tvOS-18-0", version: "18.0", name: "tvOS 18.0", isAvailable: true, platform: "tvOS" },
+          { identifier: RT_175, version: "17.5", name: "iOS 17.5", isAvailable: true, platform: "iOS" },
+        ],
       })
     );
     const plan = planSimulatorAcquisition(
       { platform: "ios" },
-      { devices, runtimes: parseSimctlRuntimes(runtimesJson), deviceTypes: parseSimctlDeviceTypes(deviceTypesJson) }
+      { devices, runtimes, deviceTypes: parseSimctlDeviceTypes(deviceTypesJson) }
     );
     assert.equal(plan.action, "boot");
-    assert.equal(plan.udid, "U-NOTYPE");
+    assert.equal(plan.udid, "IPHONE-NOTYPE");
   });
 
   it("keeps the running-best candidate when a later one is older", function () {

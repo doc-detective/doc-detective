@@ -167,17 +167,22 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-// The newest available iOS runtime (highest version). A runtime with no
-// `platform` is treated as iOS when its identifier names iOS — hosted images
-// sometimes omit the field. Returns null when none is installed/available.
+// Whether a runtime is an iOS runtime (vs. watchOS/tvOS/visionOS). Prefers the
+// `platform` field; a runtime with no platform is treated as iOS only when its
+// identifier/name names iOS — hosted images sometimes omit the field. This is
+// load-bearing: the hosted runners ship visionOS/watchOS/tvOS runtimes and
+// devices too, and booting an Apple Vision Pro for an `ios` context builds a
+// (different, slow-to-fail) WebDriverAgent — so every device/runtime selection
+// gates on this.
+function isIosRuntime(r: SimRuntime): boolean {
+  if (r.platform) return r.platform === "iOS";
+  return /\.iOS-/i.test(r.identifier) || /^iOS\b/i.test(r.name);
+}
+
+// The newest available iOS runtime (highest version). Returns null when none is
+// installed/available.
 function newestRuntime(runtimes: SimRuntime[]): SimRuntime | null {
-  const ios = runtimes.filter(
-    (r) =>
-      r.isAvailable &&
-      (r.platform === "iOS" ||
-        (!r.platform && /\.iOS-/i.test(r.identifier)) ||
-        /^iOS\b/i.test(r.name))
-  );
+  const ios = runtimes.filter((r) => r.isAvailable && isIosRuntime(r));
   if (!ios.length) return null;
   return ios.reduce((best, r) =>
     compareVersions(r.version, best.version) > 0 ? r : best
@@ -235,30 +240,33 @@ type SimulatorAcquisition =
     }
   | { action: "skip"; reason: string };
 
-// Filter devices to the iPhone/iPad family the descriptor asks for, honoring an
-// explicit `osVersion` (matched against the runtime version). A device with no
-// deviceTypeIdentifier can't be family-filtered, so it's kept (best-effort).
+// Filter devices to the iPhone/iPad family the descriptor asks for, restricted
+// to devices living on an AVAILABLE iOS runtime (so a visionOS Apple Vision Pro,
+// a watchOS watch, or a tvOS box is never a candidate for an `ios` context), and
+// honoring an explicit `osVersion` (matched against the runtime version). Family
+// is matched on the device type identifier, falling back to the device name.
 function candidateDevices(
   desc: DeviceDescriptor,
   devices: SimDevice[],
   runtimes: SimRuntime[]
 ): SimDevice[] {
   const family = productFamilyForDeviceType(desc.deviceType);
+  const iosRuntimes = new Set(
+    runtimes.filter((r) => r.isAvailable && isIosRuntime(r)).map((r) => r.identifier)
+  );
   const versionOf = (runtimeId: string): string =>
     runtimes.find((r) => r.identifier === runtimeId)?.version ?? "";
+  const familyRe = family === "iPad" ? /iPad/i : /iPhone|iPod/i;
   return devices
     .filter((d) => d.isAvailable !== false)
+    .filter((d) => iosRuntimes.has(d.runtime))
     .filter((d) => {
       if (!desc.osVersion) return true;
       return versionOf(d.runtime) === desc.osVersion;
     })
-    .filter((d) => {
-      const id = d.deviceTypeIdentifier ?? "";
-      if (!id) return true;
-      return family === "iPad"
-        ? /iPad/i.test(id)
-        : /iPhone|iPod/i.test(id) || !/iPad|Watch|TV/i.test(id);
-    });
+    .filter(
+      (d) => familyRe.test(d.deviceTypeIdentifier ?? "") || familyRe.test(d.name)
+    );
 }
 
 // Decide how to obtain the simulator described by `desc`. A NAMED device
@@ -332,13 +340,7 @@ function planCreate(
   name: string
 ): SimulatorAcquisition {
   const family = productFamilyForDeviceType(desc.deviceType);
-  const available = runtimes.filter(
-    (r) =>
-      r.isAvailable &&
-      (r.platform === "iOS" ||
-        (!r.platform && /\.iOS-/i.test(r.identifier)) ||
-        /^iOS\b/i.test(r.name))
-  );
+  const available = runtimes.filter((r) => r.isAvailable && isIosRuntime(r));
   const runtime = desc.osVersion
     ? available.find((r) => r.version === desc.osVersion)
     : newestRuntime(available);
