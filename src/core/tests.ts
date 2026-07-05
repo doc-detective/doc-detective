@@ -4492,6 +4492,21 @@ async function driverStart(
   const TRANSIENT =
     /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
   const wdio = await loadHeavyDep<WdioModule>("webdriverio", { ctx });
+  // The wdio client aborts the POST /session request after connectionRetryTimeout.
+  // A cold native session can take far longer to create than the 2-minute
+  // default: the first XCUITest session builds WebDriverAgent via xcodebuild
+  // (several minutes on a fresh macOS runner), and Mac2 builds WebDriverAgentMac
+  // similarly. Derive the client timeout from whatever slow-startup ceiling the
+  // capabilities declared (wdaLaunchTimeout / wdaConnectionTimeout /
+  // serverStartupTimeout) so the client waits as long as the driver was told to,
+  // never below the 2-minute floor. Browser/Windows/Android sessions carry none
+  // of these caps and keep the 2-minute default unchanged.
+  const startupCeiling = Math.max(
+    120000,
+    Number(capabilities?.["appium:wdaLaunchTimeout"]) || 0,
+    Number(capabilities?.["appium:wdaConnectionTimeout"]) || 0,
+    Number(capabilities?.["appium:serverStartupTimeout"]) || 0
+  );
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -4502,7 +4517,7 @@ async function driverStart(
         path: "/",
         logLevel: "error",
         capabilities,
-        connectionRetryTimeout: 120000, // 2 minutes
+        connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
       });
       // Per-context mutable state. `recordings` lives here (not on config)

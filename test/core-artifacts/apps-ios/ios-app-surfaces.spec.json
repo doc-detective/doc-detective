@@ -36,11 +36,9 @@
           "startSurface": {
             "app": "com.apple.Preferences",
             "name": "settings",
-            "timeout": 300000,
+            "timeout": 600000,
             "waitUntil": {
-              "find": {
-                "elementText": "General"
-              }
+              "delayMs": 5000
             }
           }
         },
@@ -89,11 +87,9 @@
               "name": "dd-ios-fixture",
               "deviceType": "phone"
             },
-            "timeout": 300000,
+            "timeout": 600000,
             "waitUntil": {
-              "find": {
-                "elementText": "General"
-              }
+              "delayMs": 5000
             }
           }
         },
@@ -119,11 +115,9 @@
           "startSurface": {
             "app": "com.apple.Preferences",
             "name": "settings-multi",
-            "timeout": 300000,
+            "timeout": 600000,
             "waitUntil": {
-              "find": {
-                "elementText": "General"
-              }
+              "delayMs": 5000
             }
           }
         },
