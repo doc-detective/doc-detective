@@ -59,6 +59,62 @@ export function hostAbi(arch: string = process.arch): "x86_64" | "arm64-v8a" {
   return arch === "arm64" ? "arm64-v8a" : "x86_64";
 }
 
+// --- Portable JRE (so Java stops being a host prerequisite) ---
+//
+// sdkmanager/avdmanager are Java tools. Rather than require the user to install a
+// JRE, Doc Detective can download a portable Temurin JRE into its cache — the
+// same "bootstrap it ourselves" approach used for the SDK. These helpers build
+// the download URL and locate JAVA_HOME inside the extracted archive; the
+// effectful download/extract lives below with the other real effects.
+
+// Temurin (Eclipse Adoptium) LTS feature version to fetch. 17 is the current
+// baseline sdkmanager/avdmanager require.
+const JRE_FEATURE_VERSION = "17";
+
+// The Adoptium binary API redirects to the actual JRE archive for the host
+// (`.tar.gz` on Linux/macOS, `.zip` on Windows). arch: Adoptium uses `x64` and
+// `aarch64`; anything unusual falls back to x64.
+export function jreDownloadUrl(
+  platform: NodeJS.Platform = process.platform,
+  arch: string = process.arch
+): string {
+  const os =
+    platform === "win32" ? "windows" : platform === "darwin" ? "mac" : "linux";
+  const adoptiumArch = arch === "arm64" ? "aarch64" : "x64";
+  return `https://api.adoptium.net/v3/binary/latest/${JRE_FEATURE_VERSION}/ga/${os}/${adoptiumArch}/jre/hotspot/normal/eclipse`;
+}
+
+// The temp filename to save the download as, so the extractor picks the right
+// tool by extension (a `.tar.gz` on POSIX, `.zip` on Windows).
+export function jreArchiveFilename(
+  platform: NodeJS.Platform = process.platform
+): string {
+  return platform === "win32" ? "jre.zip" : "jre.tar.gz";
+}
+
+// Given the directory a Temurin JRE was extracted into, resolve JAVA_HOME.
+// Temurin extracts a single top-level `jdk-<ver>-jre/` directory; on macOS the
+// runnable home is nested under `Contents/Home`. `entries` is the extracted
+// dir's top-level names (injected so this is pure/testable).
+export function resolveJavaHome(
+  extractDir: string,
+  entries: string[],
+  platform: NodeJS.Platform = process.platform
+): string | null {
+  const top = entries.find((e) => /jdk|jre/i.test(e));
+  if (!top) return null;
+  const base = path.join(extractDir, top);
+  return platform === "darwin" ? path.join(base, "Contents", "Home") : base;
+}
+
+// The `java` executable path under a JAVA_HOME, per platform.
+export function javaBinPath(
+  javaHome: string,
+  platform: NodeJS.Platform = process.platform
+): string {
+  return path.join(javaHome, "bin", platform === "win32" ? "java.exe" : "java");
+}
+
 // The commandline-tools download URL for a platform.
 export function cmdlineToolsUrl(platform: NodeJS.Platform): string {
   const token =
@@ -287,9 +343,74 @@ export interface AndroidInstallerDeps {
   ) => Promise<string>;
   // Downloads + unzips the cmdline-tools bootstrap into destSdkRoot.
   bootstrap?: (url: string, destSdkRoot: string) => Promise<void>;
+  // Portable-JRE provisioning (so Java isn't a host prerequisite). Defaults
+  // detect a cached JRE and, when absent, download a Temurin JRE into the cache.
+  detectCachedJavaHome?: (cacheJreRoot: string) => string | null;
+  bootstrapJava?: (cacheJreRoot: string) => Promise<string>;
+  setJavaEnv?: (javaHome: string, platform: NodeJS.Platform) => void;
   fs?: FsDeps;
   arch?: string;
   platform?: NodeJS.Platform;
+}
+
+export interface EnsureJavaResult {
+  ok: boolean;
+  source?: "system" | "cache" | "bootstrap";
+  javaHome?: string;
+  reason?: string;
+}
+
+// Point JAVA_HOME (and PATH) at a Doc-Detective-managed JRE so the sdkmanager /
+// avdmanager spawns that follow — in this process — pick it up.
+function applyJavaEnv(javaHome: string, platform: NodeJS.Platform): void {
+  process.env.JAVA_HOME = javaHome;
+  const bin = path.join(javaHome, "bin");
+  const sep = platform === "win32" ? ";" : ":";
+  if (!(process.env.PATH ?? "").split(sep).includes(bin)) {
+    process.env.PATH = `${bin}${sep}${process.env.PATH ?? ""}`;
+  }
+}
+
+/**
+ * Make a Java runtime available for sdkmanager/avdmanager without requiring one
+ * on the host: use the system Java if present, else a previously cached
+ * Doc-Detective JRE, else download a portable Temurin JRE into the cache. On a
+ * cache/bootstrap hit JAVA_HOME + PATH are pointed at it for the rest of this
+ * process. Effects are injected so the branch logic is unit-testable.
+ */
+export async function ensureJava(deps: {
+  javaPresent: () => boolean;
+  cacheJreRoot: string;
+  detectCachedJavaHome: (cacheJreRoot: string) => string | null;
+  bootstrapJava: (cacheJreRoot: string) => Promise<string>;
+  setJavaEnv?: (javaHome: string, platform: NodeJS.Platform) => void;
+  platform?: NodeJS.Platform;
+  logger?: Logger;
+}): Promise<EnsureJavaResult> {
+  const platform = deps.platform ?? process.platform;
+  const setEnv = deps.setJavaEnv ?? applyJavaEnv;
+  const log = deps.logger ?? (() => {});
+
+  if (deps.javaPresent()) return { ok: true, source: "system" };
+
+  const cached = deps.detectCachedJavaHome(deps.cacheJreRoot);
+  if (cached) {
+    setEnv(cached, platform);
+    return { ok: true, source: "cache", javaHome: cached };
+  }
+
+  log(
+    `No Java runtime found for sdkmanager/avdmanager. Downloading a portable Temurin JRE ${JRE_FEATURE_VERSION} into the Doc Detective cache — this is a one-time download.`,
+    "warn"
+  );
+  try {
+    const javaHome = await deps.bootstrapJava(deps.cacheJreRoot);
+    setEnv(javaHome, platform);
+    log(`Using a Doc-Detective-managed JRE at ${javaHome}.`, "info");
+    return { ok: true, source: "bootstrap", javaHome };
+  } catch (error) {
+    return { ok: false, reason: (error as Error)?.message ?? String(error) };
+  }
 }
 
 /**
@@ -368,17 +489,6 @@ export async function installAndroid({
     }));
   }
 
-  // A bootstrap or package install requires java; report the requirement
-  // rather than failing deep inside a spawn.
-  const javaPresent = deps.javaPresent ? deps.javaPresent() : realJavaPresent();
-  if (!javaPresent) {
-    logger(
-      "Android setup needs a Java runtime (JRE 17+) for sdkmanager/avdmanager. Install one (e.g. Temurin 17) and rerun.",
-      "error"
-    );
-    return [{ kind: "android", assetId: "java", action: "missing" }];
-  }
-
   if (!yes) {
     logger(
       "Refusing to download the multi-GB Android toolchain without confirmation. Rerun with --yes to proceed, or --dry-run to preview.",
@@ -389,6 +499,28 @@ export async function installAndroid({
       "info"
     );
     return [{ kind: "android", assetId: "confirmation", action: "declined" }];
+  }
+
+  // A bootstrap or package install needs Java for sdkmanager/avdmanager. Provide
+  // it without requiring one on the host: system Java, else a cached JRE, else a
+  // one-time portable Temurin download. Runs only after the --yes guard so the
+  // JRE download is part of the confirmed install, never a surprise.
+  const cacheJreRoot = path.join(getCacheDir(ctx), "jre");
+  const java = await ensureJava({
+    javaPresent: deps.javaPresent ?? realJavaPresent,
+    cacheJreRoot,
+    detectCachedJavaHome: deps.detectCachedJavaHome ?? realDetectCachedJavaHome,
+    bootstrapJava: deps.bootstrapJava ?? realBootstrapJava,
+    setJavaEnv: deps.setJavaEnv,
+    platform,
+    logger,
+  });
+  if (!java.ok) {
+    logger(
+      `Android setup needs a Java runtime and Doc Detective couldn't provision one automatically: ${java.reason}. Install a JRE 17+ (e.g. Temurin) and rerun.`,
+      "error"
+    );
+    return [{ kind: "android", assetId: "java", action: "missing" }];
   }
 
   // --- Real execution (yes && !dryRun). Effects are injected for tests. ---
@@ -689,6 +821,37 @@ async function realRun(
 // is the "portable Android" install — a self-contained SDK root under the Doc
 // Detective cache, no system Android Studio needed. (A JRE 17+ is still a host
 // prerequisite for sdkmanager/avdmanager; checked before this runs.)
+// Look for a previously downloaded Doc-Detective JRE under <cache>/jre and
+// return its JAVA_HOME if the `java` binary is present.
+function realDetectCachedJavaHome(cacheJreRoot: string): string | null {
+  if (!fs.existsSync(cacheJreRoot)) return null;
+  const entries = fs.readdirSync(cacheJreRoot);
+  const home = resolveJavaHome(cacheJreRoot, entries, process.platform);
+  return home && fs.existsSync(javaBinPath(home)) ? home : null;
+}
+
+// Download + extract a portable Temurin JRE into <cache>/jre and return its
+// JAVA_HOME. Reuses the redirect-following downloader and the cross-platform
+// extractor (its `tar -xf` handles the POSIX `.tar.gz`).
+async function realBootstrapJava(cacheJreRoot: string): Promise<string> {
+  const url = jreDownloadUrl();
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-jre-"));
+  try {
+    const archive = path.join(tmpDir, jreArchiveFilename());
+    await downloadFile(url, archive);
+    fs.rmSync(cacheJreRoot, { recursive: true, force: true });
+    fs.mkdirSync(cacheJreRoot, { recursive: true });
+    await extractZip(archive, cacheJreRoot);
+    const home = realDetectCachedJavaHome(cacheJreRoot);
+    if (!home) {
+      throw new Error("extracted JRE has no runnable java binary");
+    }
+    return home;
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 async function realBootstrap(url: string, destSdkRoot: string): Promise<void> {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-android-cli-"));
   try {

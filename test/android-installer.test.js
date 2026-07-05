@@ -16,6 +16,11 @@ import {
   winShellCommand,
   DEFAULT_AVD_NAME,
   DEVICE_TYPE_PROFILES,
+  jreDownloadUrl,
+  jreArchiveFilename,
+  resolveJavaHome,
+  javaBinPath,
+  ensureJava,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -288,14 +293,64 @@ describe("android installer: installAndroid orchestration", function () {
     });
   });
 
-  it("reports a missing Java runtime actionably", async function () {
+  it("reports a missing Java runtime when it can't provision one", async function () {
     await withTmpCache(async () => {
       const reports = await installAndroid({
         yes: true,
-        deps: { detect: () => detectedSdk, arch: "x64", javaPresent: () => false },
+        deps: {
+          detect: () => detectedSdk,
+          arch: "x64",
+          javaPresent: () => false,
+          // No cached JRE and the download fails -> actionable "missing".
+          detectCachedJavaHome: () => null,
+          bootstrapJava: () => Promise.reject(new Error("network down")),
+        },
       });
       expect(reports[0].assetId).to.equal("java");
       expect(reports[0].action).to.equal("missing");
+    });
+  });
+
+  it("bootstraps a portable JRE when Java is absent, then proceeds", async function () {
+    await withTmpCache(async () => {
+      const runCalls = [];
+      let bootstrappedJava = false;
+      const setHomes = [];
+      const reports = await installAndroid({
+        yes: true,
+        osVersion: "14",
+        deps: {
+          detect: () => detectedSdk,
+          arch: "x64",
+          javaPresent: () => false,
+          detectCachedJavaHome: () => null,
+          bootstrapJava: async () => {
+            bootstrappedJava = true;
+            return "/cache/jre";
+          },
+          // Capture (don't mutate the real process env) the JAVA_HOME we'd set.
+          setJavaEnv: (home) => setHomes.push(home),
+          fs: {
+            existsSync: (p) => p.replace(/\\/g, "/").endsWith("system-images"),
+            readdirSync: (p) => {
+              const norm = p.replace(/\\/g, "/");
+              if (norm.endsWith("system-images")) return ["android-34"];
+              if (norm.endsWith("android-34")) return ["google_apis"];
+              if (norm.endsWith("google_apis")) return ["x86_64"];
+              return [];
+            },
+          },
+          run: (command, args) => {
+            runCalls.push(args.join(" "));
+            return Promise.resolve("");
+          },
+        },
+      });
+      expect(bootstrappedJava).to.equal(true);
+      expect(setHomes).to.deep.equal(["/cache/jre"]);
+      // The install proceeded past Java to create the AVD.
+      expect(runCalls.join(" | ")).to.match(/create avd -n doc-detective/);
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
     });
   });
 
@@ -519,5 +574,96 @@ describe("android installer: installAndroid orchestration", function () {
       expect(text).to.match(/system image/i);
       expect(reports.every((r) => r.action === "planned")).to.equal(true);
     });
+  });
+});
+
+describe("android installer: portable JRE", function () {
+  it("builds the Temurin download URL per OS/arch", function () {
+    expect(jreDownloadUrl("linux", "x64")).to.match(
+      /api\.adoptium\.net\/v3\/binary\/latest\/17\/ga\/linux\/x64\/jre\/hotspot\/normal\/eclipse$/
+    );
+    expect(jreDownloadUrl("darwin", "arm64")).to.match(/\/mac\/aarch64\/jre\//);
+    expect(jreDownloadUrl("win32", "x64")).to.match(/\/windows\/x64\/jre\//);
+    // Unusual arch falls back to x64.
+    expect(jreDownloadUrl("linux", "ppc64")).to.match(/\/linux\/x64\/jre\//);
+  });
+
+  it("picks the archive extension by platform", function () {
+    expect(jreArchiveFilename("win32")).to.equal("jre.zip");
+    expect(jreArchiveFilename("linux")).to.equal("jre.tar.gz");
+    expect(jreArchiveFilename("darwin")).to.equal("jre.tar.gz");
+  });
+
+  it("resolves JAVA_HOME from the extracted layout (mac nests Contents/Home)", function () {
+    const entries = ["jdk-17.0.11+9-jre", "._meta"];
+    expect(resolveJavaHome("/x", entries, "linux")).to.equal(
+      path.join("/x", "jdk-17.0.11+9-jre")
+    );
+    expect(resolveJavaHome("/x", entries, "darwin")).to.equal(
+      path.join("/x", "jdk-17.0.11+9-jre", "Contents", "Home")
+    );
+    expect(resolveJavaHome("/x", ["nothing"], "linux")).to.equal(null);
+  });
+
+  it("locates the java binary per platform", function () {
+    expect(javaBinPath("/jh", "linux")).to.equal(path.join("/jh", "bin", "java"));
+    expect(javaBinPath("/jh", "win32")).to.equal(path.join("/jh", "bin", "java.exe"));
+  });
+
+  it("ensureJava short-circuits to system Java when present", async function () {
+    let bootstrapped = false;
+    const res = await ensureJava({
+      javaPresent: () => true,
+      cacheJreRoot: "/cache/jre",
+      detectCachedJavaHome: () => null,
+      bootstrapJava: async () => {
+        bootstrapped = true;
+        return "/x";
+      },
+      setJavaEnv: () => {},
+    });
+    expect(res).to.deep.equal({ ok: true, source: "system" });
+    expect(bootstrapped).to.equal(false);
+  });
+
+  it("ensureJava reuses a cached JRE and sets the env", async function () {
+    const set = [];
+    const res = await ensureJava({
+      javaPresent: () => false,
+      cacheJreRoot: "/cache/jre",
+      detectCachedJavaHome: () => "/cache/jre",
+      bootstrapJava: async () => "/should-not-run",
+      setJavaEnv: (home, platform) => set.push([home, platform]),
+      platform: "linux",
+    });
+    expect(res.source).to.equal("cache");
+    expect(res.javaHome).to.equal("/cache/jre");
+    expect(set).to.deep.equal([["/cache/jre", "linux"]]);
+  });
+
+  it("ensureJava downloads a JRE when none is present", async function () {
+    const res = await ensureJava({
+      javaPresent: () => false,
+      cacheJreRoot: "/cache/jre",
+      detectCachedJavaHome: () => null,
+      bootstrapJava: async () => "/cache/jre/jdk-17-jre",
+      setJavaEnv: () => {},
+    });
+    expect(res.source).to.equal("bootstrap");
+    expect(res.javaHome).to.equal("/cache/jre/jdk-17-jre");
+  });
+
+  it("ensureJava reports a reason when the download fails", async function () {
+    const res = await ensureJava({
+      javaPresent: () => false,
+      cacheJreRoot: "/cache/jre",
+      detectCachedJavaHome: () => null,
+      bootstrapJava: async () => {
+        throw new Error("network down");
+      },
+      setJavaEnv: () => {},
+    });
+    expect(res.ok).to.equal(false);
+    expect(res.reason).to.match(/network down/);
   });
 });
