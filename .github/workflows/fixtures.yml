@@ -115,10 +115,11 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.group }} fixtures
-        uses: doc-detective/github-action@922131748e00f25f608fcfd7742d6f65b1cc6cb9 # v1.5.0
+        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
-        # download — the real install/boot coverage lives in the KVM jobs below.
+        # download, and turn OFF the action's KVM setup (`android: false`) — the
+        # real install/boot coverage lives in the KVM jobs below.
         env:
           DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.group == 'apps-android' && '1' || '' }}
         with:
@@ -126,6 +127,7 @@ jobs:
           working_directory: .
           config: test/core-artifacts/config.groups.json
           input: test/core-artifacts/${{ matrix.group }}
+          android: 'false'
 
       # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
       # job. PASS and SKIPPED both pass the gate. The apps legs on Windows and
@@ -265,6 +267,61 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-managed
+          path: dd-output-apps-android.json
+          retention-days: 3
+          if-no-files-found: warn
+
+  # Native app surfaces phase A3b: the FULL ergonomics path, end-to-end through
+  # the Doc Detective GitHub Action. On a plain ubuntu-latest runner with NO
+  # manual KVM step and NO pre-install, the action's `android: auto` detects the
+  # android specs and enables KVM itself; Doc Detective then LAZILY bootstraps the
+  # SDK, emulator, system image, AVD, and driver at test time and boots the
+  # emulator — proving a bare workflow needs only the action (`android: auto`) to
+  # run Android tests. Gated to require at least one PASS. (This is the
+  # `reactivecircus`-free, install-free counterpart to the two jobs above.)
+  fixtures-android-action:
+    name: apps-android (action auto-KVM, lazy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # Expose the freshly-built package so the action's bare `npx doc-detective`
+      # (version: '') resolves THIS build instead of the published one.
+      - run: npm link
+
+      # The action enables KVM (android: auto detects the android specs) and runs
+      # the linked local build — no manual KVM step, no `install android`. Doc
+      # Detective downloads the toolchain and boots the emulator itself.
+      - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
+        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/apps-android
+          android: auto
+
+      # Require a PASS: KVM enabled + lazy bootstrap + boot + run must all work,
+      # or this is an all-SKIP that fails the gate.
+      - name: Gate on results
+        shell: bash
+        run: |
+          cp "$RUNNER_TEMP/doc-detective-output.json" dd-output-apps-android.json
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
+
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-apps-android-action
           path: dd-output-apps-android.json
           retention-days: 3
           if-no-files-found: warn
