@@ -8,6 +8,7 @@
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition = string | [string, ...string[]];
+export type DeviceByName = string;
 /**
  * OpenAPI description and configuration.
  */
@@ -83,7 +84,7 @@ export interface Context {
   /**
    * Platforms to run tests on.
    */
-  platforms?: ("linux" | "mac" | "windows") | ("linux" | "mac" | "windows")[];
+  platforms?: ("linux" | "mac" | "windows" | "android" | "ios") | ("linux" | "mac" | "windows" | "android" | "ios")[];
   /**
    * Browsers to run tests on.
    */
@@ -99,6 +100,10 @@ export interface Context {
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */
   requires?: string | [string, ...string[]] | Requirements;
+  /**
+   * Default device for a mobile (`android`/`ios`) context. A string references a device by name; an object refines it. The `platform` is implied by the context, so it is not required here. When the named device doesn't already exist, Doc Detective creates it with defaults (see `deviceType`/`osVersion`), provided the toolchain is installed (`doc-detective install android`). Same shape as `startSurface.device`.
+   */
+  device?: DeviceByName | DeviceDescriptor;
 }
 /**
  * Browser configuration.
@@ -209,6 +214,42 @@ export interface Requirements {
    * @minItems 1
    */
   env?: [string, ...string[]];
+}
+export interface DeviceDescriptor {
+  /**
+   * Target platform. Selects the mobile driver. Required in `startSurface.device`; implied by the context in `context.device`.
+   */
+  platform?: "android" | "ios";
+  /**
+   * Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`).
+   */
+  name?: string;
+  /**
+   * Abstract hardware profile used when creating a device (portable across `android`/`ios`). Doc Detective maps it to a built-in profile. Ignored when `name` already matches an existing device. Default: `phone`.
+   */
+  deviceType?: "phone" | "tablet";
+  /**
+   * Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version.
+   */
+  osVersion?: string;
+  /**
+   * Run the Android emulator without a window. Ignored where not applicable.
+   */
+  headless?: boolean;
+  /**
+   * Initial orientation. Reserved; validated now, not yet implemented.
+   */
+  orientation?: "portrait" | "landscape";
+  /**
+   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
+   */
+  udid?: string;
+  /**
+   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
+   */
+  provider?: {
+    [k: string]: unknown;
+  };
 }
 export interface OpenAPIDescriptionTest {
   [k: string]: unknown;

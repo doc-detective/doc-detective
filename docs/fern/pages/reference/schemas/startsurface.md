@@ -16,7 +16,7 @@ description: "Reference for the `startSurface` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-startSurface | object([startSurface](/reference/schemas/startsurface)) | Required. Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the native app branch: launch a Windows or macOS desktop application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. The mobile fields (`install`, `activity`, `device`) are validated now and land in later phases; browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md. | 
+startSurface | object([startSurface](/reference/schemas/startsurface)) | Required. Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator via the `device`, `install`, and `activity` fields (iOS lands in A4). Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md. | 
 
 ## Examples
 

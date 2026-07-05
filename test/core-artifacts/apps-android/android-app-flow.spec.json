@@ -1,0 +1,40 @@
+{
+  "specId": "android-app-flow-a3b",
+  "description": "Native app surfaces phase A3b (docs/design/native-app-surfaces.md): the default-device path. On a capable host (Linux + KVM with a running or bootable emulator) Doc Detective resolves the default Android device, opens the Settings app through the lazily-installed UiAutomator2 driver, captures it, and closes the surface. On every incapable host (Windows/macOS runners, or Linux without KVM) the android preflight lands the context SKIPPED (no hardware acceleration) — asserted gating, not a gap. No `device` is specified anywhere, so this exercises default-device resolution (reuse a running emulator, else the doc-detective AVD, else create it).",
+  "tests": [
+    {
+      "testId": "android-settings-flow",
+      "description": "Open the preinstalled Settings app (present on every Android system image), wait for it to become ready, screenshot it, and close the surface. Element-level find/click are exercised in the multi-app spec; this one keeps to boot/session/capture/teardown so it is robust across API levels.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-settings.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}

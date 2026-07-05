@@ -1,6 +1,10 @@
 import { validate } from "../../common/src/validate.js";
 import { switchToSurface } from "./browserSurface.js";
-import { resolveAppSurfaceRef, findAppElement } from "./appSurface.js";
+import {
+  resolveAppSurfaceRef,
+  findAppElement,
+  ensureAppForeground,
+} from "./appSurface.js";
 import {
   findElementByShorthand,
   findElementByCriteria,
@@ -77,6 +81,14 @@ async function findElement({ config, step, driver, click, appSession }: { config
         result.status = "FAIL";
         result.description =
           "Window selectors on app surfaces land in a later part of this phase; act on the app's active window for now (omit `window`).";
+        return result;
+      }
+      // Activate this app on its shared Android device session (no-op on
+      // desktop / when already foreground) before locating.
+      const switched = await ensureAppForeground(appRef.entry!, appSession);
+      if (switched.error) {
+        result.status = "FAIL";
+        result.description = switched.error;
         return result;
       }
       const appDriver = appRef.entry!.driver;

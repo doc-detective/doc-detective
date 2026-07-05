@@ -3147,7 +3147,6 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
                 platform: "ios",
                 name: "iPhone 15",
                 orientation: "landscape",
-                type: "device",
                 udid: "00008110-001234567890ABCD",
                 provider: { browserstack: { app: "bs://abc123" } },
               },
@@ -3317,6 +3316,121 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               keys: ["hello"],
               surface: { app: "notepad" },
               waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+    });
+
+    describe("native app surfaces (phase A3a): mobile contexts + revised device descriptor", function () {
+      // --- context_v3: android/ios target platforms ---
+
+      it("should validate an android target platform in a context", function () {
+        for (const platforms of ["android", "ios", ["android", "ios"]]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms },
+          });
+          expect(result.valid, JSON.stringify(platforms)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate a context device (reference form, platform implied)", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: "android", device: { name: "pixel7" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a context device (provisioning form)", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: {
+            platforms: "android",
+            device: {
+              name: "phone",
+              deviceType: "phone",
+              osVersion: "14",
+              headless: true,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a context device string reference", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: "android", device: "pixel7" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an unknown context device field", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: "android", device: { name: "p", foo: 1 } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // --- deviceDescriptor: deviceType replaces the old reserved `type` ---
+
+      it("should validate deviceType phone and tablet on a startSurface device", function () {
+        for (const deviceType of ["phone", "tablet"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              startSurface: {
+                app: "com.example.app",
+                device: { platform: "android", name: "d", deviceType },
+              },
+            },
+          });
+          expect(result.valid, deviceType).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject the retired reserved `type` device field", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { platform: "android", name: "d", type: "emulator" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject an unknown deviceType value", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { platform: "android", name: "d", deviceType: "tv" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should still require platform on a startSurface device object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { name: "pixel7", deviceType: "phone" },
             },
           },
         });
