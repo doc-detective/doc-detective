@@ -117,14 +117,18 @@ describe("probePtyAllocation (ConPTY watchdog, issue #501)", function () {
     // reports as { ok: false } — proving the worker resolves, runs, and messages back
     // without ever spawning a real PTY.
     this.timeout(20000);
+    const marker = `dd-no-such-pty-backend-${process.pid}`;
     const res = await probePtyAllocation({
-      ptyModulePath: path.join(
-        os.tmpdir(),
-        `dd-no-such-pty-backend-${process.pid}.mjs`
-      ),
+      ptyModulePath: path.join(os.tmpdir(), `${marker}.mjs`),
       timeoutMs: 15000,
     });
     assert.equal(res.outcome, "inconclusive");
+    // The detail must carry the (missing) backend path from the worker's own
+    // dynamic-import failure — proving main() actually ran inside the worker,
+    // not that the worker failed to start (which would also read "inconclusive"
+    // but would NOT mention our path). This guards against a regression where
+    // the worker silently doesn't execute the probe body.
+    assert.match(res.detail, new RegExp(marker));
   });
 });
 
