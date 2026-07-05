@@ -226,3 +226,4 @@ Xcode
 toolchain
 widget
 Temurin
+XCUITest

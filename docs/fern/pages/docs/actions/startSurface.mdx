@@ -1,17 +1,19 @@
 ---
 title: startSurface
-description: Launch a native desktop or Android app as a surface that later steps can target.
+description: Launch a native desktop, Android, or iOS app as a surface that later steps can target.
 ---
 
 
 The `startSurface` action launches a native application and registers it as a surface, so later steps can target it with `surface`. Once an app surface is open, `find`, `click`, `type`, and `screenshot` steps can act on it, and `closeSurface` can close it.
 
-App surfaces are the third kind of surface, alongside background processes and browser windows and tabs. `startSurface` supports **native Windows and macOS desktop apps** and **Android apps on a managed emulator**. On unsupported platforms, Doc Detective skips the context with an actionable reason instead of failing, so cross-platform specs stay green (see [Platform support](#platform-support)).
+App surfaces are the third kind of surface, alongside background processes and browser windows and tabs. `startSurface` supports **native Windows and macOS desktop apps**, **Android apps on a managed emulator**, and **iOS apps on a managed simulator**. On unsupported platforms, Doc Detective skips the context with an actionable reason instead of failing, so cross-platform specs stay green (see [Platform support](#platform-support)).
 
 <Note>
-Doc Detective drives native apps through a platform-specific Appium driver — `appium-novawindows-driver` on Windows, `appium-mac2-driver` on macOS, and `appium-uiautomator2-driver` on Android — and installs it on demand the first time an app surface starts. To install one ahead of time, run `doc-detective install runtime appium-novawindows-driver` on Windows or `doc-detective install runtime appium-mac2-driver` on macOS.
+Doc Detective drives native apps through a platform-specific Appium driver — `appium-novawindows-driver` on Windows, `appium-mac2-driver` on macOS, `appium-uiautomator2-driver` on Android, and `appium-xcuitest-driver` on iOS — and installs it on demand the first time an app surface starts. To install one ahead of time, run `doc-detective install runtime appium-novawindows-driver` on Windows or `doc-detective install runtime appium-mac2-driver` on macOS.
 
 Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
+
+iOS app surfaces run only on a macOS host and drive an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; verify it ahead of time with [`doc-detective install ios`](/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
 </Note>
 
 ## Descriptor
@@ -21,20 +23,21 @@ Provide an object as the value for the `startSurface` key. Only `app` is require
 - `app`: (Required) The application to launch. Doc Detective identifies the kind from the value's syntax, never from a separate type field:
   - An **executable path** (Windows), such as `C:\Windows\System32\charmap.exe`.
   - A **`.app` path** (macOS), such as `/System/Applications/Calculator.app`.
-  - A **bundle ID or package name**, such as `com.apple.TextEdit` (macOS) or `com.android.settings` (Android).
+  - A **bundle ID or package name**, such as `com.apple.TextEdit` (macOS), `com.android.settings` (Android), or `com.apple.Preferences` (iOS).
+  - An **app-bundle path** (iOS), such as a `.app` or `.ipa`, which Doc Detective installs before launch.
   - A **UWP AppUserModelID** (Windows), such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`.
 - `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`charmap.exe` becomes `charmap`), the final dot-segment of a bundle ID or package name (`com.apple.TextEdit` becomes `TextEdit`, `com.android.settings` becomes `settings`), the base name of a `.app` path (`/System/Applications/Calculator.app` becomes `Calculator`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`).
-- `args`: (Optional, desktop only) An array of launch arguments to pass to the app. On macOS they reach the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument that contains spaces must carry its own quotes. The Android driver doesn't accept `args`, and setting it there fails the step with guidance.
-- `env`: (Optional, macOS only) Extra environment variables for the launched app. The Windows and Android drivers don't support `env`, and setting it there fails the step with guidance. Instead, set variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell).
-- `workingDirectory`: (Optional, Windows only) The working directory for the launched app. Defaults to the run's working directory. macOS and Android offer no working-directory control at launch, so a non-default value fails the step there with guidance; use [`runShell`](/docs/actions/runshell) if the working directory matters.
-- `device`: (Optional, Android) The device the app runs on, as a device name or a device descriptor object. Omit it for a desktop app, or (in an Android context) to use the context's default device. See [Choose the emulator](#choose-the-emulator).
-- `install`: (Optional, Android) A path to an `.apk` to install on the device before launch, so you can test an app that isn't already on the emulator. On desktop platforms the field validates but is ignored.
-- `activity`: (Optional, Android) The main activity to launch, overriding the package's default launcher activity. Only meaningful on Android.
+- `args`: (Optional, desktop only) An array of launch arguments to pass to the app. On macOS they reach the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument that contains spaces must carry its own quotes. The Android and iOS drivers don't accept `args`, and setting it there fails the step with guidance.
+- `env`: (Optional, macOS only) Extra environment variables for the launched app. The Windows, Android, and iOS drivers don't support `env`, and setting it there fails the step with guidance. Instead, set variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell).
+- `workingDirectory`: (Optional, Windows only) The working directory for the launched app. Defaults to the run's working directory. macOS, Android, and iOS offer no working-directory control at launch, so a non-default value fails the step there with guidance; use [`runShell`](/docs/actions/runshell) if the working directory matters.
+- `device`: (Optional, Android and iOS) The device the app runs on, as a device name or a device descriptor object. Omit it for a desktop app, or (in an Android or iOS context) to use the context's default device. See [Choose the emulator](#choose-the-emulator) and [Choose the simulator](#choose-the-simulator).
+- `install`: (Optional, Android and iOS) A path to an app bundle to install on the device before launch, so you can test an app that isn't already on it: an `.apk` on Android, or an `.app` or `.ipa` on iOS. When set on iOS, the installable payload also becomes the app to launch, overriding `app`. On desktop platforms the field validates but is ignored.
+- `activity`: (Optional, Android) The main activity to launch, overriding the package's default launcher activity. Only meaningful on Android; setting it on iOS fails the step, since iOS launches by bundle identifier or installed app payload.
 - `waitUntil`: (Optional) A readiness condition that must hold before the surface is considered open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
-- `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode, which can take several minutes on a cold machine; Doc Detective raises the server startup ceiling to at least 120000 ms for that first build regardless of `timeout`. On Android, booting a cold emulator (or creating one) can also take longer than the default, so give the first surface a generous `timeout`.
+- `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode, which can take several minutes on a cold machine; Doc Detective raises the server startup ceiling to at least 120000 ms for that first build regardless of `timeout`. iOS does the same: the first surface builds WebDriverAgent for the simulator, and Doc Detective floors the agent's launch and connection ceilings at 120000 ms so a cold build isn't aborted early. On Android, booting a cold emulator (or creating one) can also take longer than the default, so give the first surface a generous `timeout`.
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
-On Windows and macOS, opening two app surfaces with the same `name` in one context fails, so pass a distinct `name` when you launch more than one app. Android is the exception: apps on one device share a single session, so a later `startSurface` installs the app if `install` is set and brings it to the foreground, letting one test drive several apps on the same emulator.
+On Windows and macOS, opening two app surfaces with the same `name` in one context fails, so pass a distinct `name` when you launch more than one app. The mobile platforms are the exception: apps on one device or simulator share a single session, so a later `startSurface` installs the app if `install` is set and brings it to the foreground, letting one test drive several apps on the same emulator or simulator.
 
 > For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
 
@@ -48,24 +51,24 @@ After `startSurface` registers an app, reference it from a later step with a `su
 }
 ```
 
-Doc Detective locates elements on an app surface through the platform's accessibility layer (UI Automation on Windows, the macOS accessibility (AX) tree on macOS, and UiAutomator2 on Android), so the element criteria you already use in the browser map onto native controls:
+Doc Detective locates elements on an app surface through the platform's accessibility layer (UI Automation on Windows, the macOS accessibility (AX) tree on macOS, UiAutomator2 on Android, and XCUITest on iOS), so the element criteria you already use in the browser map onto native controls:
 
-- `elementText` matches a control's visible text. On macOS this covers a control's title, label, or value, so it also matches the content of text views and value displays. On Android it matches a widget's `text` attribute.
-- `elementId` and `elementTestId` match a control's automation ID (its accessibility identifier on macOS, its resource ID on Android).
+- `elementText` matches a control's visible text. On macOS and iOS this covers a control's title, label, or value, so it also matches the content of text views and value displays. On Android it matches a widget's `text` attribute.
+- `elementId` and `elementTestId` match a control's automation ID (its accessibility identifier on macOS and iOS, its resource ID on Android).
 - `elementAria` matches a control's role, and its accessible name when you provide one. Pass the accessible name as a string; the `{ role, name }` object form isn't available yet. On Android the role maps to the widget's class (for example, `button` to `android.widget.Button`) and the accessible name matches its content description.
 
-On Android, a control's `text` and its content description are two distinct attributes, so `elementText` and `elementAria`'s name target different things—one control can carry both. On Windows and macOS the two collapse to a single accessible name, so setting both `elementText` and `elementAria` on one step conflicts and fails; specify one.
+On Android, a control's `text` and its content description are two distinct attributes, so `elementText` and `elementAria`'s name target different things—one control can carry both. On Windows, macOS, and iOS the two collapse to a single accessible name, so setting both `elementText` and `elementAria` on one step conflicts and fails; specify one.
 
 For controls the semantic fields can't reach, `selector` accepts a native locator instead of a CSS selector:
 
-- An **XPath**. On Windows the element names are UIA control types, such as `//Button[@Name="Save"]`; on macOS they're XCUIElementType tags, such as `//XCUIElementTypeButton[@title="Add"]`; on Android they're widget classes, such as `//android.widget.Button[@text="Save"]`.
+- An **XPath**. On Windows the element names are UIA control types, such as `//Button[@Name="Save"]`; on macOS and iOS they're XCUIElementType tags, such as `//XCUIElementTypeButton[@title="Add"]`; on Android they're widget classes, such as `//android.widget.Button[@text="Save"]`.
 - An **accessibility ID**, prefixed with `~`, such as `~SaveButton`. On Android this resolves to the control's content description, not its resource ID; a lone `elementId`/`elementTestId` already targets the resource ID for you.
 
 CSS selectors are browser-only and fail on app surfaces, as do the `elementClass` and `elementAttribute` fields. The error message names the supported alternatives.
 
 ## Platform support
 
-`startSurface` launches native apps on Windows, macOS, and Android. On other platforms, including Linux and iOS, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run. iOS app surfaces are on the native app roadmap for a later phase; a context that targets `ios` today skips with a pointer to it.
+`startSurface` launches native apps on Windows, macOS, Android, and iOS. On other platforms, including Linux, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run. iOS app surfaces run only on a macOS host; an `ios` context on Windows or Linux skips with a pointer to that requirement.
 
 Because an app targets one platform, gate app tests to the platform they run on with a [context](/docs/test-docs/platforms-and-browsers). A Windows app targets the `windows` platform:
 
@@ -98,6 +101,18 @@ An Android app targets the `android` platform:
   "runOn": [
     {
       "platforms": ["android"]
+    }
+  ]
+}
+```
+
+An iOS app targets the `ios` platform:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["ios"]
     }
   ]
 }
@@ -163,6 +178,46 @@ Without a `device`, an Android app runs on the context's default emulator, which
 - `deviceType` picks the hardware profile — `phone` (the default) or `tablet` — when Doc Detective creates the device. It's ignored when `name` matches an existing AVD.
 - `osVersion` picks the Android version for a newly created device and must match a system image you've installed; install more with `doc-detective install android`. It defaults to the newest installed version and is ignored when `name` matches an existing AVD.
 - `headless` runs the emulator without a window.
+
+Set a device once on the context to share it across every app the test launches. For the full list of device fields, including the ones reserved for later phases, see the [device descriptor](/reference/schemas/device-descriptor) reference.
+
+## Run on an iOS simulator
+
+An `ios` context runs the app on an iOS simulator that Doc Detective manages for you with `simctl`. iOS app surfaces run only on a macOS host: on Windows or Linux, an `ios` context skips with a reason rather than failing, so a cross-platform spec stays green.
+
+The simulator tooling ships with Xcode rather than as a separate download, so there's nothing multi-GB to fetch. The host does need the Xcode command-line tools configured (`xcode-select -p`), the simulator control tool available (`xcrun simctl`), and at least one installed iOS runtime for Doc Detective to boot a simulator against. Check those prerequisites ahead of a run:
+
+```bash
+doc-detective install ios --yes
+```
+
+See [`install ios`](/reference/cli/install#install-ios) for what the command verifies and the guidance it prints when a prerequisite is missing. When the host can't run an iOS simulator (a non-macOS host, or a macOS host without Xcode or an installed runtime), the context skips with a pointer back to that command instead of failing. The `appium-xcuitest-driver` installs on demand the first time an `ios` surface starts.
+
+The first `ios` surface of a run builds WebDriverAgent for the simulator, which can take several minutes on a cold machine, so give it a generous `timeout` as you would on macOS or Android.
+
+### Choose the simulator
+
+Without a `device`, an iOS app runs on the context's default simulator: Doc Detective reuses a booted iPhone simulator if one is available, otherwise boots or creates the newest installed iPhone. Set `device` on the context or the `startSurface` step to name a simulator or refine it:
+
+```json
+{
+  "startSurface": {
+    "app": "com.apple.Preferences",
+    "device": {
+      "name": "dd-iphone",
+      "deviceType": "phone",
+      "osVersion": "17"
+    }
+  }
+}
+```
+
+- `name` is the simulator's identity. If a simulator with that name already exists, Doc Detective reuses it (booting it if needed); otherwise it creates one under that name. Reusing a name across steps and tests targets the same simulator.
+- `deviceType` picks the device family that Doc Detective creates: `phone` (the default, an iPhone) or `tablet` (an iPad). It's ignored when `name` matches an existing simulator.
+- `osVersion` picks the iOS runtime version for a newly created simulator and must match a runtime you've installed through Xcode. It defaults to the newest installed version and is ignored when `name` matches an existing simulator.
+- `headless` is a no-op on iOS: simulators boot without the Simulator UI on CI, so there's no window to suppress.
+
+Doc Detective only ever boots an iPhone or iPad simulator for an `ios` context, so a visionOS, watchOS, or tvOS simulator is never selected. At the end of a run, Doc Detective shuts down only the simulators it booted, leaving any you had already booted running.
 
 Set a device once on the context to share it across every app the test launches. For the full list of device fields, including the ones reserved for later phases, see the [device descriptor](/reference/schemas/device-descriptor) reference.
 
@@ -415,6 +470,47 @@ This example targets the `android` platform, launches the Settings app by its pa
         {
           "description": "Close the Settings app.",
           "closeSurface": { "app": "settings" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Launch an iOS app on a simulator
+
+This example targets the `ios` platform, launches the Settings app by its bundle ID on the context's default simulator, waits until its content is on screen, captures the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot and WebDriverAgent build fit inside it.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["ios"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch the Settings app and wait until it's ready.",
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": { "elementText": "Settings" }
+            }
+          }
+        },
+        {
+          "description": "Capture the window.",
+          "screenshot": {
+            "path": "ios-settings.png",
+            "surface": { "app": "Preferences" }
+          }
+        },
+        {
+          "description": "Close the Settings app.",
+          "closeSurface": { "app": "Preferences" }
         }
       ]
     }
