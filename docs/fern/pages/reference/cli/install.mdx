@@ -110,7 +110,7 @@ doc-detective install android --dry-run
 
 <Note>
 
-`install android` requires a **Java runtime (JRE 17+)** for `sdkmanager`/`avdmanager`. It is **not** part of `install all` — the multi-GB downloads are opt-in, so you install the Android toolchain deliberately, not as a side effect of preparing a general test environment.
+`sdkmanager`/`avdmanager` need a **Java runtime (JRE 17+)**. If your host already has one, `install android` uses it; if not, Doc Detective downloads a portable Temurin JRE into its cache as part of the (confirmed) install, so Java is not a prerequisite you have to set up yourself. `install android` is **not** part of `install all` — the multi-GB downloads are opt-in, so you install the Android toolchain deliberately, not as a side effect of preparing a general test environment.
 
 **Running this ahead of time is optional but recommended.** A test run that targets `android` on a **capable** host (one that can run the emulator) will **lazily install** the toolchain itself the first time it needs it, printing a clear warning to the terminal and the output report. Running `install android` beforehand simply pre-warms the cache so that cost isn't paid mid-run — ideal for CI images and containers. To forbid the lazy install entirely (e.g. an air-gapped host that must never auto-download), set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`; the context then SKIPs with a pointer back to this command. A host that *can't* run the emulator (no hardware acceleration) always SKIPs without downloading anything.
 
