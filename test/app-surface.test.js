@@ -17,6 +17,7 @@ import {
   createAppSessionState,
   appSurfacePreflight,
   probeMacAccessibility,
+  probeIosToolchain,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -698,6 +699,76 @@ describe("appSurfacePreflight", function () {
     });
     assert.equal(outcome.ok, true);
     assert.deepEqual(installed, ["appium"]);
+  });
+});
+
+describe("probeIosToolchain", function () {
+  it("skips on a non-mac host without probing commands", function () {
+    let probed = false;
+    const outcome = probeIosToolchain({
+      platform: "win32",
+      run: () => {
+        probed = true;
+        return { status: 0 };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
+    assert.equal(probed, false);
+  });
+
+  it("skips when xcode-select is not configured", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select" ? { status: 1 } : { status: 0 },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /Xcode command-line tools/);
+  });
+
+  it("skips with the developer dir + diagnostic when simctl fails", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command, args) => {
+        if (command === "xcode-select")
+          return { status: 0, stdout: "/Applications/Xcode.app/Contents/Developer\n" };
+        // xcrun simctl
+        return { status: 72, stderr: "xcrun: error: unable to find utility \"simctl\"" };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /simctl/);
+    assert.match(outcome.reason, /Xcode\.app\/Contents\/Developer/);
+    assert.match(outcome.reason, /unable to find utility/);
+  });
+
+  it("reports a timed-out simctl (null status) distinctly", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select"
+          ? { status: 0, stdout: "/dev" }
+          : { status: null, stderr: "" },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /timed out/);
+  });
+
+  it("passes when xcode-select and simctl both succeed", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: () => ({ status: 0, stdout: "/Applications/Xcode.app/Contents/Developer" }),
+    });
+    assert.deepEqual(outcome, { ok: true });
+  });
+
+  it("the real probe returns a definitive ok/not-ok shape on macOS", async function () {
+    // Exercise the real spawnSync path (default runner) so a broken invocation
+    // is visible; on non-mac hosts the early return already covers this.
+    if (process.platform !== "darwin") this.skip();
+    const outcome = probeIosToolchain();
+    assert.equal(typeof outcome.ok, "boolean");
   });
 });
 

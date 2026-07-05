@@ -582,17 +582,17 @@ function buildAcquireSimulatorDeps(
 } {
   return {
     listDevices: async () => {
-      const { stdout } = await runSimctl(["list", "devices", "--json"], 30000);
+      const { stdout } = await runSimctl(["list", "devices", "--json"], 60000);
       return parseSimctlDevices(stdout);
     },
     listRuntimes: async () => {
-      const { stdout } = await runSimctl(["list", "runtimes", "--json"], 30000);
+      const { stdout } = await runSimctl(["list", "runtimes", "--json"], 60000);
       return parseSimctlRuntimes(stdout);
     },
     listDeviceTypes: async () => {
       const { stdout } = await runSimctl(
         ["list", "devicetypes", "--json"],
-        30000
+        60000
       );
       return parseSimctlDeviceTypes(stdout);
     },

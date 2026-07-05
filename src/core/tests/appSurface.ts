@@ -805,19 +805,51 @@ async function probeMacAccessibility(): Promise<boolean | null> {
   });
 }
 
-function probeIosToolchain(): { ok: true } | { ok: false; reason: string } {
-  if (process.platform !== "darwin") {
+// Probe the iOS simulator toolchain: a macOS host, a configured Xcode
+// (`xcode-select -p`), and a working `xcrun simctl`. Effects are injected
+// (platform + a command runner) so every branch is unit-testable on any host —
+// the same seam iosInstaller uses. The default runner gives `xcrun simctl` a
+// generous timeout: the FIRST cold `simctl` call on a runner with many Xcodes
+// and simulator runtimes launches CoreSimulatorService and can take far longer
+// than a warm call (a 20s ceiling spuriously reported it "unavailable" on
+// hosted macos-latest). A failure surfaces the selected developer dir and the
+// command's own diagnostic so the skip is actionable, not opaque.
+function probeIosToolchain(
+  deps: {
+    platform?: NodeJS.Platform;
+    run?: (
+      command: string,
+      args: string[]
+    ) => { status: number | null; stdout?: string; stderr?: string };
+  } = {}
+): { ok: true } | { ok: false; reason: string } {
+  const platform = deps.platform ?? process.platform;
+  const run =
+    deps.run ??
+    ((command: string, args: string[]) => {
+      const result = spawnSync(command, args, {
+        encoding: "utf8",
+        windowsHide: true,
+        // xcrun/simctl gets 2 minutes for the cold CoreSimulator warm-up;
+        // xcode-select is a cheap path lookup.
+        timeout: command === "xcrun" ? 120000 : 15000,
+        maxBuffer: 32 * 1024 * 1024,
+      });
+      return {
+        status: result.status,
+        stdout: typeof result.stdout === "string" ? result.stdout : "",
+        stderr: typeof result.stderr === "string" ? result.stderr : "",
+      };
+    });
+
+  if (platform !== "darwin") {
     return {
       ok: false,
       reason:
         "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
     };
   }
-  const xcodeSelect = spawnSync("xcode-select", ["-p"], {
-    encoding: "utf8",
-    windowsHide: true,
-    timeout: 15000,
-  });
+  const xcodeSelect = run("xcode-select", ["-p"]);
   if (xcodeSelect.status !== 0) {
     return {
       ok: false,
@@ -825,16 +857,21 @@ function probeIosToolchain(): { ok: true } | { ok: false; reason: string } {
         "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
     };
   }
-  const simctl = spawnSync("xcrun", ["simctl", "list", "devices"], {
-    encoding: "utf8",
-    windowsHide: true,
-    timeout: 20000,
-  });
+  const developerDir = String(xcodeSelect.stdout ?? "").trim();
+  const simctl = run("xcrun", ["simctl", "list", "devices", "available"]);
   if (simctl.status !== 0) {
+    const detail =
+      String(simctl.stderr ?? "")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .pop() ||
+      (simctl.status === null
+        ? "the command timed out"
+        : `exit ${simctl.status}`);
     return {
       ok: false,
-      reason:
-        "Skipping context on 'ios': `xcrun simctl` is unavailable. Open Xcode once to finish simulator components and rerun.",
+      reason: `Skipping context on 'ios': \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
     };
   }
   return { ok: true };

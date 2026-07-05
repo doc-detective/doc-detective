@@ -70,22 +70,6 @@ jobs:
           npm ls -g doc-detective || true
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 
-      # TEMP diagnostic (remove before PR): ground-truth the iOS simulator
-      # toolchain on the hosted runner, since probeIosToolchain reported
-      # `xcrun simctl` unavailable.
-      - name: iOS toolchain diagnostic
-        if: inputs.group == 'apps-ios'
-        shell: bash
-        run: |
-          echo "== xcode-select -p =="; xcode-select -p || true
-          echo "== DEVELOPER_DIR env: '$DEVELOPER_DIR' =="
-          echo "== ls /Applications (Xcode) =="; ls /Applications | grep -i xcode || true
-          echo "== xcodebuild -version =="; xcodebuild -version || true
-          echo "== xcrun -f simctl =="; xcrun -f simctl || true
-          echo "== xcrun simctl list devices available =="
-          xcrun simctl list devices available; echo "simctl list exit=$?"
-          echo "== xcrun simctl list runtimes =="; xcrun simctl list runtimes || true
-
       - name: Run ${{ inputs.group }} fixtures
         uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
         with:
