@@ -69,6 +69,8 @@ By default, a background process runs behind a pipe. That works for line-oriente
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement, so match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
+On Windows, if a native app surface (a [`startSurface`](/docs/actions/start-surface) step) ran earlier in the same run, the console subsystem can occasionally be left unable to allocate a new pseudo-terminal, which would otherwise freeze the run. Doc Detective guards against this: before starting a `tty` process it briefly probes pseudo-terminal allocation, and if allocation is wedged it **skips** the `tty` step (with an explanatory message) rather than hanging. Non-Windows platforms are unaffected.
+
 ## Examples
 
 Here are a few ways you might use the `runShell` action:

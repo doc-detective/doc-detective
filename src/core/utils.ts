@@ -6,7 +6,8 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
-import { loadHeavyDep } from "../runtime/loader.js";
+import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { assertConptyAllocatable } from "./ptyWatchdog.js";
 
 export {
   outputResults,
@@ -412,6 +413,21 @@ async function spawnPtyBackgroundCommand(
     err.code = "NODE_PTY_UNAVAILABLE";
     throw err;
   }
+
+  // Windows-only ConPTY watchdog (issue #501). A prior native app-surface
+  // (NovaWindows) context in the same process can leave the console subsystem
+  // unable to allocate a new pseudo-terminal, and the next `pty.spawn` then
+  // blocks the event loop FOREVER (a same-thread timeout can't fire — the loop
+  // itself is wedged). assertConptyAllocatable probes the allocation in a worker
+  // thread (which shares this process's console, so it reproduces the poison a
+  // child process wouldn't) BEFORE the real spawn. Only a genuine wedge degrades
+  // to a SKIP (NODE_PTY_UNAVAILABLE); a healthy/inconclusive probe returns and we
+  // fall through to the direct spawn below, so the happy path can never regress.
+  await assertConptyAllocatable({
+    ptyModulePath: resolveHeavyDepPath(PTY_PACKAGE, {
+      cacheDir: options.cacheDir,
+    }),
+  });
 
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;
