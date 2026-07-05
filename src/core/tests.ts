@@ -75,6 +75,28 @@ import {
   teardownAppSession,
   type AppSessionState,
 } from "./tests/appSurface.js";
+import {
+  isMobileTargetPlatform,
+  mobileContextSkipReason,
+} from "./tests/mobilePlatform.js";
+import { detectAndroidSdk } from "../runtime/androidSdk.js";
+import {
+  hostAbi,
+  listInstalledSystemImages,
+  installAndroid,
+} from "../runtime/androidInstaller.js";
+import {
+  buildAcquireDeviceDeps,
+  checkEmulatorAcceleration,
+  hostHasKvm,
+  planDeviceAcquisition,
+  planAndroidToolchain,
+  normalizeDeviceDescriptor,
+  acquireDevice,
+  createDeviceRegistry,
+  teardownDeviceRegistry,
+  type DeviceRegistry,
+} from "./tests/androidEmulator.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import {
@@ -395,7 +417,18 @@ function jobDisplayResources(
   }
 ): string[] {
   const base = jobExclusiveResources(job, ctx);
-  if (base.length) return base;
+  // Android emulator contexts (phase A3b) serialize against each other: each
+  // emulator is GBs of RAM, so bound their concurrency to one at a time. This
+  // is exclusivity-as-bound on a single resource name (a counted semaphore is
+  // future work); it composes with any recording "display" resource above.
+  // Only android contexts that will actually attempt the emulator take it — an
+  // android+browser context deterministically SKIPs (phase A5) before any
+  // emulator/toolchain work, so it must not needlessly serialize other jobs.
+  const attemptsEmulator =
+    job.context?.platform === "android" &&
+    !isBrowserRequired({ test: job.context });
+  const extra = attemptsEmulator ? ["android-emulator"] : [];
+  if (base.length || extra.length) return [...new Set([...base, ...extra])];
   if (
     ctx.runHasDisplayRecording &&
     isDriverRequired({ test: { steps: job.context?.steps } })
@@ -481,6 +514,227 @@ function contextRequirementsSkipMessage({
   });
   if (met) return null;
   return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
+}
+
+// The device descriptors a test needs: each startSurface's `device` (undefined
+// when it omits one — the context default / auto device). At least one entry so
+// a test with no explicit device still validates the default device.
+function collectDeviceDescriptors(context: any): any[] {
+  const out: any[] = [];
+  for (const step of context?.steps ?? []) {
+    if (step?.startSurface) out.push(step.startSurface.device);
+  }
+  return out.length ? out : [undefined];
+}
+
+// The osVersions a test's device descriptors request (undefined = "newest"),
+// used to decide which system image the lazy toolchain install must fetch.
+function requiredAndroidOsVersions(context: any): (string | undefined)[] {
+  return collectDeviceDescriptors(context).map(
+    (stepDevice) =>
+      normalizeDeviceDescriptor({
+        contextDevice: context.device,
+        stepDevice,
+        platform: "android",
+      }).osVersion
+  );
+}
+
+// Android context preflight (native app phase A3b): host-capability probe →
+// lazy toolchain install (when the run needs it) → per-device resolvability →
+// UiAutomator2 driver install. Every gap is a gating SKIP (never FAIL). The
+// toolchain (SDK + system image) is NOT installed by default, but IS lazily
+// installed — with a loud warning surfaced to the terminal AND the output
+// report — when a run that reaches a capable host actually needs it. On ok,
+// returns the Appium entry/home, SDK root, injected device-effect bundle, and
+// any warnings to attach to the context report.
+async function androidContextPreflight({
+  config,
+  context,
+  clog,
+}: {
+  config: any;
+  context: any;
+  clog: (level: string, msg: string) => void;
+}): Promise<
+  | {
+      ok: true;
+      appiumEntry: string;
+      appiumHome: string;
+      sdkRoot: string;
+      deviceDeps: any;
+      warnings: string[];
+    }
+  | { ok: false; level: "warning" | "info"; reason: string }
+> {
+  const hasBrowserStep = isBrowserRequired({ test: context });
+  if (hasBrowserStep) {
+    const { level, reason } = mobileContextSkipReason({
+      platform: "android",
+      hasBrowserStep,
+    });
+    return { ok: false, level, reason };
+  }
+  /* c8 ignore start */
+  // The rest is effectful (SDK detect/install, emulator probes) so it's
+  // exercised on the CI emulator legs + dev boxes, not the unit suite — which
+  // covers the decision logic (planAndroidToolchain, planDeviceAcquisition,
+  // capabilities) in its own module and the skip paths via core-core.test.js.
+  // Wrapped so a misconfigured toolchain (adb/emulator that throw when probed)
+  // gates as a SKIP — "every gap is a gating SKIP" — instead of crashing the run.
+  try {
+  const abi = hostAbi();
+  let sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
+
+  // Host capability: with an SDK, probe acceleration (or reuse a running
+  // emulator). Without one, we can't run `emulator -accel-check`, so on Linux
+  // fall back to the cheap /dev/kvm proxy (avoids a multi-GB install on a host
+  // that couldn't run the emulator anyway). On macOS/Windows there's no cheap
+  // proxy — HVF/WHPX can only be probed via the emulator binary — so we can't
+  // claim "no acceleration"; point at the SDK instead of dead-ending.
+  let capable: boolean;
+  if (sdk?.emulator) {
+    const probeDeps = buildAcquireDeviceDeps(sdk, abi);
+    const running = await probeDeps.listRunning();
+    capable =
+      running.length > 0 || (await checkEmulatorAcceleration(sdk.emulator));
+  } else if (process.platform === "linux") {
+    capable = await hostHasKvm();
+  } else {
+    const hostName = process.platform === "darwin" ? "macOS" : "Windows";
+    const accel = process.platform === "darwin" ? "HVF" : "WHPX";
+    return {
+      ok: false,
+      level: "warning",
+      reason: `Skipping context on 'android': the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
+    };
+  }
+
+  const requiredOsVersions = requiredAndroidOsVersions(context);
+  const warnings: string[] = [];
+  const toolchain = planAndroidToolchain({
+    capable,
+    sdkPresent: sdk !== null,
+    requiredOsVersions,
+    installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
+    abi,
+  });
+  if (toolchain.action === "skip") {
+    return { ok: false, level: "warning", reason: toolchain.reason };
+  }
+  if (toolchain.action === "install") {
+    // Escape hatch: DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1 turns the lazy
+    // install back into a SKIP with the manual-install pointer, for
+    // environments that must never trigger a surprise multi-GB download (CI
+    // legs that only assert the skip paths, air-gapped hosts, etc.).
+    if (process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL === "1") {
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain isn't fully installed and auto-install is disabled (DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1). Install it with \`doc-detective install android\`.`,
+      };
+    }
+    // Loud warning to the terminal AND the report, then run the installer.
+    clog("warning", toolchain.reason);
+    warnings.push(toolchain.reason);
+    let reports: any[] = [];
+    try {
+      reports = await installAndroid({
+        yes: true,
+        osVersion: toolchain.osVersion,
+        ctx: { cacheDir: config.cacheDir },
+        deps: { logger: (m: string) => clog("debug", m) },
+      });
+    } catch (error: any) {
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
+      };
+    }
+    // installAndroid reports terminal conditions by RETURN, not by throwing
+    // (no Java, a failed download, a blocked image). Surface the actionable
+    // reason instead of falling through to the generic "still incomplete".
+    const terminal = reports.find((r) =>
+      ["missing", "failed", "blocked", "declined"].includes(r.action)
+    );
+    if (terminal) {
+      const detail =
+        terminal.assetId === "java"
+          ? "a Java runtime (JRE 17+) is required for the Android SDK tools — install one and rerun"
+          : terminal.action === "blocked"
+            ? `no matching Android system image is available (${terminal.assetId})`
+            : `the '${terminal.assetId}' step ${terminal.action}`;
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain couldn't be installed — ${detail}. See \`doc-detective install android\`.`,
+      };
+    }
+    sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
+    const recheck = planAndroidToolchain({
+      capable: true,
+      sdkPresent: sdk !== null,
+      requiredOsVersions,
+      installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
+      abi,
+    });
+    if (recheck.action !== "ready") {
+      return {
+        ok: false,
+        level: "warning",
+        reason: `Skipping context on 'android': the Android toolchain is still incomplete after an install attempt. Install it manually with \`doc-detective install android\`.`,
+      };
+    }
+  }
+
+  const deviceDeps = buildAcquireDeviceDeps(sdk!, abi, (m: string) =>
+    clog("debug", m)
+  );
+
+  // Device plan: every device the test needs must resolve (reuse an existing
+  // AVD/emulator, or create one from an installed image + Java). A gap SKIPs.
+  const running = await deviceDeps.listRunning();
+  const avds = await deviceDeps.listAvds();
+  const installedImages = deviceDeps.installedImages();
+  const javaPresent = deviceDeps.javaPresent();
+  for (const stepDevice of collectDeviceDescriptors(context)) {
+    const desc = normalizeDeviceDescriptor({
+      contextDevice: context.device,
+      stepDevice,
+      platform: "android",
+    });
+    const plan = planDeviceAcquisition(desc, {
+      running,
+      avds,
+      installedImages,
+      abi,
+      javaPresent,
+    });
+    if (plan.action === "skip") {
+      return { ok: false, level: "warning", reason: plan.reason };
+    }
+  }
+
+  // Driver install (uiautomator2) + Appium home, via the shared app preflight.
+  const pre = await appSurfacePreflight({ config, platform: "android" });
+  if (!pre.ok) return { ok: false, level: "warning", reason: pre.reason };
+  return {
+    ok: true,
+    appiumEntry: pre.appiumEntry,
+    appiumHome: pre.appiumHome,
+    sdkRoot: sdk!.sdkRoot,
+    deviceDeps,
+    warnings,
+  };
+  } catch (error: any) {
+    return {
+      ok: false,
+      level: "warning",
+      reason: `Skipping context on 'android': couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
+    };
+  }
+  /* c8 ignore stop */
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -1280,6 +1534,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // or the run-end sweep in the `finally` below.
   const processRegistry = new Map<string, any>();
 
+  // Run-level device registry (native app phase A3b): booted/reused Android
+  // emulators keyed by device name, shared across specs/tests so two contexts
+  // wanting the same device converge on one boot. Swept in the `finally` below —
+  // only devices Doc Detective booted are killed (launch-ownership).
+  const deviceRegistry: DeviceRegistry = createDeviceRegistry();
+
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
   // actually gone before the run returns. Idempotent: closeSurface already
@@ -1381,6 +1641,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           installAttempts,
           warmUpResults,
           processRegistry,
+          deviceRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -1475,6 +1736,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           installAttempts,
           warmUpResults,
           processRegistry,
+          deviceRegistry,
           platform,
           markAutoRecord,
           limit,
@@ -1529,6 +1791,18 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // Process may already be terminated
       }
     }
+    // Sweep the Android device registry (native app phase A3b): kill only the
+    // emulators Doc Detective booted (they carry a `process`), leaving
+    // pre-existing ones (bootedByUs=false, no process) running. tree-kill the
+    // emulator process the same way Appium servers are swept above.
+    /* c8 ignore start */
+    if (deviceRegistry.size > 0) {
+      await teardownDeviceRegistry(deviceRegistry, async (entry) => {
+        log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
+        await killTree(entry.process?.pid);
+      });
+    }
+    /* c8 ignore stop */
     process.off("SIGINT", onSignal);
     process.off("SIGTERM", onSignal);
   }
@@ -1608,6 +1882,7 @@ async function runRoutedSpec({
   installAttempts,
   warmUpResults,
   processRegistry,
+  deviceRegistry,
   platform,
   markAutoRecord,
   limit,
@@ -1627,6 +1902,7 @@ async function runRoutedSpec({
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
   processRegistry?: Map<string, any>;
+  deviceRegistry?: DeviceRegistry;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -1812,6 +2088,7 @@ async function runRoutedSpec({
           installAttempts,
           warmUpResults,
           processRegistry,
+          deviceRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2603,6 +2880,7 @@ async function runContext({
   installAttempts,
   warmUpResults,
   processRegistry,
+  deviceRegistry,
   logPrefix = "",
 }: {
   config: any;
@@ -2618,6 +2896,7 @@ async function runContext({
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
   warmUpResults: Map<string, "ok" | "failed">;
   processRegistry?: Map<string, any>;
+  deviceRegistry?: DeviceRegistry;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -2674,6 +2953,71 @@ async function runContext({
     context.contextId
   ] ??= { steps: {} };
 
+  // Mobile target platforms (native app phase A3): `android`/`ios` name the
+  // TARGET a context runs against, gated by host *capability* rather than host
+  // identity (host != target for mobile). As of A3b an android native app
+  // context can PASS (androidContextPreflight sets up the emulator + app session
+  // and the branch falls through to shared step execution); iOS (A4) and
+  // android+browser (A5) still resolve SKIPPED with an actionable, roadmap-
+  // shaped reason. `requires` still applies (it's a host fact) and is evaluated
+  // here on whatever capable host the context reached, because the desktop
+  // `requires` gate below is scoped to host == target and never fires for a
+  // mobile context. The branch owns mobile contexts fully — none of the desktop
+  // engine/platform skips run for them.
+  // App session — created for desktop app contexts below, and for an android
+  // context that passes its preflight (phase A3b). Declared here so the mobile
+  // branch can set it and fall through to the shared step-execution path.
+  let appSession: AppSessionState | undefined;
+
+  const mobileTarget = isMobileTargetPlatform(context.platform);
+  if (mobileTarget) {
+    const requirementsSkip = contextRequirementsSkipMessage({ context });
+    if (requirementsSkip) {
+      clog("warning", requirementsSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = requirementsSkip;
+      return contextReport;
+    }
+    if (mobileTarget === "ios") {
+      // iOS has no PASS path yet — point at phase A4.
+      const { level, reason } = mobileContextSkipReason({ platform: "ios" });
+      clog(level, reason);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = reason;
+      return contextReport;
+    }
+    // Android (phase A3b): full preflight. SDK detection is lazy (probed only
+    // here, only for android contexts), so a run that never targets android
+    // pays nothing. On skip, land SKIPPED with the actionable reason; on ok,
+    // prime the app session with the device layer and FALL THROUGH to run the
+    // steps — none of the desktop engine/platform skips below apply to it (the
+    // `!platformMatches` skip is guarded on `!appSession`).
+    const pre = await androidContextPreflight({ config, context, clog });
+    if (!pre.ok) {
+      clog(pre.level, pre.reason);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = pre.reason;
+      return contextReport;
+    }
+    /* c8 ignore start */
+    // The ok path only runs on a host with a real SDK + emulator (CI legs).
+    appSession = createAppSessionState();
+    appSession.appiumEntry = pre.appiumEntry;
+    appSession.appiumHome = pre.appiumHome;
+    appSession.defaultDevice = context.device;
+    appSession.androidSdkRoot = pre.sdkRoot;
+    appSession.androidDeviceRegistry = deviceRegistry;
+    appSession.androidDeviceDeps = pre.deviceDeps;
+    // resolved device (name) joins the context report the way resolved browser
+    // versions do; the concrete udid is known once a surface boots it.
+    contextReport.device = context.device ?? { platform: "android" };
+    // Surface any preflight warnings (e.g. a lazy toolchain install) in the
+    // output report — not just the terminal — so a run that quietly downloaded
+    // the multi-GB SDK is auditable after the fact.
+    if (pre.warnings.length) contextReport.warnings = pre.warnings;
+    /* c8 ignore stop */
+  }
+
   // `requires` capability gate: any unmet requirement skips the context with a
   // message naming what's missing. Evaluated only on the platform the context
   // targets — a different-platform context keeps its platform skip reason, and
@@ -2695,8 +3039,8 @@ async function runContext({
   // session primed with the resolved Appium entry/home for the app server.
   // Scoped to the current platform like the `requires` gate above: a context
   // targeting another platform must skip with the platform-mismatch reason,
-  // not pay (or misreport) a driver-install attempt on this host.
-  let appSession: AppSessionState | undefined;
+  // not pay (or misreport) a driver-install attempt on this host. (An android
+  // context already set up its app session in the mobile branch above.)
   if (context.platform === platform && isAppDriverRequired({ test: context })) {
     const preflight = await appSurfacePreflight({ config, platform });
     if (!preflight.ok) {
@@ -2834,8 +3178,11 @@ async function runContext({
     contextReport.resultDescription = errorMessage;
     return contextReport;
   }
-  // A non-driver context that targets a different platform has nothing to run.
-  if (!driverRequired && !platformMatches) {
+  // A non-driver context that targets a different platform has nothing to run —
+  // UNLESS it's an android app context, which legitimately targets a platform
+  // (android) different from the host and already primed its app session in the
+  // mobile branch above.
+  if (!driverRequired && !platformMatches && !appSession) {
     const errorMessage = `Skipping context. The current system doesn't support this context: {"platform": "${
       context.platform
     }", "apps": ${JSON.stringify(context.apps)}}`;
@@ -3810,14 +4157,38 @@ async function runStep({
             // APPIUM_HOME points the server at the node_modules that holds
             // the native driver (shim or runtime cache). The preflight has
             // already invalidated a stale extensions manifest there, so the
-            // server's startup scan discovers the driver.
-            const server = await startAppiumServer(appiumEntry, config, undefined, {
-              APPIUM_HOME: appiumHome,
-            });
+            // server's startup scan discovers the driver. On Android the
+            // UiAutomator2 driver locates adb/emulator through ANDROID_HOME /
+            // ANDROID_SDK_ROOT, so pass the resolved SDK root too.
+            const env: Record<string, string> = { APPIUM_HOME: appiumHome };
+            if (appSession?.androidSdkRoot) {
+              env.ANDROID_HOME = appSession.androidSdkRoot;
+              env.ANDROID_SDK_ROOT = appSession.androidSdkRoot;
+            }
+            const server = await startAppiumServer(
+              appiumEntry,
+              config,
+              undefined,
+              env
+            );
             return { port: server.port, process: server.process };
           },
           startDriver: (capabilities: any, port: number) =>
             driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+          // Android device acquisition (boot/create-and-boot, or reuse),
+          // bound to the run-level registry stashed on the app session. Only
+          // set for android app sessions (which only exist on a capable host).
+          /* c8 ignore start */
+          acquireDevice: appSession?.androidDeviceDeps
+            ? (desc: any) =>
+                acquireDevice({
+                  desc,
+                  registry: appSession!.androidDeviceRegistry,
+                  sdkRoot: appSession!.androidSdkRoot!,
+                  deps: appSession!.androidDeviceDeps,
+                })
+            : undefined,
+          /* c8 ignore stop */
         },
       });
     }

@@ -1,0 +1,37 @@
+{
+  "specId": "android-gating-a3a",
+  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): the `android` and `ios` target platforms are validated and gated on the general matrix. This spec is deterministic on EVERY host — it asserts the always-SKIP phase gates (android+browser -> A5, ios -> A4), which return before any SDK/emulator detection, so no host lazily installs a toolchain or boots an emulator here. (Native android app runs — which can PASS on a capable host under A3b — are exercised in the apps-android group's KVM jobs, not here.)",
+  "tests": [
+    {
+      "testId": "android-mobile-web-gates",
+      "description": "An android context with a browser step is SKIPPED pointing at phase A5 (mobile web on Android). This gate fires before any SDK detection, so the outcome is deterministic on every host and never triggers a toolchain install or emulator boot.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "https://example.com"
+        }
+      ]
+    },
+    {
+      "testId": "ios-context-gates",
+      "description": "An ios target context is SKIPPED pointing at phase A4 (iOS app surfaces). Validated and gated now so A4 is purely additive.",
+      "runOn": [
+        {
+          "platforms": "ios"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences"
+          }
+        }
+      ]
+    }
+  ]
+}

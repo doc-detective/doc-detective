@@ -20,13 +20,13 @@ doc-detective install <subcommand> [options]
 
 ### `install all`
 
-Install all runtime assets: agent tools, npm packages, and browsers.
+Install the lazy-installed runtime assets: npm packages and browser binaries.
 
 ```bash
 doc-detective install all [options]
 ```
 
-This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays.
+This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays. It excludes agent tools (`install agents`, which needs an interactive picker) and the Android SDK (`install android`, whose multi-GB downloads stay opt-in). Install those two groups separately.
 
 ### `install agents`
 
@@ -86,6 +86,35 @@ doc-detective install browsers chrome chromedriver
 ```
 
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
+
+### `install android`
+
+Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run. Required for native Android app testing (native app phase A3).
+
+```bash
+doc-detective install android --yes
+```
+
+This command **augments an existing SDK** when one is found (via `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`): it runs `sdkmanager` and `avdmanager` from that SDK to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's command-line tools into `<cacheDir>/android-sdk` first.
+
+Because the system image is multi-GB, this command **never downloads without `--yes`** — run it with `--dry-run` first to preview the plan:
+
+```bash
+doc-detective install android --dry-run
+```
+
+| Option | Description |
+|--------|-------------|
+| `--os-version` | Android version for the system image and AVD (for example, `14`, or a raw API level like `34`). Default: the newest available. |
+| `--device-type` | Abstract hardware profile for the default AVD: `phone` or `tablet`. Default: `phone`. |
+
+<Note>
+
+`sdkmanager`/`avdmanager` need a **Java runtime (JRE 17+)**. If your host already has one, `install android` uses it; if not, Doc Detective downloads a portable Temurin JRE into its cache as part of the (confirmed) install, so Java is not a prerequisite you have to set up yourself. `install android` is **not** part of `install all` — the multi-GB downloads are opt-in, so you install the Android toolchain deliberately, not as a side effect of preparing a general test environment.
+
+**Running this ahead of time is optional but recommended.** A test run that targets `android` on a **capable** host (one that can run the emulator) will **lazily install** the toolchain itself the first time it needs it, printing a clear warning to the terminal and the output report. Running `install android` beforehand simply pre-warms the cache so that cost isn't paid mid-run — ideal for CI images and containers. To forbid the lazy install entirely (e.g. an air-gapped host that must never auto-download), set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`; the context then SKIPs with a pointer back to this command. A host that *can't* run the emulator (no hardware acceleration) always SKIPs without downloading anything.
+
+</Note>
 
 ### `install status`
 

@@ -21,6 +21,7 @@ import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
+import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -29,6 +30,7 @@ export {
   classifyNativeSelector,
   buildUiaLocator,
   buildAxLocator,
+  buildUiAutomator2Locator,
   createAppSessionState,
   appSurfacePreflight,
   // Exported as a test seam: the JXA probe must return a definitive boolean
@@ -38,6 +40,7 @@ export {
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
+  ensureAppForeground,
   startAppSurface,
   findAppElement,
   buildAppLocator,
@@ -280,6 +283,85 @@ function buildAxLocator(criteria: {
   return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
 }
 
+// Map an ARIA-ish role to an Android widget class (the fully-qualified class
+// name UiAutomator2 exposes as an element's tag / `class` attribute). Unknown
+// roles pass through under the android.widget package, capitalized, so new
+// widgets work without a table update.
+function androidWidgetClass(role: string): string {
+  const known: Record<string, string> = {
+    button: "android.widget.Button",
+    checkbox: "android.widget.CheckBox",
+    combobox: "android.widget.Spinner",
+    dialog: "android.app.Dialog",
+    image: "android.widget.ImageView",
+    link: "android.widget.TextView",
+    list: "android.widget.ListView",
+    listitem: "android.widget.TextView",
+    menu: "android.widget.Menu",
+    menuitem: "android.widget.MenuItem",
+    radio: "android.widget.RadioButton",
+    slider: "android.widget.SeekBar",
+    spinner: "android.widget.Spinner",
+    switch: "android.widget.Switch",
+    tab: "android.widget.TabWidget",
+    text: "android.widget.TextView",
+    textbox: "android.widget.EditText",
+    toolbar: "android.widget.Toolbar",
+    window: "android.widget.FrameLayout",
+  };
+  return (
+    known[role.toLowerCase()] ??
+    `android.widget.${role.charAt(0).toUpperCase() + role.slice(1)}`
+  );
+}
+
+// Build an Android (UiAutomator2) locator from the shared semantic element
+// fields — the A3 column of the design's mapping table: elementText → @text,
+// elementId/elementTestId → resource-id, elementAria → widget class (+
+// content-desc), and the accessible name → @content-desc. Returns null when no
+// supported field is present.
+//
+// Two Android-specific rules distinguish this column from the desktop ones:
+//   1. A lone elementId/elementTestId uses the driver's `id` strategy
+//      (resource-id, auto-prefixed with the current appPackage) — NOT the
+//      "accessibility id" strategy, which on UiAutomator2 means content-desc.
+//   2. elementText (@text) and elementAria's name (@content-desc) are DISTINCT
+//      attributes, so both can apply at once — no name collision (that rule
+//      lives per-platform in buildAppLocator and does not fire for android).
+function buildUiAutomator2Locator(criteria: {
+  elementText?: string;
+  elementId?: string;
+  elementTestId?: string;
+  elementAria?: { role?: string; name?: string } | string;
+  [key: string]: any;
+}): { strategy: string; value: string } | null {
+  const resourceId = criteria.elementId ?? criteria.elementTestId;
+  const aria =
+    typeof criteria.elementAria === "string"
+      ? { name: criteria.elementAria }
+      : criteria.elementAria;
+
+  const predicates: string[] = [];
+  if (resourceId !== undefined)
+    predicates.push(`@resource-id=${xpathLiteral(resourceId)}`);
+  if (criteria.elementText !== undefined)
+    predicates.push(`@text=${xpathLiteral(criteria.elementText)}`);
+  if (aria?.name !== undefined)
+    predicates.push(`@content-desc=${xpathLiteral(aria.name)}`);
+
+  const tag = aria?.role ? androidWidgetClass(aria.role) : undefined;
+
+  if (!tag && predicates.length === 0) return null;
+
+  // Fast path: a lone resource-id uses the `id` strategy.
+  if (resourceId !== undefined && predicates.length === 1 && !tag) {
+    return { strategy: "id", value: resourceId };
+  }
+
+  const predicate = predicates.length ? `[${predicates.join(" and ")}]` : "";
+  return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
+}
+
 // ---------------------------------------------------------------------------
 // Runtime: app sessions, preflight, and app-side step implementations.
 // ---------------------------------------------------------------------------
@@ -295,12 +377,24 @@ interface AppDriverPlatform {
   driverLabel: string;
   platformName: string;
   automationName: string;
-  // The platform's semantic-locator column (UIA on Windows, AX on macOS).
+  // The platform's semantic-locator column (UIA on Windows, AX on macOS,
+  // UiAutomator2 on Android).
   buildLocator(criteria: {
     [key: string]: any;
   }): { strategy: string; value: string } | null;
   // Session capabilities for launching `appId` with this platform's driver.
-  buildCapabilities(descriptor: any, appId: string): Record<string, any>;
+  // `extras` carries platform-specific runtime context (e.g. the android
+  // device udid); desktop rows ignore it.
+  buildCapabilities(
+    descriptor: any,
+    appId: string,
+    extras?: { udid?: string }
+  ): Record<string, any>;
+  // Whether elementText and elementAria's accessible name map to the SAME
+  // underlying attribute (Windows @Name, macOS title/label) — so two different
+  // values are an impossible match and should be rejected. False on Android,
+  // where @text and @content-desc are distinct attributes that can co-occur.
+  nameFieldsCollide: boolean;
   // Descriptor fields this platform's driver cannot honor — FAIL with the
   // alternative named rather than silently ignoring what the author asked
   // for. `isSet` distinguishes an authored value from a schema default.
@@ -311,6 +405,19 @@ interface AppDriverPlatform {
   }[];
 }
 
+// `device`, `install`, and `activity` are Android-only descriptor fields. Now
+// that Android ships (phase A3), the desktop rows reject them here — moved out
+// of a blanket phase-gate in startAppSurface — so the rejection travels with
+// the platform table like every other unsupported field.
+const DESKTOP_UNSUPPORTED_MOBILE_FIELDS = ["device", "install", "activity"].map(
+  (field) => ({
+    field,
+    isSet: (value: any) => value !== undefined,
+    guidance:
+      "It applies to Android app surfaces (native app phase A3); target them with runOn platforms: android.",
+  })
+);
+
 const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
   windows: {
     driverPackage: "appium-novawindows-driver",
@@ -318,6 +425,7 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
     platformName: "Windows",
     automationName: "NovaWindows",
     buildLocator: (criteria) => buildUiaLocator(criteria),
+    nameFieldsCollide: true,
     buildCapabilities(descriptor, appId) {
       const capabilities: Record<string, any> = {
         platformName: "Windows",
@@ -338,6 +446,7 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       return capabilities;
     },
     unsupportedFields: [
+      ...DESKTOP_UNSUPPORTED_MOBILE_FIELDS,
       {
         field: "env",
         isSet: (value) => value !== undefined,
@@ -352,6 +461,7 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
     platformName: "mac",
     automationName: "Mac2",
     buildLocator: (criteria) => buildAxLocator(criteria),
+    nameFieldsCollide: true,
     buildCapabilities(descriptor, appId) {
       const capabilities: Record<string, any> = {
         platformName: "mac",
@@ -382,12 +492,67 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       return capabilities;
     },
     unsupportedFields: [
+      ...DESKTOP_UNSUPPORTED_MOBILE_FIELDS,
       {
         field: "workingDirectory",
         // "." is the schema's injected default, not an author request.
         isSet: (value) => value !== undefined && value !== ".",
         guidance:
           "The macOS app driver launches apps through LaunchServices, which offers no working-directory control; launch via runShell if the cwd matters.",
+      },
+    ],
+  },
+  android: {
+    driverPackage: "appium-uiautomator2-driver",
+    driverLabel: "Android app driver",
+    platformName: "Android",
+    automationName: "UiAutomator2",
+    buildLocator: (criteria) => buildUiAutomator2Locator(criteria),
+    // @text and @content-desc are distinct attributes — they can co-occur.
+    nameFieldsCollide: false,
+    buildCapabilities(descriptor, appId, extras) {
+      const capabilities: Record<string, any> = {
+        platformName: "Android",
+        "appium:automationName": "UiAutomator2",
+        // The app under test is addressed by its package name; the launcher
+        // activity is inferred unless `activity` overrides it.
+        "appium:appPackage": appId,
+        "appium:newCommandTimeout": 600,
+        // adb operations (install, activity start) can be slow on a cold
+        // emulator — give them room above the driver's default.
+        "appium:adbExecTimeout": 120000,
+        "wdio:enforceWebDriverClassic": true,
+      };
+      // Pin the session to the specific booted device/emulator.
+      if (extras?.udid) capabilities["appium:udid"] = extras.udid;
+      // An `install` artifact means the driver installs the .apk before launch
+      // (appium:app); without it the app must already be on the device.
+      if (descriptor.install) {
+        capabilities["appium:app"] = path.resolve(descriptor.install);
+      }
+      if (descriptor.activity) {
+        capabilities["appium:appActivity"] = descriptor.activity;
+      }
+      return capabilities;
+    },
+    unsupportedFields: [
+      {
+        field: "args",
+        isSet: (value) => Array.isArray(value) && value.length > 0,
+        guidance:
+          "The Android driver launches apps by package/activity, not a command line; pass intent extras or launch flags via driverOptions (e.g. appium:optionalIntentArguments).",
+      },
+      {
+        field: "env",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "The Android driver can't set app environment variables; use driverOptions for driver-specific launch controls.",
+      },
+      {
+        field: "workingDirectory",
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance:
+          "A working directory is meaningless for an Android package launch.",
       },
     ],
   },
@@ -406,6 +571,10 @@ interface AppSurfaceEntry {
   // Which platform column the entry's locators compile against. Optional for
   // pre-A2 callers/tests; absent means the Windows/UIA column.
   platform?: string;
+  // Android: the device whose shared driver session this surface rides on
+  // (multiple app surfaces on one device share one UiAutomator2 session).
+  // Absent for desktop surfaces (one driver per app).
+  deviceName?: string;
 }
 
 // Per-context app-session state, created by runContext and threaded through
@@ -422,10 +591,30 @@ interface AppSessionState {
   surfaces: Map<string, AppSurfaceEntry>;
   activeApp?: string;
   recordingHost: { state: { recordings: any[] } };
+  // Android (phase A3b): one shared driver session per device, keyed by device
+  // name. Multiple app surfaces on the same device reuse its session and switch
+  // by activateApp. `defaultDevice` is the context's default device descriptor
+  // (from runOn `device`), used when a startSurface omits `device`.
+  deviceSessions?: Map<
+    string,
+    { driver: any; udid: string; foregroundApp?: string }
+  >;
+  defaultDevice?: any;
+  // Android device-layer wiring stashed by runContext for runStep's
+  // serverDeps.acquireDevice closure: the run-level device registry (shared
+  // across contexts), the resolved SDK root (for the Appium server's
+  // ANDROID_HOME), and the injected effect bundle acquireDevice runs on.
+  androidSdkRoot?: string;
+  androidDeviceRegistry?: any;
+  androidDeviceDeps?: any;
 }
 
 function createAppSessionState(): AppSessionState {
-  return { surfaces: new Map(), recordingHost: { state: { recordings: [] } } };
+  return {
+    surfaces: new Map(),
+    recordingHost: { state: { recordings: [] } },
+    deviceSessions: new Map(),
+  };
 }
 
 // Steps that provision or (by object form) target an app surface. Used by
@@ -687,26 +876,29 @@ function buildAppLocator(
       error: `${unsupported.join(" and ")} ${unsupported.length > 1 ? "are" : "is"} not supported on app surfaces; use elementText, elementId, elementAria, or a native selector.`,
     };
   }
-  // elementText and elementAria's accessible name overlap in what they match
-  // (@Name on Windows; title/label on macOS — elementText also reaches
-  // @value there), so two different values compile to contradictory name
-  // predicates that all-but-never co-occur on one element. Surface the
-  // conflict instead of failing silently as not-found.
-  const ariaName =
-    typeof criteria.elementAria === "string"
-      ? criteria.elementAria
-      : criteria.elementAria?.name;
-  if (
-    criteria.elementText !== undefined &&
-    ariaName !== undefined &&
-    criteria.elementText !== ariaName
-  ) {
-    return {
-      error: `elementText ("${criteria.elementText}") and elementAria ("${ariaName}") give the element two different accessible names, which compile to conflicting predicates on app surfaces. Specify one of them.`,
-    };
-  }
   const platformDriver =
     APP_DRIVER_PLATFORMS[platform ?? "windows"] ?? APP_DRIVER_PLATFORMS.windows;
+  // On platforms where elementText and elementAria's accessible name map to the
+  // SAME attribute (@Name on Windows; title/label — and @value for text — on
+  // macOS), two different values compile to contradictory predicates that
+  // all-but-never co-occur on one element. Surface the conflict instead of
+  // failing silently as not-found. Android is exempt: there @text and
+  // @content-desc are distinct attributes that legitimately co-occur.
+  if (platformDriver.nameFieldsCollide) {
+    const ariaName =
+      typeof criteria.elementAria === "string"
+        ? criteria.elementAria
+        : criteria.elementAria?.name;
+    if (
+      criteria.elementText !== undefined &&
+      ariaName !== undefined &&
+      criteria.elementText !== ariaName
+    ) {
+      return {
+        error: `elementText ("${criteria.elementText}") and elementAria ("${ariaName}") give the element two different accessible names, which compile to conflicting predicates on app surfaces. Specify one of them.`,
+      };
+    }
+  }
   const locator = platformDriver.buildLocator(criteria);
   if (!locator) {
     return {
@@ -781,6 +973,12 @@ async function startAppSurface({
       appiumHome: string
     ) => Promise<{ port: number; process: any }>;
     startDriver: (capabilities: any, port: number) => Promise<any>;
+    // Android only (phase A3b): acquire (boot/create-and-boot, or reuse) the
+    // device for this surface. Injected so the device layer's effects stay out
+    // of appSurface. Absent for desktop platforms.
+    acquireDevice?: (
+      desc: any
+    ) => Promise<{ entry: { name: string; udid: string } } | { skip: string }>;
   };
 }): Promise<any> {
   const result: any = { status: "PASS", description: "", outputs: {} };
@@ -796,21 +994,15 @@ async function startAppSurface({
   step = isValidStep.object;
   const descriptor = step.startSurface;
 
-  // Reserved fields land in later phases — fail with the roadmap named
-  // rather than silently ignoring what the author asked for.
-  for (const field of ["device", "install", "activity"]) {
-    if (descriptor[field] !== undefined) {
-      result.status = "FAIL";
-      result.description = `startSurface.${field} is reserved for the mobile phases of the native app roadmap (docs/design/native-app-surfaces.md) and is not implemented yet.`;
-      return result;
-    }
-  }
   const platformDriver = APP_DRIVER_PLATFORMS[platform];
   if (!platformDriver) {
     result.status = "FAIL";
-    result.description = `startSurface (app) runs on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]).`;
+    result.description = `startSurface (app) runs on Windows and macOS desktops and Android emulators in this phase. Gate the test with runOn platforms (["windows"], ["mac"], or ["android"]).`;
     return result;
   }
+  // Per-platform unsupported fields (desktop rows reject the mobile-only
+  // device/install/activity; Android rejects args/env/workingDirectory) — fail
+  // with the alternative named rather than silently ignoring the author's ask.
   for (const { field, isSet, guidance } of platformDriver.unsupportedFields) {
     if (isSet(descriptor[field])) {
       result.status = "FAIL";
@@ -849,26 +1041,111 @@ async function startAppSurface({
     }
   }
 
-  const capabilities = platformDriver.buildCapabilities(descriptor, appId);
-  Object.assign(capabilities, descriptor.driverOptions ?? {});
-
   let driver: any;
-  try {
-    driver = await serverDeps.startDriver(
-      capabilities,
-      appSession.server.port
-    );
-  } catch (error: any) {
-    const message = `${error?.message ?? error}`;
-    result.status = "FAIL";
-    result.description = `Couldn't launch app "${appId}": ${message}. Check the app identifier and that the session is interactive.`;
-    // A TCC-shaped launch failure on macOS gets the settings walkthrough —
-    // the probe can miss (it reports on the probing process, not
-    // WebDriverAgentMac), so the session error is the backstop.
-    if (platform === "mac" && /accessib|trusted|tcc/i.test(message)) {
-      result.description += ` ${MAC_TCC_WALKTHROUGH}`;
+  let deviceName: string | undefined;
+
+  if (platform === "android") {
+    // Android: multiple app surfaces on one device share a single UiAutomator2
+    // session (switch by activateApp), so the driver is per-device, not
+    // per-app. Resolve the device (context default merged with the step
+    // override) and acquire it (boot/create as needed).
+    const desc = normalizeDeviceDescriptor({
+      contextDevice: appSession.defaultDevice,
+      stepDevice: descriptor.device,
+      platform,
+    });
+    if (!serverDeps.acquireDevice) {
+      result.status = "FAIL";
+      result.description =
+        "Android app session is missing its device layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).";
+      return result;
     }
-    return result;
+    let acquired: any;
+    try {
+      acquired = await serverDeps.acquireDevice(desc);
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't acquire the Android device for "${appId}": ${error?.message ?? error}`;
+      return result;
+    }
+    // The preflight already validated resolvability, so an acquire-time skip is
+    // a real runtime failure (e.g. the device died between preflight and now).
+    if ("skip" in acquired) {
+      result.status = "FAIL";
+      result.description = `Couldn't acquire the Android device for "${appId}": ${acquired.skip}`;
+      return result;
+    }
+    deviceName = acquired.entry.name;
+    const sessions =
+      appSession.deviceSessions ?? (appSession.deviceSessions = new Map());
+    const deviceSession = sessions.get(deviceName);
+    if (!deviceSession) {
+      // First app on this device: create the shared session, which launches
+      // (and installs, when `install` is set) the app.
+      const capabilities = platformDriver.buildCapabilities(descriptor, appId, {
+        udid: acquired.entry.udid,
+      });
+      Object.assign(capabilities, descriptor.driverOptions ?? {});
+      try {
+        driver = await serverDeps.startDriver(
+          capabilities,
+          appSession.server.port
+        );
+      } catch (error: any) {
+        result.status = "FAIL";
+        result.description = `Couldn't launch app "${appId}" on the Android device "${deviceName}": ${error?.message ?? error}.`;
+        return result;
+      }
+      sessions.set(deviceName, {
+        driver,
+        udid: acquired.entry.udid,
+        foregroundApp: appId,
+      });
+    } else {
+      // Subsequent app on the same device: install it if requested, then bring
+      // it to the foreground on the existing session. Honor an explicit
+      // `activity` here too (activateApp alone launches the default/last
+      // activity) — mirroring appActivity in the first app's capabilities.
+      driver = deviceSession.driver;
+      try {
+        if (descriptor.install)
+          await driver.installApp(path.resolve(descriptor.install));
+        if (descriptor.activity) {
+          await driver.execute("mobile: startActivity", {
+            appPackage: appId,
+            appActivity: descriptor.activity,
+          });
+        } else {
+          await driver.activateApp(appId);
+        }
+      } catch (error: any) {
+        result.status = "FAIL";
+        result.description = `Couldn't bring app "${appId}" to the foreground on device "${deviceName}": ${error?.message ?? error}.`;
+        return result;
+      }
+      deviceSession.foregroundApp = appId;
+    }
+  } else {
+    // Desktop (Windows/macOS): one driver session per app.
+    const capabilities = platformDriver.buildCapabilities(descriptor, appId);
+    Object.assign(capabilities, descriptor.driverOptions ?? {});
+    try {
+      driver = await serverDeps.startDriver(
+        capabilities,
+        appSession.server.port
+      );
+    } catch (error: any) {
+      const message = `${error?.message ?? error}`;
+      result.status = "FAIL";
+      result.description = `Couldn't launch app "${appId}": ${message}. Check the app identifier and that the session is interactive.`;
+      // A TCC-shaped launch failure on macOS gets the settings walkthrough —
+      // the probe can miss (it reports on the probing process, not
+      // WebDriverAgentMac), so the session error is the backstop.
+      if (platform === "mac" && /accessib|trusted|tcc/i.test(message)) {
+        result.description += ` ${MAC_TCC_WALKTHROUGH}`;
+      }
+      return result;
+    }
   }
 
   // Startup readiness: fixed delay and/or an element that must exist.
@@ -886,10 +1163,16 @@ async function startAppSurface({
       platform,
     });
     if (found.error) {
-      try {
-        await driver.deleteSession();
-      } catch {
-        // best-effort: the launch failed readiness; don't mask that error
+      // On desktop the session is this app's alone, so end it. On Android the
+      // session is shared across the device's apps — deleting it would kill
+      // sibling surfaces — so leave it; the run-end device sweep handles the
+      // emulator, and no surface was registered for this failed app.
+      if (platform !== "android") {
+        try {
+          await driver.deleteSession();
+        } catch {
+          // best-effort: the launch failed readiness; don't mask that error
+        }
       }
       result.status = "FAIL";
       result.description = `App "${appId}" launched but never became ready: ${found.error}`;
@@ -903,6 +1186,7 @@ async function startAppSurface({
     driver,
     launchedByUs: true,
     platform,
+    deviceName,
   });
   appSession.activeApp = name;
 
@@ -933,8 +1217,42 @@ async function startAppSurface({
   return result;
 }
 
-// Close a registered app surface: end its driver session (which terminates
-// the app when the driver launched it) and deregister it.
+// Bring an app surface's app to the foreground on its shared Android device
+// session before acting on it — the active-surface switch, mirroring browser
+// tab focus. No-op for desktop surfaces (one driver per app) and when the app
+// is already foreground. Returns an error string if activation fails.
+async function ensureAppForeground(
+  entry: AppSurfaceEntry,
+  appSession?: AppSessionState
+): Promise<{ error?: string }> {
+  if (!entry.deviceName || !appSession) return {};
+  const session = appSession.deviceSessions?.get(entry.deviceName);
+  // A surface carrying a deviceName must have a live device session. A missing
+  // one is an internal inconsistency — fail loudly instead of skipping the
+  // foreground switch and letting the next find/click act on the wrong app.
+  if (!session) {
+    return {
+      error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}): no active session for device "${entry.deviceName}".`,
+    };
+  }
+  if (session.foregroundApp === entry.appId) return {};
+  try {
+    await session.driver.activateApp(entry.appId);
+  } catch (error: any) {
+    return {
+      error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}) on device "${entry.deviceName}": ${error?.message ?? error}`,
+    };
+  }
+  session.foregroundApp = entry.appId;
+  appSession.activeApp = entry.name;
+  return {};
+}
+
+// Close a registered app surface and deregister it. On desktop, ending the
+// driver session terminates the app the driver launched. On Android the driver
+// session is shared across the device's apps, so closing one surface only
+// terminates THAT app (`terminateApp`) — the shared session and the device live
+// until teardown.
 async function closeAppSurface({
   entry,
   appSession,
@@ -944,6 +1262,17 @@ async function closeAppSurface({
 }): Promise<void> {
   appSession.surfaces.delete(entry.name);
   if (appSession.activeApp === entry.name) appSession.activeApp = undefined;
+  if (entry.deviceName) {
+    // Android: terminate just this app on the shared device session.
+    const session = appSession.deviceSessions?.get(entry.deviceName);
+    try {
+      await entry.driver.terminateApp(entry.appId);
+    } catch {
+      // Idempotent: the app may already be gone.
+    }
+    if (session?.foregroundApp === entry.appId) session.foregroundApp = undefined;
+    return;
+  }
   try {
     await entry.driver.deleteSession();
   } catch {
@@ -951,9 +1280,10 @@ async function closeAppSurface({
   }
 }
 
-// Context teardown: close every remaining app surface, then stop the app
-// session's Appium server. Killing only what we launched is the driver's
-// contract (deleteSession terminates driver-launched apps).
+// Context teardown: close every remaining app surface, end each shared Android
+// device session, then stop the app session's Appium server. Killing only what
+// we launched is the driver's contract (deleteSession terminates driver-
+// launched apps; the run-level device registry sweeps the emulators).
 async function teardownAppSession(
   appSession: AppSessionState | undefined,
   killServer: (pid: number | undefined) => Promise<void>
@@ -962,6 +1292,16 @@ async function teardownAppSession(
   for (const entry of [...appSession.surfaces.values()]) {
     await closeAppSurface({ entry, appSession });
   }
+  // End the shared Android device sessions (one per device) after all their
+  // surfaces are closed. The emulators themselves are swept at run level.
+  for (const session of appSession.deviceSessions?.values() ?? []) {
+    try {
+      await session.driver.deleteSession();
+    } catch {
+      // best-effort
+    }
+  }
+  appSession.deviceSessions?.clear();
   if (appSession.server) {
     await killServer(appSession.server.process?.pid);
     appSession.server = undefined;

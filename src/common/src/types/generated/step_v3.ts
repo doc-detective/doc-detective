@@ -4314,7 +4314,7 @@ export interface StartSurface {
   [k: string]: unknown;
 }
 /**
- * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the native app branch: launch a Windows or macOS desktop application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. The mobile fields (`install`, `activity`, `device`) are validated now and land in later phases; browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
+ * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator via the `device`, `install`, and `activity` fields (iOS lands in A4). Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
  */
 export interface StartSurface1 {
   /**
@@ -4340,17 +4340,21 @@ export interface StartSurface1 {
     [k: string]: string;
   };
   /**
-   * Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Reserved for the mobile phases; validated now, not yet implemented.
+   * Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Lands with the Android phase (A3); on other platforms it is validated but not yet honored.
    */
   install?: string;
   /**
-   * Android main activity override (defaults to the package's launcher activity). Reserved for the Android phase; validated now, not yet implemented.
+   * Android main activity override (defaults to the package's launcher activity). Lands with the Android phase (A3).
    */
   activity?: string;
   /**
-   * Device the app runs on. Omit for a host desktop app. A string references an already-provisioned device by name; an object provisions one. Reserved for the mobile phases; validated now, not yet implemented.
+   * Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Lands with the Android phase (A3).
    */
-  device?: DeviceByName | DeviceDescriptor;
+  device?:
+    | DeviceByName
+    | (DeviceDescriptor & {
+        [k: string]: unknown;
+      });
   /**
    * Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly.
    */
@@ -4365,15 +4369,19 @@ export interface StartSurface1 {
 }
 export interface DeviceDescriptor {
   /**
-   * Target platform. Selects the mobile driver.
+   * Target platform. Selects the mobile driver. Required in `startSurface.device`; implied by the context in `context.device`.
    */
-  platform: "android" | "ios";
+  platform?: "android" | "ios";
   /**
-   * AVD name (Android) or simulator device name (iOS). Also the device's registry identity: the same name resolves to the same device.
+   * Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`).
    */
   name?: string;
   /**
-   * Platform version. Default: the newest available.
+   * Abstract hardware profile used when creating a device (portable across `android`/`ios`). Doc Detective maps it to a built-in profile. Ignored when `name` already matches an existing device. Default: `phone`.
+   */
+  deviceType?: "phone" | "tablet";
+  /**
+   * Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version.
    */
   osVersion?: string;
   /**
@@ -4384,10 +4392,6 @@ export interface DeviceDescriptor {
    * Initial orientation. Reserved; validated now, not yet implemented.
    */
   orientation?: "portrait" | "landscape";
-  /**
-   * Device kind. `emulator`/`simulator` (the default, inferred from `platform`) or `device` for real hardware. Reserved; validated now, not yet implemented.
-   */
-  type?: "emulator" | "simulator" | "device";
   /**
    * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
    */

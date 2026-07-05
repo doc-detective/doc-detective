@@ -123,6 +123,73 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("An android target context SKIPs via the mobile gate (native app phase A3)", async function () {
+    // Covers runContext's mobile-platform branch. A *native* android context can
+    // legitimately PASS on a capable host under A3b (and could lazily install
+    // the toolchain), so this test deliberately includes a browser step: mobile-
+    // web on Android is phase A5, whose gate returns SKIPPED *before* any SDK
+    // detection/install/boot — a deterministic, hermetic outcome on every host.
+    // NO_ANDROID_AUTOINSTALL is belt-and-suspenders against any toolchain
+    // download. (The native-android gate paths are covered hermetically with
+    // injected deps in test/android-gating.test.js.)
+    const prevNoInstall = process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
+    process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = "1";
+    const androidTest = {
+      tests: [
+        {
+          testId: "android-gate",
+          runOn: [{ platforms: "android", browsers: "chrome" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(androidTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /Skipping context on 'android'/);
+        assert.match(ctx.resultDescription, /phase A5/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      if (prevNoInstall === undefined)
+        delete process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
+      else process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = prevNoInstall;
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An ios target context SKIPs pointing at phase A4", async function () {
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-gate",
+          runOn: [{ platforms: "ios" }],
+          steps: [{ startSurface: { app: "com.apple.Preferences" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /iOS/);
+        assert.match(ctx.resultDescription, /A4/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [

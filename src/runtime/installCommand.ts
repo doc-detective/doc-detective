@@ -170,6 +170,38 @@ const browsersSubcommand: CommandModule<any, InstallArgv & { _names?: string[] }
   },
 };
 
+const androidSubcommand: CommandModule<any, InstallArgv> = {
+  command: "android",
+  describe:
+    "Install the Android SDK toolchain (platform-tools, emulator, a system image) and create the default AVD. Augments an existing SDK (ANDROID_HOME/ANDROID_SDK_ROOT), or bootstraps commandline-tools into <cacheDir>/android-sdk. Downloads are multi-GB — requires --yes to proceed. Needs a Java runtime (JRE 17+).",
+  builder: (yargs) =>
+    sharedInstallOptions(yargs)
+      .option("os-version", {
+        type: "string",
+        describe:
+          "Android version for the system image / AVD (e.g. 14, or a raw API level like 34). Default: the newest available.",
+      })
+      .option("device-type", {
+        type: "string",
+        choices: ["phone", "tablet"] as const,
+        describe: "Abstract hardware profile for the default AVD. Default: phone.",
+      }) as any,
+  handler: async (argv: any) => {
+    const logger = makeLogger(pickLogLevel(argv));
+    const { installAndroid } = await import("./androidInstaller.js");
+    const reports = await installAndroid({
+      yes: Boolean(argv.yes),
+      force: Boolean(argv.force),
+      dryRun: Boolean(argv["dry-run"]),
+      osVersion: argv["os-version"],
+      deviceType: argv["device-type"],
+      ctx: ctxFromArgv(argv),
+      deps: { logger },
+    });
+    printReports(reports, logger);
+  },
+};
+
 const statusSubcommand: CommandModule<any, InstallArgv> = {
   command: "status",
   describe:
@@ -194,7 +226,7 @@ const statusSubcommand: CommandModule<any, InstallArgv> = {
 const allSubcommand: CommandModule<any, InstallArgv> = {
   command: "all",
   describe:
-    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools are installed separately via `install agents` (they require an interactive picker for per-agent scope choices).",
+    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools (`install agents`) and the Android toolchain (`install android`) are installed separately — agents need an interactive picker, and Android pulls multi-GB downloads that shouldn't be implicit.",
   builder: (yargs) => sharedInstallOptions(yargs) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
@@ -231,15 +263,16 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
 export const installCommand: CommandModule<{}, InstallArgv> = {
   command: "install <subcommand>",
   describe:
-    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers.",
+    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, android.",
   builder: (yargs) =>
     yargs
       .command(agentsSubcommand as any)
       .command(runtimeSubcommand as any)
       .command(browsersSubcommand as any)
+      .command(androidSubcommand as any)
       .command(statusSubcommand as any)
       .command(allSubcommand as any)
-      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | status | all.") as any,
+      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | android | status | all.") as any,
   handler: () => {
     // Each subcommand registers its own handler; this top-level handler is
     // only reached when yargs falls through (demandCommand should prevent
