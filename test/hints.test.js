@@ -145,6 +145,12 @@ describe("hints/render", function () {
 });
 
 describe("hints/context", function () {
+  // Several of these tests build isolated tmpdir filesystems and walk them; on
+  // the slowest CI cell (windows-latest, node 24) under a fully loaded test
+  // process that fs work can exceed mocha's 2s default. Give the group headroom
+  // — still bounded, so a real hang still fails — rather than flake.
+  this.timeout(15000);
+
   describe("parseOriginUrl", function () {
     it("returns the origin url from a typical .git/config", function () {
       const cfg = [

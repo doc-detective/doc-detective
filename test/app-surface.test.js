@@ -1306,6 +1306,38 @@ describe("startAppSurface", function () {
     );
   });
 
+  it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {
+    const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    const launch = async () => {
+      let caps;
+      await startAppSurface({
+        config: {},
+        step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+        appSession: preflighted(),
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async (c) => {
+            caps = c;
+            return fakeDriver();
+          },
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        },
+      });
+      return caps;
+    };
+    try {
+      delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      assert.equal((await launch())["appium:derivedDataPath"], undefined);
+      process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = "/tmp/dd-wda";
+      assert.equal((await launch())["appium:derivedDataPath"], "/tmp/dd-wda");
+    } finally {
+      if (prev === undefined)
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
+    }
+  });
+
   it("ios: a second app on the same simulator reuses the session and activates it", async function () {
     const appSession = preflighted();
     const driver = fakeDriver();

@@ -600,6 +600,17 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       const timeout = descriptor.timeout ?? 60000;
       capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
       capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
+      // Persisting WebDriverAgent's Xcode build products across sessions/runs
+      // turns the cold ~10-minute WDA compile into a fast incremental build.
+      // Opt-in via env so a shared derivedDataPath is only used where the caller
+      // manages it (e.g. a CI cache keyed by driver + Xcode version); unset by
+      // default, appium uses a throwaway per-session temp dir. A caller sharing
+      // one path across concurrent iOS sessions owns serializing them.
+      const derivedDataPath =
+        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      if (derivedDataPath && derivedDataPath.trim()) {
+        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
+      }
       return capabilities;
     },
     unsupportedFields: [

@@ -116,6 +116,28 @@ jobs:
           npm ls -g doc-detective || true
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 
+      # Cache the WebDriverAgent Xcode build across runs (apps-ios on macOS):
+      # the first cold `xcodebuild` WDA compile is ~10 min; restoring the build
+      # products makes later runs' WDA an incremental (fast) build. Doc Detective
+      # writes WDA there via appium:derivedDataPath when
+      # DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH is set (below). Keyed by the
+      # appium-xcuitest-driver version (package.json) + the Xcode version, so a
+      # driver/Xcode bump rebuilds (the driver self-heals a mismatch anyway).
+      - name: Xcode version (WDA cache key)
+        if: matrix.group == 'apps-ios' && matrix.os == 'macos-latest'
+        id: xcodever
+        shell: bash
+        run: echo "v=$(xcodebuild -version | head -1 | tr ' .' '--')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache WebDriverAgent build
+        if: matrix.group == 'apps-ios' && matrix.os == 'macos-latest'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/dd-wda-derived
+          key: wda-${{ runner.os }}-${{ steps.xcodever.outputs.v }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            wda-${{ runner.os }}-${{ steps.xcodever.outputs.v }}-
+
       # Run the group through the Doc Detective GitHub Action, against the linked
       # local build (version: "" → bare `npx doc-detective`, see
       # doc-detective/github-action#70). The action writes its results to
@@ -126,9 +148,11 @@ jobs:
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
-        # real install/boot coverage lives in the KVM jobs below.
+        # real install/boot coverage lives in the KVM jobs below. apps-ios on
+        # macOS points WDA's build at the cached derivedDataPath (above).
         env:
           DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.group == 'apps-android' && '1' || '' }}
+          DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH: ${{ (matrix.group == 'apps-ios' && matrix.os == 'macos-latest') && format('{0}/dd-wda-derived', runner.temp) || '' }}
         with:
           version: ''
           working_directory: .
