@@ -1,3 +1,39 @@
+# [4.21.0-android-portable-jre.1](https://github.com/doc-detective/doc-detective/compare/v4.20.0...v4.21.0-android-portable-jre.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* **apps:** address claude-bot review (robustness on the device layer) ([a4f648a](https://github.com/doc-detective/doc-detective/commit/a4f648a9a24c08d7c42e14effc3e50d3f11b6f40))
+* **apps:** address Copilot review (cache candidate, hermetic test, SHA pin) ([ee31ca8](https://github.com/doc-detective/doc-detective/commit/ee31ca8f4bebc0995a8b2d8b21cf5e6c6b667aa8))
+* **apps:** boot the managed emulator headless with a software GPU on CI ([f8de914](https://github.com/doc-detective/doc-detective/commit/f8de9149f608854028f9a9664e791f3371e274ee))
+* **apps:** capture emulator stdout; lazy AVD list on reuse; comment/CodeQL cleanup ([40516b8](https://github.com/doc-detective/doc-detective/commit/40516b838e584159049bd656df3597ca4638f1ea))
+* **apps:** error on a missing device session in ensureAppForeground ([4c202cd](https://github.com/doc-detective/doc-detective/commit/4c202cddae7a203323d9c35f49b0fb42be6daf02))
+* **apps:** gate (not crash) when the Android environment probe throws ([81f4599](https://github.com/doc-detective/doc-detective/commit/81f4599c46a3689bae230a17849d7b3157ff54ea))
+* **apps:** honest SKIP reason for android on macOS/Windows without an SDK ([c823b24](https://github.com/doc-detective/doc-detective/commit/c823b249155a09d9e9f951820ea1d076af6d75d0))
+* **apps:** map Android 12L to API 32 in androidVersionToApi ([142124a](https://github.com/doc-detective/doc-detective/commit/142124a8d816974079d4a773b4c2fb8a4720a417))
+* **apps:** pin ANDROID_AVD_HOME so avdmanager and the emulator agree ([90c8940](https://github.com/doc-detective/doc-detective/commit/90c8940a8d53624e22e23c592694aa62257a01e3))
+* **apps:** resolve CodeQL findings (ReDoS + shell-command barrier) ([34118b7](https://github.com/doc-detective/doc-detective/commit/34118b79d49b6eb7b54e32416c4b114227f75595))
+* **apps:** run Android .bat via cmd.exe args-array; capture emulator stderr ([8e20815](https://github.com/doc-detective/doc-detective/commit/8e20815cbfeaed4d6e397c106c2770e61eda9b9e))
+* **apps:** spawn sdkmanager/avdmanager .bat via shell on Windows ([daeec98](https://github.com/doc-detective/doc-detective/commit/daeec98d0b7b4e39ccc5815e8c03debf3167f8e0))
+* **apps:** surface installAndroid failure reasons + deterministic gating fixture ([3403768](https://github.com/doc-detective/doc-detective/commit/340376894a6385fd9fe7bcb33c8aa20da378dad7))
+* **ci:** single-line the emulator-runner doc-detective command ([2eb36fd](https://github.com/doc-detective/doc-detective/commit/2eb36fd1e7bc2ea4168393a0f54b66801b30735a))
+
+
+### Features
+
+* **apps:** add `doc-detective install android` toolchain installer ([6ee73ad](https://github.com/doc-detective/doc-detective/commit/6ee73ada086f46632e3eb96075d5d20be08bf461))
+* **apps:** bootstrap a portable Android SDK when none is available ([23c8c53](https://github.com/doc-detective/doc-detective/commit/23c8c53f03d7f42b10e890855739c4db1aa5b144))
+* **apps:** bootstrap a portable JRE so Java isn't an Android prerequisite ([3516484](https://github.com/doc-detective/doc-detective/commit/3516484ee2db3b54d0b840bcc71943d429ad40a4)), closes [#505](https://github.com/doc-detective/doc-detective/issues/505)
+* **apps:** gate android/ios target platforms and revise the device descriptor ([6da469a](https://github.com/doc-detective/doc-detective/commit/6da469ada40c80428774bdda38f829d0240b31c4))
+* **apps:** lazily install the Android toolchain when a run needs it ([2b6c520](https://github.com/doc-detective/doc-detective/commit/2b6c5202a461d02e355337a955e0c3d47eda2fe9))
+* **apps:** managed Android emulators + UiAutomator2 app surfaces (phase A3b) ([71f41c1](https://github.com/doc-detective/doc-detective/commit/71f41c18b743e810293768021b2476f6c023be81))
+* native macOS app surfaces via Mac2 (native-app phase A2) ([#502](https://github.com/doc-detective/doc-detective/issues/502)) ([faf5521](https://github.com/doc-detective/doc-detective/commit/faf552125640a64b46a30dad6621d5b44298a970)), closes [#501](https://github.com/doc-detective/doc-detective/issues/501)
+
+
+### Performance Improvements
+
+* **apps:** don't take the emulator mutex for android+browser contexts ([a213f89](https://github.com/doc-detective/doc-detective/commit/a213f8964f3c1af912fed5d7dc6f3f7b3e473c3f))
+
 # [4.20.0](https://github.com/doc-detective/doc-detective/compare/v4.19.0...v4.20.0) (2026-07-04)
 
 
