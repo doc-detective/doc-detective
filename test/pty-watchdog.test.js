@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   probePtyAllocation,
   assertConptyAllocatable,
+  ensurePtyBackendOnDisk,
   PTY_PROBE_TIMEOUT_MS,
 } from "../dist/core/ptyWatchdog.js";
 
@@ -129,6 +130,88 @@ describe("probePtyAllocation (ConPTY watchdog, issue #501)", function () {
     // but would NOT mention our path). This guards against a regression where
     // the worker silently doesn't execute the probe body.
     assert.match(res.detail, new RegExp(marker));
+  });
+});
+
+// Issue #501's actual mechanism: a mid-run JIT npm install pruned node-pty's
+// files from disk while the module stayed loaded (stale resolution + ESM
+// caches), and the next pty.spawn froze the process inside a native wait. The
+// gate must therefore verify the backend is PHYSICALLY on disk before any
+// spawn, and self-heal (force reinstall) when it isn't — never proceed onto a
+// stale in-memory module whose support files are gone.
+describe("ensurePtyBackendOnDisk (stale-module self-heal, #501)", function () {
+  it("returns the resolved path untouched when it exists on disk", async function () {
+    let reinstalls = 0;
+    const p = await ensurePtyBackendOnDisk({
+      resolvePath: () => "C:/cache/pty/lib/index.js",
+      exists: () => true,
+      reinstall: async () => {
+        reinstalls++;
+      },
+    });
+    assert.equal(p, "C:/cache/pty/lib/index.js");
+    assert.equal(reinstalls, 0);
+  });
+
+  it("heals a stale resolution (path resolves but files are gone) by force-reinstalling", async function () {
+    // First resolution returns the stale cached path whose files were pruned;
+    // after the reinstall the same path exists again.
+    let reinstalls = 0;
+    let onDisk = false;
+    const p = await ensurePtyBackendOnDisk({
+      resolvePath: () => "C:/cache/pty/lib/index.js",
+      exists: () => onDisk,
+      reinstall: async () => {
+        reinstalls++;
+        onDisk = true;
+      },
+    });
+    assert.equal(p, "C:/cache/pty/lib/index.js");
+    assert.equal(reinstalls, 1);
+  });
+
+  it("heals an unresolvable backend when the reinstall makes it resolvable", async function () {
+    let resolved = null;
+    const p = await ensurePtyBackendOnDisk({
+      resolvePath: () => resolved,
+      exists: () => resolved !== null,
+      reinstall: async () => {
+        resolved = "C:/cache/pty/lib/index.js";
+      },
+    });
+    assert.equal(p, "C:/cache/pty/lib/index.js");
+  });
+
+  it("throws NODE_PTY_UNAVAILABLE (never proceeds) when the files are gone and the reinstall fails", async function () {
+    await assert.rejects(
+      ensurePtyBackendOnDisk({
+        resolvePath: () => "C:/cache/pty/lib/index.js",
+        exists: () => false,
+        reinstall: async () => {
+          throw new Error("npm offline");
+        },
+      }),
+      (err) => {
+        assert.equal(err.code, "NODE_PTY_UNAVAILABLE");
+        assert.match(err.message, /#501/);
+        assert.match(err.message, /npm offline/);
+        return true;
+      }
+    );
+  });
+
+  it("throws NODE_PTY_UNAVAILABLE when the reinstall completes but the backend still doesn't materialize", async function () {
+    await assert.rejects(
+      ensurePtyBackendOnDisk({
+        resolvePath: () => null,
+        exists: () => false,
+        reinstall: async () => {},
+      }),
+      (err) => {
+        assert.equal(err.code, "NODE_PTY_UNAVAILABLE");
+        return true;
+      }
+    );
   });
 });
 

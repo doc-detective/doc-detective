@@ -50,13 +50,14 @@ jobs:
           - http
           - process
           - sessions
-          # Native app surfaces (phase A1). Deliberately its own job: the app
-          # context's NovaWindows/console side effects on a service-session
-          # runner deterministically wedged a LATER ConPTY spawn when both ran
-          # in one process (the pre-split combined pass froze 4/4 at the first
-          # `tty` fixture ~11 min after the app fixture passed). Isolating the
-          # groups per job dissolves that interaction; the in-process pairing
-          # is tracked separately.
+          # Native app surfaces (phase A1). Its own job for job-size reasons
+          # (driver install + UIA automation are the slowest fixtures). The
+          # historical freeze that first motivated isolating it — the app
+          # preflight's mid-run driver install pruned node-pty from the runtime
+          # cache and the next ConPTY spawn froze the process (issue #501) — is
+          # fixed at the root (ADR 01025 non-destructive installs, ADR 01024
+          # spawn guards), and the in-process app→tty pairing is exercised ON
+          # PURPOSE by apps/app-then-tty.spec.json in this very group.
           - apps
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

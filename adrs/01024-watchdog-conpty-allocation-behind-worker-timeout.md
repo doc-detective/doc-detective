@@ -1,144 +1,152 @@
 ---
 status: accepted
-date: 2026-07-04
+date: 2026-07-05
 decision-makers: doc-detective maintainers
 ---
 
-# Bound ConPTY allocation behind a worker-thread watchdog on Windows
+# Guard the `tty` spawn path: on-disk backend verification with self-heal, plus a worker-thread ConPTY watchdog
 
 ## Context and Problem Statement
 
-On a GitHub-hosted Windows runner, once a native **app-surface** context (NovaWindows /
-`startSurface`, phase A1 — [ADR 01021](01021-native-app-surfaces-windows-a1.md), PR #491) has run in
-a Node process, the **first later** `pty.spawn` — a `runShell` step with `background.tty: true`, i.e.
-a ConPTY allocation via `@homebridge/node-pty-prebuilt-multiarch` — **freezes the entire process**.
-Both concurrent runners go silent at once and the job dies at its timeout. It reproduced 4/4 on
-hosted runners, ~11 minutes after the app fixture *passed*, at the `type-process-tty-stdio-match`
-step ([issue #501](https://github.com/doc-detective/doc-detective/issues/501)). It is **not**
-reproducible on an interactive local Windows session.
-
-The current mitigation ([#500](../.github/workflows/fixtures.yml), ADR 01022) runs the `apps` group
-in its own CI job so the two features never share a process. That unblocks CI but leaves the
-interaction real for **any user** who mixes app surfaces and `tty` background processes in one run
-on a comparable (service-session) Windows environment: the whole run hangs until an external
+On GitHub-hosted Windows runners, once a native **app-surface** context (NovaWindows /
+`startSurface`, phase A1 — [ADR 01021](01021-native-app-surfaces-windows-a1.md)) had run in a Node
+process, the **first later** `pty.spawn` — a `runShell` step with `background.tty: true` (a ConPTY
+allocation via `@homebridge/node-pty-prebuilt-multiarch`) — **froze the entire process**
+([issue #501](https://github.com/doc-detective/doc-detective/issues/501)). Deterministic 4/4 across
+jobs; the log's last line was the step's own debug print, then 66 minutes of silence until the job
 timeout.
 
-The decisive technical fact: the freeze is a **synchronous native block inside `pty.spawn`** — it
-wedges the libuv event loop itself (which is why *both* runners go silent simultaneously). Therefore
-a same-thread `Promise.race([spawn, setTimeout])` **cannot** rescue it: the timer callback never
-fires while the loop is blocked. Any watchdog must run **off the main thread**.
+The root cause was found by local reproduction (see [ADR 01025](01025-non-destructive-runtime-cache-installs.md)
+for the underlying install bug and its fix):
 
-Root cause is environmental — the service session's console subsystem is left unable to allocate a
-new pseudo-terminal, likely by NovaWindows' PowerShell/conhost backend (the job cleanup logs list
-orphaned `conhost` and `node` processes; node-pty's `conpty_console_list_agent` logs `AttachConsole
-failed`). It cannot be confirmed or fixed without a hosted runner, and the upstream driver is
-third-party.
+1. Early in the process, node-pty is loaded and used successfully (mocha unit tests).
+2. Mid-run, the app-surface preflight JIT-installs the NovaWindows driver into the runtime cache.
+   That `npm install` **pruned every sibling package**, deleting node-pty's ~330 JS files from disk.
+   Only the OS-locked, memory-mapped `conpty.node` native binary survives (Windows will not delete a
+   mapped DLL — reproduced identically with a lock-tolerant delete).
+3. At the later `tty` step, `loadHeavyDep` succeeds anyway: the stale `Module._pathCache` resolution
+   and the ESM module cache serve the in-memory module without touching disk.
+4. `pty.spawn` then runs against a package whose spawn-time support files (node-pty's conout worker)
+   no longer exist, and blocks **synchronously and forever** inside a native wait — the event loop
+   itself is wedged, so no timer, log line, or step result can ever fire. This matches the
+   long-standing upstream freeze class at the native connect
+   ([microsoft/node-pty#640](https://github.com/microsoft/node-pty/issues/640),
+   [#532](https://github.com/microsoft/node-pty/issues/532): `ConnectNamedPipe(hIn/hOut, nullptr)`
+   runs inline on the calling thread with no timeout in `src/win/conpty.cc`).
+
+The local reproduction (`load → use → prune-all-but-locked-files → spawn`) froze at exactly the same
+point **on an interactive Windows 11 session** — the original "only on service sessions / console
+poisoning" hypothesis was wrong. It appeared environment-specific only because dev machines already
+had the driver cached (no mid-run install → no prune → no freeze), while fresh CI runners always
+installed it mid-run. Synthetic console-poisoning experiments (tree-killing PowerShell trees,
+force-killing the conhost behind a live ConPTY, leaking pseudoconsoles) all left later allocations
+healthy, further refuting the original hypothesis.
+
+[ADR 01025](01025-non-destructive-runtime-cache-installs.md) removes the root cause (installs no
+longer prune siblings). This ADR decides what the `tty` spawn path itself must do so that **no
+cache state — past, present, or externally inflicted — can turn a `tty` step into a frozen
+process.**
 
 ## Decision Drivers
 
-* Convert an **unbounded process freeze into a bounded, observable step outcome** — valuable
-  regardless of the exact upstream cause.
-* **Never regress the happy path.** A Windows environment where `tty` works today must keep working,
-  even if the watchdog machinery can't run there.
-* Keep the existing **graceful-degradation model** for `tty`: node-pty is already an optional heavy
-  dep whose absence yields a SKIP; a wedged ConPTY on a specific environment is closer to
-  "unavailable here" than to user error.
-* Be **testable locally** despite the bug only reproducing on hosted runners.
-* Reduce the console-subsystem residue that triggers the wedge in the first place, where we can do
-  so **safely** (only touching processes we can attribute to ourselves).
+* A wrong cache state must produce a **bounded, observable step outcome**, never an unbounded
+  freeze: the freeze is strictly worse than any failure (it silences concurrent runners and burns
+  the full job timeout).
+* Prefer **self-healing** over skipping: if the backend's files can be restored, the step should
+  PASS.
+* **Never regress the happy path**: a healthy environment must behave exactly as before.
+* The upstream ConPTY hazard class is real and unresolved (freezes at the synchronous native
+  connect, reported since 2019); a defense that catches "wedged for reasons we did not foresee" has
+  standalone value.
+* Testable locally (the freeze itself reproduces in seconds with the prune recipe).
 
 ## Considered Options
 
-1. **Same-thread timeout race** around `pty.spawn`. Rejected: impossible — a synchronous native
-   block prevents the timer from firing.
-2. **Child-process probe** of ConPTY allocation before the real spawn. Rejected: a child process has
-   its *own* console subsystem, so it would allocate successfully even when *this* process is
-   poisoned — a false "healthy" that still lets the real spawn freeze.
-3. **Worker-thread probe** of ConPTY allocation before the real spawn. A worker thread shares this
-   process's console subsystem, so it reproduces the exact poison; a probe that itself wedges is
-   detectable via a main-thread timeout. **Chosen.**
-4. **Full PTY-in-worker** — run the entire node-pty lifecycle in a worker and proxy
-   `onData`/`onExit`/`write`/`kill`. Rejected for this phase: large, risky rewrite of the working
-   PTY path for no extra safety over a probe.
-5. **Teardown-only console hygiene** (kill NovaWindows' console orphans at app-session teardown).
-   Kept as a **complementary** measure, not a standalone fix: it targets the root cause but is
-   unverifiable locally and may not catch orphans that detached before we could attribute them.
+1. **On-disk backend verification with forced-reinstall self-heal** before every PTY spawn.
+2. **Worker-thread ConPTY probe** with a timeout, degrading a wedged allocation to SKIP.
+3. Same-thread timeout race around `pty.spawn` — impossible: the block is synchronous, the timer
+   can never fire.
+4. Child-process probe — a fresh process has its own healthy console and module tree, so it cannot
+   see either the stale-module state or an in-process wedge: false "healthy".
+5. Re-import after reinstall (tear down and reload the module) — ESM has no cache invalidation; the
+   reloaded URL returns the same module. Restoring the files at the same paths (option 1) achieves
+   the working state without fighting the loader.
 
 ## Decision Outcome
 
-Chosen: **option 3 + option 5 together.**
+Chosen: **options 1 + 2 together**, as two layers in `spawnPtyBackgroundCommand`
+([src/core/utils.ts](../src/core/utils.ts)):
 
-**Watchdog (the guarantee).** Before the real `pty.spawn`, on `win32` only, probe ConPTY allocation
-in a worker thread ([`src/core/ptyProbeWorker.ts`](../src/core/ptyProbeWorker.ts) driven by
-[`src/core/ptyWatchdog.ts`](../src/core/ptyWatchdog.ts)). The worker allocates a throwaway ConPTY
-(`cmd /d /s /c exit`) and reports back. The main thread classifies the result against a fixed ~15s
-budget (`DOC_DETECTIVE_PTY_PROBE_TIMEOUT_MS` overrides it):
+**Layer 1 — `ensurePtyBackendOnDisk`** ([src/core/ptyWatchdog.ts](../src/core/ptyWatchdog.ts)), all
+platforms: after `loadHeavyDep` returns, verify the backend's resolved entry **physically exists on
+disk** — a loaded module is *not* proof, per the mechanism above. If the files are missing, force a
+reinstall (`ensureRuntimeInstalled(..., force: true)`); the files return at the same paths, so the
+already-loaded module becomes safe to spawn. Only if the reinstall cannot restore them does the step
+degrade to **SKIPPED** via the existing `NODE_PTY_UNAVAILABLE` channel. Verified end-to-end against
+the reproduced freeze: pre-fix the recipe froze forever; post-fix the same recipe heals and the
+spawn completes in ~2.5 s.
 
-- **healthy** (probe exited fast) → proceed to the real spawn;
-- **inconclusive** (worker errored / couldn't host the native addon / can't be created) → **also
-  proceed** to the real spawn — the watchdog never *removes* capability;
-- **wedged** (no verdict within budget — the #501 signature) → throw a `NODE_PTY_UNAVAILABLE`-tagged
-  error, which `runShell` already maps to **SKIPPED**.
+**Layer 2 — `assertConptyAllocatable`**, Windows only: probe ConPTY allocation in a **worker
+thread** (a worker shares the process state a child process wouldn't; an off-thread probe is the
+only shape that can observe a synchronous main-thread freeze) with a ~15 s budget
+(`DOC_DETECTIVE_PTY_PROBE_TIMEOUT_MS` overrides). Outcomes: healthy → proceed; *inconclusive*
+(worker errored / cannot host the addon) → proceed (the watchdog never removes capability);
+**wedged** (no verdict in budget) → SKIP. This layer no longer carries #501 by itself — layer 1
+catches the known mechanism — but it bounds the documented upstream freeze class and any future
+unknown wedge.
 
-Only a genuine timeout degrades to SKIP; every other outcome falls through to today's behavior, so
-the happy path cannot regress. A worker wedged in a native call may not terminate promptly — we fire
-`terminate()` and move on; a leaked worker thread is reaped at process exit, which is strictly better
-than a frozen run.
-
-**Teardown hygiene (defense-in-depth).** In `teardownAppSession`
-([`src/core/tests/appSurface.ts`](../src/core/tests/appSurface.ts)), on Windows, snapshot the app
-Appium server's descendant pids *before* the tree-kill, then force-reap any of *that set* still
-alive afterward (descendants that detached from the tree and survived). It only ever touches
-processes descended from our own server — never an image-name sweep across the machine.
+The app-session teardown additionally sweeps console orphans the server tree-kill missed
+(`snapshotAppServerDescendants` / `reapConsoleOrphans` in
+[src/core/tests/appSurface.ts](../src/core/tests/appSurface.ts)): hygiene for lingering
+`conhost.exe` processes ([microsoft/terminal#4050](https://github.com/microsoft/terminal/issues/4050)),
+retained even though console state proved not to be the freeze mechanism.
 
 ### Consequences
 
-* Good: a `tty` step on a poisoned Windows environment now lands **SKIPPED** with a clear,
-  #501-referencing reason instead of hanging the run. The `apps` + `process` fixture groups can be
-  re-paired in one process to validate the fix end-to-end on a hosted runner.
-* Good: happy-path Windows `tty` steps are unchanged in outcome (they pay a one-time throwaway-ConPTY
-  probe of well under a second).
-* Neutral: a new worker file ships in `dist/core`; POSIX is entirely unaffected (the gate returns
-  immediately off `win32`).
-* Bad / accepted: the watchdog treats *any* >15s ConPTY allocation as wedged. A genuinely healthy
-  environment that takes longer than the budget would see a false SKIP; the budget is generous
-  (healthy allocation is sub-second) and env-overridable.
+* Good: the #501 pairing (app surface + `tty` in one process) now completes — healing to PASS on
+  the reproduced mechanism, SKIP only when the backend genuinely cannot be provisioned.
+  [test/core-artifacts/apps/app-then-tty.spec.json](../test/core-artifacts/apps/app-then-tty.spec.json)
+  pins the interleaving in CI permanently.
+* Good: any *other* path to a wedged ConPTY still lands as a bounded SKIP instead of a 90-minute
+  job death.
+* Neutral: healthy Windows `tty` steps pay one `fs.existsSync` plus a sub-second throwaway-ConPTY
+  probe.
+* Bad / accepted: a healthy environment slower than the probe budget would see a false SKIP; the
+  budget is generous (healthy allocation is sub-second) and env-overridable.
 
 ### Confirmation
 
-* Unit tests: [`test/pty-watchdog.test.js`](../test/pty-watchdog.test.js) covers every probe outcome
-  (healthy / inconclusive / error / exit / wedged / worker-uncreatable), a real end-to-end worker
-  round-trip, and the `assertConptyAllocatable` SKIP gate (throws `NODE_PTY_UNAVAILABLE` only on
-  wedged, only on `win32`, only with a resolved backend path).
-* Teardown-hygiene tests in [`test/app-surface.test.js`](../test/app-surface.test.js): descendant
-  walk, failed-query tolerance, reap-only-live, Windows gating, and the snapshot-before-kill /
-  reap-after ordering through `teardownAppSession`.
-* End-to-end: the previously-freezing [`type-to-process-tty.spec.json`](../test/core-artifacts/process/type-to-process-tty.spec.json)
-  fixture now degrades to SKIPPED (via `onSkip: stop test`) rather than freezing when ConPTY won't
-  allocate — verifiable by re-pairing the `apps` + `process` groups on a hosted Windows runner.
+* [test/pty-watchdog.test.js](../test/pty-watchdog.test.js): `ensurePtyBackendOnDisk` (present /
+  stale-healed / unresolvable-healed / reinstall-fails → `NODE_PTY_UNAVAILABLE` / never-materializes
+  → same), every probe outcome, a real worker round trip, and the `assertConptyAllocatable` gating.
+* Teardown-sweep tests in [test/app-surface.test.js](../test/app-surface.test.js).
+* Mechanism-level dogfood (scripted, documented in #501): load → use → prune-except-locked →
+  `spawnPtyBackgroundCommand` heals and completes; the same recipe without the fix freezes forever.
 
 ## Pros and Cons of the Options
 
-### Option 3 — worker-thread probe (chosen)
+### Option 1 — on-disk verification + self-heal (chosen)
 
-* Good: shares the process console, so it reproduces the poison and detects the wedge.
-* Good: safe-by-default — inconclusive/uncreatable never removes capability.
-* Good: locally unit-testable via an injected worker + injected probe.
-* Bad: a worker stuck in native code may not `terminate()` promptly (accepted — main thread proceeds;
-  OS reaps at exit).
+* Good: directly targets the proven mechanism; converts it to PASS, not SKIP.
+* Good: platform-independent; also protects POSIX PTY spawns from pruned support files.
+* Bad: a forced reinstall mid-step adds seconds of latency in the (rare) pruned state.
 
-### Option 2 — child-process probe
+### Option 2 — worker-thread probe (chosen, as defense-in-depth)
 
-* Bad: separate console subsystem → false "healthy" → real spawn still freezes. Fatal.
+* Good: the only construction that can observe a synchronous main-thread freeze in time to skip it.
+* Good: safe-by-default (inconclusive never removes capability).
+* Bad: cannot catch the stale-module case on its own (the probe's fresh import fails → inconclusive
+  → proceed) — which is why layer 1 exists and runs first.
 
-### Option 4 — full PTY-in-worker
+### Option 3 — same-thread race
 
-* Good: would also bound the *running* PTY, not just allocation.
-* Bad: large rewrite of a working path; cross-thread proxying of the PTY stream/lifecycle; no extra
-  safety over a probe for the observed failure (which is at *allocation*).
+* Fatal: the timer shares the blocked event loop; it can never fire.
 
-### Option 5 — teardown hygiene alone
+### Option 4 — child-process probe
 
-* Good: targets the root cause; cheap; safe when scoped to attributable descendants.
-* Bad: unverifiable locally; can't catch orphans that detached before attribution — insufficient as
-  the sole fix, hence paired with the watchdog.
+* Fatal: fresh process state → false "healthy" for both the stale-module case and in-process wedges.
+
+### Option 5 — re-import after reinstall
+
+* Fatal in practice: ESM offers no module-cache invalidation; the "fresh" import is the same stale
+  module object. Restoring files under the loaded module (option 1) is the workable equivalent.

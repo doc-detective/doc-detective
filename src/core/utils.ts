@@ -6,8 +6,15 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
-import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
-import { assertConptyAllocatable } from "./ptyWatchdog.js";
+import {
+  loadHeavyDep,
+  resolveHeavyDepPath,
+  ensureRuntimeInstalled,
+} from "../runtime/loader.js";
+import {
+  assertConptyAllocatable,
+  ensurePtyBackendOnDisk,
+} from "./ptyWatchdog.js";
 
 export {
   outputResults,
@@ -414,20 +421,33 @@ async function spawnPtyBackgroundCommand(
     throw err;
   }
 
-  // Windows-only ConPTY watchdog (issue #501). A prior native app-surface
-  // (NovaWindows) context in the same process can leave the console subsystem
-  // unable to allocate a new pseudo-terminal, and the next `pty.spawn` then
-  // blocks the event loop FOREVER (a same-thread timeout can't fire — the loop
-  // itself is wedged). assertConptyAllocatable probes the allocation in a worker
-  // thread (which shares this process's console, so it reproduces the poison a
-  // child process wouldn't) BEFORE the real spawn. Only a genuine wedge degrades
-  // to a SKIP (NODE_PTY_UNAVAILABLE); a healthy/inconclusive probe returns and we
-  // fall through to the direct spawn below, so the happy path can never regress.
-  await assertConptyAllocatable({
-    ptyModulePath: resolveHeavyDepPath(PTY_PACKAGE, {
-      cacheDir: options.cacheDir,
-    }),
+  // #501 guard, part 1 — stale-module self-heal. loadHeavyDep succeeding is
+  // NOT proof the backend is usable: a mid-run JIT install of another heavy
+  // dep used to prune node-pty's files from the runtime cache while the
+  // module stayed importable from the stale resolution + ESM caches, and a
+  // spawn without its on-disk support files freezes the process inside a
+  // native wait. Verify the resolved path physically exists, force-reinstall
+  // when it doesn't (same paths → the loaded module's support files return),
+  // and SKIP (NODE_PTY_UNAVAILABLE) if the files can't be restored.
+  const ptyModulePath = await ensurePtyBackendOnDisk({
+    resolvePath: () =>
+      resolveHeavyDepPath(PTY_PACKAGE, { cacheDir: options.cacheDir }),
+    reinstall: () =>
+      ensureRuntimeInstalled([PTY_PACKAGE], {
+        ctx: { cacheDir: options.cacheDir },
+        force: true,
+      }),
   });
+
+  // #501 guard, part 2 — Windows-only ConPTY watchdog, defense-in-depth for
+  // wedges the disk check can't see (upstream node-pty hangs at the native
+  // connect: microsoft/node-pty #640/#532/#512; environment-specific console
+  // states). The probe runs in a worker thread because the freeze is a
+  // synchronous native block — a same-thread timeout can never fire — and a
+  // worker shares this process's state where a child process wouldn't. Only a
+  // genuine wedge degrades to SKIP; a healthy/inconclusive probe falls through
+  // to the direct spawn below, so the happy path can never regress.
+  await assertConptyAllocatable({ ptyModulePath });
 
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;

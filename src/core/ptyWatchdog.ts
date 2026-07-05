@@ -25,6 +25,7 @@
 // regress; the watchdog only ever converts an otherwise-infinite freeze into a
 // bounded, observable outcome.
 
+import fs from "node:fs";
 import { Worker } from "node:worker_threads";
 
 /** Default wall-clock budget for the ConPTY probe. A healthy allocation
@@ -135,6 +136,50 @@ export function probePtyAllocation(opts: {
       finish("inconclusive", "worker exited without a result");
     });
   });
+}
+
+/**
+ * Verify the PTY backend is PHYSICALLY on disk before any spawn, healing a
+ * pruned install by force-reinstalling — issue #501's actual mechanism.
+ *
+ * A mid-run JIT `npm install` of another heavy dep used to prune node-pty's
+ * files from the runtime cache while the module stayed loaded (the OS-locked
+ * .node binary survives; the JS support files node-pty needs at spawn time do
+ * not). The stale resolution + ESM caches then serve the in-memory module
+ * without touching disk, and the next `pty.spawn` freezes the process inside
+ * a native wait. So "the module loaded" is NOT sufficient — the resolved path
+ * must exist on disk, and when it doesn't we reinstall (same paths → the
+ * already-loaded module's support files are back) rather than proceed onto a
+ * spawn we know can wedge. If the reinstall can't produce the files, throw
+ * the `NODE_PTY_UNAVAILABLE`-tagged error so runShell degrades to SKIPPED.
+ *
+ * All collaborators are injectable for tests; `exists` defaults to
+ * `fs.existsSync`.
+ */
+export async function ensurePtyBackendOnDisk(opts: {
+  resolvePath: () => string | null;
+  reinstall: () => Promise<void>;
+  exists?: (p: string) => boolean;
+}): Promise<string> {
+  const exists = opts.exists ?? fs.existsSync;
+  const first = opts.resolvePath();
+  if (first && exists(first)) return first;
+  try {
+    await opts.reinstall();
+  } catch (error: any) {
+    const err: any = new Error(
+      `The PTY backend's files are missing from the runtime cache (a JIT install of another dependency previously pruned them — doc-detective issue #501) and reinstalling failed: ${error?.message ?? error}. Skipping this \`tty\` background process.`
+    );
+    err.code = "NODE_PTY_UNAVAILABLE";
+    throw err;
+  }
+  const healed = opts.resolvePath();
+  if (healed && exists(healed)) return healed;
+  const err: any = new Error(
+    `The PTY backend's files are missing from the runtime cache (doc-detective issue #501) and did not materialize after a reinstall. Skipping this \`tty\` background process.`
+  );
+  err.code = "NODE_PTY_UNAVAILABLE";
+  throw err;
 }
 
 /**
