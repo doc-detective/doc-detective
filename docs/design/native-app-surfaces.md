@@ -524,9 +524,13 @@ fixtures.
   `install` (.apk), `activity`, headless emulator, the UiAutomator2 mapping
   column, multi-app-per-device switching. Runs on any capable host OS; CI recipe
   (Linux runner + KVM) documented and exercised.
-- **Phase A4 — iOS apps + the `ios` platform (XCUITest).** simctl
-  boot/reuse/teardown, `install` (.app), WebDriverAgent build/caching preflight,
-  the XCUITest mapping column. macOS hosts only.
+- **Phase A4 — iOS apps + the `ios` platform (XCUITest).** Implemented for
+  macOS-capable hosts: iOS contexts now route through app-surface preflight,
+  resolve/install the `appium-xcuitest-driver`, and gate with actionable
+  `xcode-select`/`simctl` guidance when host tooling is missing. Adds
+  `doc-detective install ios` for explicit host preparation and dry-run
+  diagnostics. The full simulator lifecycle parity (managed boot/reuse/teardown)
+  remains tracked as follow-on hardening.
 - **Phase A5 — mobile browsers.** `browsers` on mobile platform entries: Chrome
   on Android (on-device chromedriver management), Safari on iOS; the
   unsupported-combination SKIP matrix; mobile-web fixtures (goTo/find/click/

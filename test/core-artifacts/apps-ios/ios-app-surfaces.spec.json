@@ -1,0 +1,50 @@
+{
+  "specId": "app-surfaces-a4-ios",
+  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS contexts run through XCUITest preflight and either execute on capable macOS hosts or SKIP with actionable host/toolchain guidance. This group is intended for focused macOS workflow-dispatch validation from non-macOS development hosts.",
+  "tests": [
+    {
+      "testId": "ios-mobile-browser-gate-a5",
+      "description": "A5 remains gated: iOS mobile-browser contexts SKIP with the phase A5 message.",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ],
+          "browsers": [
+            "safari"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "https://example.com"
+        }
+      ]
+    },
+    {
+      "testId": "ios-startsurface-preflight",
+      "description": "A4 app context: attempts to open Settings on iOS. On capable macOS hosts this can PASS; elsewhere it SKIPs with iOS/macOS toolchain guidance.",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "ios-settings",
+            "timeout": 120000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "ios-settings"
+          }
+        }
+      ]
+    }
+  ]
+}

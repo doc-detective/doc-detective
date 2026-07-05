@@ -1,11 +1,11 @@
 // Native app surfaces phase A3: the `android`/`ios` target platforms. Unlike
 // desktop platforms (where host == target), a mobile platform names the
 // TARGET a context runs against and is gated by host *capability*, not host
-// identity. As of A3b, android native app contexts can PASS (via
-// androidContextPreflight, which capability-gates and lazily installs the
-// toolchain); the cases this module composes SKIP reasons for are the ones
-// still gated by a later phase — iOS (A4) and android+browser (A5). The reason
-// composer is pure so it's unit-testable without probing an SDK.
+// identity. As of A4, native app contexts can pass on both mobile targets
+// when the host is capable. The remaining mobile-target skip reason this
+// module composes is mobile browser testing (A5), which is still gated on both
+// android and ios. The reason composer is pure so it's unit-testable without
+// probing an SDK.
 
 export { isMobileTargetPlatform, mobileContextSkipReason };
 
@@ -19,10 +19,8 @@ function isMobileTargetPlatform(platform: unknown): MobileTarget | null {
 
 // Compose the SKIP reason (and log level) for the mobile-context cases still
 // gated by a not-yet-implemented phase:
-//   - ios                         -> app surfaces land in A4
 //   - android with a browser step -> mobile browsers land in A5
-// (Android native app runs are handled by androidContextPreflight, which
-// capability-gates and lazily installs the toolchain rather than skipping.)
+//   - ios with a browser step     -> mobile browsers land in A5
 function mobileContextSkipReason({
   platform,
   hasBrowserStep,
@@ -31,10 +29,16 @@ function mobileContextSkipReason({
   hasBrowserStep?: boolean;
 }): { level: "warning" | "info"; reason: string } {
   const roadmap = "docs/design/native-app-surfaces.md";
+  if (platform === "ios" && hasBrowserStep) {
+    return {
+      level: "warning",
+      reason: `Skipping context on 'ios': mobile browser testing on iOS lands in phase A5 of the native app roadmap (${roadmap}). Native iOS app tests run on capable macOS hosts.`,
+    };
+  }
   if (platform === "ios") {
     return {
       level: "info",
-      reason: `Skipping context on 'ios': iOS app surfaces land in phase A4 of the native app roadmap (${roadmap}). Gate iOS tests with runOn platforms so this skip is intentional.`,
+      reason: `Skipping context on 'ios': no runnable mobile path matched this context.`,
     };
   }
   // android + a browser step: mobile-web testing on Android is phase A5.

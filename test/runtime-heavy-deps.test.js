@@ -29,6 +29,7 @@ describe("runtime/heavyDeps", function () {
       "appium-chromium-driver",
       "appium-geckodriver",
       "appium-safari-driver",
+      "appium-xcuitest-driver",
       "sharp",
       "@ffmpeg-installer/ffmpeg",
       "@puppeteer/browsers",

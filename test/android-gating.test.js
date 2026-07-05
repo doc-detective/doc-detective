@@ -29,11 +29,15 @@ describe("native app surfaces (A3a): isMobileTargetPlatform", function () {
 });
 
 describe("native app surfaces (A3a): mobileContextSkipReason", function () {
-  it("points iOS at phase A4", function () {
-    const { level, reason } = mobileContextSkipReason({ platform: "ios" });
+  it("points iOS mobile-browser steps at phase A5", function () {
+    const { level, reason } = mobileContextSkipReason({
+      platform: "ios",
+      hasBrowserStep: true,
+    });
     expect(reason).to.match(/iOS/);
-    expect(reason).to.match(/A4/);
-    expect(level).to.equal("info");
+    expect(reason).to.match(/A5/);
+    expect(reason).to.match(/browser/i);
+    expect(level).to.equal("warning");
   });
 
   it("points a mobile-browser step on android at phase A5", function () {
@@ -44,6 +48,12 @@ describe("native app surfaces (A3a): mobileContextSkipReason", function () {
     expect(reason).to.match(/A5/);
     expect(reason).to.match(/browser/i);
     expect(level).to.equal("warning");
+  });
+
+  it("returns an informational no-match message for ios without a browser step", function () {
+    const { level, reason } = mobileContextSkipReason({ platform: "ios" });
+    expect(level).to.equal("info");
+    expect(reason).to.match(/no runnable mobile path/i);
   });
 });
 

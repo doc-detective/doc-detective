@@ -10,7 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import {
   resolveHeavyDepPath,
   resolveHeavyDepPathInCache,
@@ -31,6 +31,7 @@ export {
   buildUiaLocator,
   buildAxLocator,
   buildUiAutomator2Locator,
+  buildXCUITestLocator,
   createAppSessionState,
   appSurfacePreflight,
   // Exported as a test seam: the JXA probe must return a definitive boolean
@@ -49,6 +50,7 @@ export {
   // Exported as a test seam: the manifest-staleness rules are load-bearing
   // (a stale manifest makes the lazily-installed driver invisible to Appium).
   invalidateStaleAppiumManifest,
+  probeIosToolchain,
 };
 export type { AppSessionState, AppSurfaceEntry };
 
@@ -362,6 +364,19 @@ function buildUiAutomator2Locator(criteria: {
   return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
 }
 
+// Build an iOS (XCUITest) locator from the shared semantic element fields.
+// XCUITest shares the XCUI role taxonomy with Mac2, so this column reuses the
+// AX/XCUI mapping semantics for role/name/text while running against iOS.
+function buildXCUITestLocator(criteria: {
+  elementText?: string;
+  elementId?: string;
+  elementTestId?: string;
+  elementAria?: { role?: string; name?: string } | string;
+  [key: string]: any;
+}): { strategy: string; value: string } | null {
+  return buildAxLocator(criteria);
+}
+
 // ---------------------------------------------------------------------------
 // Runtime: app sessions, preflight, and app-side step implementations.
 // ---------------------------------------------------------------------------
@@ -556,6 +571,62 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       },
     ],
   },
+  ios: {
+    driverPackage: "appium-xcuitest-driver",
+    driverLabel: "iOS app driver",
+    platformName: "iOS",
+    automationName: "XCUITest",
+    buildLocator: (criteria) => buildXCUITestLocator(criteria),
+    // iOS maps text/name through the same XCUI naming surface as macOS.
+    nameFieldsCollide: true,
+    buildCapabilities(descriptor, appId, extras) {
+      const capabilities: Record<string, any> = {
+        platformName: "iOS",
+        "appium:automationName": "XCUITest",
+        "appium:newCommandTimeout": 600,
+        "wdio:enforceWebDriverClassic": true,
+      };
+      if (classifyAppIdentifier(appId) === "id") {
+        capabilities["appium:bundleId"] = appId;
+      } else {
+        capabilities["appium:app"] = path.resolve(appId);
+      }
+      // Installable payload overrides app path for install-before-launch.
+      if (descriptor.install) {
+        capabilities["appium:app"] = path.resolve(descriptor.install);
+      }
+      if (extras?.udid) capabilities["appium:udid"] = extras.udid;
+      const timeout = descriptor.timeout ?? 60000;
+      capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
+      capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
+      return capabilities;
+    },
+    unsupportedFields: [
+      {
+        field: "activity",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "`activity` is Android-only; iOS launches by bundle identifier or installed app payload.",
+      },
+      {
+        field: "args",
+        isSet: (value) => Array.isArray(value) && value.length > 0,
+        guidance:
+          "The iOS driver does not honor desktop-style process arguments for AUT launch.",
+      },
+      {
+        field: "workingDirectory",
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance: "A working directory is not meaningful for iOS app launches.",
+      },
+      {
+        field: "env",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "Use driverOptions for iOS-specific launch controls; app environment overrides are not supported here.",
+      },
+    ],
+  },
 };
 
 // The System Settings walkthrough for macOS Accessibility (TCC) — used by
@@ -726,6 +797,41 @@ async function probeMacAccessibility(): Promise<boolean | null> {
   });
 }
 
+function probeIosToolchain(): { ok: true } | { ok: false; reason: string } {
+  if (process.platform !== "darwin") {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
+    };
+  }
+  const xcodeSelect = spawnSync("xcode-select", ["-p"], {
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 15000,
+  });
+  if (xcodeSelect.status !== 0) {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
+    };
+  }
+  const simctl = spawnSync("xcrun", ["simctl", "list", "devices"], {
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 20000,
+  });
+  if (simctl.status !== 0) {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': `xcrun simctl` is unavailable. Open Xcode once to finish simulator components and rerun.",
+    };
+  }
+  return { ok: true };
+}
+
 // Preflight for app surfaces: platform support, driver availability, and (on
 // macOS) the Accessibility permission. Returns { ok: true } or a skip reason
 // — an unmet environment is a gating fact (SKIPPED), never a FAIL, matching
@@ -745,6 +851,7 @@ async function appSurfacePreflight({
     resolvePathInCache?: typeof resolveHeavyDepPathInCache;
     ensureInstalled?: typeof ensureRuntimeInstalled;
     probeAccessibility?: () => Promise<boolean | null>;
+    probeIosToolchain?: () => { ok: true } | { ok: false; reason: string };
   };
 }): Promise<
   | { ok: true; appiumEntry: string; appiumHome: string }
@@ -754,8 +861,18 @@ async function appSurfacePreflight({
   if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipping context on '${platform}': native app surfaces run on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]) so this skip is intentional.`,
+      reason: `Skipping context on '${platform}': native app surfaces run on Windows, macOS, Android, and iOS in this phase. Gate the test with runOn platforms so this skip is intentional.`,
     };
+  }
+  if (platform === "ios") {
+    const probe = deps.probeIosToolchain ?? probeIosToolchain;
+    const ios = probe();
+    if (!ios.ok) {
+      return {
+        ok: false,
+        reason: ios.reason,
+      };
+    }
   }
   if (platform === "mac") {
     const probe = deps.probeAccessibility ?? probeMacAccessibility;
@@ -997,7 +1114,7 @@ async function startAppSurface({
   const platformDriver = APP_DRIVER_PLATFORMS[platform];
   if (!platformDriver) {
     result.status = "FAIL";
-    result.description = `startSurface (app) runs on Windows and macOS desktops and Android emulators in this phase. Gate the test with runOn platforms (["windows"], ["mac"], or ["android"]).`;
+    result.description = `startSurface (app) runs on Windows and macOS desktops plus Android and iOS mobile targets in this phase. Gate the test with runOn platforms (["windows"], ["mac"], ["android"], or ["ios"]).`;
     return result;
   }
   // Per-platform unsupported fields (desktop rows reject the mobile-only

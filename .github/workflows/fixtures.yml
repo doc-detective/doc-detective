@@ -66,6 +66,9 @@ jobs:
           # gating, skip-tolerant here. The real PASS coverage runs in the two
           # dedicated KVM jobs below (reuse + managed-boot).
           - apps-android
+          # Native app surfaces (phase A4, iOS). Focused iOS/XCUITest fixture
+          # coverage lives in this group; non-macOS legs are expected to SKIP.
+          - apps-ios
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

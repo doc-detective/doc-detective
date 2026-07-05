@@ -98,7 +98,8 @@
     "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
     "appium-mac2-driver": "^4.0.3",
     "appium-novawindows-driver": "^1.4.1",
-    "appium-uiautomator2-driver": "^4.2.0"
+    "appium-uiautomator2-driver": "^4.2.0",
+    "appium-xcuitest-driver": "^10.6.0"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
@@ -107,6 +108,7 @@
     "appium-chromium-driver": "^3.0.2",
     "appium-geckodriver": "^3.0.6",
     "appium-safari-driver": "^5.0.2",
+    "appium-xcuitest-driver": "^10.6.0",
     "geckodriver": "^6.1.0",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",

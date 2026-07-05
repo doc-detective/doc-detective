@@ -439,6 +439,13 @@ describe("buildAppLocator", function () {
     });
   });
 
+  it("routes ios to the XCUITest column", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "ios"), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
+    });
+  });
+
   it("does NOT flag elementText/elementAria as conflicting on android", function () {
     // On Android the two map to distinct attributes (@text vs @content-desc),
     // so different values are a legal AND, not a conflict — the per-platform
@@ -520,7 +527,23 @@ describe("appSurfacePreflight", function () {
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows and macOS/);
+    assert.match(outcome.reason, /Windows/);
+    assert.match(outcome.reason, /iOS/);
+  });
+
+  it("skips ios on non-mac hosts with toolchain guidance", async function () {
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "ios",
+      deps: {
+        probeIosToolchain: () => ({
+          ok: false,
+          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+        }),
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
   });
 
   it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
@@ -740,7 +763,7 @@ describe("startAppSurface", function () {
       platform: "linux",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.match(unsupportedPlatform.description, /Windows and macOS/);
+    assert.match(unsupportedPlatform.description, /iOS/);
 
     appSession.surfaces.set("x", { name: "x", appId: "x", driver: {} });
     const collision = await startAppSurface({

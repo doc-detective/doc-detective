@@ -163,7 +163,7 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("An ios target context SKIPs pointing at phase A4", async function () {
+  it("An ios target context SKIPs on a non-mac host with toolchain guidance", async function () {
     const iosTest = {
       tests: [
         {
@@ -182,7 +182,7 @@ describe("Run tests successfully", function () {
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
         assert.match(ctx.resultDescription, /iOS/);
-        assert.match(ctx.resultDescription, /A4/);
+        assert.match(ctx.resultDescription, /macOS|Xcode|simctl/);
       }
       assert.equal(result.summary.specs.fail, 0);
     } finally {

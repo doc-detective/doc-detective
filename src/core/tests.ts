@@ -737,6 +737,37 @@ async function androidContextPreflight({
   /* c8 ignore stop */
 }
 
+// iOS context preflight (native app phase A4): mobile-browser contexts are
+// still gated to A5; native app contexts probe host capability/toolchain via
+// appSurfacePreflight and, on success, return the appium entry/home for the
+// app session.
+async function iosContextPreflight({
+  config,
+  context,
+}: {
+  config: any;
+  context: any;
+}): Promise<
+  | { ok: true; appiumEntry: string; appiumHome: string }
+  | { ok: false; level: "warning" | "info"; reason: string }
+> {
+  const hasBrowserStep = isBrowserRequired({ test: context });
+  if (hasBrowserStep) {
+    const { level, reason } = mobileContextSkipReason({
+      platform: "ios",
+      hasBrowserStep,
+    });
+    return { ok: false, level, reason };
+  }
+  const pre = await appSurfacePreflight({ config, platform: "ios" });
+  if (!pre.ok) return { ok: false, level: "info", reason: pre.reason };
+  return {
+    ok: true,
+    appiumEntry: pre.appiumEntry,
+    appiumHome: pre.appiumHome,
+  };
+}
+
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
   let browser: any = {};
   const browserNames = ["firefox", "chrome", "safari"];
@@ -2978,44 +3009,51 @@ async function runContext({
       contextReport.resultDescription = requirementsSkip;
       return contextReport;
     }
-    if (mobileTarget === "ios") {
-      // iOS has no PASS path yet — point at phase A4.
-      const { level, reason } = mobileContextSkipReason({ platform: "ios" });
-      clog(level, reason);
-      contextReport.result = "SKIPPED";
-      contextReport.resultDescription = reason;
-      return contextReport;
+    if (mobileTarget === "android") {
+      // Android (phase A3b): full preflight. SDK detection is lazy (probed
+      // only here, only for android contexts), so a run that never targets
+      // android pays nothing. On skip, land SKIPPED with the actionable reason;
+      // on ok, prime the app session with the device layer and FALL THROUGH to
+      // run the steps.
+      const pre = await androidContextPreflight({ config, context, clog });
+      if (!pre.ok) {
+        clog(pre.level, pre.reason);
+        contextReport.result = "SKIPPED";
+        contextReport.resultDescription = pre.reason;
+        return contextReport;
+      }
+      /* c8 ignore start */
+      // The ok path only runs on a host with a real SDK + emulator (CI legs).
+      appSession = createAppSessionState();
+      appSession.appiumEntry = pre.appiumEntry;
+      appSession.appiumHome = pre.appiumHome;
+      appSession.defaultDevice = context.device;
+      appSession.androidSdkRoot = pre.sdkRoot;
+      appSession.androidDeviceRegistry = deviceRegistry;
+      appSession.androidDeviceDeps = pre.deviceDeps;
+      // resolved device (name) joins the context report the way resolved
+      // browser versions do; the concrete udid is known once a surface boots
+      // it.
+      contextReport.device = context.device ?? { platform: "android" };
+      // Surface any preflight warnings (e.g. a lazy toolchain install) in the
+      // output report — not just the terminal — so a run that quietly
+      // downloaded the multi-GB SDK is auditable after the fact.
+      if (pre.warnings.length) contextReport.warnings = pre.warnings;
+      /* c8 ignore stop */
+    } else {
+      const pre = await iosContextPreflight({ config, context });
+      if (!pre.ok) {
+        clog(pre.level, pre.reason);
+        contextReport.result = "SKIPPED";
+        contextReport.resultDescription = pre.reason;
+        return contextReport;
+      }
+      appSession = createAppSessionState();
+      appSession.appiumEntry = pre.appiumEntry;
+      appSession.appiumHome = pre.appiumHome;
+      appSession.defaultDevice = context.device;
+      contextReport.device = context.device ?? { platform: "ios" };
     }
-    // Android (phase A3b): full preflight. SDK detection is lazy (probed only
-    // here, only for android contexts), so a run that never targets android
-    // pays nothing. On skip, land SKIPPED with the actionable reason; on ok,
-    // prime the app session with the device layer and FALL THROUGH to run the
-    // steps — none of the desktop engine/platform skips below apply to it (the
-    // `!platformMatches` skip is guarded on `!appSession`).
-    const pre = await androidContextPreflight({ config, context, clog });
-    if (!pre.ok) {
-      clog(pre.level, pre.reason);
-      contextReport.result = "SKIPPED";
-      contextReport.resultDescription = pre.reason;
-      return contextReport;
-    }
-    /* c8 ignore start */
-    // The ok path only runs on a host with a real SDK + emulator (CI legs).
-    appSession = createAppSessionState();
-    appSession.appiumEntry = pre.appiumEntry;
-    appSession.appiumHome = pre.appiumHome;
-    appSession.defaultDevice = context.device;
-    appSession.androidSdkRoot = pre.sdkRoot;
-    appSession.androidDeviceRegistry = deviceRegistry;
-    appSession.androidDeviceDeps = pre.deviceDeps;
-    // resolved device (name) joins the context report the way resolved browser
-    // versions do; the concrete udid is known once a surface boots it.
-    contextReport.device = context.device ?? { platform: "android" };
-    // Surface any preflight warnings (e.g. a lazy toolchain install) in the
-    // output report — not just the terminal — so a run that quietly downloaded
-    // the multi-GB SDK is auditable after the fact.
-    if (pre.warnings.length) contextReport.warnings = pre.warnings;
-    /* c8 ignore stop */
   }
 
   // `requires` capability gate: any unmet requirement skips the context with a
