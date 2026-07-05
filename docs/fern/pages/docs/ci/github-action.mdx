@@ -47,6 +47,7 @@ By default, the action runs from the repository root and uses the config file Do
 |---|---|---|
 | `version` | `latest` | Doc Detective version to run—a version number or an npm tag such as `latest`. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
+| `android` | `auto` | Set up the Android emulator on Linux runners so `android`-platform tests can run. `auto` sets it up only when your specs use an `android` platform, `true` always sets it up, and `false` never does. No effect on macOS or Windows runners. See [Run Android tests on Linux](#run-android-tests-on-linux). |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
 
@@ -172,6 +173,34 @@ jobs:
 ```
 
 See [Docker and headless](/docs/ci/docker-and-headless) for how headless environments affect a run.
+
+## Run Android tests on Linux
+
+Doc Detective can run tests against the `android` platform on Linux runners with no manual setup. The Android emulator needs hardware acceleration, which on hosted Linux runners means access to `/dev/kvm`. The action grants that access by default, so an `android` context runs instead of skipping.
+
+```yaml
+jobs:
+  runTests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+        # android: auto is the default—nothing else is needed on Linux.
+```
+
+The `android` input controls this behavior:
+
+| Input | Default | Description |
+|---|---|---|
+| `android` | `auto` | Set up the Android emulator on Linux runners. `auto` scans your resolved specs and config and sets up KVM only when it finds an `android` platform, `true` always sets it up, and `false` never does. |
+
+The first time an `android` test runs, Doc Detective installs everything else the emulator needs—the Android SDK, emulator, system image, AVD, and the UiAutomator2 driver. The `android` input handles only the KVM access that Doc Detective can't grant on its own.
+
+Setup is best-effort. If a runner can't grant KVM access, the action logs a warning and the `android` contexts skip rather than failing the run. Leave `android` at `auto` for most workflows. Set it to `true` when your `android` platform lives outside the scanned specs and config, or `false` to turn the setup off.
+
+<Note>
+The emulator only accelerates on Linux, so this input has no effect on macOS or Windows runners. On a self-hosted Linux runner, make sure JRE 17 or later is installed—Doc Detective's SDK tooling needs it. Hosted runners already include a suitable Java.
+</Note>
 
 ## Runtime caching
 
