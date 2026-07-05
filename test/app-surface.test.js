@@ -767,6 +767,10 @@ describe("probeIosToolchain", function () {
     // Exercise the real spawnSync path (default runner) so a broken invocation
     // is visible; on non-mac hosts the early return already covers this.
     if (process.platform !== "darwin") this.skip();
+    // probeIosToolchain is synchronous and the first cold `xcrun simctl` call on
+    // a fresh macOS runner can take much longer than mocha's 2s default before
+    // it returns — give it the same 2-minute ceiling the probe itself uses.
+    this.timeout(130000);
     const outcome = probeIosToolchain();
     assert.equal(typeof outcome.ok, "boolean");
   });

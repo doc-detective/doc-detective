@@ -115,7 +115,10 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /Windows and macOS/);
+        assert.match(
+          ctx.resultDescription,
+          /native app surfaces run on Windows, macOS, Android, and iOS/
+        );
       }
       assert.equal(result.summary.specs.fail, 0);
     } finally {

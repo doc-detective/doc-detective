@@ -120,3 +120,9 @@ ChromeDriver
 toolchain
 sdkmanager
 avdmanager
+toolchains
+Xcode
+simctl
+xcrun
+WebDriverAgent
+XCUITest

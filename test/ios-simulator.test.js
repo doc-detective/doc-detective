@@ -246,6 +246,34 @@ describe("iosSimulator: planSimulatorAcquisition", function () {
     assert.equal(reuse.udid, "UDID-15-180");
   });
 
+  it("a named device that exists only on a non-iOS runtime is created, not reused", function () {
+    // A booted watchOS device sharing the requested name must never be reused
+    // for an iOS context; fall through to create an iOS device under that name.
+    const devices = parseSimctlDevices(
+      JSON.stringify({
+        devices: {
+          "com.apple.CoreSimulator.SimRuntime.watchOS-11-0": [
+            { udid: "WATCH", name: "my-device", state: "Booted", isAvailable: true, deviceTypeIdentifier: "com.apple.CoreSimulator.SimDeviceType.Apple-Watch-Series-10" },
+          ],
+        },
+      })
+    );
+    const runtimes = parseSimctlRuntimes(
+      JSON.stringify({
+        runtimes: [
+          { identifier: "com.apple.CoreSimulator.SimRuntime.watchOS-11-0", version: "11.0", name: "watchOS 11.0", isAvailable: true, platform: "watchOS" },
+          { identifier: RT_180, version: "18.0", name: "iOS 18.0", isAvailable: true, platform: "iOS" },
+        ],
+      })
+    );
+    const plan = planSimulatorAcquisition(
+      { platform: "ios", name: "my-device" },
+      { devices, runtimes, deviceTypes: parseSimctlDeviceTypes(deviceTypesJson) }
+    );
+    assert.equal(plan.action, "create-boot");
+    assert.equal(plan.name, "my-device");
+  });
+
   it("a named device that does not exist is created and booted (newest iPhone type + runtime)", function () {
     const plan = planSimulatorAcquisition({ platform: "ios", name: "dd-phone" }, ctx);
     assert.equal(plan.action, "create-boot");

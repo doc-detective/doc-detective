@@ -297,9 +297,21 @@ function planSimulatorAcquisition(
         )
       : null;
   const isBooted = (d: SimDevice) => /^booted$/i.test(d.state);
+  const iosRuntimeIds = new Set(
+    runtimes.filter((r) => r.isAvailable && isIosRuntime(r)).map((r) => r.identifier)
+  );
 
   if (desc.name) {
-    const named = devices.filter((d) => d.name === desc.name);
+    // Match the name ONLY among available iOS-runtime devices — a watchOS /
+    // tvOS / visionOS device that happens to share the name must never be
+    // reused or booted for an `ios` context. If nothing iOS-side matches, fall
+    // through to create an iOS device under the requested name.
+    const named = devices.filter(
+      (d) =>
+        d.name === desc.name &&
+        d.isAvailable !== false &&
+        iosRuntimeIds.has(d.runtime)
+    );
     const booted = named.find(isBooted);
     if (booted)
       return { action: "reuse-booted", name: desc.name, udid: booted.udid };
