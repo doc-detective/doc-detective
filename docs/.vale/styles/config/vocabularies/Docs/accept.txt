@@ -225,3 +225,4 @@ Xvfb
 Xcode
 toolchain
 widget
+Temurin

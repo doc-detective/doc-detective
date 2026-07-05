@@ -140,7 +140,7 @@ On a capable host, the toolchain (the SDK, a system image, and the emulator) ins
 doc-detective install android --yes
 ```
 
-See [`install android`](/reference/cli/install#install-android) for the command's options, the JRE 17+ requirement, and the bootstrap-from-nothing behavior. To forbid the lazy install entirely (for example, on an air-gapped host that must never auto-download), set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`. The context then skips with a pointer back to that command instead of downloading anything.
+See [`install android`](/reference/cli/install#install-android) for the command's options and how it bootstraps the toolchain from nothing, including the portable Temurin JRE it downloads when the host has no Java 17+. To forbid the lazy install entirely (for example, on an air-gapped host that must never auto-download), set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`. The context then skips with a pointer back to that command instead of downloading anything.
 
 ### Choose the emulator
 
