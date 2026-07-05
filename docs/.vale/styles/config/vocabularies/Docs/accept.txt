@@ -221,3 +221,5 @@ postinstall
 Geckodriver
 ChromeDriver
 Xvfb
+
+Temurin

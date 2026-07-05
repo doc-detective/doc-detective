@@ -194,12 +194,12 @@ The `android` input controls this behavior:
 |---|---|---|
 | `android` | `auto` | Set up the Android emulator on Linux runners. `auto` scans your resolved specs and config and sets up KVM only when it finds an `android` platform, `true` always sets it up, and `false` never does. |
 
-The first time an `android` test runs, Doc Detective installs everything else the emulator needs—the Android SDK, emulator, system image, AVD, and the UiAutomator2 driver. The `android` input handles only the KVM access that Doc Detective can't grant on its own.
+The first time an `android` test runs, Doc Detective installs everything else the emulator needs—the Android SDK, emulator, system image, AVD, and the UiAutomator2 driver. If the runner has no Java runtime, it also downloads a portable Temurin JRE 17 into its cache, so you don't have to provision Java yourself. The `android` input handles only the KVM access that Doc Detective can't grant on its own.
 
 Setup is best-effort. If a runner can't grant KVM access, the action logs a warning and the `android` contexts skip rather than failing the run. Leave `android` at `auto` for most workflows. Set it to `true` when your `android` platform lives outside the scanned specs and config, or `false` to turn the setup off.
 
 <Note>
-The emulator only accelerates on Linux, so this input has no effect on macOS or Windows runners. On a self-hosted Linux runner, make sure JRE 17 or later is installed—Doc Detective's SDK tooling needs it. Hosted runners already include a suitable Java.
+The emulator only accelerates on Linux, so this input has no effect on macOS or Windows runners.
 </Note>
 
 ## Runtime caching
