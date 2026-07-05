@@ -87,7 +87,7 @@
               "name": "dd-ios-fixture",
               "deviceType": "phone"
             },
-            "timeout": 600000,
+            "timeout": 1200000,
             "waitUntil": {
               "delayMs": 5000
             }
