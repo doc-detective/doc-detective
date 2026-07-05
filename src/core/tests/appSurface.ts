@@ -22,6 +22,7 @@ import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -678,6 +679,13 @@ interface AppSessionState {
   androidSdkRoot?: string;
   androidDeviceRegistry?: any;
   androidDeviceDeps?: any;
+  // iOS simulator-layer wiring (phase A4), the simctl analogue of the Android
+  // fields above: the run-level simulator registry and the injected simctl
+  // effect bundle acquireSimulator runs on. iOS shares one XCUITest session per
+  // simulator (keyed in deviceSessions like Android), so no SDK-root env is
+  // needed — simctl/xcrun are on PATH.
+  iosSimulatorRegistry?: any;
+  iosSimulatorDeps?: any;
 }
 
 function createAppSessionState(): AppSessionState {
@@ -1161,11 +1169,13 @@ async function startAppSurface({
   let driver: any;
   let deviceName: string | undefined;
 
-  if (platform === "android") {
-    // Android: multiple app surfaces on one device share a single UiAutomator2
-    // session (switch by activateApp), so the driver is per-device, not
-    // per-app. Resolve the device (context default merged with the step
-    // override) and acquire it (boot/create as needed).
+  if (isMobileTargetPlatform(platform)) {
+    // Mobile (Android emulator / iOS simulator): multiple app surfaces on one
+    // device share a single driver session (switch by activateApp), so the
+    // driver is per-device, not per-app. Resolve the device (context default
+    // merged with the step override) and acquire it (boot/create as needed).
+    // `targetNoun` keeps guidance honest per platform.
+    const targetNoun = platform === "ios" ? "simulator" : "device";
     const desc = normalizeDeviceDescriptor({
       contextDevice: appSession.defaultDevice,
       stepDevice: descriptor.device,
@@ -1173,8 +1183,7 @@ async function startAppSurface({
     });
     if (!serverDeps.acquireDevice) {
       result.status = "FAIL";
-      result.description =
-        "Android app session is missing its device layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).";
+      result.description = `The ${platformDriver.driverLabel} session is missing its ${targetNoun} layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).`;
       return result;
     }
     let acquired: any;
@@ -1182,14 +1191,14 @@ async function startAppSurface({
       acquired = await serverDeps.acquireDevice(desc);
     } catch (error: any) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${error?.message ?? error}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${error?.message ?? error}`;
       return result;
     }
     // The preflight already validated resolvability, so an acquire-time skip is
     // a real runtime failure (e.g. the device died between preflight and now).
     if ("skip" in acquired) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${acquired.skip}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${acquired.skip}`;
       return result;
     }
     deviceName = acquired.entry.name;
@@ -1210,7 +1219,7 @@ async function startAppSurface({
         );
       } catch (error: any) {
         result.status = "FAIL";
-        result.description = `Couldn't launch app "${appId}" on the Android device "${deviceName}": ${error?.message ?? error}.`;
+        result.description = `Couldn't launch app "${appId}" on the ${targetNoun} "${deviceName}": ${error?.message ?? error}.`;
         return result;
       }
       sessions.set(deviceName, {
@@ -1280,11 +1289,12 @@ async function startAppSurface({
       platform,
     });
     if (found.error) {
-      // On desktop the session is this app's alone, so end it. On Android the
-      // session is shared across the device's apps — deleting it would kill
-      // sibling surfaces — so leave it; the run-end device sweep handles the
-      // emulator, and no surface was registered for this failed app.
-      if (platform !== "android") {
+      // On desktop the session is this app's alone, so end it. On mobile
+      // (Android emulator / iOS simulator) the session is shared across the
+      // device's apps — deleting it would kill sibling surfaces — so leave it;
+      // the run-end device sweep handles the emulator/simulator, and no surface
+      // was registered for this failed app.
+      if (!isMobileTargetPlatform(platform)) {
         try {
           await driver.deleteSession();
         } catch {

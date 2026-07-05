@@ -1,6 +1,6 @@
 {
   "specId": "app-surfaces-a4-ios",
-  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS contexts run through XCUITest preflight and either execute on capable macOS hosts or SKIP with actionable host/toolchain guidance. This group is intended for focused macOS workflow-dispatch validation from non-macOS development hosts.",
+  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS app contexts run end-to-end on a managed simulator via the lazily-installed XCUITest driver. startSurface resolves/boots a simulator through simctl (newest iPhone by default, or a named/created device), find/click/screenshot act on it through the XCUITest semantic mapping, and closeSurface terminates the app; the run-end sweep shuts down only simulators Doc Detective booted. Gated to iOS targets via runOn; on Windows/Linux every test lands SKIPPED with actionable macOS/Xcode/simctl guidance. The first XCUITest session on a cold runner builds WebDriverAgent via xcodebuild (minutes), so startSurface timeouts are generous. Built-in stock apps (Settings, Calendar) are used so no app payload is fetched.",
   "tests": [
     {
       "testId": "ios-mobile-browser-gate-a5",
@@ -22,8 +22,8 @@
       ]
     },
     {
-      "testId": "ios-startsurface-preflight",
-      "description": "A4 app context: attempts to open Settings on iOS. On capable macOS hosts this can PASS; elsewhere it SKIPs with iOS/macOS toolchain guidance.",
+      "testId": "ios-default-device-flow",
+      "description": "Launch Settings by bundle ID on the default (newest installed iPhone) simulator, wait for a stable row to exist, find it through the XCUITest column, screenshot the app, then close it. The real end-to-end PASS on a capable macOS host; SKIPs elsewhere.",
       "runOn": [
         {
           "platforms": [
@@ -35,13 +35,133 @@
         {
           "startSurface": {
             "app": "com.apple.Preferences",
-            "name": "ios-settings",
-            "timeout": 120000
+            "name": "settings",
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementText": "General"
+              }
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "General",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-settings.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
           }
         },
         {
           "closeSurface": {
-            "app": "ios-settings"
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ios-explicit-created-device",
+      "description": "Name a device that does not exist so Doc Detective creates it via simctl (create-boot path) using the newest iPhone device type + runtime, launches Settings on it, and shuts it down at run end (bootedByUs). Exercises the named-device create path distinct from the default-device reuse path above.",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "settings-created",
+            "device": {
+              "name": "dd-ios-fixture",
+              "deviceType": "phone"
+            },
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementText": "General"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings-created"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ios-multi-app-switch",
+      "description": "Two stock apps (Settings + Calendar) share one simulator session; acting on each surface foregrounds it via activateApp, proving multi-app-per-simulator switching. Each surface is screenshotted (which forces the foreground switch) and then closed.",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "settings-multi",
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementText": "General"
+              }
+            }
+          }
+        },
+        {
+          "startSurface": {
+            "app": "com.apple.mobilecal",
+            "name": "calendar-multi",
+            "timeout": 120000,
+            "waitUntil": {
+              "delayMs": 3000
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-settings-multi.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings-multi"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-calendar-multi.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "calendar-multi"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "calendar-multi"
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings-multi"
           }
         }
       ]

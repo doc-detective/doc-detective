@@ -97,6 +97,14 @@ import {
   teardownDeviceRegistry,
   type DeviceRegistry,
 } from "./tests/androidEmulator.js";
+import {
+  buildAcquireSimulatorDeps,
+  planSimulatorAcquisition,
+  acquireSimulator,
+  createSimulatorRegistry,
+  teardownSimulatorRegistry,
+  type SimulatorRegistry,
+} from "./tests/iosSimulator.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
 import { dragAndDropElement } from "./tests/dragAndDrop.js";
 import {
@@ -739,8 +747,10 @@ async function androidContextPreflight({
 
 // iOS context preflight (native app phase A4): mobile-browser contexts are
 // still gated to A5; native app contexts probe host capability/toolchain via
-// appSurfacePreflight and, on success, return the appium entry/home for the
-// app session.
+// appSurfacePreflight, then validate that the context's default simulator can
+// be resolved (booted/created) via simctl. On success return the appium
+// entry/home plus the injected simctl effect bundle for the run's
+// acquireSimulator closure.
 async function iosContextPreflight({
   config,
   context,
@@ -748,7 +758,7 @@ async function iosContextPreflight({
   config: any;
   context: any;
 }): Promise<
-  | { ok: true; appiumEntry: string; appiumHome: string }
+  | { ok: true; appiumEntry: string; appiumHome: string; simulatorDeps: any }
   | { ok: false; level: "warning" | "info"; reason: string }
 > {
   const hasBrowserStep = isBrowserRequired({ test: context });
@@ -761,11 +771,45 @@ async function iosContextPreflight({
   }
   const pre = await appSurfacePreflight({ config, platform: "ios" });
   if (!pre.ok) return { ok: false, level: "info", reason: pre.reason };
+  /* c8 ignore start */
+  // The ok path only runs on a capable macOS host (appSurfacePreflight's
+  // probeIosToolchain passed), so the simctl probes below are macOS-only and
+  // never execute in the cross-platform unit suite.
+  const simulatorDeps = buildAcquireSimulatorDeps((m: string) =>
+    log(config, "debug", m)
+  );
+  try {
+    const desc = normalizeDeviceDescriptor({
+      contextDevice: context.device,
+      platform: "ios",
+    });
+    const [devices, runtimes, deviceTypes] = await Promise.all([
+      simulatorDeps.listDevices(),
+      simulatorDeps.listRuntimes(),
+      simulatorDeps.listDeviceTypes(),
+    ]);
+    const plan = planSimulatorAcquisition(desc, {
+      devices,
+      runtimes,
+      deviceTypes,
+    });
+    if (plan.action === "skip") {
+      return { ok: false, level: "info", reason: plan.reason };
+    }
+  } catch (error: any) {
+    return {
+      ok: false,
+      level: "info",
+      reason: `Skipping context on 'ios': couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
+    };
+  }
   return {
     ok: true,
     appiumEntry: pre.appiumEntry,
     appiumHome: pre.appiumHome,
+    simulatorDeps,
   };
+  /* c8 ignore stop */
 }
 
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
@@ -1571,6 +1615,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // only devices Doc Detective booted are killed (launch-ownership).
   const deviceRegistry: DeviceRegistry = createDeviceRegistry();
 
+  // Run-level simulator registry (native app phase A4): booted/created iOS
+  // simulators keyed by resolved name, the simctl analogue of deviceRegistry.
+  // Swept in the `finally` below — only simulators Doc Detective booted are
+  // shut down (launch-ownership).
+  const simulatorRegistry: SimulatorRegistry = createSimulatorRegistry();
+
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
   // actually gone before the run returns. Idempotent: closeSurface already
@@ -1673,6 +1723,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           warmUpResults,
           processRegistry,
           deviceRegistry,
+          simulatorRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -1768,6 +1819,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           warmUpResults,
           processRegistry,
           deviceRegistry,
+          simulatorRegistry,
           platform,
           markAutoRecord,
           limit,
@@ -1831,6 +1883,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       await teardownDeviceRegistry(deviceRegistry, async (entry) => {
         log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
         await killTree(entry.process?.pid);
+      });
+    }
+    // Sweep the iOS simulator registry (native app phase A4): shut down only the
+    // simulators Doc Detective booted (bootedByUs), leaving pre-existing booted
+    // ones running. `simctl shutdown` via the injected effect bundle.
+    if (simulatorRegistry.size > 0) {
+      const simDeps = buildAcquireSimulatorDeps();
+      await teardownSimulatorRegistry(simulatorRegistry, async (entry) => {
+        log(config, "debug", `Shutting down simulator "${entry.name}" (${entry.udid}).`);
+        await simDeps.shutdown(entry);
       });
     }
     /* c8 ignore stop */
@@ -1914,6 +1976,7 @@ async function runRoutedSpec({
   warmUpResults,
   processRegistry,
   deviceRegistry,
+  simulatorRegistry,
   platform,
   markAutoRecord,
   limit,
@@ -1934,6 +1997,7 @@ async function runRoutedSpec({
   warmUpResults: Map<string, "ok" | "failed">;
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
+  simulatorRegistry?: SimulatorRegistry;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -2120,6 +2184,7 @@ async function runRoutedSpec({
           warmUpResults,
           processRegistry,
           deviceRegistry,
+          simulatorRegistry,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2912,6 +2977,7 @@ async function runContext({
   warmUpResults,
   processRegistry,
   deviceRegistry,
+  simulatorRegistry,
   logPrefix = "",
 }: {
   config: any;
@@ -2928,6 +2994,7 @@ async function runContext({
   warmUpResults: Map<string, "ok" | "failed">;
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
+  simulatorRegistry?: SimulatorRegistry;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -3048,11 +3115,17 @@ async function runContext({
         contextReport.resultDescription = pre.reason;
         return contextReport;
       }
+      /* c8 ignore start */
+      // The ok path only runs on a capable macOS host (CI fixture legs): prime
+      // the app session with the simulator layer and FALL THROUGH to run steps.
       appSession = createAppSessionState();
       appSession.appiumEntry = pre.appiumEntry;
       appSession.appiumHome = pre.appiumHome;
       appSession.defaultDevice = context.device;
+      appSession.iosSimulatorRegistry = simulatorRegistry;
+      appSession.iosSimulatorDeps = pre.simulatorDeps;
       contextReport.device = context.device ?? { platform: "ios" };
+      /* c8 ignore stop */
     }
   }
 
@@ -4213,9 +4286,12 @@ async function runStep({
           },
           startDriver: (capabilities: any, port: number) =>
             driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
-          // Android device acquisition (boot/create-and-boot, or reuse),
-          // bound to the run-level registry stashed on the app session. Only
-          // set for android app sessions (which only exist on a capable host).
+          // Mobile device acquisition (boot/create-and-boot, or reuse), bound
+          // to the run-level registry stashed on the app session. Android uses
+          // the emulator layer; iOS uses the simctl simulator layer. Both
+          // return the same { entry:{name,udid} } | { skip } shape, so
+          // startAppSurface's mobile branch stays uniform. Only set for a
+          // mobile app session (which only exists on a capable host).
           /* c8 ignore start */
           acquireDevice: appSession?.androidDeviceDeps
             ? (desc: any) =>
@@ -4225,7 +4301,14 @@ async function runStep({
                   sdkRoot: appSession!.androidSdkRoot!,
                   deps: appSession!.androidDeviceDeps,
                 })
-            : undefined,
+            : appSession?.iosSimulatorDeps
+              ? (desc: any) =>
+                  acquireSimulator({
+                    desc,
+                    registry: appSession!.iosSimulatorRegistry,
+                    deps: appSession!.iosSimulatorDeps,
+                  })
+              : undefined,
           /* c8 ignore stop */
         },
       });

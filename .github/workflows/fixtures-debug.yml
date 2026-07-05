@@ -71,7 +71,7 @@ jobs:
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 
       - name: Run ${{ inputs.group }} fixtures
-        uses: doc-detective/github-action@922131748e00f25f608fcfd7742d6f65b1cc6cb9 # v1.5.0
+        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
         with:
           version: ''
           working_directory: .

@@ -1189,6 +1189,126 @@ describe("startAppSurface", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /no image installed/);
   });
+
+  // --- iOS (phase A4): shared simulator session + activateApp switching ---
+
+  it("ios: first app creates a simulator session with XCUITest udid/bundleId capabilities", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.Preferences", name: "settings", timeout: 300000 },
+      },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return driver;
+        },
+        acquireDevice: async () => ({
+          entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("settings");
+    assert.equal(entry.deviceName, "iPhone 15");
+    assert.equal(entry.platform, "ios");
+    assert.equal(caps.platformName, "iOS");
+    assert.equal(caps["appium:automationName"], "XCUITest");
+    assert.equal(caps["appium:udid"], "SIM-UDID-1");
+    assert.equal(caps["appium:bundleId"], "com.apple.Preferences");
+    // The descriptor timeout floors the WDA build/connect timeouts.
+    assert.equal(caps["appium:wdaLaunchTimeout"], 300000);
+    assert.equal(caps["appium:wdaConnectionTimeout"], 300000);
+    assert.equal(
+      appSession.deviceSessions.get("iPhone 15").foregroundApp,
+      "com.apple.Preferences"
+    );
+  });
+
+  it("ios: a second app on the same simulator reuses the session and activates it", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    let startDriverCalls = 0;
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => {
+        startDriverCalls++;
+        return driver;
+      },
+      acquireDevice: async () => ({
+        entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+      }),
+    };
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "a" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.mobilecal", name: "b" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    // One XCUITest session for the simulator, shared by both apps.
+    assert.equal(startDriverCalls, 1);
+    assert.equal(appSession.deviceSessions.size, 1);
+    assert.deepEqual(driver.activated, ["com.apple.mobilecal"]);
+    assert.equal(appSession.surfaces.get("b").deviceName, "iPhone 15");
+  });
+
+  it("ios: rejects Android-only/desktop-only fields with iOS-specific guidance", async function () {
+    const appSession = preflighted();
+    const cases = [
+      [{ app: "com.apple.Preferences", activity: ".Main" }, /Android-only/],
+      [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
+      [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
+      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /not meaningful for iOS/],
+    ];
+    for (const [descriptor, pattern] of cases) {
+      const result = await startAppSurface({
+        config: {},
+        step: { startSurface: descriptor },
+        appSession,
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async () => fakeDriver(),
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "SIM-UDID-1" } }),
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, pattern);
+    }
+  });
+
+  it("ios: an acquire skip becomes a step FAIL naming the reason", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences" } },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => fakeDriver(),
+        acquireDevice: async () => ({ skip: "no iOS runtime installed" }),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no iOS runtime installed/);
+  });
 });
 
 describe("findAppElement / closeAppSurface / teardownAppSession", function () {
