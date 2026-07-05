@@ -819,8 +819,9 @@ async function realRun(
 // zip, extract it, and relocate its inner `cmdline-tools/` to
 // `<destSdkRoot>/cmdline-tools/latest/` (the layout sdkmanager requires). This
 // is the "portable Android" install — a self-contained SDK root under the Doc
-// Detective cache, no system Android Studio needed. (A JRE 17+ is still a host
-// prerequisite for sdkmanager/avdmanager; checked before this runs.)
+// Detective cache, no system Android Studio needed. (sdkmanager/avdmanager need
+// a JRE 17+; installAndroid provisions one via ensureJava before this runs, so
+// Java isn't a host prerequisite either.)
 // Look for a previously downloaded Doc-Detective JRE under <cache>/jre and
 // return its JAVA_HOME if the `java` binary is present.
 function realDetectCachedJavaHome(cacheJreRoot: string): string | null {
