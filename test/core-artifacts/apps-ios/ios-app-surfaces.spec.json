@@ -1,6 +1,6 @@
 {
   "specId": "app-surfaces-a4-ios",
-  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS app contexts run end-to-end on a managed simulator via the lazily-installed XCUITest driver. startSurface resolves/boots a simulator through simctl (newest iPhone by default, or a named/created device), find/click/screenshot act on it through the XCUITest semantic mapping, and closeSurface terminates the app; the run-end sweep shuts down only simulators Doc Detective booted. Gated to iOS targets via runOn; on Windows/Linux every test lands SKIPPED with actionable macOS/Xcode/simctl guidance. The first XCUITest session on a cold runner builds WebDriverAgent via xcodebuild (minutes), so startSurface timeouts are generous. Built-in stock apps (Settings, Calendar) are used so no app payload is fetched.",
+  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS app contexts run end-to-end on a managed simulator via the lazily-installed XCUITest driver. startSurface resolves/boots the newest installed iPhone simulator through simctl, find/click/screenshot act on it through the XCUITest semantic mapping, and closeSurface terminates the app; the run-end sweep shuts down only simulators Doc Detective booted. Gated to iOS targets via runOn; on Windows/Linux every test lands SKIPPED with actionable macOS/Xcode/simctl guidance. The first XCUITest session on a cold runner builds WebDriverAgent via xcodebuild (minutes), so startSurface timeouts are generous. Built-in stock apps (Settings, Calendar) are used so no app payload is fetched. The named-device create-boot path is covered by unit tests (test/ios-simulator.test.js) rather than here: creating a fresh simulator forces a second, highly variable cold WDA build (10-25 min) that doesn't fit the CI budget, and the effectful `simctl create` is a thin wrapper over the thoroughly unit-tested planner.",
   "tests": [
     {
       "testId": "ios-mobile-browser-gate-a5",
@@ -63,39 +63,6 @@
         {
           "closeSurface": {
             "app": "settings"
-          }
-        }
-      ]
-    },
-    {
-      "testId": "ios-explicit-created-device",
-      "description": "Name a device that does not exist so Doc Detective creates it via simctl (create-boot path) using the newest iPhone device type + runtime, launches Settings on it, and shuts it down at run end (bootedByUs). Exercises the named-device create path distinct from the default-device reuse path above.",
-      "runOn": [
-        {
-          "platforms": [
-            "ios"
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "startSurface": {
-            "app": "com.apple.Preferences",
-            "name": "settings-created",
-            "device": {
-              "platform": "ios",
-              "name": "dd-ios-fixture",
-              "deviceType": "phone"
-            },
-            "timeout": 1200000,
-            "waitUntil": {
-              "delayMs": 5000
-            }
-          }
-        },
-        {
-          "closeSurface": {
-            "app": "settings-created"
           }
         }
       ]

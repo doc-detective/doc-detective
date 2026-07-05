@@ -90,7 +90,13 @@ Chosen option: **3**.
   shared session + `activateApp`, unsupported-field FAILs, acquire-skip FAIL).
 - The `apps-ios` fixtures exercise the real end-to-end path on macOS via
   `.github/workflows/fixtures.yml` (require-pass) and the single-leg
-  `fixtures-debug.yml` workflow dispatch from non-macOS development hosts.
+  `fixtures-debug.yml` workflow dispatch from non-macOS development hosts:
+  default-device boot → find/click/screenshot, and multi-app-per-simulator
+  `activateApp` switching. The named-device create-boot path stays unit-covered
+  rather than in the fixtures — creating a fresh simulator forces a second,
+  highly variable cold WebDriverAgent build (10–25 min) that doesn't fit the CI
+  budget, and the effectful `simctl create` is a thin wrapper over the
+  thoroughly unit-tested planner.
 
 ## Pros and Cons of the Options
 
