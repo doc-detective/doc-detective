@@ -410,8 +410,14 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   if (propSchema.minimum !== undefined) {
     constraints.push(`Minimum: ${propSchema.minimum}`);
   }
+  if (propSchema.exclusiveMinimum !== undefined) {
+    constraints.push(`Exclusive minimum: ${propSchema.exclusiveMinimum}`);
+  }
   if (propSchema.maximum !== undefined) {
     constraints.push(`Maximum: ${propSchema.maximum}`);
+  }
+  if (propSchema.exclusiveMaximum !== undefined) {
+    constraints.push(`Exclusive maximum: ${propSchema.exclusiveMaximum}`);
   }
   if (propSchema.minLength !== undefined) {
     constraints.push(`Minimum length: ${propSchema.minLength}`);

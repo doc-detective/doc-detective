@@ -14,8 +14,8 @@ description: "Reference for the `Swipe (point-to-point)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-from | object([Point](/reference/schemas/point)) | Required. Where the virtual finger presses down, as fractions of the surface's width and height. | 
-to | object([Point](/reference/schemas/point)) | Required. Where the virtual finger releases, as fractions of the surface's width and height. | 
+from | object([Point](/reference/schemas/point)) | Required. Where the virtual finger presses down, in pixels from the surface's top-left corner. | 
+to | object([Point](/reference/schemas/point)) | Required. Where the virtual finger releases, in pixels from the surface's top-left corner. | 
 duration | integer | Optional. Duration of the swipe movement in milliseconds.<br/><br/>Minimum: 1 | `500`
 surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }). | 
 

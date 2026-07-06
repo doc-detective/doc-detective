@@ -487,11 +487,12 @@ preflight handles "driver missing / not installable" automatically.
   `waitUntilBrowser`/`waitUntilProcess` in the kind-shaped `if/then` guards.
 - **`swipe_v3.schema.json`** (new, phase A6 — shipped): direction string |
   `{ direction, distance?, duration?, surface? }` |
-  `{ from, to, duration?, surface? }` (0–1 fraction coordinates; the two
-  object forms are mutually exclusive branches). Point-to-point shipped in A6
-  rather than being reserved — swipe is the **movement subset of
-  `dragAndDrop`** (ADR 01030), and every shipped driver had a real
-  point-movement primitive, so reserving bought nothing.
+  `{ from, to, duration?, surface? }` (points are literal pixels from the
+  surface's top-left, the existing window/viewport pixel convention;
+  `distance` stays a fraction; the two object forms are mutually exclusive
+  branches). Point-to-point shipped in A6 rather than being reserved — swipe
+  is the **movement subset of `dragAndDrop`** (ADR 01030), and every shipped
+  driver had a real point-movement primitive, so reserving bought nothing.
 - `click_v3` gains optional **`duration`**; the `$KEY$` vocabulary gains device
   keys (docs + adapter maps, not schema).
 - `context_v3` gains **`requires`** (progressive: string → array →

@@ -9,6 +9,7 @@
 import {
   directionToPoints,
   fractionsToPixels,
+  surfaceToAbsolutePixels,
   performMovement,
   DEFAULT_SWIPE_DISTANCE,
   DEFAULT_SWIPE_DURATION,
@@ -25,8 +26,9 @@ export {
 };
 export type { AppGestureAdapter, SwipeGesture };
 
-// A normalized swipe: either direction/distance (shorthand) or from/to
-// (point-to-point), never both — the schema enforces the split.
+// A normalized swipe: either direction/distance (shorthand, fractions) or
+// from/to (point-to-point, literal pixels relative to the surface's
+// top-left), never both — the schema enforces the split.
 interface SwipeGesture {
   direction?: SwipeDirection;
   distance?: number;
@@ -125,22 +127,19 @@ async function insetWindowArea(driver: any): Promise<{
 }
 
 // XCUITest's dragFromToForDuration takes absolute screen coordinates and a
-// float-second duration in [0.5, 60].
+// float-second duration in [0.5, 60]. `from`/`to` arrive as absolute pixels.
 async function iosDrag(
   driver: any,
   from: MovementPoint,
   to: MovementPoint,
   durationMs: number
 ): Promise<void> {
-  const rect = await driver.getWindowRect();
-  const fromPx = fractionsToPixels(rect, from);
-  const toPx = fractionsToPixels(rect, to);
   await driver.execute("mobile: dragFromToForDuration", {
     duration: Math.min(60, Math.max(0.5, durationMs / 1000)),
-    fromX: fromPx.x,
-    fromY: fromPx.y,
-    toX: toPx.x,
-    toY: toPx.y,
+    fromX: Math.round(from.x),
+    fromY: Math.round(from.y),
+    toX: Math.round(to.x),
+    toY: Math.round(to.y),
   });
 }
 
@@ -193,9 +192,8 @@ const APP_GESTURES: Record<string, AppGestureAdapter> = {
         const rect = await driver.getWindowRect();
         await performMovement({
           driver,
-          rect,
-          from: gesture.from,
-          to: gesture.to,
+          from: surfaceToAbsolutePixels(rect, gesture.from),
+          to: surfaceToAbsolutePixels(rect, gesture.to),
           duration: gesture.duration,
           pointerType: "touch",
         });
@@ -243,14 +241,21 @@ const APP_GESTURES: Record<string, AppGestureAdapter> = {
 
   ios: {
     async swipe(driver, gesture) {
-      const points =
-        gesture.from && gesture.to
-          ? { from: gesture.from, to: gesture.to }
-          : directionToPoints(
-              gesture.direction as SwipeDirection,
-              gesture.distance ?? DEFAULT_SWIPE_DISTANCE
-            );
-      await iosDrag(driver, points.from, points.to, gesture.duration);
+      const rect = await driver.getWindowRect();
+      let from: MovementPoint;
+      let to: MovementPoint;
+      if (gesture.from && gesture.to) {
+        from = surfaceToAbsolutePixels(rect, gesture.from);
+        to = surfaceToAbsolutePixels(rect, gesture.to);
+      } else {
+        const points = directionToPoints(
+          gesture.direction as SwipeDirection,
+          gesture.distance ?? DEFAULT_SWIPE_DISTANCE
+        );
+        from = fractionsToPixels(rect, points.from);
+        to = fractionsToPixels(rect, points.to);
+      }
+      await iosDrag(driver, from, to, gesture.duration);
     },
     async longPress(driver, element, durationMs) {
       await driver.execute("mobile: touchAndHold", {
@@ -281,8 +286,14 @@ const APP_GESTURES: Record<string, AppGestureAdapter> = {
     // No typeFocused: XCUITest's `mobile: keys` is iPad-only (Xcode 15+), so
     // iOS text typing keeps requiring element criteria.
     async scrollStep(driver) {
+      const rect = await driver.getWindowRect();
       const { from, to } = directionToPoints("up", 0.7);
-      await iosDrag(driver, from, to, DEFAULT_SWIPE_DURATION);
+      await iosDrag(
+        driver,
+        fractionsToPixels(rect, from),
+        fractionsToPixels(rect, to),
+        DEFAULT_SWIPE_DURATION
+      );
       // XCUITest has no can-scroll-more feedback; the caller's attempt bound
       // is the only stop.
       return true;
@@ -293,8 +304,8 @@ const APP_GESTURES: Record<string, AppGestureAdapter> = {
     async swipe(driver, gesture) {
       const rect = await driver.getWindowRect();
       if (gesture.from && gesture.to) {
-        const fromPx = fractionsToPixels(rect, gesture.from);
-        const toPx = fractionsToPixels(rect, gesture.to);
+        const fromPx = surfaceToAbsolutePixels(rect, gesture.from);
+        const toPx = surfaceToAbsolutePixels(rect, gesture.to);
         await driver.execute("windows: clickAndDrag", {
           startX: fromPx.x,
           startY: fromPx.y,
@@ -329,8 +340,8 @@ const APP_GESTURES: Record<string, AppGestureAdapter> = {
     async swipe(driver, gesture) {
       const rect = await driver.getWindowRect();
       if (gesture.from && gesture.to) {
-        const fromPx = fractionsToPixels(rect, gesture.from);
-        const toPx = fractionsToPixels(rect, gesture.to);
+        const fromPx = surfaceToAbsolutePixels(rect, gesture.from);
+        const toPx = surfaceToAbsolutePixels(rect, gesture.to);
         await driver.execute("macos: clickAndDrag", {
           startX: fromPx.x,
           startY: fromPx.y,

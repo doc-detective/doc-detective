@@ -8,6 +8,7 @@ import {
   DEFAULT_SWIPE_DURATION,
   directionToPoints,
   fractionsToPixels,
+  surfaceToAbsolutePixels,
   performMovement,
   getBrowserViewportRect,
 } from "../dist/core/tests/movement.js";
@@ -124,14 +125,31 @@ describe("movement: fractionsToPixels", function () {
   });
 });
 
+describe("movement: surfaceToAbsolutePixels", function () {
+  it("offsets author pixels by the rect origin", function () {
+    const rect = { x: 100, y: 50, width: 400, height: 300 };
+    assert.deepEqual(surfaceToAbsolutePixels(rect, { x: 200, y: 100 }), {
+      x: 300,
+      y: 150,
+    });
+  });
+
+  it("passes pixels through unchanged at a zero origin", function () {
+    const rect = { x: 0, y: 0, width: 400, height: 300 };
+    assert.deepEqual(surfaceToAbsolutePixels(rect, { x: 200, y: 100 }), {
+      x: 200,
+      y: 100,
+    });
+  });
+});
+
 describe("movement: performMovement", function () {
   it("builds a W3C pointer chain: move, down, pause, timed move, up", async function () {
     const driver = makeFakeDriver();
     await performMovement({
       driver,
-      rect: { x: 0, y: 0, width: 1000, height: 2000 },
-      from: { x: 0.5, y: 0.75 },
-      to: { x: 0.5, y: 0.25 },
+      from: { x: 500, y: 1500 },
+      to: { x: 500, y: 500 },
       duration: 300,
       pointerType: "touch",
     });
@@ -157,9 +175,8 @@ describe("movement: performMovement", function () {
     const driver = makeFakeDriver();
     await performMovement({
       driver,
-      rect: { x: 0, y: 0, width: 100, height: 100 },
       from: { x: 0, y: 0 },
-      to: { x: 1, y: 1 },
+      to: { x: 100, y: 100 },
     });
     const chain = driver.actions[0];
     assert.equal(chain.opts.parameters.pointerType, "mouse");
@@ -250,13 +267,13 @@ describe("appGestures: android", function () {
     assert.equal(call.args.height, 1600);
   });
 
-  it("point-to-point swipe rides the W3C touch movement engine", async function () {
+  it("point-to-point swipe rides the W3C touch movement engine with pixel coords", async function () {
     const driver = makeFakeDriver({
       rect: { x: 0, y: 0, width: 1000, height: 2000 },
     });
     await android.swipe(driver, {
-      from: { x: 0.5, y: 0.8 },
-      to: { x: 0.5, y: 0.2 },
+      from: { x: 500, y: 1600 },
+      to: { x: 500, y: 400 },
       duration: 400,
     });
     assert.equal(driver.actions.length, 1);
@@ -342,11 +359,13 @@ describe("appGestures: ios", function () {
     assert.ok(call.args.duration >= 0.5);
   });
 
-  it("clamps sub-500ms durations to the driver's 0.5s floor", async function () {
-    const driver = makeFakeDriver();
+  it("clamps sub-500ms durations to the driver's 0.5s floor and passes pixels through", async function () {
+    const driver = makeFakeDriver({
+      rect: { x: 0, y: 0, width: 400, height: 800 },
+    });
     await ios.swipe(driver, {
-      from: { x: 0.1, y: 0.1 },
-      to: { x: 0.9, y: 0.9 },
+      from: { x: 40, y: 80 },
+      to: { x: 360, y: 720 },
       duration: 100,
     });
     const call = driver.calls.find(
@@ -354,6 +373,8 @@ describe("appGestures: ios", function () {
         c.method === "execute" && c.command === "mobile: dragFromToForDuration"
     );
     assert.equal(call.args.duration, 0.5);
+    assert.equal(call.args.fromX, 40);
+    assert.equal(call.args.toY, 720);
   });
 
   it("long-press uses mobile: touchAndHold with seconds", async function () {
@@ -442,13 +463,13 @@ describe("appGestures: windows", function () {
     assert.equal(call.args.deltaY, undefined);
   });
 
-  it("point-to-point swipe uses windows: clickAndDrag", async function () {
+  it("point-to-point swipe uses windows: clickAndDrag with window-offset pixels", async function () {
     const driver = makeFakeDriver({
       rect: { x: 100, y: 50, width: 1000, height: 600 },
     });
     await windows.swipe(driver, {
-      from: { x: 0.2, y: 0.5 },
-      to: { x: 0.8, y: 0.5 },
+      from: { x: 200, y: 300 },
+      to: { x: 800, y: 300 },
       duration: 400,
     });
     const call = driver.calls.find(
@@ -456,6 +477,7 @@ describe("appGestures: windows", function () {
     );
     assert.ok(call);
     assert.equal(call.args.startX, 300);
+    assert.equal(call.args.startY, 350);
     assert.equal(call.args.endX, 900);
     assert.equal(call.args.durationMs, 400);
   });
@@ -495,13 +517,13 @@ describe("appGestures: mac", function () {
     assert.equal(call.args.deltaX, 0);
   });
 
-  it("point-to-point swipe uses macos: clickAndDrag with float seconds", async function () {
+  it("point-to-point swipe uses macos: clickAndDrag with float seconds and window-offset pixels", async function () {
     const driver = makeFakeDriver({
       rect: { x: 0, y: 0, width: 800, height: 600 },
     });
     await mac.swipe(driver, {
-      from: { x: 0.25, y: 0.5 },
-      to: { x: 0.75, y: 0.5 },
+      from: { x: 200, y: 300 },
+      to: { x: 600, y: 300 },
       duration: 1500,
     });
     const call = driver.calls.find(

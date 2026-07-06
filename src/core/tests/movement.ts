@@ -4,8 +4,10 @@
 // direction shorthand). Both concepts meet here — dragAndDrop's future
 // app-surface branch calls performMovement with element-center fractions.
 //
-// Coordinates are 0-1 fractions of a rect ({x, y, width, height}); callers
-// supply the rect (an app window rect, or the browser viewport) so the engine
+// Directional shorthands travel as 0-1 fractions of a rect ({x, y, width,
+// height}); authored point-to-point coordinates are literal pixels relative
+// to the surface's top-left (the context/viewport pixel convention). Both
+// convert to absolute pixels before the engine moves anything, so the engine
 // stays driver-agnostic and unit-testable with a fake driver.
 
 export {
@@ -14,6 +16,7 @@ export {
   DEFAULT_SWIPE_DURATION,
   directionToPoints,
   fractionsToPixels,
+  surfaceToAbsolutePixels,
   performMovement,
   performElementPress,
   getBrowserViewportRect,
@@ -65,32 +68,43 @@ function fractionsToPixels(
   };
 }
 
+// Offset an author-supplied pixel point (relative to the surface's top-left)
+// into the coordinate space the driver expects (absolute, per the window
+// rect's origin — zero for mobile screens and browser viewports).
+function surfaceToAbsolutePixels(
+  rect: MovementRect,
+  point: MovementPoint
+): { x: number; y: number } {
+  return {
+    x: Math.round(rect.x + point.x),
+    y: Math.round(rect.y + point.y),
+  };
+}
+
 // One pointer movement through the wdio W3C actions builder: move to the
 // start, press, a short settle pause (so touch drivers register the press as
-// a drag rather than a tap), a timed move to the end, release.
+// a drag rather than a tap), a timed move to the end, release. `from`/`to`
+// are absolute pixels — callers convert fractions (fractionsToPixels) or
+// surface-relative author pixels (surfaceToAbsolutePixels) first.
 async function performMovement({
   driver,
-  rect,
   from,
   to,
   duration = DEFAULT_SWIPE_DURATION,
   pointerType = "mouse",
 }: {
   driver: any;
-  rect: MovementRect;
   from: MovementPoint;
   to: MovementPoint;
   duration?: number;
   pointerType?: "mouse" | "touch";
 }): Promise<void> {
-  const fromPx = fractionsToPixels(rect, from);
-  const toPx = fractionsToPixels(rect, to);
   await driver
     .action("pointer", { parameters: { pointerType } })
-    .move({ x: fromPx.x, y: fromPx.y })
+    .move({ x: Math.round(from.x), y: Math.round(from.y) })
     .down()
     .pause(50)
-    .move({ duration, x: toPx.x, y: toPx.y })
+    .move({ duration, x: Math.round(to.x), y: Math.round(to.y) })
     .up()
     .perform();
 }

@@ -591,6 +591,21 @@
       "wait": 5000
     },
     {
+      "swipe": "up"
+    },
+    {
+      "swipe": {
+        "from": {
+          "x": 200,
+          "y": 600
+        },
+        "to": {
+          "x": 200,
+          "y": 200
+        }
+      }
+    },
+    {
       "runCode": {
         "language": "python",
         "code": "print('Hello from Python')",

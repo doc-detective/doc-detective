@@ -57,11 +57,13 @@ one phase.
 
 - `swipe_v3`: `"up"|"down"|"left"|"right"` | `{ direction, distance? (0–1,
   default 0.5), duration? (ms, default 500), surface? }` | `{ from: {x,y},
-  to: {x,y}, duration?, surface? }`, where x/y are 0–1 fractions of the
-  surface's window/viewport. **Direction is the finger's motion**: swiping up
-  reveals content below. Directional swipes are clamped to a 10%-inset box
-  (Android edge-gesture avoidance); explicit `from`/`to` points are the
-  author's own.
+  to: {x,y}, duration?, surface? }`, where x/y are **literal pixels** from
+  the surface's top-left (the app window, or the browser viewport) — the
+  same pixel convention as the context `window`/`viewport` fields; the
+  directional form's `distance` stays a portable fraction. **Direction is
+  the finger's motion**: swiping up reveals content below. Directional
+  swipes are clamped to a 10%-inset box (Android edge-gesture avoidance);
+  explicit `from`/`to` points are the author's own.
 - The **process kind is unrepresentable**: swipe's `surface` restricts bare
   strings to browser-engine keywords (the `byEngineName` precedent) and has
   no `{ process }` branch — a background process has no screen to swipe, so

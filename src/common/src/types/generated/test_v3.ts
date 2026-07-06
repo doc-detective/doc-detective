@@ -9463,28 +9463,28 @@ export interface SwipePointToPoint {
   surface?: SurfaceByBrowserEngine6 | BrowserSurface9 | AppSurface5;
 }
 /**
- * Where the virtual finger presses down, as fractions of the surface's width and height.
+ * Where the virtual finger presses down, in pixels from the surface's top-left corner.
  */
 export interface Point {
   /**
-   * Horizontal position as a fraction of the surface's width (0 = left edge, 1 = right edge).
+   * Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport).
    */
   x: number;
   /**
-   * Vertical position as a fraction of the surface's height (0 = top edge, 1 = bottom edge).
+   * Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport).
    */
   y: number;
 }
 /**
- * Where the virtual finger releases, as fractions of the surface's width and height.
+ * Where the virtual finger releases, in pixels from the surface's top-left corner.
  */
 export interface Point1 {
   /**
-   * Horizontal position as a fraction of the surface's width (0 = left edge, 1 = right edge).
+   * Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport).
    */
   x: number;
   /**
-   * Vertical position as a fraction of the surface's height (0 = top edge, 1 = bottom edge).
+   * Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport).
    */
   y: number;
 }
@@ -13725,28 +13725,28 @@ export interface SwipePointToPoint1 {
   surface?: SurfaceByBrowserEngine13 | BrowserSurface19 | AppSurface11;
 }
 /**
- * Where the virtual finger presses down, as fractions of the surface's width and height.
+ * Where the virtual finger presses down, in pixels from the surface's top-left corner.
  */
 export interface Point2 {
   /**
-   * Horizontal position as a fraction of the surface's width (0 = left edge, 1 = right edge).
+   * Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport).
    */
   x: number;
   /**
-   * Vertical position as a fraction of the surface's height (0 = top edge, 1 = bottom edge).
+   * Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport).
    */
   y: number;
 }
 /**
- * Where the virtual finger releases, as fractions of the surface's width and height.
+ * Where the virtual finger releases, in pixels from the surface's top-left corner.
  */
 export interface Point3 {
   /**
-   * Horizontal position as a fraction of the surface's width (0 = left edge, 1 = right edge).
+   * Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport).
    */
   x: number;
   /**
-   * Vertical position as a fraction of the surface's height (0 = top edge, 1 = bottom edge).
+   * Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport).
    */
   y: number;
 }

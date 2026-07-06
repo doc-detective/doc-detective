@@ -155,10 +155,10 @@ async function swipeSurface({
   try {
     if (gesture.from && gesture.to) {
       // Point-to-point: a real pointer drag (sliders, canvases, maps).
-      const rect = await getBrowserViewportRect(driver);
+      // Authored pixels are viewport-relative, which is what the W3C
+      // viewport-origin actions expect — no conversion needed.
       await performMovement({
         driver,
-        rect,
         from: gesture.from,
         to: gesture.to,
         duration: gesture.duration,

@@ -42,12 +42,12 @@ swipe | one of:<br/>- string<br/>- object([Swipe (directional)](/reference/schem
 {
   "swipe": {
     "from": {
-      "x": 0.5,
-      "y": 0.8
+      "x": 200,
+      "y": 600
     },
     "to": {
-      "x": 0.5,
-      "y": 0.2
+      "x": 200,
+      "y": 200
     },
     "duration": 250
   }

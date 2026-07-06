@@ -22,24 +22,22 @@
         "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
       },
       "point": {
+        "title": "Point",
         "type": "object",
         "required": ["x", "y"],
         "additionalProperties": false,
         "properties": {
           "x": {
-            "type": "number",
+            "type": "integer",
             "minimum": 0,
-            "maximum": 1,
-            "description": "Horizontal position as a fraction of the surface's width (0 = left edge, 1 = right edge)."
+            "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
           },
           "y": {
-            "type": "number",
+            "type": "integer",
             "minimum": 0,
-            "maximum": 1,
-            "description": "Vertical position as a fraction of the surface's height (0 = top edge, 1 = bottom edge)."
+            "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
           }
-        },
-        "title": "Point"
+        }
       },
       "duration": {
         "type": "integer",
@@ -93,11 +91,11 @@
         "properties": {
           "from": {
             "$ref": "#/components/schemas/point",
-            "description": "Where the virtual finger presses down, as fractions of the surface's width and height."
+            "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner."
           },
           "to": {
             "$ref": "#/components/schemas/point",
-            "description": "Where the virtual finger releases, as fractions of the surface's width and height."
+            "description": "Where the virtual finger releases, in pixels from the surface's top-left corner."
           },
           "duration": {
             "$ref": "#/components/schemas/duration"
@@ -120,12 +118,12 @@
     },
     {
       "from": {
-        "x": 0.5,
-        "y": 0.8
+        "x": 200,
+        "y": 600
       },
       "to": {
-        "x": 0.5,
-        "y": 0.2
+        "x": 200,
+        "y": 200
       },
       "duration": 250
     }

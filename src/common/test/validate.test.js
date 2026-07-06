@@ -771,13 +771,13 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.swipe.distance).to.equal(0.8);
       });
 
-      it("should validate the point-to-point form with fraction coordinates", function () {
+      it("should validate the point-to-point form with pixel coordinates", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             swipe: {
-              from: { x: 0.5, y: 0.8 },
-              to: { x: 0.5, y: 0.2 },
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
               duration: 250,
             },
           },
@@ -785,8 +785,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.swipe.from).to.deep.equal({ x: 0.5, y: 0.8 });
-        expect(result.object.swipe.to).to.deep.equal({ x: 0.5, y: 0.2 });
+        expect(result.object.swipe.from).to.deep.equal({ x: 200, y: 600 });
+        expect(result.object.swipe.to).to.deep.equal({ x: 200, y: 200 });
       });
 
       it("should reject an unknown direction", function () {
@@ -815,7 +815,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       it("should reject from without to", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { swipe: { from: { x: 0.5, y: 0.8 } } },
+          object: { swipe: { from: { x: 200, y: 600 } } },
         });
 
         expect(result.valid).to.be.false;
@@ -825,7 +825,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       it("should reject a point missing a coordinate", function () {
         const result = validate({
           schemaKey: "step_v3",
-          object: { swipe: { from: { x: 0.5 }, to: { x: 0.5, y: 0.2 } } },
+          object: { swipe: { from: { x: 200 }, to: { x: 200, y: 200 } } },
         });
 
         expect(result.valid).to.be.false;
@@ -838,8 +838,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           object: {
             swipe: {
               direction: "up",
-              from: { x: 0.5, y: 0.8 },
-              to: { x: 0.5, y: 0.2 },
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
             },
           },
         });
@@ -848,16 +848,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
-      it("should reject a coordinate outside the 0-1 range", function () {
-        const result = validate({
-          schemaKey: "step_v3",
-          object: {
-            swipe: { from: { x: 0.5, y: 1.2 }, to: { x: 0.5, y: 0.2 } },
-          },
-        });
+      it("should reject negative and non-integer pixel coordinates", function () {
+        for (const from of [
+          { x: -5, y: 600 },
+          { x: 200.5, y: 600 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { from, to: { x: 200, y: 200 } } },
+          });
 
-        expect(result.valid).to.be.false;
-        expect(result.errors).to.be.a("string");
+          expect(result.valid, JSON.stringify(from)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
       });
 
       it("should reject a non-positive duration", function () {

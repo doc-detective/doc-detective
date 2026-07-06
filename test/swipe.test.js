@@ -167,8 +167,8 @@ describe("swipe step: app surfaces", function () {
       config,
       step: {
         swipe: {
-          from: { x: 0.5, y: 0.8 },
-          to: { x: 0.5, y: 0.2 },
+          from: { x: 500, y: 1600 },
+          to: { x: 500, y: 400 },
           surface: { app: "myapp" },
         },
       },
@@ -178,7 +178,7 @@ describe("swipe step: app surfaces", function () {
     assert.equal(result.status, "PASS");
     assert.equal(driver.actions.length, 1);
     assert.equal(driver.actions[0].opts.parameters.pointerType, "touch");
-    assert.deepEqual(result.outputs.from, { x: 0.5, y: 0.8 });
+    assert.deepEqual(result.outputs.from, { x: 500, y: 1600 });
   });
 
   it("fails on an unknown app surface name", async function () {
@@ -265,18 +265,21 @@ describe("swipe step: browser and process surfaces", function () {
     assert.deepEqual(driver.executes[1].args, [400, 0]);
   });
 
-  it("runs point-to-point browser swipes through the movement engine", async function () {
+  it("runs point-to-point browser swipes through the movement engine as viewport pixels", async function () {
     const driver = makeFakeBrowserDriver({ viewport: [1000, 800] });
     const result = await swipeSurface({
       config,
       step: {
-        swipe: { from: { x: 0.2, y: 0.5 }, to: { x: 0.8, y: 0.5 } },
+        swipe: { from: { x: 200, y: 400 }, to: { x: 800, y: 400 } },
       },
       driver,
     });
     assert.equal(result.status, "PASS");
     assert.equal(driver.actions.length, 1);
     assert.equal(driver.actions[0].opts.parameters.pointerType, "mouse");
+    // Author pixels are viewport-relative and pass through unchanged — no
+    // viewport read happens on this path.
+    assert.equal(driver.executes.length, 0);
     assert.deepEqual(
       { x: driver.actions[0].steps[0].args.x, y: driver.actions[0].steps[0].args.y },
       { x: 200, y: 400 }
