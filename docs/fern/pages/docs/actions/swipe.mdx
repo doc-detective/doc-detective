@@ -11,18 +11,21 @@ The `swipe` action moves a virtual finger (or pointer) across a browser or app s
 
 ## Forms
 
+**Simple**—swipe up on the active browser tab:
+
 ```json
-"Simple: swipe up on the active browser tab"
 { "swipe": "up" }
 ```
 
+**Directional**—swipe 80% of the app window's height:
+
 ```json
-"Directional: swipe 80% of the app window's height"
 { "swipe": { "direction": "up", "distance": 0.8, "surface": { "app": "myapp" } } }
 ```
 
+**Point-to-point**—drag from one point to another:
+
 ```json
-"Point-to-point: drag from one point to another"
 { "swipe": { "from": { "x": 200, "y": 600 }, "to": { "x": 200, "y": 200 }, "duration": 400 } }
 ```
 

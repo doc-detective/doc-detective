@@ -40,6 +40,14 @@
         {
           "stepId": "assert-object-click-side-effect",
           "find": "Object click landed"
+        },
+        {
+          "stepId": "find-click-button-string-shorthand",
+          "description": "The find click sub-effect's string shorthand names the button ('left'|'right'|'middle', per the find docs) — a right-click must not fall back to a left click (phase A6 review fix).",
+          "find": {
+            "selector": "#reveal-by-selector",
+            "click": "right"
+          }
         }
       ]
     }

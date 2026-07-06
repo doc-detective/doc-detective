@@ -1,7 +1,8 @@
 // The swipe step (phase A6): the movement subset of dragAndDrop — a pointer
-// movement between two points, authored directly (from/to fractions) or via
-// the direction shorthand. Valid on app and browser surfaces; a process has
-// no screen to swipe. Pure execution: no implicit assertions, like goTo.
+// movement between two points, authored directly (from/to pixels relative to
+// the surface's top-left) or via the direction shorthand (fractions). Valid
+// on app and browser surfaces; a process has no screen to swipe. Pure
+// execution: no implicit assertions, like goTo.
 import { validate } from "../../common/src/validate.js";
 import {
   parseSurfaceRef,

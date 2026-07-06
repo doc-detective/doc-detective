@@ -280,8 +280,17 @@ async function findElement({ config, step, driver, click, appSession }: { config
   // actions path, so they keep the options form (desktop-only).
   if (step.find.click || click) {
     try {
-      const button = step.find.click?.button || "left";
-      const duration = step.find.click?.duration;
+      // The sub-effect's string shorthand names the button ("right"), per the
+      // docs; other strings (element identifiers in click_v3's string form)
+      // and `true` mean a default left click.
+      const clickSpec = step.find.click;
+      const button =
+        typeof clickSpec === "string" &&
+        ["left", "right", "middle"].includes(clickSpec)
+          ? clickSpec
+          : clickSpec?.button || "left";
+      const duration =
+        typeof clickSpec === "object" ? clickSpec?.duration : undefined;
       if (duration) {
         // Long-press (phase A6): a W3C press-pause-release chain. Like
         // non-left buttons, this needs the actions path, so it's
