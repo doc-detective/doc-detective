@@ -424,10 +424,13 @@ describe("core/utils coverage", function () {
       // key. A trailing `$` marks a sentinel, not an env reference.
       const prevHome = process.env.DD_TEST_VAL;
       process.env.DD_TEST_VAL = "/home/runner";
-      assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
-      // A bare $NAME reference still substitutes.
-      assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
-      process.env.DD_TEST_VAL = prevHome;
+      try {
+        assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
+        // A bare $NAME reference still substitutes.
+        assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
+      } finally {
+        process.env.DD_TEST_VAL = prevHome;
+      }
     });
     it("parses a whole-string variable holding a JSON object into an object", function () {
       process.env.DD_TEST_OBJ = JSON.stringify({ k: "v" });
