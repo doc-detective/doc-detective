@@ -115,7 +115,10 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /Windows and macOS/);
+        assert.match(
+          ctx.resultDescription,
+          /native app surfaces run on Windows, macOS, Android, and iOS/
+        );
       }
       assert.equal(result.summary.specs.fail, 0);
     } finally {
@@ -163,7 +166,13 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("An ios target context SKIPs pointing at phase A4", async function () {
+  it("An ios target context SKIPs on a non-mac host with toolchain guidance", async function () {
+    // Host != target for mobile, so an ios context resolves on any host. On a
+    // NON-mac host the toolchain probe fails and the context SKIPs with macOS
+    // guidance (asserted here). On a macOS host iOS actually executes against a
+    // managed simulator (phase A4) — a real PASS/SKIP that needs a booted
+    // simulator, so it's covered by the apps-ios fixtures, not this unit leg.
+    if (process.platform === "darwin") this.skip();
     const iosTest = {
       tests: [
         {
@@ -182,7 +191,7 @@ describe("Run tests successfully", function () {
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
         assert.match(ctx.resultDescription, /iOS/);
-        assert.match(ctx.resultDescription, /A4/);
+        assert.match(ctx.resultDescription, /macOS|Xcode|simctl/);
       }
       assert.equal(result.summary.specs.fail, 0);
     } finally {

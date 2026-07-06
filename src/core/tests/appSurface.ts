@@ -10,7 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import {
   resolveHeavyDepPath,
   resolveHeavyDepPathInCache,
@@ -22,6 +22,7 @@ import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -31,6 +32,7 @@ export {
   buildUiaLocator,
   buildAxLocator,
   buildUiAutomator2Locator,
+  buildXCUITestLocator,
   createAppSessionState,
   appSurfacePreflight,
   // Exported as a test seam: the JXA probe must return a definitive boolean
@@ -49,6 +51,7 @@ export {
   // Exported as a test seam: the manifest-staleness rules are load-bearing
   // (a stale manifest makes the lazily-installed driver invisible to Appium).
   invalidateStaleAppiumManifest,
+  probeIosToolchain,
 };
 export type { AppSessionState, AppSurfaceEntry };
 
@@ -362,6 +365,19 @@ function buildUiAutomator2Locator(criteria: {
   return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
 }
 
+// Build an iOS (XCUITest) locator from the shared semantic element fields.
+// XCUITest shares the XCUI role taxonomy with Mac2, so this column reuses the
+// AX/XCUI mapping semantics for role/name/text while running against iOS.
+function buildXCUITestLocator(criteria: {
+  elementText?: string;
+  elementId?: string;
+  elementTestId?: string;
+  elementAria?: { role?: string; name?: string } | string;
+  [key: string]: any;
+}): { strategy: string; value: string } | null {
+  return buildAxLocator(criteria);
+}
+
 // ---------------------------------------------------------------------------
 // Runtime: app sessions, preflight, and app-side step implementations.
 // ---------------------------------------------------------------------------
@@ -556,6 +572,73 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       },
     ],
   },
+  ios: {
+    driverPackage: "appium-xcuitest-driver",
+    driverLabel: "iOS app driver",
+    platformName: "iOS",
+    automationName: "XCUITest",
+    buildLocator: (criteria) => buildXCUITestLocator(criteria),
+    // iOS maps text/name through the same XCUI naming surface as macOS.
+    nameFieldsCollide: true,
+    buildCapabilities(descriptor, appId, extras) {
+      const capabilities: Record<string, any> = {
+        platformName: "iOS",
+        "appium:automationName": "XCUITest",
+        "appium:newCommandTimeout": 600,
+        "wdio:enforceWebDriverClassic": true,
+      };
+      if (classifyAppIdentifier(appId) === "id") {
+        capabilities["appium:bundleId"] = appId;
+      } else {
+        capabilities["appium:app"] = path.resolve(appId);
+      }
+      // Installable payload overrides app path for install-before-launch.
+      if (descriptor.install) {
+        capabilities["appium:app"] = path.resolve(descriptor.install);
+      }
+      if (extras?.udid) capabilities["appium:udid"] = extras.udid;
+      const timeout = descriptor.timeout ?? 60000;
+      capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
+      capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
+      // Persisting WebDriverAgent's Xcode build products across sessions/runs
+      // turns the cold ~10-minute WDA compile into a fast incremental build.
+      // Opt-in via env so a shared derivedDataPath is only used where the caller
+      // manages it (e.g. a CI cache keyed by driver + Xcode version); unset by
+      // default, appium uses a throwaway per-session temp dir. A caller sharing
+      // one path across concurrent iOS sessions owns serializing them.
+      const derivedDataPath =
+        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      if (derivedDataPath && derivedDataPath.trim()) {
+        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
+      }
+      return capabilities;
+    },
+    unsupportedFields: [
+      {
+        field: "activity",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "`activity` is Android-only; iOS launches by bundle identifier or installed app payload.",
+      },
+      {
+        field: "args",
+        isSet: (value) => Array.isArray(value) && value.length > 0,
+        guidance:
+          "The iOS driver does not honor desktop-style process arguments for AUT launch.",
+      },
+      {
+        field: "workingDirectory",
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance: "A working directory is not meaningful for iOS app launches.",
+      },
+      {
+        field: "env",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "Use driverOptions for iOS-specific launch controls; app environment overrides are not supported here.",
+      },
+    ],
+  },
 };
 
 // The System Settings walkthrough for macOS Accessibility (TCC) — used by
@@ -607,6 +690,13 @@ interface AppSessionState {
   androidSdkRoot?: string;
   androidDeviceRegistry?: any;
   androidDeviceDeps?: any;
+  // iOS simulator-layer wiring (phase A4), the simctl analogue of the Android
+  // fields above: the run-level simulator registry and the injected simctl
+  // effect bundle acquireSimulator runs on. iOS shares one XCUITest session per
+  // simulator (keyed in deviceSessions like Android), so no SDK-root env is
+  // needed — simctl/xcrun are on PATH.
+  iosSimulatorRegistry?: any;
+  iosSimulatorDeps?: any;
 }
 
 function createAppSessionState(): AppSessionState {
@@ -726,6 +816,78 @@ async function probeMacAccessibility(): Promise<boolean | null> {
   });
 }
 
+// Probe the iOS simulator toolchain: a macOS host, a configured Xcode
+// (`xcode-select -p`), and a working `xcrun simctl`. Effects are injected
+// (platform + a command runner) so every branch is unit-testable on any host —
+// the same seam iosInstaller uses. The default runner gives `xcrun simctl` a
+// generous timeout: the FIRST cold `simctl` call on a runner with many Xcodes
+// and simulator runtimes launches CoreSimulatorService and can take far longer
+// than a warm call (a 20s ceiling spuriously reported it "unavailable" on
+// hosted macos-latest). A failure surfaces the selected developer dir and the
+// command's own diagnostic so the skip is actionable, not opaque.
+function probeIosToolchain(
+  deps: {
+    platform?: NodeJS.Platform;
+    run?: (
+      command: string,
+      args: string[]
+    ) => { status: number | null; stdout?: string; stderr?: string };
+  } = {}
+): { ok: true } | { ok: false; reason: string } {
+  const platform = deps.platform ?? process.platform;
+  const run =
+    deps.run ??
+    ((command: string, args: string[]) => {
+      const result = spawnSync(command, args, {
+        encoding: "utf8",
+        windowsHide: true,
+        // xcrun/simctl gets 2 minutes for the cold CoreSimulator warm-up;
+        // xcode-select is a cheap path lookup.
+        timeout: command === "xcrun" ? 120000 : 15000,
+        maxBuffer: 32 * 1024 * 1024,
+      });
+      return {
+        status: result.status,
+        stdout: typeof result.stdout === "string" ? result.stdout : "",
+        stderr: typeof result.stderr === "string" ? result.stderr : "",
+      };
+    });
+
+  if (platform !== "darwin") {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
+    };
+  }
+  const xcodeSelect = run("xcode-select", ["-p"]);
+  if (xcodeSelect.status !== 0) {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
+    };
+  }
+  const developerDir = String(xcodeSelect.stdout ?? "").trim();
+  const simctl = run("xcrun", ["simctl", "list", "devices", "available"]);
+  if (simctl.status !== 0) {
+    const detail =
+      String(simctl.stderr ?? "")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .pop() ||
+      (simctl.status === null
+        ? "the command timed out"
+        : `exit ${simctl.status}`);
+    return {
+      ok: false,
+      reason: `Skipping context on 'ios': \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
+    };
+  }
+  return { ok: true };
+}
+
 // Preflight for app surfaces: platform support, driver availability, and (on
 // macOS) the Accessibility permission. Returns { ok: true } or a skip reason
 // — an unmet environment is a gating fact (SKIPPED), never a FAIL, matching
@@ -745,6 +907,7 @@ async function appSurfacePreflight({
     resolvePathInCache?: typeof resolveHeavyDepPathInCache;
     ensureInstalled?: typeof ensureRuntimeInstalled;
     probeAccessibility?: () => Promise<boolean | null>;
+    probeIosToolchain?: () => { ok: true } | { ok: false; reason: string };
   };
 }): Promise<
   | { ok: true; appiumEntry: string; appiumHome: string }
@@ -754,8 +917,18 @@ async function appSurfacePreflight({
   if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipping context on '${platform}': native app surfaces run on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]) so this skip is intentional.`,
+      reason: `Skipping context on '${platform}': native app surfaces run on Windows, macOS, Android, and iOS in this phase. Gate the test with runOn platforms so this skip is intentional.`,
     };
+  }
+  if (platform === "ios") {
+    const probe = deps.probeIosToolchain ?? probeIosToolchain;
+    const ios = probe();
+    if (!ios.ok) {
+      return {
+        ok: false,
+        reason: ios.reason,
+      };
+    }
   }
   if (platform === "mac") {
     const probe = deps.probeAccessibility ?? probeMacAccessibility;
@@ -997,7 +1170,7 @@ async function startAppSurface({
   const platformDriver = APP_DRIVER_PLATFORMS[platform];
   if (!platformDriver) {
     result.status = "FAIL";
-    result.description = `startSurface (app) runs on Windows and macOS desktops and Android emulators in this phase. Gate the test with runOn platforms (["windows"], ["mac"], or ["android"]).`;
+    result.description = `startSurface (app) runs on Windows and macOS desktops plus Android and iOS mobile targets in this phase. Gate the test with runOn platforms (["windows"], ["mac"], ["android"], or ["ios"]).`;
     return result;
   }
   // Per-platform unsupported fields (desktop rows reject the mobile-only
@@ -1044,11 +1217,13 @@ async function startAppSurface({
   let driver: any;
   let deviceName: string | undefined;
 
-  if (platform === "android") {
-    // Android: multiple app surfaces on one device share a single UiAutomator2
-    // session (switch by activateApp), so the driver is per-device, not
-    // per-app. Resolve the device (context default merged with the step
-    // override) and acquire it (boot/create as needed).
+  if (isMobileTargetPlatform(platform)) {
+    // Mobile (Android emulator / iOS simulator): multiple app surfaces on one
+    // device share a single driver session (switch by activateApp), so the
+    // driver is per-device, not per-app. Resolve the device (context default
+    // merged with the step override) and acquire it (boot/create as needed).
+    // `targetNoun` keeps guidance honest per platform.
+    const targetNoun = platform === "ios" ? "simulator" : "device";
     const desc = normalizeDeviceDescriptor({
       contextDevice: appSession.defaultDevice,
       stepDevice: descriptor.device,
@@ -1056,8 +1231,7 @@ async function startAppSurface({
     });
     if (!serverDeps.acquireDevice) {
       result.status = "FAIL";
-      result.description =
-        "Android app session is missing its device layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).";
+      result.description = `The ${platformDriver.driverLabel} session is missing its ${targetNoun} layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).`;
       return result;
     }
     let acquired: any;
@@ -1065,14 +1239,14 @@ async function startAppSurface({
       acquired = await serverDeps.acquireDevice(desc);
     } catch (error: any) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${error?.message ?? error}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${error?.message ?? error}`;
       return result;
     }
     // The preflight already validated resolvability, so an acquire-time skip is
     // a real runtime failure (e.g. the device died between preflight and now).
     if ("skip" in acquired) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${acquired.skip}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${acquired.skip}`;
       return result;
     }
     deviceName = acquired.entry.name;
@@ -1093,7 +1267,7 @@ async function startAppSurface({
         );
       } catch (error: any) {
         result.status = "FAIL";
-        result.description = `Couldn't launch app "${appId}" on the Android device "${deviceName}": ${error?.message ?? error}.`;
+        result.description = `Couldn't launch app "${appId}" on the ${targetNoun} "${deviceName}": ${error?.message ?? error}.`;
         return result;
       }
       sessions.set(deviceName, {
@@ -1163,11 +1337,12 @@ async function startAppSurface({
       platform,
     });
     if (found.error) {
-      // On desktop the session is this app's alone, so end it. On Android the
-      // session is shared across the device's apps — deleting it would kill
-      // sibling surfaces — so leave it; the run-end device sweep handles the
-      // emulator, and no surface was registered for this failed app.
-      if (platform !== "android") {
+      // On desktop the session is this app's alone, so end it. On mobile
+      // (Android emulator / iOS simulator) the session is shared across the
+      // device's apps — deleting it would kill sibling surfaces — so leave it;
+      // the run-end device sweep handles the emulator/simulator, and no surface
+      // was registered for this failed app.
+      if (!isMobileTargetPlatform(platform)) {
         try {
           await driver.deleteSession();
         } catch {

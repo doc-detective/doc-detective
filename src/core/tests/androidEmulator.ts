@@ -15,12 +15,16 @@ import {
   androidAvdHome,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
+import { normalizeDeviceDescriptor } from "./mobileDevice.js";
+import type { DeviceDescriptor } from "./mobileDevice.js";
 
 export {
   parseAdbDevices,
   parseEmuAvdName,
   parseListAvds,
   parseAccelCheck,
+  // Re-exported from the shared mobileDevice module so existing importers
+  // (appSurface.ts) keep resolving it here.
   normalizeDeviceDescriptor,
   emulatorBootArgs,
   nextEmulatorPort,
@@ -36,14 +40,6 @@ export {
   hostHasKvm,
 };
 export type { DeviceDescriptor, DeviceRegistry, DeviceEntry, DeviceAcquisition };
-
-interface DeviceDescriptor {
-  name?: string;
-  deviceType?: string;
-  osVersion?: string;
-  headless?: boolean;
-  platform?: string;
-}
 
 // --- Output parsers (pure) ---
 
@@ -94,31 +90,6 @@ function parseAccelCheck({
 }
 
 // --- Descriptor / boot computation (pure) ---
-
-// Normalize a context default device merged with a step-level device override.
-// A string is shorthand for `{ name }`. The step wins field-by-field; platform
-// comes from whichever supplies it (the mobile context, normally).
-function normalizeDeviceDescriptor({
-  contextDevice,
-  stepDevice,
-  platform,
-}: {
-  contextDevice?: DeviceDescriptor | string;
-  stepDevice?: DeviceDescriptor | string;
-  platform?: string;
-}): DeviceDescriptor {
-  const asObj = (d?: DeviceDescriptor | string): DeviceDescriptor =>
-    typeof d === "string" ? { name: d.trim() } : d ? { ...d } : {};
-  const ctx = asObj(contextDevice);
-  const step = asObj(stepDevice);
-  const merged: DeviceDescriptor = { ...ctx, ...step };
-  // Drop undefined step keys so they don't clobber context values.
-  for (const k of Object.keys(step) as (keyof DeviceDescriptor)[]) {
-    if (step[k] === undefined && ctx[k] !== undefined) (merged as any)[k] = ctx[k];
-  }
-  merged.platform = step.platform ?? ctx.platform ?? platform;
-  return merged;
-}
 
 // The AVD emulator serial for a console port (even ports 5554..5680).
 function udidForPort(port: number): string {

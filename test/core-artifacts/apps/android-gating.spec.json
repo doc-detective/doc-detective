@@ -1,6 +1,6 @@
 {
   "specId": "android-gating-a3a",
-  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): the `android` and `ios` target platforms are validated and gated on the general matrix. This spec is deterministic on EVERY host — it asserts the always-SKIP phase gates (android+browser -> A5, ios -> A4), which return before any SDK/emulator detection, so no host lazily installs a toolchain or boots an emulator here. (Native android app runs — which can PASS on a capable host under A3b — are exercised in the apps-android group's KVM jobs, not here.)",
+  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): the `android` and `ios` mobile-web gates are validated on the general matrix. This spec is deterministic on EVERY host — it asserts the always-SKIP phase gates (android+browser -> A5, ios+browser -> A5), which return before any SDK/emulator/simulator detection, so no host lazily installs a toolchain or boots a device here. Native mobile app runs (which PASS on capable hosts: Android under A3b, iOS under A4) are exercised in the apps-android and apps-ios groups, not here.",
   "tests": [
     {
       "testId": "android-mobile-web-gates",
@@ -18,18 +18,17 @@
       ]
     },
     {
-      "testId": "ios-context-gates",
-      "description": "An ios target context is SKIPPED pointing at phase A4 (iOS app surfaces). Validated and gated now so A4 is purely additive.",
+      "testId": "ios-mobile-web-gates",
+      "description": "An ios context with a browser step is SKIPPED pointing at phase A5 (mobile web on iOS). This gate fires before any simulator detection, so the outcome is deterministic on every host and never boots a simulator. Native iOS app runs (PASS on capable macOS hosts under A4) are exercised in the apps-ios group.",
       "runOn": [
         {
-          "platforms": "ios"
+          "platforms": "ios",
+          "browsers": "safari"
         }
       ],
       "steps": [
         {
-          "startSurface": {
-            "app": "com.apple.Preferences"
-          }
+          "goTo": "https://example.com"
         }
       ]
     }

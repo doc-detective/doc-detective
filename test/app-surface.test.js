@@ -17,6 +17,7 @@ import {
   createAppSessionState,
   appSurfacePreflight,
   probeMacAccessibility,
+  probeIosToolchain,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -439,6 +440,13 @@ describe("buildAppLocator", function () {
     });
   });
 
+  it("routes ios to the XCUITest column", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "ios"), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
+    });
+  });
+
   it("does NOT flag elementText/elementAria as conflicting on android", function () {
     // On Android the two map to distinct attributes (@text vs @content-desc),
     // so different values are a legal AND, not a conflict — the per-platform
@@ -520,7 +528,23 @@ describe("appSurfacePreflight", function () {
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows and macOS/);
+    assert.match(outcome.reason, /Windows/);
+    assert.match(outcome.reason, /iOS/);
+  });
+
+  it("skips ios on non-mac hosts with toolchain guidance", async function () {
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "ios",
+      deps: {
+        probeIosToolchain: () => ({
+          ok: false,
+          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+        }),
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
   });
 
   it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
@@ -678,6 +702,80 @@ describe("appSurfacePreflight", function () {
   });
 });
 
+describe("probeIosToolchain", function () {
+  it("skips on a non-mac host without probing commands", function () {
+    let probed = false;
+    const outcome = probeIosToolchain({
+      platform: "win32",
+      run: () => {
+        probed = true;
+        return { status: 0 };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
+    assert.equal(probed, false);
+  });
+
+  it("skips when xcode-select is not configured", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select" ? { status: 1 } : { status: 0 },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /Xcode command-line tools/);
+  });
+
+  it("skips with the developer dir + diagnostic when simctl fails", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command, args) => {
+        if (command === "xcode-select")
+          return { status: 0, stdout: "/Applications/Xcode.app/Contents/Developer\n" };
+        // xcrun simctl
+        return { status: 72, stderr: "xcrun: error: unable to find utility \"simctl\"" };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /simctl/);
+    assert.match(outcome.reason, /Xcode\.app\/Contents\/Developer/);
+    assert.match(outcome.reason, /unable to find utility/);
+  });
+
+  it("reports a timed-out simctl (null status) distinctly", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select"
+          ? { status: 0, stdout: "/dev" }
+          : { status: null, stderr: "" },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /timed out/);
+  });
+
+  it("passes when xcode-select and simctl both succeed", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: () => ({ status: 0, stdout: "/Applications/Xcode.app/Contents/Developer" }),
+    });
+    assert.deepEqual(outcome, { ok: true });
+  });
+
+  it("the real probe returns a definitive ok/not-ok shape on macOS", async function () {
+    // Exercise the real spawnSync path (default runner) so a broken invocation
+    // is visible; on non-mac hosts the early return already covers this.
+    if (process.platform !== "darwin") this.skip();
+    // probeIosToolchain is synchronous and the first cold `xcrun simctl` call on
+    // a fresh macOS runner can take much longer than mocha's 2s default before
+    // it returns — give it the same 2-minute ceiling the probe itself uses.
+    this.timeout(130000);
+    const outcome = probeIosToolchain();
+    assert.equal(typeof outcome.ok, "boolean");
+  });
+});
+
 describe("startAppSurface", function () {
   const fakeDriver = () => ({
     deleted: false,
@@ -740,7 +838,7 @@ describe("startAppSurface", function () {
       platform: "linux",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.match(unsupportedPlatform.description, /Windows and macOS/);
+    assert.match(unsupportedPlatform.description, /iOS/);
 
     appSession.surfaces.set("x", { name: "x", appId: "x", driver: {} });
     const collision = await startAppSurface({
@@ -1165,6 +1263,158 @@ describe("startAppSurface", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /no image installed/);
+  });
+
+  // --- iOS (phase A4): shared simulator session + activateApp switching ---
+
+  it("ios: first app creates a simulator session with XCUITest udid/bundleId capabilities", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.Preferences", name: "settings", timeout: 300000 },
+      },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return driver;
+        },
+        acquireDevice: async () => ({
+          entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("settings");
+    assert.equal(entry.deviceName, "iPhone 15");
+    assert.equal(entry.platform, "ios");
+    assert.equal(caps.platformName, "iOS");
+    assert.equal(caps["appium:automationName"], "XCUITest");
+    assert.equal(caps["appium:udid"], "SIM-UDID-1");
+    assert.equal(caps["appium:bundleId"], "com.apple.Preferences");
+    // The descriptor timeout floors the WDA build/connect timeouts.
+    assert.equal(caps["appium:wdaLaunchTimeout"], 300000);
+    assert.equal(caps["appium:wdaConnectionTimeout"], 300000);
+    assert.equal(
+      appSession.deviceSessions.get("iPhone 15").foregroundApp,
+      "com.apple.Preferences"
+    );
+  });
+
+  it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {
+    const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    const launch = async () => {
+      let caps;
+      await startAppSurface({
+        config: {},
+        step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+        appSession: preflighted(),
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async (c) => {
+            caps = c;
+            return fakeDriver();
+          },
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        },
+      });
+      return caps;
+    };
+    try {
+      delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      assert.equal((await launch())["appium:derivedDataPath"], undefined);
+      process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = "/tmp/dd-wda";
+      assert.equal((await launch())["appium:derivedDataPath"], "/tmp/dd-wda");
+    } finally {
+      if (prev === undefined)
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
+    }
+  });
+
+  it("ios: a second app on the same simulator reuses the session and activates it", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    let startDriverCalls = 0;
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => {
+        startDriverCalls++;
+        return driver;
+      },
+      acquireDevice: async () => ({
+        entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+      }),
+    };
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "a" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.mobilecal", name: "b" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    // One XCUITest session for the simulator, shared by both apps.
+    assert.equal(startDriverCalls, 1);
+    assert.equal(appSession.deviceSessions.size, 1);
+    assert.deepEqual(driver.activated, ["com.apple.mobilecal"]);
+    assert.equal(appSession.surfaces.get("b").deviceName, "iPhone 15");
+  });
+
+  it("ios: rejects Android-only/desktop-only fields with iOS-specific guidance", async function () {
+    const appSession = preflighted();
+    const cases = [
+      [{ app: "com.apple.Preferences", activity: ".Main" }, /Android-only/],
+      [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
+      [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
+      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /not meaningful for iOS/],
+    ];
+    for (const [descriptor, pattern] of cases) {
+      const result = await startAppSurface({
+        config: {},
+        step: { startSurface: descriptor },
+        appSession,
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async () => fakeDriver(),
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "SIM-UDID-1" } }),
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, pattern);
+    }
+  });
+
+  it("ios: an acquire skip becomes a step FAIL naming the reason", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences" } },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => fakeDriver(),
+        acquireDevice: async () => ({ skip: "no iOS runtime installed" }),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no iOS runtime installed/);
   });
 });
 

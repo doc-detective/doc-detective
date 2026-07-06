@@ -26,7 +26,7 @@ Install the lazy-installed runtime assets: npm packages and browser binaries.
 doc-detective install all [options]
 ```
 
-This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays. It excludes agent tools (`install agents`, which needs an interactive picker) and the Android SDK (`install android`, whose multi-GB downloads stay opt-in). Install those two groups separately.
+This is the recommended way to prepare a fresh environment or container image for running tests without first-run delays. It excludes agent tools (`install agents`, which needs an interactive picker) and the mobile toolchains (`install android`, whose multi-GB downloads stay opt-in, and `install ios`, which is macOS-only). Install those groups separately.
 
 ### `install agents`
 
@@ -113,6 +113,26 @@ doc-detective install android --dry-run
 `sdkmanager`/`avdmanager` need a **Java runtime (JRE 17+)**. If your host already has one, `install android` uses it; if not, Doc Detective downloads a portable Temurin JRE into its cache as part of the (confirmed) install, so Java is not a prerequisite you have to set up yourself. `install android` is **not** part of `install all` — the multi-GB downloads are opt-in, so you install the Android toolchain deliberately, not as a side effect of preparing a general test environment.
 
 **Running this ahead of time is optional but recommended.** A test run that targets `android` on a **capable** host (one that can run the emulator) will **lazily install** the toolchain itself the first time it needs it, printing a clear warning to the terminal and the output report. Running `install android` beforehand simply pre-warms the cache so that cost isn't paid mid-run — ideal for CI images and containers. To forbid the lazy install entirely (e.g. an air-gapped host that must never auto-download), set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`; the context then SKIPs with a pointer back to this command. A host that *can't* run the emulator (no hardware acceleration) always SKIPs without downloading anything.
+
+</Note>
+
+### `install ios`
+
+Check the iOS simulator prerequisites on a macOS host, so tests that target the `ios` platform can run. Required context for native iOS app testing (native app phase A4).
+
+```bash
+doc-detective install ios --yes
+```
+
+Unlike `install android`, this command **downloads nothing** — iOS tooling ships with Xcode. It verifies that the Xcode command-line tools are configured (`xcode-select -p`) and that the iOS Simulator control tool is available (`xcrun simctl`), and prints actionable guidance when either is missing. Preview the checks on any host (including Windows/Linux, where it reports that iOS is macOS-only) with `--dry-run`:
+
+```bash
+doc-detective install ios --dry-run
+```
+
+<Note>
+
+The `appium-xcuitest-driver` and the simulator itself are provisioned automatically at test time: a run that targets `ios` on a capable macOS host lazily installs the driver, then resolves and boots a simulator via `simctl` (the newest installed iPhone by default, or a device named in your `device` descriptor, creating it if needed). `install ios` is **not** part of `install all` — iOS preparation is macOS-only. On a non-macOS host, or a macOS host without Xcode/`simctl`, an `ios` context SKIPs with a pointer back to this command rather than failing.
 
 </Note>
 
