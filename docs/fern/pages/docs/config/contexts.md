@@ -238,7 +238,7 @@ And this single entry runs one web test on four targets (the `ios` leg skips, be
 Things that work differently on a device browser:
 
 - **`safari` means Safari.** On an `ios` entry, `safari` is the device's real Safari (not the desktop `webkit` alias). `webkit` on `ios` is an unsupported combination and skips.
-- **The device owns its display.** `headless`, `window`, and `viewport` on the browser config are rejected with an error — set [`device.headless`](/reference/schemas/device-descriptor) to control emulator visibility, and pick a different `device.deviceType` if you need another screen size.
+- **The device owns its display.** Authored `window`/`viewport` dimensions and `headless: false` on the browser config are rejected with an error — set [`device.headless`](/reference/schemas/device-descriptor) to control emulator visibility, and pick a different `device.deviceType` if you need another screen size. (`headless: true` matches the schema default, so it's accepted and ignored.)
 - **No browser fallback.** The device browser is part of the device image, so there's no alternative engine to fall back to; [`browserFallback`](#browser-fallback) doesn't apply.
 - **One browser per device.** The device browser is the context's only browser surface; tests can't open additional browsers on the device.
 - **Native app steps live in separate tests.** A single mobile context can drive the device browser *or* native app surfaces ([`startSurface`](/reference/schemas/startsurface)), not both; a context mixing them skips with a pointer to split the test.
