@@ -1171,6 +1171,42 @@ describe("startAppSurface", function () {
     assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.android.settings");
   });
 
+  it("android: late-starts a pending device recording once the device session exists", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let recordingOpts = null;
+    driver.startRecordingScreen = async (opts) => {
+      recordingOpts = opts;
+    };
+    // An autoRecord step in a mobile app-only context ran before any device
+    // session existed, leaving a pending handle.
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(handle.type, "appium");
+    assert.equal(handle.driver, driver);
+    assert.equal(recordingOpts.timeLimit, 1800);
+    // Device recordings capture the device frame whole — no window crop.
+    assert.equal(handle.cropRect, undefined);
+  });
+
   it("android: a second app on the same device reuses the session and activates it", async function () {
     const appSession = preflighted();
     const driver = fakeDriver();

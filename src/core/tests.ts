@@ -2868,7 +2868,16 @@ function buildAutoRecordStep({
     `${contextSegment}.mp4`
   );
   return {
-    record: { path: recordPath, overwrite: "true", engine: "ffmpeg" },
+    // Mobile-target contexts record the device screen through the app driver
+    // (the internal device plan, resolved from the platform) — pinning ffmpeg
+    // there would host-capture the emulator window, or nothing when headless.
+    record: {
+      path: recordPath,
+      overwrite: "true",
+      ...(isMobileTargetPlatform(context?.platform)
+        ? {}
+        : { engine: "ffmpeg" }),
+    },
     description: "Automatic full-context recording",
     stepId: `${sanitizeFilesystemName(String(test.testId ?? ""), "test")}~autorecord`,
     // Internal marker — the runStep record dispatch flags the started handle as
@@ -4425,10 +4434,18 @@ async function runStep({
       handle.name = handle.name ?? recordStepName(step.record);
       if (step.__autoRecord) {
         handle.synthetic = true;
-        // App-only context: no window exists yet to crop to. Mark the handle
-        // so the first app surface to open late-binds its window rect as the
-        // crop (startAppSurface), scoping the capture to the app under test.
-        if (!driver && appSession) handle.pendingAppWindowCrop = true;
+        // Desktop app-only context: no window exists yet to crop to. Mark the
+        // handle so the first app surface to open late-binds its window rect
+        // as the crop (startAppSurface), scoping the capture to the app under
+        // test. Mobile contexts don't crop — their pending handles late-START
+        // the device recording instead (appium-pending).
+        if (
+          !driver &&
+          appSession &&
+          !isMobileTargetPlatform(context?.platform)
+        ) {
+          handle.pendingAppWindowCrop = true;
+        }
       }
       recordingHost.state.recordings.push(handle);
     }
