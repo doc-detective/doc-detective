@@ -22,6 +22,7 @@ import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import { validate } from "../../common/src/validate.js";
 
@@ -45,6 +46,7 @@ export {
   ensureAppForeground,
   startAppSurface,
   findAppElement,
+  MAX_FIND_SCROLLS,
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
@@ -1087,6 +1089,10 @@ function buildAppLocator(
 
 // Locate an element on an app surface's driver session. Waits up to `timeout`
 // for existence. Returns the wdio element or an error string.
+// Upper bound on find auto-scroll attempts per element (phase A6). Exported
+// as a test seam and so fixtures can reason about worst-case scroll depth.
+const MAX_FIND_SCROLLS = 5;
+
 async function findAppElement({
   driver,
   criteria,
@@ -1116,14 +1122,45 @@ async function findAppElement({
       error: `App driver error while locating an element (locator: ${selector}): ${error?.message ?? error}`,
     };
   }
+  // Auto-scroll (phase A6): on mobile app surfaces a miss scrolls toward
+  // content below and re-checks, matching web find's scroll-into-view
+  // behavior — so click and element-targeted type gain it too (they delegate
+  // here). Desktop surfaces don't scroll: UIA/AX expose off-screen elements
+  // in the accessibility tree, and blind wheel-scrolling risks disturbing
+  // state. The initial wait shortens only when scrolling is available.
+  const start = Date.now();
+  const gestures = APP_GESTURES[platform ?? "windows"];
+  const canAutoScroll = typeof gestures?.scrollStep === "function";
+  const initialTimeout = canAutoScroll ? Math.min(timeout, 1500) : timeout;
+  let scrolls = 0;
   try {
-    await element.waitForExist({ timeout });
+    await element.waitForExist({ timeout: initialTimeout });
     return { element };
   } catch {
-    return {
-      error: `No element matched ${JSON.stringify(criteria)} on the app surface within ${timeout}ms (locator: ${selector}).`,
-    };
+    // fall through to the scroll loop / final error below
   }
+  if (canAutoScroll) {
+    while (scrolls < MAX_FIND_SCROLLS && Date.now() - start < timeout) {
+      let canScrollMore = true;
+      try {
+        canScrollMore = await gestures!.scrollStep!(driver);
+      } catch (error: any) {
+        return {
+          error: `App driver error while scrolling to find an element (locator: ${selector}): ${error?.message ?? error}`,
+        };
+      }
+      scrolls += 1;
+      try {
+        if (await element.isExisting()) return { element };
+      } catch {
+        break;
+      }
+      if (!canScrollMore) break;
+    }
+  }
+  return {
+    error: `No element matched ${JSON.stringify(criteria)} on the app surface within ${timeout}ms (locator: ${selector}${scrolls ? `; scrolled ${scrolls} time(s) looking for it` : ""}).`,
+  };
 }
 
 // The startSurface step (app branch): launch the app through the native
