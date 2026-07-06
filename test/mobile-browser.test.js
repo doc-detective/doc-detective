@@ -12,7 +12,9 @@ import {
   mobileBrowserConfigError,
   buildMobileBrowserCapabilities,
   defaultMobileBrowserName,
+  mobileBrowserGate,
 } from "../dist/core/tests/mobileBrowser.js";
+import { jobDisplayResources } from "../dist/core/tests.js";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -109,6 +111,172 @@ describe("mobile web (A5): mobileBrowserConfigError", function () {
     expect(
       mobileBrowserConfigError({ name: "chrome", window: {}, viewport: {} })
     ).to.equal(null);
+  });
+});
+
+describe("mobile web (A5): mobileBrowserGate", function () {
+  it("proceeds with no browser session for a context without browser steps", function () {
+    const gate = mobileBrowserGate({
+      platform: "android",
+      browser: undefined,
+      hasBrowserStep: false,
+      hasAppStep: true,
+    });
+    expect(gate).to.deep.equal({ action: "proceed", browserName: null });
+  });
+
+  it("fills the platform default browser when the entry names none", function () {
+    expect(
+      mobileBrowserGate({
+        platform: "android",
+        browser: undefined,
+        hasBrowserStep: true,
+        hasAppStep: false,
+      })
+    ).to.deep.equal({ action: "proceed", browserName: "chrome" });
+    expect(
+      mobileBrowserGate({
+        platform: "ios",
+        browser: undefined,
+        hasBrowserStep: true,
+        hasAppStep: false,
+      })
+    ).to.deep.equal({ action: "proceed", browserName: "safari" });
+  });
+
+  it("proceeds with an explicitly supported browser", function () {
+    const gate = mobileBrowserGate({
+      platform: "ios",
+      browser: { name: "safari" },
+      hasBrowserStep: true,
+      hasAppStep: false,
+    });
+    expect(gate).to.deep.equal({ action: "proceed", browserName: "safari" });
+  });
+
+  it("skips an unsupported browser with the matrix reason", function () {
+    const gate = mobileBrowserGate({
+      platform: "android",
+      browser: { name: "firefox" },
+      hasBrowserStep: true,
+      hasAppStep: false,
+    });
+    expect(gate.action).to.equal("skip");
+    expect(gate.level).to.equal("warning");
+    expect(gate.reason).to.include("firefox");
+    expect(gate.reason).to.include("chrome");
+  });
+
+  it("skips a mixed native-app + web context with a split-the-test pointer", function () {
+    const gate = mobileBrowserGate({
+      platform: "android",
+      browser: { name: "chrome" },
+      hasBrowserStep: true,
+      hasAppStep: true,
+    });
+    expect(gate.action).to.equal("skip");
+    expect(gate.reason).to.match(/app|surface/i);
+    expect(gate.reason).to.match(/separate|split/i);
+  });
+
+  it("fails device-fixed browser config loudly (headless:false)", function () {
+    const gate = mobileBrowserGate({
+      platform: "android",
+      browser: { name: "chrome", headless: false },
+      hasBrowserStep: true,
+      hasAppStep: false,
+    });
+    expect(gate.action).to.equal("fail");
+    expect(gate.reason).to.include("device");
+  });
+
+  it("checks the mixed guard before the config guard (a mixed context skips, not fails)", function () {
+    const gate = mobileBrowserGate({
+      platform: "android",
+      browser: { name: "chrome", headless: false },
+      hasBrowserStep: true,
+      hasAppStep: true,
+    });
+    expect(gate.action).to.equal("skip");
+  });
+});
+
+describe("mobile web (A5): jobDisplayResources android-emulator mutex", function () {
+  const ctx = {
+    platform: "win32",
+    xvfbAvailable: false,
+    runHasDisplayRecording: false,
+  };
+  const job = (context) => ({ context });
+
+  it("an android native-app job takes the emulator mutex", function () {
+    const resources = jobDisplayResources(
+      job({
+        platform: "android",
+        steps: [{ startSurface: { app: "com.example.app" } }],
+      }),
+      ctx
+    );
+    expect(resources).to.include("android-emulator");
+  });
+
+  it("an android mobile-web job (supported browser) now takes the emulator mutex", function () {
+    const resources = jobDisplayResources(
+      job({
+        platform: "android",
+        browser: { name: "chrome" },
+        steps: [{ goTo: "http://localhost:8092" }],
+      }),
+      ctx
+    );
+    expect(resources).to.include("android-emulator");
+  });
+
+  it("an android mobile-web job with no authored browser (default chrome) takes the mutex", function () {
+    const resources = jobDisplayResources(
+      job({ platform: "android", steps: [{ goTo: "http://localhost:8092" }] }),
+      ctx
+    );
+    expect(resources).to.include("android-emulator");
+  });
+
+  it("an android job that will SKIP on the support matrix does not serialize others", function () {
+    const resources = jobDisplayResources(
+      job({
+        platform: "android",
+        browser: { name: "firefox" },
+        steps: [{ goTo: "http://localhost:8092" }],
+      }),
+      ctx
+    );
+    expect(resources).to.not.include("android-emulator");
+  });
+
+  it("a mixed app+web android job (deterministic skip) does not take the mutex", function () {
+    const resources = jobDisplayResources(
+      job({
+        platform: "android",
+        browser: { name: "chrome" },
+        steps: [
+          { startSurface: { app: "com.example.app" } },
+          { goTo: "http://localhost:8092" },
+        ],
+      }),
+      ctx
+    );
+    expect(resources).to.not.include("android-emulator");
+  });
+
+  it("a non-android job never takes the mutex", function () {
+    const resources = jobDisplayResources(
+      job({
+        platform: "ios",
+        browser: { name: "safari" },
+        steps: [{ goTo: "http://localhost:8092" }],
+      }),
+      ctx
+    );
+    expect(resources).to.not.include("android-emulator");
   });
 });
 

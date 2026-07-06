@@ -13,6 +13,7 @@ export {
   mobileBrowserConfigError,
   buildMobileBrowserCapabilities,
   defaultMobileBrowserName,
+  mobileBrowserGate,
   MOBILE_CHROMEDRIVER_DIR,
 };
 
@@ -76,6 +77,57 @@ function mobileBrowserConfigError(
     return "browser viewport dimensions are fixed by the device's screen and can't be set on a mobile context. Choose a different device (device.deviceType) if you need another size.";
   }
   return null;
+}
+
+// The one decision point the mobile preflights consult before any toolchain
+// work: does this context get a device-browser session, a SKIP, or a FAIL?
+// Order matters — the mixed guard first (a scope limit, so SKIP, and config
+// on a context that can't run at all shouldn't fail the run), then the loud
+// config rejection, then the support matrix with the platform default filled.
+function mobileBrowserGate({
+  platform,
+  browser,
+  hasBrowserStep,
+  hasAppStep,
+}: {
+  platform: MobileTarget;
+  browser?: {
+    name?: string;
+    headless?: boolean;
+    window?: any;
+    viewport?: any;
+  };
+  hasBrowserStep: boolean;
+  hasAppStep: boolean;
+}):
+  | { action: "proceed"; browserName: string | null }
+  | { action: "skip"; level: "warning"; reason: string }
+  | { action: "fail"; reason: string } {
+  if (!hasBrowserStep) return { action: "proceed", browserName: null };
+  if (hasAppStep) {
+    // Interleaving native app surfaces and the device browser in one context
+    // needs foreground + NATIVE_APP/WEBVIEW context switching, which lands
+    // with the mobile interaction vocabulary (phase A6). Both halves run
+    // today — in separate tests/contexts.
+    return {
+      action: "skip",
+      level: "warning",
+      reason: `Skipping context on '${platform}': mixing native app surfaces and browser steps in one mobile context isn't supported yet — put the web steps and the app steps in separate tests or contexts. Mobile-web-only and native-app-only contexts both run today.`,
+    };
+  }
+  const configError = mobileBrowserConfigError(browser);
+  if (configError) {
+    return {
+      action: "fail",
+      reason: `Mobile context on '${platform}': ${configError}`,
+    };
+  }
+  const browserName = browser?.name ?? defaultMobileBrowserName(platform);
+  const support = mobileBrowserSupport({ platform, browserName });
+  if (!support.supported) {
+    return { action: "skip", level: "warning", reason: support.reason };
+  }
+  return { action: "proceed", browserName };
 }
 
 // Session capabilities for the device browser. Mirrors the per-platform app
