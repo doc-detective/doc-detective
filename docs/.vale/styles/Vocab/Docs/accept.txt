@@ -117,3 +117,6 @@ autoUpdate
 cacheDir
 Geckodriver
 ChromeDriver
+toolchain
+sdkmanager
+avdmanager

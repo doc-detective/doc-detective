@@ -44,8 +44,22 @@ if (failed.length > 0) {
   process.exit(1);
 }
 
+const passed = specs.filter((s) => s.result === "PASS").length;
 const skipped = specs.filter((s) => s.result === "SKIPPED").length;
+
+// Opt-in (DD_FIXTURES_REQUIRE_PASS=1): at least one spec must actually PASS.
+// Legs whose fixtures are KNOWN to run on that runner (e.g. apps on Windows
+// and macOS) set this so an environment regression that silently converts
+// every spec to SKIPPED can't read as green — an all-SKIPPED run is only
+// acceptable where skipping is the asserted behavior.
+if (process.env.DD_FIXTURES_REQUIRE_PASS === "1" && passed === 0) {
+  console.error(
+    `All ${specs.length} spec(s) were SKIPPED but this leg requires at least one PASS (DD_FIXTURES_REQUIRE_PASS=1). A skip-everything run here means the runner environment regressed — read the skip reasons in ${resultsPath}.`
+  );
+  process.exit(1);
+}
+
 console.log(
-  `All ${specs.length} spec(s) passed or skipped (${skipped} skipped).`
+  `All ${specs.length} spec(s) passed or skipped (${passed} passed, ${skipped} skipped).`
 );
 process.exit(0);

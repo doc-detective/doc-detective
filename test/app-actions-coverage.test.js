@@ -122,6 +122,63 @@ describe("findElement app-surface branch", function () {
   });
 });
 
+describe("app-surface platform column selection (A2)", function () {
+  // A mac-registered surface must get AX locators (title/label), not UIA
+  // (@Name) — the entry's platform picks the column.
+  function macAppSession(selectors) {
+    const appSession = createAppSessionState();
+    appSession.surfaces.set("textedit", {
+      name: "textedit",
+      appId: "com.apple.TextEdit",
+      platform: "mac",
+      driver: {
+        $: async (sel) => {
+          selectors.push(sel);
+          return {
+            async waitForExist() {},
+            async click() {},
+            async addValue() {},
+          };
+        },
+      },
+      launchedByUs: true,
+    });
+    return appSession;
+  }
+
+  it("findElement locates via the AX column on mac surfaces", async function () {
+    const selectors = [];
+    const result = await findElement({
+      config: {},
+      step: {
+        find: { elementText: "Save", surface: { app: "textedit" } },
+      },
+      driver: undefined,
+      appSession: macAppSession(selectors),
+    });
+    assert.equal(result.status, "PASS");
+    assert.match(selectors[0], /@title="Save"/);
+  });
+
+  it("typeKeys locates via the AX column on mac surfaces", async function () {
+    const selectors = [];
+    const result = await typeKeys({
+      config: {},
+      step: {
+        type: {
+          keys: ["hi"],
+          elementText: "Document",
+          surface: { app: "textedit" },
+        },
+      },
+      driver: undefined,
+      appSession: macAppSession(selectors),
+    });
+    assert.equal(result.status, "PASS");
+    assert.match(selectors[0], /@title="Document"/);
+  });
+});
+
 describe("typeKeys app-surface branch", function () {
   it("clicks to focus, types, and honors delayMs readiness", async function () {
     const typed = [];

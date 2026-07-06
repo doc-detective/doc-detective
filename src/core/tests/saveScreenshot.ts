@@ -1,7 +1,7 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
-import { resolveAppSurfaceRef } from "./appSurface.js";
+import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
 import {
   log,
   fetchFile,
@@ -206,6 +206,12 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
         result.status = "FAIL";
         result.description =
           "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+        return result;
+      }
+      const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
+      if (switchedApp.error) {
+        result.status = "FAIL";
+        result.description = switchedApp.error;
         return result;
       }
       captureDriver = appRef.entry!.driver;

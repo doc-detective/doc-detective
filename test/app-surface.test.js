@@ -12,11 +12,15 @@ import {
   defaultAppSurfaceName,
   classifyNativeSelector,
   buildUiaLocator,
+  buildAxLocator,
+  buildUiAutomator2Locator,
   createAppSessionState,
   appSurfacePreflight,
+  probeMacAccessibility,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
+  ensureAppForeground,
   startAppSurface,
   buildAppLocator,
   findAppElement,
@@ -152,6 +156,168 @@ describe("buildUiaLocator", function () {
   });
 });
 
+describe("buildAxLocator", function () {
+  it("maps a lone elementId to the accessibility id strategy (AXIdentifier fast path)", function () {
+    assert.deepEqual(buildAxLocator({ elementId: "saveButton" }), {
+      strategy: "accessibility id",
+      value: "saveButton",
+    });
+    assert.deepEqual(buildAxLocator({ elementTestId: "saveButton" }), {
+      strategy: "accessibility id",
+      value: "saveButton",
+    });
+  });
+
+  it("maps elementText to an XPath matching title OR label OR value", function () {
+    // macOS controls split their visible text across AXTitle (buttons),
+    // label (static text), and AXValue (text views, the Calculator display),
+    // so the pragmatic contract matches any of them — CI-verified against
+    // real apps in phase A2.
+    assert.deepEqual(buildAxLocator({ elementText: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
+    });
+  });
+
+  it("ANDs combined semantic criteria into one XPath", function () {
+    assert.deepEqual(
+      buildAxLocator({ elementId: "saveButton", elementText: "Save" }),
+      {
+        strategy: "xpath",
+        value:
+          '//*[@identifier="saveButton" and (@title="Save" or @label="Save" or @value="Save")]',
+      }
+    );
+  });
+
+  it("maps elementAria role+name to an XCUIElementType tag with title/label", function () {
+    assert.deepEqual(
+      buildAxLocator({ elementAria: { role: "button", name: "Save" } }),
+      {
+        strategy: "xpath",
+        value: '//XCUIElementTypeButton[@title="Save" or @label="Save"]',
+      }
+    );
+  });
+
+  it("maps a role-only elementAria to a bare XCUIElementType tag", function () {
+    assert.deepEqual(buildAxLocator({ elementAria: { role: "button" } }), {
+      strategy: "xpath",
+      value: "//XCUIElementTypeButton",
+    });
+  });
+
+  it("maps the aria-ish role names onto XCUIElementType tags", function () {
+    const cases = [
+      ["textbox", "XCUIElementTypeTextField"],
+      ["text", "XCUIElementTypeStaticText"],
+      ["checkbox", "XCUIElementTypeCheckBox"],
+      ["menuitem", "XCUIElementTypeMenuItem"],
+      ["window", "XCUIElementTypeWindow"],
+    ];
+    for (const [role, tag] of cases) {
+      assert.deepEqual(buildAxLocator({ elementAria: { role } }), {
+        strategy: "xpath",
+        value: `//${tag}`,
+      });
+    }
+    // Unknown roles pass through capitalized so new element types work
+    // without a table update (XCUIElementTypeImage exists, for example).
+    assert.deepEqual(buildAxLocator({ elementAria: { role: "image" } }), {
+      strategy: "xpath",
+      value: "//XCUIElementTypeImage",
+    });
+  });
+
+  it("treats a string elementAria as a name-only match (no value — a name is not a value)", function () {
+    assert.deepEqual(buildAxLocator({ elementAria: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save"]',
+    });
+  });
+
+  it("escapes double quotes in values", function () {
+    const { value } = buildAxLocator({ elementText: 'Say "hi"' });
+    assert.equal(value.includes("concat("), true);
+  });
+
+  it("returns null for criteria with no AX mapping", function () {
+    assert.equal(buildAxLocator({}), null);
+    assert.equal(buildAxLocator({ elementClass: "x" }), null);
+  });
+});
+
+describe("buildUiAutomator2Locator", function () {
+  it("maps a lone elementId to the `id` strategy (resource-id, NOT accessibility id)", function () {
+    // Critical A3b correction: on UiAutomator2 the WebDriver "accessibility id"
+    // strategy is content-desc, so a lone resource-id must use the `id`
+    // strategy (which auto-prefixes the current appPackage).
+    assert.deepEqual(buildUiAutomator2Locator({ elementId: "save_button" }), {
+      strategy: "id",
+      value: "save_button",
+    });
+    assert.deepEqual(buildUiAutomator2Locator({ elementTestId: "save_button" }), {
+      strategy: "id",
+      value: "save_button",
+    });
+  });
+
+  it("maps elementText to an XPath @text match", function () {
+    assert.deepEqual(buildUiAutomator2Locator({ elementText: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@text="Save"]',
+    });
+  });
+
+  it("maps elementAria.name to @content-desc (distinct from @text)", function () {
+    assert.deepEqual(buildUiAutomator2Locator({ elementAria: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@content-desc="Save"]',
+    });
+  });
+
+  it("combines resource-id + text into one XPath (@resource-id, not id-strategy)", function () {
+    assert.deepEqual(
+      buildUiAutomator2Locator({ elementId: "com.app:id/save", elementText: "Save" }),
+      {
+        strategy: "xpath",
+        value: '//*[@resource-id="com.app:id/save" and @text="Save"]',
+      }
+    );
+  });
+
+  it("coexists elementText (@text) and elementAria.name (@content-desc) — different attributes", function () {
+    // Unlike Windows/macOS (one accessible-name attribute), these are distinct
+    // on Android, so both apply — no conflict.
+    assert.deepEqual(
+      buildUiAutomator2Locator({ elementText: "Save", elementAria: "Persist" }),
+      {
+        strategy: "xpath",
+        value: '//*[@text="Save" and @content-desc="Persist"]',
+      }
+    );
+  });
+
+  it("maps elementAria.role to a widget class tag", function () {
+    assert.deepEqual(
+      buildUiAutomator2Locator({ elementAria: { role: "button", name: "Save" } }),
+      {
+        strategy: "xpath",
+        value: '//android.widget.Button[@content-desc="Save"]',
+      }
+    );
+    assert.deepEqual(buildUiAutomator2Locator({ elementAria: { role: "textbox" } }), {
+      strategy: "xpath",
+      value: "//android.widget.EditText",
+    });
+  });
+
+  it("returns null for criteria with no UiAutomator2 mapping", function () {
+    assert.equal(buildUiAutomator2Locator({}), null);
+    assert.equal(buildUiAutomator2Locator({ elementClass: "x" }), null);
+  });
+});
+
 // --- runtime helpers (hermetic: injected deps, fake drivers, temp dirs) ---
 
 describe("isAppDriverRequired / stepTargetsAppSurface", function () {
@@ -231,16 +397,62 @@ describe("buildAppLocator", function () {
     assert.match(buildAppLocator({}).error, /No app-mappable/);
   });
 
+  it("selects the platform's locator column (mac → AX, default → UIA)", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "mac"), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
+    });
+    // No platform argument stays the Windows/UIA column (A1 behavior).
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@Name="Save"]',
+    });
+    // The escape hatch and the shared guards are platform-independent.
+    assert.match(
+      buildAppLocator({ selector: "#save" }, "mac").error,
+      /CSS selectors/
+    );
+    assert.match(
+      buildAppLocator({ elementText: "Save", elementAria: "Cancel" }, "mac")
+        .error,
+      /compile to conflicting predicates/
+    );
+  });
+
   it("rejects conflicting elementText/elementAria names and dedupes equal ones", function () {
     // Different values: both map to @Name, so no element can match — error.
     const conflict = buildAppLocator({
       elementText: "Save",
       elementAria: "Cancel",
     });
-    assert.match(conflict.error, /both map to the accessible Name/);
+    assert.match(conflict.error, /compile to conflicting predicates/);
     // Equal values: one predicate, not a redundant AND.
     const merged = buildAppLocator({ elementText: "Save", elementAria: "Save" });
     assert.deepEqual(merged, { strategy: "xpath", value: '//*[@Name="Save"]' });
+  });
+
+  it("routes android to the UiAutomator2 column", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "android"), {
+      strategy: "xpath",
+      value: '//*[@text="Save"]',
+    });
+    assert.deepEqual(buildAppLocator({ elementId: "save_button" }, "android"), {
+      strategy: "id",
+      value: "save_button",
+    });
+  });
+
+  it("does NOT flag elementText/elementAria as conflicting on android", function () {
+    // On Android the two map to distinct attributes (@text vs @content-desc),
+    // so different values are a legal AND, not a conflict — the per-platform
+    // conflict rule must not fire here.
+    assert.deepEqual(
+      buildAppLocator({ elementText: "Save", elementAria: "Persist" }, "android"),
+      {
+        strategy: "xpath",
+        value: '//*[@text="Save" and @content-desc="Persist"]',
+      }
+    );
   });
 });
 
@@ -255,7 +467,7 @@ describe("invalidateStaleAppiumManifest", function () {
       path.join(manifestDir(home), "extensions.yaml"),
       "drivers:\n  chromium: {}\n"
     );
-    invalidateStaleAppiumManifest(home);
+    invalidateStaleAppiumManifest(home, "appium-novawindows-driver");
     assert.equal(fs.existsSync(manifestDir(home)), false);
     fs.rmSync(home, { recursive: true, force: true });
   });
@@ -267,25 +479,74 @@ describe("invalidateStaleAppiumManifest", function () {
       path.join(manifestDir(home), "extensions.yaml"),
       "drivers:\n  novawindows:\n    pkgName: appium-novawindows-driver\n"
     );
-    invalidateStaleAppiumManifest(home);
+    invalidateStaleAppiumManifest(home, "appium-novawindows-driver");
     assert.equal(fs.existsSync(manifestDir(home)), true);
     fs.rmSync(home, { recursive: true, force: true });
 
     // Absent manifest: nothing to do, nothing thrown.
     invalidateStaleAppiumManifest(
-      fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"))
+      fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-")),
+      "appium-novawindows-driver"
     );
+  });
+
+  it("checks for the PLATFORM'S driver: a novawindows-only manifest is stale for mac2", function () {
+    // A2: the staleness check is per-driver, not hard-coded to novawindows —
+    // a home whose manifest lists only the Windows driver must rescan when
+    // the mac driver installs into it, and vice versa.
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"));
+    fs.mkdirSync(manifestDir(home), { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir(home), "extensions.yaml"),
+      "drivers:\n  novawindows:\n    pkgName: appium-novawindows-driver\n"
+    );
+    invalidateStaleAppiumManifest(home, "appium-mac2-driver");
+    assert.equal(fs.existsSync(manifestDir(home)), false);
+    fs.rmSync(home, { recursive: true, force: true });
+
+    const freshHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-home-"));
+    fs.mkdirSync(manifestDir(freshHome), { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir(freshHome), "extensions.yaml"),
+      "drivers:\n  mac2:\n    pkgName: appium-mac2-driver\n"
+    );
+    invalidateStaleAppiumManifest(freshHome, "appium-mac2-driver");
+    assert.equal(fs.existsSync(manifestDir(freshHome)), true);
+    fs.rmSync(freshHome, { recursive: true, force: true });
   });
 });
 
 describe("appSurfacePreflight", function () {
-  it("skips non-Windows platforms with gating guidance", async function () {
+  it("skips unsupported platforms with gating guidance naming the supported set", async function () {
     const outcome = await appSurfacePreflight({
       config: {},
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows only in this phase/);
+    assert.match(outcome.reason, /Windows and macOS/);
+  });
+
+  it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
+    // A2: the preflight is platform-tabled — on mac it must resolve/install
+    // the Mac2 driver, never the Windows one.
+    const sep = path.sep;
+    const requested = [];
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "mac",
+      deps: {
+        resolveSource: (name) => {
+          requested.push(name);
+          return "shim";
+        },
+        resolvePath: (name) =>
+          `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
+        probeAccessibility: async () => true,
+      },
+    });
+    assert.equal(outcome.ok, true);
+    assert.equal(outcome.appiumHome, `${sep}repo`);
+    assert.deepEqual(requested, ["appium-mac2-driver"]);
   });
 
   it("skips when the driver cannot be installed", async function () {
@@ -317,6 +578,86 @@ describe("appSurfacePreflight", function () {
     });
     assert.equal(outcome.ok, true);
     assert.equal(outcome.appiumHome, `${sep}repo`);
+  });
+
+  it("skips on mac when TCC accessibility is definitively denied, with the settings walkthrough", async function () {
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "mac",
+      deps: {
+        resolveSource: () => "shim",
+        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        probeAccessibility: async () => false,
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /Accessibility/);
+    assert.match(outcome.reason, /Privacy & Security/);
+  });
+
+  it("proceeds on mac when the TCC probe is inconclusive, and never probes on Windows", async function () {
+    // An erroring/unknown probe must NOT false-skip — a real TCC failure
+    // still surfaces at session start with the same walkthrough.
+    // Paths are built with path.sep and the cache resolvers are stubbed:
+    // a foreign-separator path makes appiumHomeForDriverPath return null,
+    // which falls through to the REAL runtime cache (a force appium install
+    // + manifest invalidation) — that stomped the browser drivers' Appium
+    // home mid-suite on the Windows CI leg.
+    const sep = path.sep;
+    const hermeticDeps = {
+      resolveSource: () => "shim",
+      resolvePath: (name) =>
+        `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
+      resolvePathInCache: () => {
+        throw new Error("test must not reach the real runtime cache");
+      },
+      ensureInstalled: async () => {
+        throw new Error("test must not install anything");
+      },
+    };
+    const inconclusive = await appSurfacePreflight({
+      config: {},
+      platform: "mac",
+      deps: {
+        ...hermeticDeps,
+        probeAccessibility: async () => {
+          throw new Error("osascript unavailable");
+        },
+      },
+    });
+    assert.equal(inconclusive.ok, true);
+
+    let probed = 0;
+    const win = await appSurfacePreflight({
+      config: {},
+      platform: "windows",
+      deps: {
+        ...hermeticDeps,
+        probeAccessibility: async () => {
+          probed++;
+          return false;
+        },
+      },
+    });
+    assert.equal(win.ok, true);
+    assert.equal(probed, 0);
+  });
+
+  it("the real macOS probe returns a definitive boolean (AXIsProcessTrusted is bound)", async function () {
+    // The deps-injected probe tests above never exercise the real JXA script,
+    // so a broken AXIsProcessTrusted bind is invisible to them. On a real
+    // macOS host osascript exists and the (correctly bound) call runs cleanly,
+    // so the verdict must be a real boolean — a null means the script errored
+    // (e.g. the C function was never bound via ObjC.bindFunction), which is
+    // exactly the regression that makes the definitive-denied SKIP unreachable.
+    // Skipped off-macOS, where osascript is absent and null is expected.
+    if (process.platform !== "darwin") this.skip();
+    const verdict = await probeMacAccessibility();
+    assert.equal(
+      typeof verdict,
+      "boolean",
+      `expected a definitive boolean from the JXA probe, got ${verdict}`
+    );
   });
 
   it("installs appium into the cache when the driver is cache-resolved", async function () {
@@ -373,11 +714,14 @@ describe("startAppSurface", function () {
     assert.equal(appSession.activeApp, "charmap");
   });
 
-  it("fails reserved fields, env, non-Windows, and name collisions with guidance", async function () {
+  it("fails reserved fields, env, unsupported platforms, and name collisions with guidance", async function () {
     const appSession = preflighted();
     const cases = [
-      [{ app: "x", device: "phone" }, /reserved for the mobile phases/],
-      [{ app: "x", install: "./a.apk" }, /reserved for the mobile phases/],
+      // device/install/activity are Android-only; the Windows driver rejects
+      // them via its unsupported-fields rules (A3b moved this off a blanket gate).
+      [{ app: "x", device: "phone" }, /not supported by the Windows app driver/],
+      [{ app: "x", install: "./a.apk" }, /not supported by the Windows app driver/],
+      [{ app: "x", activity: ".Main" }, /not supported by the Windows app driver/],
       [{ app: "x", env: { A: "1" } }, /not supported by the Windows app driver/],
     ];
     for (const [descriptor, pattern] of cases) {
@@ -392,14 +736,14 @@ describe("startAppSurface", function () {
       assert.match(result.description, pattern);
     }
 
-    const nonWindows = await startAppSurface({
+    const unsupportedPlatform = await startAppSurface({
       config: {},
       step: { startSurface: { app: "x" } },
       appSession,
-      platform: "mac",
+      platform: "linux",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.match(nonWindows.description, /Windows only in this phase/);
+    assert.match(unsupportedPlatform.description, /Windows and macOS/);
 
     appSession.surfaces.set("x", { name: "x", appId: "x", driver: {} });
     const collision = await startAppSurface({
@@ -546,6 +890,123 @@ describe("startAppSurface", function () {
     assert.equal(appSession.surfaces.size, 0);
   });
 
+  it("launches macOS apps with Mac2 capabilities (bundleId form)", async function () {
+    const appSession = preflighted();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "com.apple.TextEdit",
+          args: ["/tmp/dd-a2.txt"],
+          env: { DD_A2: "1" },
+          timeout: 300000,
+          driverOptions: { "appium:skipAppKill": true },
+        },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (capabilities) => {
+          caps = capabilities;
+          return fakeDriver();
+        },
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(appSession.surfaces.get("TextEdit").platform, "mac");
+    assert.equal(caps.platformName, "mac");
+    assert.equal(caps["appium:automationName"], "Mac2");
+    assert.equal(caps["appium:bundleId"], "com.apple.TextEdit");
+    assert.equal(caps["appium:appPath"], undefined);
+    // Mac2 takes launch arguments as an ARRAY (NovaWindows joins a string).
+    assert.deepEqual(caps["appium:arguments"], ["/tmp/dd-a2.txt"]);
+    assert.deepEqual(caps["appium:environment"], { DD_A2: "1" });
+    // The descriptor timeout must also cover WebDriverAgentMac's startup
+    // (first session builds it via xcodebuild).
+    assert.equal(caps["appium:serverStartupTimeout"], 300000);
+    assert.equal(caps["appium:skipAppKill"], true);
+  });
+
+  it("launches macOS apps by .app path with a forgiving default WDA startup timeout", async function () {
+    const appSession = preflighted();
+    let caps;
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "/System/Applications/Calculator.app" },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (capabilities) => {
+          caps = capabilities;
+          return fakeDriver();
+        },
+      },
+    });
+    assert.equal(
+      caps["appium:appPath"],
+      "/System/Applications/Calculator.app"
+    );
+    assert.equal(caps["appium:bundleId"], undefined);
+    // Default descriptor timeout is 60s, but the first-ever session builds
+    // WebDriverAgentMac (minutes on CI) — the WDA startup floor is higher.
+    assert.equal(caps["appium:serverStartupTimeout"], 120000);
+    assert.equal(appSession.surfaces.get("Calculator").platform, "mac");
+  });
+
+  it("fails workingDirectory on macOS with guidance but tolerates the schema default", async function () {
+    const appSession = preflighted();
+    const explicit = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.TextEdit", workingDirectory: "/tmp" },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(explicit.status, "FAIL");
+    assert.match(explicit.description, /not supported by the macOS app driver/);
+
+    // "." is the schema's injected default, not an author request — it must
+    // not trip the unsupported-field guard.
+    const defaulted = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.Notes", workingDirectory: "." },
+      },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(defaulted.status, "PASS");
+  });
+
+  it("appends the TCC walkthrough when a mac launch fails with an accessibility-shaped error", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.TextEdit" } },
+      appSession,
+      platform: "mac",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => {
+          throw new Error(
+            "WebDriverAgentMac process is not trusted for Accessibility"
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't launch app/);
+    assert.match(result.description, /Privacy & Security/);
+  });
+
   it("maps args and workingDirectory into driver capabilities", async function () {
     const appSession = preflighted();
     let caps;
@@ -573,6 +1034,140 @@ describe("startAppSurface", function () {
     assert.equal(caps["appium:appWorkingDir"], path.resolve("./sandbox"));
     assert.equal(caps["nova:smoothMouseMove"], true);
     assert.equal(caps["appium:automationName"], "NovaWindows");
+  });
+
+  // --- Android (phase A3b): shared device session + activateApp switching ---
+
+  it("android: first app creates a device session and registers the surface with deviceName", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.android.settings" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return driver;
+        },
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("settings");
+    assert.equal(entry.deviceName, "pixel7");
+    assert.equal(entry.driver, driver);
+    assert.equal(caps["appium:udid"], "emulator-5554");
+    assert.equal(caps["appium:appPackage"], "com.android.settings");
+    assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.android.settings");
+  });
+
+  it("android: a second app on the same device reuses the session and activates it", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.installed = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    driver.installApp = async (p) => driver.installed.push(p);
+    let startDriverCalls = 0;
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => {
+        startDriverCalls++;
+        return driver;
+      },
+      acquireDevice: async () => ({
+        entry: { name: "pixel7", udid: "emulator-5554" },
+      }),
+    };
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a", name: "a" } },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "com.example.b",
+          name: "b",
+          install: "./b.apk",
+        },
+      },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    // One driver session for the device, shared by both apps.
+    assert.equal(startDriverCalls, 1);
+    assert.equal(appSession.deviceSessions.size, 1);
+    // The second app was installed + activated on the shared session.
+    assert.deepEqual(driver.activated, ["com.example.b"]);
+    assert.equal(driver.installed.length, 1);
+    assert.equal(appSession.surfaces.get("b").deviceName, "pixel7");
+  });
+
+  it("android: a reused app with an activity launches it via mobile: startActivity", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.execArgs = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    driver.execute = async (cmd, arg) => driver.execArgs.push([cmd, arg]);
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => driver,
+      acquireDevice: async () => ({
+        entry: { name: "pixel7", udid: "emulator-5554" },
+      }),
+    };
+    // First app creates the session (no reuse).
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a", name: "a" } },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    // Second app on the same device WITH an activity -> startActivity, not activateApp.
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.example.b", name: "b", activity: ".Main" },
+      },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    assert.deepEqual(driver.execArgs, [
+      ["mobile: startActivity", { appPackage: "com.example.b", appActivity: ".Main" }],
+    ]);
+    // The second app was NOT brought up via the plain activateApp path.
+    assert.deepEqual(driver.activated, []);
+  });
+
+  it("android: an acquire skip becomes a step FAIL naming the reason", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => fakeDriver(),
+        acquireDevice: async () => ({ skip: "no image installed" }),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no image installed/);
   });
 });
 
@@ -603,6 +1198,22 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
       criteria: { selector: "#css" },
     });
     assert.match(unmappable.error, /CSS selectors/);
+  });
+
+  it("findAppElement builds the locator for the requested platform", async function () {
+    const selectors = [];
+    const driver = {
+      $: async (sel) => {
+        selectors.push(sel);
+        return { async waitForExist() {} };
+      },
+    };
+    await findAppElement({
+      driver,
+      criteria: { elementText: "Save" },
+      platform: "mac",
+    });
+    assert.match(selectors[0], /@title="Save"/);
   });
 
   it("findAppElement distinguishes a dead session from a criteria miss", async function () {
@@ -667,6 +1278,94 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     assert.equal(appSession.server, undefined);
     // No-ops safely on undefined.
     await teardownAppSession(undefined, async () => {});
+  });
+
+  it("closeAppSurface (android) terminates the app but leaves the shared session", async function () {
+    const appSession = createAppSessionState();
+    const terminated = [];
+    let deleted = 0;
+    const driver = {
+      async terminateApp(id) {
+        terminated.push(id);
+      },
+      async deleteSession() {
+        deleted++;
+      },
+    };
+    appSession.deviceSessions.set("pixel7", {
+      driver,
+      udid: "emulator-5554",
+      foregroundApp: "com.example.a",
+    });
+    const entry = { name: "a", appId: "com.example.a", driver, deviceName: "pixel7" };
+    appSession.surfaces.set("a", entry);
+    await closeAppSurface({ entry, appSession });
+    // The app was terminated, but the shared device session was NOT deleted.
+    assert.deepEqual(terminated, ["com.example.a"]);
+    assert.equal(deleted, 0);
+    assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, undefined);
+  });
+
+  it("teardownAppSession (android) ends each device session after closing surfaces", async function () {
+    const appSession = createAppSessionState();
+    let sessionDeleted = 0;
+    const driver = {
+      async terminateApp() {},
+      async deleteSession() {
+        sessionDeleted++;
+      },
+    };
+    appSession.deviceSessions.set("pixel7", { driver, udid: "emulator-5554" });
+    appSession.surfaces.set("a", {
+      name: "a",
+      appId: "com.example.a",
+      driver,
+      deviceName: "pixel7",
+    });
+    await teardownAppSession(appSession, async () => {});
+    assert.equal(sessionDeleted, 1);
+    assert.equal(appSession.deviceSessions.size, 0);
+  });
+
+  it("ensureAppForeground activates only on a real switch (android)", async function () {
+    const appSession = createAppSessionState();
+    const activated = [];
+    const driver = {
+      async activateApp(id) {
+        activated.push(id);
+      },
+    };
+    appSession.deviceSessions.set("pixel7", {
+      driver,
+      udid: "emulator-5554",
+      foregroundApp: "com.example.a",
+    });
+    // Already foreground -> no activate.
+    await ensureAppForeground(
+      { name: "a", appId: "com.example.a", deviceName: "pixel7" },
+      appSession
+    );
+    assert.deepEqual(activated, []);
+    // Different app on the device -> activate + update foreground.
+    await ensureAppForeground(
+      { name: "b", appId: "com.example.b", deviceName: "pixel7" },
+      appSession
+    );
+    assert.deepEqual(activated, ["com.example.b"]);
+    assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.example.b");
+    // Desktop surface (no deviceName) -> no-op.
+    await ensureAppForeground({ name: "c", appId: "x" }, appSession);
+    assert.deepEqual(activated, ["com.example.b"]);
+  });
+
+  it("ensureAppForeground errors when the device session is missing (android)", async function () {
+    const appSession = createAppSessionState();
+    // Surface carries a deviceName but no session was registered for it.
+    const { error } = await ensureAppForeground(
+      { name: "a", appId: "com.example.a", deviceName: "pixel7" },
+      appSession
+    );
+    assert.match(error, /no active session for device "pixel7"/);
   });
 });
 
