@@ -567,7 +567,7 @@ function runSimctl(
 // Boot a simulator and block until it finishes booting. `simctl boot` returns
 // immediately; `simctl bootstatus -b` waits for the boot to complete (and is a
 // no-op if it's already booted).
-async function realBootSimulator(udid: string, timeout = 180000): Promise<void> {
+async function realBootSimulator(udid: string, timeout = 300000): Promise<void> {
   const boot = await runSimctl(["boot", udid], 60000);
   // "Unable to boot device in current state: Booted" is fine — already booted.
   if (boot.code !== 0 && !/current state: Booted/i.test(boot.stderr)) {
@@ -575,12 +575,12 @@ async function realBootSimulator(udid: string, timeout = 180000): Promise<void> 
       `simctl boot ${udid} failed (code ${boot.code}): ${boot.stderr.trim()}`
     );
   }
-  const status = await runSimctl(["bootstatus", udid, "-b"], timeout);
-  if (status.code !== 0) {
-    throw new Error(
-      `simctl bootstatus ${udid} failed (code ${status.code}): ${status.stderr.trim()}`
-    );
-  }
+  // `bootstatus -b` waits for the boot to finish, but it's a best-effort
+  // readiness optimization, NOT a gate: a cold simulator can take longer than
+  // this to settle, and the XCUITest driver waits for the device during session
+  // creation regardless (appium:wdaLaunchTimeout). So a bootstatus timeout or
+  // error is not fatal — proceed and let the driver do the final wait.
+  await runSimctl(["bootstatus", udid, "-b"], timeout);
 }
 
 async function realCreateSimulator({
