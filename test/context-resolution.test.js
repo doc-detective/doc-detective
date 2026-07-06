@@ -204,6 +204,81 @@ describe("resolveContexts with platform-less runOn entries", function () {
   });
 });
 
+describe("resolveContexts safari/webkit aliasing", function () {
+  // On desktop platforms `safari` is an alias for the `webkit` engine. On an
+  // `ios` platform entry it must stay `safari`: mobile web on iOS drives the
+  // real Safari on the managed simulator (phase A5), and `webkit` (the
+  // desktop engine) is an unsupported mobile combination.
+  it("rewrites safari to webkit on a desktop platform entry", function () {
+    const contexts = resolveContexts({
+      contexts: [{ platforms: "mac", browsers: "safari" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0].browser.name, "webkit");
+  });
+
+  it("keeps safari as safari on an ios platform entry", function () {
+    const contexts = resolveContexts({
+      contexts: [{ platforms: "ios", browsers: "safari" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0].browser.name, "safari");
+    assert.equal(contexts[0].browser.explicit, true);
+  });
+
+  it("splits a mixed desktop+ios entry per platform: webkit on mac, safari on ios", function () {
+    const contexts = resolveContexts({
+      contexts: [{ platforms: ["mac", "ios"], browsers: "safari" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 2);
+    const byPlatform = Object.fromEntries(
+      contexts.map((c) => [c.platform, c.browser.name])
+    );
+    assert.deepEqual(byPlatform, { mac: "webkit", ios: "safari" });
+  });
+
+  it("keeps safari as safari on an android platform entry (unsupported combo is a runtime SKIP, not an alias)", function () {
+    const contexts = resolveContexts({
+      contexts: [{ platforms: "android", browsers: "safari" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0].browser.name, "safari");
+  });
+
+  it("rewrites safari to webkit when the entry has no platforms (runtime host is desktop)", function () {
+    const contexts = resolveContexts({
+      contexts: [{ browsers: "safari" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0].browser.name, "webkit");
+  });
+
+  it("does not leak the per-pair rewrite across platforms via a shared browser object", function () {
+    // Two entries sharing one authored browsers array shape: the ios pair must
+    // not mutate the object the mac pair receives (clone-per-pair).
+    const contexts = resolveContexts({
+      contexts: [{ platforms: ["ios", "mac"], browsers: ["safari"] }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    const ios = contexts.find((c) => c.platform === "ios");
+    const mac = contexts.find((c) => c.platform === "mac");
+    assert.equal(ios.browser.name, "safari");
+    assert.equal(mac.browser.name, "webkit");
+    assert.notEqual(ios.browser, mac.browser);
+  });
+});
+
 describe("contextRequirementsSkipMessage", function () {
   // Deps that report nothing available / everything available.
   const nothing = {

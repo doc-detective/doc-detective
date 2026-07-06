@@ -11,6 +11,7 @@ import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
 import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -51,7 +52,6 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         if (typeof browser === "string") {
           browser = { name: browser };
         }
-        if (browser.name === "safari") browser.name = "webkit";
         // Mark the engine as explicitly requested by the author. The runner's
         // cross-engine fallback uses this to decide PASS vs WARNING when it has
         // to substitute another browser: an auto-selected default falls back
@@ -93,7 +93,19 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         browsersToExpand.forEach((browser: any) => {
           const staticContext = { ...carry };
           if (platform !== undefined) staticContext.platform = platform;
-          if (browser !== undefined) staticContext.browser = browser;
+          if (browser !== undefined) {
+            // Desktop `safari` is an alias for the `webkit` engine, so the
+            // rewrite happens per platform pair (not during normalization):
+            // on a mobile target platform (android/ios) the authored name is
+            // preserved — `safari` on ios is the real device browser (phase
+            // A5), and the mobile support matrix, not engine aliasing,
+            // decides unsupported combinations. Clone on rewrite so pairs
+            // sharing the authored browser object don't leak the alias.
+            staticContext.browser =
+              browser.name === "safari" && !isMobileTargetPlatform(platform)
+                ? { ...browser, name: "webkit" }
+                : browser;
+          }
           staticContexts.push(staticContext);
         });
       }

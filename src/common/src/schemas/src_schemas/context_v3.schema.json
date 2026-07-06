@@ -164,7 +164,7 @@
         "type": "string",
         "description": "Name of the browser.",
         "enum": ["chrome", "firefox", "safari", "webkit"],
-        "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+        "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
       },
       "browser": {
         "type": "object",
