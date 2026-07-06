@@ -528,14 +528,12 @@ async function typeKeys({
     }
     try {
       if (element) await element.click();
-      let firstRun = true;
+      // No inputDelay between runs on app surfaces: the schema promises the
+      // native driver types atomically ("Not applied on app surfaces in this
+      // phase"), and AJV's useDefaults injects inputDelay=100 even when the
+      // author omits it — so applying it here would add an unpromised 100ms
+      // between every text/token run (e.g. "text" + $ENTER$).
       for (const run of runs) {
-        if (!firstRun && step.type.inputDelay) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, step.type.inputDelay)
-          );
-        }
-        firstRun = false;
         if (run.kind === "text") {
           if (element) {
             await element.addValue(run.text);

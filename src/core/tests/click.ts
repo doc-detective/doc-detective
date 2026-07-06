@@ -25,30 +25,19 @@ async function clickElement({ config, step, driver, appSession }: { config: any;
   if (typeof step.click === "string") {
     findStep = { find: step.click };
   } else if (typeof step.click === "object") {
-    // Set default values
-    step.click = {
-      ...step.click,
-      button: step.click.button || "left",
-    };
     // `button` and `duration` describe the click itself, not the element
-    // search — move them into the click sub-effect.
+    // search — destructure them out so the find gets only element criteria,
+    // and put them under the click sub-effect.
+    const { button, duration, ...findCriteria } = step.click;
     findStep = {
       find: {
-        ...step.click,
+        ...findCriteria,
         click: {
-          button: step.click.button,
-          ...(step.click.duration !== undefined && {
-            duration: step.click.duration,
-          }),
+          button: button || "left",
+          ...(duration !== undefined && { duration }),
         },
       },
     };
-    if (findStep.find.button) {
-      delete findStep.find.button;
-    }
-    if (findStep.find.duration !== undefined) {
-      delete findStep.find.duration;
-    }
   }
 
   const findResult = await findElement({

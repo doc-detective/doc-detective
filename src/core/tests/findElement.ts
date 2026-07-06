@@ -306,7 +306,13 @@ async function findElement({ config, step, driver, click, appSession }: { config
       }
     } catch (error: any) {
       result.status = "FAIL";
-      result.description += ` Couldn't click element. Error: ${error.message}`;
+      // Name the operation that actually failed so a long-press failure
+      // doesn't masquerade as a plain click.
+      const failed =
+        typeof step.find.click === "object" && step.find.click?.duration
+          ? `long-press element (${step.find.click.duration}ms)`
+          : "click element";
+      result.description += ` Couldn't ${failed}. Error: ${error.message}`;
       return result;
     }
   }
