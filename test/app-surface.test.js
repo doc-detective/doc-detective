@@ -27,6 +27,9 @@ import {
   findAppElement,
   closeAppSurface,
   teardownAppSession,
+  snapshotAppServerDescendants,
+  reapConsoleOrphans,
+  listWindowsDescendantPids,
   invalidateStaleAppiumManifest,
 } from "../dist/core/tests/appSurface.js";
 
@@ -1613,5 +1616,106 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
       appSession
     );
     assert.match(error, /no active session for device "pixel7"/);
+  });
+});
+
+describe("Windows console-orphan sweep (issue #501)", function () {
+  it("listWindowsDescendantPids walks the whole descendant subtree", async function () {
+    // 42 -> 100 -> 101, plus a sibling tree (200) that must NOT be included.
+    const table = [
+      { pid: 100, ppid: 42 },
+      { pid: 101, ppid: 100 },
+      { pid: 200, ppid: 1 },
+      { pid: 201, ppid: 200 },
+    ];
+    const snap = await listWindowsDescendantPids(42, async () => table);
+    assert.deepEqual([...snap].sort((a, b) => a - b), [100, 101]);
+  });
+
+  it("listWindowsDescendantPids returns empty when the table query fails", async function () {
+    const snap = await listWindowsDescendantPids(42, async () => {
+      throw new Error("no powershell");
+    });
+    assert.equal(snap.size, 0);
+  });
+
+  it("reapConsoleOrphans force-kills only the snapshotted pids still alive", async function () {
+    const alive = new Set([1, 2, 3]);
+    const killed = [];
+    const reaped = await reapConsoleOrphans([1, 2, 4], {
+      isAlive: (p) => alive.has(p),
+      forceKill: (p) => killed.push(p),
+    });
+    // 4 was already dead -> not reaped; 3 wasn't in the snapshot -> untouched.
+    assert.deepEqual(reaped, [1, 2]);
+    assert.deepEqual(killed, [1, 2]);
+  });
+
+  it("snapshotAppServerDescendants only sweeps on Windows and skips a dead server", async function () {
+    const table = [{ pid: 100, ppid: 42 }];
+    const snap = await snapshotAppServerDescendants(42, {
+      isAlive: () => true,
+      runQuery: async () => table,
+    });
+    if (process.platform === "win32") {
+      assert.deepEqual([...snap], [100]);
+    } else {
+      assert.equal(snap.size, 0);
+    }
+    // A dead server pid never triggers the (subprocess) table query.
+    let queried = false;
+    const snap2 = await snapshotAppServerDescendants(42, {
+      isAlive: () => false,
+      runQuery: async () => {
+        queried = true;
+        return table;
+      },
+    });
+    assert.equal(snap2.size, 0);
+    assert.equal(queried, false);
+  });
+
+  it("uses a real liveness probe by default (a long-dead pid is neither swept nor reaped)", async function () {
+    // Exercises the default isAlive (process.kill(pid, 0) → ESRCH) without
+    // injected fakes. An astronomically high pid is guaranteed dead.
+    const deadPid = 2147483646;
+    const snap = await snapshotAppServerDescendants(deadPid);
+    assert.equal(snap.size, 0);
+    const reaped = await reapConsoleOrphans([deadPid]);
+    assert.deepEqual(reaped, []);
+  });
+
+  it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {
+    if (process.platform !== "win32") this.skip();
+    const appSession = createAppSessionState();
+    appSession.server = { port: 1, process: { pid: 42 } };
+    const events = [];
+    // 42 is the server; 500 -> 501 are descendants that detach and survive the
+    // tree-kill (still alive afterward), so they must be force-reaped.
+    const alive = new Set([42, 500, 501]);
+    await teardownAppSession(
+      appSession,
+      async (pid) => {
+        events.push(["kill", pid]);
+        alive.delete(42);
+      },
+      {
+        isAlive: (p) => alive.has(p),
+        runQuery: async () => [
+          { pid: 500, ppid: 42 },
+          { pid: 501, ppid: 500 },
+        ],
+        forceKill: (p) => {
+          events.push(["reap", p]);
+          alive.delete(p);
+        },
+      }
+    );
+    assert.deepEqual(events, [
+      ["kill", 42],
+      ["reap", 500],
+      ["reap", 501],
+    ]);
+    assert.equal(appSession.server, undefined);
   });
 });

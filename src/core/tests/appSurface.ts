@@ -48,6 +48,9 @@ export {
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
+  snapshotAppServerDescendants,
+  reapConsoleOrphans,
+  listWindowsDescendantPids,
   // Exported as a test seam: the manifest-staleness rules are load-bearing
   // (a stale manifest makes the lazily-installed driver invisible to Appium).
   invalidateStaleAppiumManifest,
@@ -1455,13 +1458,153 @@ async function closeAppSurface({
   }
 }
 
+// Injectable OS-process tools for the Windows console-orphan sweep. Real
+// implementations shell out / probe the OS; tests substitute fakes so the
+// hygiene logic is exercised without touching the machine.
+interface ConsoleOrphanTools {
+  /** Rows of the OS process table as {pid, ppid}. */
+  runQuery?: () => Promise<Array<{ pid: number; ppid: number }>>;
+  /** Descendant pids of `rootPid` (overrides runQuery-based walking). */
+  listDescendants?: (rootPid: number) => Promise<Set<number>>;
+  /** Whether a pid still refers to a live process. */
+  isAlive?: (pid: number) => boolean;
+  /** Force-terminate a single pid. */
+  forceKill?: (pid: number) => void;
+}
+
+// Whether `pid` is a live process. `process.kill(pid, 0)` sends no signal — it
+// throws ESRCH once the pid is gone; any other error (e.g. EPERM) means it
+// exists but is unsignalable, so treat only ESRCH as dead.
+function defaultIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error: any) {
+    return error?.code !== "ESRCH";
+  }
+}
+
+function defaultForceKill(pid: number): void {
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // already gone / unsignalable — best-effort
+  }
+}
+
+// Read the Windows process table as (pid, ppid) rows via a CIM query. CSV output
+// keeps parsing trivial and avoids wmic (removed on recent Windows). Best-effort:
+// rejects on failure, which the caller swallows into "no descendants".
+function queryWindowsProcessTable(): Promise<
+  Array<{ pid: number; ppid: number }>
+> {
+  return new Promise((resolve, reject) => {
+    const script =
+      'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId),$($_.ParentProcessId)" }';
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      { windowsHide: true, timeout: 10000, maxBuffer: 16 * 1024 * 1024 },
+      (error, stdout) => {
+        if (error) return reject(error);
+        const rows: Array<{ pid: number; ppid: number }> = [];
+        for (const line of String(stdout).split(/\r?\n/)) {
+          const m = line.trim().match(/^(\d+),(\d+)$/);
+          if (m) rows.push({ pid: Number(m[1]), ppid: Number(m[2]) });
+        }
+        resolve(rows);
+      }
+    );
+  });
+}
+
+// All descendant pids of `rootPid`, walked from a (pid, ppid) table. Pure and
+// unit-testable given an injected table.
+async function listWindowsDescendantPids(
+  rootPid: number,
+  runQuery: () => Promise<Array<{ pid: number; ppid: number }>>
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  let table: Array<{ pid: number; ppid: number }>;
+  try {
+    table = await runQuery();
+  } catch {
+    return out;
+  }
+  const childrenByParent = new Map<number, number[]>();
+  for (const { pid, ppid } of table) {
+    const siblings = childrenByParent.get(ppid);
+    if (siblings) siblings.push(pid);
+    else childrenByParent.set(ppid, [pid]);
+  }
+  const stack = [rootPid];
+  while (stack.length) {
+    const parent = stack.pop()!;
+    for (const child of childrenByParent.get(parent) ?? []) {
+      if (!out.has(child)) {
+        out.add(child);
+        stack.push(child);
+      }
+    }
+  }
+  return out;
+}
+
+// #501 hygiene, phase 1: snapshot the app Appium server's descendant pids while
+// the server is still alive, so a descendant that DETACHES from the tree during
+// teardown (a reparented conhost/PowerShell the tree-kill then misses) is still
+// attributable to us and reapable afterward. Windows-only; a no-op (empty set)
+// elsewhere or when the server pid isn't live. Only ever records processes
+// descended from OUR server — never image-name matches across the box.
+async function snapshotAppServerDescendants(
+  serverPid: number | undefined,
+  tools: ConsoleOrphanTools = {}
+): Promise<Set<number>> {
+  if (process.platform !== "win32" || !serverPid) return new Set();
+  const isAlive = tools.isAlive ?? defaultIsAlive;
+  // Skip the (subprocess) table query when the server isn't even alive.
+  if (!isAlive(serverPid)) return new Set();
+  if (tools.listDescendants) return tools.listDescendants(serverPid);
+  return listWindowsDescendantPids(
+    serverPid,
+    tools.runQuery ?? queryWindowsProcessTable
+  );
+}
+
+// #501 hygiene, phase 2: force-terminate any snapshotted descendant still alive
+// after the server tree-kill (i.e. it detached and survived). Returns the pids
+// actually reaped. Safe: it only touches pids from a prior
+// snapshotAppServerDescendants call, never a broad image-name sweep.
+async function reapConsoleOrphans(
+  pids: Iterable<number>,
+  tools: ConsoleOrphanTools = {}
+): Promise<number[]> {
+  const isAlive = tools.isAlive ?? defaultIsAlive;
+  const forceKill = tools.forceKill ?? defaultForceKill;
+  const reaped: number[] = [];
+  for (const pid of pids) {
+    if (isAlive(pid)) {
+      forceKill(pid);
+      reaped.push(pid);
+    }
+  }
+  return reaped;
+}
+
 // Context teardown: close every remaining app surface, end each shared Android
 // device session, then stop the app session's Appium server. Killing only what
 // we launched is the driver's contract (deleteSession terminates driver-
 // launched apps; the run-level device registry sweeps the emulators).
+//
+// On Windows the server kill is bracketed by the #501 console-orphan sweep:
+// snapshot the server's descendants before the kill, then force-reap any that
+// detached and survived it. Hygiene for lingering conhost processes
+// (microsoft/terminal#4050), kept as defense-in-depth alongside the ConPTY
+// guards in src/core/ptyWatchdog (ADR 01024).
 async function teardownAppSession(
   appSession: AppSessionState | undefined,
-  killServer: (pid: number | undefined) => Promise<void>
+  killServer: (pid: number | undefined) => Promise<void>,
+  tools: ConsoleOrphanTools = {}
 ): Promise<void> {
   if (!appSession) return;
   for (const entry of [...appSession.surfaces.values()]) {
@@ -1478,7 +1621,12 @@ async function teardownAppSession(
   }
   appSession.deviceSessions?.clear();
   if (appSession.server) {
-    await killServer(appSession.server.process?.pid);
+    const serverPid = appSession.server.process?.pid;
+    const orphanSnapshot = await snapshotAppServerDescendants(serverPid, tools);
+    await killServer(serverPid);
     appSession.server = undefined;
+    if (orphanSnapshot.size) {
+      await reapConsoleOrphans(orphanSnapshot, tools);
+    }
   }
 }
