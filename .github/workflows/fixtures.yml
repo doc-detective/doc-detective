@@ -219,8 +219,11 @@ jobs:
       - name: Fetch sample APK
         # Pinned to an immutable commit (not the mutable `master` ref) so the
         # fixture can't break under us. Appium's stable ApiDemos sample.
+        # --retry (with --retry-all-errors so HTTP 429/5xx count) rides out a
+        # transient GitHub raw rate-limit that otherwise fails the whole leg.
         run: |
-          curl -fsSL -o test/core-artifacts/apps-android/sample.apk \
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+            -o test/core-artifacts/apps-android/sample.apk \
             https://github.com/appium/appium/raw/a1a7b7e981335da5f21304635969ee4222e3ba56/packages/appium/sample-code/apps/ApiDemos-debug.apk
 
       - name: Enable KVM
