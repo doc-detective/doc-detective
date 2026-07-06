@@ -4399,6 +4399,7 @@ async function runStep({
       step: step,
       driver: driver,
       recordingHost,
+      appSession,
     });
     // Push the started recording onto the per-context stack so several can
     // overlap. Carry the step's `id`/`name` so a later stopRecord can target

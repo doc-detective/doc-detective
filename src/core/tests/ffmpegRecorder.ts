@@ -21,6 +21,7 @@ export {
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
+  resolveAppWindowRect,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   stepHasRouting,
@@ -417,6 +418,27 @@ async function resolveCropGeometry({
     };
   }
   return null;
+}
+
+// Read an app window's rect from its (native) driver, in the driver's own
+// units — physical pixels on Windows (UIA), points on macOS (AX). The rect is
+// deliberately NOT scaled here: native drivers can't answer a
+// devicePixelRatio probe, so the capture-frame-derived scale is applied at
+// stop time (deriveCropScale) instead. Returns null on a malformed rect.
+async function resolveAppWindowRect(
+  driver: any
+): Promise<{ x: number; y: number; w: number; h: number } | null> {
+  const r = await driver.getWindowRect();
+  if (
+    !r ||
+    typeof r.x !== "number" ||
+    typeof r.y !== "number" ||
+    typeof r.width !== "number" ||
+    typeof r.height !== "number"
+  ) {
+    return null;
+  }
+  return { x: r.x, y: r.y, w: r.width, h: r.height };
 }
 
 // True when a context will run at least one ffmpeg capture — either an
