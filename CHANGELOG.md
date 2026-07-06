@@ -1,3 +1,10 @@
+# [4.22.0](https://github.com/doc-detective/doc-detective/compare/v4.21.0...v4.22.0) (2026-07-06)
+
+
+### Features
+
+* **app-surface:** managed iOS simulators + executable XCUITest app surfaces (phase A4) ([#512](https://github.com/doc-detective/doc-detective/issues/512)) ([99b55fb](https://github.com/doc-detective/doc-detective/commit/99b55fbde3654e034603727e04fd6d74c899296e)), closes [doc-detective/github-action#73](https://github.com/doc-detective/github-action/issues/73)
+
 # [4.21.0](https://github.com/doc-detective/doc-detective/compare/v4.20.0...v4.21.0) (2026-07-05)
 
 
