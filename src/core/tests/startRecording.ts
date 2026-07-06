@@ -15,6 +15,7 @@ import {
   buildCaptureArgs,
   resolveCropGeometry,
   resolveAppWindowRect,
+  parseCaptureFrameSize,
   getFfmpegPath,
   detectMacScreenIndex,
   detectX11ScreenSize,
@@ -570,9 +571,21 @@ async function startRecording({
   // Drain ffmpeg's stderr into a bounded tail: it both prevents the unread
   // pipe from filling and blocking ffmpeg, and surfaces the real reason on a
   // start failure (wrong device index, denied screen-recording permission…).
+  // The capture frame size is parsed EAGERLY from a bounded head buffer (the
+  // input stream line prints once, early, and would scroll out of a tail):
+  // stopRecording derives the pending-scale crop factor from it (phase A7).
   let stderrTail = "";
+  const captureInfo: {
+    frameSize: { w: number; h: number } | null;
+    head: string;
+  } = { frameSize: null, head: "" };
   proc.stderr?.on("data", (d) => {
-    stderrTail = (stderrTail + d.toString()).slice(-2000);
+    const text = d.toString();
+    stderrTail = (stderrTail + text).slice(-2000);
+    if (!captureInfo.frameSize && captureInfo.head.length < 8192) {
+      captureInfo.head = (captureInfo.head + text).slice(0, 8192);
+      captureInfo.frameSize = parseCaptureFrameSize(captureInfo.head);
+    }
   });
   proc.on("error", (err) => {
     spawnError = err;
@@ -598,6 +611,7 @@ async function startRecording({
     tempPath,
     targetPath: filePath,
     crop,
+    captureInfo,
     ...(appWindowRect
       ? { cropRect: appWindowRect, cropPendingScale: true }
       : {}),

@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -22,6 +22,9 @@ export {
   buildCaptureArgs,
   resolveCropGeometry,
   resolveAppWindowRect,
+  parseCaptureFrameSize,
+  deriveCropScale,
+  detectDisplayPointSize,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   stepHasRouting,
@@ -439,6 +442,89 @@ async function resolveAppWindowRect(
     return null;
   }
   return { x: r.x, y: r.y, w: r.width, h: r.height };
+}
+
+// Pull the capture frame size out of the capture ffmpeg's own stderr: the
+// input stream line (e.g. "Stream #0:0: Video: bmp, bgra, 2560x1440, …") is
+// printed once, early, by every capture backend (gdigrab / avfoundation /
+// x11grab). The first match is the input stream — the output stream line
+// prints later. Pure parse; callers accumulate stderr and stash the first hit.
+function parseCaptureFrameSize(
+  stderr: string
+): { w: number; h: number } | null {
+  const m = /Stream #\d+:\d+.*?Video:.*?\b(\d{3,5})x(\d{3,5})\b/.exec(
+    stderr ?? ""
+  );
+  if (!m) return null;
+  return { w: Number(m[1]), h: Number(m[2]) };
+}
+
+// The physical-pixels-per-point scale for an app-window crop, derived from
+// measurements instead of a DOM probe (native drivers can't answer
+// devicePixelRatio — the A2-discovered scaling gap, fixed in A7):
+// - darwin: avfoundation captures physical pixels while Mac2's getWindowRect
+//   returns points, so the scale is captureFrameSize / displaySizeInPoints.
+// - win32: UIA rects (NovaWindows) and gdigrab both use physical desktop
+//   pixels, so the scale is 1 by construction.
+// - linux: X11 coordinates are pixels; scale 1.
+// Clamped to [1, 4] and rounded to two decimals; any missing input falls
+// back to 1 (today's behavior — correct on scale-1 displays).
+function deriveCropScale({
+  platform,
+  frameSize,
+  displayPointSize,
+}: {
+  platform: string;
+  frameSize: { w: number; h: number } | null | undefined;
+  displayPointSize: { w: number; h: number } | null | undefined;
+}): number {
+  if (platform !== "darwin") return 1;
+  if (!frameSize?.w || !displayPointSize?.w) return 1;
+  const raw = frameSize.w / displayPointSize.w;
+  if (!Number.isFinite(raw) || raw <= 0) return 1;
+  const clamped = Math.min(4, Math.max(1, raw));
+  return Math.round(clamped * 100) / 100;
+}
+
+// The main display's size in points (macOS only — the one platform where
+// points and capture pixels diverge). JXA through osascript, same pattern as
+// probeMacAccessibility; null on any failure or off-platform. Multi-display
+// note: assumes the capture targets the main screen (avfoundation screen
+// index and this probe can disagree on exotic setups — documented limitation).
+async function detectDisplayPointSize(): Promise<{
+  w: number;
+  h: number;
+} | null> {
+  if (process.platform !== "darwin") return null;
+  return await new Promise((resolve) => {
+    execFile(
+      "osascript",
+      [
+        "-l",
+        "JavaScript",
+        "-e",
+        "ObjC.import('AppKit'); const s = $.NSScreen.mainScreen.frame.size; JSON.stringify({w: s.width, h: s.height});",
+      ],
+      { timeout: 5000 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        try {
+          const parsed = JSON.parse(String(stdout).trim());
+          if (
+            typeof parsed?.w === "number" &&
+            parsed.w > 0 &&
+            typeof parsed?.h === "number" &&
+            parsed.h > 0
+          ) {
+            return resolve({ w: parsed.w, h: parsed.h });
+          }
+        } catch {
+          /* fall through */
+        }
+        resolve(null);
+      }
+    );
+  });
 }
 
 // True when a context will run at least one ffmpeg capture — either an

@@ -10,11 +10,28 @@ import {
   getFfmpegPath,
   selectRecordingToStop,
   stopRecordTargetName,
+  deriveCropScale,
+  detectDisplayPointSize,
 } from "./ffmpegRecorder.js";
 
 export { stopRecording };
 
-async function stopRecording({ config, step, driver }: { config: any; step: any; driver: any }) {
+// `deps` is a test seam for the pending-scale crop derivation (platform +
+// display probe); production callers omit it.
+async function stopRecording({
+  config,
+  step,
+  driver,
+  deps = {},
+}: {
+  config: any;
+  step: any;
+  driver: any;
+  deps?: {
+    platform?: string;
+    detectDisplayPointSize?: () => Promise<{ w: number; h: number } | null>;
+  };
+}) {
   let result: any = {
     status: "PASS",
     description: "Stopped recording.",
@@ -229,12 +246,42 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         });
       });
 
+      // Pending-scale crops (app windows, phase A7): the rect is in native
+      // driver units; scale it to capture pixels using the frame size parsed
+      // from the capture's stderr over the display's size in points. Any
+      // missing input degrades to scale 1 — correct on scale-1 displays, and
+      // the transcode's min/max expressions clamp the rest.
+      let crop = recording.crop ?? null;
+      if (!crop && recording.cropRect && recording.cropPendingScale) {
+        const platform = deps.platform ?? process.platform;
+        let scale = 1;
+        try {
+          const displayPointSize =
+            platform === "darwin"
+              ? await (deps.detectDisplayPointSize ?? detectDisplayPointSize)()
+              : null;
+          scale = deriveCropScale({
+            platform,
+            frameSize: recording.captureInfo?.frameSize ?? null,
+            displayPointSize,
+          });
+        } catch {
+          scale = 1;
+        }
+        crop = {
+          x: Math.round(recording.cropRect.x * scale),
+          y: Math.round(recording.cropRect.y * scale),
+          w: Math.round(recording.cropRect.w * scale),
+          h: Math.round(recording.cropRect.h * scale),
+        };
+      }
+
       await transcode({
         config,
         sourcePath: recording.tempPath,
         targetPath: recording.targetPath,
         deleteSource: true,
-        crop: recording.crop,
+        crop,
       });
       dropHandle();
     } else if (recording.type === "appium") {

@@ -20,7 +20,7 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
-import { resolveCropGeometry } from "./ffmpegRecorder.js";
+import { resolveAppWindowRect } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
@@ -1399,14 +1399,23 @@ async function startAppSurface({
   // Late-bind window crops: an autoRecord capture in an app-only context
   // starts before any app window exists, so it records the full display with
   // a pending marker. The first app surface to open supplies its window rect
-  // as the crop — scoping the recording to the app under test — which the
-  // stop-side transcode then applies.
+  // as the crop — scoping the recording to the app under test. The rect is
+  // stored UNSCALED with a pending-scale marker: native drivers can't answer
+  // a devicePixelRatio probe, so stopRecording derives the physical-pixel
+  // scale from the capture frame size instead (phase A7).
   const pendingHandles = (
     appSession.recordingHost?.state?.recordings ?? []
-  ).filter((handle: any) => handle?.pendingAppWindowCrop && !handle.crop);
+  ).filter(
+    (handle: any) =>
+      handle?.pendingAppWindowCrop && !handle.crop && !handle.cropRect
+  );
   for (const handle of pendingHandles) {
     try {
-      handle.crop = await resolveCropGeometry({ driver, target: "window" });
+      const rect = await resolveAppWindowRect(driver);
+      if (rect) {
+        handle.cropRect = rect;
+        handle.cropPendingScale = true;
+      }
       handle.pendingAppWindowCrop = false;
     } catch (error: any) {
       log(

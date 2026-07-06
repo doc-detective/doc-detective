@@ -879,7 +879,9 @@ describe("startAppSurface", function () {
         return { x: 10, y: 20, width: 800, height: 600 };
       },
       async execute() {
-        // NovaWindows: execute is unimplemented -> dpr falls back to 1.
+        // NovaWindows: execute is unimplemented — which is exactly why the
+        // crop is stored unscaled with a pending-scale marker instead of
+        // being scaled through a DOM devicePixelRatio probe here.
         throw new Error("Method is not implemented");
       },
     };
@@ -891,7 +893,11 @@ describe("startAppSurface", function () {
       serverDeps: okServerDeps(driver),
     });
     assert.equal(result.status, "PASS");
-    assert.deepEqual(handle.crop, { x: 10, y: 20, w: 800, h: 600 });
+    // Unscaled driver units + pending-scale marker: stopRecording derives the
+    // physical-pixel scale from the capture frame size at stop time.
+    assert.deepEqual(handle.cropRect, { x: 10, y: 20, w: 800, h: 600 });
+    assert.equal(handle.cropPendingScale, true);
+    assert.equal(handle.crop, undefined);
     assert.equal(handle.pendingAppWindowCrop, false);
   });
 

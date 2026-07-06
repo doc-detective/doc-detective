@@ -4,6 +4,8 @@ import path from "node:path";
 import {
   resolveRecordPlan,
   coerceRecordContextBrowser,
+  parseCaptureFrameSize,
+  deriveCropScale,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
@@ -348,6 +350,106 @@ describe("ffmpegRecorder", function () {
       };
       const geo = await resolveCropGeometry({ driver, target: "window" });
       expect(geo).to.deep.equal({ x: 10, y: 12, w: 2048, h: 1536 });
+    });
+  });
+
+  describe("parseCaptureFrameSize", function () {
+    it("reads the input stream size from gdigrab stderr", function () {
+      const stderr = [
+        "Input #0, gdigrab, from 'desktop':",
+        "  Duration: N/A, start: 1633.383824, bitrate: 3187760 kb/s",
+        "  Stream #0:0: Video: bmp, bgra, 2560x1440, 3187760 kb/s, 30 fps, 30 tbr, 1000k tbn",
+      ].join("\n");
+      expect(parseCaptureFrameSize(stderr)).to.deep.equal({ w: 2560, h: 1440 });
+    });
+
+    it("reads the input stream size from avfoundation stderr", function () {
+      const stderr = [
+        "Input #0, avfoundation, from 'Capture screen 0':",
+        "  Stream #0:0: Video: rawvideo (UYVY / 0x59565955), uyvy422, 2880x1800, 30 tbr, 1000k tbn",
+      ].join("\n");
+      expect(parseCaptureFrameSize(stderr)).to.deep.equal({ w: 2880, h: 1800 });
+    });
+
+    it("reads the input stream size from x11grab stderr", function () {
+      const stderr = [
+        "Input #0, x11grab, from ':99':",
+        "  Stream #0:0: Video: rawvideo (BGR[0] / 0x30524742), bgr0, 1920x1080, 30 fps, 30 tbr, 1000k tbn",
+      ].join("\n");
+      expect(parseCaptureFrameSize(stderr)).to.deep.equal({ w: 1920, h: 1080 });
+    });
+
+    it("returns null when no stream line is present", function () {
+      expect(parseCaptureFrameSize("ffmpeg version 6.0")).to.equal(null);
+      expect(parseCaptureFrameSize("")).to.equal(null);
+    });
+  });
+
+  describe("deriveCropScale", function () {
+    it("derives the Retina scale from frame size over display points on darwin", function () {
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 2880, h: 1800 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(2);
+    });
+
+    it("rounds to two decimals", function () {
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 2882, h: 1800 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(2);
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 2160, h: 1350 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(1.5);
+    });
+
+    it("clamps implausible ratios into [1, 4]", function () {
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 720, h: 450 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(1);
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 20000, h: 20000 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(4);
+    });
+
+    it("falls back to 1 on missing inputs", function () {
+      expect(
+        deriveCropScale({ platform: "darwin", frameSize: null, displayPointSize: { w: 1440, h: 900 } })
+      ).to.equal(1);
+      expect(
+        deriveCropScale({ platform: "darwin", frameSize: { w: 2880, h: 1800 }, displayPointSize: null })
+      ).to.equal(1);
+    });
+
+    it("is 1 by construction on win32 and linux (physical-pixel rects)", function () {
+      for (const platform of ["win32", "linux"]) {
+        expect(
+          deriveCropScale({
+            platform,
+            frameSize: { w: 2880, h: 1800 },
+            displayPointSize: { w: 1440, h: 900 },
+          }),
+          platform
+        ).to.equal(1);
+      }
     });
   });
 

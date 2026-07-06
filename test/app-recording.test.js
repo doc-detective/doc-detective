@@ -13,6 +13,26 @@ import { startRecording } from "../dist/core/tests/startRecording.js";
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 import { getFfmpegPath } from "../dist/core/tests/ffmpegRecorder.js";
 
+// Read a video's frame size by parsing `ffmpeg -i` stderr (the bundled
+// package has no ffprobe). Laxer than the recorder's capture parser — test
+// videos here are tiny (2-digit dimensions), which real captures never are.
+async function probeVideoSize(videoPath) {
+  const ffmpegPath = await getFfmpegPath({});
+  const stderr = await new Promise((resolve) => {
+    const child = spawn(ffmpegPath, ["-i", videoPath]);
+    let out = "";
+    child.stderr?.on("data", (d) => {
+      out += d.toString();
+    });
+    // `ffmpeg -i` exits non-zero (no output specified) — stderr still has
+    // the stream info.
+    child.on("close", () => resolve(out));
+    child.on("error", () => resolve(out));
+  });
+  const m = /Stream #\d+:\d+.*?Video:.*?\s(\d{2,5})x(\d{2,5})\b/.exec(stderr);
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
+}
+
 function makeAppSession({ surfaces = [], deviceSessions = [] } = {}) {
   return {
     surfaces: new Map(surfaces.map((s) => [s.name, s])),
@@ -176,6 +196,51 @@ describe("startRecording: app surfaces (desktop)", function () {
     assert.equal(result.recording.cropPendingScale, true);
     // No browser session: the synthetic cursor is a browser-page concept.
     assert.equal(cursorTouched, false);
+  });
+
+  it("parses the capture frame size eagerly from ffmpeg's stderr", async function () {
+    const appDriver = {
+      getWindowRect: async () => ({ x: 0, y: 0, width: 100, height: 100 }),
+    };
+    const appSession = makeAppSession({
+      surfaces: [
+        {
+          name: "notepad",
+          appId: "notepad.exe",
+          driver: appDriver,
+          platform: "windows",
+        },
+      ],
+    });
+    let stderrListener;
+    const proc = {
+      ...makeFakeProc(),
+      stderr: {
+        on(event, cb) {
+          if (event === "data") stderrListener = cb;
+        },
+      },
+    };
+    const result = await startRecording({
+      config,
+      context: { platform: "windows" },
+      step: {
+        stepId: "x",
+        record: { path: path.join(tmpDir, "a.mp4"), surface: { app: "notepad" } },
+      },
+      driver: undefined,
+      appSession,
+      deps: { spawn: () => proc, getFfmpegPath: async () => "ffmpeg" },
+    });
+    assert.equal(result.status, "PASS");
+    // Simulate ffmpeg printing its input stream line after startup, split
+    // across chunks — the parse must be eager and cumulative, not a tail.
+    stderrListener(Buffer.from("Input #0, gdigrab, from 'desktop':\n  Stream #0:0: "));
+    stderrListener(Buffer.from("Video: bmp, bgra, 2560x1440, 30 fps\n"));
+    assert.deepEqual(result.recording.captureInfo.frameSize, {
+      w: 2560,
+      h: 1440,
+    });
   });
 
   it("explicit display target on an app surface records without a crop", async function () {
@@ -536,6 +601,69 @@ describe("stopRecording: device (appium) handles", function () {
     assert.equal(result.status, "SKIPPED");
     assert.match(result.description, /never started/);
     assert.equal(host.state.recordings.length, 0);
+  });
+
+  it("applies a pending-scale window crop at stop time, scaled by the derived factor", async function () {
+    // A desktop app recording on a "Retina" display: the capture frame is 2x
+    // the display's point size, so the unscaled 16x16 window rect must crop
+    // 32x32 physical pixels. The display probe is injected; the frame size
+    // comes from the handle's captured stderr parse.
+    const samplePath = path.join(tmpDir, "source.mp4"); // 64x64 sample
+    await generateSampleMp4(samplePath);
+    const target = path.join(tmpDir, "cropped.mp4");
+    const handle = {
+      type: "ffmpeg",
+      process: { stdin: { write() {}, end() {} }, exitCode: 0 },
+      tempPath: samplePath,
+      targetPath: target,
+      crop: null,
+      cropRect: { x: 0, y: 0, w: 16, h: 16 },
+      cropPendingScale: true,
+      captureInfo: { frameSize: { w: 128, h: 128 } },
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+      deps: {
+        platform: "darwin",
+        detectDisplayPointSize: async () => ({ w: 64, h: 64 }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.ok(fs.existsSync(target));
+    const size = await probeVideoSize(target);
+    assert.deepEqual(size, { w: 32, h: 32 });
+    assert.equal(host.state.recordings.length, 0);
+  });
+
+  it("falls back to an unscaled crop when no frame size was captured", async function () {
+    const samplePath = path.join(tmpDir, "source-noscale.mp4"); // 64x64 sample
+    await generateSampleMp4(samplePath);
+    const target = path.join(tmpDir, "cropped-noscale.mp4");
+    const handle = {
+      type: "ffmpeg",
+      process: { stdin: { write() {}, end() {} }, exitCode: 0 },
+      tempPath: samplePath,
+      targetPath: target,
+      crop: null,
+      cropRect: { x: 0, y: 0, w: 16, h: 16 },
+      cropPendingScale: true,
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+      deps: {
+        platform: "darwin",
+        detectDisplayPointSize: async () => ({ w: 64, h: 64 }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const size = await probeVideoSize(target);
+    assert.deepEqual(size, { w: 16, h: 16 });
   });
 
   it("a named stop picks the appium handle among overlapping recordings", async function () {
