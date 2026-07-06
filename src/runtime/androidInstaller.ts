@@ -249,7 +249,17 @@ const SYSTEM_IMAGE_MARKERS = ["source.properties", "system.img"];
 function systemImageDir(sdkRoot: string, pkg: string): string | null {
   const parts = pkg.split(";");
   if (parts.length !== 4 || parts[0] !== "system-images") return null;
-  return path.join(sdkRoot, "system-images", parts[1], parts[2], parts[3]);
+  const base = path.join(sdkRoot, "system-images");
+  const dir = path.join(base, parts[1], parts[2], parts[3]);
+  // Containment guard: a `..` or absolute segment in the package id could
+  // otherwise resolve outside <sdkRoot>/system-images and, via wipeSystemImage's
+  // recursive rmSync, delete an unintended directory. Reject anything that
+  // escapes the images root (mirrors the loader's exports-target containment
+  // check). In practice the id is validated upstream; this is defense-in-depth
+  // for the destructive path.
+  const rel = path.relative(base, dir);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  return dir;
 }
 
 // Verify a just-installed system image is structurally complete (all marker

@@ -935,4 +935,21 @@ describe("android installer: SDK install self-repair", function () {
       isSystemImageComplete("/sdk", "platform-tools", has(["source.properties", "system.img"]))
     ).to.equal(false);
   });
+
+  it("rejects a package id whose segments escape <sdkRoot>/system-images (rm safety)", function () {
+    // A traversal/absolute segment must never resolve outside the images root —
+    // wipeSystemImage does a recursive rm on this path. Even with markers
+    // "present", an escaping id is treated as not-a-valid-image (dir is null).
+    const anythingExists = { existsSync: () => true };
+    expect(
+      isSystemImageComplete("/sdk", "system-images;../../../../etc;x;y", anythingExists)
+    ).to.equal(false);
+    expect(
+      isSystemImageComplete(
+        "/sdk",
+        "system-images;android-34;google_apis;../../../../../../etc",
+        anythingExists
+      )
+    ).to.equal(false);
+  });
 });
