@@ -1,0 +1,110 @@
+{
+  "specId": "android-two-devices-a6",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the multi-device ('two-phone conversation') pattern. Two startSurface steps each provision their own managed emulator (distinct device names, serial boots per A6 \u2014 the parallel array form arrives with multi-surface Phase 6), steps interleave across the devices by surface name, and the run-end sweep shuts down both emulators Doc Detective booted. Gated behind DD_FIXTURE_MULTIDEVICE (the DD_FIXTURE_PROVISION precedent) because two emulator boots are too heavy for every leg \u2014 the managed-boot KVM job sets it; everywhere else this spec lands SKIPPED via the requires gate.",
+  "tests": [
+    {
+      "testId": "android-two-phones",
+      "description": "Boot two managed devices (dd-phone-a / dd-phone-b), open Settings on each, and interleave surface-named steps across them: find on phone A, find on phone B, back to A for a device-key press, screenshot both. Registry identity (device name), console-port allocation (5554/5556), and per-device driver sessions are what this proves; Settings stands in for the chat app because it exists on every image.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "requires": {
+            "env": [
+              "DD_FIXTURE_MULTIDEVICE"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "phone-a-settings",
+            "device": {
+              "platform": "android",
+              "name": "dd-phone-a",
+              "deviceType": "phone",
+              "headless": true
+            },
+            "timeout": 600000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "phone-b-settings",
+            "device": {
+              "platform": "android",
+              "name": "dd-phone-b",
+              "deviceType": "phone",
+              "headless": true
+            },
+            "timeout": 600000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Network & internet",
+            "surface": {
+              "app": "phone-a-settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Network & internet",
+            "surface": {
+              "app": "phone-b-settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "$BACK$"
+            ],
+            "surface": {
+              "app": "phone-a-settings"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-phone-a.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "phone-a-settings"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-phone-b.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "phone-b-settings"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "phone-b-settings"
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "phone-a-settings"
+          }
+        }
+      ]
+    }
+  ]
+}

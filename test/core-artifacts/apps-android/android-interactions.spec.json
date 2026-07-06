@@ -1,0 +1,171 @@
+{
+  "specId": "android-interactions-a6",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on Android. swipe (string, directional-object, and point-to-point forms) drives mobile: swipeGesture / W3C touch actions; find auto-scrolls (mobile: scrollGesture) to locate an entry deep in the Settings list; click.duration long-presses (mobile: longClickGesture); type presses device keys (mobile: pressKey) and types into the focused element (mobile: type) without element criteria. Settings is the target app because it is preinstalled on every Android system image. SKIPPED on hosts without emulator acceleration — the real PASS coverage runs on the KVM legs.",
+  "tests": [
+    {
+      "testId": "android-swipe-longpress-back",
+      "description": "The directional and point-to-point swipe forms on the Settings list (the bare string form is exercised on browser surfaces, where a surface-less step has an active tab to act on), then find an entry near the bottom ('System') that requires auto-scroll, long-press it, and press the device Back key with no element criteria. The long-press gesture itself is the assertion — Settings ignores long-clicks, so the UI stays wherever the auto-scroll left it.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "down",
+            "distance": 0.3,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 0.5,
+              "y": 0.7
+            },
+            "to": {
+              "x": 0.5,
+              "y": 0.4
+            },
+            "duration": 400,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "System",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "click": {
+            "elementText": "System",
+            "duration": 700,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-interactions.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "$BACK$"
+            ],
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "android-focused-typing",
+      "description": "Criteria-less typing into the focused element (UiAutomator2 mobile: type): opening Settings search focuses its input field, so a type step with no element criteria lands there, mixing literal text with a mapped key run. Two Back presses unwind the search UI before closing.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "settings-search",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Search settings",
+            "surface": {
+              "app": "settings-search"
+            }
+          }
+        },
+        {
+          "wait": 2000
+        },
+        {
+          "type": {
+            "keys": [
+              "battery"
+            ],
+            "surface": {
+              "app": "settings-search"
+            },
+            "waitUntil": {
+              "delayMs": 1000
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-focused-typing.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings-search"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "$BACK$",
+              "$BACK$"
+            ],
+            "surface": {
+              "app": "settings-search"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings-search"
+          }
+        }
+      ]
+    }
+  ]
+}
