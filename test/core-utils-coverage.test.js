@@ -417,6 +417,18 @@ describe("core/utils coverage", function () {
       process.env.DD_TEST_VAL = "world";
       assert.equal(replaceEnvs("hello $DD_TEST_VAL!"), "hello world!");
     });
+    it("does NOT touch a $NAME$ sentinel even when NAME is a set env var", function () {
+      // The $KEY$ special-key/device-key vocabulary (dollar on both sides)
+      // must survive env substitution. Regression: on Unix $HOME is set, and
+      // `$HOME$` used to get rewritten to the home path, breaking the device
+      // key. A trailing `$` marks a sentinel, not an env reference.
+      const prevHome = process.env.DD_TEST_VAL;
+      process.env.DD_TEST_VAL = "/home/runner";
+      assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
+      // A bare $NAME reference still substitutes.
+      assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
+      process.env.DD_TEST_VAL = prevHome;
+    });
     it("parses a whole-string variable holding a JSON object into an object", function () {
       process.env.DD_TEST_OBJ = JSON.stringify({ k: "v" });
       assert.deepEqual(replaceEnvs("$DD_TEST_OBJ"), { k: "v" });

@@ -1310,8 +1310,14 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
+    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
+    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
+    // treated as an env-var reference. Without it, `$HOME$` matched the
+    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
+    // got rewritten to the home path, corrupting the sentinel. A real env ref
+    // is `$NAME` NOT followed by another `$` (or word char).
+    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
     const matches = stringOrObject.match(variableRegex);
     // If no matches, return string
     if (!matches) return stringOrObject;

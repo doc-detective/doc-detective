@@ -123,6 +123,17 @@ desktop fixtures.
   Unknown `$…$` tokens pass through verbatim as text — the process-path
   convention. **`$HOME$` is overloaded by design**: device home button on
   mobile app surfaces, cursor-to-line-start on browser surfaces.
+- **Env-substitution collision fixed.** `replaceEnvs` (the `$VAR` env
+  interpolation applied to step values) matched the `$HOME` prefix of the
+  `$HOME$` sentinel and — on any host where `$HOME` is set (every Unix box,
+  including the macOS CI runner) — rewrote it to the home path, so the token
+  never reached the key splitter (it surfaced as literal text and iOS reported
+  "requires element criteria"). This is a **pre-existing** latent bug affecting
+  any `$ENVVAR$` special key (the browser `$HOME$` cursor key too), exposed
+  because the iOS fixture is the first `$HOME$` use on a Unix runner. Fixed by
+  a trailing `(?![a-zA-Z0-9_$])` guard on the env regex: a `$NAME$` (dollar on
+  both sides) is a sentinel, never an env reference; a bare `$NAME` still
+  substitutes.
 - **Element criteria become optional on mobile**: device-key-only steps need
   no element, and Android types criteria-less into the focused element via
   `mobile: type`. **iOS keeps requiring criteria for text** — XCUITest's
