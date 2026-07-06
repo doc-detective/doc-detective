@@ -126,22 +126,22 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("An android target context SKIPs via the mobile gate (native app phase A3)", async function () {
-    // Covers runContext's mobile-platform branch. A *native* android context can
-    // legitimately PASS on a capable host under A3b (and could lazily install
-    // the toolchain), so this test deliberately includes a browser step: mobile-
-    // web on Android is phase A5, whose gate returns SKIPPED *before* any SDK
-    // detection/install/boot — a deterministic, hermetic outcome on every host.
-    // NO_ANDROID_AUTOINSTALL is belt-and-suspenders against any toolchain
-    // download. (The native-android gate paths are covered hermetically with
-    // injected deps in test/android-gating.test.js.)
+  it("An android context with an unsupported browser SKIPs via the A5 support matrix", async function () {
+    // Covers runContext's mobile-platform branch. A *native* android context —
+    // and, as of phase A5, a chrome mobile-web context — can legitimately PASS
+    // on a capable host (and could lazily install the toolchain), so this test
+    // deliberately requests firefox: the mobile-browser support matrix SKIPs it
+    // *before* any SDK detection/install/boot — a deterministic, hermetic
+    // outcome on every host. NO_ANDROID_AUTOINSTALL is belt-and-suspenders
+    // against any toolchain download. (The gate permutations are covered
+    // hermetically in test/mobile-browser.test.js.)
     const prevNoInstall = process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
     process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = "1";
     const androidTest = {
       tests: [
         {
           testId: "android-gate",
-          runOn: [{ platforms: "android", browsers: "chrome" }],
+          runOn: [{ platforms: "android", browsers: "firefox" }],
           steps: [{ goTo: "https://example.com" }],
         },
       ],
@@ -154,14 +154,110 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /Skipping context on 'android'/);
-        assert.match(ctx.resultDescription, /phase A5/);
+        assert.match(ctx.resultDescription, /'firefox' isn't available on android/);
+        assert.match(ctx.resultDescription, /chrome/);
       }
       assert.equal(result.summary.specs.fail, 0);
     } finally {
       if (prevNoInstall === undefined)
         delete process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
       else process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = prevNoInstall;
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An ios context with an unsupported browser SKIPs via the A5 support matrix", async function () {
+    // chrome-on-ios lands on the matrix skip before the toolchain probe, so
+    // this is hermetic on every host — including macOS, where safari-on-ios
+    // would instead proceed to a real simulator (covered by the mobile-web-ios
+    // fixtures).
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-matrix-gate",
+          runOn: [{ platforms: "ios", browsers: "chrome" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-matrix-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /'chrome' isn't available on ios/);
+        assert.match(ctx.resultDescription, /safari/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A mobile context with device-fixed browser config FAILs with a device pointer", async function () {
+    // headless:false contradicts the device-owned display, so it's a loud FAIL
+    // (an authored contradiction), not a SKIP. Hermetic: the config gate runs
+    // before any toolchain work on every host.
+    const badConfigTest = {
+      tests: [
+        {
+          testId: "android-config-gate",
+          runOn: [
+            {
+              platforms: "android",
+              browsers: { name: "chrome", headless: false },
+            },
+          ],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-config-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(badConfigTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "FAIL");
+        assert.match(ctx.resultDescription, /device\.headless/);
+      }
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A mixed native-app + web mobile context SKIPs with a split-the-test pointer", async function () {
+    // Interleaving app surfaces and the device browser in ONE mobile context is
+    // deferred (NATIVE_APP/WEBVIEW switching lands with the A6 vocabulary
+    // work); the gate skips deterministically before any device work.
+    const mixedTest = {
+      tests: [
+        {
+          testId: "android-mixed-gate",
+          runOn: [{ platforms: "android", browsers: "chrome" }],
+          steps: [
+            { startSurface: { app: "com.example.app" } },
+            { goTo: "https://example.com" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-mixed-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(mixedTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /separate/i);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
       fs.unlinkSync(tempFilePath);
     }
   });

@@ -48,7 +48,7 @@
       ]
     },
     "browsers": {
-      "description": "Browsers to run tests on.",
+      "description": "Browsers to run tests on. On a mobile (`android`/`ios`) platform entry, the browser runs on the managed device: `chrome` on Android, `safari` on iOS (other combinations skip the context), and it fills in automatically when omitted. Device browsers don't take desktop display config: authored `window`/`viewport` dimensions and `headless: false` are rejected on mobile entries (the device owns its display — control it via the device descriptor's `headless`/`deviceType`); `headless: true` matches this schema's default and is ignored.",
       "anyOf": [
         {
           "type": "string",
@@ -59,7 +59,7 @@
             "safari",
             "webkit"
           ],
-          "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+          "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
         },
         {
           "type": "object",
@@ -78,7 +78,7 @@
                 "safari",
                 "webkit"
               ],
-              "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+              "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
             },
             "explicit": {
               "type": "boolean",
@@ -138,7 +138,7 @@
                   "safari",
                   "webkit"
                 ],
-                "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+                "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
               },
               {
                 "type": "object",
@@ -157,7 +157,7 @@
                       "safari",
                       "webkit"
                     ],
-                    "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+                    "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
                   },
                   "explicit": {
                     "type": "boolean",
@@ -443,7 +443,7 @@
           "safari",
           "webkit"
         ],
-        "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+        "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
       },
       "browser": {
         "type": "object",
@@ -462,7 +462,7 @@
               "safari",
               "webkit"
             ],
-            "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+            "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
           },
           "explicit": {
             "type": "boolean",
@@ -602,6 +602,26 @@
           }
         }
       ]
+    },
+    {
+      "platforms": "android"
+    },
+    {
+      "platforms": [
+        "windows",
+        "mac",
+        "android",
+        "ios"
+      ],
+      "browsers": "chrome"
+    },
+    {
+      "platforms": "ios",
+      "browsers": "safari",
+      "device": {
+        "name": "test-iphone",
+        "deviceType": "phone"
+      }
     }
   ]
 }

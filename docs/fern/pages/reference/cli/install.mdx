@@ -89,7 +89,7 @@ Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 
 ### `install android`
 
-Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run. Required for native Android app testing (native app phase A3).
+Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run — both native Android app tests (native app phase A3) and mobile web tests in the device's Chrome (phase A5). The system images it installs are the `google_apis` kind, which include Chrome; an emulator created from an image without Chrome skips mobile web tests with a pointer back to this command.
 
 ```bash
 doc-detective install android --yes

@@ -1,13 +1,11 @@
 // Native app surfaces phase A3a: capability gating for the `android`/`ios`
 // target platforms, and the lazy Android SDK detection that decides which
 // SKIP reason a mobile context lands with. Everything here is hermetic —
-// detection takes injected env/existsSync deps, and the skip-reason composer
-// is pure — so no SDK, adb, or emulator is ever touched.
+// detection takes injected env/existsSync deps — so no SDK, adb, or emulator
+// is ever touched. (The mobile-web browser gate is covered in
+// test/mobile-browser.test.js.)
 
-import {
-  isMobileTargetPlatform,
-  mobileContextSkipReason,
-} from "../dist/core/tests/mobilePlatform.js";
+import { isMobileTargetPlatform } from "../dist/core/tests/mobilePlatform.js";
 import { detectAndroidSdk } from "../dist/runtime/androidSdk.js";
 
 before(async function () {
@@ -25,23 +23,6 @@ describe("native app surfaces (A3a): isMobileTargetPlatform", function () {
     for (const p of ["linux", "mac", "windows", undefined, null, "", 42]) {
       expect(isMobileTargetPlatform(p), JSON.stringify(p)).to.equal(null);
     }
-  });
-});
-
-describe("native app surfaces (A3a): mobileContextSkipReason", function () {
-  it("points iOS mobile-browser steps at phase A5", function () {
-    const { level, reason } = mobileContextSkipReason({ platform: "ios" });
-    expect(reason).to.match(/iOS/);
-    expect(reason).to.match(/A5/);
-    expect(reason).to.match(/browser/i);
-    expect(level).to.equal("warning");
-  });
-
-  it("points a mobile-browser step on android at phase A5", function () {
-    const { level, reason } = mobileContextSkipReason({ platform: "android" });
-    expect(reason).to.match(/A5/);
-    expect(reason).to.match(/browser/i);
-    expect(level).to.equal("warning");
   });
 });
 

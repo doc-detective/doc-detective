@@ -126,3 +126,8 @@ simctl
 xcrun
 WebDriverAgent
 XCUITest
+loopback
+viewport
+startSurface
+closeSurface
+chromedrivers

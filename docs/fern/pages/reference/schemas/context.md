@@ -21,7 +21,7 @@ Field | Type | Description | Default
 $schema | string | Optional. JSON Schema for this object.<br/><br/>Accepted values: `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json` | 
 contextId | string | Optional. Unique identifier for the context. | 
 platforms | one of:<br/>- string<br/>- array of string | Optional. Platforms to run tests on. | 
-browsers | one of:<br/>- string<br/>- object([Browser](/reference/schemas/browser))<br/>- array of one of: string, object([Browser](/reference/schemas/browser)) | Optional. Browsers to run tests on. | 
+browsers | one of:<br/>- string<br/>- object([Browser](/reference/schemas/browser))<br/>- array of one of: string, object([Browser](/reference/schemas/browser)) | Optional. Browsers to run tests on. On a mobile (`android`/`ios`) platform entry, the browser runs on the managed device: `chrome` on Android, `safari` on iOS (other combinations skip the context), and it fills in automatically when omitted. Device browsers don't take desktop display config: authored `window`/`viewport` dimensions and `headless: false` are rejected on mobile entries (the device owns its display — control it via the device descriptor's `headless`/`deviceType`); `headless: true` matches this schema's default and is ignored. | 
 browserFallback | string | Optional. Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).<br/><br/>Accepted values: `auto`, `explicit`, `off` | 
 requires | one of:<br/>- string<br/>- array of string<br/>- object([Requirements](/reference/schemas/requirements)) | Optional. Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch. | 
 device | one of:<br/>- string<br/>- object([Device descriptor](/reference/schemas/device-descriptor)) | Optional. Default device for a mobile (`android`/`ios`) context. A string references a device by name; an object refines it. The `platform` is implied by the context, so it is not required here. When the named device doesn't already exist, Doc Detective creates it with defaults (see `deviceType`/`osVersion`), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`). Same shape as `startSurface.device`. | 
@@ -137,5 +137,34 @@ device | one of:<br/>- string<br/>- object([Device descriptor](/reference/schema
       }
     }
   ]
+}
+```
+
+```json
+{
+  "platforms": "android"
+}
+```
+
+```json
+{
+  "platforms": [
+    "windows",
+    "mac",
+    "android",
+    "ios"
+  ],
+  "browsers": "chrome"
+}
+```
+
+```json
+{
+  "platforms": "ios",
+  "browsers": "safari",
+  "device": {
+    "name": "test-iphone",
+    "deviceType": "phone"
+  }
 }
 ```
