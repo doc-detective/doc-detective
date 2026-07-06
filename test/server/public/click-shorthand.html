@@ -15,7 +15,7 @@
          following find step proves the click fired: a find-only no-op leaves
          the message absent and the find FAILs. -->
     <button onclick="reveal('Text click landed')">Reveal by text</button>
-    <button id="reveal-by-selector" onclick="reveal('Selector click landed')">Reveal by selector</button>
+    <button id="reveal-by-selector" onclick="reveal('Selector click landed')" oncontextmenu="event.preventDefault(); reveal('Right-click landed')">Reveal by selector</button>
     <button onclick="reveal('Regex click landed')">Reveal via regex match</button>
     <button onclick="reveal('Object click landed')">Reveal by object</button>
 

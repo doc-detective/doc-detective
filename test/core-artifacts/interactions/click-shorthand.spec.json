@@ -48,6 +48,10 @@
             "selector": "#reveal-by-selector",
             "click": "right"
           }
+        },
+        {
+          "stepId": "assert-right-click-side-effect",
+          "find": "Right-click landed"
         }
       ]
     }
