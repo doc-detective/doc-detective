@@ -45,6 +45,7 @@ export {
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
+  isRetryableSessionError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -736,6 +737,38 @@ async function waitForReady(
   for (const p of probes) p.catch(() => {});
 
   await Promise.race([ready, earlyExit]);
+}
+
+// Two families of transient, retryable session-creation failures, both worse
+// under concurrency:
+//   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
+//      /status returns 200 from the outgoing process while /session no longer
+//      accepts, or Appium's proxy to chromedriver drops the socket ->
+//      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
+//   2. Several Chromes launching at once briefly starve resources and
+//      ChromeDriver "crashed during startup" / "cannot connect to" /
+//      "DevToolsActivePort" / "session not created". A staggered retry lets
+//      the contention clear; it recovers on the next attempt in practice.
+const TRANSIENT_SESSION_ERROR =
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
+
+// The wdio client aborts POST /session with "aborted due to timeout" when the
+// request exceeds connectionRetryTimeout. For native sessions that declared a
+// slow-startup ceiling (XCUITest's wdaLaunchTimeout / Mac2's
+// serverStartupTimeout raise it past the 2-minute default), the server-side
+// WebDriverAgent xcodebuild keeps running after the client gives up, so a
+// fresh POST typically binds quickly — retry it. Default-ceiling (browser /
+// Windows / Android) sessions keep today's fail-fast behavior: there a
+// 2-minute session POST means something is genuinely wrong.
+const SESSION_TIMEOUT_ABORT = /aborted due to timeout/i;
+
+function isRetryableSessionError(
+  message: string | undefined,
+  startupCeiling: number | undefined = 0
+): boolean {
+  if (typeof message !== "string" || !message) return false;
+  if (TRANSIENT_SESSION_ERROR.test(message)) return true;
+  return (startupCeiling ?? 0) > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {

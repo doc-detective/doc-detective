@@ -32,8 +32,10 @@ jobs:
     # The apps and iOS-flavored groups get headroom: the first Mac2/XCUITest
     # session on a macOS runner builds WebDriverAgent(Mac) via xcodebuild
     # (minutes on a cold runner). apps-ios and mobile-web-ios get the most:
-    # a cold WDA build precedes their first simulator session.
-    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 45 || (matrix.group == 'apps' && 30 || 20) }}
+    # a cold WDA build precedes their first simulator session, and a session
+    # POST that aborts at the 15-minute startup ceiling is retried once
+    # (ADR 01033), so the worst case is two ceiling-length attempts.
+    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 55 || (matrix.group == 'apps' && 30 || 20) }}
     strategy:
       fail-fast: false
       matrix:
