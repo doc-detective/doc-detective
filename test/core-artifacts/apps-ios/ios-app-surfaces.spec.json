@@ -4,14 +4,14 @@
   "tests": [
     {
       "testId": "ios-mobile-browser-gate-a5",
-      "description": "A5 remains gated: iOS mobile-browser contexts SKIP with the phase A5 message.",
+      "description": "The mobile-browser support matrix gates unsupported iOS pairs: a chrome+ios context SKIPs deterministically on every host (safari is the supported iOS browser, phase A5). Supported mobile-web runs (safari on the managed simulator) are exercised in the mobile-web-ios group, not here.",
       "runOn": [
         {
           "platforms": [
             "ios"
           ],
           "browsers": [
-            "safari"
+            "chrome"
           ]
         }
       ],
