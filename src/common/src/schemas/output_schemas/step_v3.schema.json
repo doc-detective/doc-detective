@@ -41242,8 +41242,8 @@
                   "additionalProperties": false,
                   "properties": {
                     "from": {
-                      "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner.",
                       "title": "Point",
+                      "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                       "type": "object",
                       "required": [
                         "x",
@@ -41264,8 +41264,8 @@
                       }
                     },
                     "to": {
-                      "description": "Where the virtual finger releases, in pixels from the surface's top-left corner.",
                       "title": "Point",
+                      "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                       "type": "object",
                       "required": [
                         "x",
@@ -41529,6 +41529,7 @@
                   },
                   "point": {
                     "title": "Point",
+                    "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                     "type": "object",
                     "required": [
                       "x",
@@ -42038,8 +42039,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "from": {
-                        "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner.",
                         "title": "Point",
+                        "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                         "type": "object",
                         "required": [
                           "x",
@@ -42060,8 +42061,8 @@
                         }
                       },
                       "to": {
-                        "description": "Where the virtual finger releases, in pixels from the surface's top-left corner.",
                         "title": "Point",
+                        "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                         "type": "object",
                         "required": [
                           "x",
