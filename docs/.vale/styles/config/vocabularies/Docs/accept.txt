@@ -221,3 +221,7 @@ postinstall
 Geckodriver
 ChromeDriver
 Xvfb
+dialog
+dialogs
+dialog's
+onboarding
