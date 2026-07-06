@@ -8,15 +8,6 @@
 
 import path from "node:path";
 
-export {
-  mobileBrowserSupport,
-  mobileBrowserConfigError,
-  buildMobileBrowserCapabilities,
-  defaultMobileBrowserName,
-  mobileBrowserGate,
-  MOBILE_CHROMEDRIVER_DIR,
-};
-
 type MobileTarget = "android" | "ios";
 
 // The device browser each mobile target supports. There is exactly one per
@@ -31,6 +22,15 @@ const SUPPORTED_MOBILE_BROWSER: Record<MobileTarget, string> = {
 // Subdirectory of the Doc Detective cache where the Appium server stores the
 // chromedrivers it auto-downloads to match the device's Chrome version.
 const MOBILE_CHROMEDRIVER_DIR = "chromedriver-mobile";
+
+export {
+  mobileBrowserSupport,
+  mobileBrowserConfigError,
+  buildMobileBrowserCapabilities,
+  defaultMobileBrowserName,
+  mobileBrowserGate,
+  MOBILE_CHROMEDRIVER_DIR,
+};
 
 // The browser a mobile context gets when the runOn entry names none — the
 // mobile analog of the desktop first-available default.

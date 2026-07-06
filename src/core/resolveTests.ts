@@ -99,12 +99,14 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
             // on a mobile target platform (android/ios) the authored name is
             // preserved — `safari` on ios is the real device browser (phase
             // A5), and the mobile support matrix, not engine aliasing,
-            // decides unsupported combinations. Clone on rewrite so pairs
-            // sharing the authored browser object don't leak the alias.
+            // decides unsupported combinations. Every pair gets its own
+            // clone so contexts sharing one authored browser object can't
+            // leak a rewrite (or any later per-context mutation) across
+            // platforms.
             staticContext.browser =
               browser.name === "safari" && !isMobileTargetPlatform(platform)
                 ? { ...browser, name: "webkit" }
-                : browser;
+                : { ...browser };
           }
           staticContexts.push(staticContext);
         });

@@ -80,6 +80,7 @@ import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
 } from "./tests/mobileBrowser.js";
+import { getCacheDir } from "../runtime/cacheDir.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -3132,49 +3133,65 @@ async function runContext({
     }
     // Both preflights run the mobile-browser gate first (support matrix,
     // device-fixed config, mixed app+web) — `fail: true` marks an authored
-    // contradiction (FAIL loudly); everything else lands SKIPPED.
-    const pre =
-      mobileTarget === "android"
-        ? await androidContextPreflight({ config, context, clog })
-        : await iosContextPreflight({ config, context });
-    if (!pre.ok) {
+    // contradiction (FAIL loudly); everything else lands SKIPPED. Applied via
+    // this shared closure so the two typed branches below stay narrowed to
+    // their platform's ok-shape (no cross-platform union casts).
+    const gateOutcome = (pre: {
+      level: "warning" | "info";
+      reason: string;
+      fail?: boolean;
+    }) => {
       clog(pre.fail ? "error" : pre.level, pre.reason);
       contextReport.result = pre.fail ? "FAIL" : "SKIPPED";
       contextReport.resultDescription = pre.reason;
       return contextReport;
-    }
-    /* c8 ignore start */
-    // The ok paths only run on capable hosts (CI emulator/simulator legs).
-    appSession = createAppSessionState();
-    appSession.appiumEntry = pre.appiumEntry;
-    appSession.appiumHome = pre.appiumHome;
-    appSession.defaultDevice = context.device;
+    };
+    let gateBrowserName: string | null;
     if (mobileTarget === "android") {
       // Android (phase A3b): SDK detection is lazy (probed only here, only
       // for android contexts), so a run that never targets android pays
-      // nothing. Prime the app session with the device layer and FALL
+      // nothing. On ok, prime the app session with the device layer and FALL
       // THROUGH to run the steps.
-      appSession.androidSdkRoot = (pre as any).sdkRoot;
+      const pre = await androidContextPreflight({ config, context, clog });
+      if (!pre.ok) return gateOutcome(pre);
+      /* c8 ignore start */
+      // The ok path only runs on a host with a real SDK + emulator (CI legs).
+      appSession = createAppSessionState();
+      appSession.appiumEntry = pre.appiumEntry;
+      appSession.appiumHome = pre.appiumHome;
+      appSession.androidSdkRoot = pre.sdkRoot;
       appSession.androidDeviceRegistry = deviceRegistry;
-      appSession.androidDeviceDeps = (pre as any).deviceDeps;
+      appSession.androidDeviceDeps = pre.deviceDeps;
       // Surface any preflight warnings (e.g. a lazy toolchain install) in the
       // output report — not just the terminal — so a run that quietly
       // downloaded the multi-GB SDK is auditable after the fact.
-      if ((pre as any).warnings.length)
-        contextReport.warnings = (pre as any).warnings;
+      if (pre.warnings.length) contextReport.warnings = pre.warnings;
+      gateBrowserName = pre.mobileWebBrowserName;
+      /* c8 ignore stop */
     } else {
-      // iOS (phase A4): prime the app session with the simulator layer.
+      // iOS (phase A4): on ok, prime the app session with the simulator layer.
+      const pre = await iosContextPreflight({ config, context });
+      if (!pre.ok) return gateOutcome(pre);
+      /* c8 ignore start */
+      // The ok path only runs on a capable macOS host (CI fixture legs).
+      appSession = createAppSessionState();
+      appSession.appiumEntry = pre.appiumEntry;
+      appSession.appiumHome = pre.appiumHome;
       appSession.iosSimulatorRegistry = simulatorRegistry;
-      appSession.iosSimulatorDeps = (pre as any).simulatorDeps;
+      appSession.iosSimulatorDeps = pre.simulatorDeps;
+      gateBrowserName = pre.mobileWebBrowserName;
+      /* c8 ignore stop */
     }
+    /* c8 ignore start */
+    appSession.defaultDevice = context.device;
     // resolved device (name) joins the context report the way resolved
     // browser versions do; the concrete udid is known once a device boots.
     contextReport.device = context.device ?? { platform: mobileTarget };
-    if (pre.mobileWebBrowserName) {
+    if (gateBrowserName) {
       // Mobile web: pin the context's browser to the device browser the gate
       // resolved (the authored one, or the platform default) so the report
       // and the session capabilities agree.
-      mobileWebBrowserName = pre.mobileWebBrowserName;
+      mobileWebBrowserName = gateBrowserName;
       context.browser = { ...(context.browser ?? {}), name: mobileWebBrowserName };
       contextReport.browser = context.browser;
     }
@@ -3404,31 +3421,44 @@ async function runContext({
         mobileTarget === "android"
           ? ["--allow-insecure", "uiautomator2:chromedriver_autodownload"]
           : [];
-      const server = await startAppiumServer(
-        appSession!.appiumEntry!,
-        config,
-        undefined,
-        env,
-        extraArgs
-      );
-      appSession!.server = { port: server.port, process: server.process };
-      const desc = normalizeDeviceDescriptor({
-        contextDevice: context.device,
-        platform: mobileTarget as "android" | "ios",
-      });
-      const acquired =
-        mobileTarget === "android"
-          ? await acquireDevice({
-              desc,
-              registry: appSession!.androidDeviceRegistry!,
-              sdkRoot: appSession!.androidSdkRoot!,
-              deps: appSession!.androidDeviceDeps,
-            })
-          : await acquireSimulator({
-              desc,
-              registry: appSession!.iosSimulatorRegistry!,
-              deps: appSession!.iosSimulatorDeps,
-            });
+      // Server start + device boot are environment work: any failure there
+      // (port pressure, an emulator that can't finish booting on this host,
+      // simctl trouble) is a gating SKIP with the reason named — never a
+      // FAIL — matching the mobile rule that every environment gap SKIPs.
+      let acquired: any;
+      try {
+        const server = await startAppiumServer(
+          appSession!.appiumEntry!,
+          config,
+          undefined,
+          env,
+          extraArgs
+        );
+        appSession!.server = { port: server.port, process: server.process };
+        const desc = normalizeDeviceDescriptor({
+          contextDevice: context.device,
+          platform: mobileTarget as "android" | "ios",
+        });
+        acquired =
+          mobileTarget === "android"
+            ? await acquireDevice({
+                desc,
+                registry: appSession!.androidDeviceRegistry!,
+                sdkRoot: appSession!.androidSdkRoot!,
+                deps: appSession!.androidDeviceDeps,
+              })
+            : await acquireSimulator({
+                desc,
+                registry: appSession!.iosSimulatorRegistry!,
+                deps: appSession!.iosSimulatorDeps,
+              });
+      } catch (error: any) {
+        const errorMessage = `Skipping context on '${mobileTarget}': couldn't prepare the device for the ${mobileWebBrowserName} session (${error?.message ?? error}). Check the emulator/simulator toolchain (\`doc-detective install ${mobileTarget}\`).`;
+        clog("warning", errorMessage);
+        contextReport.result = "SKIPPED";
+        contextReport.resultDescription = errorMessage;
+        return contextReport;
+      }
       if ("skip" in acquired) {
         clog("warning", acquired.skip);
         contextReport.result = "SKIPPED";
@@ -3447,7 +3477,9 @@ async function runContext({
       const capabilities = buildMobileBrowserCapabilities({
         platform: mobileTarget as "android" | "ios",
         udid: acquired.entry.udid,
-        cacheDir: config?.cacheDir,
+        // The resolved cache root (not the raw config field, which is
+        // usually unset) — the chromedriver autodownload dir lives here.
+        cacheDir: getCacheDir({ cacheDir: config?.cacheDir }),
       });
       try {
         driver = await driverStart(capabilities, appSession!.server.port, 2, {

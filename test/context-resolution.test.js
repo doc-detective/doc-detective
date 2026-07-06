@@ -277,6 +277,23 @@ describe("resolveContexts safari/webkit aliasing", function () {
     assert.equal(mac.browser.name, "webkit");
     assert.notEqual(ios.browser, mac.browser);
   });
+
+  it("gives every platform pair its own browser object (no shared references even without a rewrite)", function () {
+    // android+ios with one authored browser: neither pair hits the webkit
+    // rewrite, but the contexts must still not share one object — a later
+    // per-context mutation must never bleed into a sibling context.
+    const contexts = resolveContexts({
+      contexts: [{ platforms: ["android", "ios"], browsers: "safari" }],
+      test: { testId: "t", steps: [driverStep] },
+      config: {},
+    });
+    assert.equal(contexts.length, 2);
+    const android = contexts.find((c) => c.platform === "android");
+    const ios = contexts.find((c) => c.platform === "ios");
+    assert.equal(android.browser.name, "safari");
+    assert.equal(ios.browser.name, "safari");
+    assert.notEqual(android.browser, ios.browser);
+  });
 });
 
 describe("contextRequirementsSkipMessage", function () {

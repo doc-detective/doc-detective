@@ -252,11 +252,16 @@ jobs:
           # Single-line the doc-detective command: the emulator-runner passes
           # `script` to the shell in a way that doesn't preserve backslash
           # line-continuations (they reach doc-detective as a literal `\` arg).
+          # Both gates run regardless of the other's outcome and their exit
+          # codes aggregate at the end, so a mobile-web pass can't mask an
+          # apps-android failure (or vice versa) in this single sh -c script.
           script: |
+            rc=0
             npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
-            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json || rc=1
             npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
-            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
+            exit $rc
 
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
