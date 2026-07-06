@@ -3196,6 +3196,28 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should reject a startSurface name that is a browser engine keyword", function () {
+        // Engine keywords are reserved: a bare-string `surface` of that name
+        // must always target the browser, so an app surface may never claim it.
+        for (const name of ["chrome", "firefox", "safari", "webkit", "edge"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { startSurface: { app: "notepad.exe", name } },
+          });
+          expect(result.valid, `name "${name}" must be rejected`).to.be.false;
+        }
+      });
+
+      it("should still validate a startSurface name that merely resembles an engine keyword", function () {
+        for (const name of ["chromium", "my-chrome", "edge2"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { startSurface: { app: "notepad.exe", name } },
+          });
+          expect(result.valid, `name "${name}" must be accepted`).to.be.true;
+        }
+      });
+
       it("should reject unknown startSurface fields", function () {
         const result = validate({
           schemaKey: "step_v3",

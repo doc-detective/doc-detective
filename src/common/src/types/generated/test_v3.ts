@@ -1215,7 +1215,7 @@ export type TypeKeysSimple1 = string | string[];
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface2 | AppSurface;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) always targets that browser — those keywords are reserved and can never name an app surface. Any other string names a background process or an app surface opened by startSurface. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName = string;
 /**
@@ -1898,7 +1898,7 @@ export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
  */
 export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface5 | AppSurface2;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) always targets that browser — those keywords are reserved and can never name an app surface. Any other string names a background process or an app surface opened by startSurface. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName1 = string;
 /**
@@ -1942,7 +1942,7 @@ export type ByName14 = string;
  */
 export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface6 | AppSurface3;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) always targets that browser — those keywords are reserved and can never name an app surface. Any other string names a background process or an app surface opened by startSurface. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName2 = string;
 /**
@@ -3647,7 +3647,7 @@ export type TypeKeysSimple3 = string | string[];
  */
 export type Surface3 = SurfaceByName3 | ProcessSurface3 | BrowserSurface10 | AppSurface4;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) always targets that browser — those keywords are reserved and can never name an app surface. Any other string names a background process or an app surface opened by startSurface. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName3 = string;
 /**
@@ -4330,7 +4330,7 @@ export type CloseSurface3 = Surface4 | [Surface5, ...Surface5[]];
  */
 export type Surface4 = SurfaceByName4 | ProcessSurface4 | BrowserSurface13 | AppSurface6;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) always targets that browser — those keywords are reserved and can never name an app surface. Any other string names a background process or an app surface opened by startSurface. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName4 = string;
 /**
@@ -4374,7 +4374,7 @@ export type ByName34 = string;
  */
 export type Surface5 = SurfaceByName5 | ProcessSurface5 | BrowserSurface14 | AppSurface7;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) always targets that browser — those keywords are reserved and can never name an app surface. Any other string names a background process or an app surface opened by startSurface. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName5 = string;
 /**
@@ -8247,7 +8247,7 @@ export interface StartSurface1 {
    */
   app: string;
   /**
-   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID.
+   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID. Browser engine keywords (chrome|firefox|safari|webkit|edge) are reserved — a bare-string `surface` of that name always targets the browser, so they can't name an app surface (rejected case-insensitively at runtime, including a reserved *default* name, e.g. launching chrome.exe without an explicit name).
    */
   name?: string;
   /**
@@ -12167,7 +12167,7 @@ export interface StartSurface3 {
    */
   app: string;
   /**
-   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID.
+   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID. Browser engine keywords (chrome|firefox|safari|webkit|edge) are reserved — a bare-string `surface` of that name always targets the browser, so they can't name an app surface (rejected case-insensitively at runtime, including a reserved *default* name, e.g. launching chrome.exe without an explicit name).
    */
   name?: string;
   /**

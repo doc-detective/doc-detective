@@ -23,6 +23,7 @@ import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
+import { RESERVED_ENGINE_KEYWORDS } from "./browserSurface.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -1189,6 +1190,16 @@ async function startAppSurface({
 
   const appId = descriptor.app.trim();
   const name = (descriptor.name ?? defaultAppSurfaceName(appId)).trim();
+  // Engine keywords are reserved surface names: a bare-string `surface` of
+  // that name must always target the browser (surface_v3 byEngineName), so an
+  // app surface may never register under one and shadow it. The schema's
+  // not.enum rejects the exact keywords; this guard also covers case variants
+  // and defaults derived from the app identifier (chrome.exe → "chrome").
+  if (RESERVED_ENGINE_KEYWORDS.has(name.toLowerCase())) {
+    result.status = "FAIL";
+    result.description = `"${name}" is a browser engine keyword, so it can't name an app surface — a surface reference of that name always targets the ${name.toLowerCase()} browser. Pass a non-keyword startSurface.name.`;
+    return result;
+  }
   if (appSession.surfaces.has(name)) {
     result.status = "FAIL";
     result.description = `An app surface named "${name}" is already open. Pass a distinct startSurface.name.`;

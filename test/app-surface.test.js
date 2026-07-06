@@ -854,6 +854,50 @@ describe("startAppSurface", function () {
     assert.match(collision.description, /already open/);
   });
 
+  it("rejects engine-keyword surface names: explicit case variants and derived defaults", async function () {
+    const appSession = preflighted();
+    // "Chrome" slips past the schema's not.enum (exact lowercase strings);
+    // the runtime guard must reject it case-insensitively, before any launch.
+    const explicit = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "x", name: "Chrome" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(explicit.status, "FAIL");
+    assert.match(explicit.description, /engine keyword/);
+
+    // A derived default name collides too: launching chrome.exe without an
+    // explicit name would register the surface as "chrome".
+    const derived = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(derived.status, "FAIL");
+    assert.match(derived.description, /engine keyword/);
+    assert.match(derived.description, /startSurface\.name/);
+    assert.equal(appSession.surfaces.size, 0);
+
+    // Exact lowercase keywords never reach the runtime guard — the schema's
+    // not.enum fails the step at validation time.
+    const schemaLevel = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "x", name: "chrome" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(schemaLevel.status, "FAIL");
+  });
+
   it("fails cleanly on a malformed descriptor (missing app) instead of throwing", async function () {
     const appSession = preflighted();
     const result = await startAppSurface({

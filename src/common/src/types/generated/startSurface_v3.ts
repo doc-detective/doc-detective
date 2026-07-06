@@ -21,7 +21,7 @@ export interface StartSurface {
    */
   app: string;
   /**
-   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID.
+   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID. Browser engine keywords (chrome|firefox|safari|webkit|edge) are reserved — a bare-string `surface` of that name always targets the browser, so they can't name an app surface (rejected case-insensitively at runtime, including a reserved *default* name, e.g. launching chrome.exe without an explicit name).
    */
   name?: string;
   /**
