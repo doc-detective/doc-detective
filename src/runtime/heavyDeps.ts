@@ -67,6 +67,19 @@ export function withPeerCompanions(names: string[]): string[] {
   return out;
 }
 
+/**
+ * Every npm package name the shim itself may install into <cacheDir>/runtime:
+ * the heavy deps plus their peer companions. This is the sweep list
+ * recordRuntimeDependencies uses to find packages physically on disk but
+ * missing from installed.json — the orphans an interrupted install batch
+ * (killed npm child, install timeout, cancelled CI job) leaves behind, which
+ * would otherwise be invisible to the recorded sources and pruned as
+ * extraneous by the next install's reify.
+ */
+export function managedDepNames(): string[] {
+  return withPeerCompanions([...HEAVY_NPM_DEPS]);
+}
+
 export interface ShimPackageJson {
   // The published manifest carries heavy-dep version constraints here:
   // the publish step moves `optionalDependencies` into this custom field so npm
