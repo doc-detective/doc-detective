@@ -15,6 +15,7 @@ export {
   directionToPoints,
   fractionsToPixels,
   performMovement,
+  performElementPress,
   getBrowserViewportRect,
 };
 export type { MovementPoint, MovementRect, SwipeDirection };
@@ -91,6 +92,32 @@ async function performMovement({
     .pause(50)
     .move({ duration, x: toPx.x, y: toPx.y })
     .up()
+    .perform();
+}
+
+// Press-and-hold a located element through the W3C actions builder (browser
+// long-press, and the Mac2 desktop path). Device web contexts (XCUITest web,
+// phase A5) reject the actions endpoint — like non-left buttons, this is
+// desktop-browser-only until those contexts grow actions support.
+async function performElementPress({
+  driver,
+  element,
+  button = "left",
+  duration,
+}: {
+  driver: any;
+  element: any;
+  button?: string;
+  duration: number;
+}): Promise<void> {
+  const buttonIndex =
+    ({ left: 0, middle: 1, right: 2 } as Record<string, number>)[button] ?? 0;
+  await driver
+    .action("pointer", { parameters: { pointerType: "mouse" } })
+    .move({ origin: element })
+    .down({ button: buttonIndex })
+    .pause(duration)
+    .up({ button: buttonIndex })
     .perform();
 }
 

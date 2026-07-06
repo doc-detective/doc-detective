@@ -5,6 +5,8 @@ import {
   findAppElement,
   ensureAppForeground,
 } from "./appSurface.js";
+import { APP_GESTURES } from "./appGestures.js";
+import { performElementPress } from "./movement.js";
 import {
   findElementByShorthand,
   findElementByCriteria,
@@ -119,12 +121,28 @@ async function findElement({ config, step, driver, click, appSession }: { config
         return result;
       }
       if (click || step.find.click) {
-        try {
-          await found.element.click();
-          result.description += " Clicked element.";
-        } catch (error: any) {
-          result.status = "FAIL";
-          result.description += ` Couldn't click element. Error: ${error.message}`;
+        const duration = step.find.click?.duration;
+        if (duration) {
+          // Long-press (phase A6): dispatch to the platform's gesture adapter
+          // (longClickGesture / touchAndHold / windows: click durationMs /
+          // Mac2 W3C mouse chain).
+          const gestures =
+            APP_GESTURES[appRef.entry!.platform ?? "windows"];
+          try {
+            await gestures.longPress(appDriver, found.element, duration);
+            result.description += ` Long-pressed element (${duration}ms).`;
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't long-press element (duration ${duration}ms). Error: ${error.message}`;
+          }
+        } else {
+          try {
+            await found.element.click();
+            result.description += " Clicked element.";
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't click element. Error: ${error.message}`;
+          }
         }
       }
       return result;
@@ -263,12 +281,20 @@ async function findElement({ config, step, driver, click, appSession }: { config
   if (step.find.click || click) {
     try {
       const button = step.find.click?.button || "left";
-      if (button === "left") {
+      const duration = step.find.click?.duration;
+      if (duration) {
+        // Long-press (phase A6): a W3C press-pause-release chain. Like
+        // non-left buttons, this needs the actions path, so it's
+        // desktop-browser-only (device web contexts reject it).
+        await performElementPress({ driver, element, button, duration });
+        result.description += ` Long-pressed element (${duration}ms).`;
+      } else if (button === "left") {
         await element.click();
+        result.description += " Clicked element.";
       } else {
         await element.click({ button });
+        result.description += " Clicked element.";
       }
-      result.description += " Clicked element.";
     } catch (error: any) {
       result.status = "FAIL";
       result.description += ` Couldn't click element. Error: ${error.message}`;

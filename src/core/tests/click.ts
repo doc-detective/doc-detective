@@ -30,9 +30,24 @@ async function clickElement({ config, step, driver, appSession }: { config: any;
       ...step.click,
       button: step.click.button || "left",
     };
-    findStep = { find: {...step.click, click: { button: step.click.button } } };
+    // `button` and `duration` describe the click itself, not the element
+    // search — move them into the click sub-effect.
+    findStep = {
+      find: {
+        ...step.click,
+        click: {
+          button: step.click.button,
+          ...(step.click.duration !== undefined && {
+            duration: step.click.duration,
+          }),
+        },
+      },
+    };
     if (findStep.find.button) {
       delete findStep.find.button;
+    }
+    if (findStep.find.duration !== undefined) {
+      delete findStep.find.duration;
     }
   }
 
