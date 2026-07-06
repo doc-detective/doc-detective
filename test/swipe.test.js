@@ -100,7 +100,7 @@ function appSessionWith(entry) {
 }
 
 describe("swipe step: app surfaces", function () {
-  it("normalizes the string form onto the platform adapter with defaults", async function () {
+  it("applies the default distance when the directional form omits it", async function () {
     const driver = makeFakeAppDriver();
     const appSession = appSessionWith({
       name: "myapp",
@@ -109,9 +109,6 @@ describe("swipe step: app surfaces", function () {
       launchedByUs: true,
       platform: "android",
     });
-    // The string form has no surface field; the app branch is exercised via
-    // the active app when only an app session exists (no browser driver).
-    appSession.activeApp = "myapp";
     const result = await swipeSurface({
       config,
       step: { swipe: { direction: "up", surface: { app: "myapp" } } },
