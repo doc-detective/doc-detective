@@ -157,9 +157,12 @@ async function findElement({ config, step, driver, click, appSession }: { config
       result.outputs.found = true;
       await finalizeFound({ result });
       // Shorthand carries no sub-effect fields, so button defaults to left.
+      // Argument-less click() maps to the classic element-click endpoint;
+      // passing options makes wdio emit W3C pointer actions, which device
+      // browsers (XCUITest web context, phase A5) reject.
       if (click) {
         try {
-          await element.click({ button: "left" });
+          await element.click();
           result.description += " Clicked element.";
         } catch (error: any) {
           result.status = "FAIL";
@@ -252,12 +255,19 @@ async function findElement({ config, step, driver, click, appSession }: { config
     result.description = result.description + " Moved to element.";
   }
 
-  // Click element
+  // Click element. A left/default click is argument-less: with options wdio
+  // emits W3C pointer actions, which device browsers (XCUITest web context,
+  // phase A5) reject — the bare form maps to the classic element-click
+  // endpoint and works everywhere. Non-left buttons genuinely need the
+  // actions path, so they keep the options form (desktop-only).
   if (step.find.click || click) {
     try {
-      await element.click({
-        button: step.find.click?.button || "left",
-      });
+      const button = step.find.click?.button || "left";
+      if (button === "left") {
+        await element.click();
+      } else {
+        await element.click({ button });
+      }
       result.description += " Clicked element.";
     } catch (error: any) {
       result.status = "FAIL";

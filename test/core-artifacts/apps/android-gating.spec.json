@@ -1,14 +1,14 @@
 {
   "specId": "android-gating-a3a",
-  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): the `android` and `ios` target platforms are validated and gated on the general matrix. This spec is deterministic on EVERY host — it asserts the always-SKIP phase gates (android+browser -> A5, ios -> A4), which return before any SDK/emulator detection, so no host lazily installs a toolchain or boots an emulator here. (Native android app runs — which can PASS on a capable host under A3b — are exercised in the apps-android group's KVM jobs, not here.)",
+  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): mobile-context gates validated on the general matrix. This spec is deterministic on EVERY host — as of phase A5 (mobile web), a SUPPORTED browser+platform pair proceeds to real toolchain/device work, so the always-SKIP assertions here use UNSUPPORTED pairs, which the mobile-browser support matrix rejects before any SDK/emulator/simulator detection. No host lazily installs a toolchain or boots a device here. Native mobile app runs and supported mobile-web runs (which PASS on capable hosts) are exercised in the apps-android, apps-ios, mobile-web-android, and mobile-web-ios groups, not here.",
   "tests": [
     {
       "testId": "android-mobile-web-gates",
-      "description": "An android context with a browser step is SKIPPED pointing at phase A5 (mobile web on Android). This gate fires before any SDK detection, so the outcome is deterministic on every host and never triggers a toolchain install or emulator boot.",
+      "description": "An android context with an unsupported browser (firefox) is SKIPPED by the mobile-browser support matrix, naming chrome as the supported Android browser. Fires before any SDK detection, so the outcome is deterministic on every host and never triggers a toolchain install or emulator boot.",
       "runOn": [
         {
           "platforms": "android",
-          "browsers": "chrome"
+          "browsers": "firefox"
         }
       ],
       "steps": [
@@ -18,18 +18,17 @@
       ]
     },
     {
-      "testId": "ios-context-gates",
-      "description": "An ios target context is SKIPPED pointing at phase A4 (iOS app surfaces). Validated and gated now so A4 is purely additive.",
+      "testId": "ios-mobile-web-gates",
+      "description": "An ios context with an unsupported browser (chrome) is SKIPPED by the mobile-browser support matrix, naming safari as the supported iOS browser. Fires before any simulator detection, so the outcome is deterministic on every host — including macOS — and never boots a simulator. Supported mobile-web runs (safari on ios) are exercised in the mobile-web-ios group.",
       "runOn": [
         {
-          "platforms": "ios"
+          "platforms": "ios",
+          "browsers": "chrome"
         }
       ],
       "steps": [
         {
-          "startSurface": {
-            "app": "com.apple.Preferences"
-          }
+          "goTo": "https://example.com"
         }
       ]
     }

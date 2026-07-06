@@ -22,6 +22,7 @@ import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveCropGeometry } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -47,6 +48,9 @@ export {
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
+  snapshotAppServerDescendants,
+  reapConsoleOrphans,
+  listWindowsDescendantPids,
   // Exported as a test seam: the manifest-staleness rules are load-bearing
   // (a stale manifest makes the lazily-installed driver invisible to Appium).
   invalidateStaleAppiumManifest,
@@ -599,6 +603,17 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       const timeout = descriptor.timeout ?? 60000;
       capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
       capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
+      // Persisting WebDriverAgent's Xcode build products across sessions/runs
+      // turns the cold ~10-minute WDA compile into a fast incremental build.
+      // Opt-in via env so a shared derivedDataPath is only used where the caller
+      // manages it (e.g. a CI cache keyed by driver + Xcode version); unset by
+      // default, appium uses a throwaway per-session temp dir. A caller sharing
+      // one path across concurrent iOS sessions owns serializing them.
+      const derivedDataPath =
+        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      if (derivedDataPath && derivedDataPath.trim()) {
+        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
+      }
       return capabilities;
     },
     unsupportedFields: [
@@ -678,6 +693,13 @@ interface AppSessionState {
   androidSdkRoot?: string;
   androidDeviceRegistry?: any;
   androidDeviceDeps?: any;
+  // iOS simulator-layer wiring (phase A4), the simctl analogue of the Android
+  // fields above: the run-level simulator registry and the injected simctl
+  // effect bundle acquireSimulator runs on. iOS shares one XCUITest session per
+  // simulator (keyed in deviceSessions like Android), so no SDK-root env is
+  // needed — simctl/xcrun are on PATH.
+  iosSimulatorRegistry?: any;
+  iosSimulatorDeps?: any;
 }
 
 function createAppSessionState(): AppSessionState {
@@ -797,19 +819,51 @@ async function probeMacAccessibility(): Promise<boolean | null> {
   });
 }
 
-function probeIosToolchain(): { ok: true } | { ok: false; reason: string } {
-  if (process.platform !== "darwin") {
+// Probe the iOS simulator toolchain: a macOS host, a configured Xcode
+// (`xcode-select -p`), and a working `xcrun simctl`. Effects are injected
+// (platform + a command runner) so every branch is unit-testable on any host —
+// the same seam iosInstaller uses. The default runner gives `xcrun simctl` a
+// generous timeout: the FIRST cold `simctl` call on a runner with many Xcodes
+// and simulator runtimes launches CoreSimulatorService and can take far longer
+// than a warm call (a 20s ceiling spuriously reported it "unavailable" on
+// hosted macos-latest). A failure surfaces the selected developer dir and the
+// command's own diagnostic so the skip is actionable, not opaque.
+function probeIosToolchain(
+  deps: {
+    platform?: NodeJS.Platform;
+    run?: (
+      command: string,
+      args: string[]
+    ) => { status: number | null; stdout?: string; stderr?: string };
+  } = {}
+): { ok: true } | { ok: false; reason: string } {
+  const platform = deps.platform ?? process.platform;
+  const run =
+    deps.run ??
+    ((command: string, args: string[]) => {
+      const result = spawnSync(command, args, {
+        encoding: "utf8",
+        windowsHide: true,
+        // xcrun/simctl gets 2 minutes for the cold CoreSimulator warm-up;
+        // xcode-select is a cheap path lookup.
+        timeout: command === "xcrun" ? 120000 : 15000,
+        maxBuffer: 32 * 1024 * 1024,
+      });
+      return {
+        status: result.status,
+        stdout: typeof result.stdout === "string" ? result.stdout : "",
+        stderr: typeof result.stderr === "string" ? result.stderr : "",
+      };
+    });
+
+  if (platform !== "darwin") {
     return {
       ok: false,
       reason:
         "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
     };
   }
-  const xcodeSelect = spawnSync("xcode-select", ["-p"], {
-    encoding: "utf8",
-    windowsHide: true,
-    timeout: 15000,
-  });
+  const xcodeSelect = run("xcode-select", ["-p"]);
   if (xcodeSelect.status !== 0) {
     return {
       ok: false,
@@ -817,16 +871,21 @@ function probeIosToolchain(): { ok: true } | { ok: false; reason: string } {
         "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
     };
   }
-  const simctl = spawnSync("xcrun", ["simctl", "list", "devices"], {
-    encoding: "utf8",
-    windowsHide: true,
-    timeout: 20000,
-  });
+  const developerDir = String(xcodeSelect.stdout ?? "").trim();
+  const simctl = run("xcrun", ["simctl", "list", "devices", "available"]);
   if (simctl.status !== 0) {
+    const detail =
+      String(simctl.stderr ?? "")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .pop() ||
+      (simctl.status === null
+        ? "the command timed out"
+        : `exit ${simctl.status}`);
     return {
       ok: false,
-      reason:
-        "Skipping context on 'ios': `xcrun simctl` is unavailable. Open Xcode once to finish simulator components and rerun.",
+      reason: `Skipping context on 'ios': \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
     };
   }
   return { ok: true };
@@ -1161,11 +1220,13 @@ async function startAppSurface({
   let driver: any;
   let deviceName: string | undefined;
 
-  if (platform === "android") {
-    // Android: multiple app surfaces on one device share a single UiAutomator2
-    // session (switch by activateApp), so the driver is per-device, not
-    // per-app. Resolve the device (context default merged with the step
-    // override) and acquire it (boot/create as needed).
+  if (isMobileTargetPlatform(platform)) {
+    // Mobile (Android emulator / iOS simulator): multiple app surfaces on one
+    // device share a single driver session (switch by activateApp), so the
+    // driver is per-device, not per-app. Resolve the device (context default
+    // merged with the step override) and acquire it (boot/create as needed).
+    // `targetNoun` keeps guidance honest per platform.
+    const targetNoun = platform === "ios" ? "simulator" : "device";
     const desc = normalizeDeviceDescriptor({
       contextDevice: appSession.defaultDevice,
       stepDevice: descriptor.device,
@@ -1173,8 +1234,7 @@ async function startAppSurface({
     });
     if (!serverDeps.acquireDevice) {
       result.status = "FAIL";
-      result.description =
-        "Android app session is missing its device layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).";
+      result.description = `The ${platformDriver.driverLabel} session is missing its ${targetNoun} layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).`;
       return result;
     }
     let acquired: any;
@@ -1182,14 +1242,14 @@ async function startAppSurface({
       acquired = await serverDeps.acquireDevice(desc);
     } catch (error: any) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${error?.message ?? error}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${error?.message ?? error}`;
       return result;
     }
     // The preflight already validated resolvability, so an acquire-time skip is
     // a real runtime failure (e.g. the device died between preflight and now).
     if ("skip" in acquired) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${acquired.skip}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${acquired.skip}`;
       return result;
     }
     deviceName = acquired.entry.name;
@@ -1210,7 +1270,7 @@ async function startAppSurface({
         );
       } catch (error: any) {
         result.status = "FAIL";
-        result.description = `Couldn't launch app "${appId}" on the Android device "${deviceName}": ${error?.message ?? error}.`;
+        result.description = `Couldn't launch app "${appId}" on the ${targetNoun} "${deviceName}": ${error?.message ?? error}.`;
         return result;
       }
       sessions.set(deviceName, {
@@ -1280,11 +1340,12 @@ async function startAppSurface({
       platform,
     });
     if (found.error) {
-      // On desktop the session is this app's alone, so end it. On Android the
-      // session is shared across the device's apps — deleting it would kill
-      // sibling surfaces — so leave it; the run-end device sweep handles the
-      // emulator, and no surface was registered for this failed app.
-      if (platform !== "android") {
+      // On desktop the session is this app's alone, so end it. On mobile
+      // (Android emulator / iOS simulator) the session is shared across the
+      // device's apps — deleting it would kill sibling surfaces — so leave it;
+      // the run-end device sweep handles the emulator/simulator, and no surface
+      // was registered for this failed app.
+      if (!isMobileTargetPlatform(platform)) {
         try {
           await driver.deleteSession();
         } catch {
@@ -1397,13 +1458,153 @@ async function closeAppSurface({
   }
 }
 
+// Injectable OS-process tools for the Windows console-orphan sweep. Real
+// implementations shell out / probe the OS; tests substitute fakes so the
+// hygiene logic is exercised without touching the machine.
+interface ConsoleOrphanTools {
+  /** Rows of the OS process table as {pid, ppid}. */
+  runQuery?: () => Promise<Array<{ pid: number; ppid: number }>>;
+  /** Descendant pids of `rootPid` (overrides runQuery-based walking). */
+  listDescendants?: (rootPid: number) => Promise<Set<number>>;
+  /** Whether a pid still refers to a live process. */
+  isAlive?: (pid: number) => boolean;
+  /** Force-terminate a single pid. */
+  forceKill?: (pid: number) => void;
+}
+
+// Whether `pid` is a live process. `process.kill(pid, 0)` sends no signal — it
+// throws ESRCH once the pid is gone; any other error (e.g. EPERM) means it
+// exists but is unsignalable, so treat only ESRCH as dead.
+function defaultIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error: any) {
+    return error?.code !== "ESRCH";
+  }
+}
+
+function defaultForceKill(pid: number): void {
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // already gone / unsignalable — best-effort
+  }
+}
+
+// Read the Windows process table as (pid, ppid) rows via a CIM query. CSV output
+// keeps parsing trivial and avoids wmic (removed on recent Windows). Best-effort:
+// rejects on failure, which the caller swallows into "no descendants".
+function queryWindowsProcessTable(): Promise<
+  Array<{ pid: number; ppid: number }>
+> {
+  return new Promise((resolve, reject) => {
+    const script =
+      'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId),$($_.ParentProcessId)" }';
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      { windowsHide: true, timeout: 10000, maxBuffer: 16 * 1024 * 1024 },
+      (error, stdout) => {
+        if (error) return reject(error);
+        const rows: Array<{ pid: number; ppid: number }> = [];
+        for (const line of String(stdout).split(/\r?\n/)) {
+          const m = line.trim().match(/^(\d+),(\d+)$/);
+          if (m) rows.push({ pid: Number(m[1]), ppid: Number(m[2]) });
+        }
+        resolve(rows);
+      }
+    );
+  });
+}
+
+// All descendant pids of `rootPid`, walked from a (pid, ppid) table. Pure and
+// unit-testable given an injected table.
+async function listWindowsDescendantPids(
+  rootPid: number,
+  runQuery: () => Promise<Array<{ pid: number; ppid: number }>>
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  let table: Array<{ pid: number; ppid: number }>;
+  try {
+    table = await runQuery();
+  } catch {
+    return out;
+  }
+  const childrenByParent = new Map<number, number[]>();
+  for (const { pid, ppid } of table) {
+    const siblings = childrenByParent.get(ppid);
+    if (siblings) siblings.push(pid);
+    else childrenByParent.set(ppid, [pid]);
+  }
+  const stack = [rootPid];
+  while (stack.length) {
+    const parent = stack.pop()!;
+    for (const child of childrenByParent.get(parent) ?? []) {
+      if (!out.has(child)) {
+        out.add(child);
+        stack.push(child);
+      }
+    }
+  }
+  return out;
+}
+
+// #501 hygiene, phase 1: snapshot the app Appium server's descendant pids while
+// the server is still alive, so a descendant that DETACHES from the tree during
+// teardown (a reparented conhost/PowerShell the tree-kill then misses) is still
+// attributable to us and reapable afterward. Windows-only; a no-op (empty set)
+// elsewhere or when the server pid isn't live. Only ever records processes
+// descended from OUR server — never image-name matches across the box.
+async function snapshotAppServerDescendants(
+  serverPid: number | undefined,
+  tools: ConsoleOrphanTools = {}
+): Promise<Set<number>> {
+  if (process.platform !== "win32" || !serverPid) return new Set();
+  const isAlive = tools.isAlive ?? defaultIsAlive;
+  // Skip the (subprocess) table query when the server isn't even alive.
+  if (!isAlive(serverPid)) return new Set();
+  if (tools.listDescendants) return tools.listDescendants(serverPid);
+  return listWindowsDescendantPids(
+    serverPid,
+    tools.runQuery ?? queryWindowsProcessTable
+  );
+}
+
+// #501 hygiene, phase 2: force-terminate any snapshotted descendant still alive
+// after the server tree-kill (i.e. it detached and survived). Returns the pids
+// actually reaped. Safe: it only touches pids from a prior
+// snapshotAppServerDescendants call, never a broad image-name sweep.
+async function reapConsoleOrphans(
+  pids: Iterable<number>,
+  tools: ConsoleOrphanTools = {}
+): Promise<number[]> {
+  const isAlive = tools.isAlive ?? defaultIsAlive;
+  const forceKill = tools.forceKill ?? defaultForceKill;
+  const reaped: number[] = [];
+  for (const pid of pids) {
+    if (isAlive(pid)) {
+      forceKill(pid);
+      reaped.push(pid);
+    }
+  }
+  return reaped;
+}
+
 // Context teardown: close every remaining app surface, end each shared Android
 // device session, then stop the app session's Appium server. Killing only what
 // we launched is the driver's contract (deleteSession terminates driver-
 // launched apps; the run-level device registry sweeps the emulators).
+//
+// On Windows the server kill is bracketed by the #501 console-orphan sweep:
+// snapshot the server's descendants before the kill, then force-reap any that
+// detached and survived it. Hygiene for lingering conhost processes
+// (microsoft/terminal#4050), kept as defense-in-depth alongside the ConPTY
+// guards in src/core/ptyWatchdog (ADR 01024).
 async function teardownAppSession(
   appSession: AppSessionState | undefined,
-  killServer: (pid: number | undefined) => Promise<void>
+  killServer: (pid: number | undefined) => Promise<void>,
+  tools: ConsoleOrphanTools = {}
 ): Promise<void> {
   if (!appSession) return;
   for (const entry of [...appSession.surfaces.values()]) {
@@ -1420,7 +1621,12 @@ async function teardownAppSession(
   }
   appSession.deviceSessions?.clear();
   if (appSession.server) {
-    await killServer(appSession.server.process?.pid);
+    const serverPid = appSession.server.process?.pid;
+    const orphanSnapshot = await snapshotAppServerDescendants(serverPid, tools);
+    await killServer(serverPid);
     appSession.server = undefined;
+    if (orphanSnapshot.size) {
+      await reapConsoleOrphans(orphanSnapshot, tools);
+    }
   }
 }

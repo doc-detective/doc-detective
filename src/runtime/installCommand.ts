@@ -212,7 +212,6 @@ const iosSubcommand: CommandModule<any, InstallArgv> = {
     const { installIos } = await import("./iosInstaller.js");
     const reports = await installIos({
       yes: Boolean(argv.yes),
-      force: Boolean(argv.force),
       dryRun: Boolean(argv["dry-run"]),
       ctx: ctxFromArgv(argv),
       deps: { logger },

@@ -1,3 +1,18 @@
+# [4.22.0](https://github.com/doc-detective/doc-detective/compare/v4.21.0...v4.22.0) (2026-07-06)
+
+
+### Features
+
+* **app-surface:** managed iOS simulators + executable XCUITest app surfaces (phase A4) ([#512](https://github.com/doc-detective/doc-detective/issues/512)) ([99b55fb](https://github.com/doc-detective/doc-detective/commit/99b55fbde3654e034603727e04fd6d74c899296e)), closes [doc-detective/github-action#73](https://github.com/doc-detective/github-action/issues/73)
+
+# [4.21.0](https://github.com/doc-detective/doc-detective/compare/v4.20.0...v4.21.0) (2026-07-05)
+
+
+### Features
+
+* **apps:** native Android app surfaces + managed emulators (phase A3) ([cb65d2e](https://github.com/doc-detective/doc-detective/commit/cb65d2ece9e3f5e4e4eeff48739dba2347e26c3c))
+* native macOS app surfaces via Mac2 (native-app phase A2) ([#502](https://github.com/doc-detective/doc-detective/issues/502)) ([faf5521](https://github.com/doc-detective/doc-detective/commit/faf552125640a64b46a30dad6621d5b44298a970)), closes [#501](https://github.com/doc-detective/doc-detective/issues/501)
+
 # [4.20.0](https://github.com/doc-detective/doc-detective/compare/v4.19.0...v4.20.0) (2026-07-04)
 
 

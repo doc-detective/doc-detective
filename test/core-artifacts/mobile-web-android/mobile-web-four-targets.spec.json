@@ -1,0 +1,28 @@
+{
+  "specId": "mobile-web-four-targets-a5",
+  "description": "The 'one page, four targets' story phase A5 un-gates: a single test fanned out across desktop and mobile targets by one runOn entry. chrome-on-ios is an unsupported pair, so the ios context SKIPs on the support matrix (that permutation is itself part of the story); windows/mac run desktop Chrome where the host matches; android runs device Chrome on capable (KVM) legs and SKIPs elsewhere. This spec uses a public, static page (example.com) because one URL must be reachable from both the host browser and the emulator (the emulator can't see the host's localhost without the 10.0.2.2 alias); it's isolated in its own spec so any external-network flake is contained.",
+  "tests": [
+    {
+      "testId": "one-page-four-targets",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "android",
+            "ios"
+          ],
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "https://example.com"
+        },
+        {
+          "find": "Example Domain"
+        }
+      ]
+    }
+  ]
+}

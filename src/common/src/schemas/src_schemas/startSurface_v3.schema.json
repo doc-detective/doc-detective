@@ -140,7 +140,7 @@
           },
           "headless": {
             "type": "boolean",
-            "description": "Run the Android emulator without a window. Ignored where not applicable."
+            "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
           },
           "orientation": {
             "type": "string",

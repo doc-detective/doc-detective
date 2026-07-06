@@ -525,16 +525,38 @@ fixtures.
   column, multi-app-per-device switching. Runs on any capable host OS; CI recipe
   (Linux runner + KVM) documented and exercised.
 - **Phase A4 — iOS apps + the `ios` platform (XCUITest).** Implemented for
-  macOS-capable hosts: iOS contexts now route through app-surface preflight,
+  macOS-capable hosts. iOS contexts route through app-surface preflight,
   resolve/install the `appium-xcuitest-driver`, and gate with actionable
-  `xcode-select`/`simctl` guidance when host tooling is missing. Adds
-  `doc-detective install ios` for explicit host preparation and dry-run
-  diagnostics. The full simulator lifecycle parity (managed boot/reuse/teardown)
-  remains tracked as follow-on hardening.
-- **Phase A5 — mobile browsers.** `browsers` on mobile platform entries: Chrome
-  on Android (on-device chromedriver management), Safari on iOS; the
-  unsupported-combination SKIP matrix; mobile-web fixtures (goTo/find/click/
-  screenshot on a device browser). Un-gates the "one page, four targets" story.
+  `xcode-select`/`simctl` guidance when host tooling is missing;
+  `doc-detective install ios` prepares/diagnoses the host. Full simulator
+  lifecycle parity with Android now landed (ADR 01028): a Doc-Detective-owned
+  `simctl` registry resolves the newest iPhone (or a named/created device),
+  boots/reuses/creates it, attaches XCUITest by `udid`, shares one session per
+  simulator with `activateApp` switching, and shuts down only simulators it
+  booted at run end. `install` (.app), `device` (name/deviceType/osVersion),
+  and the XCUITest mapping column are honored; `headless` is a no-op (simulators
+  boot without the Simulator UI). macOS hosts only; the `apps-ios` fixture leg
+  gates on ≥1 real PASS. Deeper refinements (parallel multi-simulator boots,
+  orientation, real devices/WebDriverAgent provisioning) stay later-phase scope.
+- **Phase A5 — mobile browsers.** Implemented (ADR 01029). `browsers` on a
+  mobile platform entry means the browser on the managed device, driven
+  through one webdriver session per device with `browserName` set (Chrome via
+  UiAutomator2 with server-managed chromedriver autodownload cached under the
+  DD cache; Safari via XCUITest with the generous WDA build ceiling) —
+  created through the A3/A4 device registry path and registered in the
+  browser session registry, so goTo/find/click/screenshot run the desktop
+  code unchanged. A pure pre-toolchain gate enforces the support matrix
+  (chrome+android, safari+ios; everything else SKIPs with the supported
+  browser named), fills the platform default browser, FAILs authored
+  device-fixed config (`headless: false`/`window`/`viewport` → pointer to the
+  device descriptor), and defers mixed native-app + web contexts to A6 with a
+  split-the-test SKIP. `safari` → `webkit` aliasing became platform-aware
+  (desktop pairs only), so `safari` on ios means the device Safari. The "one
+  page, four targets" story is un-gated — `platforms:
+  ["windows","mac","android","ios"], browsers: "chrome"` — with the ios leg
+  landing on the matrix SKIP. Mobile-web fixtures run gated on the Android
+  KVM legs and the macOS leg (`mobile-web-android` / `mobile-web-ios`
+  groups); emulator tests reach the host via `10.0.2.2`.
 - **Phase A6 — mobile interaction vocabulary.** `swipe`, `click.duration`,
   device `$KEY$`s, `find` auto-scroll on app surfaces, the permission-dialog
   docs pattern. Multi-device fixtures (the two-phone conversation) land here,

@@ -273,6 +273,80 @@ function ensureRuntimePackageJson(runtimeDir: string): void {
   }
 }
 
+// #501 root fix: record every managed package physically present in the
+// runtime cache as a `dependencies` entry in <runtimeDir>/package.json.
+//
+// npm computes its ideal tree from package.json plus the CLI-requested adds.
+// With a dependency-less manifest (`--no-save` keeps npm from ever writing
+// one), arborist treated every already-installed sibling as extraneous and
+// PRUNED it on each single-package JIT install. Mid-run, that deleted
+// node-pty's files out from under the already-loaded module (only the
+// OS-locked .node binary survives), and the next `pty.spawn` — served from the
+// stale module/resolution caches — froze the whole process inside a native
+// wait (the #501 ConPTY freeze). Recording presence makes installs additive.
+//
+// Called before each install (so this install's reify keeps existing
+// siblings) and again after a successful one (so the new arrivals are
+// protected from the NEXT install). Candidate names come from installed.json
+// and the manifest's current dependencies — both doc-detective-managed sets,
+// so hoisted transitives are never promoted to direct dependencies. Physical
+// presence on disk then filters the candidates: a package whose install
+// failed (e.g. the best-effort PTY backend on an exotic platform) is never
+// resurrected into future installs' ideal trees, where its permanent failure
+// would fail every subsequent install.
+function recordRuntimeDependencies(
+  runtimeDir: string,
+  ctx: CacheDirContext
+): void {
+  try {
+    const pkgPath = path.join(runtimeDir, "package.json");
+    let pkg: any;
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    } catch {
+      pkg = JSON.parse(RUNTIME_PACKAGE_JSON_CONTENTS);
+    }
+    const prior: Record<string, string> =
+      pkg.dependencies && typeof pkg.dependencies === "object"
+        ? pkg.dependencies
+        : {};
+    const record = readInstalledRecord(ctx);
+    const names = new Set<string>([
+      ...Object.keys(record.npmPackages),
+      ...Object.keys(prior),
+    ]);
+    const deps: Record<string, string> = {};
+    for (const name of [...names].sort()) {
+      // Presence on disk is the only trigger — see the no-resurrection note
+      // above.
+      if (
+        !fs.existsSync(
+          path.join(runtimeDir, "node_modules", name, "package.json")
+        )
+      ) {
+        continue;
+      }
+      let range: string | null = null;
+      try {
+        // The shim's declared constraint, so an upgraded shim's reinstall
+        // logic and the recorded range stay in agreement.
+        range = getDeclaredVersion(name);
+      } catch {
+        // Not declared by this shim (a legacy cache entry): keep whatever was
+        // recorded before, else pin to the installed version.
+        const v = readInstalledVersionFromCache(name, ctx);
+        range = prior[name] ?? (v ? `^${v}` : null);
+      }
+      if (range) deps[name] = range;
+    }
+    pkg.dependencies = deps;
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), "utf8");
+  } catch {
+    // Best-effort: a failure to record must never break the install itself.
+    // The worst case is one more prune-y install — the pre-fix status quo.
+  }
+}
+
 function readInstalledVersionFromCache(
   name: string,
   ctx: CacheDirContext = {}
@@ -354,6 +428,10 @@ export async function ensureRuntimeInstalled(
   );
   const runtimeDir = getRuntimeDir(ctx);
   ensureRuntimePackageJson(runtimeDir);
+  // Protect already-installed siblings from this install's reify (#501): with
+  // them recorded as dependencies, npm's ideal tree keeps them instead of
+  // pruning them as extraneous.
+  recordRuntimeDependencies(runtimeDir, ctx);
 
   // Keep the announcement calm — no dependency list or count. The resolved
   // versions are reported once the install completes (the install command's
@@ -531,4 +609,7 @@ export async function ensureRuntimeInstalled(
     record.npmPackages[name] = { installedVersion, installedAt: now };
   }
   writeInstalledRecord(record, ctx);
+  // Record the new arrivals (now in installed.json AND on disk) so the NEXT
+  // install's ideal tree keeps them too (#501).
+  recordRuntimeDependencies(runtimeDir, ctx);
 }

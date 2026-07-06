@@ -1,0 +1,53 @@
+{
+  "specId": "mobile-web-ios-safari-a5",
+  "description": "Mobile web phase A5 (docs/design/native-app-surfaces.md): Safari on a managed iOS simulator. On a capable macOS host the ios context resolves the newest installed iPhone simulator via simctl, opens one Safari session through the lazily-installed XCUITest driver, and goTo/find/click/screenshot behave exactly as on desktop — element semantics are web DOM. On Windows/Linux the toolchain probe lands the context SKIPPED with actionable macOS/Xcode guidance. The first XCUITest session on a cold runner builds WebDriverAgent via xcodebuild (minutes) — the session's default WDA ceiling accommodates it, and CI caches the build. iOS simulators share the host network, so the job's test server is reachable at localhost:8092 directly.",
+  "tests": [
+    {
+      "testId": "ios-safari-default-browser",
+      "description": "No `browsers` key on the ios entry: the platform default (safari) fills in. Navigate, assert page text, click a button, assert the click's side effect, and capture the device screen.",
+      "runOn": [
+        {
+          "platforms": "ios"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        },
+        {
+          "find": "Click String Shorthand Test Page"
+        },
+        {
+          "click": "Reveal by text"
+        },
+        {
+          "find": "Text click landed"
+        },
+        {
+          "screenshot": {
+            "path": "ios-safari-mobile-web.png",
+            "overwrite": "true"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ios-safari-explicit",
+      "description": "Explicit `browsers: safari` on the ios entry — on a mobile pair the name stays `safari` (no desktop webkit aliasing) and means the real device Safari.",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "browsers": "safari"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        },
+        {
+          "find": "Reveal by object"
+        }
+      ]
+    }
+  ]
+}
