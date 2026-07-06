@@ -20,12 +20,15 @@ function appiumHomeForDriverPath(driverEntry: string): string | null {
 }
 
 // The browser drivers `appium driver list` must report as `installed (npm)`
-// for Chrome/Firefox detection (getAvailableApps) to mark the browser
+// for Chrome/Firefox/Safari detection (getAvailableApps) to mark the browser
 // available. A home missing all of these can't drive a browser, so it must
-// not be chosen as APPIUM_HOME for the browser paths.
+// not be chosen as APPIUM_HOME for the browser paths. Safari is included
+// because its availability check (config.ts) also gates on
+// `npmInstalled("appium-safari-driver")` via `appium driver list`.
 const BROWSER_DRIVER_PACKAGES = [
   "appium-chromium-driver",
   "appium-geckodriver",
+  "appium-safari-driver",
 ];
 
 // True when <runtimeDir>/node_modules contains appium AND at least one browser
@@ -71,8 +74,10 @@ function setAppiumHome(ctx: { cacheDir?: string } = {}) {
   // detection come up empty.
   // Try each driver in turn: resolveHeavyDepPath can return a shim path with no
   // node_modules segment (appiumHomeForDriverPath then yields null), so a bad
-  // first candidate must not stop us from deriving the home from the second.
-  for (const driverName of ["appium-chromium-driver", "appium-geckodriver"]) {
+  // first candidate must not stop us from deriving the home from the next. The
+  // candidate list is BROWSER_DRIVER_PACKAGES so it stays in sync with the
+  // completeness gate above (Safari included).
+  for (const driverName of BROWSER_DRIVER_PACKAGES) {
     const driverEntry = resolveHeavyDepPath(driverName, {
       cacheDir: ctx.cacheDir,
     });
@@ -83,11 +88,11 @@ function setAppiumHome(ctx: { cacheDir?: string } = {}) {
     }
   }
 
-  /* c8 ignore start - legacy fallback (step 3), reached only when NEITHER
-   * appium-chromium-driver NOR appium-geckodriver resolves via
-   * resolveHeavyDepPath in step 2 above. Both are installed dependencies of
-   * this repo that shim-resolve first on every measured CI leg -- the
-   * cross-platform coverage union shows step 2's return (lines 49-57)
+  /* c8 ignore start - legacy fallback (step 3), reached only when NONE of the
+   * BROWSER_DRIVER_PACKAGES (appium-chromium-driver first) resolves via
+   * resolveHeavyDepPath in step 2 above. chromium/gecko are installed
+   * dependencies of this repo that shim-resolve first on every measured CI leg
+   * -- the cross-platform coverage union shows step 2's return (lines 49-57)
    * covered and never reaches here -- so step 2 always returns before this
    * fallback runs. It exists for driver-less installs and can't be exercised
    * hermetically without uninstalling a real dependency the runner and the

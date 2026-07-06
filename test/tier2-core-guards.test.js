@@ -158,6 +158,24 @@ describe("Tier-2 core guard/error paths", function () {
       }
     });
 
+    it("runtimeHomeHasBrowserDriver: true for a Safari-only browser home (appium + appium-safari-driver)", function () {
+      // Safari availability (config.ts) also gates on `appium driver list`
+      // reporting appium-safari-driver installed, so a runtime home holding
+      // appium + the Safari driver but no chromium/gecko is still a valid
+      // browser home and must not be rejected.
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-rt-home-"));
+      const nm = path.join(dir, "node_modules");
+      try {
+        fs.mkdirSync(path.join(nm, "appium"), { recursive: true });
+        fs.mkdirSync(path.join(nm, "appium-safari-driver"), {
+          recursive: true,
+        });
+        assert.equal(runtimeHomeHasBrowserDriver(dir), true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
     it("runtimeHomeHasBrowserDriver: false when a browser driver exists but appium does not", function () {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-rt-home-"));
       try {
