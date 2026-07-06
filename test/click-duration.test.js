@@ -192,6 +192,11 @@ describe("click.duration on app surfaces", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /middle-click isn't supported on macOS/);
+    assert.equal(
+      driver.calls.filter((c) => c.command.includes("click")).length,
+      0,
+      "rejection must short-circuit before issuing any click command"
+    );
   });
 
   it("rejects a non-left click on a touch (Android) app surface as meaningless", async function () {

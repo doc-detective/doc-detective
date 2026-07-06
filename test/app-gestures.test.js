@@ -361,14 +361,20 @@ describe("appGestures: clickButton per platform", function () {
     assert.match(mid.error, /middle-click isn't supported on macOS/);
   });
 
-  it("touch surfaces reject any non-left button as meaningless", async function () {
+  it("touch surfaces reject any non-left button, naming the button", async function () {
     for (const platform of ["android", "ios"]) {
-      const r = await APP_GESTURES[platform].clickButton(
-        makeFakeDriver(),
-        fakeElement(),
-        "right"
-      );
-      assert.match(r.error, /touch input has no right button/, platform);
+      for (const button of ["right", "middle", "back", "forward"]) {
+        const r = await APP_GESTURES[platform].clickButton(
+          makeFakeDriver(),
+          fakeElement(),
+          button
+        );
+        assert.match(
+          r.error,
+          new RegExp(`touch input has no ${button} button`),
+          `${platform}/${button}`
+        );
+      }
     }
   });
 });
