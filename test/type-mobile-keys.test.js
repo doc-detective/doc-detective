@@ -59,7 +59,7 @@ describe("splitKeyRuns", function () {
     ]);
   });
 
-  it("recognizes digit-bearing sentinels ($F11$, $NUMPAD_0$) as tokens, not text", function () {
+  it("routes digit-bearing sentinels ($F11$, $NUMPAD_0$) through the sentinel path (verbatim fall-through)", function () {
     // Neither has an Android keycode mapping, so they fall through to
     // verbatim text — but via the sentinel path, same as $WEIRD$.
     assert.deepEqual(splitKeyRuns(["$F11$"], "android"), [
