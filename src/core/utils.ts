@@ -768,7 +768,7 @@ function isRetryableSessionError(
 ): boolean {
   if (typeof message !== "string" || !message) return false;
   if (TRANSIENT_SESSION_ERROR.test(message)) return true;
-  return (startupCeiling ?? 0) > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+  return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
