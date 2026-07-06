@@ -119,9 +119,13 @@ desktop fixtures.
   reliable focused-element typing on iOS; the error says so and names the
   alternative. (This revises the design-doc example that typed criteria-less
   on any mobile surface; the example was Android, which works.)
-- **Browser, process, and desktop app surfaces are unchanged** — the desktop
-  app rejection message now names the mobile-only scope instead of promising
-  "a later phase", but the behavior is identical.
+- **Browser and process surfaces are unchanged.** **Desktop app surfaces**
+  still reject every `$KEY$` token (the vocabulary is mobile-only this phase),
+  with two refinements: the rejection message now names the mobile-only scope
+  instead of promising "a later phase", and the sentinel regex gained digits
+  (`$[A-Z0-9_]+$`) so digit-bearing tokens (`$F11$`, `$NUMPAD_0$`) are rejected
+  *uniformly* — pre-A6 they slipped through the letter-only regex and were
+  typed as literal text, an inconsistency this closes.
 
 ### Multi-device
 

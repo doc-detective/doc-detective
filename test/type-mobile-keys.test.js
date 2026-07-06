@@ -1,7 +1,10 @@
 // Unit tests for the phase A6 mobile key vocabulary in typeKeys: the run
 // splitter, Android pressKey/typeFocused, iOS pressButton/text folding, the
-// desktop rejection (unchanged behavior, updated wording), and the relaxed
-// element-criteria rule on mobile app surfaces.
+// desktop rejection (desktop app surfaces still reject every $KEY$ token, but
+// the sentinel regex now includes digits — so digit-bearing tokens like
+// $F11$/$NUMPAD_0$ are rejected too, where pre-A6 they slipped through the
+// letter-only regex and were typed literally), and the relaxed element-
+// criteria rule on mobile app surfaces.
 import assert from "node:assert/strict";
 import { typeKeys, splitKeyRuns } from "../dist/core/tests/typeKeys.js";
 import { createAppSessionState } from "../dist/core/tests/appSurface.js";

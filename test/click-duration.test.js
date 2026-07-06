@@ -123,6 +123,32 @@ describe("click.duration on app surfaces", function () {
     assert.equal(driver.calls.length, 0, "no gesture extension calls");
   });
 
+  it("rejects a non-left button on an app surface instead of silently left-clicking", async function () {
+    const driver = makeFakeAppDriver();
+    const appSession = appSessionWith({
+      name: "myapp",
+      appId: "com.example.myapp",
+      driver,
+      launchedByUs: true,
+      platform: "windows",
+    });
+    const result = await clickElement({
+      config,
+      step: {
+        click: {
+          elementText: "Message",
+          button: "right",
+          surface: { app: "myapp" },
+        },
+      },
+      driver: null,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /right-click isn't supported on app surfaces/);
+    assert.equal(driver.element.clicked, 0, "must not fall back to a left click");
+  });
+
   it("wraps a long-press driver error into a FAIL", async function () {
     const driver = makeFakeAppDriver();
     driver.execute = async () => {

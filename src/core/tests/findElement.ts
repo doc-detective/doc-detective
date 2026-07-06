@@ -121,6 +121,21 @@ async function findElement({ config, step, driver, click, appSession }: { config
         return result;
       }
       if (click || step.find.click) {
+        // App-surface clicks are left-button only. A requested right/middle
+        // button (find.click: "right" or { button: "right" }) can't be
+        // honored by the native drivers yet, so reject it loudly rather than
+        // silently performing a left click.
+        const clickSpec = step.find.click;
+        const button =
+          typeof clickSpec === "string" &&
+          ["left", "right", "middle"].includes(clickSpec)
+            ? clickSpec
+            : clickSpec?.button || "left";
+        if (button !== "left") {
+          result.status = "FAIL";
+          result.description += ` ${button}-click isn't supported on app surfaces; app clicks are left-button (use \`duration\` for a long-press).`;
+          return result;
+        }
         const duration = step.find.click?.duration;
         if (duration) {
           // Long-press (phase A6): dispatch to the platform's gesture adapter
