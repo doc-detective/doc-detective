@@ -2,8 +2,10 @@ import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import {
   getFfmpegPath,
   selectRecordingToStop,
@@ -92,6 +94,16 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     const idx = recordings.indexOf(recording);
     if (idx !== -1) recordings.splice(idx, 1);
   };
+
+  // A pending device recording never actually started (no app surface opened
+  // a device session after the record step) — there's nothing to save.
+  if (recording.type === "appium-pending") {
+    dropHandle();
+    result.status = "SKIPPED";
+    result.description =
+      "The device recording never started (no app surface opened a device session), so there is nothing to save.";
+    return result;
+  }
 
   try {
     if (recording.type === "MediaRecorder") {
@@ -224,6 +236,38 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         deleteSource: true,
         crop: recording.crop,
       });
+      dropHandle();
+    } else if (recording.type === "appium") {
+      // Device engine (phase A7): the whole video arrives base64 from the
+      // driver (adb screenrecord / simctl). Write it out; non-mp4 targets go
+      // through the shared transcode (which also applies the gif scale
+      // filter). No crop — the device frame IS the content.
+      const b64 = await recording.driver.stopRecordingScreen();
+      if (typeof b64 !== "string" || b64.length === 0) {
+        result.status = "FAIL";
+        result.description =
+          "The device recording returned no data; nothing was saved.";
+        dropHandle();
+        return result;
+      }
+      const buffer = Buffer.from(b64, "base64");
+      if (path.extname(recording.targetPath) === ".mp4") {
+        fs.writeFileSync(recording.targetPath, buffer);
+      } else {
+        const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+        const tempPath = path.join(
+          tempDir,
+          `device-${randomUUID().slice(0, 8)}.mp4`
+        );
+        fs.writeFileSync(tempPath, buffer);
+        await transcode({
+          config,
+          sourcePath: tempPath,
+          targetPath: recording.targetPath,
+          deleteSource: true,
+        });
+      }
       dropHandle();
     }
   } catch (error) {
