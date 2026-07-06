@@ -579,7 +579,6 @@ async function androidContextPreflight({
   if (hasBrowserStep) {
     const { level, reason } = mobileContextSkipReason({
       platform: "android",
-      hasBrowserStep,
     });
     return { ok: false, level, reason };
   }
@@ -765,7 +764,6 @@ async function iosContextPreflight({
   if (hasBrowserStep) {
     const { level, reason } = mobileContextSkipReason({
       platform: "ios",
-      hasBrowserStep,
     });
     return { ok: false, level, reason };
   }

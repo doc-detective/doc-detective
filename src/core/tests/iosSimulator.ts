@@ -202,18 +202,19 @@ function deviceTypeModelNumber(name: string): number {
   return match ? parseInt(match[1], 10) : -1;
 }
 
-// The newest device type of a product family (highest model number; a "Pro"
-// tie-breaks above a plain model, and "Pro Max"/"Plus" above "Pro"). Returns
-// null when the family has no device types. Used only for the create path —
-// booting an existing simulator never needs it.
+// The newest device type of a product family (highest model number; within a
+// model, tier tie-breaks "Pro Max" > "Pro" > "Plus" > plain, so the pick is
+// deterministic when several variants of one model exist). Returns null when
+// the family has no device types. Used only for the create path — booting an
+// existing simulator never needs it.
 function newestDeviceType(
   deviceTypes: SimDeviceType[],
   family: "iPhone" | "iPad"
 ): SimDeviceType | null {
   const rank = (name: string): number => {
     if (/pro max/i.test(name)) return 3;
-    if (/\bplus\b/i.test(name)) return 2;
     if (/\bpro\b/i.test(name)) return 2;
+    if (/\bplus\b/i.test(name)) return 1;
     return 0;
   };
   const candidates = deviceTypes.filter(
@@ -551,7 +552,10 @@ function runSimctl(
       { timeout, maxBuffer: 32 * 1024 * 1024 },
       (error: any, stdout, stderr) => {
         resolve({
-          code: error?.code ?? 0,
+          // A timeout or spawn error sets no numeric `code` (it's null) — treat
+          // that as a failure, not success, so a hung `simctl` doesn't look like
+          // an empty-but-ok result to the boot/create callers.
+          code: error ? (typeof error.code === "number" ? error.code : 1) : 0,
           stdout: String(stdout ?? ""),
           stderr: String(stderr ?? ""),
         });

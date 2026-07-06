@@ -21,14 +21,13 @@ function isMobileTargetPlatform(platform: unknown): MobileTarget | null {
 // gated by a later phase: a mobile-web (browser) step on either target — mobile
 // browsers land in A5. Native app contexts (no browser step) are NOT routed
 // here; they pass through their platform's context preflight (androidContext-
-// Preflight / iosContextPreflight), which capability-gates and runs them. So
-// this composer is only ever called with `hasBrowserStep` true, and it branches
-// on the target platform alone.
+// Preflight / iosContextPreflight), which capability-gates and runs them. This
+// composer is only ever called for a mobile-browser context, so it branches on
+// the target platform alone.
 function mobileContextSkipReason({
   platform,
 }: {
   platform: MobileTarget;
-  hasBrowserStep?: boolean;
 }): { level: "warning" | "info"; reason: string } {
   const roadmap = "docs/design/native-app-surfaces.md";
   if (platform === "ios") {
