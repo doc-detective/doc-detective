@@ -23,7 +23,7 @@ export interface Context {
    */
   platforms?: ("linux" | "mac" | "windows" | "android" | "ios") | ("linux" | "mac" | "windows" | "android" | "ios")[];
   /**
-   * Browsers to run tests on.
+   * Browsers to run tests on. On a mobile (`android`/`ios`) platform entry, the browser runs on the managed device: `chrome` on Android, `safari` on iOS (other combinations skip the context), and it fills in automatically when omitted. Device browsers ignore desktop-only config: `headless`, `window`, and `viewport` are rejected on mobile entries (the device owns its display — see the device descriptor).
    */
   browsers?:
     | ("chrome" | "firefox" | "safari" | "webkit")
