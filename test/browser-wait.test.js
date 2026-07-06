@@ -55,6 +55,24 @@ describe("browserWait self-healing monitors", function () {
     );
   });
 
+  it("a persistently missing monitor keeps the poll backoff (no tight re-inject loop)", async () => {
+    // If every check reads the monitor as missing (e.g. a page that reloads
+    // in a loop), the re-injection path must still pace itself with the poll
+    // backoff — otherwise it hammers the webdriver session with back-to-back
+    // inject+check round-trips until the Node timeout.
+    const driver = makeDriver([undefined, null]); // inject ok, checks always null
+    await assert.rejects(
+      () => waitForNetworkIdle(driver, 500, 900),
+      /Network idle timeout/
+    );
+    // ~900ms budget at >=200ms per inject+check cycle: a handful of calls,
+    // not hundreds. Generous bound so timing jitter can't flake it.
+    assert.ok(
+      driver.calls < 20,
+      `expected a paced loop, saw ${driver.calls} driver.execute calls`
+    );
+  });
+
   it("waitForDOMStable re-injects when the monitor global vanished and still resolves", async () => {
     const driver = makeDriver([
       undefined, // initial inject

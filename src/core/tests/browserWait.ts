@@ -115,7 +115,11 @@ async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
       });
 
       if (state === null || state === undefined) {
+        // Pace the re-injection like any other poll iteration: a page that
+        // keeps replacing itself must not turn this into a tight
+        // inject+check loop hammering the webdriver session until timeout.
         needsInject = true;
+        await new Promise((resolve) => setTimeout(resolve, 200));
         continue;
       }
 
@@ -230,7 +234,11 @@ async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
       });
 
       if (state === null || state === undefined) {
+        // Pace the re-injection like any other poll iteration: a page that
+        // keeps replacing itself must not turn this into a tight
+        // inject+check loop hammering the webdriver session until timeout.
         needsInject = true;
+        await new Promise((resolve) => setTimeout(resolve, 200));
         continue;
       }
 
