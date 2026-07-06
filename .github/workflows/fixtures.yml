@@ -241,14 +241,32 @@ jobs:
       # the mobile-web group (phase A5 — Chrome through the shared device
       # session, chromedriver auto-downloaded to match the image's Chrome).
       # Both REUSE the runner-booted emulator (bootedByUs=false, left running).
+      # The emulator-runner has no built-in retry, and its slowest-to-fail step is
+      # the pre-boot `sdkmanager --install` of the system image: the Google SDK
+      # repo intermittently serves a truncated package, sdkmanager aborts with
+      # "Error on ZipFile unknown archive", the emulator never launches, and the
+      # action's cleanup then reports the misleading `could not connect to TCP
+      # port 5554: Connection refused` (the boot timeout is never reached — the
+      # whole step dies in <1 min). That download corruption is transient, so we
+      # run the step with `continue-on-error` and retry it ONCE on failure; the
+      # retry re-downloads a fresh SDK package and re-boots. A genuine fixture
+      # FAIL also triggers the single retry (cheap insurance against a flaky
+      # first run) and, if it recurs, still fails the job on the second attempt.
+      #
+      # emulator-options match reactivecircus's documented-stable CI string
+      # (adds `-gpu swiftshader_indirect` for headless-Linux software GL). The
+      # two steps below are intentional duplicates — GitHub Actions can't share
+      # a `uses:` step's `with:` block via a YAML anchor — so keep them in sync.
       - name: Run apps-android + mobile-web-android on a booted emulator (reuse)
+        id: android-reuse
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
           force-avd-creation: true
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # Single-line the doc-detective command: the emulator-runner passes
           # `script` to the shell in a way that doesn't preserve backslash
@@ -256,6 +274,26 @@ jobs:
           # Both gates run regardless of the other's outcome and their exit
           # codes aggregate at the end, so a mobile-web pass can't mask an
           # apps-android failure (or vice versa) in this single sh -c script.
+          script: |
+            rc=0
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json || rc=1
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
+            exit $rc
+
+      # Retry once when the first attempt failed (transient SDK download / boot).
+      # This step is NOT continue-on-error, so a second failure fails the job.
+      - name: Retry apps-android + mobile-web-android (reuse)
+        if: steps.android-reuse.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
           script: |
             rc=0
             npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
@@ -306,9 +344,17 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       # Augment the runner's SDK: install a system image + create the default
-      # AVD. Dogfoods the A3a installer's augment path.
+      # AVD. Dogfoods the A3a installer's augment path. Retried once because the
+      # underlying `sdkmanager` system-image download intermittently serves a
+      # truncated package ("Error on ZipFile unknown archive"); the retry pulls
+      # a fresh copy. A second failure fails the step.
       - name: Provision Android toolchain (augment)
-        run: npx doc-detective install android --yes --os-version 34
+        shell: bash
+        run: |
+          npx doc-detective install android --yes --os-version 34 || {
+            echo "install android failed (likely a transient SDK download) — retrying once"
+            npx doc-detective install android --yes --os-version 34
+          }
 
       # The mobile-web run needs the test server up on the host (reached from
       # the emulator via 10.0.2.2).
@@ -376,7 +422,26 @@ jobs:
       # The action enables KVM (android: auto detects the android specs) and runs
       # the linked local build — no manual KVM step, no `install android`. Doc
       # Detective downloads the toolchain and boots the emulator itself.
+      #
+      # Retried once on failure: the lazy bootstrap's `sdkmanager` system-image
+      # download intermittently serves a truncated package ("Error on ZipFile
+      # unknown archive"), aborting before the emulator can boot. The first
+      # attempt runs with `continue-on-error`; the retry re-downloads and
+      # re-boots. The gate below reads the final run's output, so a second
+      # failure still fails the job.
       - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
+        id: android-action
+        continue-on-error: true
+        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/apps-android
+          android: auto
+
+      - name: Retry apps-android via the action
+        if: steps.android-action.outcome == 'failure'
         uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
         with:
           version: ''
