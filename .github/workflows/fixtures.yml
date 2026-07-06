@@ -29,11 +29,11 @@ jobs:
   fixtures:
     name: ${{ matrix.group }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # The apps and apps-ios groups get headroom: the first Mac2/XCUITest session
-    # on a macOS runner builds WebDriverAgent(Mac) via xcodebuild (minutes on a
-    # cold runner). apps-ios gets the most: it can cold-build WDA for two
-    # simulators (the default reuse device + a created named device).
-    timeout-minutes: ${{ matrix.group == 'apps-ios' && 45 || (matrix.group == 'apps' && 30 || 20) }}
+    # The apps and iOS-flavored groups get headroom: the first Mac2/XCUITest
+    # session on a macOS runner builds WebDriverAgent(Mac) via xcodebuild
+    # (minutes on a cold runner). apps-ios and mobile-web-ios get the most:
+    # a cold WDA build precedes their first simulator session.
+    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 45 || (matrix.group == 'apps' && 30 || 20) }}
     strategy:
       fail-fast: false
       matrix:
@@ -73,6 +73,19 @@ jobs:
           # (DD_FIXTURES_REQUIRE_PASS below, ADR 01028), while Windows/Linux legs
           # legitimately SKIP (iOS simulators are macOS-only).
           - apps-ios
+          # Mobile web (phase A5, Chrome on Android). On the general matrix the
+          # android contexts land SKIPPED (no KVM / no SDK — same gating as
+          # apps-android); the SKIP-matrix permutations (firefox/webkit/safari
+          # on android, mixed app+web) land SKIPPED on every host by design.
+          # The four-targets spec's windows/mac contexts run desktop Chrome
+          # where the host matches. Real Android PASS coverage runs in the KVM
+          # jobs below (skip-tolerant here).
+          - mobile-web-android
+          # Mobile web (phase A5, Safari on iOS). Safari runs on the managed
+          # simulator end-to-end on the macOS leg (gated on ≥1 PASS below);
+          # Windows/Linux legs legitimately SKIP, and the SKIP-matrix
+          # permutations land SKIPPED everywhere by design.
+          - mobile-web-ios
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -131,7 +144,7 @@ jobs:
         # leg (first cold WDA compile ~10 min; later runs restore it), which
         # replaces the workflow-level cache.
         env:
-          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.group == 'apps-android' && '1' || '' }}
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ (matrix.group == 'apps-android' || matrix.group == 'mobile-web-android') && '1' || '' }}
         with:
           version: ''
           working_directory: .
@@ -147,13 +160,15 @@ jobs:
       # skipping is expected:
       #   - `apps` on Windows AND macOS (macOS images pre-grant Accessibility to
       #     Xcode-Helper, which WebDriverAgentMac runs under);
-      #   - `apps-ios` on macOS only (iOS simulators + XCUITest are macOS-only;
-      #     Windows/Linux legitimately SKIP).
-      # Linux `apps` and non-macOS `apps-ios` stay skip-tolerant until phase A8.
+      #   - `apps-ios` AND `mobile-web-ios` on macOS only (iOS simulators +
+      #     XCUITest are macOS-only; Windows/Linux legitimately SKIP).
+      # Linux `apps` and non-macOS iOS groups stay skip-tolerant until phase A8;
+      # `mobile-web-android` is skip-tolerant on the whole general matrix (its
+      # real PASS coverage is the KVM jobs below).
       - name: Gate on results
         shell: bash
         env:
-          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.group == 'apps' && matrix.os != 'ubuntu-latest') || (matrix.group == 'apps-ios' && matrix.os == 'macos-latest')) && '1' || '0' }}
+          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.group == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
         run: |
           cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.group }}.json"
           node scripts/check-fixture-results.cjs "dd-output-${{ matrix.group }}.json"
@@ -180,9 +195,11 @@ jobs:
   # Reuse leg: the emulator-runner boots an emulator, and Doc Detective detects
   # and REUSES it (bootedByUs=false, left running) — the default-device path.
   fixtures-android-reuse:
-    name: apps-android (ubuntu KVM, reuse)
+    name: apps-android + mobile-web (ubuntu KVM, reuse)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Headroom for the second (mobile-web, phase A5) gated run on the same
+    # emulator — chromedriver download + Chrome session.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -211,7 +228,19 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run apps-android on a booted emulator (reuse)
+      # The mobile-web fixtures hit the test server from INSIDE the emulator
+      # via the 10.0.2.2 host-loopback alias, so the server must be up on the
+      # host before that run.
+      - name: Start test servers
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      # Two gated runs on the same booted emulator: the native app group, then
+      # the mobile-web group (phase A5 — Chrome through the shared device
+      # session, chromedriver auto-downloaded to match the image's Chrome).
+      # Both REUSE the runner-booted emulator (bootedByUs=false, left running).
+      - name: Run apps-android + mobile-web-android on a booted emulator (reuse)
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 34
@@ -226,12 +255,16 @@ jobs:
           script: |
             npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
             DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
 
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-reuse
-          path: dd-output-apps-android.json
+          path: |
+            dd-output-apps-android.json
+            dd-output-mobile-web-android.json
           retention-days: 3
           if-no-files-found: warn
 
@@ -240,9 +273,11 @@ jobs:
   # the default AVD), then Doc Detective BOOTS the AVD itself and sweeps it at
   # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec.
   fixtures-android-managed:
-    name: apps-android (ubuntu KVM, managed-boot)
+    name: apps-android + mobile-web (ubuntu KVM, managed-boot)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Headroom for the second (mobile-web, phase A5) gated run, which boots the
+    # managed AVD again after the first run's sweep.
+    timeout-minutes: 45
     env:
       DD_FIXTURE_PROVISION: '1'
     steps:
@@ -269,6 +304,13 @@ jobs:
       - name: Provision Android toolchain (augment)
         run: npx doc-detective install android --yes --os-version 34
 
+      # The mobile-web run needs the test server up on the host (reached from
+      # the emulator via 10.0.2.2).
+      - name: Start test servers
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
       - name: Run apps-android (Doc Detective boots the emulator)
         run: |
           npx doc-detective runTests \
@@ -277,11 +319,24 @@ jobs:
             --output dd-output-apps-android.json || true
           DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
 
+      # Mobile web (phase A5) on the managed-boot path: Doc Detective boots the
+      # AVD itself, opens Chrome through the device session, and sweeps the
+      # emulator at run end.
+      - name: Run mobile-web-android (Doc Detective boots the emulator)
+        run: |
+          npx doc-detective runTests \
+            --config test/core-artifacts/config.groups.json \
+            --input test/core-artifacts/mobile-web-android \
+            --output dd-output-mobile-web-android.json || true
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
+
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-managed
-          path: dd-output-apps-android.json
+          path: |
+            dd-output-apps-android.json
+            dd-output-mobile-web-android.json
           retention-days: 3
           if-no-files-found: warn
 

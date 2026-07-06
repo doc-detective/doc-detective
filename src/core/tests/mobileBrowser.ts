@@ -177,9 +177,11 @@ function buildMobileBrowserCapabilities({
     "appium:newCommandTimeout": 600,
     "wdio:enforceWebDriverClassic": true,
   };
-  // Same WDA build/connect ceiling as iOS app sessions: the first-ever
-  // session cold-builds WebDriverAgent via xcodebuild.
-  const effectiveTimeout = timeout ?? 60000;
+  // The first-ever XCUITest session cold-builds WebDriverAgent via
+  // xcodebuild (~10 min on CI). App surfaces carry an authored startSurface
+  // timeout for this; a mobile-web session has no step to author one on, so
+  // the default ceiling matches the generous one the apps-ios fixtures use.
+  const effectiveTimeout = timeout ?? 900000;
   capabilities["appium:wdaLaunchTimeout"] = Math.max(effectiveTimeout, 120000);
   capabilities["appium:wdaConnectionTimeout"] = Math.max(
     effectiveTimeout,

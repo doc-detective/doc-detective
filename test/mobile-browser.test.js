@@ -301,7 +301,11 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
     );
   });
 
-  it("builds an XCUITest Safari session for ios with the WDA timeout floor", function () {
+  it("builds an XCUITest Safari session for ios with a cold-WDA-build default ceiling", function () {
+    // Unlike app surfaces, a mobile-web session has no startSurface step to
+    // carry an authored timeout, and the first-ever XCUITest session builds
+    // WebDriverAgent via xcodebuild (~10 min cold on CI) — so the default WDA
+    // ceiling matches the generous one the apps-ios fixtures author (15 min).
     const capabilities = buildMobileBrowserCapabilities({
       platform: "ios",
       udid: "SIM-UDID-1234",
@@ -311,8 +315,8 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
     expect(capabilities["appium:automationName"]).to.equal("XCUITest");
     expect(capabilities.browserName).to.equal("Safari");
     expect(capabilities["appium:udid"]).to.equal("SIM-UDID-1234");
-    expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(120000);
-    expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(120000);
+    expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(900000);
+    expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(900000);
     expect(capabilities["wdio:enforceWebDriverClassic"]).to.equal(true);
     // No chromedriver keys leak onto the ios shape.
     expect(capabilities).to.not.have.property(
@@ -320,15 +324,15 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
     );
   });
 
-  it("lets a larger timeout raise the WDA ceiling above the floor", function () {
+  it("keeps the 120s WDA floor under an authored smaller timeout", function () {
     const capabilities = buildMobileBrowserCapabilities({
       platform: "ios",
       udid: "SIM-UDID-1234",
       cacheDir: "/tmp/dd-cache",
-      timeout: 300000,
+      timeout: 30000,
     });
-    expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(300000);
-    expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(300000);
+    expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(120000);
+    expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(120000);
   });
 
   it("honors DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH like the app-session builder", function () {
