@@ -23,6 +23,7 @@
       },
       "point": {
         "title": "Point",
+        "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
         "type": "object",
         "required": ["x", "y"],
         "additionalProperties": false,
@@ -90,12 +91,10 @@
         "additionalProperties": false,
         "properties": {
           "from": {
-            "$ref": "#/components/schemas/point",
-            "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner."
+            "$ref": "#/components/schemas/point"
           },
           "to": {
-            "$ref": "#/components/schemas/point",
-            "description": "Where the virtual finger releases, in pixels from the surface's top-left corner."
+            "$ref": "#/components/schemas/point"
           },
           "duration": {
             "$ref": "#/components/schemas/duration"

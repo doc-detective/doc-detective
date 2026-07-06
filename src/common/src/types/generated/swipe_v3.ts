@@ -194,7 +194,7 @@ export interface SwipePointToPoint {
   surface?: SurfaceByBrowserEngine1 | BrowserSurface1 | AppSurface1;
 }
 /**
- * Where the virtual finger presses down, in pixels from the surface's top-left corner.
+ * A pixel coordinate on the surface, measured from its top-left corner (0, 0).
  */
 export interface Point {
   /**
@@ -207,7 +207,7 @@ export interface Point {
   y: number;
 }
 /**
- * Where the virtual finger releases, in pixels from the surface's top-left corner.
+ * A pixel coordinate on the surface, measured from its top-left corner (0, 0).
  */
 export interface Point1 {
   /**
