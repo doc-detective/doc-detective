@@ -569,6 +569,7 @@ async function main() {
     "spec_v3",
     "step_v3",
     "stopRecord_v3",
+    "swipe_v3",
     "test_v3",
     "type_v3",
     "wait_v3",

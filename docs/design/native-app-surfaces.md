@@ -485,8 +485,13 @@ preflight handles "driver missing / not installable" automatically.
   deliberately not included — reserved as a possible future additive change.
 - **`waitUntilApp`** readiness shape (`{ delayMs, find }`), joining
   `waitUntilBrowser`/`waitUntilProcess` in the kind-shaped `if/then` guards.
-- **`swipe_v3.schema.json`** (new, phase A6): direction string |
-  `{ direction, distance?, from?, to?, surface? }`.
+- **`swipe_v3.schema.json`** (new, phase A6 — shipped): direction string |
+  `{ direction, distance?, duration?, surface? }` |
+  `{ from, to, duration?, surface? }` (0–1 fraction coordinates; the two
+  object forms are mutually exclusive branches). Point-to-point shipped in A6
+  rather than being reserved — swipe is the **movement subset of
+  `dragAndDrop`** (ADR 01030), and every shipped driver had a real
+  point-movement primitive, so reserving bought nothing.
 - `click_v3` gains optional **`duration`**; the `$KEY$` vocabulary gains device
   keys (docs + adapter maps, not schema).
 - `context_v3` gains **`requires`** (progressive: string → array →
@@ -549,18 +554,32 @@ fixtures.
   (chrome+android, safari+ios; everything else SKIPs with the supported
   browser named), fills the platform default browser, FAILs authored
   device-fixed config (`headless: false`/`window`/`viewport` → pointer to the
-  device descriptor), and defers mixed native-app + web contexts to A6 with a
-  split-the-test SKIP. `safari` → `webkit` aliasing became platform-aware
+  device descriptor), and defers mixed native-app + web contexts with a
+  split-the-test SKIP (originally penciled for A6; still deferred — see the
+  A6 entry). `safari` → `webkit` aliasing became platform-aware
   (desktop pairs only), so `safari` on ios means the device Safari. The "one
   page, four targets" story is un-gated — `platforms:
   ["windows","mac","android","ios"], browsers: "chrome"` — with the ios leg
   landing on the matrix SKIP. Mobile-web fixtures run gated on the Android
   KVM legs and the macOS leg (`mobile-web-android` / `mobile-web-ios`
   groups); emulator tests reach the host via `10.0.2.2`.
-- **Phase A6 — mobile interaction vocabulary.** `swipe`, `click.duration`,
-  device `$KEY$`s, `find` auto-scroll on app surfaces, the permission-dialog
-  docs pattern. Multi-device fixtures (the two-phone conversation) land here,
-  serial-boot; the parallel array form arrives with multi-surface Phase 6.
+- **Phase A6 — mobile interaction vocabulary.** Shipped (ADR 01030): `swipe`
+  (all three forms — the movement subset of `dragAndDrop`, on the shared
+  coordinate-movement engine in `movement.ts`/`appGestures.ts`),
+  `click.duration` (long-press on mobile, press-and-hold on desktop apps and
+  browsers), device `$KEY$`s plus common editing keys on mobile app surfaces,
+  `find` auto-scroll (bounded, downward, mobile-only — UIA/AX expose
+  off-screen elements without it), the permission-dialog docs pattern, and
+  the two-phone multi-device fixture (serial boots,
+  `DD_FIXTURE_MULTIDEVICE`-gated to the managed KVM leg); the parallel array
+  form arrives with multi-surface Phase 6. **Deviations found in
+  implementation:** XCUITest's `mobile: keys` is iPad-only (Xcode 15+), so
+  criteria-less *text* typing shipped on Android only (`mobile: type` into
+  the focused element) — iOS keeps requiring element criteria for text, and
+  device-key presses need no criteria on either platform. Mixed native-app +
+  web contexts (the A5 split-the-test SKIP) stayed deferred: NATIVE_APP/
+  WEBVIEW context switching is its own subsystem and was never in A6's scope
+  list — it now rides with a later phase.
 - **Phase A7 — app window recording.** `record` on app surfaces via ffmpeg
   native-window/region capture, joining the display mutex; subsumes the
   standalone "recording for all apps" thread (doc-detective#220, #345

@@ -14,6 +14,8 @@ description: "Reference for the `App surface` schema."
 - [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
 - [Capture screenshot fields](/reference/schemas/capture-screenshot-fields)
 - [closeSurface](/reference/schemas/closesurface)
+- [Swipe (directional)](/reference/schemas/swipe-directional)
+- [Swipe (point-to-point)](/reference/schemas/swipe-point-to-point)
 
 ## Fields
 
