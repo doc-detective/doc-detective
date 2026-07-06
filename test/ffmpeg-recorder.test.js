@@ -83,6 +83,57 @@ describe("ffmpegRecorder", function () {
       });
       expect(a).to.deep.equal(b);
     });
+
+    it("resolves an app-surface record to ffmpeg with a window target, even on headed chrome", function () {
+      const plan = resolveRecordPlan({
+        step: { record: { path: "x.mp4", surface: { app: "notepad" } } },
+        context: {
+          platform: "windows",
+          browser: { name: "chrome", headless: false },
+        },
+      });
+      expect(plan).to.deep.equal({ name: "ffmpeg", target: "window", fps: 30 });
+    });
+
+    it("keeps an explicit display target on an app-surface record", function () {
+      const plan = resolveRecordPlan({
+        step: {
+          record: {
+            surface: { app: "notepad" },
+            engine: { name: "ffmpeg", target: "display" },
+          },
+        },
+        context: { platform: "windows" },
+      });
+      expect(plan.target).to.equal("display");
+    });
+
+    it("resolves mobile-platform contexts to the device plan", function () {
+      for (const platform of ["android", "ios"]) {
+        for (const record of [
+          true,
+          "out.mp4",
+          { path: "x.mp4", surface: { app: "chat" } },
+        ]) {
+          const plan = resolveRecordPlan({
+            step: { record },
+            context: { platform },
+          });
+          expect(
+            plan.name,
+            `${platform}: ${JSON.stringify(record)}`
+          ).to.equal("device");
+        }
+      }
+    });
+
+    it("lets an explicit engine win over the mobile device plan", function () {
+      const plan = resolveRecordPlan({
+        step: { record: { engine: "ffmpeg" } },
+        context: { platform: "android" },
+      });
+      expect(plan.name).to.equal("ffmpeg");
+    });
   });
 
   describe("coerceRecordContextBrowser", function () {
@@ -131,6 +182,22 @@ describe("ffmpegRecorder", function () {
     it("does not coerce for an explicit record: false", function () {
       const out = coerceRecordContextBrowser({
         context: { steps: [{ record: false }] },
+        availableApps: chromeApps,
+      });
+      expect(out).to.equal(null);
+    });
+
+    it("does not coerce when the engineless record targets an app surface", function () {
+      const out = coerceRecordContextBrowser({
+        context: { steps: [{ record: { surface: { app: "notepad" } } }] },
+        availableApps: chromeApps,
+      });
+      expect(out).to.equal(null);
+    });
+
+    it("does not coerce mobile-platform contexts (device recording needs no browser)", function () {
+      const out = coerceRecordContextBrowser({
+        context: { platform: "android", steps: [{ record: true }] },
         availableApps: chromeApps,
       });
       expect(out).to.equal(null);
@@ -344,6 +411,46 @@ describe("ffmpegRecorder", function () {
       };
       expect(jobIsFfmpegRecording(headless)).to.equal(false);
       expect(jobIsFfmpegRecording(firefox)).to.equal(false);
+    });
+
+    it("does not count device-plan recordings on mobile contexts", function () {
+      // Device recordings capture the device screen through the app driver —
+      // they never touch the host display, so they must not serialize the run.
+      for (const platform of ["android", "ios"]) {
+        const job = {
+          context: {
+            platform,
+            steps: [{ record: true }, { stopRecord: true }],
+          },
+        };
+        expect(jobIsFfmpegRecording(job), platform).to.equal(false);
+      }
+    });
+
+    it("does not count an explicit desktop engine on a mobile context (runtime SKIPs it)", function () {
+      for (const engine of ["ffmpeg", "browser"]) {
+        const job = {
+          context: {
+            platform: "android",
+            browser: { name: "chrome", headless: false },
+            steps: [
+              { record: { name: "a", engine } },
+              { record: { name: "b", engine } },
+            ],
+          },
+        };
+        expect(jobIsFfmpegRecording(job), engine).to.equal(false);
+      }
+    });
+
+    it("counts an app-surface record on a desktop context as ffmpeg", function () {
+      const job = {
+        context: {
+          platform: "windows",
+          steps: [{ record: { surface: { app: "notepad" } } }],
+        },
+      };
+      expect(jobIsFfmpegRecording(job)).to.equal(true);
     });
 
     it("does not count sequential (non-overlapping) browser recordings as ffmpeg", function () {
@@ -560,6 +667,23 @@ describe("ffmpegRecorder", function () {
       const job = { context: { steps: [{ goTo: "x", goToStep: "x" }] } };
       expect(isFfmpegRecordingForScheduling(job)).to.equal(false);
     });
+
+    it("a routed mobile context with recordings is not display-exclusive", function () {
+      // Even the over-approximation must not flag mobile contexts: every
+      // recording there either runs on the device or is SKIPPED at runtime.
+      const job = {
+        context: {
+          platform: "android",
+          steps: [
+            { goTo: "x", if: "$$platform == linux" },
+            { record: true },
+            { record: { engine: "ffmpeg" } },
+            { stopRecord: true },
+          ],
+        },
+      };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(false);
+    });
   });
 
   describe("jobExclusiveResources", function () {
@@ -604,6 +728,22 @@ describe("ffmpegRecorder", function () {
         },
       };
       expect(jobExclusiveResources(routed, { platform: "win32", xvfbAvailable: false })).to.deep.equal(["display"]);
+    });
+
+    it("does not tag mobile device-recording jobs (no host display involved)", function () {
+      const deviceJob = {
+        context: { platform: "android", steps: [{ record: true }, { stopRecord: true }] },
+      };
+      expect(
+        jobExclusiveResources(deviceJob, { platform: "linux", xvfbAvailable: false })
+      ).to.deep.equal([]);
+      const conc = computeEffectiveConcurrency({
+        requestedLimit: 4,
+        jobs: [deviceJob],
+        platform: "linux",
+        xvfbAvailable: false,
+      });
+      expect(conc).to.deep.equal({ limit: 4, xvfbContexts: [], forcedSerial: false });
     });
 
     it("the autoRecord overlap opt-in leaves recordings untagged (parallel)", function () {
