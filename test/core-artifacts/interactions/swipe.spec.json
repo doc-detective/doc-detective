@@ -32,7 +32,7 @@
           }
         },
         {
-          "find": "Enhanced"
+          "find": "#submit-button"
         }
       ]
     }

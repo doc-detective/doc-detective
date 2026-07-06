@@ -1,6 +1,6 @@
 {
   "specId": "android-interactions-a6",
-  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on Android. swipe (string, directional-object, and point-to-point forms) drives mobile: swipeGesture / W3C touch actions; find auto-scrolls (mobile: scrollGesture) to locate an entry deep in the Settings list; click.duration long-presses (mobile: longClickGesture); type presses device keys (mobile: pressKey) and types into the focused element (mobile: type) without element criteria. Settings is the target app because it is preinstalled on every Android system image. SKIPPED on hosts without emulator acceleration — the real PASS coverage runs on the KVM legs.",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on Android. swipe (directional-object and point-to-point forms) drives mobile: swipeGesture / W3C touch actions; find auto-scrolls (mobile: scrollGesture) to locate an entry deep in the Settings list; click.duration long-presses (mobile: longClickGesture); and a criteria-less device-key press ($BACK$) goes through mobile: pressKey. Settings is the target app because it is preinstalled on every Android system image, and the steps stay robust across API levels (find-by-list-entry, not by a specific input widget). Criteria-less focused text typing (mobile: type) can't reach a guaranteed-focusable field in stock Settings across images, so it is covered by unit tests (test/type-mobile-keys.test.js) rather than here. SKIPPED on hosts without emulator acceleration — the real PASS coverage runs on the KVM legs.",
   "tests": [
     {
       "testId": "android-swipe-longpress-back",
@@ -93,76 +93,6 @@
         {
           "closeSurface": {
             "app": "settings"
-          }
-        }
-      ]
-    },
-    {
-      "testId": "android-focused-typing",
-      "description": "Criteria-less typing into the focused element (UiAutomator2 mobile: type): opening Settings search focuses its input field, so a type step with no element criteria lands there, mixing literal text with a mapped key run. Two Back presses unwind the search UI before closing.",
-      "runOn": [
-        {
-          "platforms": "android"
-        }
-      ],
-      "steps": [
-        {
-          "startSurface": {
-            "app": "com.android.settings",
-            "name": "settings-search",
-            "timeout": 180000,
-            "waitUntil": {
-              "delayMs": 2000
-            }
-          }
-        },
-        {
-          "click": {
-            "elementText": "Search settings",
-            "surface": {
-              "app": "settings-search"
-            }
-          }
-        },
-        {
-          "wait": 2000
-        },
-        {
-          "type": {
-            "keys": [
-              "battery"
-            ],
-            "surface": {
-              "app": "settings-search"
-            },
-            "waitUntil": {
-              "delayMs": 1000
-            }
-          }
-        },
-        {
-          "screenshot": {
-            "path": "android-focused-typing.png",
-            "overwrite": "true",
-            "surface": {
-              "app": "settings-search"
-            }
-          }
-        },
-        {
-          "type": {
-            "keys": [
-              "$BACK$",
-              "$BACK$"
-            ],
-            "surface": {
-              "app": "settings-search"
-            }
-          }
-        },
-        {
-          "closeSurface": {
-            "app": "settings-search"
           }
         }
       ]

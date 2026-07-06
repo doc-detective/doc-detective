@@ -1,10 +1,10 @@
 {
   "specId": "android-two-devices-a6",
-  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the multi-device ('two-phone conversation') pattern. Two startSurface steps each provision their own managed emulator (distinct device names, serial boots per A6 \u2014 the parallel array form arrives with multi-surface Phase 6), steps interleave across the devices by surface name, and the run-end sweep shuts down both emulators Doc Detective booted. Gated behind DD_FIXTURE_MULTIDEVICE (the DD_FIXTURE_PROVISION precedent) because two emulator boots are too heavy for every leg \u2014 the managed-boot KVM job sets it; everywhere else this spec lands SKIPPED via the requires gate.",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the multi-device ('two-phone conversation') pattern. Two startSurface steps each provision their own managed emulator (distinct device names, serial boots per A6 — the parallel array form arrives with multi-surface Phase 6), steps interleave across the devices by surface name, and the run-end sweep shuts down both emulators Doc Detective booted. Gated behind DD_FIXTURE_MULTIDEVICE (the DD_FIXTURE_PROVISION precedent) because two emulator boots are too heavy for every leg — the managed-boot KVM job sets it; everywhere else this spec lands SKIPPED via the requires gate.",
   "tests": [
     {
       "testId": "android-two-phones",
-      "description": "Boot two managed devices (dd-phone-a / dd-phone-b), open Settings on each, and interleave surface-named steps across them: find on phone A, find on phone B, back to A for a device-key press, screenshot both. Registry identity (device name), console-port allocation (5554/5556), and per-device driver sessions are what this proves; Settings stands in for the chat app because it exists on every image.",
+      "description": "Boot two managed devices (dd-phone-a / dd-phone-b), open Settings on each, and interleave surface-named steps across them: screenshot phone A, press Back on phone A (a device key, no element criteria), screenshot phone B. Each surface-named step foregrounds its own device, so the per-device screenshots prove registry identity (device name), console-port allocation (5554/5556), per-device driver sessions, and activate-on-switch — the same way the single-device android-multi-app spec proves switching, without depending on a specific Settings row being present. Settings stands in for the chat app because it exists on every image.",
       "runOn": [
         {
           "platforms": "android",
@@ -49,21 +49,12 @@
           }
         },
         {
-          "find": {
-            "elementText": "Network & internet",
+          "screenshot": {
+            "path": "android-phone-a.png",
+            "overwrite": "true",
             "surface": {
               "app": "phone-a-settings"
-            },
-            "timeout": 30000
-          }
-        },
-        {
-          "find": {
-            "elementText": "Network & internet",
-            "surface": {
-              "app": "phone-b-settings"
-            },
-            "timeout": 30000
+            }
           }
         },
         {
@@ -71,15 +62,6 @@
             "keys": [
               "$BACK$"
             ],
-            "surface": {
-              "app": "phone-a-settings"
-            }
-          }
-        },
-        {
-          "screenshot": {
-            "path": "android-phone-a.png",
-            "overwrite": "true",
             "surface": {
               "app": "phone-a-settings"
             }

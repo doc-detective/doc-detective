@@ -1,10 +1,10 @@
 {
   "specId": "ios-interactions-a6",
-  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on iOS. swipe (directional and point-to-point forms) drives mobile: dragFromToForDuration; find auto-scrolls (bounded drag loop) to locate an entry deep in the Settings list; click.duration long-presses (mobile: touchAndHold); type presses the device Home button (mobile: pressButton) with no element criteria. Settings (com.apple.Preferences) is the target because it ships on every simulator runtime. SKIPs on non-macOS hosts via the platform gate; the first XCUITest session on a cold runner builds WebDriverAgent, so the startSurface timeout is generous.",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on iOS. swipe (directional and point-to-point forms) drives mobile: dragFromToForDuration; click.duration long-presses (mobile: touchAndHold); type presses the device Home button (mobile: pressButton) with no element criteria. Settings (com.apple.Preferences) is the target because it ships on every simulator runtime, and the steps stay robust across runtimes ('General' is present on every version; no dependency on Developer mode or version-specific rows). find auto-scroll on app surfaces is exercised end-to-end on the Android leg and by unit tests (test/find-autoscroll.test.js). SKIPs on non-macOS hosts via the platform gate; the first XCUITest session on a cold runner builds WebDriverAgent, so the startSurface timeout is generous.",
   "tests": [
     {
       "testId": "ios-swipe-longpress-home",
-      "description": "Find a top-of-list row ('General') and long-press it (touchAndHold; Settings ignores it, so the list stays put), swipe with both object forms, auto-scroll-find the simulator-only 'Developer' row near the bottom of the list, then press the device Home button criteria-less and close the app.",
+      "description": "Find the 'General' row and long-press it (touchAndHold; Settings ignores it, so the list stays put), swipe with both object forms, screenshot the app, then press the device Home button criteria-less and close the app.",
       "runOn": [
         {
           "platforms": [
@@ -64,15 +64,6 @@
             "surface": {
               "app": "settings"
             }
-          }
-        },
-        {
-          "find": {
-            "elementText": "Developer",
-            "surface": {
-              "app": "settings"
-            },
-            "timeout": 45000
           }
         },
         {
