@@ -59,6 +59,17 @@ describe("splitKeyRuns", function () {
     ]);
   });
 
+  it("recognizes digit-bearing sentinels ($F11$, $NUMPAD_0$) as tokens, not text", function () {
+    // Neither has an Android keycode mapping, so they fall through to
+    // verbatim text — but via the sentinel path, same as $WEIRD$.
+    assert.deepEqual(splitKeyRuns(["$F11$"], "android"), [
+      { kind: "text", text: "$F11$" },
+    ]);
+    assert.deepEqual(splitKeyRuns(["$NUMPAD_0$"], "ios"), [
+      { kind: "text", text: "$NUMPAD_0$" },
+    ]);
+  });
+
   it("folds iOS text-equivalent keys into adjacent text runs", function () {
     assert.deepEqual(splitKeyRuns(["Hi", "$ENTER$", "there"], "ios"), [
       { kind: "text", text: "Hi\nthere" },
@@ -236,6 +247,23 @@ describe("typeKeys desktop app surfaces (unchanged behavior)", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Special key tokens/);
     assert.match(result.description, /mobile-only/);
+  });
+
+  it("rejects digit-bearing tokens ($F11$) on desktop app surfaces too", async function () {
+    const result = await typeKeys({
+      config,
+      step: {
+        type: {
+          keys: ["$F11$"],
+          elementText: "x",
+          surface: { app: "charmap" },
+        },
+      },
+      driver: undefined,
+      appSession: makeDesktopSession(),
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Special key tokens/);
   });
 
   it("still requires element criteria for plain text", async function () {

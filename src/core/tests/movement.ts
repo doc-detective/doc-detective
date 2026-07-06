@@ -10,10 +10,10 @@
 // convert to absolute pixels before the engine moves anything, so the engine
 // stays driver-agnostic and unit-testable with a fake driver.
 
+// Functions are hoisted, so the grouped export lists only them; the constants
+// export inline at their declarations (a top-of-file `export {}` referencing
+// a later `const` trips use-before-declaration analysis).
 export {
-  MOVEMENT_INSET,
-  DEFAULT_SWIPE_DISTANCE,
-  DEFAULT_SWIPE_DURATION,
   directionToPoints,
   fractionsToPixels,
   surfaceToAbsolutePixels,
@@ -30,9 +30,9 @@ type MovementRect = { x: number; y: number; width: number; height: number };
 // Directional swipes keep away from the outer 10% of the surface so a
 // full-length swipe can't trigger a system edge gesture (Android back/home).
 // Explicit point-to-point coordinates are the author's own and aren't inset.
-const MOVEMENT_INSET = 0.1;
-const DEFAULT_SWIPE_DISTANCE = 0.5;
-const DEFAULT_SWIPE_DURATION = 500;
+export const MOVEMENT_INSET = 0.1;
+export const DEFAULT_SWIPE_DISTANCE = 0.5;
+export const DEFAULT_SWIPE_DURATION = 500;
 
 // A direction is the virtual finger's motion: swiping up moves content up,
 // revealing content further down the page. The from/to pair is centered on

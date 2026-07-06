@@ -46,7 +46,6 @@ export {
   ensureAppForeground,
   startAppSurface,
   findAppElement,
-  MAX_FIND_SCROLLS,
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
@@ -1090,8 +1089,9 @@ function buildAppLocator(
 // Locate an element on an app surface's driver session. Waits up to `timeout`
 // for existence. Returns the wdio element or an error string.
 // Upper bound on find auto-scroll attempts per element (phase A6). Exported
-// as a test seam and so fixtures can reason about worst-case scroll depth.
-const MAX_FIND_SCROLLS = 5;
+// (inline — the top-of-file export list predates this const) as a test seam
+// and so fixtures can reason about worst-case scroll depth.
+export const MAX_FIND_SCROLLS = 5;
 
 async function findAppElement({
   driver,
@@ -1141,7 +1141,7 @@ async function findAppElement({
   }
   if (canAutoScroll) {
     while (scrolls < MAX_FIND_SCROLLS && Date.now() - start < timeout) {
-      let canScrollMore = true;
+      let canScrollMore: boolean;
       try {
         canScrollMore = await gestures!.scrollStep!(driver);
       } catch (error: any) {

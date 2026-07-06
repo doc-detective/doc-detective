@@ -56,7 +56,9 @@ function splitKeyRuns(
     else runs.push({ kind: "text", text });
   };
   for (const key of keys) {
-    const isSentinel = /^\$[A-Z_]+\$$/.test(key);
+    // Digits included: F-keys and numpad tokens ($F11$, $NUMPAD_0$) are part
+    // of the vocabulary too.
+    const isSentinel = /^\$[A-Z0-9_]+\$$/.test(key);
     if (!isSentinel) {
       pushText(key);
       continue;
@@ -458,7 +460,9 @@ async function typeKeys({
     const platform = appRef.entry!.platform ?? "windows";
     const isMobile = platform === "android" || platform === "ios";
     const specialTokens = (step.type.keys as any[]).filter(
-      (key) => typeof key === "string" && /^\$[A-Z_]+\$$/.test(key)
+      // Digits included so F-key/numpad tokens ($F11$, $NUMPAD_0$) are
+      // recognized and rejected on desktop app surfaces like the rest.
+      (key) => typeof key === "string" && /^\$[A-Z0-9_]+\$$/.test(key)
     );
     if (specialTokens.length && !isMobile) {
       result.status = "FAIL";

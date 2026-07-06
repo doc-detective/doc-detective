@@ -17,13 +17,9 @@ import {
 } from "./movement.js";
 import type { MovementPoint, SwipeDirection } from "./movement.js";
 
-export {
-  APP_GESTURES,
-  ANDROID_KEYCODES,
-  IOS_BUTTONS,
-  IOS_TEXT_KEYS,
-  DEVICE_KEYS,
-};
+// Every value this module exports is a constant, and constants export inline
+// at their declarations (a top-of-file `export {}` referencing a later
+// `const` trips use-before-declaration analysis).
 export type { AppGestureAdapter, SwipeGesture };
 
 // A normalized swipe: either direction/distance (shorthand, fractions) or
@@ -61,7 +57,7 @@ interface AppGestureAdapter {
 // Android KeyEvent codes (https://developer.android.com/reference/android/view/KeyEvent).
 // $HOME$ on an app surface is the DEVICE home button, not cursor-to-line-start
 // — the design-doc overload, called out in the type reference docs.
-const ANDROID_KEYCODES: Record<string, number> = {
+export const ANDROID_KEYCODES: Record<string, number> = {
   // Device keys (the new A6 vocabulary)
   $BACK$: 4,
   $HOME$: 3,
@@ -85,14 +81,14 @@ const ANDROID_KEYCODES: Record<string, number> = {
 };
 
 // Physical buttons XCUITest can press (mobile: pressButton).
-const IOS_BUTTONS: Record<string, string> = {
+export const IOS_BUTTONS: Record<string, string> = {
   $HOME$: "home",
   $VOLUME_UP$: "volumeup",
   $VOLUME_DOWN$: "volumedown",
 };
 
 // Tokens that fold into typed text on iOS (sent through setValue/addValue).
-const IOS_TEXT_KEYS: Record<string, string> = {
+export const IOS_TEXT_KEYS: Record<string, string> = {
   $ENTER$: "\n",
   $RETURN$: "\n",
   $TAB$: "\t",
@@ -102,7 +98,7 @@ const IOS_TEXT_KEYS: Record<string, string> = {
 
 // Device-only keys: pressing these needs no element criteria (there's no
 // text field involved in pressing Back or Volume Up).
-const DEVICE_KEYS: Set<string> = new Set([
+export const DEVICE_KEYS: Set<string> = new Set([
   "$BACK$",
   "$HOME$",
   "$APP_SWITCH$",
@@ -185,7 +181,7 @@ function macScrollDeltas(
   }
 }
 
-const APP_GESTURES: Record<string, AppGestureAdapter> = {
+export const APP_GESTURES: Record<string, AppGestureAdapter> = {
   android: {
     async swipe(driver, gesture) {
       if (gesture.from && gesture.to) {
