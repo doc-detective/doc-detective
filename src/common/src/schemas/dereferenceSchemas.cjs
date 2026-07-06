@@ -54,6 +54,7 @@ async function dereferenceSchemas() {
     "step_v3.schema.json",
     "stopRecord_v3.schema.json",
     "surface_v3.schema.json",
+    "swipe_v3.schema.json",
     "test_v3.schema.json",
     "type_v3.schema.json",
     "wait_v3.schema.json",

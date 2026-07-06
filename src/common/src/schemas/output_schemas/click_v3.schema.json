@@ -58,6 +58,11 @@
             "middle"
           ]
         },
+        "duration": {
+          "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+          "type": "integer",
+          "minimum": 1
+        },
         "surface": {
           "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
           "anyOf": [
@@ -351,6 +356,11 @@
           "middle"
         ]
       },
+      "duration": {
+        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+        "type": "integer",
+        "minimum": 1
+      },
       "object": {
         "title": "Click element (detailed)",
         "type": "object",
@@ -400,6 +410,11 @@
               "right",
               "middle"
             ]
+          },
+          "duration": {
+            "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+            "type": "integer",
+            "minimum": 1
           },
           "surface": {
             "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",

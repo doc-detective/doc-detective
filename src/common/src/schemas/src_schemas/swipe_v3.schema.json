@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "swipe",
+  "description": "Swipe (or scroll) a surface in a direction or between two points. The direction is the virtual finger's motion: swiping up moves content up, revealing content further down the page. Works on app and browser surfaces.",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/direction"
+    },
+    {
+      "$ref": "#/components/schemas/directional"
+    },
+    {
+      "$ref": "#/components/schemas/pointToPoint"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "direction": {
+        "title": "Swipe (simple)",
+        "type": "string",
+        "enum": ["up", "down", "left", "right"],
+        "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
+      },
+      "point": {
+        "type": "object",
+        "required": ["x", "y"],
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Horizontal position as a fraction of the surface's width (0 = left edge, 1 = right edge)."
+          },
+          "y": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Vertical position as a fraction of the surface's height (0 = top edge, 1 = bottom edge)."
+          }
+        },
+        "title": "Point"
+      },
+      "duration": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 500,
+        "description": "Duration of the swipe movement in milliseconds."
+      },
+      "surface": {
+        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+        "anyOf": [
+          {
+            "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
+          },
+          {
+            "$ref": "surface_v3.schema.json#/components/schemas/browser"
+          },
+          {
+            "$ref": "surface_v3.schema.json#/components/schemas/app"
+          }
+        ]
+      },
+      "directional": {
+        "title": "Swipe (directional)",
+        "type": "object",
+        "required": ["direction"],
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "$ref": "#/components/schemas/direction"
+          },
+          "distance": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1,
+            "default": 0.5,
+            "description": "How far to swipe, as a fraction of the surface's height (for up/down) or width (for left/right)."
+          },
+          "duration": {
+            "$ref": "#/components/schemas/duration"
+          },
+          "surface": {
+            "$ref": "#/components/schemas/surface"
+          }
+        }
+      },
+      "pointToPoint": {
+        "title": "Swipe (point-to-point)",
+        "type": "object",
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/point",
+            "description": "Where the virtual finger presses down, as fractions of the surface's width and height."
+          },
+          "to": {
+            "$ref": "#/components/schemas/point",
+            "description": "Where the virtual finger releases, as fractions of the surface's width and height."
+          },
+          "duration": {
+            "$ref": "#/components/schemas/duration"
+          },
+          "surface": {
+            "$ref": "#/components/schemas/surface"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    "left",
+    {
+      "direction": "up",
+      "distance": 0.8,
+      "surface": {
+        "app": "myapp"
+      }
+    },
+    {
+      "from": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "to": {
+        "x": 0.5,
+        "y": 0.2
+      },
+      "duration": 250
+    }
+  ]
+}
