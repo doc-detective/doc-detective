@@ -39,6 +39,15 @@ interface AppGestureAdapter {
   swipe(driver: any, gesture: SwipeGesture): Promise<void>;
   // Press-and-hold a located element for durationMs.
   longPress(driver: any, element: any, durationMs: number): Promise<void>;
+  // Click a located element with a non-left mouse button. Returns {} on
+  // success or { error } when the button isn't available on this platform
+  // (touch surfaces have no right/middle button; Mac2 has no middle-click).
+  // The left-button click stays a plain element.click() in the caller.
+  clickButton(
+    driver: any,
+    element: any,
+    button: string
+  ): Promise<{ error?: string }>;
   // Handle one $KEY$ token. Returns {} on success or { error } when the token
   // is meaningless on this platform. Absent on desktop rows — the desktop key
   // vocabulary is a later phase, and typeKeys keeps its rejection.
@@ -208,6 +217,11 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
         duration: durationMs,
       });
     },
+    async clickButton(_driver, _element, button) {
+      return {
+        error: `${button}-click isn't available on Android app surfaces — touch input has no ${button} button. Use a left tap, or \`duration\` for a long-press.`,
+      };
+    },
     async pressKey(driver, token) {
       const keycode = ANDROID_KEYCODES[token];
       if (keycode === undefined) {
@@ -258,6 +272,11 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
         elementId: element.elementId,
         duration: durationMs / 1000,
       });
+    },
+    async clickButton(_driver, _element, button) {
+      return {
+        error: `${button}-click isn't available on iOS app surfaces — touch input has no ${button} button. Use a left tap, or \`duration\` for a long-press.`,
+      };
     },
     async pressKey(driver, token) {
       const button = IOS_BUTTONS[token];
@@ -330,6 +349,14 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
         durationMs,
       });
     },
+    async clickButton(driver, element, button) {
+      // NovaWindows `windows: click` honors left/middle/right/back/forward.
+      await driver.execute("windows: click", {
+        elementId: element.elementId,
+        button,
+      });
+      return {};
+    },
   },
 
   mac: {
@@ -378,6 +405,18 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
           holdDuration: durationMs / 1000,
         });
       }
+    },
+    async clickButton(driver, element, button) {
+      // Mac2 has a dedicated right-click but no middle-click command.
+      if (button === "right") {
+        await driver.execute("macos: rightClick", {
+          elementId: element.elementId,
+        });
+        return {};
+      }
+      return {
+        error: `${button}-click isn't supported on macOS app surfaces — the Mac2 driver has no ${button}-click. Use a left click or a right-click.`,
+      };
     },
   },
 };

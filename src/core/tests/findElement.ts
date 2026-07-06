@@ -121,34 +121,45 @@ async function findElement({ config, step, driver, click, appSession }: { config
         return result;
       }
       if (click || step.find.click) {
-        // App-surface clicks are left-button only. A requested right/middle
-        // button (find.click: "right" or { button: "right" }) can't be
-        // honored by the native drivers yet, so reject it loudly rather than
-        // silently performing a left click.
         const clickSpec = step.find.click;
         const button =
           typeof clickSpec === "string" &&
           ["left", "right", "middle"].includes(clickSpec)
             ? clickSpec
             : clickSpec?.button || "left";
-        if (button !== "left") {
-          result.status = "FAIL";
-          result.description += ` ${button}-click isn't supported on app surfaces; app clicks are left-button (use \`duration\` for a long-press).`;
-          return result;
-        }
         const duration = step.find.click?.duration;
+        const gestures =
+          APP_GESTURES[appRef.entry!.platform ?? "windows"];
         if (duration) {
           // Long-press (phase A6): dispatch to the platform's gesture adapter
           // (longClickGesture / touchAndHold / windows: click durationMs /
-          // Mac2 W3C mouse chain).
-          const gestures =
-            APP_GESTURES[appRef.entry!.platform ?? "windows"];
+          // Mac2 W3C mouse chain). Press-and-hold is the primary button.
           try {
             await gestures.longPress(appDriver, found.element, duration);
             result.description += ` Long-pressed element (${duration}ms).`;
           } catch (error: any) {
             result.status = "FAIL";
             result.description += ` Couldn't long-press element (duration ${duration}ms). Error: ${error.message}`;
+          }
+        } else if (button !== "left") {
+          // Non-left click: the drivers that can do it honor the button
+          // (NovaWindows windows: click, Mac2 macos: rightClick); touch
+          // surfaces and Mac2's absent middle-click return an actionable error.
+          try {
+            const clicked = await gestures.clickButton(
+              appDriver,
+              found.element,
+              button
+            );
+            if (clicked.error) {
+              result.status = "FAIL";
+              result.description += ` ${clicked.error}`;
+            } else {
+              result.description += ` ${button}-clicked element.`;
+            }
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't ${button}-click element. Error: ${error.message}`;
           }
         } else {
           try {

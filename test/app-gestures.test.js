@@ -338,6 +338,41 @@ describe("appGestures: android", function () {
   });
 });
 
+describe("appGestures: clickButton per platform", function () {
+  it("Windows honors any button via windows: click", async function () {
+    const driver = makeFakeDriver();
+    const el = fakeElement("w");
+    for (const button of ["right", "middle", "back", "forward"]) {
+      const r = await APP_GESTURES.windows.clickButton(driver, el, button);
+      assert.deepEqual(r, {});
+    }
+    const buttons = driver.calls
+      .filter((c) => c.command === "windows: click")
+      .map((c) => c.args.button);
+    assert.deepEqual(buttons, ["right", "middle", "back", "forward"]);
+  });
+
+  it("macOS honors right via macos: rightClick and rejects middle", async function () {
+    const driver = makeFakeDriver();
+    const el = fakeElement("m");
+    assert.deepEqual(await APP_GESTURES.mac.clickButton(driver, el, "right"), {});
+    assert.ok(driver.calls.find((c) => c.command === "macos: rightClick"));
+    const mid = await APP_GESTURES.mac.clickButton(driver, el, "middle");
+    assert.match(mid.error, /middle-click isn't supported on macOS/);
+  });
+
+  it("touch surfaces reject any non-left button as meaningless", async function () {
+    for (const platform of ["android", "ios"]) {
+      const r = await APP_GESTURES[platform].clickButton(
+        makeFakeDriver(),
+        fakeElement(),
+        "right"
+      );
+      assert.match(r.error, /touch input has no right button/, platform);
+    }
+  });
+});
+
 describe("appGestures: ios", function () {
   const ios = APP_GESTURES.ios;
 

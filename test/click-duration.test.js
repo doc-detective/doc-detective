@@ -123,11 +123,11 @@ describe("click.duration on app surfaces", function () {
     assert.equal(driver.calls.length, 0, "no gesture extension calls");
   });
 
-  it("rejects a non-left button on an app surface instead of silently left-clicking", async function () {
+  it("honors a right-click on a Windows app surface via windows: click", async function () {
     const driver = makeFakeAppDriver();
     const appSession = appSessionWith({
       name: "myapp",
-      appId: "com.example.myapp",
+      appId: "notepad.exe",
       driver,
       launchedByUs: true,
       platform: "windows",
@@ -144,8 +144,79 @@ describe("click.duration on app surfaces", function () {
       driver: null,
       appSession,
     });
+    assert.equal(result.status, "PASS");
+    const call = driver.calls.find((c) => c.command === "windows: click");
+    assert.ok(call, "expected windows: click");
+    assert.equal(call.args.button, "right");
+    assert.equal(driver.element.clicked, 0, "not a plain left click");
+    assert.match(result.description, /right-clicked element/);
+  });
+
+  it("honors a right-click on a macOS app surface via macos: rightClick", async function () {
+    const driver = makeFakeAppDriver();
+    const appSession = appSessionWith({
+      name: "calc",
+      appId: "com.apple.Calculator",
+      driver,
+      launchedByUs: true,
+      platform: "mac",
+    });
+    const result = await clickElement({
+      config,
+      step: {
+        click: { elementText: "1", button: "right", surface: { app: "calc" } },
+      },
+      driver: null,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.ok(driver.calls.find((c) => c.command === "macos: rightClick"));
+  });
+
+  it("rejects a middle-click on macOS (Mac2 has no middle-click) with guidance", async function () {
+    const driver = makeFakeAppDriver();
+    const appSession = appSessionWith({
+      name: "calc",
+      appId: "com.apple.Calculator",
+      driver,
+      launchedByUs: true,
+      platform: "mac",
+    });
+    const result = await clickElement({
+      config,
+      step: {
+        click: { elementText: "1", button: "middle", surface: { app: "calc" } },
+      },
+      driver: null,
+      appSession,
+    });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /right-click isn't supported on app surfaces/);
+    assert.match(result.description, /middle-click isn't supported on macOS/);
+  });
+
+  it("rejects a non-left click on a touch (Android) app surface as meaningless", async function () {
+    const driver = makeFakeAppDriver();
+    const appSession = appSessionWith({
+      name: "myapp",
+      appId: "com.example.myapp",
+      driver,
+      launchedByUs: true,
+      platform: "android",
+    });
+    const result = await clickElement({
+      config,
+      step: {
+        click: {
+          elementText: "Message",
+          button: "right",
+          surface: { app: "myapp" },
+        },
+      },
+      driver: null,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /touch input has no right button/);
     assert.equal(driver.element.clicked, 0, "must not fall back to a left click");
   });
 

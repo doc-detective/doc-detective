@@ -70,6 +70,14 @@ one phase.
   the rejection happens at validation time, not runtime.
 - `click_v3` (and find's inline click sub-effect) gain `duration` (ms ≥ 1):
   long-press on mobile, press-and-hold on desktop apps and browsers.
+- **`click.button` is now honored on app surfaces where the driver can do
+  it**, closing a pre-A6 gap where a requested `right`/`middle` button was
+  silently downgraded to a left click. Per platform: Windows honors
+  left/right/middle/back/forward (`windows: click`); macOS honors right-click
+  (`macos: rightClick`) and rejects middle (the Mac2 driver has none); touch
+  surfaces (Android/iOS) reject any non-left button as meaningless. All via a
+  `clickButton` adapter row, so the rejection is loud and actionable rather
+  than a surprising left click.
 - No new step for scroll-to-element: `find` **auto-scrolls** on mobile app
   surfaces, bounded by `MAX_FIND_SCROLLS` (5) and the step timeout, scrolling
   only toward content below (the documented-procedure case). Desktop app
