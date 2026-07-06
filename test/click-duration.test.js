@@ -225,6 +225,33 @@ describe("click.duration on app surfaces", function () {
     assert.equal(driver.element.clicked, 0, "must not fall back to a left click");
   });
 
+  it("rejects duration combined with a non-left button (long-press is primary-button)", async function () {
+    const driver = makeFakeAppDriver();
+    const appSession = appSessionWith({
+      name: "notepad",
+      appId: "notepad.exe",
+      driver,
+      launchedByUs: true,
+      platform: "windows",
+    });
+    const result = await clickElement({
+      config,
+      step: {
+        click: {
+          elementText: "Message",
+          button: "right",
+          duration: 800,
+          surface: { app: "notepad" },
+        },
+      },
+      driver: null,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /long-press on an app surface uses the primary button/);
+    assert.equal(driver.calls.length, 0, "must not issue any long-press/click command");
+  });
+
   it("wraps a long-press driver error into a FAIL", async function () {
     const driver = makeFakeAppDriver();
     driver.execute = async () => {

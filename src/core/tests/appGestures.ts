@@ -350,7 +350,9 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
       });
     },
     async clickButton(driver, element, button) {
-      // NovaWindows `windows: click` honors left/middle/right/back/forward.
+      // `windows: click` accepts left/middle/right/back/forward, but the
+      // click.button schema only exposes left/right/middle — so only right and
+      // middle ever reach here. Pass the button straight through.
       await driver.execute("windows: click", {
         elementId: element.elementId,
         button,

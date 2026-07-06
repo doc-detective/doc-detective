@@ -130,6 +130,14 @@ async function findElement({ config, step, driver, click, appSession }: { config
         const duration = step.find.click?.duration;
         const gestures =
           APP_GESTURES[appRef.entry!.platform ?? "windows"];
+        if (duration && button !== "left") {
+          // A long-press on an app surface is a primary-button press-and-hold;
+          // the adapters don't hold a non-left button. Reject the combination
+          // rather than silently long-pressing the left button.
+          result.status = "FAIL";
+          result.description += ` A long-press on an app surface uses the primary button; drop \`button: "${button}"\` or the \`duration\`.`;
+          return result;
+        }
         if (duration) {
           // Long-press (phase A6): dispatch to the platform's gesture adapter
           // (longClickGesture / touchAndHold / windows: click durationMs /

@@ -72,12 +72,15 @@ one phase.
   long-press on mobile, press-and-hold on desktop apps and browsers.
 - **`click.button` is now honored on app surfaces where the driver can do
   it**, closing a pre-A6 gap where a requested `right`/`middle` button was
-  silently downgraded to a left click. Per platform: Windows honors
-  left/right/middle/back/forward (`windows: click`); macOS honors right-click
+  silently downgraded to a left click. The schema enum stays `left`/`right`/
+  `middle` (unchanged), so those are the authorable buttons. Per platform:
+  Windows honors all three (`windows: click`); macOS honors right-click
   (`macos: rightClick`) and rejects middle (the Mac2 driver has none); touch
   surfaces (Android/iOS) reject any non-left button as meaningless. All via a
   `clickButton` adapter row, so the rejection is loud and actionable rather
-  than a surprising left click.
+  than a surprising left click. A long-press (`duration`) on an app surface is
+  primary-button only, so `duration` combined with a non-left `button` is
+  rejected.
 - No new step for scroll-to-element: `find` **auto-scrolls** on mobile app
   surfaces, bounded by `MAX_FIND_SCROLLS` (5) and the step timeout, scrolling
   only toward content below (the documented-procedure case). Desktop app
