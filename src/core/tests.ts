@@ -40,6 +40,7 @@ import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
 import { checkLink } from "./tests/checkLink.js";
 import { typeKeys } from "./tests/typeKeys.js";
+import { swipeSurface } from "./tests/swipe.js";
 import { wait } from "./tests/wait.js";
 import { saveScreenshot } from "./tests/saveScreenshot.js";
 import { startRecording } from "./tests/startRecording.js";
@@ -4506,6 +4507,13 @@ async function runStep({
     }
   } else if (typeof step.screenshot !== "undefined") {
     actionResult = await saveScreenshot({
+      config: config,
+      step: step,
+      driver: driver,
+      appSession,
+    });
+  } else if (typeof step.swipe !== "undefined") {
+    actionResult = await swipeSurface({
       config: config,
       step: step,
       driver: driver,

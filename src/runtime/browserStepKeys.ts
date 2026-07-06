@@ -28,5 +28,6 @@ export const BROWSER_STEP_KEYS = [
   "screenshot",
   "scroll",
   "stopRecord",
+  "swipe",
   "type",
 ] as const;
