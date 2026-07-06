@@ -1195,9 +1195,10 @@ async function startAppSurface({
   // app surface may never register under one and shadow it. The schema's
   // not.enum rejects the exact keywords; this guard also covers case variants
   // and defaults derived from the app identifier (chrome.exe → "chrome").
-  if (RESERVED_ENGINE_KEYWORDS.has(name.toLowerCase())) {
+  const nameLower = name.toLowerCase();
+  if (RESERVED_ENGINE_KEYWORDS.has(nameLower)) {
     result.status = "FAIL";
-    result.description = `"${name}" is a browser engine keyword, so it can't name an app surface — a surface reference of that name always targets the ${name.toLowerCase()} browser. Pass a non-keyword startSurface.name.`;
+    result.description = `"${name}" is a browser engine keyword, so it can't name an app surface — a surface reference of that name always targets the ${nameLower} browser. Pass a non-keyword startSurface.name.`;
     return result;
   }
   if (appSession.surfaces.has(name)) {

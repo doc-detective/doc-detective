@@ -75,6 +75,11 @@ Two layers, mirroring the browser-session guard:
 - Bad: launching a browser executable as a *native app* (e.g. automating Chrome's own window
   chrome via UIA) now requires an explicit non-keyword `name`. The runtime error says exactly that.
 - Neutral: no existing fixture or test named an app surface after an engine keyword.
+- Neutral: the keyword list now lives in three places with no automated cross-check — the
+  `surface_v3` `byEngineName`/`browser` enums, the `startSurface_v3` `not.enum`, and the runtime
+  `RESERVED_ENGINE_KEYWORDS` set in `src/core/tests/browserSurface.ts`. If a sixth engine is ever
+  added, update all three (the schema tests in `src/common/test/validate.test.js` iterate the
+  keyword list, so a partial update fails there first).
 
 ### Confirmation
 

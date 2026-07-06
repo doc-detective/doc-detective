@@ -886,8 +886,9 @@ describe("startAppSurface", function () {
     assert.match(derived.description, /startSurface\.name/);
     assert.equal(appSession.surfaces.size, 0);
 
-    // Exact lowercase keywords never reach the runtime guard — the schema's
-    // not.enum fails the step at validation time.
+    // Exact lowercase keywords are caught by the schema's not.enum inside
+    // startAppSurface's own validate() call — the RESERVED_ENGINE_KEYWORDS
+    // guard below it never runs for these.
     const schemaLevel = await startAppSurface({
       config: {},
       step: { startSurface: { app: "x", name: "chrome" } },
