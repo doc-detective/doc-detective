@@ -43,6 +43,20 @@ const linkBase = "/reference/schemas";
 // Map for tracking parent-child relationships
 const parentChildRelationships = new Map();
 
+// Escape `{` and `}` outside inline code spans. The generated pages are parsed
+// as MDX by Fern, where an unescaped brace in plain text starts a JSX
+// expression — `({ "app": … })` in a schema description fails the whole docs
+// build with "Could not parse expression with acorn". Braces inside backtick
+// code spans are literal in MDX and must stay unescaped.
+function escapeMdxTextExpressions(text) {
+  return text
+    .split(/(``[^\n]*?``|`[^`\n]*`)/)
+    .map((segment, i) =>
+      i % 2 === 1 ? segment : segment.replace(/[{}]/g, "\\$&")
+    )
+    .join("");
+}
+
 // Function to create a valid file name from a path
 function createValidFileName(str) {
   return str
@@ -206,7 +220,7 @@ function generateSchemaMarkdown(schemaId, schema) {
 
   // Keep the human-readable description as the page intro when the schema has one.
   if (schema.description) {
-    heading.push(schema.description, "");
+    heading.push(escapeMdxTextExpressions(schema.description), "");
   }
 
   // Add parent schemas section if this schema is referenced by others. Only link
@@ -377,8 +391,11 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   let type = getTypeString(propSchema);
 
   // Get description with status prefix. Collapse literal newlines to <br/> so
-  // multi-line schema descriptions don't break the markdown table row.
-  let description = (propSchema.description || "No description provided.")
+  // multi-line schema descriptions don't break the markdown table row, and
+  // escape braces outside code spans so MDX doesn't parse them as expressions.
+  let description = escapeMdxTextExpressions(
+    propSchema.description || "No description provided."
+  )
     .replace(/\r?\n/g, "<br/>")
     .trim();
 
@@ -632,8 +649,14 @@ async function main() {
   console.log(`Total schemas generated: ${generatedSchemaFiles.size}`);
 }
 
-// Run the main function
-main().catch((err) => {
-  console.error("Error generating schema references:", err);
-  process.exit(1);
-});
+// Run the main function only when executed directly (`node buildSchemaReferencesV4.js`
+// / `npm run docs:build-schema-refs`), so tests can require the helpers without
+// triggering generation.
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("Error generating schema references:", err);
+    process.exit(1);
+  });
+}
+
+module.exports = { escapeMdxTextExpressions };

@@ -16,7 +16,7 @@ description: "Reference for the `Click element (detailed)` schema."
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 button | string | Optional. Kind of click to perform.<br/><br/>Accepted values: `left`, `right`, `middle` | 
-surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }). | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form (\{ "app": … \}). | 
 elementText | string | Optional. Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria. | 
 selector | string | Optional. Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria. | 
 elementId | string | Optional. ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax. | 
