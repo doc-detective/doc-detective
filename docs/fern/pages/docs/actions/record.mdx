@@ -64,6 +64,8 @@ App-surface recordings use the `ffmpeg` engine with a `window` target by default
 
 App-surface recordings join the same display serialization as other FFmpeg recordings, and the same overlapping/named-stop rules apply.
 
+Native macOS and Windows app contexts add a second layer of serialization. Each host has a single app driver, and two native app contexts can't run against it at once without overwriting each other's session. So Doc Detective serializes native app contexts on that shared driver: a recording app context takes its turn alongside every other native app context on the host, whether or not that other context records. This keeps recording a native app surface safe under `concurrentRunners` greater than 1—the recording context queues for the driver instead of colliding with a concurrent app context. Contexts that don't drive a native app driver, such as browser and `httpRequest` contexts, keep running in parallel.
+
 <Note>
 Desktop screen capture records whatever is visible in the captured region. If another window overlaps the app during the recording, it appears in the video—Doc Detective doesn't hide or minimize other windows. On a dedicated CI runner this rarely matters. On a shared desktop, keep the recorded app in the foreground.
 </Note>
