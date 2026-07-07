@@ -3,7 +3,7 @@
     {
       "steps": [
         {
-          "loadVariables": "env"
+          "loadVariables": "../env"
         },
         {
           "checkLink": "http://localhost:8092"

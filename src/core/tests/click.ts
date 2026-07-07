@@ -4,7 +4,7 @@ import { findElement } from "./findElement.js";
 export { clickElement };
 
 // Click an element.
-async function clickElement({ config, step, driver }: { config: any; step: any; driver: any }) {
+async function clickElement({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
   const result: any = {
     status: "PASS",
     description: "Clicked element.",
@@ -25,15 +25,19 @@ async function clickElement({ config, step, driver }: { config: any; step: any; 
   if (typeof step.click === "string") {
     findStep = { find: step.click };
   } else if (typeof step.click === "object") {
-    // Set default values
-    step.click = {
-      ...step.click,
-      button: step.click.button || "left",
+    // `button` and `duration` describe the click itself, not the element
+    // search — destructure them out so the find gets only element criteria,
+    // and put them under the click sub-effect.
+    const { button, duration, ...findCriteria } = step.click;
+    findStep = {
+      find: {
+        ...findCriteria,
+        click: {
+          button: button || "left",
+          ...(duration !== undefined && { duration }),
+        },
+      },
     };
-    findStep = { find: {...step.click, click: { button: step.click.button } } };
-    if (findStep.find.button) {
-      delete findStep.find.button;
-    }
   }
 
   const findResult = await findElement({
@@ -41,6 +45,7 @@ async function clickElement({ config, step, driver }: { config: any; step: any; 
     step: findStep,
     driver,
     click: true,
+    appSession,
   });
 
   // Unified model: click delegates element EXISTENCE (the implicit verification)

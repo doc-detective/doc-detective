@@ -16,7 +16,7 @@ Field | Type | Description | Default
 :-- | :-- | :-- | :--
 networkIdleTime | integer | Optional. Wait for network activity to be idle (no new requests) for this duration in milliseconds.<br/><br/>Minimum: 0 | 
 domIdleTime | integer | Optional. Wait for DOM mutations to stop for this duration in milliseconds.<br/><br/>Minimum: 0 | 
-find | object | Optional. Wait for a specific element to be present in the DOM. At least one finding field must be specified. | 
+find | object([Element criteria](/reference/schemas/element-criteria)) | Optional. Wait for a specific element to be present. At least one finding field must be specified. | 
 
 ## Examples
 

@@ -1,3 +1,45 @@
+# [4.23.0](https://github.com/doc-detective/doc-detective/compare/v4.22.0...v4.23.0) (2026-07-06)
+
+
+### Bug Fixes
+
+* **ci:** browser unit tests fail on ubuntu/macOS — APPIUM_HOME anchored at a driverless runtime cache ([#522](https://github.com/doc-detective/doc-detective/issues/522)) ([47e49cc](https://github.com/doc-detective/doc-detective/commit/47e49cc9a32584e7b0294b7f48858d9e2b222553))
+* **runtime:** stop JIT installs pruning the runtime cache — the actual [#501](https://github.com/doc-detective/doc-detective/issues/501) ConPTY freeze — and guard the tty spawn path ([#510](https://github.com/doc-detective/doc-detective/issues/510)) ([b5dcfc5](https://github.com/doc-detective/doc-detective/commit/b5dcfc507b51adab00d0865e9122f0f9f6b33af3)), closes [microsoft/node-pty#640](https://github.com/microsoft/node-pty/issues/640) [#532](https://github.com/doc-detective/doc-detective/issues/532)
+
+
+### Features
+
+* **mobile-web:** mobile browsers on managed devices (native-app phase A5) ([#516](https://github.com/doc-detective/doc-detective/issues/516)) ([33ec6fc](https://github.com/doc-detective/doc-detective/commit/33ec6fc55cf2b496ef65e70cb9e271dfba092c65)), closes [#hosted](https://github.com/doc-detective/doc-detective/issues/hosted)
+
+# [4.22.0](https://github.com/doc-detective/doc-detective/compare/v4.21.0...v4.22.0) (2026-07-06)
+
+
+### Features
+
+* **app-surface:** managed iOS simulators + executable XCUITest app surfaces (phase A4) ([#512](https://github.com/doc-detective/doc-detective/issues/512)) ([99b55fb](https://github.com/doc-detective/doc-detective/commit/99b55fbde3654e034603727e04fd6d74c899296e)), closes [doc-detective/github-action#73](https://github.com/doc-detective/github-action/issues/73)
+
+# [4.21.0](https://github.com/doc-detective/doc-detective/compare/v4.20.0...v4.21.0) (2026-07-05)
+
+
+### Features
+
+* **apps:** native Android app surfaces + managed emulators (phase A3) ([cb65d2e](https://github.com/doc-detective/doc-detective/commit/cb65d2ece9e3f5e4e4eeff48739dba2347e26c3c))
+* native macOS app surfaces via Mac2 (native-app phase A2) ([#502](https://github.com/doc-detective/doc-detective/issues/502)) ([faf5521](https://github.com/doc-detective/doc-detective/commit/faf552125640a64b46a30dad6621d5b44298a970)), closes [#501](https://github.com/doc-detective/doc-detective/issues/501)
+
+# [4.20.0](https://github.com/doc-detective/doc-detective/compare/v4.19.0...v4.20.0) (2026-07-04)
+
+
+### Features
+
+* native Windows app surfaces via startSurface (native-app phase A1) ([#491](https://github.com/doc-detective/doc-detective/issues/491)) ([2ef5d5c](https://github.com/doc-detective/doc-detective/commit/2ef5d5c92d6af78e3cb9c781d3d4b8982a6675f3)), closes [#483](https://github.com/doc-detective/doc-detective/issues/483)
+
+# [4.19.0](https://github.com/doc-detective/doc-detective/compare/v4.18.0...v4.19.0) (2026-07-03)
+
+
+### Features
+
+* multiple concurrent browser surfaces (multi-surface Phase 4) ([#483](https://github.com/doc-detective/doc-detective/issues/483)) ([8c521a2](https://github.com/doc-detective/doc-detective/commit/8c521a22c094144ca394692f635eb3b25c369e2d))
+
 # [4.18.0](https://github.com/doc-detective/doc-detective/compare/v4.17.1...v4.18.0) (2026-07-02)
 
 
