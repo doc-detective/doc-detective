@@ -115,6 +115,40 @@ describe("runtime/installer", function () {
       expect(reports[0].installedVersion).to.equal("7.0.0");
     });
 
+    it("caps each npm child with the bulk timeout and forwards installTimeoutMs overrides", async function () {
+      // The full runtime batch (~1000 packages) can legitimately outlast the
+      // loader's 5-minute single-package default on slow CI runners — the
+      // postinstall pre-warm's npm child was reliably killed at 5:00 there,
+      // forfeiting the pre-warm (ADR 01034 made the resulting orphans safe;
+      // ADR 01035 stops the kill). installRuntime must own a larger bulk
+      // default and forward installTimeoutMs to its npm children. A hanging
+      // child plus a tiny override proves the plumbing end-to-end without
+      // waiting minutes: if the option is NOT forwarded, the loader falls
+      // back to its 5-minute default and this test times out instead.
+      const hangingSpawner = () => {
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        return child; // never emits 'close'
+      };
+      try {
+        await installRuntime({
+          packages: ["pngjs"],
+          force: true,
+          installTimeoutMs: 25,
+          deps: { spawn: hangingSpawner, logger: () => {} },
+        });
+        throw new Error("expected installRuntime to reject");
+      } catch (err) {
+        expect(String(err.message)).to.match(/timed out after 25ms/);
+      }
+    });
+
+    it("defaults the bulk npm-child timeout to 9 minutes — above the loader's 5-minute single-package default, below the postinstall's 10-minute outer ceiling", async function () {
+      const installer = await import("../dist/runtime/installer.js");
+      expect(installer.BULK_INSTALL_TIMEOUT_MS).to.equal(9 * 60 * 1000);
+    });
+
     it("reports installed peer companions, not just the requested package", async function () {
       // @puppeteer/browsers pulls in proxy-agent; the install report must list
       // both so it matches what was actually installed (and the dry-run).

@@ -58,12 +58,32 @@ const defaultLogger: Logger = (msg, level = "info") => {
   else console.log(msg);
 };
 
+/**
+ * Per-npm-child wall-clock cap for bulk runtime installs. The full
+ * HEAVY_NPM_DEPS batch is ~1000 packages and can legitimately outlast the
+ * loader's 5-minute single-package default on slow CI runners — the
+ * postinstall pre-warm's npm child was reliably killed at 5:00 there,
+ * forfeiting the pre-warm and stranding the extracted packages as orphans
+ * (ADR 01034 made the orphans safe; this cap stops the kill — ADR 01035).
+ * Kept below the postinstall's 10-minute outer ceiling
+ * (scripts/postinstall.js) so a genuinely hung npm still dies — and gets
+ * reported by ensureRuntimeInstalled's timeout error — before the ceiling
+ * silently tears the whole pre-warm down.
+ */
+export const BULK_INSTALL_TIMEOUT_MS = 9 * 60 * 1000;
+
 export interface InstallRuntimeOptions {
   packages?: string[];
   ctx?: CacheDirContext;
   deps?: InstallerDeps;
   force?: boolean;
   dryRun?: boolean;
+  /**
+   * Wall-clock cap for each spawned npm child; defaults to
+   * BULK_INSTALL_TIMEOUT_MS (not the loader's smaller single-package
+   * default). Pass `0` to disable.
+   */
+  installTimeoutMs?: number;
 }
 
 /**
@@ -81,6 +101,7 @@ export async function installRuntime(
     deps = {},
     force = false,
     dryRun = false,
+    installTimeoutMs = BULK_INSTALL_TIMEOUT_MS,
   } = options;
   const logger = deps.logger ?? defaultLogger;
   const targets = packages && packages.length > 0
@@ -120,6 +141,7 @@ export async function installRuntime(
     ctx,
     deps: { logger, spawn: deps.spawn },
     force,
+    installTimeoutMs,
   });
 
   const bestEffortFailed = new Set<string>();
@@ -129,6 +151,7 @@ export async function installRuntime(
         ctx,
         deps: { logger, spawn: deps.spawn },
         force,
+        installTimeoutMs,
       });
     } catch {
       // Non-fatal: the dep has no installable binary here; runtime SKIPs it.
