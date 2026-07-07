@@ -19,7 +19,18 @@ You can specify the target element directly using a string (for basic text or se
   - `moveTo`: (Optional) Move the cursor to the element. If the element isn't visible, it's scrolled into view (default: `true`).
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).
   - `type`: (Optional) Type keys after finding the element. Requires the element to be made active first (for example, by using `click: true`). Accepts a string or an object like `{ "keys": "my text", "inputDelay": 100 }`. See [`type`](type) for details.
-  - `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`. Omit to act on the active tab. The targeted surface stays focused afterward. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
+  - `surface`: (Optional) The browser (session, window, or tab) or app window the element lives in, for example `{ "browser": "chrome", "tab": "cart" }`, a named browser `{ "browser": "firefox", "name": "admin" }`, or an app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit to act on the active tab or window. The targeted surface stays focused afterward. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) and [App windows](#app-windows) below.
+
+## App windows
+
+On Windows and macOS app surfaces, `window` selects which of the app's windows the step acts on—dialogs and secondary document windows included:
+
+- `"window": { "title": "Create New Data Source" }` selects by title; wrap the value in slashes for a regex (`"/Data Source/"`).
+- `"window": -1` selects the newest window (typically a dialog the app just opened).
+- A plain string or `{ "name": … }` matches the window title exactly.
+- On macOS, a non-negative `"window": 2` selects by position; on Windows, positional indexes aren't supported (select by title or `-1` instead).
+
+Window selection is **sticky**: later steps on the same app surface act in the selected window until another selector changes it. [`click`](click), [`type`](type), [`screenshot`](screenshot), [`record`](record), [`swipe`](swipe), and [`closeSurface`](closeSurface) all accept the same selector. Android and iOS app surfaces are single-window—a `window` selector there fails with guidance to omit it.
 
 **Mobile app surfaces auto-scroll:** on an Android or iOS app surface, if the element isn't on screen, `find` scrolls toward content further down the list (up to 5 scroll steps, within `timeout`) before giving up—matching how browser `find` scrolls elements into view. Because [`click`](click) and element-targeted [`type`](type) locate elements the same way, they inherit this. If you need a different gesture (sideways, or a precise drag), use [`swipe`](swipe).
 

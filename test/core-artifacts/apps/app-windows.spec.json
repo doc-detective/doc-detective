@@ -1,0 +1,179 @@
+{
+  "specId": "app-window-selectors-windows",
+  "description": "App window selectors on Windows (ADR 01036, docs/design/native-app-surfaces.md §'The surface reference — app branch'): the NovaWindows driver is one-root-window-at-a-time, so a window selector switches the session root (switch-then-act) and stays sticky. The DirectX Diagnostic Tool (dxdiag.exe) is the target app: a real Win32 dialog app with an asInvoker manifest on every Windows edition (many other System32 dialog apps — odbcad32, osk, eudcedit — carry highestAvailable/uiAccess manifests and demand elevation for admin users), whose 'Save All Information...' button deterministically opens the modal 'Save As' dialog — a same-process second window that title selectors and -1 (newest) can address. /whql:off suppresses the first-run WHQL prompt. Windows dialogs must open from an in-window BUTTON: menu popups are separate top-level HWNDs outside the rooted window subtree, so menu-driven flows can't work under this driver. Gated to Windows hosts with the binary present; SKIPPED elsewhere.",
+  "tests": [
+    {
+      "testId": "win-window-select-and-close",
+      "description": "Open the Save As dialog, find inside it via a title window selector (and again with no selector — sticky proof: the session stays rooted in the dialog), screenshot the dialog window, close JUST the dialog with window: -1 (newest), prove the main window survived, then close the whole surface.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\dxdiag.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\dxdiag.exe",
+            "args": [
+              "/whql:off"
+            ],
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "selector": "//Button[starts-with(@Name, \"Save All Information\")]"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "selector": "//Button[starts-with(@Name, \"Save All Information\")]",
+            "surface": {
+              "app": "dxdiag",
+              "window": {
+                "title": "/DirectX Diagnostic Tool/"
+              }
+            },
+            "timeout": 60000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Cancel",
+            "surface": {
+              "app": "dxdiag",
+              "window": {
+                "title": "Save As"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Cancel",
+            "surface": {
+              "app": "dxdiag"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "dxdiag-save-as-window.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "dxdiag",
+              "window": {
+                "title": "Save As"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "dxdiag",
+            "window": -1
+          }
+        },
+        {
+          "find": {
+            "selector": "//Button[starts-with(@Name, \"Save All Information\")]",
+            "surface": {
+              "app": "dxdiag"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "dxdiag"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "win-window-selected-recording",
+      "description": "Record with a window selector targeting the main dxdiag window by title regex: the crop binds to THAT window's rect. The Save As dialog opens and closes during the recording (interactions give the capture real frames); the recording stays cropped to the main window.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\dxdiag.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\dxdiag.exe",
+            "args": [
+              "/whql:off"
+            ],
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "selector": "//Button[starts-with(@Name, \"Save All Information\")]"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "dxdiag-main-window.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "dxdiag",
+              "window": {
+                "title": "/DirectX Diagnostic Tool/"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "selector": "//Button[starts-with(@Name, \"Save All Information\")]",
+            "surface": {
+              "app": "dxdiag",
+              "window": {
+                "title": "/DirectX Diagnostic Tool/"
+              }
+            },
+            "timeout": 60000
+          }
+        },
+        {
+          "click": {
+            "elementText": "Cancel",
+            "surface": {
+              "app": "dxdiag",
+              "window": {
+                "title": "Save As"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "dxdiag"
+          }
+        }
+      ]
+    }
+  ]
+}

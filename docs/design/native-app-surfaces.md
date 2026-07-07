@@ -266,13 +266,23 @@ Same shared shape as every kind; apps have **windows, no tabs**:
   that an app opens on its own are addressable by `title`/index, mirroring the browser
   caveat about page-opened tabs. Mobile apps are effectively single-window;
   `window` is legal but rarely needed there.
-- Window addressing depends on per-driver window-handle support. The **schema
-  shape is fixed now**; each platform phase ships the selectors its driver can
-  honor and FAILs loudly ("window selectors for <driver> land in phase …")
-  otherwise — the same pattern Phase 3 used for cross-browser targeting.
+- **Shipped for desktop drivers (ADR 01036).** Two models behind one seam
+  (`appWindows.ts`): Windows/NovaWindows is *switch-then-act* (handle-only
+  probing — the driver's title-switch branch has a foregrounding bug —
+  pid-filtered adoption of desktop-global handles, `-1` = newest adopted,
+  `index ≥ 0` FAILs: no app-scoped creation order); macOS/Mac2 is
+  *window-as-element* (`XCUIElementTypeWindow` elements, scoped finds with
+  `//`→`.//` re-anchoring, element rect/screenshot, `-1` via (title, frame)
+  baseline diff, `index` = query order). Selection is **sticky** per the
+  shared surface contract. Recording crops, swipe math, and screenshots
+  resolve window-true rects — fixing the A7-era latent bug where Mac2's
+  `getWindowRect()` (the whole main screen) made mac "window" crops
+  full-display. Mobile (android/ios) FAILs with one shared single-window
+  message — including `record`, whose A7 mobile-window SKIP became a FAIL.
 - `closeSurface` composes as designed: `{ "app": "notepad", "window": -1 }`
-  closes one window; `"closeSurface": "notepad"` ends the app session (and
-  terminates the app if Doc Detective launched it).
+  closes one window (last-window refusal points at the bare form; absent
+  match is an idempotent no-op); `"closeSurface": "notepad"` ends the app
+  session (and terminates the app if Doc Detective launched it).
 
 ## Multiple apps, one device — and multiple devices
 
