@@ -315,6 +315,31 @@ describe("appWindows: Windows (switch-then-act)", function () {
     assert.ok(!entry.knownWindows.includes("0xB"));
   });
 
+  it("closes the newest window (selector -1) rooted at the match, not the current root", async function () {
+    // The negative-index path in matchWindowsSelector returns the handle
+    // without switching, and syncWindowsHandles restores the session to the
+    // original root. closeWindowsWindow must switch to the match before
+    // `windows: closeApp` or it closes the wrong (original) window. This is a
+    // clean-session close (no preceding sticky `find`), so the session sits at
+    // the main window — exactly the scenario the E2E fixture can't reproduce.
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
+    // Adopt the dialog into known windows (as a live app would after opening
+    // it), but leave the session rooted at Main — no sticky selection.
+    await resolveAppWindow({ entry, selector: -1, timeoutMs: 1000 });
+    await driver.switchToWindow("0xA");
+    const res = await closeAppWindow({ entry, selector: -1 });
+    assert.deepEqual(res, { ok: true, closed: true });
+    assert.ok(driver.state.executed.includes("windows: closeApp"));
+    // The DIALOG (0xB), not Main (0xA), was closed.
+    assert.equal(driver.windows.find((w) => w.handle === "0xB").closed, true);
+    assert.equal(driver.windows.find((w) => w.handle === "0xA").closed, undefined);
+    // And the session ends rooted at the surviving main window.
+    assert.equal(driver.state.current, "0xA");
+  });
+
   it("clears mainWindowHandle when the main window itself is closed", async function () {
     // Closing main while a dialog survives is allowed (only the LAST window
     // is refused). The stale handle must not linger: the teardown re-root

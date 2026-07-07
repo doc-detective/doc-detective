@@ -300,7 +300,24 @@ async function closeWindowsWindow({
     }
     return { ok: false, message: lastWindowRefusalMessage(entry.name) };
   }
-  // matchWindowsSelector left the session rooted at the match.
+  // Root the session at the match before closing. matchWindowsSelector only
+  // leaves the session there for the title/regex path (it switches through
+  // candidates); the negative-index path returns the handle WITHOUT switching,
+  // and syncWindowsHandles restored the session to `original` — so without this
+  // explicit switch, `windows: closeApp` would close the wrong (original)
+  // window. Mirrors resolveWindowsWindow's post-match switch.
+  try {
+    await driver.switchToWindow(match.handle);
+  } catch {
+    // The matched window vanished between sync and close — restore the root
+    // and treat it as an idempotent no-op.
+    try {
+      await driver.switchToWindow(original);
+    } catch {
+      /* original gone too */
+    }
+    return { ok: true, closed: false };
+  }
   await driver.execute("windows: closeApp");
   entry.knownWindows = (entry.knownWindows ?? []).filter(
     (h: string) => h !== match.handle
