@@ -3,7 +3,12 @@ import fs from "node:fs";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { getDeclaredVersion, satisfiesRange, withPeerCompanions } from "./heavyDeps.js";
+import {
+  getDeclaredVersion,
+  managedDepNames,
+  satisfiesRange,
+  withPeerCompanions,
+} from "./heavyDeps.js";
 import { isNpmNoiseLine } from "./installOutput.js";
 import {
   assertSafeRuntimePath,
@@ -287,13 +292,20 @@ function ensureRuntimePackageJson(runtimeDir: string): void {
 //
 // Called before each install (so this install's reify keeps existing
 // siblings) and again after a successful one (so the new arrivals are
-// protected from the NEXT install). Candidate names come from installed.json
-// and the manifest's current dependencies — both doc-detective-managed sets,
-// so hoisted transitives are never promoted to direct dependencies. Physical
-// presence on disk then filters the candidates: a package whose install
-// failed (e.g. the best-effort PTY backend on an exotic platform) is never
-// resurrected into future installs' ideal trees, where its permanent failure
-// would fail every subsequent install.
+// protected from the NEXT install). Candidate names come from installed.json,
+// the manifest's current dependencies, AND the shim's full managed-dep
+// universe (managedDepNames) — all doc-detective-managed sets, so hoisted
+// transitives are never promoted to direct dependencies. The universe sweep
+// covers orphans: an interrupted install batch (npm child killed by the
+// install timeout — the postinstall bulk pre-warm on a slow CI runner — or a
+// cancelled job) leaves packages physically installed that installed.json
+// never recorded, and without the sweep the next JIT install pruned them all
+// ("removed 1064 packages"), gutting e.g. the appium tree right before the
+// runner tried to start it. Physical presence on disk then filters the
+// candidates: a package whose install failed (e.g. the best-effort PTY
+// backend on an exotic platform) is never resurrected into future installs'
+// ideal trees, where its permanent failure would fail every subsequent
+// install.
 function recordRuntimeDependencies(
   runtimeDir: string,
   ctx: CacheDirContext
@@ -314,6 +326,7 @@ function recordRuntimeDependencies(
     const names = new Set<string>([
       ...Object.keys(record.npmPackages),
       ...Object.keys(prior),
+      ...managedDepNames(),
     ]);
     const deps: Record<string, string> = {};
     for (const name of [...names].sort()) {
