@@ -169,7 +169,9 @@ Unlike browser typing, typing on an app surface requires element criteria to nam
 
 Two limits apply in this phase:
 
+<!-- vale alex.Ablist = NO -->
 - `$KEY$` key tokens (listed under [Special keys](#special-keys)) aren't supported on app surfaces. The device key vocabulary lands in a later phase.
+<!-- vale alex.Ablist = YES -->
 - `waitUntil` on an app surface accepts only `delayMs` and `find`.
 
 App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to Windows.
