@@ -463,11 +463,11 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         // NovaWindows (like WinAppDriver) takes appArguments as one string.
         capabilities["appium:appArguments"] = descriptor.args.join(" ");
       }
-      if (descriptor.workingDirectory && descriptor.workingDirectory !== ".") {
-        capabilities["appium:appWorkingDir"] = path.resolve(
-          descriptor.workingDirectory
-        );
-      }
+      // `workingDirectory` is NOT mapped: NovaWindows v1.4.1 silently ignores
+      // the appWorkingDir capability (the launched process inherits the
+      // driver's PowerShell session cwd), so mapping it would be a no-op the
+      // author can't see. It's rejected in unsupportedFields below instead —
+      // see the upstream report referenced in ADR 01036.
       return capabilities;
     },
     unsupportedFields: [
@@ -477,6 +477,13 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.",
+      },
+      {
+        field: "workingDirectory",
+        // "." is the schema's injected default, not an author request.
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance:
+          "The Windows app driver (NovaWindows) doesn't honor a launch working directory — the app inherits the driver's own working directory — so Doc Detective can't set it; launch the app via runShell if the cwd matters.",
       },
     ],
   },

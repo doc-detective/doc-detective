@@ -1186,7 +1186,7 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Privacy & Security/);
   });
 
-  it("maps args and workingDirectory into driver capabilities", async function () {
+  it("maps args and driverOptions into driver capabilities", async function () {
     const appSession = preflighted();
     let caps;
     await startAppSurface({
@@ -1195,7 +1195,6 @@ describe("startAppSurface", function () {
         startSurface: {
           app: "C:\\x\\app.exe",
           args: ["--a", "--b"],
-          workingDirectory: "./sandbox",
           driverOptions: { "nova:smoothMouseMove": true },
         },
       },
@@ -1210,9 +1209,45 @@ describe("startAppSurface", function () {
       },
     });
     assert.equal(caps["appium:appArguments"], "--a --b");
-    assert.equal(caps["appium:appWorkingDir"], path.resolve("./sandbox"));
     assert.equal(caps["nova:smoothMouseMove"], true);
     assert.equal(caps["appium:automationName"], "NovaWindows");
+    // workingDirectory is NOT mapped to a capability — NovaWindows ignores
+    // appWorkingDir, so it's rejected up front (see the FAIL test below)
+    // rather than silently sent.
+    assert.equal(caps["appium:appWorkingDir"], undefined);
+  });
+
+  it("fails workingDirectory on Windows with guidance but tolerates the schema default", async function () {
+    // NovaWindows v1.4.1 silently ignores appWorkingDir (the launched app
+    // inherits the driver's cwd), so Doc Detective can't deliver a working
+    // directory on Windows — FAIL loudly with guidance rather than accept a
+    // silent no-op (matching the macOS LaunchServices precedent).
+    const appSession = preflighted();
+    const explicit = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "C:\\x\\app.exe", workingDirectory: "./sandbox" },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(explicit.status, "FAIL");
+    assert.match(explicit.description, /not supported by the Windows app driver/);
+    assert.match(explicit.description, /doesn't honor a launch working directory/);
+
+    // "." is the schema's injected default, not an author request — it must
+    // not trip the unsupported-field guard.
+    const defaulted = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "C:\\x\\other.exe", workingDirectory: "." },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(defaulted.status, "PASS");
   });
 
   // --- Android (phase A3b): shared device session + activateApp switching ---

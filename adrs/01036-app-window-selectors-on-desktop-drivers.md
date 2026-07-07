@@ -130,8 +130,22 @@ Two additional decisions came out of live fixture verification:
   modals, and menu popups are separate top-level HWNDs the one-root-window
   driver can't reach. `-EncodedCommand` (not `-File`) because **NovaWindows
   v1.4.1 silently ignores the `appWorkingDir` capability** — a latent A1 gap
-  (the `workingDirectory` field never reached the launched process) worth an
-  upstream report; a unit test pins the embedded blob against the `.ps1`.
+  (the `workingDirectory` field never reached the launched process); a unit
+  test pins the embedded blob against the `.ps1`.
+- **`workingDirectory` on a Windows app surface now FAILs with guidance**
+  (matching the macOS LaunchServices precedent) instead of mapping a
+  capability the driver ignores. A1 mapped `workingDirectory` →
+  `appium:appWorkingDir`, but NovaWindows v1.4.1 discards it (the launched
+  process inherits the driver's PowerShell-session cwd), so the field was a
+  silent no-op on Windows — the same failure mode the macOS row already
+  rejects. The runner drops the dead caps mapping and adds a
+  `workingDirectory` entry to the Windows `unsupportedFields` (guidance:
+  launch via runShell if the cwd matters); the schema description says the
+  field is reserved until a driver honors it. Reported upstream as
+  [appium-novawindows-driver#85](https://github.com/AutomateThePlanet/appium-novawindows-driver/issues/85)
+  (alongside the HiDPI click miss); if a future driver gains real
+  working-directory support the field can be re-honored on that pinned
+  version.
 
 ### Consequences
 
