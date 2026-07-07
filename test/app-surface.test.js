@@ -1207,6 +1207,36 @@ describe("startAppSurface", function () {
     assert.equal(handle.cropRect, undefined);
   });
 
+  it("android: a late-start missing-host-ffmpeg error marks the handle as a skip", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.startRecordingScreen = async () => {
+      throw new Error("'ffmpeg' binary is not found in PATH.");
+    };
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.match(handle.startError, /ffmpeg/);
+    assert.equal(handle.startSkip, true);
+  });
+
   it("android: a failed late-start stashes the error on the pending handle", async function () {
     const appSession = preflighted();
     const driver = fakeDriver();

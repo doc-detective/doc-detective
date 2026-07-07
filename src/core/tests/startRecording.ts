@@ -277,8 +277,18 @@ async function startRecording({
     try {
       await recordingDriver.startRecordingScreen(options);
     } catch (error: any) {
+      const message = String(error?.message ?? error);
+      // The XCUITest driver shells out to a host ffmpeg for encoding. A
+      // missing binary is an environment gap, not a test failure — SKIP with
+      // the fix named (install-impossible convention). The runner injects the
+      // bundled ffmpeg onto the app server's PATH, so this is a backstop.
+      if (/ffmpeg.*not found/i.test(message)) {
+        result.status = "SKIPPED";
+        result.description = `The device recording needs an ffmpeg binary on the Appium server's PATH and none was found; skipping the recording. ${message}`;
+        return result;
+      }
       result.status = "FAIL";
-      result.description = `Couldn't start the device recording: ${error?.message ?? error}`;
+      result.description = `Couldn't start the device recording: ${message}`;
       log(config, "error", result.description);
       return result;
     }

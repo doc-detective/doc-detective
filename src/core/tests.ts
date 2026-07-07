@@ -60,6 +60,8 @@ import {
   isRecordingActive,
   recordStepName,
   detectRecordingNameConflict,
+  getFfmpegPath,
+  ffmpegPathEnv,
 } from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
@@ -4486,6 +4488,23 @@ async function runStep({
             if (appSession?.androidSdkRoot) {
               env.ANDROID_HOME = appSession.androidSdkRoot;
               env.ANDROID_SDK_ROOT = appSession.androidSdkRoot;
+            }
+            // iOS device recording: the XCUITest driver's
+            // startRecordingScreen shells out to a bare `ffmpeg` on the
+            // server's PATH for encoding, and hosted runners don't reliably
+            // ship one. Put the bundled @ffmpeg-installer binary's directory
+            // first. Best-effort — the session must start even when the
+            // ffmpeg install isn't available (recording then SKIPs with
+            // guidance).
+            if (isMobileTargetPlatform(context?.platform) === "ios") {
+              try {
+                const ffmpegPath = await getFfmpegPath({
+                  cacheDir: config?.cacheDir,
+                });
+                Object.assign(env, ffmpegPathEnv(ffmpegPath));
+              } catch {
+                /* best-effort */
+              }
             }
             const server = await startAppiumServer(
               appiumEntry,

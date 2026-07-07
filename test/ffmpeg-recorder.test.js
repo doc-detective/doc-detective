@@ -7,6 +7,7 @@ import {
   parseCaptureFrameSize,
   deriveCropScale,
   resolveAppWindowRect,
+  ffmpegPathEnv,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
@@ -451,6 +452,28 @@ describe("ffmpegRecorder", function () {
           platform
         ).to.equal(1);
       }
+    });
+  });
+
+  describe("ffmpegPathEnv", function () {
+    it("prepends the bundled ffmpeg's directory to the existing PATH", function () {
+      const dir = path.join("C:", "cache", "ffmpeg-bin");
+      const out = ffmpegPathEnv(path.join(dir, "ffmpeg.exe"), {
+        Path: "C:\\Windows\\system32",
+      });
+      expect(out).to.deep.equal({
+        Path: `${dir}${path.delimiter}C:\\Windows\\system32`,
+      });
+    });
+
+    it("matches the PATH key case-insensitively and handles a missing PATH", function () {
+      const dir = path.join("/opt", "ffmpeg");
+      expect(
+        ffmpegPathEnv(path.join(dir, "ffmpeg"), { PATH: "/usr/bin" })
+      ).to.deep.equal({ PATH: `${dir}${path.delimiter}/usr/bin` });
+      expect(ffmpegPathEnv(path.join(dir, "ffmpeg"), {})).to.deep.equal({
+        PATH: dir,
+      });
     });
   });
 

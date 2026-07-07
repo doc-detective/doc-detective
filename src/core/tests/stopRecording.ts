@@ -118,7 +118,9 @@ async function stopRecording({
   if (recording.type === "appium-pending") {
     dropHandle();
     if (recording.startError) {
-      result.status = "FAIL";
+      // An environment gap (missing host ffmpeg) is a gated SKIP; anything
+      // else is a real start failure.
+      result.status = recording.startSkip ? "SKIPPED" : "FAIL";
       result.description = recording.startError;
       return result;
     }

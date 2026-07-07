@@ -22,6 +22,7 @@ export {
   buildCaptureArgs,
   resolveCropGeometry,
   resolveAppWindowRect,
+  ffmpegPathEnv,
   parseCaptureFrameSize,
   deriveCropScale,
   detectDisplayPointSize,
@@ -448,6 +449,24 @@ async function resolveAppWindowRect(
     return null;
   }
   return { x: r.x, y: r.y, w: r.width, h: r.height };
+}
+
+// A PATH env entry that puts the bundled @ffmpeg-installer binary's directory
+// first, so child processes that shell out to a bare `ffmpeg` (the XCUITest
+// driver's startRecordingScreen encoder) find ours — CI runners don't
+// reliably ship a system ffmpeg. Matches the existing PATH key
+// case-insensitively (Windows uses `Path`).
+function ffmpegPathEnv(
+  ffmpegPath: string,
+  baseEnv: NodeJS.ProcessEnv = process.env
+): Record<string, string> {
+  const dir = path.dirname(ffmpegPath);
+  const pathKey =
+    Object.keys(baseEnv).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+  const existing = baseEnv[pathKey];
+  return {
+    [pathKey]: existing ? `${dir}${path.delimiter}${existing}` : dir,
+  };
 }
 
 // Pull the capture frame size out of the capture ffmpeg's own stderr: the

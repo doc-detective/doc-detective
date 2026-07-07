@@ -466,6 +466,45 @@ describe("startRecording: device engine (android/ios)", function () {
     assert.equal(startCalls, 1);
   });
 
+  it("SKIPs with guidance when the driver's host ffmpeg is missing", async function () {
+    // The XCUITest driver shells out to a host ffmpeg for encoding; when
+    // that's missing the environment can't record — a gated SKIP, not a FAIL
+    // (matching the install-impossible convention).
+    const appDriver = {
+      startRecordingScreen: async () => {
+        throw new Error(
+          "'ffmpeg' binary is not found in PATH. Install it using 'brew install ffmpeg'."
+        );
+      },
+    };
+    const appSession = makeAppSession({
+      surfaces: [
+        {
+          name: "app",
+          appId: "com.example.app",
+          driver: appDriver,
+          platform: "ios",
+          deviceName: "iPhone_15",
+        },
+      ],
+      deviceSessions: [
+        { name: "iPhone_15", driver: appDriver, foregroundApp: "com.example.app" },
+      ],
+    });
+    const result = await startRecording({
+      config,
+      context: { platform: "ios" },
+      step: {
+        stepId: "x",
+        record: { path: path.join(tmpDir, "a.mp4"), surface: { app: "app" } },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /ffmpeg/);
+  });
+
   it("FAILs when the driver can't start the device recording", async function () {
     const appDriver = {
       startRecordingScreen: async () => {
@@ -725,6 +764,25 @@ describe("stopRecording: device (appium) handles", function () {
     });
     assert.equal(result.status, "SKIPPED");
     assert.match(result.description, /never started/);
+    assert.equal(host.state.recordings.length, 0);
+  });
+
+  it("SKIPs (and drops) a pending device recording whose late start hit a missing host ffmpeg", async function () {
+    const handle = {
+      type: "appium-pending",
+      startError:
+        "Couldn't start the pending device recording: 'ffmpeg' binary is not found in PATH.",
+      startSkip: true,
+      targetPath: path.join(tmpDir, "out.mp4"),
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /ffmpeg/);
     assert.equal(host.state.recordings.length, 0);
   });
 
