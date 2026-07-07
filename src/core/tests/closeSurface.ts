@@ -9,6 +9,7 @@ import {
 } from "./browserSurface.js";
 import { findSession, closeSession } from "./browserSessions.js";
 import { closeAppSurface, type AppSessionState } from "./appSurface.js";
+import { closeAppWindow } from "./appWindows.js";
 import kill from "tree-kill";
 import fs from "node:fs";
 
@@ -220,9 +221,29 @@ async function closeSurface({
         continue;
       }
       if ((item as any).window !== undefined) {
-        result.status = "FAIL";
-        result.description = `Closing a single app window lands in a later phase; close the whole app surface ("closeSurface": {"app": "${appName}"}) instead.`;
-        return result;
+        // Window-scoped close (ADR 01036): close ONE window, keep the
+        // surface. The strategy refuses the last window (that would end the
+        // app) and treats a no-match as an idempotent absent no-op.
+        const closedWindow = await closeAppWindow({
+          entry: appEntry,
+          selector: (item as any).window,
+        });
+        if (!closedWindow.ok) {
+          result.status = "FAIL";
+          result.description = closedWindow.message;
+          return result;
+        }
+        // Unquoted: the description formatter wraps every closed/absent entry
+        // in one pair of quotes, so an inner pair here would nest ("app window
+        // of "charmap"").
+        const label = `app window of ${appName}`;
+        if (closedWindow.closed) {
+          log(config, "debug", `Closed a window of app surface "${appName}".`);
+          closed.push(label);
+        } else {
+          absent.push(label);
+        }
+        continue;
       }
       await closeAppSurface({ entry: appEntry, appSession: appSession! });
       log(config, "debug", `Closed app surface "${appName}".`);

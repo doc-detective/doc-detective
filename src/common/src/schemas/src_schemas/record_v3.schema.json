@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "record",
-  "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+  "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
   "anyOf": [
     {
       "$ref": "#/components/schemas/string"
@@ -12,7 +12,7 @@
     {
       "type": "boolean",
       "title": "Record (boolean)",
-      "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record."
+      "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
     }
   ],
   "components": {
@@ -30,13 +30,16 @@
         "type": "object",
         "properties": {
           "surface": {
-            "description": "The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.",
+            "description": "The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.",
             "anyOf": [
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
               },
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/browser"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/app"
               }
             ]
           },
@@ -108,13 +111,12 @@
               },
               "target": {
                 "type": "string",
-                "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
                 "enum": [
                   "display",
                   "window",
                   "viewport"
-                ],
-                "default": "display"
+                ]
               },
               "fps": {
                 "type": "integer",
@@ -146,6 +148,22 @@
         "name": "ffmpeg",
         "target": "window",
         "fps": 60
+      }
+    },
+    {
+      "path": "notepad.mp4",
+      "surface": {
+        "app": "notepad"
+      }
+    },
+    {
+      "path": "full-screen.mp4",
+      "surface": {
+        "app": "notepad"
+      },
+      "engine": {
+        "name": "ffmpeg",
+        "target": "display"
       }
     }
   ]

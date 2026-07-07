@@ -666,6 +666,10 @@
                   "window": {
                     "title": "/Find/"
                   }
+                },
+                {
+                  "app": "notepad",
+                  "window": -1
                 }
               ]
             },
@@ -2159,6 +2163,10 @@
                     "window": {
                       "title": "/Find/"
                     }
+                  },
+                  {
+                    "app": "notepad",
+                    "window": -1
                   }
                 ]
               },

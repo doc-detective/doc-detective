@@ -45,7 +45,6 @@ startSurface | object([startSurface](/reference/schemas/startsurface)) | Require
     "args": [
       "--reset"
     ],
-    "workingDirectory": "./sandbox",
     "waitUntil": {
       "delayMs": 500
     },
