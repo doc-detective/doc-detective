@@ -677,3 +677,94 @@ describe("appWindows: mobile + helpers", function () {
     assert.equal(rewriteXPathForScopedFind("~save_button"), "~save_button");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Defensive error paths (never-throw contract)
+// ---------------------------------------------------------------------------
+
+describe("appWindows: defensive error paths", function () {
+  it("resolveAppWindow wraps a driver failure into a controlled FAIL", async function () {
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    // The resolver re-reads the current handle; make that throw so the
+    // strategy body rejects and the outer try/catch converts it to a FAIL.
+    driver.getWindowHandle = async () => {
+      throw new Error("session died");
+    };
+    const res = await resolveAppWindow({
+      entry,
+      selector: "Main",
+      timeoutMs: 300,
+    });
+    assert.equal(res.ok, false);
+    assert.match(res.message, /Couldn't resolve the app window selector/);
+    assert.match(res.message, /session died/);
+  });
+
+  it("closeAppWindow wraps a driver failure into a controlled FAIL", async function () {
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.getWindowHandle = async () => {
+      throw new Error("session died");
+    };
+    const res = await closeAppWindow({ entry, selector: "Dialog" });
+    assert.equal(res.ok, false);
+    assert.match(res.message, /Couldn't close the app window/);
+    assert.match(res.message, /session died/);
+  });
+
+  it("closeWindowsWindow treats a match that vanished before the close as an idempotent no-op", async function () {
+    // The round-5 fix switches to the match before `windows: closeApp`. If
+    // that switch fails (the window closed between sync and close), restore
+    // the root and no-op rather than closing the wrong window.
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
+    await resolveAppWindow({ entry, selector: -1, timeoutMs: 1000 });
+    await driver.switchToWindow("0xA");
+    const realSwitch = driver.switchToWindow.bind(driver);
+    driver.switchToWindow = async (h) => {
+      if (h === "0xB") throw new Error("window vanished");
+      return realSwitch(h);
+    };
+    const res = await closeAppWindow({ entry, selector: -1 });
+    assert.deepEqual(res, { ok: true, closed: false });
+    assert.ok(!driver.state.executed.includes("windows: closeApp"));
+    // Root restored to the survivor.
+    assert.equal(driver.state.current, "0xA");
+  });
+
+  it("activeAppWindow returns the held window element while it's still valid", async function () {
+    const driver = fakeMacDriver([
+      { id: "w1", title: "Doc", rect: { x: 0, y: 0, width: 10, height: 10 } },
+    ]);
+    const entry = macEntry(driver);
+    await snapshotAppWindows(entry);
+    await resolveAppWindow({ entry, selector: "Doc", timeoutMs: 500 });
+    // No staleness: the held element still exists, so it's returned directly.
+    const target = await activeAppWindow(entry);
+    assert.ok(target);
+    assert.equal(target.kind, "element");
+    assert.equal(target.element.elementId, "w1");
+  });
+
+  it("activeAppWindow re-resolves when the held element's isExisting throws", async function () {
+    const driver = fakeMacDriver([
+      { id: "w1", title: "Doc", rect: { x: 0, y: 0, width: 10, height: 10 } },
+    ]);
+    const entry = macEntry(driver);
+    await snapshotAppWindows(entry);
+    await resolveAppWindow({ entry, selector: "Doc", timeoutMs: 500 });
+    // A stale reference can throw on isExisting() rather than returning false;
+    // the catch must fall through to the by-title re-resolve.
+    entry.activeWindow.element.isExisting = async () => {
+      throw new Error("stale element reference");
+    };
+    const target = await activeAppWindow(entry);
+    assert.ok(target);
+    assert.equal(target.title, "Doc");
+  });
+});
