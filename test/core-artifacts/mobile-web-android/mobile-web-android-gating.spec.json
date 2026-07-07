@@ -1,0 +1,71 @@
+{
+  "specId": "mobile-web-android-gating-a5",
+  "description": "Mobile web phase A5: the unsupported-combination SKIP matrix on Android, asserted as behavior. Chrome is the one supported Android browser; every other engine SKIPs deterministically at the mobile-browser gate — before any SDK detection, toolchain install, or emulator boot — so these land SKIPPED on EVERY host, capable or not. Mixing native app surfaces and web steps in one mobile context is likewise a deterministic SKIP (deferred to the A6 vocabulary work). The FAIL path (device-fixed browser config like headless:false / window / viewport) is asserted in mocha (test/core-core.test.js), not here — fixtures must never FAIL.",
+  "tests": [
+    {
+      "testId": "android-firefox-matrix-skip",
+      "description": "firefox isn't available on android — SKIPPED with the supported browser named.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "firefox"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        }
+      ]
+    },
+    {
+      "testId": "android-webkit-matrix-skip",
+      "description": "webkit (the desktop engine) isn't available on android — SKIPPED.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "webkit"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        }
+      ]
+    },
+    {
+      "testId": "android-safari-matrix-skip",
+      "description": "safari on an android entry stays `safari` (no webkit aliasing on mobile pairs) and SKIPs on the matrix.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "safari"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        }
+      ]
+    },
+    {
+      "testId": "android-mixed-app-web-skip",
+      "description": "One context mixing a native app surface and a browser step — deterministic SKIP with a split-the-test pointer.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings"
+          }
+        },
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        }
+      ]
+    }
+  ]
+}

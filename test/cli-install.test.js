@@ -30,14 +30,36 @@ describe("CLI install commands", function () {
     expect(r.stdout).to.include("install <subcommand>");
   });
 
-  it("`install --help` lists all subcommands (agents, runtime, browsers, status, all)", function () {
+  it("`install --help` lists all subcommands (agents, runtime, browsers, android, ios, status, all)", function () {
     const r = runCli(["install", "--help"]);
     expect(r.status).to.equal(0);
     expect(r.stdout).to.match(/install agents/);
     expect(r.stdout).to.match(/install runtime/);
     expect(r.stdout).to.match(/install browsers/);
+    expect(r.stdout).to.match(/install android/);
+    expect(r.stdout).to.match(/install ios/);
     expect(r.stdout).to.match(/install status/);
     expect(r.stdout).to.match(/install all/);
+  });
+
+  it("`install ios --dry-run` previews checks without requiring macOS", function () {
+    const r = runCli(["install", "ios", "--dry-run"]);
+    expect(r.status).to.equal(0);
+    expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+    expect(r.stdout).to.match(/ios-toolchain|simctl|XCUITest/i);
+  });
+
+  it("`install android --dry-run` previews a plan without java/network (native app phase A3)", function () {
+    // Dry-run is a pure preview: it must never require java, hit the network,
+    // or spawn sdkmanager. It runs on every host regardless of SDK presence —
+    // an SDK found prints the augment plan, otherwise the bootstrap plan.
+    // Either way it exits cleanly and is never an unknown-command error.
+    const r = runCli(["install", "android", "--dry-run"]);
+    expect(r.status).to.equal(0);
+    expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+    expect(r.stdout).to.match(
+      /Android install plan|accept Android SDK licenses|create AVD|bootstrap Android/
+    );
   });
 
   it("`install` with no subcommand prints a clear error and exits non-zero", function () {

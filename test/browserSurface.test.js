@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   parseSurfaceRef,
+  reinterpretForSessions,
   ensureSurfaceState,
   syncHandles,
   seedWindowLead,
@@ -90,6 +91,7 @@ describe("browserSurface: parseSurfaceRef", function () {
     assert.deepEqual(parseSurfaceRef({ process: " db " }), {
       kind: "process",
       name: "db",
+      explicit: true,
     });
   });
 
@@ -112,6 +114,40 @@ describe("browserSurface: parseSurfaceRef", function () {
   it("maps anything else to unsupported", function () {
     assert.equal(parseSurfaceRef(42).kind, "unsupported");
     assert.equal(parseSurfaceRef({ app: "calc" }).kind, "unsupported");
+  });
+
+  it("tags an explicit { process } reference so it is never reinterpreted", function () {
+    assert.equal(parseSurfaceRef({ process: "web" }).explicit, true);
+    // A bare string carries no explicit tag.
+    assert.equal(parseSurfaceRef("web").explicit, undefined);
+  });
+});
+
+describe("browserSurface: reinterpretForSessions", function () {
+  // A driver whose session registry owns a browser surface named "web".
+  function driverWithSession(name) {
+    return { state: { sessionRegistry: { sessions: new Map([[name, {}]]) } } };
+  }
+
+  it("reinterprets a BARE-STRING process ref as a browser session it owns", function () {
+    const driver = driverWithSession("web");
+    const ref = reinterpretForSessions(driver, parseSurfaceRef("web"));
+    assert.equal(ref.kind, "browser");
+    assert.equal(ref.name, "web");
+  });
+
+  it("never reinterprets an EXPLICIT { process } ref, so the process stays reachable", function () {
+    const driver = driverWithSession("web");
+    const ref = reinterpretForSessions(driver, parseSurfaceRef({ process: "web" }));
+    assert.equal(ref.kind, "process");
+    assert.equal(ref.name, "web");
+  });
+
+  it("leaves a bare string as a process when no browser session owns the name", function () {
+    const driver = driverWithSession("chrome");
+    const ref = reinterpretForSessions(driver, parseSurfaceRef("web"));
+    assert.equal(ref.kind, "process");
+    assert.equal(ref.name, "web");
   });
 });
 
@@ -351,14 +387,14 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.match(noWindow.message, /missing/);
   });
 
-  it("FAILs an engine mismatch with the active engine named", async function () {
+  it("FAILs an engine mismatch (no session registry) with goTo guidance", async function () {
     const driver = stubDriver({ engine: "chrome" });
     await syncHandles(driver);
     const res = await resolveWindowTarget(driver, parseSurfaceRef({ browser: "firefox", tab: -1 }));
     assert.equal(res.ok, false);
     assert.match(res.message, /firefox/);
     assert.match(res.message, /chrome/);
-    assert.match(res.message, /later phase/);
+    assert.match(res.message, /goTo/);
   });
 
   it("treats edge as chrome for the engine check (context transform parity)", async function () {
@@ -375,7 +411,7 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.equal(res.ok, true);
   });
 
-  it("FAILs a named browser surface as a later-phase feature", async function () {
+  it("FAILs an unopened named surface (no session registry) with goTo guidance", async function () {
     const driver = stubDriver();
     await syncHandles(driver);
     const res = await resolveWindowTarget(
@@ -383,7 +419,8 @@ describe("browserSurface: resolveWindowTarget", function () {
       parseSurfaceRef({ browser: "firefox", name: "secondary" })
     );
     assert.equal(res.ok, false);
-    assert.match(res.message, /later phase/);
+    assert.match(res.message, /secondary/);
+    assert.match(res.message, /goTo/);
   });
 
   it("resolves an engine-only surface to the current handle (no switch)", async function () {
@@ -493,23 +530,24 @@ describe("browserSurface: resolveCloseTargets", function () {
     assert.deepEqual(res.handles, []);
   });
 
-  it("FAILs a whole-browser close with later-phase guidance", async function () {
+  it("rejects a whole-browser close (session-level, not a window/tab close)", async function () {
+    // Whole-browser closes are resolved against the session registry by the
+    // closeSurface step; this helper only ever closes windows/tabs.
     const driver = stubDriver();
     await syncHandles(driver);
     for (const ref of [parseSurfaceRef("firefox"), parseSurfaceRef({ browser: "firefox" })]) {
       const res = await resolveCloseTargets(driver, ref);
       assert.equal(res.ok, false);
-      assert.match(res.message, /later phase/);
-      assert.match(res.message, /tab/);
+      assert.match(res.message, /session/);
     }
   });
 
-  it("FAILs an engine mismatch", async function () {
+  it("FAILs an engine mismatch (no session registry) with goTo guidance", async function () {
     const driver = stubDriver({ engine: "chrome" });
     await syncHandles(driver);
     const res = await resolveCloseTargets(driver, parseSurfaceRef({ browser: "firefox", tab: -1 }));
     assert.equal(res.ok, false);
-    assert.match(res.message, /not the active browser/);
+    assert.match(res.message, /is not open in this context/);
   });
 });
 

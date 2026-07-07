@@ -20,9 +20,10 @@ If you need to find an element before clicking it, consider using the [`find`](/
 When using the object format, you can specify:
 
 - `button`: (Optional) Kind of click to perform. Can be `"left"`, `"right"`, or `"middle"`. Default is `"left"`.
+- `duration`: (Optional) How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces, press-and-hold of the primary button on desktop apps, and press-and-hold of the given `button` on browsers. Omit for a normal click. A long-press on an app surface is primary-button only, so `duration` with a non-left `button` fails the step. On browsers, a held click needs the W3C actions endpoint, so—like non-left buttons—it's desktop-browser-only.
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to click. If combined with `elementText`, the element must match both the text and the selector.
 - `elementText`: (Optional) Display text of the element to click. If combined with `selector`, the element must match both the text and the selector.
-- `surface`: (Optional) The browser window or tab the element lives in, for example `{ "browser": "chrome", "tab": "cart" }`. Omit to act on the active tab. The targeted tab stays focused afterward. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
+- `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`. Omit to act on the active tab. The targeted surface stays focused afterward. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 **Outputs:** when you target an element by text or selector, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
 
@@ -127,9 +128,38 @@ Here are a few ways you might use the `click` action:
 }
 ```
 
+### Long-press an element on a mobile app surface
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Touch and hold a message for 800ms",
+          "click": {
+            "elementText": "Message",
+            "duration": 800,
+            "surface": { "app": "myapp" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Mobile app surfaces
+
+On an app surface, `click` is a tap, and `duration` makes it a long-press. The `button` field (`left`, `right`, or `middle`) works where the platform's driver supports it. Windows honors all three. macOS honors right-click and rejects middle-click, which the Mac2 driver can't do. Android and iOS reject any non-left button with a clear message, because touch input has no right or middle button. On Windows, plain left clicks activate the element through the UI Automation Invoke pattern (coordinate-free, so display scaling can't misdirect them) and fall back to a physical click for elements that don't support it. Non-left and held clicks stay physical. To click in a specific window of the app, add a `window` selector (see [App windows](find#app-windows)). Two more patterns worth knowing:
+
+- **Permission dialogs are just elements.** When your documentation walks the reader through granting a permission, click the dialog's button like any other element: `{ "click": { "elementText": "Allow", "surface": { "app": "myapp" } } }`. System dialogs expose their buttons through the platform accessibility tree, so `elementText` matches them.
+- **When the dialog isn't the point**, suppress it at session start instead of scripting around it: pass the driver's own knob through `startSurface.driverOptions`, for example `{ "driverOptions": { "appium:autoGrantPermissions": true } }` on Android. Use this when the procedure you're testing starts *after* the reader grants permissions.
+
 ## Related Actions
 
 - [`find`](/docs/actions/find): Find an element and optionally interact with it
 - [`type`](/docs/actions/type): Type text or special keys
+- [`swipe`](/docs/actions/swipe): Swipe or scroll a surface
 
 

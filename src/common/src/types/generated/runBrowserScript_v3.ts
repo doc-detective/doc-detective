@@ -82,11 +82,11 @@ export interface RunBrowserScriptDetailed {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector;

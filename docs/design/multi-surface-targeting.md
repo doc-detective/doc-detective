@@ -395,10 +395,24 @@ driver**, which is the natural seam.
   `waitUntil` (`networkIdleTime`/`domIdleTime`/`find`); `closeSurface` closes
   tabs/windows idempotently. Engine mismatch, browser `name`, and whole-browser
   close FAIL loudly with "lands in a later phase" guidance.
-- **Phase 4 — multiple browser surfaces at once.** Registry holds several driver
-  sessions keyed by surface name; `surface:{browser:engine,name}` opens/selects
-  additional browsers; `runOn.browsers` reinterpreted as the default surface (+ the
-  matrix caveat documented). Still only the installed browser drivers.
+- **Phase 4 — multiple browser surfaces at once.** ✅ **Shipped** (ADR 01019).
+  A context-scoped session registry holds several driver sessions keyed by
+  surface name (the default browser registers under its engine name);
+  `surface:{browser:engine,name}` (and the bare engine keyword) selects — and,
+  on **goTo only**, opens — additional browsers on the context's
+  already-acquired Appium port, inheriting the context's headless-ness.
+  Active surface = most recently opened or focused, across sessions.
+  `closeSurface` closes whole browsers (bare name / engine / `{browser,name}`),
+  idempotently, with focus falling back to the most recently focused survivor;
+  it refuses while a recording is active on the session. Phase 3's engine
+  mismatch / `name` / whole-browser-close FAILs became working behavior;
+  unopened references on non-goTo steps FAIL pointing at goTo.
+  `runOn.browsers` reinterpreted as the default surface (+ the matrix caveat
+  documented). Still only the installed browser drivers. Same-engine
+  multi-session recording caveat: ffmpeg window capture can't disambiguate two
+  same-engine sessions' identically-titled windows — record before opening a
+  same-engine twin, or use the browser (MediaRecorder) engine, which is
+  per-session.
 
 ### Block C — additions
 
@@ -406,10 +420,26 @@ driver**, which is the natural seam.
   {app, args, workingDirectory}` (subsumes `openApp`) + app `window` selectors, via
   a lazily-installed native Appium driver (mac2 / windows), graceful skip when
   absent. Add the `context_v3.requires` gate so app/CLI tests SKIP cleanly.
-- **Phase 6 — convergence & ergonomics.** Generic `startSurface` incl. the parallel
-  array form (browser/process too); extend `closeSurface` to browser/app surfaces;
-  factor `browserConfig` and apply the `window`→`size` rename (deprecated alias)
-  shared by `runOn` + `startSurface`. (`closeSurface` itself ships in Phase 1.)
+  **Expanded into its own phased roadmap** (Windows → macOS → emulated Android →
+  emulated iOS → mobile browsers → mobile vocabulary → app recording → Linux
+  spike, phases A1–A8) in [native app surfaces](native-app-surfaces.md); that
+  doc also pulls `startSurface`'s app branch forward into its first phase and
+  adds `android`/`ios` to `runOn.platforms` (with `hosts` + `device` context
+  fields) as the mobile environment model.
+- **Phase 6 — convergence & ergonomics.** ✅ **Shipped (ADR 01039).** Generic
+  `startSurface` incl. the parallel array form (browser/process too): three
+  key-discriminated descriptor branches + an array (browser/process lanes
+  parallel; app sessions serial with device boots pre-acquired in parallel),
+  allSettled roll-up (FAIL > SKIPPED > PASS) with `outputs.surfaces`, and
+  authored-order activation. `closeSurface` already closed browser/app
+  surfaces (Phases 1/4 + A1). **Deviation:** no shared `browserConfig`
+  factoring — the `window`→`size` rename applies ONLY inside the new
+  startSurface browser descriptor (per-decision: `context_v3` keeps
+  `browser.window`, no deprecated alias); the browser descriptor also adds
+  `viewport` and `driverOptions`. (`closeSurface` itself ships in Phase 1;
+  the `startSurface` step and its app branch shipped first in
+  [native app surfaces](native-app-surfaces.md) phase A1 — Phase 6 added the
+  remaining kind branches and the array form.)
 
 Phase 1 is fully specified in the companion plan file; later phases reuse the
 schema and registry it establishes.

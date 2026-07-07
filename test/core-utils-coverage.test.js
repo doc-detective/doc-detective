@@ -26,9 +26,11 @@ import {
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
+  isRetryableSessionError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
+  evaluateContextRequirements,
 } from "../dist/core/utils.js";
 
 describe("core/utils coverage", function () {
@@ -416,6 +418,17 @@ describe("core/utils coverage", function () {
       process.env.DD_TEST_VAL = "world";
       assert.equal(replaceEnvs("hello $DD_TEST_VAL!"), "hello world!");
     });
+    it("does NOT touch a $NAME$ sentinel even when NAME is a set env var", function () {
+      // The $KEY$ special-key/device-key vocabulary (dollar on both sides)
+      // must survive env substitution. Regression: on Unix $HOME is set, and
+      // `$HOME$` used to get rewritten to the home path, breaking the device
+      // key. A trailing `$` marks a sentinel, not an env reference.
+      // (The describe's afterEach restores DD_TEST_VAL, so no local dance.)
+      process.env.DD_TEST_VAL = "/home/runner";
+      assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
+      // A bare $NAME reference still substitutes.
+      assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
+    });
     it("parses a whole-string variable holding a JSON object into an object", function () {
       process.env.DD_TEST_OBJ = JSON.stringify({ k: "v" });
       assert.deepEqual(replaceEnvs("$DD_TEST_OBJ"), { k: "v" });
@@ -541,6 +554,200 @@ describe("core/utils coverage", function () {
     });
   });
 
+  describe("evaluateContextRequirements", function () {
+    // Fully-injected deps so nothing touches the real PATH/fs/env.
+    const deps = ({ commands = [], files = [], env = {} } = {}) => ({
+      commandExists: (cmd) => commands.includes(cmd),
+      existsSync: (p) => files.includes(p),
+      env,
+    });
+
+    it("is met when requires is absent", function () {
+      assert.deepEqual(evaluateContextRequirements({ requires: undefined }), {
+        met: true,
+        missing: [],
+      });
+      assert.deepEqual(evaluateContextRequirements({ requires: null }), {
+        met: true,
+        missing: [],
+      });
+    });
+
+    it("treats a string as a required command", function () {
+      const ok = evaluateContextRequirements({
+        requires: "node",
+        deps: deps({ commands: ["node"] }),
+      });
+      assert.deepEqual(ok, { met: true, missing: [] });
+
+      const miss = evaluateContextRequirements({
+        requires: "definitely-not-a-command",
+        deps: deps(),
+      });
+      assert.equal(miss.met, false);
+      assert.equal(miss.missing.length, 1);
+      assert.match(miss.missing[0], /command/);
+      assert.match(miss.missing[0], /definitely-not-a-command/);
+    });
+
+    it("ANDs an array of required commands", function () {
+      const result = evaluateContextRequirements({
+        requires: ["node", "ffmpeg"],
+        deps: deps({ commands: ["node"] }),
+      });
+      assert.equal(result.met, false);
+      assert.equal(result.missing.length, 1);
+      assert.match(result.missing[0], /ffmpeg/);
+    });
+
+    it("checks commands, files, and env in the object form", function () {
+      const result = evaluateContextRequirements({
+        requires: {
+          commands: ["adb"],
+          files: ["/opt/app.toml"],
+          env: ["API_TOKEN"],
+        },
+        deps: deps({
+          commands: ["adb"],
+          files: ["/opt/app.toml"],
+          env: { API_TOKEN: "secret" },
+        }),
+      });
+      assert.deepEqual(result, { met: true, missing: [] });
+    });
+
+    it("reports every unmet requirement, not just the first", function () {
+      const result = evaluateContextRequirements({
+        requires: { commands: ["adb"], files: ["/nope"], env: ["MISSING"] },
+        deps: deps(),
+      });
+      assert.equal(result.met, false);
+      assert.equal(result.missing.length, 3);
+      assert.match(result.missing[0], /adb/);
+      assert.match(result.missing[1], /\/nope/);
+      assert.match(result.missing[2], /MISSING/);
+    });
+
+    it("treats an empty env var value as unmet", function () {
+      const result = evaluateContextRequirements({
+        requires: { env: ["EMPTY"] },
+        deps: deps({ env: { EMPTY: "" } }),
+      });
+      assert.equal(result.met, false);
+      assert.match(result.missing[0], /EMPTY/);
+    });
+
+    it("matches env var names case-insensitively on Windows", function () {
+      // Windows env vars are case-insensitive and may surface as mixed case
+      // (e.g. `Path`). `requires.env: ["PATH"]` must be met when the injected
+      // env only holds `Path`, mirroring commandOnPath's PATH/Path handling.
+      const win = evaluateContextRequirements({
+        requires: { env: ["PATH"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: () => true,
+          env: { Path: "C:\\Windows" },
+          platform: "win32",
+        },
+      });
+      assert.deepEqual(win, { met: true, missing: [] });
+
+      // A case-insensitive match to an empty value is still unmet.
+      const winEmpty = evaluateContextRequirements({
+        requires: { env: ["PATH"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: () => true,
+          env: { Path: "" },
+          platform: "win32",
+        },
+      });
+      assert.equal(winEmpty.met, false);
+    });
+
+    it("keeps env var matching case-sensitive off Windows", function () {
+      const result = evaluateContextRequirements({
+        requires: { env: ["PATH"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: () => true,
+          env: { Path: "/usr/bin" },
+          platform: "linux",
+        },
+      });
+      assert.equal(result.met, false);
+      assert.match(result.missing[0], /PATH/);
+    });
+
+    it("expands $VAR in file entries against the injected env", function () {
+      const seen = [];
+      const result = evaluateContextRequirements({
+        requires: { files: ["$CONFIG_DIR/app.toml"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: (p) => {
+            seen.push(p);
+            return p === "/etc/myapp/app.toml";
+          },
+          env: { CONFIG_DIR: "/etc/myapp" },
+        },
+      });
+      assert.deepEqual(seen, ["/etc/myapp/app.toml"]);
+      assert.equal(result.met, true);
+    });
+
+    it("falls back $HOME to USERPROFILE when HOME is unset", function () {
+      const seen = [];
+      evaluateContextRequirements({
+        requires: { files: ["$HOME/app.toml"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: (p) => {
+            seen.push(p);
+            return true;
+          },
+          env: { USERPROFILE: "C:\\Users\\tester" },
+        },
+      });
+      assert.deepEqual(seen, ["C:\\Users\\tester/app.toml"]);
+    });
+
+    it("leaves an unexpandable $VAR literal (so the file check fails loudly)", function () {
+      const seen = [];
+      const result = evaluateContextRequirements({
+        requires: { files: ["$NOT_SET/app.toml"] },
+        deps: {
+          commandExists: () => true,
+          existsSync: (p) => {
+            seen.push(p);
+            return false;
+          },
+          env: {},
+        },
+      });
+      assert.deepEqual(seen, ["$NOT_SET/app.toml"]);
+      assert.equal(result.met, false);
+    });
+
+    it("drops whitespace-only and non-string entries (defense-in-depth)", function () {
+      const result = evaluateContextRequirements({
+        requires: { commands: ["  ", 42], env: [""] },
+        deps: deps(),
+      });
+      assert.deepEqual(result, { met: true, missing: [] });
+    });
+
+    it("resolves a real command on the PATH with default deps", function () {
+      // `node` is running this test, so it must be resolvable on the PATH.
+      const ok = evaluateContextRequirements({ requires: "node" });
+      assert.deepEqual(ok, { met: true, missing: [] });
+      const miss = evaluateContextRequirements({
+        requires: "doc-detective-no-such-binary-xyz",
+      });
+      assert.equal(miss.met, false);
+    });
+  });
+
   describe("findFreePort", function () {
     it("resolves an ephemeral loopback port that is then released (rebindable)", async function () {
       const port = await findFreePort();
@@ -553,6 +760,60 @@ describe("core/utils coverage", function () {
         server.once("error", reject);
         server.listen(port, "127.0.0.1", () => server.close(() => resolve()));
       });
+    });
+  });
+
+  describe("isRetryableSessionError", function () {
+    // The abort message webdriverio's fetch produces when POST /session
+    // exceeds connectionRetryTimeout (observed verbatim in CI).
+    const TIMEOUT_ABORT =
+      'WebDriverError: The operation was aborted due to timeout when running "http://127.0.0.1:49216/session" with method "POST"';
+
+    it("keeps the existing transient patterns retryable at any ceiling", function () {
+      for (const message of [
+        "connect ECONNREFUSED 127.0.0.1:4723",
+        // The concurrent-chromedriver collision on the fixed default port
+        // (9515) that ADR 01039 fixes: the browser driver must retry this the
+        // same way the Appium path does.
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        'WebDriverError: Could not proxy command to the remote server. Original error: connect ECONNREFUSED 127.0.0.1:9515 when running "execute/sync" with method "POST"',
+        "read ECONNRESET",
+        "socket hang up",
+        "unknown error: could not proxy command to the remote browser",
+        "unknown error: Chrome failed to start: crashed during startup",
+        "unknown error: cannot connect to chrome at 127.0.0.1:9222",
+        "unknown error: DevToolsActivePort file doesn't exist",
+        "session not created: This version of ChromeDriver only supports...",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 0), true, message);
+        assert.equal(isRetryableSessionError(message, 120000), true, message);
+        assert.equal(isRetryableSessionError(message, 900000), true, message);
+      }
+    });
+
+    it("retries a session-creation timeout abort only when a slow-startup ceiling was declared", function () {
+      // Native sessions (XCUITest/Mac2) declare wdaLaunchTimeout etc., which
+      // raises the ceiling past the 2-minute default: the server-side WDA
+      // build keeps running after the client abort, so a retry binds quickly.
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 900000), true);
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 120001), true);
+    });
+
+    it("keeps the timeout abort fatal for default-ceiling (browser) sessions", function () {
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 120000), false);
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 0), false);
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, undefined), false);
+    });
+
+    it("treats anything else as a real session-creation failure", function () {
+      for (const message of [
+        "invalid argument: unrecognized capability: appium:nope",
+        "An unknown server-side error occurred while processing the command",
+        "",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 900000), false, message);
+      }
+      assert.equal(isRetryableSessionError(undefined, 900000), false);
     });
   });
 });

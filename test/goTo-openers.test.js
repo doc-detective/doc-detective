@@ -3,6 +3,11 @@ import sinon from "sinon";
 import { goTo } from "../dist/core/tests/goTo.js";
 import { closeSurface } from "../dist/core/tests/closeSurface.js";
 import { ensureSurfaceState } from "../dist/core/tests/browserSurface.js";
+import {
+  createSessionRegistry,
+  registerSession,
+  lookupSessionByName,
+} from "../dist/core/tests/browserSessions.js";
 
 // Stub driver for opener tests: real handle bookkeeping, but `url()` records
 // the navigation and throws so goTo short-circuits before its wait loop
@@ -47,8 +52,27 @@ function stubDriver({ engine = "firefox" } = {}) {
     async getUrl() {
       return "";
     },
+    _deleted: false,
+    async deleteSession() {
+      this._deleted = true;
+    },
   };
   return driver;
+}
+
+// A context-style session registry over stub drivers: the launcher records
+// launches and hands out fresh stubs, like runContext's startDriverForBrowser
+// closure does with real sessions.
+function stubRegistry(defaultDriver, { engine = "firefox" } = {}) {
+  const launches = [];
+  const registry = createSessionRegistry({
+    open: async (eng) => {
+      launches.push(eng);
+      return stubDriver({ engine: eng });
+    },
+  });
+  registerSession(registry, { name: engine, engine, driver: defaultDriver });
+  return { registry, launches };
 }
 
 describe("goTo newTab/newWindow openers", function () {
@@ -135,7 +159,9 @@ describe("goTo newTab/newWindow openers", function () {
     assert.equal(driver._handles.length, handlesAfterFirst);
   });
 
-  it("an engine-mismatched surface FAILs before any window opens", async function () {
+  it("an engine-mismatched surface FAILs before any window opens (no session registry)", async function () {
+    // Without a session registry there is no launcher, so even goTo cannot
+    // open a second browser — the single-session check FAILs the reference.
     const driver = stubDriver({ engine: "chrome" });
     const result = await goTo({
       config: {},
@@ -149,7 +175,7 @@ describe("goTo newTab/newWindow openers", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not the active browser/);
+    assert.match(result.description, /is not open in this context/);
     assert.deepEqual(driver._created, []);
   });
 });
@@ -221,7 +247,9 @@ describe("closeSurface browser forms (step level)", function () {
     assert.deepEqual(driver._handles, ["h0"]);
   });
 
-  it("FAILs a bare-engine (whole browser) close with later-phase guidance", async function () {
+  it("FAILs a bare-engine (whole browser) close without a session registry", async function () {
+    // Whole-browser closes are session-level; with no registry to close
+    // against, the reference cannot be honored.
     const driver = stubDriver();
     const result = await closeSurface({
       config: {},
@@ -229,7 +257,7 @@ describe("closeSurface browser forms (step level)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /later phase/);
+    assert.match(result.description, /session/);
   });
 
   it("FAILs a browser reference when no driver is running", async function () {
@@ -254,5 +282,235 @@ describe("closeSurface browser forms (step level)", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /last open tab/);
     assert.deepEqual(driver._handles, ["h0"]);
+  });
+});
+
+describe("multi-browser sessions (Phase 4, step level)", function () {
+  this.timeout(5000);
+
+  it("goTo opens an unopened engine surface and navigates in it", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry, launches } = stubRegistry(driver);
+    await goTo({
+      config: {},
+      step: { goTo: { url: "https://example.com/admin", surface: "chrome" } },
+      driver,
+    });
+    assert.deepEqual(launches, ["chrome"]);
+    assert.equal(registry.activeName, "chrome");
+    const opened = lookupSessionByName(registry, "chrome").driver;
+    // Navigation happened in the NEW session, not the default one.
+    assert.equal(opened._urls.length, 1);
+    assert.deepEqual(driver._urls, []);
+  });
+
+  it("goTo opens a named surface of an already-running engine", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry, launches } = stubRegistry(driver);
+    await goTo({
+      config: {},
+      step: {
+        goTo: {
+          url: "https://example.com",
+          surface: { browser: "firefox", name: "admin" },
+        },
+      },
+      driver,
+    });
+    assert.deepEqual(launches, ["firefox"]);
+    assert.equal(registry.activeName, "admin");
+    assert.notEqual(lookupSessionByName(registry, "admin").driver, driver);
+  });
+
+  it("goTo re-selects an existing session instead of opening a duplicate", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry, launches } = stubRegistry(driver);
+    await goTo({
+      config: {},
+      step: { goTo: { url: "https://example.com/a", surface: "chrome" } },
+      driver,
+    });
+    const chromeDriver = lookupSessionByName(registry, "chrome").driver;
+    await goTo({
+      config: {},
+      step: { goTo: { url: "https://example.com/b", surface: "chrome" } },
+      driver,
+    });
+    assert.deepEqual(launches, ["chrome"]);
+    assert.equal(chromeDriver._urls.length, 2);
+  });
+
+  it("a failed launch FAILs the goTo with the launcher's error", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const registry = createSessionRegistry({
+      open: async () => {
+        throw new Error("no such driver installed");
+      },
+    });
+    registerSession(registry, { name: "firefox", engine: "firefox", driver });
+    const result = await goTo({
+      config: {},
+      step: { goTo: { url: "https://example.com", surface: "chrome" } },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no such driver installed/);
+  });
+
+  it("closeSurface never opens a browser — an unopened tab close is an absent no-op", async function () {
+    // Only goTo opens sessions. A tab close in a browser that isn't open is an
+    // idempotent absent no-op (never-fail-on-missing), and never launches one.
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry, launches } = stubRegistry(driver);
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { browser: "chrome", tab: "cart" } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.absentCount, 1);
+    assert.deepEqual(launches, []);
+    assert.equal(registry.sessions.size, 1);
+  });
+
+  it("closeSurface closes a whole browser session by bare name", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry } = stubRegistry(driver);
+    await goTo({
+      config: {},
+      step: {
+        goTo: { url: "https://example.com", surface: { browser: "chrome", name: "shopper" } },
+      },
+      driver,
+    });
+    const shopperDriver = lookupSessionByName(registry, "shopper").driver;
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: "shopper" },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.outputs.closed, ["shopper"]);
+    assert.equal(shopperDriver._deleted, true);
+    assert.equal(lookupSessionByName(registry, "shopper"), undefined);
+    // Active falls back to the surviving default session.
+    assert.equal(registry.activeName, "firefox");
+  });
+
+  it("closeSurface closes the default browser by engine keyword", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry } = stubRegistry(driver);
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: "firefox" },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(driver._deleted, true);
+    assert.equal(registry.activeName, null);
+  });
+
+  it("closing an unknown browser surface is an idempotent PASS no-op", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    stubRegistry(driver);
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { browser: "chrome" } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.absentCount, 1);
+  });
+
+  it("keeps the tab selector detail in the absent label for an unopened browser", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    stubRegistry(driver);
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { browser: "chrome", tab: "cart" } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.absentCount, 1);
+    assert.match(result.outputs.absent[0], /tab "cart"/);
+  });
+
+  it("goTo FAILs opening a session named after a foreign engine keyword", async function () {
+    // Default is chrome (named "chrome"); naming a new session "safari" (a
+    // foreign engine keyword) is rejected before any launch.
+    const driver = stubDriver({ engine: "chrome" });
+    const { registry, launches } = stubRegistry(driver, { engine: "chrome" });
+    const result = await goTo({
+      config: {},
+      step: {
+        goTo: {
+          url: "https://example.com",
+          surface: { browser: "chrome", name: "safari" },
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /engine keyword/);
+    // Nothing launched or registered.
+    assert.deepEqual(launches, []);
+    assert.equal(registry.sessions.size, 1);
+  });
+
+  it("FAILs a whole-browser close whose engine conflicts with the name", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry } = stubRegistry(driver);
+    registerSession(registry, {
+      name: "shopper",
+      engine: "chrome",
+      driver: stubDriver({ engine: "chrome" }),
+    });
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { browser: "firefox", name: "shopper" } },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /chrome/);
+  });
+
+  it("refuses to close a browser surface with an active recording", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    stubRegistry(driver);
+    driver.state.recordings = [{ id: "rec1" }];
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: "firefox" },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /recording/);
+    assert.equal(driver._deleted, false);
+  });
+
+  it("closes a tab inside a NON-active session by naming its surface", async function () {
+    const driver = stubDriver({ engine: "firefox" });
+    const { registry } = stubRegistry(driver);
+    // Open a chrome session and give it a named tab; then re-activate firefox.
+    await goTo({
+      config: {},
+      step: { goTo: { url: "https://example.com/cart", surface: "chrome", newTab: "cart" } },
+      driver,
+    });
+    const chromeDriver = lookupSessionByName(registry, "chrome").driver;
+    await goTo({
+      config: {},
+      step: { goTo: { url: "https://example.com", surface: "firefox" } },
+      driver,
+    });
+    assert.equal(registry.activeName, "firefox");
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { browser: "chrome", tab: "cart" } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.closedCount, 1);
+    assert.deepEqual(chromeDriver._handles, ["h0"]);
   });
 });

@@ -214,9 +214,17 @@ webdriverio
 appium
 geckodriver
 chromedriver
+safaridriver
 subcommand
 subcommands
 postinstall
 Geckodriver
 ChromeDriver
 Xvfb
+dialog
+dialogs
+dialog's
+onboarding
+startSurface
+passthrough
+TUIs

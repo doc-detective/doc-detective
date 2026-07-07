@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "surface",
-  "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
+  "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
   "anyOf": [
     {
       "$ref": "#/components/schemas/byName"
@@ -11,6 +11,9 @@
     },
     {
       "$ref": "#/components/schemas/browser"
+    },
+    {
+      "$ref": "#/components/schemas/app"
     }
   ],
   "components": {
@@ -76,7 +79,7 @@
               "webkit",
               "edge"
             ],
-            "description": "Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase."
+            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
           },
           "name": {
             "type": "string",
@@ -85,7 +88,7 @@
             "transform": [
               "trim"
             ],
-            "description": "Name of the browser surface. Reserved for multi-browser targeting (later phase)."
+            "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
           },
           "window": {
             "$ref": "#/components/schemas/windowOrTabSelector",
@@ -96,6 +99,76 @@
             "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself."
           }
         }
+      },
+      "app": {
+        "title": "App surface",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "app"
+        ],
+        "properties": {
+          "app": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ],
+            "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+          },
+          "window": {
+            "$ref": "#/components/schemas/appWindowSelector",
+            "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs."
+          }
+        }
+      },
+      "appWindowSelector": {
+        "title": "App window selector",
+        "description": "Same grammar as the browser window selector, minus `url` (meaningless for native windows).",
+        "anyOf": [
+          {
+            "title": "By index",
+            "type": "integer",
+            "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+          },
+          {
+            "title": "By name",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ],
+            "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+          },
+          {
+            "title": "By criteria",
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ],
+                "description": "Assigned window name."
+              },
+              "index": {
+                "type": "integer",
+                "description": "Index in creation order. Negative counts from the end."
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Window title to match. Substring, or /regex/."
+              }
+            }
+          }
+        ]
       },
       "windowOrTabSelector": {
         "title": "Window/tab selector",
@@ -170,6 +243,23 @@
       "tab": {
         "title": "/Checkout/"
       }
+    },
+    {
+      "browser": "chrome",
+      "name": "shopper"
+    },
+    {
+      "app": "notepad"
+    },
+    {
+      "app": "notepad",
+      "window": {
+        "title": "/Find/"
+      }
+    },
+    {
+      "app": "notepad",
+      "window": -1
     }
   ]
 }

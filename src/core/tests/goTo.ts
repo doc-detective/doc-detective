@@ -97,20 +97,25 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     }
   }
 
-  // Multi-surface Phase 3: focus the requested window/tab, and open a new
-  // tab/window when asked. goTo is the only step that opens USER-ADDRESSABLE
-  // windows/tabs (`record` opens an internal, non-addressable recorder tab).
+  // Multi-surface Phase 3/4: focus the requested session + window/tab, and
+  // open a new tab/window when asked. goTo is the only step that opens
+  // USER-ADDRESSABLE windows/tabs (`record` opens an internal, non-addressable
+  // recorder tab) — and, per ADR 01019, the only step that opens browser
+  // SESSIONS: `allowOpen` lets an unresolved browser surface launch one.
   const newTab = normalizeOpener(step.goTo.newTab);
   const newWindow = normalizeOpener(step.goTo.newWindow);
   if (step.goTo.surface !== undefined) {
     // With an opener, the surface selects the WINDOW the new tab opens in;
     // without one, it selects the tab to navigate.
-    const switched = await switchToSurface(driver, step.goTo.surface);
+    const switched = await switchToSurface(driver, step.goTo.surface, {
+      allowOpen: true,
+    });
     if (!switched.ok) {
       result.status = "FAIL";
       result.description = switched.message;
       return result;
     }
+    driver = switched.driver ?? driver;
   }
   if (newTab || newWindow) {
     try {
@@ -208,6 +213,12 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       // 2, 3, & 4. Wait for network idle, DOM stable, and element in parallel
       const parallelChecks: Promise<void>[] = [];
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * networkIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so
+       * AJV's coerceTypes coerces an explicit step-level `null` to `0` during validate() before
+       * this code ever runs -- `step.goTo.waitUntil.networkIdleTime` can never actually be `null`
+       * here, only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.networkIdle &&
         step.goTo.waitUntil.networkIdleTime !== null
@@ -231,7 +242,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.networkIdle.passed = true;
         waitResults.networkIdle.message = "Network idle check skipped (null)";
       }
+      /* c8 ignore stop */
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * domIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so AJV's
+       * coerceTypes coerces an explicit step-level `null` to `0` during validate() before this
+       * code ever runs -- `step.goTo.waitUntil.domIdleTime` can never actually be `null` here,
+       * only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.domStable &&
         step.goTo.waitUntil.domIdleTime !== null
@@ -255,6 +273,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.domStable.passed = true;
         waitResults.domStable.message = "DOM stability check skipped (null)";
       }
+      /* c8 ignore stop */
 
       // Add element search to parallel checks
       if (waitConditions.elementFound && step.goTo.waitUntil.find) {

@@ -1,6 +1,8 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
+import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
+import { resolveAppWindow, appWindowScreenshot } from "./appWindows.js";
 import {
   log,
   fetchFile,
@@ -95,7 +97,7 @@ function aspectRatiosMatch(
   return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
 }
 
-async function saveScreenshot({ config, step, driver }: { config: any; step: any; driver: any }) {
+async function saveScreenshot({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -175,18 +177,80 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Multi-surface Phase 3: focus the window/tab to capture.
+  // Multi-surface Phase 3/4 + native app surfaces (phase A1): focus the
+  // session + window/tab to capture (a cross-session browser reference
+  // resolves to that session's driver), or capture through the app session's
+  // driver. The path/overwrite/URL-reference/pixel-comparison machinery below
+  // is file-based and driver-agnostic, so app captures get it all for free;
+  // only the capture call itself swaps drivers. Crop stays browser-only.
+  let captureDriver = driver;
+  let isAppCapture = false;
+  let appEntry: any = null;
+  let appWindowTarget: any = null;
   if (
     typeof step.screenshot === "object" &&
     step.screenshot !== null &&
     step.screenshot.surface !== undefined
   ) {
-    const switched = await switchToSurface(driver, step.screenshot.surface);
-    if (!switched.ok) {
-      result.status = "FAIL";
-      result.description = switched.message;
-      return result;
+    const appRef = resolveAppSurfaceRef(step.screenshot.surface, appSession);
+    if (appRef) {
+      if (appRef.error) {
+        result.status = "FAIL";
+        result.description = appRef.error;
+        return result;
+      }
+      // Window selectors (ADR 01036): resolve to a real window. Selector-less
+      // app captures use the sticky/default window — on macOS that's the
+      // window ELEMENT (Mac2's driver screenshot is the whole display).
+      if (appRef.window !== undefined) {
+        const resolvedWindow = await resolveAppWindow({
+          entry: appRef.entry!,
+          selector: appRef.window,
+          timeoutMs: 5000,
+        });
+        if (!resolvedWindow.ok) {
+          result.status = "FAIL";
+          result.description = resolvedWindow.message;
+          return result;
+        }
+        appWindowTarget = resolvedWindow.target;
+      }
+      if (step.screenshot.crop) {
+        result.status = "FAIL";
+        result.description =
+          "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+        return result;
+      }
+      const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
+      if (switchedApp.error) {
+        result.status = "FAIL";
+        result.description = switchedApp.error;
+        return result;
+      }
+      captureDriver = appRef.entry!.driver;
+      appEntry = appRef.entry!;
+      isAppCapture = true;
+    } else {
+      const switched = await switchToSurface(driver, step.screenshot.surface);
+      if (!switched.ok) {
+        result.status = "FAIL";
+        result.description = switched.message;
+        return result;
+      }
+      driver = switched.driver ?? driver;
+      captureDriver = driver;
     }
+  }
+
+  // In an app-only context (no browser driver), a screenshot step that omits
+  // `surface` has nothing to capture — fail with the fix named instead of a
+  // TypeError on the missing driver. Checked BEFORE the path/crop handling
+  // below, which dereferences `driver` for crop geometry.
+  if (!captureDriver) {
+    result.status = "FAIL";
+    result.description =
+      'No browser session is running in this context to capture. Target an app surface explicitly (e.g. "surface": { "app": "…" }).';
+    return result;
   }
 
   // Convert boolean to string
@@ -435,7 +499,10 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
   // Hide the synthetic cursor during capture so it isn't baked into the image,
   // then always restore it in `finally` — otherwise a capture failure mid-way
   // would leave the pointer hidden for every later step in a recording.
-  const recordingActive = isRecordingActive(driver);
+  // App captures skip this: the synthetic cursor lives in the browser DOM,
+  // which isn't in a native window's pixels (and `driver` may not even exist
+  // in an app-only context).
+  const recordingActive = !isAppCapture && isRecordingActive(driver);
   try {
     if (recordingActive) {
       await driver.execute(() => {
@@ -443,8 +510,14 @@ async function saveScreenshot({ config, step, driver }: { config: any; step: any
         if (pointer) pointer.style.display = "none";
       });
     }
-    // Save screenshot
-    await driver.saveScreenshot(filePath);
+    // Save screenshot: app captures go through the window strategy (window
+    // element on macOS, current-root driver capture on Windows); browser
+    // captures use the session driver.
+    if (isAppCapture) {
+      await appWindowScreenshot(appEntry, appWindowTarget, filePath);
+    } else {
+      await captureDriver.saveScreenshot(filePath);
+    }
   } catch (error) {
     // Couldn't save screenshot
     result.status = "FAIL";

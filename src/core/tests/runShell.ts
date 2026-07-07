@@ -1,18 +1,15 @@
 import { validate } from "../../common/src/validate.js";
 import {
   spawnCommand,
-  spawnBackgroundCommand,
-  spawnPtyBackgroundCommand,
-  waitForReady,
   log,
   calculateFractionalDifference,
 } from "../utils.js";
+import { startBackgroundProcessSurface } from "./processSurface.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
-import kill from "tree-kill";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -26,10 +23,12 @@ export { runShell };
 async function runShell({
   config,
   step,
+  driver,
   processRegistry,
 }: {
   config: any;
   step: any;
+  driver?: any;
   processRegistry?: Map<string, any>;
 }) {
   // Promisify and execute command
@@ -74,98 +73,27 @@ async function runShell({
   // `background` is an object holding `name` and (optional) `waitUntil`; its
   // presence signals background mode.
   if (step.runShell.background) {
+    // Delegate to the shared launcher (multi-surface Phase 6) — the same
+    // code path startSurface's process descriptor uses, so the two ways to
+    // start a background process can't drift.
     const background = step.runShell.background;
-    const name = background.name;
-    // The schema requires `name` when `background` is an object, so a
-    // schema-validated step always has it. This guard is defence-in-depth for
-    // programmatic callers that construct steps without validating.
-    if (!name) {
-      result.status = "FAIL";
-      result.description = "Background processes require a `name`.";
-      return result;
-    }
-    if (!processRegistry) {
-      // Without a registry there is no way to stop or sweep the process, so it
-      // would leak. Fail fast rather than spawn an untrackable process.
-      result.status = "FAIL";
-      result.description =
-        "Background processes aren't supported in this run mode (no process registry available).";
-      return result;
-    }
-    if (processRegistry.has(name)) {
-      result.status = "FAIL";
-      result.description = `A background process named "${name}" is already running.`;
-      return result;
-    }
-
-    const bgOptions: any = {};
-    if (step.runShell.workingDirectory)
-      bgOptions.cwd = step.runShell.workingDirectory;
-
-    // When `background.tty` is set, spawn the process under a real
-    // pseudo-terminal (node-pty) so full-screen/interactive TUIs render and
-    // accept keystrokes. node-pty is an optional, user-installed heavy dep; only
-    // its ABSENCE is a graceful SKIP (keeps fixtures PASS/SKIPPED). Any other
-    // startup error (bad cwd, PTY spawn failure, …) must FAIL so it isn't hidden
-    // as optional-dependency absence. Otherwise use the pipe-backed spawn.
-    let bg;
-    if (background.tty) {
-      try {
-        bg = await spawnPtyBackgroundCommand(
-          step.runShell.command,
-          step.runShell.args,
-          { ...bgOptions, cacheDir: config?.cacheDir }
-        );
-      } catch (error: any) {
-        if (error?.code !== "NODE_PTY_UNAVAILABLE") {
-          result.status = "FAIL";
-          result.description = `Failed to start PTY background process "${name}": ${error.message}`;
-          return result;
-        }
-        result.status = "SKIPPED";
-        result.description = `PTY background requires the optional \`node-pty\` dependency, which isn't available: ${error.message}`;
-        return result;
-      }
-    } else {
-      bg = spawnBackgroundCommand(
-        step.runShell.command,
-        step.runShell.args,
-        bgOptions
-      );
-    }
-
-    // Register before awaiting readiness so the run-end sweep can kill the
-    // process even if it never becomes ready.
-    const entry: any = { name, bg };
-    processRegistry.set(name, entry);
-
-    try {
-      await waitForReady(bg, background.waitUntil, {
-        timeoutMs: step.runShell.timeout,
-      });
-    } catch (error: any) {
-      // Readiness failed (timeout or the process exited) — kill and deregister
-      // so a half-started process doesn't leak. PTY-backed handles own their own
-      // termination via `kill()`; pipe-backed ones tree-kill the process tree.
-      // Await either so the process is actually gone before the step returns.
-      if (bg.kill) {
-        await bg.kill();
-      } else if (bg.pid) {
-        await new Promise<void>((resolve) => kill(bg.pid!, "SIGTERM", () => resolve()));
-      }
-      processRegistry.delete(name);
-      result.status = "FAIL";
-      result.description = `Background process "${name}" failed to become ready: ${error.message}`;
-      return result;
-    }
-
-    result.status = "PASS";
-    result.description = `Started background process "${name}".`;
-    result.outputs = {
-      pid: String(bg.pid ?? ""),
-      name,
-      ready: "true",
-    };
+    const launched = await startBackgroundProcessSurface({
+      config,
+      descriptor: {
+        command: step.runShell.command,
+        name: background.name,
+        args: step.runShell.args,
+        workingDirectory: step.runShell.workingDirectory,
+        tty: background.tty,
+        waitUntil: background.waitUntil,
+        timeout: step.runShell.timeout,
+      },
+      processRegistry,
+      driver,
+    });
+    result.status = launched.status;
+    result.description = launched.description;
+    if (launched.outputs) result.outputs = launched.outputs;
     return result;
   }
 

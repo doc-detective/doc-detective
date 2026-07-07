@@ -2,17 +2,36 @@ import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import {
   getFfmpegPath,
   selectRecordingToStop,
   stopRecordTargetName,
+  deriveCropScale,
+  detectDisplayPointSize,
 } from "./ffmpegRecorder.js";
 
 export { stopRecording };
 
-async function stopRecording({ config, step, driver }: { config: any; step: any; driver: any }) {
+// `deps` is a test seam for the pending-scale crop derivation (platform +
+// display probe); production callers omit it.
+async function stopRecording({
+  config,
+  step,
+  driver,
+  deps = {},
+}: {
+  config: any;
+  step: any;
+  driver: any;
+  deps?: {
+    platform?: string;
+    detectDisplayPointSize?: () => Promise<{ w: number; h: number } | null>;
+  };
+}) {
   let result: any = {
     status: "PASS",
     description: "Stopped recording.",
@@ -37,16 +56,39 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     return result;
   }
 
-  // Resolve which active recording to stop. Recordings are per-context (they
+  // Resolve which active recording to stop. Recordings are per-session (they
   // live on driver.state.recordings), so concurrent contexts can't see each
   // other's recordings. `__stopAny` (set by end-of-context cleanup) lets a
   // generic stop also drain the synthetic autoRecord recording.
-  const recordings: any[] = Array.isArray(driver?.state?.recordings)
+  let recordings: any[] = Array.isArray(driver?.state?.recordings)
     ? driver.state.recordings
     : [];
-  const recording = selectRecordingToStop(recordings, step.stopRecord, {
+  let recording = selectRecordingToStop(recordings, step.stopRecord, {
     includeSynthetic: step?.__stopAny === true,
   });
+  // Phase 4 (ADR 01019): the recording may live on a browser session other
+  // than the active one (record targeted a surface, then focus moved on).
+  // A stop that finds nothing on this session searches the context's other
+  // sessions and stops against the owning session's driver.
+  if (!recording && driver?.state?.sessionRegistry) {
+    for (const entry of driver.state.sessionRegistry.sessions.values()) {
+      if (entry.driver === driver) continue;
+      const sessionRecordings: any[] = Array.isArray(
+        entry.driver?.state?.recordings
+      )
+        ? entry.driver.state.recordings
+        : [];
+      const found = selectRecordingToStop(sessionRecordings, step.stopRecord, {
+        includeSynthetic: step?.__stopAny === true,
+      });
+      if (found) {
+        driver = entry.driver;
+        recordings = sessionRecordings;
+        recording = found;
+        break;
+      }
+    }
+  }
   if (!recording) {
     result.status = "SKIPPED";
     const target = stopRecordTargetName(step.stopRecord);
@@ -69,6 +111,24 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
     const idx = recordings.indexOf(recording);
     if (idx !== -1) recordings.splice(idx, 1);
   };
+
+  // A pending device recording never actually started. If the late-start
+  // attempt errored, surface that as the FAIL; otherwise no app surface ever
+  // opened a device session — there's nothing to save.
+  if (recording.type === "appium-pending") {
+    dropHandle();
+    if (recording.startError) {
+      // An environment gap (missing host ffmpeg) is a gated SKIP; anything
+      // else is a real start failure.
+      result.status = recording.startSkip ? "SKIPPED" : "FAIL";
+      result.description = recording.startError;
+      return result;
+    }
+    result.status = "SKIPPED";
+    result.description =
+      "The device recording never started (no app surface opened a device session), so there is nothing to save.";
+    return result;
+  }
 
   try {
     if (recording.type === "MediaRecorder") {
@@ -194,13 +254,99 @@ async function stopRecording({ config, step, driver }: { config: any; step: any;
         });
       });
 
+      // Pending-scale crops (app windows, phase A7): the rect is in native
+      // driver units; scale it to capture pixels using the frame size parsed
+      // from the capture's stderr over the display's size in points. Any
+      // missing input degrades to scale 1 — correct on scale-1 displays, and
+      // the transcode's min/max expressions clamp the rest.
+      let crop = recording.crop ?? null;
+      if (!crop && recording.cropRect && recording.cropPendingScale) {
+        const platform = deps.platform ?? process.platform;
+        let scale = 1;
+        try {
+          const displayPointSize =
+            platform === "darwin"
+              ? await (deps.detectDisplayPointSize ?? detectDisplayPointSize)()
+              : null;
+          scale = deriveCropScale({
+            platform,
+            frameSize: recording.captureInfo?.frameSize ?? null,
+            displayPointSize,
+          });
+        } catch {
+          // A probe failure keeps the initial scale of 1 — today's behavior,
+          // correct on scale-1 displays.
+        }
+        crop = {
+          x: Math.round(recording.cropRect.x * scale),
+          y: Math.round(recording.cropRect.y * scale),
+          w: Math.round(recording.cropRect.w * scale),
+          h: Math.round(recording.cropRect.h * scale),
+        };
+      }
+
       await transcode({
         config,
         sourcePath: recording.tempPath,
         targetPath: recording.targetPath,
         deleteSource: true,
-        crop: recording.crop,
+        crop,
       });
+      dropHandle();
+    } else if (recording.type === "appium") {
+      // Device engine (phase A7): the whole video arrives base64 from the
+      // driver (adb screenrecord / simctl). Write it out; non-mp4 targets go
+      // through the shared transcode (which also applies the gif scale
+      // filter). No crop — the device frame IS the content.
+      const b64 = await recording.driver.stopRecordingScreen();
+      if (typeof b64 !== "string" || b64.length === 0) {
+        result.status = "FAIL";
+        result.description =
+          "The device recording returned no data; nothing was saved.";
+        dropHandle();
+        return result;
+      }
+      // The whole video arrives in one base64 string; a very long recording
+      // (the drivers cap at 30 minutes) can make this allocation fail. Name
+      // the cause instead of surfacing a bare out-of-memory error.
+      // Buffer.from(…, "base64") is permissive — characters outside the
+      // alphabet are dropped — so an invalid payload can decode to zero bytes
+      // without throwing. An empty decode is "no data", not a valid video.
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(b64, "base64");
+      } catch (error: any) {
+        result.status = "FAIL";
+        result.description = `Couldn't buffer the device recording (${Math.round(
+          b64.length / 1024 / 1024
+        )} MB base64) — device recordings transfer in one payload, so long recordings can exhaust memory. Keep device recordings short (they cap at 30 minutes). ${error?.message ?? error}`;
+        dropHandle();
+        return result;
+      }
+      if (buffer.length === 0) {
+        result.status = "FAIL";
+        result.description =
+          "The device recording decoded to an empty payload (no data); nothing was saved.";
+        dropHandle();
+        return result;
+      }
+      if (path.extname(recording.targetPath) === ".mp4") {
+        fs.writeFileSync(recording.targetPath, buffer);
+      } else {
+        const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+        const tempPath = path.join(
+          tempDir,
+          `device-${randomUUID().slice(0, 8)}.mp4`
+        );
+        fs.writeFileSync(tempPath, buffer);
+        await transcode({
+          config,
+          sourcePath: tempPath,
+          targetPath: recording.targetPath,
+          deleteSource: true,
+        });
+      }
       dropHandle();
     }
   } catch (error) {

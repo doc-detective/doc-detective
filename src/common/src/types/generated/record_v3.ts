@@ -5,7 +5,7 @@
  */
 
 /**
- * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]
+ * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
 export type Record = RecordSimple | RecordDetailed | RecordBoolean;
 /**
@@ -41,6 +41,18 @@ export type ByIndex1 = number;
  */
 export type ByName1 = string;
 /**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector = ByIndex2 | ByName2 | ByCriteria2;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex2 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName2 = string;
+/**
  * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
  */
 export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
@@ -49,15 +61,15 @@ export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
  */
 export type RecordingEngineSimple = "browser" | "ffmpeg";
 /**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 
 export interface RecordDetailed {
   /**
-   * The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.
+   * The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.
    */
-  surface?: SurfaceByBrowserEngine | BrowserSurface;
+  surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
   /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
@@ -79,11 +91,11 @@ export interface RecordDetailed {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Must be the context's active browser; targeting a different browser at the same time lands in a later phase.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
-   * Name of the browser surface. Reserved for multi-browser targeting (later phase).
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
   window?: WindowTabSelector;
@@ -125,13 +137,34 @@ export interface ByCriteria1 {
    */
   url?: string;
 }
+export interface AppSurface {
+  /**
+   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
+   */
+  app: string;
+  window?: AppWindowSelector;
+}
+export interface ByCriteria2 {
+  /**
+   * Assigned window name.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Window title to match. Substring, or /regex/.
+   */
+  title?: string;
+}
 export interface RecordingEngineDetailed {
   /**
    * Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
    */
   name: "browser" | "ffmpeg";
   /**
-   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).
+   * What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).
    */
   target?: "display" | "window" | "viewport";
   /**
