@@ -136,6 +136,14 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
   });
 
+  it("a startSurface edge descriptor provisions the chromium stack (edge is Chromium)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { browser: "edge", name: "corp" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
+  });
+
   it("a startSurface process descriptor needs no browser stack", function () {
     const needs = inferRuntimeNeeds([
       makeSpec([{ startSurface: { process: "node", name: "repl" } }]),

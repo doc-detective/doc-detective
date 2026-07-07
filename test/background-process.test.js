@@ -740,20 +740,31 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
     const tmp = path.join(os.tmpdir(), `dd-p6-noready-${process.pid}.js`);
     fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
     const registry = new Map();
-    const result = await startBackgroundProcessSurface({
-      config: {},
-      descriptor: {
-        command: `"${process.execPath}" "${tmp}"`,
-        name: "stuck",
-        waitUntil: { port },
-        timeout: 600,
-      },
-      processRegistry: registry,
-    });
-    assert.equal(result.status, "FAIL");
-    assert.match(result.description, /failed to become ready/);
-    assert.equal(registry.has("stuck"), false);
-    fs.rmSync(tmp, { force: true });
+    try {
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: {
+          command: `"${process.execPath}" "${tmp}"`,
+          name: "stuck",
+          waitUntil: { port },
+          timeout: 600,
+        },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, /failed to become ready/);
+      assert.equal(registry.has("stuck"), false);
+    } finally {
+      // The launcher already killed + deregistered on the timeout, but if an
+      // assertion above regresses, sweep any surviving entry so it can't leak
+      // into later tests; always remove the temp script.
+      await closeSurface({
+        config: {},
+        step: { closeSurface: "stuck" },
+        processRegistry: registry,
+      });
+      fs.rmSync(tmp, { force: true });
+    }
   });
 });
 

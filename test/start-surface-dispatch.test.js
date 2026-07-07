@@ -291,17 +291,16 @@ describe("startSurfaceStep: parallel array form", function () {
   it("runs app descriptors serially in authored order with devices pre-acquired in parallel", async function () {
     const order = [];
     const acquired = [];
-    let firstAppStarted;
-    const gate = new Promise((r) => (firstAppStarted = r));
+    // The app lane awaits each startAppSurface before the next, so ordering is
+    // structural — no timing needed. Each call records its entry and its exit
+    // (a yielded microtask boundary between them); a serial lane must produce
+    // start-a → end-a → start-b → end-b, never interleaved.
     const deps = {
       startAppSurface: async ({ step }) => {
-        order.push(`app:${step.startSurface.name}`);
-        if (order.length === 1) {
-          firstAppStarted();
-          // Hold the first app open briefly to prove the second waits.
-          await new Promise((r) => setTimeout(r, 30));
-          order.push("app:first-done");
-        }
+        const name = step.startSurface.name;
+        order.push(`start:${name}`);
+        await Promise.resolve(); // yield: a parallel lane would interleave here
+        order.push(`end:${name}`);
         return { status: "PASS", description: "ok", outputs: {} };
       },
       startBackgroundProcessSurface: async () => ({
@@ -330,11 +329,10 @@ describe("startSurfaceStep: parallel array form", function () {
       deps,
     });
     assert.equal(result.status, "PASS");
-    // Serial, authored order: b starts only after a finished.
-    assert.deepEqual(order, ["app:a", "app:first-done", "app:b"]);
+    // Serial, authored order: a fully finishes before b starts (no interleave).
+    assert.deepEqual(order, ["start:a", "end:a", "start:b", "end:b"]);
     // Both devices were pre-acquired (fired before/while apps started).
     assert.deepEqual(acquired.sort(), ["d1", "d2"]);
-    await gate;
   });
 
   it("re-asserts authored-order activation: the last authored browser descriptor is active", async function () {

@@ -102,7 +102,11 @@ function arrayOrEmpty<T>(v: any): T[] {
 
 function addBrowserName(set: Set<BrowserName>, name: string): void {
   const normalized = name.toLowerCase();
-  if (normalized === "chrome" || normalized === "chromium")
+  // Edge is Chromium under the hood and rides the same chromedriver stack
+  // (context resolution rewrites edge -> chrome before the runner sees it);
+  // a startSurface `{ browser: "edge" }` descriptor must provision that same
+  // stack, so map it into the chrome bucket rather than dropping it.
+  if (normalized === "chrome" || normalized === "chromium" || normalized === "edge")
     set.add("chrome");
   else if (normalized === "firefox") set.add("firefox");
   // `webkit` is the resolved alias for `safari` (resolveContexts rewrites
@@ -111,7 +115,7 @@ function addBrowserName(set: Set<BrowserName>, name: string): void {
   // default — provisioning Chrome for a run that only wanted Safari.
   else if (normalized === "safari" || normalized === "webkit")
     set.add("safari");
-  // edge / others — ignored; runner already restricts to chrome/firefox/safari.
+  // others — ignored; runner restricts to chrome/firefox/safari.
 }
 
 // startSurface browser descriptors declare the engine they open (Phase 6) —

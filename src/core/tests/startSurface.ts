@@ -9,6 +9,7 @@ import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } fr
 import {
   openSession,
   activateSession,
+  normalizeEngine,
   type BrowserSessionRegistry,
 } from "./browserSessions.js";
 
@@ -160,8 +161,13 @@ async function startSurfaceStep({
           "startSurface can't open a browser surface in this context (no browser session is available). This is a runner bug — a startSurface browser descriptor must mark the context browser-required.",
       };
     }
+    // Normalize the engine the same way context resolution does (edge is
+    // Chromium, so edge -> chrome): the caps builder and driver stack only
+    // know chrome/firefox/safari, so a schema-valid `edge` must open a chrome
+    // session rather than fail at launch.
+    const engine = normalizeEngine(d.browser);
     const opened = await openSession(browserRegistry, {
-      engine: d.browser,
+      engine,
       name: d.name,
       overrides: {
         ...(d.headless !== undefined ? { headless: d.headless } : {}),
@@ -172,7 +178,12 @@ async function startSurfaceStep({
     if (!opened.ok) {
       return { status: "FAIL", description: opened.message };
     }
-    if (d.viewport?.width || d.viewport?.height) {
+    // Apply the viewport only for a POSITIVE dimension: the schema doesn't
+    // floor these, so guard against 0/negative (which would resize the
+    // window to a degenerate content area) rather than trusting truthiness.
+    const vw = Number(d.viewport?.width);
+    const vh = Number(d.viewport?.height);
+    if (vw > 0 || vh > 0) {
       try {
         await applyViewport(opened.driver, d.viewport);
       } catch (error: any) {
@@ -184,8 +195,8 @@ async function startSurfaceStep({
     }
     return {
       status: "PASS",
-      description: `Opened browser surface "${opened.name}" (${d.browser}).`,
-      outputs: { name: opened.name, engine: String(d.browser).toLowerCase() },
+      description: `Opened browser surface "${opened.name}" (${engine}).`,
+      outputs: { name: opened.name, engine },
     };
   };
 

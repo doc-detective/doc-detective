@@ -38,7 +38,7 @@ This lets tests continue executing while flagging output changes that exceed you
 
 ## Background processes
 
-To start a long-running process, such as a Docker container, development server, or database, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/close-surface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`. A [`startSurface`](/docs/actions/startsurface) step with a `process` descriptor starts the same kind of background process through the same launcher — use whichever reads better in your test; `startSurface` also opens several surfaces concurrently in one step.
+To start a long-running process, such as a Docker container, development server, or database, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/close-surface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`. A [`startSurface`](/docs/actions/startsurface) step with a `process` descriptor starts the same kind of background process through the same launcher. Use whichever reads better in your test. `startSurface` also opens several surfaces concurrently in one step.
 
 When you add a `background` object:
 
