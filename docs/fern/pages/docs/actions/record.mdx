@@ -62,6 +62,8 @@ A `record` step can target a native app surface opened by [`startSurface`](/docs
 
 App-surface recordings use the `ffmpeg` engine with a `window` target by default. FFmpeg captures the full display, and when the recording stops, Doc Detective crops the video to the app's window—including on scaled (HiDPI/Retina) displays, where Doc Detective scales the crop to match the capture's physical pixels. Set `engine: { "name": "ffmpeg", "target": "display" }` to keep the full display instead. The `viewport` target is the browser content area, so it doesn't apply to app surfaces—Doc Detective skips a record step that combines them and explains why, and does the same for the `browser` engine (it records a Chrome tab, not a native window).
 
+To record a specific window of the app—a dialog, or one of several document windows—add a `window` selector: `{ "app": "notepad", "window": { "title": "/Open/" } }`. The crop then bounds that window. See [App windows](find#app-windows) for the selector grammar.
+
 App-surface recordings join the same display serialization as other FFmpeg recordings, and the same overlapping/named-stop rules apply.
 
 <Note>

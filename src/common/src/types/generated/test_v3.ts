@@ -8729,7 +8729,7 @@ export interface AppDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the launched app (Windows desktop apps). Not supported on macOS — the driver launches apps through LaunchServices, which offers no working-directory control, so a non-default value fails with guidance there. Default: the run's working directory.
+   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
    */
   workingDirectory?: string;
   /**
@@ -8921,7 +8921,7 @@ export interface AppDescriptor1 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app (Windows desktop apps). Not supported on macOS — the driver launches apps through LaunchServices, which offers no working-directory control, so a non-default value fails with guidance there. Default: the run's working directory.
+   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
    */
   workingDirectory?: string;
   /**
@@ -13296,7 +13296,7 @@ export interface AppDescriptor2 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app (Windows desktop apps). Not supported on macOS — the driver launches apps through LaunchServices, which offers no working-directory control, so a non-default value fails with guidance there. Default: the run's working directory.
+   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
    */
   workingDirectory?: string;
   /**
@@ -13488,7 +13488,7 @@ export interface AppDescriptor3 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app (Windows desktop apps). Not supported on macOS — the driver launches apps through LaunchServices, which offers no working-directory control, so a non-default value fails with guidance there. Default: the run's working directory.
+   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
    */
   workingDirectory?: string;
   /**

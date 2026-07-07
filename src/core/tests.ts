@@ -164,6 +164,7 @@ export {
   warmUpDecision,
   selectWarmUpTargets,
   getDriverCapabilities,
+  withChromedriverPort,
   getDefaultBrowser,
   buildFallbackCandidates,
   driverSkipDiagnostic,
@@ -403,6 +404,29 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
   return capabilities;
 }
 
+// Bind a Chromium (chromedriver-backed) session to a specific chromedriver
+// port. appium-chromium-driver hands `chromedriverPort` straight to
+// appium-chromedriver; when it is undefined, appium-chromedriver falls back to
+// its fixed DEFAULT_PORT (9515). Two concurrent browser contexts (own Appium
+// server each, from the pool) then both spawn chromedriver on 9515 — one binds,
+// the other's connection is REFUSED, surfacing later as a mid-session
+// `ECONNREFUSED 127.0.0.1:9515` when a command proxies to the wrong/dead
+// chromedriver (ADR 01039). Assigning a unique free port per session removes the
+// collision. Gecko/Safari are unaffected — geckodriver auto-selects a free
+// `systemPort` from a range, and Safari has no such port — so this only touches
+// Chromium caps, leaving every other engine's caps byte-identical. An explicit
+// `appium:chromedriverPort` (a caller opting into a fixed port) is preserved.
+function withChromedriverPort(capabilities: any, port: number): any {
+  if (
+    !capabilities ||
+    capabilities["appium:automationName"] !== "Chromium" ||
+    capabilities["appium:chromedriverPort"] !== undefined
+  ) {
+    return capabilities;
+  }
+  return { ...capabilities, "appium:chromedriverPort": port };
+}
+
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -492,16 +516,31 @@ function jobDisplayResources(
     platform === "ios"
       ? true // any ios context boots the shared simulator (app OR web)
       : isAppDriverRequired({ test: job.context }); // mac/windows: app only
-  const attemptsNativeAppDriver =
-    platform !== "android" &&
-    NATIVE_APP_DRIVER_PLATFORMS.includes(platform) &&
-    contendsForNativeDriver &&
+  // The mobileBrowserGate check only makes sense on MOBILE targets (ios/android):
+  // it SKIPs a context that deterministically won't boot the shared driver
+  // (mixed native-app + device-browser, unsupported/misconfigured mobile
+  // browser). On DESKTOP (mac/windows) there is no device browser to mix with, so
+  // the gate must NOT run: a desktop app context that also RECORDS carries
+  // `record`/`stopRecord` steps (BROWSER_STEP_KEYS) whose non-object payloads
+  // aren't app-targeting, so isBrowserRequired reports a "browser step" and the
+  // gate would wrongly SKIP — dropping the native-app-driver bound and letting a
+  // recording app context run concurrently with another native app context,
+  // clobbering the single per-host Mac2 / NovaWindows driver. Desktop app
+  // contexts always boot that driver, so they always contend. (ADR 01040.)
+  const isMobileTarget = platform === "ios" || platform === "android";
+  const gateProceeds =
+    !isMobileTarget ||
     mobileBrowserGate({
       platform,
       browser: job.context?.browser,
       hasBrowserStep: isBrowserRequired({ test: job.context }),
       hasAppStep: isAppDriverRequired({ test: job.context }),
     }).action === "proceed";
+  const attemptsNativeAppDriver =
+    platform !== "android" &&
+    NATIVE_APP_DRIVER_PLATFORMS.includes(platform) &&
+    contendsForNativeDriver &&
+    gateProceeds;
   const extra = [
     ...(attemptsEmulator ? ["android-emulator"] : []),
     ...(attemptsNativeAppDriver ? ["native-app-driver"] : []),
@@ -519,7 +558,12 @@ function jobDisplayResources(
     isDriverRequired({ test: { steps: job.context?.steps } })
       ? ["display"]
       : [];
-  return [...new Set([...base, ...extra, ...displayPromotion])];
+  // Order the union driver-bound first (native-app-driver / android-emulator),
+  // then the display resource — whether "display" arrived via `base` (this job's
+  // own ffmpeg recording) or `displayPromotion` (a recording elsewhere in the
+  // run). This keeps the canonical `["native-app-driver", "display"]` shape
+  // stable regardless of which path added the display bound.
+  return [...new Set([...extra, ...base, ...displayPromotion])];
 }
 
 // Check if context is supported by current platform and available apps
@@ -4833,13 +4877,26 @@ async function driverStart(
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      // Chromium sessions get a unique free chromedriver port so concurrent
+      // browser contexts never collide on chromedriver's fixed default (9515);
+      // see withChromedriverPort (ADR 01039). A FRESH port is allocated per
+      // attempt so a retryable ECONNREFUSED — the very rebind-race the Appium
+      // path already retries — moves to a new free port instead of re-racing
+      // the same one. Only Chromium caps need a port; every other engine skips
+      // the allocation and keeps a byte-identical wdio.remote payload.
+      const needsChromedriverPort =
+        capabilities?.["appium:automationName"] === "Chromium" &&
+        capabilities?.["appium:chromedriverPort"] === undefined;
+      const attemptCaps = needsChromedriverPort
+        ? withChromedriverPort(capabilities, await findFreePort())
+        : capabilities;
       const driver: any = await wdio.remote({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
         path: "/",
         logLevel: "error",
-        capabilities,
+        capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
       });

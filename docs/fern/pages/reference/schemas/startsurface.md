@@ -45,7 +45,6 @@ startSurface | one of:<br/>- object([App descriptor](/reference/schemas/app-desc
     "args": [
       "--reset"
     ],
-    "workingDirectory": "./sandbox",
     "waitUntil": {
       "delayMs": 500
     },

@@ -617,6 +617,10 @@
           "window": {
             "title": "/Find/"
           }
+        },
+        {
+          "app": "notepad",
+          "window": -1
         }
       ]
     },
@@ -1237,6 +1241,10 @@
             "window": {
               "title": "/Find/"
             }
+          },
+          {
+            "app": "notepad",
+            "window": -1
           }
         ]
       }
@@ -1266,6 +1274,16 @@
     "chrome",
     {
       "app": "charmap"
+    },
+    {
+      "app": "notepad",
+      "window": -1
+    },
+    {
+      "app": "TextEdit",
+      "window": {
+        "title": "Untitled 2"
+      }
     }
   ]
 }

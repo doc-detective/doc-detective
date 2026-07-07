@@ -612,6 +612,10 @@
       "window": {
         "title": "/Find/"
       }
+    },
+    {
+      "app": "notepad",
+      "window": -1
     }
   ]
 }

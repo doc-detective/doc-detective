@@ -20,7 +20,11 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
-import { resolveAppWindowRect } from "./ffmpegRecorder.js";
+import {
+  snapshotAppWindows,
+  rewriteXPathForScopedFind,
+  appWindowRect,
+} from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
@@ -462,11 +466,11 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         // NovaWindows (like WinAppDriver) takes appArguments as one string.
         capabilities["appium:appArguments"] = descriptor.args.join(" ");
       }
-      if (descriptor.workingDirectory && descriptor.workingDirectory !== ".") {
-        capabilities["appium:appWorkingDir"] = path.resolve(
-          descriptor.workingDirectory
-        );
-      }
+      // `workingDirectory` is NOT mapped: NovaWindows v1.4.1 silently ignores
+      // the appWorkingDir capability (the launched process inherits the
+      // driver's PowerShell session cwd), so mapping it would be a no-op the
+      // author can't see. It's rejected in unsupportedFields below instead —
+      // see the upstream report referenced in ADR 01036.
       return capabilities;
     },
     unsupportedFields: [
@@ -476,6 +480,13 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.",
+      },
+      {
+        field: "workingDirectory",
+        // "." is the schema's injected default, not an author request.
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance:
+          "The Windows app driver (NovaWindows) doesn't honor a launch working directory — the app inherits the driver's own working directory — so Doc Detective can't set it; launch the app via runShell if the cwd matters.",
       },
     ],
   },
@@ -666,6 +677,20 @@ interface AppSurfaceEntry {
   // (multiple app surfaces on one device share one UiAutomator2 session).
   // Absent for desktop surfaces (one driver per app).
   deviceName?: string;
+  // --- Window-selector state (ADR 01036, desktop only; managed by
+  // appWindows.ts). Sticky active window; the Windows baseline (main handle,
+  // best-effort pid, adopted vs foreign desktop-global handles); the macOS
+  // (title, frame) baseline for `-1` newest-window diffs.
+  activeWindow?: { handle?: string; element?: any; title?: string };
+  mainWindowHandle?: string;
+  appPid?: number | null;
+  knownWindows?: string[];
+  foreignWindows?: Set<string>;
+  // Desktop windows that already existed at the surface snapshot (Windows).
+  // Unprobed until the first selector use; a same-pid one adopts as OLD
+  // (right after main) so it never shadows a genuinely new dialog under -1.
+  baselineWindowHandles?: Set<string>;
+  windowBaseline?: string[];
 }
 
 // Per-context app-session state, created by runContext and threaded through
@@ -1094,25 +1119,31 @@ async function findAppElement({
   criteria,
   timeout = 5000,
   platform,
+  root,
 }: {
   driver: any;
   criteria: any;
   timeout?: number;
   platform?: string;
+  // A window element to scope the find to (macOS window selectors, ADR
+  // 01036). Compiled `//…` locators are re-anchored to `.//` so they stay
+  // inside the window subtree.
+  root?: any;
 }): Promise<{ element?: any; error?: string }> {
   const locator = buildAppLocator(criteria, platform);
   if ("error" in locator) return { error: locator.error };
-  const selector =
+  let selector =
     locator.strategy === "accessibility id"
       ? `~${locator.value}`
       : locator.value;
+  if (root) selector = rewriteXPathForScopedFind(selector);
   // Locate and wait in separate try blocks: driver.$() normally returns a
   // lazy handle without touching the session, so a throw there means the
   // session itself is broken (app crash, dead server) — a driver error, not
   // a criteria miss. Only the waitForExist timeout is the not-found path.
   let element: any;
   try {
-    element = await driver.$(selector);
+    element = await (root ?? driver).$(selector);
   } catch (error: any) {
     return {
       error: `App driver error while locating an element (locator: ${selector}): ${error?.message ?? error}`,
@@ -1401,6 +1432,13 @@ async function startAppSurface({
   });
   appSession.activeApp = name;
 
+  // Window-selector baseline (ADR 01036, desktop): capture the main window
+  // handle / pid / known-vs-foreign handles (Windows) or the (title, frame)
+  // baseline (macOS) so `-1` "newest window" diffs and pid-filtered adoption
+  // have a reference point. Best-effort — a driver without the needed
+  // endpoints just degrades the -1 semantics (documented).
+  await snapshotAppWindows(appSession.surfaces.get(name));
+
   if (!isMobileTargetPlatform(platform)) {
     // Late-bind window crops (desktop): an autoRecord capture in an app-only
     // context starts before any app window exists, so it records the full
@@ -1417,7 +1455,9 @@ async function startAppSurface({
     );
     for (const handle of pendingHandles) {
       try {
-        const rect = await resolveAppWindowRect(driver);
+        // Platform-aware (ADR 01036): macOS uses the window ELEMENT rect —
+        // Mac2's getWindowRect is the whole main screen.
+        const rect = await appWindowRect(appSession.surfaces.get(name));
         if (rect) {
           handle.cropRect = rect;
           handle.cropPendingScale = true;
@@ -1518,6 +1558,16 @@ async function closeAppSurface({
 }): Promise<void> {
   appSession.surfaces.delete(entry.name);
   if (appSession.activeApp === entry.name) appSession.activeApp = undefined;
+  // Window selectors may have left the session rooted at a dialog (Windows
+  // switch-then-act); deleteSession closes whatever the current root is, so
+  // re-root to the app's main window first. Best-effort.
+  if (entry.mainWindowHandle && typeof entry.driver?.switchToWindow === "function") {
+    try {
+      await entry.driver.switchToWindow(entry.mainWindowHandle);
+    } catch {
+      // Main window already gone — teardown proceeds on the current root.
+    }
+  }
   if (entry.deviceName) {
     // Android: terminate just this app on the shared device session.
     const session = appSession.deviceSessions?.get(entry.deviceName);

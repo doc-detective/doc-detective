@@ -80,13 +80,52 @@ describe("startRecording: app surfaces (desktop)", function () {
     assert.match(result.description, /No app surface named "ghost"/);
   });
 
-  it("SKIPs a window selector with guidance (not supported on app recordings)", async function () {
-    // SKIPPED, not FAIL: consistent with every other unsupported-combination
-    // guard in startRecording (viewport-on-app, browser-engine-on-app,
-    // desktop engines on mobile).
+  it("records a selected window's rect (windows, ADR 01036)", async function () {
+    const windows = [
+      { handle: "0xA", title: "Main", pid: 100, rect: { x: 0, y: 0, width: 800, height: 600 } },
+      { handle: "0xB", title: "Dialog", pid: 100, rect: { x: 50, y: 60, width: 300, height: 200 } },
+    ];
+    const state = { current: "0xA" };
+    const appDriver = {
+      state,
+      async getWindowHandles() {
+        return windows.map((w) => w.handle);
+      },
+      async getWindowHandle() {
+        return state.current;
+      },
+      async switchToWindow(handle) {
+        if (!windows.some((w) => w.handle === handle))
+          throw new Error("no such window");
+        state.current = handle;
+      },
+      async getTitle() {
+        return windows.find((w) => w.handle === state.current)?.title ?? "";
+      },
+      async $() {
+        return {
+          getAttribute: async (name) =>
+            name === "ProcessId"
+              ? String(windows.find((w) => w.handle === state.current)?.pid ?? "")
+              : null,
+        };
+      },
+      async getWindowRect() {
+        return windows.find((w) => w.handle === state.current)?.rect;
+      },
+    };
     const appSession = makeAppSession({
       surfaces: [
-        { name: "notepad", appId: "notepad.exe", driver: {}, platform: "windows" },
+        {
+          name: "notepad",
+          appId: "notepad.exe",
+          driver: appDriver,
+          platform: "windows",
+          mainWindowHandle: "0xA",
+          appPid: 100,
+          knownWindows: ["0xA"],
+          foreignWindows: new Set(),
+        },
       ],
     });
     const result = await startRecording({
@@ -96,14 +135,108 @@ describe("startRecording: app surfaces (desktop)", function () {
         stepId: "x",
         record: {
           path: path.join(tmpDir, "a.mp4"),
-          surface: { app: "notepad", window: -1 },
+          surface: { app: "notepad", window: { title: "Dialog" } },
+        },
+      },
+      driver: undefined,
+      appSession,
+      deps: {
+        spawn: () => makeFakeProc(),
+        getFfmpegPath: async () => "ffmpeg",
+      },
+    });
+    assert.equal(result.status, "PASS");
+    // The crop is the DIALOG's rect, unscaled + pending-scale as usual.
+    assert.deepEqual(result.recording.cropRect, { x: 50, y: 60, w: 300, h: 200 });
+    assert.equal(result.recording.cropPendingScale, true);
+  });
+
+  it("mac: the default window crop uses the window ELEMENT rect, not the full-screen getWindowRect", async function () {
+    // Mac2's getWindowRect() returns the whole main screen (the latent A7
+    // bug) — the crop must come from the window element instead.
+    const windowEl = {
+      elementId: "w1",
+      async getAttribute(name) {
+        return name === "title" ? "Untitled" : null;
+      },
+      async isExisting() {
+        return true;
+      },
+    };
+    const appDriver = {
+      async getWindowRect() {
+        return { x: 0, y: 0, width: 3840, height: 2160 };
+      },
+      async $$() {
+        return [windowEl];
+      },
+      async getElementRect(id) {
+        assert.equal(id, "w1");
+        return { x: 40, y: 50, width: 800, height: 600 };
+      },
+    };
+    const appSession = makeAppSession({
+      surfaces: [
+        {
+          name: "TextEdit",
+          appId: "com.apple.TextEdit",
+          driver: appDriver,
+          platform: "mac",
+        },
+      ],
+    });
+    const result = await startRecording({
+      config,
+      context: { platform: "mac" },
+      step: {
+        stepId: "x",
+        record: {
+          path: path.join(tmpDir, "mac.mp4"),
+          surface: { app: "TextEdit" },
+        },
+      },
+      driver: undefined,
+      appSession,
+      deps: {
+        spawn: () => makeFakeProc(),
+        getFfmpegPath: async () => "ffmpeg",
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.recording.cropRect, { x: 40, y: 50, w: 800, h: 600 });
+    assert.equal(result.recording.cropPendingScale, true);
+  });
+
+  it("mobile: a window selector on a record FAILs single-window (was SKIP in A7)", async function () {
+    const appSession = makeAppSession({
+      surfaces: [
+        {
+          name: "chat",
+          appId: "com.example.chat",
+          driver: {},
+          platform: "android",
+          deviceName: "Pixel_7",
+        },
+      ],
+      deviceSessions: [
+        { name: "Pixel_7", driver: {}, foregroundApp: "com.example.chat" },
+      ],
+    });
+    const result = await startRecording({
+      config,
+      context: { platform: "android" },
+      step: {
+        stepId: "x",
+        record: {
+          path: path.join(tmpDir, "m.mp4"),
+          surface: { app: "chat", window: -1 },
         },
       },
       driver: undefined,
       appSession,
     });
-    assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /[Ww]indow selectors on app recordings/);
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /single-window/);
   });
 
   it("SKIPs a viewport target on an app surface with guidance", async function () {

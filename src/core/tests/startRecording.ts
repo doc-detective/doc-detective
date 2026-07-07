@@ -14,13 +14,17 @@ import {
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
-  resolveAppWindowRect,
   parseCaptureFrameSize,
   getFfmpegPath,
   detectMacScreenIndex,
   detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
 import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
+import {
+  resolveAppWindow,
+  activeAppWindow,
+  appWindowRect,
+} from "./appWindows.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -86,6 +90,7 @@ async function startRecording({
   // resolves to that session's driver — the recording (and its recorder tab)
   // then lives entirely in that session.
   let appRef: { entry?: any; window?: any; error?: string } | null = null;
+  let appWindowTarget: any = null;
   if (
     typeof step.record === "object" &&
     step.record !== null &&
@@ -98,14 +103,24 @@ async function startRecording({
         result.description = appRef.error;
         return result;
       }
+      // Window selectors (ADR 01036): resolve to a real window — the crop
+      // then targets THAT window's rect. Selector-less recordings use the
+      // sticky/default window. Mobile selectors FAIL single-window (was a
+      // SKIP in A7 — ADR-noted behavior change).
       if (appRef.window !== undefined) {
-        // SKIPPED (not FAIL), matching this function's other
-        // unsupported-combination guards. Note: screenshot/find still FAIL on
-        // app window selectors — aligning them is a follow-up.
-        result.status = "SKIPPED";
-        result.description =
-          "Window selectors on app recordings land in a later part of this phase; the recording crops to the app's active window (omit `window`).";
-        return result;
+        const resolvedWindow = await resolveAppWindow({
+          entry: appRef.entry!,
+          selector: appRef.window,
+          timeoutMs: 5000,
+        });
+        if (!resolvedWindow.ok) {
+          result.status = "FAIL";
+          result.description = resolvedWindow.message;
+          return result;
+        }
+        appWindowTarget = resolvedWindow.target;
+      } else {
+        appWindowTarget = await activeAppWindow(appRef.entry!);
       }
       const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
       if (switchedApp.error) {
@@ -508,11 +523,15 @@ async function startRecording({
   // drivers can't answer a DOM probe, so stopRecording derives the scale from
   // the capture frame size instead (phase A7).
   let crop: any = null;
-  let appWindowRect: any = null;
+  let appCropRect: any = null;
   if (appRef && plan.target === "window") {
     try {
-      appWindowRect = await resolveAppWindowRect(appRef.entry!.driver);
-      if (!appWindowRect) {
+      // Platform-aware (ADR 01036): Windows uses the current root's rect;
+      // macOS uses the selected/default window ELEMENT's rect — Mac2's
+      // getWindowRect is the whole main screen, so the element rect is the
+      // only real window rect.
+      appCropRect = await appWindowRect(appRef.entry!, appWindowTarget);
+      if (!appCropRect) {
         log(
           config,
           "warning",
@@ -655,9 +674,7 @@ async function startRecording({
     targetPath: filePath,
     crop,
     captureInfo,
-    ...(appWindowRect
-      ? { cropRect: appWindowRect, cropPendingScale: true }
-      : {}),
+    ...(appCropRect ? { cropRect: appCropRect, cropPendingScale: true } : {}),
   };
   return result;
 }
