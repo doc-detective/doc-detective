@@ -459,6 +459,53 @@ describe("jobDisplayResources", function () {
       })
     ).to.deep.equal(["native-app-driver", "display"]);
   });
+
+  // A desktop native-app context that ALSO records: its `record` step names the
+  // app surface (object form), but the paired `stopRecord: true` (and any
+  // non-object record payload) does NOT — so isBrowserRequired sees a
+  // BROWSER_STEP_KEYS step that isn't app-targeting and reports a browser step.
+  // On mac/windows that must NOT drop the native-app-driver bound (there is no
+  // device browser to mix with on desktop): the context still boots the shared
+  // Mac2 / NovaWindows driver and MUST serialize against other native-app
+  // contexts, or two concurrent sessions clobber the per-host driver
+  // ("Session does not exist" / "process is not running (probably crashed)" /
+  // "No element matched"). Regression for the apps-group macOS+Windows failures
+  // at concurrentRunners: 2 (recording app context overlapped a plain app one).
+  const recordingAppJob = (platform) => ({
+    context: {
+      platform,
+      steps: [
+        { startSurface: { app: "com.apple.TextEdit" } },
+        { record: { path: "x.mp4", surface: { app: "TextEdit" } } },
+        { type: { keys: ["x"], surface: { app: "TextEdit" } } },
+        { stopRecord: true },
+        { closeSurface: { app: "TextEdit" } },
+      ],
+    },
+  });
+
+  it("tags a macOS recording app context (record + stopRecord) with 'native-app-driver'", function () {
+    // The stopRecord step is a BROWSER_STEP_KEY that isn't app-targeting, so the
+    // old mobileBrowserGate path SKIPped the native-app-driver bound and let this
+    // context run concurrently with another native app context.
+    expect(
+      jobDisplayResources(recordingAppJob("mac"), {
+        ...ctx,
+        allowOverlappingCaptures: false,
+        runHasDisplayRecording: true,
+      })
+    ).to.deep.equal(["native-app-driver", "display"]);
+  });
+
+  it("tags a Windows recording app context (record + stopRecord) with 'native-app-driver'", function () {
+    expect(
+      jobDisplayResources(recordingAppJob("windows"), {
+        ...ctx,
+        allowOverlappingCaptures: false,
+        runHasDisplayRecording: true,
+      })
+    ).to.deep.equal(["native-app-driver", "display"]);
+  });
 });
 
 describe("runResourceAware native-app-driver serialization", function () {
@@ -502,6 +549,59 @@ describe("runResourceAware native-app-driver serialization", function () {
     expect(tk.stats.perResourceHigh["native-app-driver"]).to.equal(1);
     // ...but overall parallelism still exceeded 1 (the shell job overlapped).
     expect(tk.stats.totalHigh).to.be.above(1);
+  });
+
+  it("serializes a recording app context against a plain app context (real apps-group tags)", async function () {
+    // The exact apps-group scenario: a recording native-app context (tagged via
+    // jobDisplayResources with an explicit display recording in the run) and a
+    // plain native-app context must NOT overlap — before the fix the recording
+    // one was tagged ["display"] only, disjoint from the plain one's
+    // ["native-app-driver"], so they ran concurrently and clobbered the shared
+    // per-host driver.
+    const displayCtx = {
+      platform: "darwin",
+      xvfbAvailable: false,
+      allowOverlappingCaptures: false,
+      runHasDisplayRecording: true,
+    };
+    const recCtx = {
+      context: {
+        platform: "mac",
+        steps: [
+          { startSurface: { app: "com.apple.TextEdit" } },
+          { record: { path: "x.mp4", surface: { app: "TextEdit" } } },
+          { stopRecord: true },
+          { closeSurface: { app: "TextEdit" } },
+        ],
+      },
+    };
+    const plainCtx = {
+      context: {
+        platform: "mac",
+        steps: [{ startSurface: { app: "com.apple.calculator" } }],
+      },
+    };
+    recCtx.exclusiveResources = jobDisplayResources(recCtx, displayCtx);
+    plainCtx.exclusiveResources = jobDisplayResources(plainCtx, displayCtx);
+    // Both must hold the native-app-driver bound (the recording one also holds
+    // display) so the pool serializes them on the shared driver.
+    expect(recCtx.exclusiveResources).to.include("native-app-driver");
+    expect(plainCtx.exclusiveResources).to.include("native-app-driver");
+
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    await runResourceAware(
+      [recCtx, plainCtx],
+      2,
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(30);
+        tk.exit(item.exclusiveResources);
+      }
+    );
+    // The two native-app driver sessions never ran at the same time.
+    expect(tk.stats.perResourceHigh["native-app-driver"]).to.equal(1);
   });
 });
 
