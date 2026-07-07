@@ -69,8 +69,11 @@ function engineKeywordNameConflict(
 
 export interface BrowserSessionEntry {
   name: string;
-  // Lowercased engine as launched (edge stays "edge"; normalization happens
-  // at comparison time only).
+  // Lowercased engine as launched. openSession normalizes edge → chrome
+  // BEFORE registering (edge rides the chromedriver stack), so a browser
+  // surface opened as edge registers with engine "chrome". A session created
+  // through registerSession directly stores whatever engine it's handed
+  // (lowercased), so comparisons still route through normalizeEngine.
   engine: string;
   driver: any;
   // Monotonic focus stamp: bumped whenever the session is activated. The

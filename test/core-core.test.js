@@ -1243,6 +1243,22 @@ describe("collectDeviceDescriptors() device planning", function () {
       [undefined]
     );
   });
+
+  it("falls back to [undefined] for a parallel array with only browser/process descriptors (no app boots a device)", function () {
+    assert.deepEqual(
+      collectDeviceDescriptors({
+        steps: [
+          {
+            startSurface: [
+              { browser: "chrome" },
+              { process: "srv", name: "srv" },
+            ],
+          },
+        ],
+      }),
+      [undefined]
+    );
+  });
 });
 
 describe("getRunner() function", function () {
