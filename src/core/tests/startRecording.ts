@@ -14,10 +14,14 @@ import {
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
+  resolveAppWindowRect,
+  parseCaptureFrameSize,
   getFfmpegPath,
   detectMacScreenIndex,
   detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
+import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
@@ -31,7 +35,29 @@ export { startRecording };
 // app-only contexts. It is ONLY a state holder — `driver` remains the browser
 // session used for crop geometry, cursor instantiation, and the browser
 // engine, and stays undefined in app-only contexts so those paths skip.
-async function startRecording({ config, context, step, driver, recordingHost }: { config: any; context: any; step: any; driver: any; recordingHost?: any }) {
+// `appSession` resolves app-surface record targets (phase A7). `deps` is a
+// test seam for the ffmpeg spawn path (same pattern as startAppSurface's
+// serverDeps); production callers omit it.
+async function startRecording({
+  config,
+  context,
+  step,
+  driver,
+  recordingHost,
+  appSession,
+  deps = {},
+}: {
+  config: any;
+  context: any;
+  step: any;
+  driver: any;
+  recordingHost?: any;
+  appSession?: any;
+  deps?: {
+    spawn?: typeof spawn;
+    getFfmpegPath?: (ctx: { cacheDir?: string }) => Promise<string>;
+  };
+}) {
   let result: any = {
     status: "PASS",
     description: "Started recording.",
@@ -54,21 +80,48 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
     return result;
   }
 
-  // Multi-surface Phase 3/4: focus the session + window/tab to record. A
-  // cross-session reference resolves to that session's driver — the recording
-  // (and its recorder tab) then lives entirely in that session.
+  // Multi-surface Phase 3/4 + app surfaces (A7): focus the session +
+  // window/tab to record. An app reference ({ app: … }) resolves against the
+  // app session and brings that app to the foreground; a browser reference
+  // resolves to that session's driver — the recording (and its recorder tab)
+  // then lives entirely in that session.
+  let appRef: { entry?: any; window?: any; error?: string } | null = null;
   if (
     typeof step.record === "object" &&
     step.record !== null &&
     step.record.surface !== undefined
   ) {
-    const switched = await switchToSurface(driver, step.record.surface);
-    if (!switched.ok) {
-      result.status = "FAIL";
-      result.description = switched.message;
-      return result;
+    appRef = resolveAppSurfaceRef(step.record.surface, appSession);
+    if (appRef) {
+      if (appRef.error) {
+        result.status = "FAIL";
+        result.description = appRef.error;
+        return result;
+      }
+      if (appRef.window !== undefined) {
+        // SKIPPED (not FAIL), matching this function's other
+        // unsupported-combination guards. Note: screenshot/find still FAIL on
+        // app window selectors — aligning them is a follow-up.
+        result.status = "SKIPPED";
+        result.description =
+          "Window selectors on app recordings land in a later part of this phase; the recording crops to the app's active window (omit `window`).";
+        return result;
+      }
+      const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
+      if (switchedApp.error) {
+        result.status = "FAIL";
+        result.description = switchedApp.error;
+        return result;
+      }
+    } else {
+      const switched = await switchToSurface(driver, step.record.surface);
+      if (!switched.ok) {
+        result.status = "FAIL";
+        result.description = switched.message;
+        return result;
+      }
+      driver = switched.driver ?? driver;
     }
-    driver = switched.driver ?? driver;
   }
 
   // Convert boolean to string
@@ -142,6 +195,110 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
   // the runner (headed Chrome preferred when nothing was specified), so this
   // is a pure read.
   let plan = resolveRecordPlan({ step, context });
+
+  const mobileTarget = isMobileTargetPlatform(context?.platform);
+
+  // Mobile-target contexts record the device screen through the app driver
+  // (the internal "device" plan). An explicit desktop engine there has
+  // nothing to capture on the host — SKIP with the fix named, mirroring the
+  // explicit-browser-engine-on-incapable-context behavior below.
+  if (mobileTarget && plan.name !== "device") {
+    result.status = "SKIPPED";
+    result.description = `Recordings on ${context.platform} contexts capture the device screen through the app driver; the "${plan.name}" engine doesn't apply — omit \`engine\`.`;
+    return result;
+  }
+
+  // App-surface guards (desktop): the browser engine records a Chrome tab and
+  // the viewport target is the browser content area — neither exists for a
+  // native app window.
+  if (appRef && plan.name === "browser") {
+    result.status = "SKIPPED";
+    result.description =
+      "The browser engine records a Chrome tab and can't capture a native app window. Omit `engine` to record an app surface (ffmpeg, cropped to the app window).";
+    return result;
+  }
+  if (appRef && plan.name === "ffmpeg" && plan.target === "viewport") {
+    result.status = "SKIPPED";
+    result.description =
+      "The `viewport` target is the browser content area and doesn't apply to app surfaces. Use `window` (the default) or `display`.";
+    return result;
+  }
+
+  // Device engine: record the device screen via the Appium driver
+  // (adb screenrecord on Android, simctl-backed on iOS). No host display is
+  // involved, so device recordings run concurrently — they never join the
+  // ffmpeg display mutex. The video arrives base64 on stopRecordingScreen;
+  // stopRecording writes/transcodes it to the target path.
+  if (plan.name === "device") {
+    // Recording driver: the targeted app surface's driver, the device browser
+    // session (mobile web), the ACTIVE app surface's session (omit surface =>
+    // act on the active surface — with several devices open, "first device
+    // session" would record the wrong device), or any live device session.
+    // None yet (autoRecord starts before the first startSurface) -> a pending
+    // handle that startAppSurface late-starts once the device session exists.
+    let recordingDriver = appRef?.entry?.driver ?? driver;
+    if (!recordingDriver && appSession) {
+      const activeEntry = appSession.activeApp
+        ? appSession.surfaces?.get?.(appSession.activeApp)
+        : undefined;
+      recordingDriver = activeEntry?.driver;
+      if (!recordingDriver && appSession.deviceSessions?.size > 0) {
+        recordingDriver =
+          appSession.deviceSessions.values().next().value?.driver;
+      }
+    }
+    if (!recordingDriver) {
+      result.recording = { type: "appium-pending", targetPath: filePath };
+      result.description =
+        "Device recording pending: it starts when the first app surface opens a device session.";
+      return result;
+    }
+    // The device recorder is single-instance per session (a second
+    // startRecordingScreen restarts or rejects the first) — one recording per
+    // device at a time.
+    const hasActiveDeviceRecording =
+      Array.isArray(stateHolder?.state?.recordings) &&
+      stateHolder.state.recordings.some(
+        (r: any) => r?.type === "appium" && r.driver === recordingDriver
+      );
+    if (hasActiveDeviceRecording) {
+      result.status = "SKIPPED";
+      result.description =
+        "A device recording is already running on this device; only one can run at a time. Stop it with stopRecord before starting another.";
+      return result;
+    }
+    const platform = appRef?.entry?.platform ?? context?.platform;
+    // timeLimit raises the drivers' short defaults (180 s on UiAutomator2) to
+    // their supported maximum; recordings longer than 30 minutes truncate.
+    const options =
+      platform === "ios"
+        ? { videoType: "h264", timeLimit: 1800 }
+        : { timeLimit: 1800 };
+    try {
+      await recordingDriver.startRecordingScreen(options);
+    } catch (error: any) {
+      const message = String(error?.message ?? error);
+      // The XCUITest driver shells out to a host ffmpeg for encoding. A
+      // missing binary is an environment gap, not a test failure — SKIP with
+      // the fix named (install-impossible convention). The runner injects the
+      // bundled ffmpeg onto the app server's PATH, so this is a backstop.
+      if (/ffmpeg.*not found/i.test(message)) {
+        result.status = "SKIPPED";
+        result.description = `The device recording needs an ffmpeg binary on the Appium server's PATH and none was found; skipping the recording. ${message}`;
+        return result;
+      }
+      result.status = "FAIL";
+      result.description = `Couldn't start the device recording: ${message}`;
+      log(config, "error", result.description);
+      return result;
+    }
+    result.recording = {
+      type: "appium",
+      driver: recordingDriver,
+      targetPath: filePath,
+    };
+    return result;
+  }
 
   // The browser engine owns a dedicated recorder tab and switches the active
   // window, so only one browser-engine recording can run per context. If one
@@ -335,15 +492,41 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
   // A headless browser has no on-screen content to capture. ffmpeg headless
   // recording is only meaningful against a virtual display (Linux Xvfb),
   // threaded in as context.__display. Without one, skip — matching the
-  // long-standing "recording isn't supported headless" behavior.
-  if (context.browser?.headless && !context.__display) {
+  // long-standing "recording isn't supported headless" behavior. An
+  // app-targeted recording captures a native window, which exists (headed)
+  // regardless of any browser's headless mode, so the guard doesn't apply.
+  if (!appRef && context.browser?.headless && !context.__display) {
     result.status = "SKIPPED";
     result.description = `Recording isn't supported in headless mode without a virtual display (Xvfb).`;
     return result;
   }
 
+  // Crop geometry. Browser-driver crops (viewport, window) resolve through
+  // the DOM devicePixelRatio probe and are stored ready-to-apply in physical
+  // pixels. App-window crops come from the native driver's getWindowRect in
+  // driver units and are stored UNSCALED with a pending-scale marker — native
+  // drivers can't answer a DOM probe, so stopRecording derives the scale from
+  // the capture frame size instead (phase A7).
   let crop: any = null;
-  if (driver && plan.target !== "display") {
+  let appWindowRect: any = null;
+  if (appRef && plan.target === "window") {
+    try {
+      appWindowRect = await resolveAppWindowRect(appRef.entry!.driver);
+      if (!appWindowRect) {
+        log(
+          config,
+          "warning",
+          "Couldn't resolve the app window geometry for recording (malformed window rect); capturing the full display."
+        );
+      }
+    } catch (err) {
+      log(
+        config,
+        "warning",
+        `Couldn't resolve the app window geometry for recording; capturing the full display. ${err}`
+      );
+    }
+  } else if (!appRef && driver && plan.target !== "display") {
     try {
       crop = await resolveCropGeometry({ driver, target: plan.target });
     } catch (err) {
@@ -356,8 +539,9 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
   }
 
   // Show the synthetic cursor in the page so automated actions are visible
-  // (WebDriver doesn't move the OS pointer).
-  if (driver) {
+  // (WebDriver doesn't move the OS pointer). Browser sessions only — app
+  // surfaces have a real OS pointer and no page to inject into.
+  if (driver && !appRef) {
     try {
       await instantiateCursor(driver, { position: "center" });
     } catch {
@@ -377,7 +561,9 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
 
   let ffmpegPath: string;
   try {
-    ffmpegPath = await getFfmpegPath({ cacheDir: config?.cacheDir });
+    ffmpegPath = await (deps.getFfmpegPath ?? getFfmpegPath)({
+      cacheDir: config?.cacheDir,
+    });
   } catch (err) {
     result.status = "FAIL";
     result.description = `Couldn't start recording: ${err}`;
@@ -421,14 +607,28 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
     }${context.__display ? ` display=${context.__display}` : ""} -> ${tempPath}`
   );
 
-  const proc = spawn(ffmpegPath, args, { stdio: ["pipe", "ignore", "pipe"] });
+  const proc = (deps.spawn ?? spawn)(ffmpegPath, args, {
+    stdio: ["pipe", "ignore", "pipe"],
+  });
   let spawnError: any = null;
   // Drain ffmpeg's stderr into a bounded tail: it both prevents the unread
   // pipe from filling and blocking ffmpeg, and surfaces the real reason on a
   // start failure (wrong device index, denied screen-recording permission…).
+  // The capture frame size is parsed EAGERLY from a bounded head buffer (the
+  // input stream line prints once, early, and would scroll out of a tail):
+  // stopRecording derives the pending-scale crop factor from it (phase A7).
   let stderrTail = "";
+  const captureInfo: {
+    frameSize: { w: number; h: number } | null;
+    head: string;
+  } = { frameSize: null, head: "" };
   proc.stderr?.on("data", (d) => {
-    stderrTail = (stderrTail + d.toString()).slice(-2000);
+    const text = d.toString();
+    stderrTail = (stderrTail + text).slice(-2000);
+    if (!captureInfo.frameSize && captureInfo.head.length < 8192) {
+      captureInfo.head = (captureInfo.head + text).slice(0, 8192);
+      captureInfo.frameSize = parseCaptureFrameSize(captureInfo.head);
+    }
   });
   proc.on("error", (err) => {
     spawnError = err;
@@ -454,6 +654,10 @@ async function startRecording({ config, context, step, driver, recordingHost }: 
     tempPath,
     targetPath: filePath,
     crop,
+    captureInfo,
+    ...(appWindowRect
+      ? { cropRect: appWindowRect, cropPendingScale: true }
+      : {}),
   };
   return result;
 }

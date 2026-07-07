@@ -14,6 +14,8 @@ You can choose which recording to stop:
 
 When you target by name, Doc Detective stops that recording wherever it falls in the active set, not just the most recent one. For more about running several recordings at once, see [Multiple overlapping recordings](record#multiple-overlapping-recordings).
 
+The same untargeted and named forms stop recordings of every kind—browser, desktop app window, and mobile device-screen recordings all live on the same stack. For device recordings, `stopRecord` is also the point where the video transfers from the device and saves (converting to `.webm`/`.gif` when the target path calls for it).
+
 >Note: To finalize and save a recording started with the `record` action, include a `stopRecord` step. An untargeted `stopRecord` skips recordings created by [`autoRecord`](record#automatic-recordings); Doc Detective finalizes those automatically at the end of the context.
 >
 > For comprehensive options, see the [`stopRecord`](/reference/schemas/stoprecord) reference.

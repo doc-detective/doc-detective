@@ -20,7 +20,7 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
-import { resolveCropGeometry } from "./ffmpegRecorder.js";
+import { resolveAppWindowRect } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
@@ -1396,24 +1396,69 @@ async function startAppSurface({
   });
   appSession.activeApp = name;
 
-  // Late-bind window crops: an autoRecord capture in an app-only context
-  // starts before any app window exists, so it records the full display with
-  // a pending marker. The first app surface to open supplies its window rect
-  // as the crop — scoping the recording to the app under test — which the
-  // stop-side transcode then applies.
-  const pendingHandles = (
-    appSession.recordingHost?.state?.recordings ?? []
-  ).filter((handle: any) => handle?.pendingAppWindowCrop && !handle.crop);
-  for (const handle of pendingHandles) {
-    try {
-      handle.crop = await resolveCropGeometry({ driver, target: "window" });
-      handle.pendingAppWindowCrop = false;
-    } catch (error: any) {
-      log(
-        config,
-        "warning",
-        `Couldn't resolve the app window geometry for the active recording; it stays full-display. ${error?.message ?? error}`
-      );
+  if (!isMobileTargetPlatform(platform)) {
+    // Late-bind window crops (desktop): an autoRecord capture in an app-only
+    // context starts before any app window exists, so it records the full
+    // display with a pending marker. The first app surface to open supplies
+    // its window rect as the crop — scoping the recording to the app under
+    // test. The rect is stored UNSCALED with a pending-scale marker: native
+    // drivers can't answer a devicePixelRatio probe, so stopRecording derives
+    // the physical-pixel scale from the capture frame size instead (phase A7).
+    const pendingHandles = (
+      appSession.recordingHost?.state?.recordings ?? []
+    ).filter(
+      (handle: any) =>
+        handle?.pendingAppWindowCrop && !handle.crop && !handle.cropRect
+    );
+    for (const handle of pendingHandles) {
+      try {
+        const rect = await resolveAppWindowRect(driver);
+        if (rect) {
+          handle.cropRect = rect;
+          handle.cropPendingScale = true;
+        } else {
+          log(
+            config,
+            "warning",
+            "Couldn't resolve the app window geometry for the active recording (malformed window rect); it stays full-display."
+          );
+        }
+        handle.pendingAppWindowCrop = false;
+      } catch (error: any) {
+        log(
+          config,
+          "warning",
+          `Couldn't resolve the app window geometry for the active recording; it stays full-display. ${error?.message ?? error}`
+        );
+      }
+    }
+  } else {
+    // Late-start pending device recordings (mobile): an autoRecord (or early
+    // record) step in a mobile app-only context ran before any device session
+    // existed. Now that one does, start the device recording on it. A handle
+    // that never gets a session is drained as SKIPPED by stopRecording.
+    const pendingDeviceHandles = (
+      appSession.recordingHost?.state?.recordings ?? []
+    ).filter((handle: any) => handle?.type === "appium-pending");
+    for (const handle of pendingDeviceHandles) {
+      const options =
+        platform === "ios"
+          ? { videoType: "h264", timeLimit: 1800 }
+          : { timeLimit: 1800 };
+      try {
+        await driver.startRecordingScreen(options);
+        handle.type = "appium";
+        handle.driver = driver;
+      } catch (error: any) {
+        // Stash the real error on the handle so stopRecording surfaces it as
+        // a FAIL instead of the misleading "never started" skip. A missing
+        // host ffmpeg (the XCUITest encoder dependency) is an environment
+        // gap, so it degrades to a SKIP instead.
+        const message = `Couldn't start the pending device recording: ${error?.message ?? error}`;
+        handle.startError = message;
+        if (/ffmpeg.*not found/i.test(message)) handle.startSkip = true;
+        log(config, "warning", message);
+      }
     }
   }
 

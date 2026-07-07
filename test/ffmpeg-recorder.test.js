@@ -4,6 +4,10 @@ import path from "node:path";
 import {
   resolveRecordPlan,
   coerceRecordContextBrowser,
+  parseCaptureFrameSize,
+  deriveCropScale,
+  resolveAppWindowRect,
+  ffmpegPathEnv,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
@@ -83,6 +87,57 @@ describe("ffmpegRecorder", function () {
       });
       expect(a).to.deep.equal(b);
     });
+
+    it("resolves an app-surface record to ffmpeg with a window target, even on headed chrome", function () {
+      const plan = resolveRecordPlan({
+        step: { record: { path: "x.mp4", surface: { app: "notepad" } } },
+        context: {
+          platform: "windows",
+          browser: { name: "chrome", headless: false },
+        },
+      });
+      expect(plan).to.deep.equal({ name: "ffmpeg", target: "window", fps: 30 });
+    });
+
+    it("keeps an explicit display target on an app-surface record", function () {
+      const plan = resolveRecordPlan({
+        step: {
+          record: {
+            surface: { app: "notepad" },
+            engine: { name: "ffmpeg", target: "display" },
+          },
+        },
+        context: { platform: "windows" },
+      });
+      expect(plan.target).to.equal("display");
+    });
+
+    it("resolves mobile-platform contexts to the device plan", function () {
+      for (const platform of ["android", "ios"]) {
+        for (const record of [
+          true,
+          "out.mp4",
+          { path: "x.mp4", surface: { app: "chat" } },
+        ]) {
+          const plan = resolveRecordPlan({
+            step: { record },
+            context: { platform },
+          });
+          expect(
+            plan.name,
+            `${platform}: ${JSON.stringify(record)}`
+          ).to.equal("device");
+        }
+      }
+    });
+
+    it("lets an explicit engine win over the mobile device plan", function () {
+      const plan = resolveRecordPlan({
+        step: { record: { engine: "ffmpeg" } },
+        context: { platform: "android" },
+      });
+      expect(plan.name).to.equal("ffmpeg");
+    });
   });
 
   describe("coerceRecordContextBrowser", function () {
@@ -131,6 +186,22 @@ describe("ffmpegRecorder", function () {
     it("does not coerce for an explicit record: false", function () {
       const out = coerceRecordContextBrowser({
         context: { steps: [{ record: false }] },
+        availableApps: chromeApps,
+      });
+      expect(out).to.equal(null);
+    });
+
+    it("does not coerce when the engineless record targets an app surface", function () {
+      const out = coerceRecordContextBrowser({
+        context: { steps: [{ record: { surface: { app: "notepad" } } }] },
+        availableApps: chromeApps,
+      });
+      expect(out).to.equal(null);
+    });
+
+    it("does not coerce mobile-platform contexts (device recording needs no browser)", function () {
+      const out = coerceRecordContextBrowser({
+        context: { platform: "android", steps: [{ record: true }] },
         availableApps: chromeApps,
       });
       expect(out).to.equal(null);
@@ -284,6 +355,156 @@ describe("ffmpegRecorder", function () {
     });
   });
 
+  describe("parseCaptureFrameSize", function () {
+    it("reads the input stream size from gdigrab stderr", function () {
+      const stderr = [
+        "Input #0, gdigrab, from 'desktop':",
+        "  Duration: N/A, start: 1633.383824, bitrate: 3187760 kb/s",
+        "  Stream #0:0: Video: bmp, bgra, 2560x1440, 3187760 kb/s, 30 fps, 30 tbr, 1000k tbn",
+      ].join("\n");
+      expect(parseCaptureFrameSize(stderr)).to.deep.equal({ w: 2560, h: 1440 });
+    });
+
+    it("reads the input stream size from avfoundation stderr", function () {
+      const stderr = [
+        "Input #0, avfoundation, from 'Capture screen 0':",
+        "  Stream #0:0: Video: rawvideo (UYVY / 0x59565955), uyvy422, 2880x1800, 30 tbr, 1000k tbn",
+      ].join("\n");
+      expect(parseCaptureFrameSize(stderr)).to.deep.equal({ w: 2880, h: 1800 });
+    });
+
+    it("reads the input stream size from x11grab stderr", function () {
+      const stderr = [
+        "Input #0, x11grab, from ':99':",
+        "  Stream #0:0: Video: rawvideo (BGR[0] / 0x30524742), bgr0, 1920x1080, 30 fps, 30 tbr, 1000k tbn",
+      ].join("\n");
+      expect(parseCaptureFrameSize(stderr)).to.deep.equal({ w: 1920, h: 1080 });
+    });
+
+    it("returns null when no stream line is present", function () {
+      expect(parseCaptureFrameSize("ffmpeg version 6.0")).to.equal(null);
+      expect(parseCaptureFrameSize("")).to.equal(null);
+    });
+  });
+
+  describe("deriveCropScale", function () {
+    it("derives the Retina scale from frame size over display points on darwin", function () {
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 2880, h: 1800 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(2);
+    });
+
+    it("rounds to two decimals", function () {
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 2882, h: 1800 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(2);
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 2160, h: 1350 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(1.5);
+    });
+
+    it("clamps implausible ratios into [1, 4]", function () {
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 720, h: 450 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(1);
+      expect(
+        deriveCropScale({
+          platform: "darwin",
+          frameSize: { w: 20000, h: 20000 },
+          displayPointSize: { w: 1440, h: 900 },
+        })
+      ).to.equal(4);
+    });
+
+    it("falls back to 1 on missing inputs", function () {
+      expect(
+        deriveCropScale({ platform: "darwin", frameSize: null, displayPointSize: { w: 1440, h: 900 } })
+      ).to.equal(1);
+      expect(
+        deriveCropScale({ platform: "darwin", frameSize: { w: 2880, h: 1800 }, displayPointSize: null })
+      ).to.equal(1);
+    });
+
+    it("is 1 by construction on win32 and linux (physical-pixel rects)", function () {
+      for (const platform of ["win32", "linux"]) {
+        expect(
+          deriveCropScale({
+            platform,
+            frameSize: { w: 2880, h: 1800 },
+            displayPointSize: { w: 1440, h: 900 },
+          }),
+          platform
+        ).to.equal(1);
+      }
+    });
+  });
+
+  describe("ffmpegPathEnv", function () {
+    it("prepends the bundled ffmpeg's directory to the existing PATH", function () {
+      const dir = path.join("C:", "cache", "ffmpeg-bin");
+      const out = ffmpegPathEnv(path.join(dir, "ffmpeg.exe"), {
+        Path: "C:\\Windows\\system32",
+      });
+      expect(out).to.deep.equal({
+        Path: `${dir}${path.delimiter}C:\\Windows\\system32`,
+      });
+    });
+
+    it("matches the PATH key case-insensitively and handles a missing PATH", function () {
+      const dir = path.join("/opt", "ffmpeg");
+      expect(
+        ffmpegPathEnv(path.join(dir, "ffmpeg"), { PATH: "/usr/bin" })
+      ).to.deep.equal({ PATH: `${dir}${path.delimiter}/usr/bin` });
+      expect(ffmpegPathEnv(path.join(dir, "ffmpeg"), {})).to.deep.equal({
+        PATH: dir,
+      });
+    });
+  });
+
+  describe("resolveAppWindowRect", function () {
+    const rectDriver = (rect) => ({ getWindowRect: async () => rect });
+
+    it("returns the rect in driver units for well-formed geometry", async function () {
+      expect(
+        await resolveAppWindowRect(
+          rectDriver({ x: 10, y: 20, width: 300, height: 200 })
+        )
+      ).to.deep.equal({ x: 10, y: 20, w: 300, h: 200 });
+    });
+
+    it("returns null for missing, non-finite, or non-positive geometry", async function () {
+      for (const rect of [
+        null,
+        { x: NaN, y: 0, width: 100, height: 100 },
+        { x: 0, y: Infinity, width: 100, height: 100 },
+        { x: 0, y: 0, width: 0, height: 100 },
+        { x: 0, y: 0, width: 100, height: -5 },
+        { x: 0, y: 0, width: "100", height: 100 },
+      ]) {
+        expect(
+          await resolveAppWindowRect(rectDriver(rect)),
+          JSON.stringify(rect)
+        ).to.equal(null);
+      }
+    });
+  });
+
   describe("jobIsFfmpegRecording", function () {
     it("is true only for jobs whose record step resolves to ffmpeg", function () {
       const ffmpeg = {
@@ -344,6 +565,46 @@ describe("ffmpegRecorder", function () {
       };
       expect(jobIsFfmpegRecording(headless)).to.equal(false);
       expect(jobIsFfmpegRecording(firefox)).to.equal(false);
+    });
+
+    it("does not count device-plan recordings on mobile contexts", function () {
+      // Device recordings capture the device screen through the app driver —
+      // they never touch the host display, so they must not serialize the run.
+      for (const platform of ["android", "ios"]) {
+        const job = {
+          context: {
+            platform,
+            steps: [{ record: true }, { stopRecord: true }],
+          },
+        };
+        expect(jobIsFfmpegRecording(job), platform).to.equal(false);
+      }
+    });
+
+    it("does not count an explicit desktop engine on a mobile context (runtime SKIPs it)", function () {
+      for (const engine of ["ffmpeg", "browser"]) {
+        const job = {
+          context: {
+            platform: "android",
+            browser: { name: "chrome", headless: false },
+            steps: [
+              { record: { name: "a", engine } },
+              { record: { name: "b", engine } },
+            ],
+          },
+        };
+        expect(jobIsFfmpegRecording(job), engine).to.equal(false);
+      }
+    });
+
+    it("counts an app-surface record on a desktop context as ffmpeg", function () {
+      const job = {
+        context: {
+          platform: "windows",
+          steps: [{ record: { surface: { app: "notepad" } } }],
+        },
+      };
+      expect(jobIsFfmpegRecording(job)).to.equal(true);
     });
 
     it("does not count sequential (non-overlapping) browser recordings as ffmpeg", function () {
@@ -560,6 +821,23 @@ describe("ffmpegRecorder", function () {
       const job = { context: { steps: [{ goTo: "x", goToStep: "x" }] } };
       expect(isFfmpegRecordingForScheduling(job)).to.equal(false);
     });
+
+    it("a routed mobile context with recordings is not display-exclusive", function () {
+      // Even the over-approximation must not flag mobile contexts: every
+      // recording there either runs on the device or is SKIPPED at runtime.
+      const job = {
+        context: {
+          platform: "android",
+          steps: [
+            { goTo: "x", if: "$$platform == linux" },
+            { record: true },
+            { record: { engine: "ffmpeg" } },
+            { stopRecord: true },
+          ],
+        },
+      };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(false);
+    });
   });
 
   describe("jobExclusiveResources", function () {
@@ -604,6 +882,22 @@ describe("ffmpegRecorder", function () {
         },
       };
       expect(jobExclusiveResources(routed, { platform: "win32", xvfbAvailable: false })).to.deep.equal(["display"]);
+    });
+
+    it("does not tag mobile device-recording jobs (no host display involved)", function () {
+      const deviceJob = {
+        context: { platform: "android", steps: [{ record: true }, { stopRecord: true }] },
+      };
+      expect(
+        jobExclusiveResources(deviceJob, { platform: "linux", xvfbAvailable: false })
+      ).to.deep.equal([]);
+      const conc = computeEffectiveConcurrency({
+        requestedLimit: 4,
+        jobs: [deviceJob],
+        platform: "linux",
+        xvfbAvailable: false,
+      });
+      expect(conc).to.deep.equal({ limit: 4, xvfbContexts: [], forcedSerial: false });
     });
 
     it("the autoRecord overlap opt-in leaves recordings untagged (parallel)", function () {

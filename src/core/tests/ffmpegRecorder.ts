@@ -1,10 +1,11 @@
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { sanitizeFilesystemName } from "../utils.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
 
 // Fixed virtual-display size for the Linux Xvfb recording path. Used both to
 // start Xvfb and as the x11grab `-video_size`, so the capture matches the
@@ -13,12 +14,18 @@ const XVFB_SCREEN_SIZE = "1920x1080";
 
 export {
   resolveRecordPlan,
+  recordSurfaceApp,
   coerceRecordContextBrowser,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
+  resolveAppWindowRect,
+  ffmpegPathEnv,
+  parseCaptureFrameSize,
+  deriveCropScale,
+  detectDisplayPointSize,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   stepHasRouting,
@@ -178,7 +185,11 @@ function browserDownloadDir(contextId: string): string {
   );
 }
 
-type RecordPlan = { name: "browser" | "ffmpeg"; target: string; fps: number };
+type RecordPlan = {
+  name: "browser" | "ffmpeg" | "device";
+  target: string;
+  fps: number;
+};
 
 // Pull the engine fields out of a `record` step value. `record` may be a
 // boolean, a string path, or a detailed object; only the object form can
@@ -196,9 +207,30 @@ function engineFields(record: any): {
   return {};
 }
 
+// Pull the app-surface name off a `record` step value, or undefined when the
+// step doesn't target an app surface. Only the detailed-object form can carry
+// a surface, and only the { app: … } object form names an app surface.
+function recordSurfaceApp(record: any): string | undefined {
+  const surface =
+    record && typeof record === "object" ? record.surface : undefined;
+  if (
+    surface &&
+    typeof surface === "object" &&
+    typeof surface.app === "string" &&
+    surface.app.trim().length > 0
+  ) {
+    return surface.app.trim();
+  }
+  return undefined;
+}
+
 // Normalize a record step into a concrete plan. An explicit engine always
-// wins; otherwise auto-resolve: a visible Chrome context uses the
-// concurrency-safe browser engine, everything else falls back to ffmpeg. The
+// wins; otherwise auto-resolve: mobile-target contexts (android/ios) record
+// the device screen through the app driver (the internal "device" plan — never
+// user-selectable), a visible Chrome context uses the concurrency-safe browser
+// engine, and everything else falls back to ffmpeg. A record that targets an
+// app surface is an ffmpeg capture cropped to that app's window by default
+// (target "window"); the browser engine can't capture a native window. The
 // context handed in here is already coerced (see coerceRecordContextBrowser),
 // so this stays a pure read.
 function resolveRecordPlan({
@@ -209,15 +241,22 @@ function resolveRecordPlan({
   context: any;
 }): RecordPlan {
   const { name, target, fps } = engineFields(step?.record);
+  const appSurface = recordSurfaceApp(step?.record);
   let engineName = name;
   if (!engineName) {
-    const b = context?.browser;
-    engineName =
-      b?.name === "chrome" && b?.headless === false ? "browser" : "ffmpeg";
+    if (isMobileTargetPlatform(context?.platform)) {
+      engineName = "device";
+    } else {
+      const b = context?.browser;
+      engineName =
+        b?.name === "chrome" && b?.headless === false && !appSurface
+          ? "browser"
+          : "ffmpeg";
+    }
   }
   return {
-    name: engineName as "browser" | "ffmpeg",
-    target: target || "display",
+    name: engineName as "browser" | "ffmpeg" | "device",
+    target: target || (appSurface ? "window" : "display"),
     fps: fps ?? 30,
   };
 }
@@ -228,6 +267,9 @@ function hasRecordStepWithoutEngine(context: any): boolean {
     // Falsy record (undefined, or an explicit `record: false`) is not an
     // active recording step.
     if (!s?.record) return false;
+    // App-surface records never use the browser engine, so they don't
+    // justify coercing a browser into the context.
+    if (recordSurfaceApp(s.record)) return false;
     return engineFields(s.record).name === undefined;
   });
 }
@@ -244,6 +286,9 @@ function coerceRecordContextBrowser({
   availableApps: any[];
 }): { name: string; headless: boolean } | null {
   if (context?.browser) return null; // user specified a browser
+  // Mobile-target contexts record the device screen through the app driver;
+  // a desktop browser would be the wrong engine on the wrong machine.
+  if (isMobileTargetPlatform(context?.platform)) return null;
   if (!hasRecordStepWithoutEngine(context)) return null;
   const chromeAvailable =
     Array.isArray(availableApps) &&
@@ -379,6 +424,137 @@ async function resolveCropGeometry({
   return null;
 }
 
+// Read an app window's rect from its (native) driver, in the driver's own
+// units — physical pixels on Windows (UIA), points on macOS (AX). The rect is
+// deliberately NOT scaled here: native drivers can't answer a
+// devicePixelRatio probe, so the capture-frame-derived scale is applied at
+// stop time (deriveCropScale) instead. Returns null on a malformed rect.
+async function resolveAppWindowRect(
+  driver: any
+): Promise<{ x: number; y: number; w: number; h: number } | null> {
+  const r = await driver.getWindowRect();
+  // NaN/Infinity coordinates or zero/negative dimensions would compile into
+  // invalid ffmpeg crop expressions — treat them as malformed.
+  const finite = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v);
+  if (
+    !r ||
+    !finite(r.x) ||
+    !finite(r.y) ||
+    !finite(r.width) ||
+    !finite(r.height) ||
+    r.width <= 0 ||
+    r.height <= 0
+  ) {
+    return null;
+  }
+  return { x: r.x, y: r.y, w: r.width, h: r.height };
+}
+
+// A PATH env entry that puts the bundled @ffmpeg-installer binary's directory
+// first, so child processes that shell out to a bare `ffmpeg` (the XCUITest
+// driver's startRecordingScreen encoder) find ours — CI runners don't
+// reliably ship a system ffmpeg. Matches the existing PATH key
+// case-insensitively (Windows uses `Path`).
+function ffmpegPathEnv(
+  ffmpegPath: string,
+  baseEnv: NodeJS.ProcessEnv = process.env
+): Record<string, string> {
+  const dir = path.dirname(ffmpegPath);
+  const pathKey =
+    Object.keys(baseEnv).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+  const existing = baseEnv[pathKey];
+  return {
+    [pathKey]: existing ? `${dir}${path.delimiter}${existing}` : dir,
+  };
+}
+
+// Pull the capture frame size out of the capture ffmpeg's own stderr: the
+// input stream line (e.g. "Stream #0:0: Video: bmp, bgra, 2560x1440, …") is
+// printed once, early, by every capture backend (gdigrab / avfoundation /
+// x11grab). The first match is the input stream — the output stream line
+// prints later. The 3-digit lower bound on each dimension keeps digit runs
+// inside fourcc/hex tokens (e.g. "0x59565955") and small numeric fields from
+// matching; real display captures are never narrower than 100px. Pure parse;
+// callers accumulate stderr and stash the first hit.
+function parseCaptureFrameSize(
+  stderr: string
+): { w: number; h: number } | null {
+  const m = /Stream #\d+:\d+.*?Video:.*?\b(\d{3,5})x(\d{3,5})\b/.exec(
+    stderr ?? ""
+  );
+  if (!m) return null;
+  return { w: Number(m[1]), h: Number(m[2]) };
+}
+
+// The physical-pixels-per-point scale for an app-window crop, derived from
+// measurements instead of a DOM probe (native drivers can't answer
+// devicePixelRatio — the A2-discovered scaling gap, fixed in A7):
+// - darwin: avfoundation captures physical pixels while Mac2's getWindowRect
+//   returns points, so the scale is captureFrameSize / displaySizeInPoints.
+// - win32: UIA rects (NovaWindows) and gdigrab both use physical desktop
+//   pixels, so the scale is 1 by construction.
+// - linux: X11 coordinates are pixels; scale 1.
+// Clamped to [1, 4] and rounded to two decimals; any missing input falls
+// back to 1 (today's behavior — correct on scale-1 displays).
+function deriveCropScale({
+  platform,
+  frameSize,
+  displayPointSize,
+}: {
+  platform: string;
+  frameSize: { w: number; h: number } | null | undefined;
+  displayPointSize: { w: number; h: number } | null | undefined;
+}): number {
+  if (platform !== "darwin") return 1;
+  if (!frameSize?.w || !displayPointSize?.w) return 1;
+  const raw = frameSize.w / displayPointSize.w;
+  if (!Number.isFinite(raw) || raw <= 0) return 1;
+  const clamped = Math.min(4, Math.max(1, raw));
+  return Math.round(clamped * 100) / 100;
+}
+
+// The main display's size in points (macOS only — the one platform where
+// points and capture pixels diverge). JXA through osascript, same pattern as
+// probeMacAccessibility; null on any failure or off-platform. Multi-display
+// note: assumes the capture targets the main screen (avfoundation screen
+// index and this probe can disagree on exotic setups — documented limitation).
+async function detectDisplayPointSize(): Promise<{
+  w: number;
+  h: number;
+} | null> {
+  if (process.platform !== "darwin") return null;
+  return await new Promise((resolve) => {
+    execFile(
+      "osascript",
+      [
+        "-l",
+        "JavaScript",
+        "-e",
+        "ObjC.import('AppKit'); const s = $.NSScreen.mainScreen.frame.size; JSON.stringify({w: s.width, h: s.height});",
+      ],
+      { timeout: 5000 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        try {
+          const parsed = JSON.parse(String(stdout).trim());
+          if (
+            typeof parsed?.w === "number" &&
+            parsed.w > 0 &&
+            typeof parsed?.h === "number" &&
+            parsed.h > 0
+          ) {
+            return resolve({ w: parsed.w, h: parsed.h });
+          }
+        } catch {
+          /* fall through */
+        }
+        resolve(null);
+      }
+    );
+  });
+}
+
 // True when a context will run at least one ffmpeg capture — either an
 // explicit ffmpeg-engine recording, or a browser-engine recording that will
 // fall back to ffmpeg at runtime because another browser recording is already
@@ -389,6 +565,11 @@ async function resolveCropGeometry({
 // coerced before this runs.
 function jobIsFfmpegRecording(job: any): boolean {
   const context = job?.context;
+  // Mobile-target contexts never capture the host display: auto-resolved
+  // recordings run on the device (the "device" plan), and an explicit
+  // ffmpeg/browser engine there is SKIPPED by startRecording — so neither
+  // occupies the display nor falls back.
+  if (isMobileTargetPlatform(context?.platform)) return false;
   const steps = Array.isArray(context?.steps) ? context.steps : [];
   // Names of active browser-engine recordings (LIFO), to detect overlap.
   const activeBrowser: Array<string | undefined> = [];
@@ -506,6 +687,9 @@ function contextHasRouting(context: any): boolean {
 // would fall back to ffmpeg. Used only for scheduling — never under-serialize
 // the shared display.
 function contextHasAnyFfmpegRecordStep(context: any): boolean {
+  // Same mobile rule as jobIsFfmpegRecording: device recordings hold no host
+  // display, and desktop engines on mobile contexts are runtime SKIPs.
+  if (isMobileTargetPlatform(context?.platform)) return false;
   const steps = Array.isArray(context?.steps) ? context.steps : [];
   let browserRecords = 0;
   for (const s of steps) {

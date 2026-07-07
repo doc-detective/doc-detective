@@ -879,7 +879,9 @@ describe("startAppSurface", function () {
         return { x: 10, y: 20, width: 800, height: 600 };
       },
       async execute() {
-        // NovaWindows: execute is unimplemented -> dpr falls back to 1.
+        // NovaWindows: execute is unimplemented — which is exactly why the
+        // crop is stored unscaled with a pending-scale marker instead of
+        // being scaled through a DOM devicePixelRatio probe here.
         throw new Error("Method is not implemented");
       },
     };
@@ -891,7 +893,11 @@ describe("startAppSurface", function () {
       serverDeps: okServerDeps(driver),
     });
     assert.equal(result.status, "PASS");
-    assert.deepEqual(handle.crop, { x: 10, y: 20, w: 800, h: 600 });
+    // Unscaled driver units + pending-scale marker: stopRecording derives the
+    // physical-pixel scale from the capture frame size at stop time.
+    assert.deepEqual(handle.cropRect, { x: 10, y: 20, w: 800, h: 600 });
+    assert.equal(handle.cropPendingScale, true);
+    assert.equal(handle.crop, undefined);
     assert.equal(handle.pendingAppWindowCrop, false);
   });
 
@@ -1163,6 +1169,104 @@ describe("startAppSurface", function () {
     assert.equal(caps["appium:udid"], "emulator-5554");
     assert.equal(caps["appium:appPackage"], "com.android.settings");
     assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.android.settings");
+  });
+
+  it("android: late-starts a pending device recording once the device session exists", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let recordingOpts = null;
+    driver.startRecordingScreen = async (opts) => {
+      recordingOpts = opts;
+    };
+    // An autoRecord step in a mobile app-only context ran before any device
+    // session existed, leaving a pending handle.
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(handle.type, "appium");
+    assert.equal(handle.driver, driver);
+    assert.equal(recordingOpts.timeLimit, 1800);
+    // Device recordings capture the device frame whole — no window crop.
+    assert.equal(handle.cropRect, undefined);
+  });
+
+  it("android: a late-start missing-host-ffmpeg error marks the handle as a skip", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.startRecordingScreen = async () => {
+      throw new Error("'ffmpeg' binary is not found in PATH.");
+    };
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.match(handle.startError, /ffmpeg/);
+    assert.equal(handle.startSkip, true);
+  });
+
+  it("android: a failed late-start stashes the error on the pending handle", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.startRecordingScreen = async () => {
+      throw new Error("screenrecord unavailable");
+    };
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    // The surface still opens — the recording failure is a warning, and the
+    // stored error surfaces as a FAIL when stopRecording drains the handle.
+    assert.equal(result.status, "PASS");
+    assert.equal(handle.type, "appium-pending");
+    assert.match(handle.startError, /screenrecord unavailable/);
   });
 
   it("android: a second app on the same device reuses the session and activates it", async function () {

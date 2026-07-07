@@ -60,6 +60,8 @@ import {
   isRecordingActive,
   recordStepName,
   detectRecordingNameConflict,
+  getFfmpegPath,
+  ffmpegPathEnv,
 } from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
@@ -2868,7 +2870,16 @@ function buildAutoRecordStep({
     `${contextSegment}.mp4`
   );
   return {
-    record: { path: recordPath, overwrite: "true", engine: "ffmpeg" },
+    // Mobile-target contexts record the device screen through the app driver
+    // (the internal device plan, resolved from the platform) — pinning ffmpeg
+    // there would host-capture the emulator window, or nothing when headless.
+    record: {
+      path: recordPath,
+      overwrite: "true",
+      ...(isMobileTargetPlatform(context?.platform)
+        ? {}
+        : { engine: "ffmpeg" }),
+    },
     description: "Automatic full-context recording",
     stepId: `${sanitizeFilesystemName(String(test.testId ?? ""), "test")}~autorecord`,
     // Internal marker — the runStep record dispatch flags the started handle as
@@ -4399,6 +4410,7 @@ async function runStep({
       step: step,
       driver: driver,
       recordingHost,
+      appSession,
     });
     // Push the started recording onto the per-context stack so several can
     // overlap. Carry the step's `id`/`name` so a later stopRecord can target
@@ -4424,10 +4436,18 @@ async function runStep({
       handle.name = handle.name ?? recordStepName(step.record);
       if (step.__autoRecord) {
         handle.synthetic = true;
-        // App-only context: no window exists yet to crop to. Mark the handle
-        // so the first app surface to open late-binds its window rect as the
-        // crop (startAppSurface), scoping the capture to the app under test.
-        if (!driver && appSession) handle.pendingAppWindowCrop = true;
+        // Desktop app-only context: no window exists yet to crop to. Mark the
+        // handle so the first app surface to open late-binds its window rect
+        // as the crop (startAppSurface), scoping the capture to the app under
+        // test. Mobile contexts don't crop — their pending handles late-START
+        // the device recording instead (appium-pending).
+        if (
+          !driver &&
+          appSession &&
+          !isMobileTargetPlatform(context?.platform)
+        ) {
+          handle.pendingAppWindowCrop = true;
+        }
       }
       recordingHost.state.recordings.push(handle);
     }
@@ -4468,6 +4488,23 @@ async function runStep({
             if (appSession?.androidSdkRoot) {
               env.ANDROID_HOME = appSession.androidSdkRoot;
               env.ANDROID_SDK_ROOT = appSession.androidSdkRoot;
+            }
+            // iOS device recording: the XCUITest driver's
+            // startRecordingScreen shells out to a bare `ffmpeg` on the
+            // server's PATH for encoding, and hosted runners don't reliably
+            // ship one. Put the bundled @ffmpeg-installer binary's directory
+            // first. Best-effort — the session must start even when the
+            // ffmpeg install isn't available (recording then SKIPs with
+            // guidance).
+            if (isMobileTargetPlatform(context?.platform) === "ios") {
+              try {
+                const ffmpegPath = await getFfmpegPath({
+                  cacheDir: config?.cacheDir,
+                });
+                Object.assign(env, ffmpegPathEnv(ffmpegPath));
+              } catch {
+                /* best-effort */
+              }
             }
             const server = await startAppiumServer(
               appiumEntry,

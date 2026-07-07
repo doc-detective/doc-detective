@@ -1794,7 +1794,7 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(true);
-    // Negative: no browser contexts in the run.
+    // Negative: no browser contexts and no app surfaces in the run.
     expect(
       h.when(
         fakeCtx({
@@ -1804,6 +1804,18 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+    // Positive: an app-only run (startSurface, no browser) — autoRecord
+    // covers app and device contexts too (phase A7).
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(),
+          usedStepTypes: new Set(["startSurface", "find"]),
+          producedRecordings: false,
+          config: {},
+        })
+      )
+    ).to.equal(true);
     // Negative: the run already produced a recording (incl. an autoRecord one,
     // which lands as a real record step → producedRecordings true).
     expect(

@@ -397,7 +397,7 @@ find/click/dragAndDrop/screenshot/record/type/closeSurface. Refinements:
 | `type` | ✓ | element-targeted or focused-window; device `$KEY$`s; app `waitUntil` ⊆ `{ delayMs, find }` via the same `if/then` guard pattern as `process` |
 | `swipe` | ✓ (new) | app + browser surfaces (mobile web scrolls too); meaningless on `process` — branch simply absent |
 | `screenshot` | ✓ | driver-provided window/screen capture — ships **in each platform phase** (cheap via WebDriver `takeScreenshot`) |
-| `record` | ✓ (phase A7) | ffmpeg window/region capture of native windows; joins the existing recording "display" mutex |
+| `record` | ✓ (shipped, A7) | desktop apps: ffmpeg capture cropped to the app window (display mutex unchanged); android/ios: device-screen recording via the app driver (no host display, no mutex) |
 | `dragAndDrop` | per driver | schema allows it; each adapter ships or rejects it explicitly |
 | `goTo`, `runBrowserScript`, `checkLink` | browser only | includes **mobile** browser surfaces (chrome-on-android / safari-on-ios) |
 
@@ -581,19 +581,29 @@ fixtures.
   web contexts (the A5 split-the-test SKIP) stayed deferred: NATIVE_APP/
   WEBVIEW context switching is its own subsystem and was never in A6's scope
   list — it now rides with a later phase.
-- **Phase A7 — app window recording.** `record` on app surfaces via ffmpeg
-  native-window/region capture, joining the display mutex; subsumes the
-  standalone "recording for all apps" thread (doc-detective#220, #345
-  interactions documented). **Known scaling gap to fix here (found in A2):**
-  the autoRecord window-crop scaler probes `devicePixelRatio` via browser-JS
-  `execute`, which the native drivers (NovaWindows, Mac2) don't support, so it
-  falls back to 1. Correct on scale-1 displays (CI-verified on macOS: the
-  TextEdit autoRecord crop bound exactly to the window rect), but on a Retina /
-  scaled display the capture is in physical pixels while `getWindowRect`
-  returns points — the crop would land half-sized and misplaced. A7 should
-  derive the scale factor from capture-frame size ÷ display size in points
-  (per capture backend: avfoundation / gdigrab / x11grab) instead of a DOM
-  probe.
+- **Phase A7 — app window and device recording.** Shipped (ADR 01032):
+  `record.surface` gains the app branch; a record targeting an app surface is
+  an ffmpeg capture **cropped to the app window by default** (`target:
+  "display"` opts out), joining the display mutex unchanged. Subsumes the
+  standalone "recording for all apps" thread (doc-detective#220 closed; #345
+  occlusion handling documented as a known limitation, still open). The
+  A2-found scaling gap is fixed as designed: app-window crop rects are stored
+  unscaled with a pending-scale marker, and the stop-side transcode scales
+  them by capture-frame size ÷ display size in points (frame size parsed
+  eagerly from the capture ffmpeg's stderr head; macOS points via a JXA
+  NSScreen probe; win32/linux scale 1 by construction — **empirically
+  verified on a 3840×2160 Windows display at 175 % scale**, where UIA rects
+  and gdigrab agree in physical pixels and the crop bound exactly to the
+  window). **Deviations found in implementation:** mobile contexts record the
+  **device screen** through the drivers' `startRecordingScreen` (adb
+  screenrecord / simctl) rather than host ffmpeg — an internal "device" plan
+  that never appears in the schema; device recordings hold no host display,
+  so they're exempt from the display mutex and run fully concurrent
+  (autoRecord on mobile drops its ffmpeg pin and late-starts when the first
+  device session opens). One device recording per device at a time
+  (screenrecord is single-instance) and a 30-minute cap; overlap/LIFO
+  permutations are desktop-only. `viewport`-on-app and desktop engines on
+  mobile resolve as guided SKIPs, not schema rejections.
 - **Phase A8 — Linux investigation + remote groundwork.** Time-boxed spike on
   `selenium-webdriver-at-spi` (maturity, Wayland, packaging) → ADR with a
   go/no-go; specify (still without implementing) the runtime semantics of the

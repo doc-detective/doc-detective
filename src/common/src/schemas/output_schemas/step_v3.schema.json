@@ -30772,7 +30772,7 @@
             "record": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "record",
-              "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
+              "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
               "anyOf": [
                 {
                   "title": "Record (simple)",
@@ -30787,7 +30787,7 @@
                   "type": "object",
                   "properties": {
                     "surface": {
-                      "description": "The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.",
+                      "description": "The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -30937,6 +30937,72 @@
                               ]
                             }
                           }
+                        },
+                        {
+                          "title": "App surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "app"
+                          ],
+                          "properties": {
+                            "app": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                            },
+                            "window": {
+                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                              "title": "App window selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Window title to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -31002,13 +31068,12 @@
                             },
                             "target": {
                               "type": "string",
-                              "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                              "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
                               "enum": [
                                 "display",
                                 "window",
                                 "viewport"
-                              ],
-                              "default": "display"
+                              ]
                             },
                             "fps": {
                               "type": "integer",
@@ -31026,7 +31091,7 @@
                 {
                   "type": "boolean",
                   "title": "Record (boolean)",
-                  "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context and the `ffmpeg` engine otherwise. If `false`, doesn't record."
+                  "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
                 }
               ],
               "components": {
@@ -31044,7 +31109,7 @@
                     "type": "object",
                     "properties": {
                       "surface": {
-                        "description": "The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward.",
+                        "description": "The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -31194,6 +31259,72 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "title": "App surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "app"
+                            ],
+                            "properties": {
+                              "app": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                              },
+                              "window": {
+                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                "title": "App window selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
                           }
                         ]
                       },
@@ -31259,13 +31390,12 @@
                               },
                               "target": {
                                 "type": "string",
-                                "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                                "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
                                 "enum": [
                                   "display",
                                   "window",
                                   "viewport"
-                                ],
-                                "default": "display"
+                                ]
                               },
                               "fps": {
                                 "type": "integer",
@@ -31311,13 +31441,12 @@
                           },
                           "target": {
                             "type": "string",
-                            "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).",
+                            "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
                             "enum": [
                               "display",
                               "window",
                               "viewport"
-                            ],
-                            "default": "display"
+                            ]
                           },
                           "fps": {
                             "type": "integer",
@@ -31349,6 +31478,22 @@
                     "name": "ffmpeg",
                     "target": "window",
                     "fps": 60
+                  }
+                },
+                {
+                  "path": "notepad.mp4",
+                  "surface": {
+                    "app": "notepad"
+                  }
+                },
+                {
+                  "path": "full-screen.mp4",
+                  "surface": {
+                    "app": "notepad"
+                  },
+                  "engine": {
+                    "name": "ffmpeg",
+                    "target": "display"
                   }
                 }
               ]
@@ -41097,8 +41242,8 @@
                   "additionalProperties": false,
                   "properties": {
                     "from": {
-                      "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner.",
                       "title": "Point",
+                      "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                       "type": "object",
                       "required": [
                         "x",
@@ -41119,8 +41264,8 @@
                       }
                     },
                     "to": {
-                      "description": "Where the virtual finger releases, in pixels from the surface's top-left corner.",
                       "title": "Point",
+                      "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                       "type": "object",
                       "required": [
                         "x",
@@ -41384,6 +41529,7 @@
                   },
                   "point": {
                     "title": "Point",
+                    "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                     "type": "object",
                     "required": [
                       "x",
@@ -41893,8 +42039,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "from": {
-                        "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner.",
                         "title": "Point",
+                        "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                         "type": "object",
                         "required": [
                           "x",
@@ -41915,8 +42061,8 @@
                         }
                       },
                       "to": {
-                        "description": "Where the virtual finger releases, in pixels from the surface's top-left corner.",
                         "title": "Point",
+                        "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
                         "type": "object",
                         "required": [
                           "x",
