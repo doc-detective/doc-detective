@@ -298,7 +298,7 @@ describe("appWindows: Windows (switch-then-act)", function () {
     });
     assert.equal(res.ok, false);
     assert.match(res.message, /No app window matched/);
-    assert.match(res.message, /Windows seen:.*Main/);
+    assert.match(res.message, /Window titles seen:.*Main/);
     assert.equal(driver.state.current, "0xA");
   });
 

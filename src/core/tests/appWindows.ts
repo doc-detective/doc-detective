@@ -83,7 +83,10 @@ function noMatchMessage(
   timeoutMs: number,
   seenTitles: string[]
 ): string {
-  return `No app window matched ${JSON.stringify(selector)} on surface "${entryName}" within ${timeoutMs}ms. Windows seen: ${
+  // "Window titles seen" (not "Windows seen") — this helper is shared by the
+  // Windows and macOS resolvers, so a capital-W "Windows" would read as the OS
+  // name in a macOS failure message.
+  return `No app window matched ${JSON.stringify(selector)} on surface "${entryName}" within ${timeoutMs}ms. Window titles seen: ${
     seenTitles.length > 0 ? seenTitles.join(", ") : "(none)"
   }.`;
 }
