@@ -432,12 +432,18 @@ async function resolveAppWindowRect(
   driver: any
 ): Promise<{ x: number; y: number; w: number; h: number } | null> {
   const r = await driver.getWindowRect();
+  // NaN/Infinity coordinates or zero/negative dimensions would compile into
+  // invalid ffmpeg crop expressions — treat them as malformed.
+  const finite = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v);
   if (
     !r ||
-    typeof r.x !== "number" ||
-    typeof r.y !== "number" ||
-    typeof r.width !== "number" ||
-    typeof r.height !== "number"
+    !finite(r.x) ||
+    !finite(r.y) ||
+    !finite(r.width) ||
+    !finite(r.height) ||
+    r.width <= 0 ||
+    r.height <= 0
   ) {
     return null;
   }

@@ -416,6 +416,56 @@ describe("startRecording: device engine (android/ios)", function () {
     }
   });
 
+  it("SKIPs a second device recording on the same device (recorder is single-instance)", async function () {
+    let startCalls = 0;
+    const appDriver = {
+      startRecordingScreen: async () => {
+        startCalls++;
+      },
+    };
+    const appSession = makeAppSession({
+      surfaces: [
+        {
+          name: "chat",
+          appId: "com.example.chat",
+          driver: appDriver,
+          platform: "android",
+          deviceName: "Pixel_7",
+        },
+      ],
+      deviceSessions: [
+        { name: "Pixel_7", driver: appDriver, foregroundApp: "com.example.chat" },
+      ],
+    });
+    const first = await startRecording({
+      config,
+      context: { platform: "android" },
+      step: {
+        stepId: "x",
+        record: { path: path.join(tmpDir, "a.mp4"), surface: { app: "chat" } },
+      },
+      driver: undefined,
+      appSession,
+      recordingHost: appSession.recordingHost,
+    });
+    assert.equal(first.status, "PASS");
+    appSession.recordingHost.state.recordings.push(first.recording);
+    const second = await startRecording({
+      config,
+      context: { platform: "android" },
+      step: {
+        stepId: "y",
+        record: { path: path.join(tmpDir, "b.mp4"), surface: { app: "chat" } },
+      },
+      driver: undefined,
+      appSession,
+      recordingHost: appSession.recordingHost,
+    });
+    assert.equal(second.status, "SKIPPED");
+    assert.match(second.description, /one.*at a time|already running/i);
+    assert.equal(startCalls, 1);
+  });
+
   it("FAILs when the driver can't start the device recording", async function () {
     const appDriver = {
       startRecordingScreen: async () => {
@@ -637,6 +687,28 @@ describe("stopRecording: device (appium) handles", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /no data/);
+    assert.equal(host.state.recordings.length, 0);
+  });
+
+  it("FAILs when the payload decodes to an empty buffer (invalid base64)", async function () {
+    // Buffer.from(..., "base64") is permissive: characters outside the
+    // alphabet are dropped, so a garbage payload decodes to zero bytes
+    // without throwing.
+    const target = path.join(tmpDir, "out-empty.mp4");
+    const handle = {
+      type: "appium",
+      driver: { stopRecordingScreen: async () => "!!!!" },
+      targetPath: target,
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no data|empty/i);
+    assert.equal(fs.existsSync(target), false);
     assert.equal(host.state.recordings.length, 0);
   });
 

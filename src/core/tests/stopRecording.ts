@@ -307,6 +307,9 @@ async function stopRecording({
       // The whole video arrives in one base64 string; a very long recording
       // (the drivers cap at 30 minutes) can make this allocation fail. Name
       // the cause instead of surfacing a bare out-of-memory error.
+      // Buffer.from(…, "base64") is permissive — characters outside the
+      // alphabet are dropped — so an invalid payload can decode to zero bytes
+      // without throwing. An empty decode is "no data", not a valid video.
       let buffer: Buffer;
       try {
         buffer = Buffer.from(b64, "base64");
@@ -315,6 +318,13 @@ async function stopRecording({
         result.description = `Couldn't buffer the device recording (${Math.round(
           b64.length / 1024 / 1024
         )} MB base64) — device recordings transfer in one payload, so long recordings can exhaust memory. Keep device recordings short (they cap at 30 minutes). ${error?.message ?? error}`;
+        dropHandle();
+        return result;
+      }
+      if (buffer.length === 0) {
+        result.status = "FAIL";
+        result.description =
+          "The device recording decoded to an empty payload (no data); nothing was saved.";
         dropHandle();
         return result;
       }

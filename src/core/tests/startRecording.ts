@@ -253,6 +253,20 @@ async function startRecording({
         "Device recording pending: it starts when the first app surface opens a device session.";
       return result;
     }
+    // The device recorder is single-instance per session (a second
+    // startRecordingScreen restarts or rejects the first) — one recording per
+    // device at a time.
+    const hasActiveDeviceRecording =
+      Array.isArray(stateHolder?.state?.recordings) &&
+      stateHolder.state.recordings.some(
+        (r: any) => r?.type === "appium" && r.driver === recordingDriver
+      );
+    if (hasActiveDeviceRecording) {
+      result.status = "SKIPPED";
+      result.description =
+        "A device recording is already running on this device; only one can run at a time. Stop it with stopRecord before starting another.";
+      return result;
+    }
     const platform = appRef?.entry?.platform ?? context?.platform;
     // timeLimit raises the drivers' short defaults (180 s on UiAutomator2) to
     // their supported maximum; recordings longer than 30 minutes truncate.

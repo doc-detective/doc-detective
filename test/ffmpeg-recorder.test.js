@@ -6,6 +6,7 @@ import {
   coerceRecordContextBrowser,
   parseCaptureFrameSize,
   deriveCropScale,
+  resolveAppWindowRect,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
@@ -449,6 +450,34 @@ describe("ffmpegRecorder", function () {
           }),
           platform
         ).to.equal(1);
+      }
+    });
+  });
+
+  describe("resolveAppWindowRect", function () {
+    const rectDriver = (rect) => ({ getWindowRect: async () => rect });
+
+    it("returns the rect in driver units for well-formed geometry", async function () {
+      expect(
+        await resolveAppWindowRect(
+          rectDriver({ x: 10, y: 20, width: 300, height: 200 })
+        )
+      ).to.deep.equal({ x: 10, y: 20, w: 300, h: 200 });
+    });
+
+    it("returns null for missing, non-finite, or non-positive geometry", async function () {
+      for (const rect of [
+        null,
+        { x: NaN, y: 0, width: 100, height: 100 },
+        { x: 0, y: Infinity, width: 100, height: 100 },
+        { x: 0, y: 0, width: 0, height: 100 },
+        { x: 0, y: 0, width: 100, height: -5 },
+        { x: 0, y: 0, width: "100", height: 100 },
+      ]) {
+        expect(
+          await resolveAppWindowRect(rectDriver(rect)),
+          JSON.stringify(rect)
+        ).to.equal(null);
       }
     });
   });
