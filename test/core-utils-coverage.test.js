@@ -784,6 +784,13 @@ describe("core/utils coverage", function () {
         "unknown error: cannot connect to chrome at 127.0.0.1:9222",
         "unknown error: DevToolsActivePort file doesn't exist",
         "session not created: This version of ChromeDriver only supports...",
+        // The concurrent-geckodriver startup crash that ADR 01041 fixes: several
+        // Firefox sessions launching at once starve a 2-core runner and one
+        // geckodriver child dies right after POST /session, so the next command
+        // can't be proxied. This is the Gecko analog of Chrome's "crashed during
+        // startup" and must retry the same way (observed verbatim in CI).
+        "WebDriverError: 'GET /session/54907282-d714-43cf-971b-e387db5a3810/window' cannot be proxied to Gecko Driver server because its process is not running (probably crashed). Check the Appium log for more details when running \"window\" with method \"GET\"",
+        "cannot be proxied to Gecko Driver server because its process is not running (probably crashed)",
       ]) {
         assert.equal(isRetryableSessionError(message, 0), true, message);
         assert.equal(isRetryableSessionError(message, 120000), true, message);
