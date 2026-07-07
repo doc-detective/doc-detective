@@ -258,11 +258,7 @@ describe("appWindows: Windows (switch-then-act)", function () {
     const entry = winEntry(driver);
     await snapshotAppWindows(entry);
     driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
-    const res = await closeAppWindow({
-      entry,
-      selector: "Dialog",
-      timeoutMs: 1000,
-    });
+    const res = await closeAppWindow({ entry, selector: "Dialog" });
     assert.deepEqual(res, { ok: true, closed: true });
     assert.ok(driver.state.executed.includes("windows: closeApp"));
     assert.equal(driver.state.current, "0xA");
@@ -270,11 +266,27 @@ describe("appWindows: Windows (switch-then-act)", function () {
     assert.ok(!entry.knownWindows.includes("0xB"));
   });
 
+  it("clears mainWindowHandle when the main window itself is closed", async function () {
+    // Closing main while a dialog survives is allowed (only the LAST window
+    // is refused). The stale handle must not linger: the teardown re-root
+    // guard would otherwise switch to a dead window before deleteSession.
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
+    // Adopt the dialog first so it's a known survivor.
+    await resolveAppWindow({ entry, selector: "Dialog", timeoutMs: 1000 });
+    const res = await closeAppWindow({ entry, selector: "Main" });
+    assert.deepEqual(res, { ok: true, closed: true });
+    assert.equal(entry.mainWindowHandle, undefined);
+    assert.equal(driver.state.current, "0xB");
+  });
+
   it("refuses to close the last window (that would end the app)", async function () {
     const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
     const entry = winEntry(driver);
     await snapshotAppWindows(entry);
-    const res = await closeAppWindow({ entry, selector: "Main", timeoutMs: 300 });
+    const res = await closeAppWindow({ entry, selector: "Main" });
     assert.equal(res.ok, false);
     assert.match(res.message, /Refusing to close the last window/);
     assert.match(res.message, /closeSurface/);
@@ -285,11 +297,7 @@ describe("appWindows: Windows (switch-then-act)", function () {
     const entry = winEntry(driver);
     await snapshotAppWindows(entry);
     driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
-    const res = await closeAppWindow({
-      entry,
-      selector: "Long gone",
-      timeoutMs: 300,
-    });
+    const res = await closeAppWindow({ entry, selector: "Long gone" });
     assert.deepEqual(res, { ok: true, closed: false });
   });
 
@@ -422,6 +430,36 @@ describe("appWindows: macOS (window-as-element)", function () {
     assert.equal(target.element.elementId, "w1");
   });
 
+  it("activeAppWindow degrades to null (not a rejection) when window enumeration throws", async function () {
+    // Selector-less callers (record's crop, find, type, swipe) await this
+    // without their own catch — a driver hiccup during the stale re-resolve
+    // must not bubble as an unhandled rejection.
+    const w1 = { id: "w1", title: "Doc", rect: { x: 0, y: 0, width: 1, height: 1 } };
+    const driver = fakeMacDriver([w1]);
+    const entry = macEntry(driver);
+    await snapshotAppWindows(entry);
+    await resolveAppWindow({ entry, selector: "Doc", timeoutMs: 500 });
+    w1.stale = true;
+    driver.$$ = async () => {
+      throw new Error("session deleted");
+    };
+    const target = await activeAppWindow(entry);
+    assert.equal(target, null);
+    // Transient enumeration failure: the held window is NOT cleared, so a
+    // later call can still re-resolve it once the driver recovers.
+    assert.ok(entry.activeWindow);
+  });
+
+  it("defaultAppWindow degrades to null when window enumeration throws", async function () {
+    const driver = fakeMacDriver([]);
+    driver.$$ = async () => {
+      throw new Error("session deleted");
+    };
+    const entry = macEntry(driver);
+    const target = await defaultAppWindow(entry);
+    assert.equal(target, null);
+  });
+
   it("appWindowRect uses the window ELEMENT rect (absolute points)", async function () {
     const driver = fakeMacDriver([
       { id: "w1", title: "Doc", rect: { x: 40, y: 50, width: 800, height: 600 } },
@@ -435,6 +473,22 @@ describe("appWindows: macOS (window-as-element)", function () {
       w: 800,
       h: 600,
     });
+  });
+
+  it("appWindowRect returns null (not a rejection) when the element rect read throws", async function () {
+    // The selected window can go stale between resolution and the rect read
+    // (the app closed it). Same null-degrade contract as the geometry
+    // validation below it.
+    const driver = fakeMacDriver([
+      { id: "w1", title: "Doc", rect: { x: 40, y: 50, width: 800, height: 600 } },
+    ]);
+    const entry = macEntry(driver);
+    await snapshotAppWindows(entry);
+    const res = await resolveAppWindow({ entry, selector: "Doc", timeoutMs: 500 });
+    driver.getElementRect = async () => {
+      throw new Error("stale element reference");
+    };
+    assert.equal(await appWindowRect(entry, res.target), null);
   });
 
   it("appWindowScreenshot captures the window element; scopedFindRoot returns it", async function () {
@@ -456,7 +510,7 @@ describe("appWindows: macOS (window-as-element)", function () {
     ]);
     const entry = macEntry(driver);
     await snapshotAppWindows(entry);
-    const res = await closeAppWindow({ entry, selector: "Untitled 2", timeoutMs: 500 });
+    const res = await closeAppWindow({ entry, selector: "Untitled 2" });
     assert.deepEqual(res, { ok: true, closed: true });
     assert.ok(driver.state.clicks.includes("close:w2"));
     assert.match(String(driver.state.lastScopedSelector), /_XCUI:CloseWindow/);
@@ -469,7 +523,7 @@ describe("appWindows: macOS (window-as-element)", function () {
     ]);
     const entry = macEntry(driver);
     await snapshotAppWindows(entry);
-    const res = await closeAppWindow({ entry, selector: "Untitled 2", timeoutMs: 500 });
+    const res = await closeAppWindow({ entry, selector: "Untitled 2" });
     assert.equal(res.ok, true);
     // Fallback sequence: a macos: click (focus/raise via the title bar), then
     // macos: keys with Cmd+W.
@@ -486,7 +540,7 @@ describe("appWindows: macOS (window-as-element)", function () {
     ]);
     const entry = macEntry(driver);
     await snapshotAppWindows(entry);
-    const res = await closeAppWindow({ entry, selector: "Untitled", timeoutMs: 300 });
+    const res = await closeAppWindow({ entry, selector: "Untitled" });
     assert.equal(res.ok, false);
     assert.match(res.message, /Refusing to close the last window/);
   });
@@ -510,7 +564,7 @@ describe("appWindows: mobile + helpers", function () {
 
   it("closeAppWindow FAILs on mobile with the same message", async function () {
     const entry = { name: "chat", appId: "x", driver: {}, platform: "android" };
-    const res = await closeAppWindow({ entry, selector: -1, timeoutMs: 300 });
+    const res = await closeAppWindow({ entry, selector: -1 });
     assert.equal(res.ok, false);
     assert.match(res.message, /single-window/);
   });
@@ -520,18 +574,24 @@ describe("appWindows: mobile + helpers", function () {
     // truth) but launches via -EncodedCommand, because NovaWindows v1.4.1
     // ignores the appWorkingDir capability and relative -File paths don't
     // resolve. This pin keeps the embedded blob from drifting.
+    // Compare EOL-normalized: git checks the .ps1 out with platform line
+    // endings (CRLF on the Windows CI runner, LF elsewhere), and CRLF vs LF
+    // doesn't change what -EncodedCommand executes — only real script edits
+    // should trip this pin.
+    const normalize = (s) => s.replace(/\r\n/g, "\n");
     const ps1 = fs.readFileSync(
       "test/core-artifacts/apps/two-windows.ps1",
       "utf8"
     );
-    const expected = Buffer.from(ps1, "utf16le").toString("base64");
+    const expected = normalize(ps1);
     const spec = JSON.parse(
       fs.readFileSync("test/core-artifacts/apps/app-windows.spec.json", "utf8")
     );
     for (const t of spec.tests) {
       const args = t.steps[0].startSurface.args;
       const blob = args[args.indexOf("-EncodedCommand") + 1];
-      assert.equal(blob, expected, `${t.testId} embeds a stale app blob`);
+      const embedded = normalize(Buffer.from(blob, "base64").toString("utf16le"));
+      assert.equal(embedded, expected, `${t.testId} embeds a stale app blob`);
     }
   });
 

@@ -32,6 +32,8 @@ On Windows and macOS app surfaces, `window` selects which of the app's windows t
 
 Window selection is **sticky**: later steps on the same app surface act in the selected window until another selector changes it. [`click`](click), [`type`](type), [`screenshot`](screenshot), [`record`](record), [`swipe`](swipe), and [`closeSurface`](closeSurface) all accept the same selector. Android and iOS app surfaces are single-window—a `window` selector there fails with guidance to omit it.
 
+On Windows, resolving a selector probes the app's candidate windows to read their titles, which can briefly bring each probed window to the foreground. This matters for recordings: if a `record` is running, a probe can flash another window into a frame or two of the capture. Select the window *before* starting the recording (selection is sticky) to avoid it.
+
 **Mobile app surfaces auto-scroll:** on an Android or iOS app surface, if the element isn't on screen, `find` scrolls toward content further down the list (up to 5 scroll steps, within `timeout`) before giving up—matching how browser `find` scrolls elements into view. Because [`click`](click) and element-targeted [`type`](type) locate elements the same way, they inherit this. If you need a different gesture (sideways, or a precise drag), use [`swipe`](swipe).
 
 **Setting Variables:** to capture a found element's attributes into variables for later steps, use the step-level `variables` object. You can assign values based on the element using expressions like `$$element.text`.

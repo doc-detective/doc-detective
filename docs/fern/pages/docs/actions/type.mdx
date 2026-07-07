@@ -121,7 +121,7 @@ Common editing keys work on mobile app surfaces too. Android maps them to key co
 
 By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/run-shell#full-screen-terminal-uis).
 
-`surface` can also name a browser (session, window, or tab) or an app surface—see [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules.
+`surface` can also name a browser (session, window, or tab) or an app surface—see [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules. On Windows and macOS app surfaces, add a `window` selector to type in a specific window of the app (`{ "app": "notepad", "window": { "title": "/Find/" } }`)—see [App windows](find#app-windows).
 
 Identify the process with `surface`, using either form:
 

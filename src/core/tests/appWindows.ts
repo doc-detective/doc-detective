@@ -296,6 +296,10 @@ async function closeWindowsWindow({
     (h: string) => h !== match.handle
   );
   if (entry.activeWindow?.handle === match.handle) delete entry.activeWindow;
+  // The main window can be closed too (only the LAST window is refused).
+  // Drop the stale handle so the teardown re-root guard doesn't switch to a
+  // dead window before deleteSession.
+  if (entry.mainWindowHandle === match.handle) delete entry.mainWindowHandle;
   // Switch to a survivor: prefer the app's main window, else the most
   // recently adopted survivor. Teardown closes whatever the root is, so the
   // session must never be left rooted at a dead handle.
@@ -343,7 +347,7 @@ async function enumerateMacWindows(entry: any): Promise<MacWindowCandidate[]> {
 }
 
 function macBaselineKeys(candidates: MacWindowCandidate[]): string[] {
-  return candidates.map((c) => `${c.title} ${c.frameKey}`);
+  return candidates.map((c) => `${c.title}\u0000${c.frameKey}`);
 }
 
 function matchMacSelector(
@@ -360,7 +364,7 @@ function matchMacSelector(
       // semantics degraded to what the driver exposes).
       const base = new Set(baseline ?? []);
       const fresh = candidates.filter(
-        (c) => !base.has(`${c.title} ${c.frameKey}`)
+        (c) => !base.has(`${c.title}\u0000${c.frameKey}`)
       );
       if (fresh.length > 0) return fresh.at(-1)!;
       return candidates.at(-1) ?? null;
@@ -546,7 +550,16 @@ async function activeAppWindow(entry: any): Promise<AppWindowTarget | null> {
   } catch {
     /* stale — re-resolve below */
   }
-  const candidates = await enumerateMacWindows(entry);
+  // Degrade to null on an enumeration failure: selector-less callers await
+  // this without their own catch, so a driver hiccup must not bubble as an
+  // unhandled rejection. The held window is kept — the failure is transient
+  // (unlike the found-nothing case below, which proves the window is gone).
+  let candidates: MacWindowCandidate[];
+  try {
+    candidates = await enumerateMacWindows(entry);
+  } catch {
+    return null;
+  }
   const again = candidates.find((c) => c.title === held.title);
   if (again) {
     entry.activeWindow = { element: again.element, title: again.title };
@@ -564,7 +577,13 @@ async function defaultAppWindow(entry: any): Promise<AppWindowTarget | null> {
   if (platform !== "mac") return null;
   const active = await activeAppWindow(entry);
   if (active) return active;
-  const candidates = await enumerateMacWindows(entry);
+  // Same never-reject contract as activeAppWindow: null, not a rejection.
+  let candidates: MacWindowCandidate[];
+  try {
+    candidates = await enumerateMacWindows(entry);
+  } catch {
+    return null;
+  }
   const first = candidates[0];
   if (!first) return null;
   return { kind: "element", element: first.element, title: first.title };
@@ -591,7 +610,13 @@ async function appWindowRect(
           ? fallback.element
           : null;
     if (!element) return null;
-    rect = await driver.getElementRect(element.elementId);
+    try {
+      rect = await driver.getElementRect(element.elementId);
+    } catch {
+      // The window went away between resolution and the rect read — same
+      // null contract as the geometry validation below.
+      return null;
+    }
   } else {
     rect = await driver.getWindowRect();
   }
@@ -645,17 +670,17 @@ function scopedFindRoot(entry: any, target: AppWindowTarget | null): any {
 
 // Close ONE window of an app surface. Absent selector match is an
 // idempotent no-op ({closed: false}); closing the LAST window is refused
-// (that would end the app — bare closeSurface does that).
+// (that would end the app — bare closeSurface does that). No timeout knob:
+// unlike resolveAppWindow (which polls for a window that may still be
+// opening), close targets a window that already exists — a miss is the
+// designed no-op, not something to wait out.
 async function closeAppWindow({
   entry,
   selector,
-  timeoutMs = 5000,
 }: {
   entry: any;
   selector: any;
-  timeoutMs?: number;
 }): Promise<CloseResult> {
-  void timeoutMs;
   const platform = entry.platform ?? "windows";
   if (isMobileTargetPlatform(platform)) {
     return { ok: false, message: unsupportedWindowSelectorMessage(platform) };
