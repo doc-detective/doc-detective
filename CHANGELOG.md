@@ -1,3 +1,12 @@
+## [4.25.1](https://github.com/doc-detective/doc-detective/compare/v4.25.0...v4.25.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **core:** assign a unique chromedriver port per browser driver ([#535](https://github.com/doc-detective/doc-detective/issues/535)) ([82033a0](https://github.com/doc-detective/doc-detective/commit/82033a0d4ed30dc88b94023bbd392ffb44e5213d))
+* **core:** serialize native app-surface driver contexts under concurrency ([#534](https://github.com/doc-detective/doc-detective/issues/534)) ([65fc563](https://github.com/doc-detective/doc-detective/commit/65fc56365a1898adc41e55ead30a819a50db3075)), closes [#532](https://github.com/doc-detective/doc-detective/issues/532) [#532](https://github.com/doc-detective/doc-detective/issues/532)
+* **core:** serialize recording native-app contexts under concurrency ([#538](https://github.com/doc-detective/doc-detective/issues/538)) ([4ab3b72](https://github.com/doc-detective/doc-detective/commit/4ab3b72424006e99b916c60e78e957e6eb88fe1a))
+
 # [4.25.0](https://github.com/doc-detective/doc-detective/compare/v4.24.0...v4.25.0) (2026-07-07)
 
 
