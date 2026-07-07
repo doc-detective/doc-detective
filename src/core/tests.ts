@@ -16,7 +16,11 @@ import {
   type BrowserAssetName,
 } from "../runtime/browsers.js";
 // Single source of truth for browser/driver-requiring step keys.
-import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import {
+  BROWSER_STEP_KEYS as driverActions,
+  startSurfaceDescriptors,
+  stepOpensBrowserSurface,
+} from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
   log,
@@ -409,6 +413,9 @@ function isDriverRequired({ test }: { test: any }) {
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
     });
+    // A startSurface browser descriptor opens a WebDriver session (Phase 6);
+    // app/process descriptors provision their own runtimes and don't count.
+    if (stepOpensBrowserSurface(step)) driverRequired = true;
   });
   return driverRequired;
 }
@@ -553,8 +560,11 @@ function isBrowserRequired({ test }: { test: any }): boolean {
   return test.steps.some(
     (step: any) =>
       !step?.__autoRecord &&
-      driverActions.some((action) => typeof step[action] !== "undefined") &&
-      !stepTargetsAppSurface(step)
+      ((driverActions.some((action) => typeof step[action] !== "undefined") &&
+        !stepTargetsAppSurface(step)) ||
+        // Phase 6: `startSurface: { browser: … }` opens a browser session
+        // (the goTo-opener sibling); app/process descriptors don't.
+        stepOpensBrowserSurface(step))
   );
 }
 
@@ -593,13 +603,19 @@ function contextRequirementsSkipMessage({
   return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
 }
 
-// The device descriptors a test needs: each startSurface's `device` (undefined
-// when it omits one — the context default / auto device). At least one entry so
-// a test with no explicit device still validates the default device.
-function collectDeviceDescriptors(context: any): any[] {
+// The device descriptors a test needs: each APP startSurface descriptor's
+// `device` (undefined when it omits one — the context default / auto device),
+// across both the object form and the Phase 6 parallel array form. Browser /
+// process descriptors boot no device and contribute nothing. At least one
+// entry so a test with no explicit device still validates the default device.
+// Exported for a focused unit test.
+export function collectDeviceDescriptors(context: any): any[] {
   const out: any[] = [];
   for (const step of context?.steps ?? []) {
-    if (step?.startSurface) out.push(step.startSurface.device);
+    for (const d of startSurfaceDescriptors(step)) {
+      if (d && typeof d === "object" && typeof d.app === "string")
+        out.push(d.device);
+    }
   }
   return out.length ? out : [undefined];
 }
