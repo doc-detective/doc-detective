@@ -35,8 +35,16 @@ interface SwipeGesture {
 
 interface AppGestureAdapter {
   // Swipe the app's window/screen. Throws on driver errors; the step handler
-  // wraps them into FAIL results.
-  swipe(driver: any, gesture: SwipeGesture): Promise<void>;
+  // wraps them into FAIL results. `rect` (ADR 01036) is the resolved window
+  // rect ({x,y,w,h}) for the surface's selected/default window — the desktop
+  // adapters use it for coordinate math instead of driver.getWindowRect()
+  // (which is one-root-only on Windows and the WHOLE SCREEN on Mac2); the
+  // mobile adapters ignore it (their getWindowRect IS the device screen).
+  swipe(
+    driver: any,
+    gesture: SwipeGesture,
+    rect?: { x: number; y: number; w: number; h: number }
+  ): Promise<void>;
   // Press-and-hold a located element for durationMs.
   longPress(driver: any, element: any, durationMs: number): Promise<void>;
   // Click a located element with a non-left mouse button. Returns {} on
@@ -114,6 +122,16 @@ export const DEVICE_KEYS: Set<string> = new Set([
   "$VOLUME_UP$",
   "$VOLUME_DOWN$",
 ]);
+
+// Normalize the step handler's resolved window rect ({x,y,w,h}, ADR 01036)
+// to the driver-rect shape, or fall back to the session's getWindowRect.
+async function gestureRect(
+  driver: any,
+  rect?: { x: number; y: number; w: number; h: number }
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  if (rect) return { x: rect.x, y: rect.y, width: rect.w, height: rect.h };
+  return await driver.getWindowRect();
+}
 
 // The window area directional swipes act within, inset per MOVEMENT_INSET.
 async function insetWindowArea(driver: any): Promise<{
@@ -316,8 +334,8 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
   },
 
   windows: {
-    async swipe(driver, gesture) {
-      const rect = await driver.getWindowRect();
+    async swipe(driver, gesture, windowRect) {
+      const rect = await gestureRect(driver, windowRect);
       if (gesture.from && gesture.to) {
         const fromPx = surfaceToAbsolutePixels(rect, gesture.from);
         const toPx = surfaceToAbsolutePixels(rect, gesture.to);
@@ -362,8 +380,8 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
   },
 
   mac: {
-    async swipe(driver, gesture) {
-      const rect = await driver.getWindowRect();
+    async swipe(driver, gesture, windowRect) {
+      const rect = await gestureRect(driver, windowRect);
       if (gesture.from && gesture.to) {
         const fromPx = surfaceToAbsolutePixels(rect, gesture.from);
         const toPx = surfaceToAbsolutePixels(rect, gesture.to);

@@ -303,6 +303,20 @@ describe("appWindows: Windows (switch-then-act)", function () {
     assert.equal(scopedFindRoot(entry, { kind: "switched" }), null);
   });
 
+  it("appWindowRect returns null for missing, non-finite, or non-positive geometry", async function () {
+    for (const rect of [
+      null,
+      { x: NaN, y: 0, width: 100, height: 100 },
+      { x: 0, y: Infinity, width: 100, height: 100 },
+      { x: 0, y: 0, width: 0, height: 100 },
+      { x: 0, y: 0, width: 100, height: -5 },
+      { x: 0, y: 0, width: "100", height: 100 },
+    ]) {
+      const entry = winEntry({ getWindowRect: async () => rect });
+      assert.equal(await appWindowRect(entry), null, JSON.stringify(rect));
+    }
+  });
+
   it("appWindowScreenshot captures via the driver (root window capture)", async function () {
     const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
     const entry = winEntry(driver);

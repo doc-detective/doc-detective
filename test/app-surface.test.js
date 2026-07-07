@@ -934,6 +934,45 @@ describe("startAppSurface", function () {
     assert.equal(handle.pendingAppWindowCrop, false);
   });
 
+  it("mac: late-binds the pending crop from the window ELEMENT rect", async function () {
+    // Mac2's getWindowRect() is the whole main screen — the late-bound
+    // autoRecord crop must come from the window element instead (ADR 01036).
+    const appSession = preflighted();
+    const handle = { type: "ffmpeg", pendingAppWindowCrop: true };
+    appSession.recordingHost.state.recordings.push(handle);
+    const windowEl = {
+      elementId: "w1",
+      async getAttribute(name) {
+        return name === "title" ? "Untitled" : null;
+      },
+      async isExisting() {
+        return true;
+      },
+    };
+    const driver = {
+      async deleteSession() {},
+      async getWindowRect() {
+        return { x: 0, y: 0, width: 3840, height: 2160 };
+      },
+      async $$() {
+        return [windowEl];
+      },
+      async getElementRect() {
+        return { x: 40, y: 50, width: 800, height: 600 };
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.TextEdit" } },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(handle.cropRect, { x: 40, y: 50, w: 800, h: 600 });
+    assert.equal(handle.cropPendingScale, true);
+  });
+
   it("waits for element readiness, and tears the session down when readiness never comes", async function () {
     // Readiness success: waitUntil.find resolves -> surface registers.
     const readyDriver = {

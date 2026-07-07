@@ -189,7 +189,78 @@ describe("swipe step: app surfaces", function () {
     assert.match(result.description, /No app surface named "nope"/);
   });
 
-  it("fails on a window selector (later phase) with the standard wording", async function () {
+  it("windows: swipes in a selected window using that window's rect", async function () {
+    // Switch-then-act: the window selector re-roots the session, and the
+    // gesture's coordinate math uses the selected window's rect.
+    const windows = [
+      { handle: "0xA", title: "Main", pid: 100, rect: { x: 0, y: 0, width: 1000, height: 2000 } },
+      { handle: "0xB", title: "Dialog", pid: 100, rect: { x: 100, y: 100, width: 400, height: 400 } },
+    ];
+    const state = { current: "0xA" };
+    const calls = [];
+    const driver = {
+      state,
+      calls,
+      async getWindowHandles() {
+        return windows.map((w) => w.handle);
+      },
+      async getWindowHandle() {
+        return state.current;
+      },
+      async switchToWindow(handle) {
+        if (!windows.some((w) => w.handle === handle))
+          throw new Error("no such window");
+        state.current = handle;
+      },
+      async getTitle() {
+        return windows.find((w) => w.handle === state.current)?.title ?? "";
+      },
+      async $() {
+        return {
+          getAttribute: async (name) =>
+            name === "ProcessId"
+              ? String(windows.find((w) => w.handle === state.current)?.pid ?? "")
+              : null,
+        };
+      },
+      async getWindowRect() {
+        return windows.find((w) => w.handle === state.current)?.rect;
+      },
+      async execute(command, args) {
+        calls.push({ command, args });
+      },
+    };
+    const appSession = appSessionWith({
+      name: "myapp",
+      appId: "com.example.myapp",
+      driver,
+      launchedByUs: true,
+      platform: "windows",
+      mainWindowHandle: "0xA",
+      appPid: 100,
+      knownWindows: ["0xA"],
+      foreignWindows: new Set(),
+    });
+    const result = await swipeSurface({
+      config,
+      step: {
+        swipe: {
+          direction: "up",
+          surface: { app: "myapp", window: { title: "Dialog" } },
+        },
+      },
+      driver: null,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    const scroll = calls.find((c) => c.command === "windows: scroll");
+    assert.ok(scroll, "expected a windows: scroll gesture");
+    // Center of the DIALOG rect (100,100 400x400) -> (300, 300).
+    assert.equal(scroll.args.x, 300);
+    assert.equal(scroll.args.y, 300);
+  });
+
+  it("mobile: a window selector FAILs with the single-window message", async function () {
     const driver = makeFakeAppDriver();
     const appSession = appSessionWith({
       name: "myapp",
@@ -210,7 +281,7 @@ describe("swipe step: app surfaces", function () {
       appSession,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /[Ww]indow selectors/);
+    assert.match(result.description, /single-window/);
   });
 
   it("wraps adapter throws into a FAIL", async function () {

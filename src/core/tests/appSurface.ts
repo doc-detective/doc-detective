@@ -20,10 +20,10 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
-import { resolveAppWindowRect } from "./ffmpegRecorder.js";
 import {
   snapshotAppWindows,
   rewriteXPathForScopedFind,
+  appWindowRect,
 } from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
@@ -1439,7 +1439,9 @@ async function startAppSurface({
     );
     for (const handle of pendingHandles) {
       try {
-        const rect = await resolveAppWindowRect(driver);
+        // Platform-aware (ADR 01036): macOS uses the window ELEMENT rect —
+        // Mac2's getWindowRect is the whole main screen.
+        const rect = await appWindowRect(appSession.surfaces.get(name));
         if (rect) {
           handle.cropRect = rect;
           handle.cropPendingScale = true;

@@ -21,7 +21,6 @@ export {
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
-  resolveAppWindowRect,
   ffmpegPathEnv,
   parseCaptureFrameSize,
   deriveCropScale,
@@ -424,32 +423,10 @@ async function resolveCropGeometry({
   return null;
 }
 
-// Read an app window's rect from its (native) driver, in the driver's own
-// units — physical pixels on Windows (UIA), points on macOS (AX). The rect is
-// deliberately NOT scaled here: native drivers can't answer a
-// devicePixelRatio probe, so the capture-frame-derived scale is applied at
-// stop time (deriveCropScale) instead. Returns null on a malformed rect.
-async function resolveAppWindowRect(
-  driver: any
-): Promise<{ x: number; y: number; w: number; h: number } | null> {
-  const r = await driver.getWindowRect();
-  // NaN/Infinity coordinates or zero/negative dimensions would compile into
-  // invalid ffmpeg crop expressions — treat them as malformed.
-  const finite = (v: unknown): v is number =>
-    typeof v === "number" && Number.isFinite(v);
-  if (
-    !r ||
-    !finite(r.x) ||
-    !finite(r.y) ||
-    !finite(r.width) ||
-    !finite(r.height) ||
-    r.width <= 0 ||
-    r.height <= 0
-  ) {
-    return null;
-  }
-  return { x: r.x, y: r.y, w: r.width, h: r.height };
-}
+// App-window crop rects now come from appWindows.appWindowRect (ADR 01036),
+// which is platform-aware: Windows uses the current root's getWindowRect
+// (physical px); macOS uses the window ELEMENT's rect (Mac2's getWindowRect
+// is the whole main screen). Both stay unscaled with a pending-scale marker.
 
 // A PATH env entry that puts the bundled @ffmpeg-installer binary's directory
 // first, so child processes that shell out to a bare `ffmpeg` (the XCUITest
