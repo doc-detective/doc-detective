@@ -233,7 +233,10 @@ async function closeSurface({
           result.description = closedWindow.message;
           return result;
         }
-        const label = `app window of "${appName}"`;
+        // Unquoted: the description formatter wraps every closed/absent entry
+        // in one pair of quotes, so an inner pair here would nest ("app window
+        // of "charmap"").
+        const label = `app window of ${appName}`;
         if (closedWindow.closed) {
           log(config, "debug", `Closed a window of app surface "${appName}".`);
           closed.push(label);

@@ -136,6 +136,15 @@ async function swipeSurface({
     }
     try {
       const rect = await appWindowRect(appRef.entry!, windowTarget);
+      // When a specific window was resolved but its bounds can't be read (a
+      // transient enumeration/rect failure), don't fall through to the
+      // driver's default rect — on Mac2 getWindowRect reports the whole main
+      // screen, which would place the swipe in the wrong region. FAIL instead.
+      if (!rect && windowTarget) {
+        result.status = "FAIL";
+        result.description = `Couldn't determine the bounds of the targeted window on app surface "${appRef.entry!.name}"; the swipe was not attempted.`;
+        return result;
+      }
       await gestures.swipe(appRef.entry!.driver, gesture as any, rect ?? undefined);
     } catch (error: any) {
       result.status = "FAIL";

@@ -260,6 +260,76 @@ describe("swipe step: app surfaces", function () {
     assert.equal(scroll.args.y, 300);
   });
 
+  it("windows: FAILs a window-targeted swipe when the window's bounds can't be read (no full-screen fallback)", async function () {
+    // A resolved window whose rect comes back degenerate (width 0) must FAIL
+    // rather than fall through to the driver's default rect (on Mac2 that's
+    // the whole screen), which would misplace the gesture.
+    const windows = [
+      { handle: "0xA", title: "Main", pid: 100, rect: { x: 0, y: 0, width: 1000, height: 2000 } },
+      { handle: "0xB", title: "Dialog", pid: 100, rect: { x: 100, y: 100, width: 0, height: 0 } },
+    ];
+    const state = { current: "0xA" };
+    const calls = [];
+    const driver = {
+      state,
+      calls,
+      async getWindowHandles() {
+        return windows.map((w) => w.handle);
+      },
+      async getWindowHandle() {
+        return state.current;
+      },
+      async switchToWindow(handle) {
+        if (!windows.some((w) => w.handle === handle))
+          throw new Error("no such window");
+        state.current = handle;
+      },
+      async getTitle() {
+        return windows.find((w) => w.handle === state.current)?.title ?? "";
+      },
+      async $() {
+        return {
+          getAttribute: async (name) =>
+            name === "ProcessId"
+              ? String(windows.find((w) => w.handle === state.current)?.pid ?? "")
+              : null,
+        };
+      },
+      async getWindowRect() {
+        return windows.find((w) => w.handle === state.current)?.rect;
+      },
+      async execute(command, args) {
+        calls.push({ command, args });
+      },
+    };
+    const appSession = appSessionWith({
+      name: "myapp",
+      appId: "com.example.myapp",
+      driver,
+      launchedByUs: true,
+      platform: "windows",
+      mainWindowHandle: "0xA",
+      appPid: 100,
+      knownWindows: ["0xA"],
+      foreignWindows: new Set(),
+    });
+    const result = await swipeSurface({
+      config,
+      step: {
+        swipe: {
+          direction: "up",
+          surface: { app: "myapp", window: { title: "Dialog" } },
+        },
+      },
+      driver: null,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /couldn't determine the bounds/i);
+    // No gesture was attempted.
+    assert.equal(calls.find((c) => c.command === "windows: scroll"), undefined);
+  });
+
   it("mobile: a window selector FAILs with the single-window message", async function () {
     const driver = makeFakeAppDriver();
     const appSession = appSessionWith({
