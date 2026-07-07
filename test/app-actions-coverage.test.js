@@ -86,18 +86,8 @@ describe("findElement app-surface branch", function () {
     assert.ok(Array.isArray(result.assertions));
   });
 
-  it("fails on window selectors, sub-effects, and unknown app names", async function () {
+  it("fails on sub-effects and unknown app names", async function () {
     const appSession = fakeAppSession({});
-    const windowSel = await findElement({
-      config: {},
-      step: {
-        find: { elementText: "x", surface: { app: "charmap", window: -1 } },
-      },
-      driver: undefined,
-      appSession,
-    });
-    assert.match(windowSel.description, /Window selectors on app surfaces/);
-
     const subEffect = await findElement({
       config: {},
       step: {
@@ -119,6 +109,304 @@ describe("findElement app-surface branch", function () {
       appSession,
     });
     assert.match(unknown.description, /No app surface named "ghost"/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// App window selectors (ADR 01036): find/type act on a selected window.
+// ---------------------------------------------------------------------------
+
+// A windows-model (switch-then-act) app session with a pre-seeded baseline,
+// the way startAppSurface leaves it. `elementsByWindow` maps a window handle
+// to the element that driver.$() returns while that window is the root.
+function windowsAppSession({ windows, elementsByWindow = {} }) {
+  const state = { current: windows[0].handle, switches: [] };
+  const missingElement = {
+    async waitForExist() {
+      throw new Error("not found");
+    },
+    async isExisting() {
+      return false;
+    },
+  };
+  const driver = {
+    state,
+    async getWindowHandles() {
+      return windows.map((w) => w.handle);
+    },
+    async getWindowHandle() {
+      return state.current;
+    },
+    async switchToWindow(handle) {
+      if (!windows.some((w) => w.handle === handle))
+        throw new Error(`no such window: ${handle}`);
+      state.switches.push(handle);
+      state.current = handle;
+    },
+    async getTitle() {
+      return windows.find((w) => w.handle === state.current)?.title ?? "";
+    },
+    async $(selector) {
+      if (selector === "/*") {
+        return {
+          getAttribute: async (name) =>
+            name === "ProcessId"
+              ? String(windows.find((w) => w.handle === state.current)?.pid ?? "")
+              : null,
+        };
+      }
+      return elementsByWindow[state.current] ?? missingElement;
+    },
+    async deleteSession() {},
+  };
+  const appSession = createAppSessionState();
+  appSession.surfaces.set("charmap", {
+    name: "charmap",
+    appId: "charmap.exe",
+    driver,
+    launchedByUs: true,
+    platform: "windows",
+    mainWindowHandle: windows[0].handle,
+    appPid: windows[0].pid,
+    knownWindows: [windows[0].handle],
+    foreignWindows: new Set(),
+  });
+  return { appSession, driver };
+}
+
+// A mac-model (window-as-element) app session. Each window element scopes
+// finds via its own `$`.
+function macAppSession({ windows }) {
+  const state = { scopedSelectors: [] };
+  const makeEl = (w) => ({
+    elementId: w.id,
+    async getAttribute(name) {
+      return name === "title" ? w.title : null;
+    },
+    async isExisting() {
+      return true;
+    },
+    async $(selector) {
+      state.scopedSelectors.push(selector);
+      return (
+        w.elements?.[selector] ?? {
+          async waitForExist() {
+            throw new Error("not found");
+          },
+          async isExisting() {
+            return false;
+          },
+        }
+      );
+    },
+  });
+  const driver = {
+    state,
+    async $$() {
+      return windows.map(makeEl);
+    },
+    async getElementRect(id) {
+      return windows.find((w) => w.id === id)?.rect ?? { x: 0, y: 0, width: 1, height: 1 };
+    },
+    async deleteSession() {},
+  };
+  const appSession = createAppSessionState();
+  appSession.surfaces.set("TextEdit", {
+    name: "TextEdit",
+    appId: "com.apple.TextEdit",
+    driver,
+    launchedByUs: true,
+    platform: "mac",
+  });
+  return { appSession, driver, state };
+}
+
+describe("app window selectors: find/type wiring (ADR 01036)", function () {
+  it("windows: find resolves a window by title and acts in it (sticky root)", async function () {
+    const okElement = {
+      async waitForExist() {},
+      async getText() {
+        return "OK";
+      },
+    };
+    const { appSession, driver } = windowsAppSession({
+      windows: [
+        { handle: "0xA", title: "Main", pid: 100 },
+        { handle: "0xB", title: "Create New Data Source", pid: 100 },
+      ],
+      elementsByWindow: { "0xB": okElement },
+    });
+    const result = await findElement({
+      config: {},
+      step: {
+        find: {
+          elementText: "OK",
+          timeout: 500,
+          surface: {
+            app: "charmap",
+            window: { title: "/Data Source/" },
+          },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.found, true);
+    // Sticky: the session stays rooted at the dialog.
+    assert.equal(driver.state.current, "0xB");
+  });
+
+  it("windows: find FAILs with the windows-seen report when no window matches", async function () {
+    const { appSession } = windowsAppSession({
+      windows: [{ handle: "0xA", title: "Main", pid: 100 }],
+    });
+    const result = await findElement({
+      config: {},
+      step: {
+        find: {
+          elementText: "x",
+          timeout: 300,
+          surface: { app: "charmap", window: { title: "Ghost" } },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /No app window matched/);
+  });
+
+  it("mac: find scopes the locator under the selected window element", async function () {
+    const bodyElement = {
+      async waitForExist() {},
+      async getText() {
+        return "Body";
+      },
+    };
+    const { appSession, state } = macAppSession({
+      windows: [
+        { id: "w1", title: "Untitled", rect: { x: 0, y: 0, width: 1, height: 1 } },
+        {
+          id: "w2",
+          title: "Untitled 2",
+          rect: { x: 5, y: 5, width: 2, height: 2 },
+          elements: new Proxy(
+            {},
+            { get: () => bodyElement }
+          ),
+        },
+      ],
+    });
+    const result = await findElement({
+      config: {},
+      step: {
+        find: {
+          elementText: "Body",
+          timeout: 500,
+          surface: { app: "TextEdit", window: "Untitled 2" },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.found, true);
+    // The compiled `//…` locator was anchored to the window subtree.
+    assert.ok(state.scopedSelectors.length > 0);
+    assert.ok(
+      state.scopedSelectors.every((s) => String(s).startsWith(".//")),
+      `expected scoped selectors, got: ${state.scopedSelectors.join(" | ")}`
+    );
+  });
+
+  it("mobile: find with a window selector FAILs with the single-window message", async function () {
+    const appSession = createAppSessionState();
+    appSession.surfaces.set("chat", {
+      name: "chat",
+      appId: "com.example.chat",
+      driver: {},
+      launchedByUs: true,
+      platform: "android",
+      deviceName: "Pixel_7",
+    });
+    appSession.deviceSessions.set("Pixel_7", {
+      driver: {},
+      foregroundApp: "com.example.chat",
+    });
+    const result = await findElement({
+      config: {},
+      step: {
+        find: { elementText: "x", surface: { app: "chat", window: -1 } },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /single-window/);
+  });
+
+  it("windows: type honors a window selector (was silently ignored)", async function () {
+    const typed = [];
+    const inputElement = {
+      async waitForExist() {},
+      async click() {},
+      async addValue(text) {
+        typed.push(text);
+      },
+    };
+    const { appSession, driver } = windowsAppSession({
+      windows: [
+        { handle: "0xA", title: "Main", pid: 100 },
+        { handle: "0xB", title: "Dialog", pid: 100 },
+      ],
+      elementsByWindow: { "0xB": inputElement },
+    });
+    const result = await typeKeys({
+      config: {},
+      step: {
+        type: {
+          keys: ["hello"],
+          selector: '//Edit[@Name="Value"]',
+          timeout: 500,
+          surface: { app: "charmap", window: { title: "Dialog" } },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(typed, ["hello"]);
+    assert.equal(driver.state.current, "0xB");
+  });
+
+  it("mobile: type with a window selector FAILs with the single-window message", async function () {
+    const appSession = createAppSessionState();
+    appSession.surfaces.set("chat", {
+      name: "chat",
+      appId: "com.example.chat",
+      driver: {},
+      launchedByUs: true,
+      platform: "android",
+      deviceName: "Pixel_7",
+    });
+    appSession.deviceSessions.set("Pixel_7", {
+      driver: {},
+      foregroundApp: "com.example.chat",
+    });
+    const result = await typeKeys({
+      config: {},
+      step: {
+        type: {
+          keys: ["$BACK$"],
+          surface: { app: "chat", window: -1 },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /single-window/);
   });
 });
 

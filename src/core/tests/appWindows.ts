@@ -519,8 +519,16 @@ async function resolveAppWindow({
   if (isMobileTargetPlatform(platform)) {
     return { ok: false, message: unsupportedWindowSelectorMessage(platform) };
   }
-  if (platform === "mac") return resolveMacWindow({ entry, selector, timeoutMs });
-  return resolveWindowsWindow({ entry, selector, timeoutMs });
+  try {
+    if (platform === "mac")
+      return await resolveMacWindow({ entry, selector, timeoutMs });
+    return await resolveWindowsWindow({ entry, selector, timeoutMs });
+  } catch (error: any) {
+    return {
+      ok: false,
+      message: `Couldn't resolve the app window selector ${JSON.stringify(selector)}: ${error?.message ?? error}`,
+    };
+  }
 }
 
 // The sticky window for steps WITHOUT a selector. Windows: null — the
@@ -652,6 +660,13 @@ async function closeAppWindow({
   if (isMobileTargetPlatform(platform)) {
     return { ok: false, message: unsupportedWindowSelectorMessage(platform) };
   }
-  if (platform === "mac") return closeMacWindow({ entry, selector });
-  return closeWindowsWindow({ entry, selector });
+  try {
+    if (platform === "mac") return await closeMacWindow({ entry, selector });
+    return await closeWindowsWindow({ entry, selector });
+  } catch (error: any) {
+    return {
+      ok: false,
+      message: `Couldn't close the app window ${JSON.stringify(selector)}: ${error?.message ?? error}`,
+    };
+  }
 }

@@ -21,7 +21,10 @@ import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveAppWindowRect } from "./ffmpegRecorder.js";
-import { snapshotAppWindows } from "./appWindows.js";
+import {
+  snapshotAppWindows,
+  rewriteXPathForScopedFind,
+} from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
@@ -1100,25 +1103,31 @@ async function findAppElement({
   criteria,
   timeout = 5000,
   platform,
+  root,
 }: {
   driver: any;
   criteria: any;
   timeout?: number;
   platform?: string;
+  // A window element to scope the find to (macOS window selectors, ADR
+  // 01036). Compiled `//…` locators are re-anchored to `.//` so they stay
+  // inside the window subtree.
+  root?: any;
 }): Promise<{ element?: any; error?: string }> {
   const locator = buildAppLocator(criteria, platform);
   if ("error" in locator) return { error: locator.error };
-  const selector =
+  let selector =
     locator.strategy === "accessibility id"
       ? `~${locator.value}`
       : locator.value;
+  if (root) selector = rewriteXPathForScopedFind(selector);
   // Locate and wait in separate try blocks: driver.$() normally returns a
   // lazy handle without touching the session, so a throw there means the
   // session itself is broken (app crash, dead server) — a driver error, not
   // a criteria miss. Only the waitForExist timeout is the not-found path.
   let element: any;
   try {
-    element = await driver.$(selector);
+    element = await (root ?? driver).$(selector);
   } catch (error: any) {
     return {
       error: `App driver error while locating an element (locator: ${selector}): ${error?.message ?? error}`,

@@ -5,6 +5,11 @@ import {
   findAppElement,
   ensureAppForeground,
 } from "./appSurface.js";
+import {
+  resolveAppWindow,
+  activeAppWindow,
+  scopedFindRoot,
+} from "./appWindows.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { performElementPress } from "./movement.js";
 import {
@@ -79,11 +84,25 @@ async function findElement({ config, step, driver, click, appSession }: { config
         result.description = appRef.error;
         return result;
       }
+      // Window selectors (ADR 01036): resolve to a real window — Windows
+      // re-roots the session (sticky), macOS holds the window element and
+      // scopes the find under it. Without a selector, macOS steps keep
+      // acting on the sticky active window.
+      let windowTarget: any = null;
       if (appRef.window !== undefined) {
-        result.status = "FAIL";
-        result.description =
-          "Window selectors on app surfaces land in a later part of this phase; act on the app's active window for now (omit `window`).";
-        return result;
+        const resolved = await resolveAppWindow({
+          entry: appRef.entry!,
+          selector: appRef.window,
+          timeoutMs: step.find.timeout ?? 5000,
+        });
+        if (!resolved.ok) {
+          result.status = "FAIL";
+          result.description = resolved.message;
+          return result;
+        }
+        windowTarget = resolved.target;
+      } else {
+        windowTarget = await activeAppWindow(appRef.entry!);
       }
       // Activate this app on its shared Android device session (no-op on
       // desktop / when already foreground) before locating.
@@ -101,6 +120,7 @@ async function findElement({ config, step, driver, click, appSession }: { config
         // immediate check instead of being clobbered to the default.
         timeout: step.find.timeout ?? 5000,
         platform: appRef.entry!.platform,
+        root: scopedFindRoot(appRef.entry!, windowTarget),
       });
       if (found.error) {
         result.description = found.error;
