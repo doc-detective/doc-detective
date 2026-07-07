@@ -165,11 +165,11 @@ The step records the process `name`, the captured `stdout` and `stderr`, and whe
 
 Set `surface` to an app reference, such as `{ "app": "notepad" }`, to type into a control on a [native app surface](/docs/actions/startsurface) that a `startSurface` step opened.
 
-Unlike browser typing, typing on an app surface requires element criteria to name the target control. Provide `elementText`, `elementId`, `elementAria`, or a native `selector` (an XPath or a `~`-prefixed accessibility ID); typing into the active element isn't available on app surfaces. Doc Detective clicks the control to focus it, then types.
+Unlike browser typing, typing on an app surface requires element criteria to name the target control. Provide `elementText`, `elementId`, `elementAria`, or a native `selector` (an XPath or a `~`-prefixed accessibility ID). Typing into the active element isn't available on app surfaces. Doc Detective clicks the control to focus it, then types.
 
 Two limits apply in this phase:
 
-- The `$KEY$` [special keys](#special-keys) aren't supported on app surfaces; the device key vocabulary lands in a later phase.
+- `$KEY$` key tokens (listed under [Special keys](#special-keys)) aren't supported on app surfaces. The device key vocabulary lands in a later phase.
 - `waitUntil` on an app surface accepts only `delayMs` and `find`.
 
 App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to Windows.

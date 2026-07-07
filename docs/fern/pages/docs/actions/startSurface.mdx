@@ -14,17 +14,17 @@ The Windows app driver (`appium-novawindows-driver`) is a heavy dependency that 
 
 ## Descriptor
 
-Provide an object as the value for the `startSurface` key. Only `app` is required.
+Provide an object as the value for the `startSurface` key. You only need to provide `app`.
 
 - `app`: (Required) The application to launch. Doc Detective identifies the kind from the value's syntax, never from a separate type field:
   - An **executable path**, such as `C:\Windows\System32\notepad.exe`.
   - A **`.app` path** (macOS, later phase), such as `/Applications/Calculator.app`.
   - A **bundle ID or package name**, such as `com.apple.TextEdit`.
   - A **UWP AppUserModelID**, such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`.
-- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`notepad.exe` becomes `notepad`), the final dot-segment of an ID (`com.apple.TextEdit` becomes `TextEdit`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`). The browser engine keywords `chrome`, `firefox`, `safari`, `webkit`, and `edge` are reserved and can't name an app surface, because a bare-string `surface` set to one of them always targets that browser. The same holds for a derived default: launching `chrome.exe` without a `name` derives `chrome`, so the step fails and asks you to pass a non-keyword `name`. The check is case-insensitive, so it rejects `Chrome` too.
+- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`notepad.exe` becomes `notepad`), the final dot-segment of an ID (`com.apple.TextEdit` becomes `TextEdit`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`). Doc Detective reserves the browser engine keywords `chrome`, `firefox`, `safari`, `webkit`, and `edge`. They can't name an app surface, because a bare-string `surface` set to one of them always targets that browser. The same holds for a derived default: launching `chrome.exe` without a `name` derives `chrome`, so the step fails and asks you to pass a non-keyword `name`. The check is case-insensitive, so it rejects `Chrome` too.
 - `args`: (Optional) An array of launch arguments to pass to the app.
 - `workingDirectory`: (Optional) The working directory for the launched app. Defaults to the run's working directory.
-- `waitUntil`: (Optional) A readiness condition that must hold before the surface is considered open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
+- `waitUntil`: (Optional) A readiness condition that must hold before Doc Detective considers the surface open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
 - `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`.
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
@@ -88,9 +88,9 @@ You can also require the app's binary so the context skips cleanly on Windows ed
 
 ## Reserved fields
 
-The descriptor validates a few fields that are reserved for later phases of the native app roadmap. Setting any of them today fails the step with a message that names the roadmap, rather than silently ignoring what you asked for:
+The descriptor validates a few fields that Doc Detective reserves for later phases of the native app roadmap. Setting any of them today fails the step with a message that names the roadmap, rather than silently ignoring what you asked for:
 
-- `device`, `install`, and `activity` are reserved for the mobile phases.
+- Doc Detective reserves `device`, `install`, and `activity` for the mobile phases.
 - `env` isn't supported by the Windows app driver, so set environment variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell) instead.
 
 ## Wait for the app to be ready
