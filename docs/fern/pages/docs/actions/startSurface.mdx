@@ -26,18 +26,18 @@ Provide an object as the value for the `startSurface` key. You only need to prov
   - A **bundle ID or package name**, such as `com.apple.TextEdit` (macOS), `com.android.settings` (Android), or `com.apple.Preferences` (iOS).
   - An **app-bundle path** (iOS), such as a `.app` or `.ipa`, which Doc Detective installs before launch.
   - A **UWP AppUserModelID** (Windows), such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`.
-- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`charmap.exe` becomes `charmap`), the final dot-segment of a bundle ID or package name (`com.apple.TextEdit` becomes `TextEdit`, `com.android.settings` becomes `settings`), the base name of a `.app` path (`/System/Applications/Calculator.app` becomes `Calculator`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`). The browser engine keywords `chrome`, `firefox`, `safari`, `webkit`, and `edge` are reserved and can't name an app surface, because a bare-string `surface` set to one of them always targets that browser. The same holds for a derived default: launching `chrome.exe` without a `name` derives `chrome`, so the step fails and asks you to pass a non-keyword `name`. The check is case-insensitive, so it rejects `Chrome` too.
+- `name`: (Optional) The surface-registry name that later steps use in `surface`. If you omit it, Doc Detective derives a default: the executable file name without its extension (`charmap.exe` becomes `charmap`), the final dot-segment of a bundle ID or package name (`com.apple.TextEdit` becomes `TextEdit`, `com.android.settings` becomes `settings`), the base name of a `.app` path (`/System/Applications/Calculator.app` becomes `Calculator`), or the app token of an AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`). Doc Detective reserves the browser engine keywords `chrome`, `firefox`, `safari`, `webkit`, and `edge`. They can't name an app surface, because a bare-string `surface` set to one of them always targets that browser. The same holds for a derived default: launching `chrome.exe` without a `name` derives `chrome`, so the step fails and asks you to pass a non-keyword `name`. The check is case-insensitive, so it rejects `Chrome` too.
 - `args`: (Optional, desktop only) An array of launch arguments to pass to the app. On macOS they reach the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument that contains spaces must carry its own quotes. The Android and iOS drivers don't accept `args`, and setting it there fails the step with guidance.
 - `env`: (Optional, macOS only) Extra environment variables for the launched app. The Windows, Android, and iOS drivers don't support `env`, and setting it there fails the step with guidance. Instead, set variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell).
 - `workingDirectory`: (Optional, Windows only) The working directory for the launched app. Defaults to the run's working directory. macOS launches apps through LaunchServices, which offers no working-directory control, and Android and iOS offer none at launch, so a non-default value fails the step there with guidance; use [`runShell`](/docs/actions/runshell) if the working directory matters.
 - `device`: (Optional, Android and iOS) The device the app runs on, as a device name or a device descriptor object. Omit it for a desktop app, or (in an Android or iOS context) to use the context's default device. See [Choose the emulator](#choose-the-emulator) and [Choose the simulator](#choose-the-simulator).
 - `install`: (Optional, Android and iOS) A path to an app bundle to install on the device before launch, so you can test an app that isn't already on it: an `.apk` on Android, or an `.app` or `.ipa` on iOS. When set on iOS, the installable payload also becomes the app to launch, overriding `app`. On desktop platforms the field validates but is ignored.
 - `activity`: (Optional, Android) The main activity to launch, overriding the package's default launcher activity. Only meaningful on Android; setting it on iOS fails the step, since iOS launches by bundle identifier or installed app payload.
-- `waitUntil`: (Optional) A readiness condition that must hold before the surface is considered open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
+- `waitUntil`: (Optional) A readiness condition that must hold before Doc Detective considers the surface open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
 - `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode, which can take several minutes on a cold machine; Doc Detective raises the server startup ceiling to at least 120000 ms for that first build regardless of `timeout`. iOS does the same: the first surface builds WebDriverAgent for the simulator, and Doc Detective floors the agent's launch and connection ceilings at 120000 ms so a cold build isn't aborted early. On Android, booting a cold emulator (or creating one) can also take longer than the default, so give the first surface a generous `timeout`.
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
-On Windows and macOS, opening two app surfaces with the same `name` in one context fails, so pass a distinct `name` when you launch more than one app. The mobile platforms are the exception: apps on one device or simulator share a single session, so a later `startSurface` installs the app if `install` is set and brings it to the foreground, letting one test drive several apps on the same emulator or simulator.
+On Windows and macOS, opening two app surfaces with the same `name` in one context fails, so pass a distinct `name` when you launch more than one app. The mobile platforms are the exception: apps on one device or simulator share a single session, so a later `startSurface` installs the app if you set `install` and brings it to the foreground, letting one test drive several apps on the same emulator or simulator.
 
 > For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
 
@@ -57,12 +57,12 @@ Doc Detective locates elements on an app surface through the platform's accessib
 - `elementId` and `elementTestId` match a control's automation ID (its accessibility identifier on macOS and iOS, its resource ID on Android).
 - `elementAria` matches a control's role, and its accessible name when you provide one. Pass the accessible name as a string; the `{ role, name }` object form isn't available yet. On Android the role maps to the widget's class (for example, `button` to `android.widget.Button`) and the accessible name matches its content description.
 
-On Android, a control's `text` and its content description are two distinct attributes, so `elementText` and `elementAria`'s name target different things—one control can carry both. On Windows, macOS, and iOS the two collapse to a single accessible name, so setting both `elementText` and `elementAria` on one step conflicts and fails; specify one.
+On Android, a control's `text` and its content description are two distinct attributes, so `elementText` and `elementAria`'s name target different things—one control can carry both. On Windows, macOS, and iOS the two collapse to a single accessible name, so setting both `elementText` and `elementAria` on one step conflicts and fails. Specify one.
 
 For controls the semantic fields can't reach, `selector` accepts a native locator instead of a CSS selector:
 
-- An **XPath**. On Windows the element names are UIA control types, such as `//Button[@Name="Save"]`; on macOS and iOS they're XCUIElementType tags, such as `//XCUIElementTypeButton[@title="Add"]`; on Android they're widget classes, such as `//android.widget.Button[@text="Save"]`.
-- An **accessibility ID**, prefixed with `~`, such as `~SaveButton`. On Android this resolves to the control's content description, not its resource ID; a lone `elementId`/`elementTestId` already targets the resource ID for you.
+- An **XPath**. On Windows the element names are UIA control types, such as `//Button[@Name="Save"]`. On macOS and iOS they're XCUIElementType tags, such as `//XCUIElementTypeButton[@title="Add"]`. On Android they're widget classes, such as `//android.widget.Button[@text="Save"]`.
+- An **accessibility ID**, prefixed with `~`, such as `~SaveButton`. On Android this resolves to the control's content description, not its resource ID. A lone `elementId`/`elementTestId` already targets the resource ID for you.
 
 CSS selectors are browser-only and fail on app surfaces, as do the `elementClass` and `elementAttribute` fields. The error message names the supported alternatives.
 
@@ -147,7 +147,7 @@ Grant the permission there, then rerun. If the launch still fails with an access
 
 An `android` context runs the app on an emulator that Doc Detective manages for you. Two things have to be in place before an app can launch: a host that can run the emulator, and the Android SDK toolchain.
 
-The host needs hardware acceleration for the emulator: KVM on Linux, HVF on macOS, or WHPX on Windows. A host without it can't run the emulator, so the context skips with a reason rather than failing. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests.
+The host needs hardware acceleration for the emulator—KVM on Linux, HVF on macOS, or WHPX on Windows. A host without it can't run the emulator, so the context skips with a reason rather than failing. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests.
 
 On a capable host, the toolchain (the SDK, a system image, and the emulator) installs on demand the first time a run needs it. The download is multi-GB and runs once, and Doc Detective prints a clear warning to both the terminal and the output report while it happens. To avoid paying that cost mid-run, pre-install the toolchain, which is ideal for CI images and containers:
 
@@ -175,8 +175,8 @@ Without a `device`, an Android app runs on the context's default emulator, which
 ```
 
 - `name` is the emulator's identity. If an AVD with that name already exists, Doc Detective reuses it; otherwise it creates one under that name. Reusing a name across steps and tests targets the same emulator.
-- `deviceType` picks the hardware profile — `phone` (the default) or `tablet` — when Doc Detective creates the device. It's ignored when `name` matches an existing AVD.
-- `osVersion` picks the Android version for a newly created device and must match a system image you've installed; install more with `doc-detective install android`. It defaults to the newest installed version and is ignored when `name` matches an existing AVD.
+- `deviceType` picks the hardware profile—`phone` (the default) or `tablet`—when Doc Detective creates the device. Doc Detective ignores it when `name` matches an existing AVD.
+- `osVersion` picks the Android version for a newly created device and must match a system image you've installed. Install more with `doc-detective install android`. It defaults to the newest installed version. Doc Detective ignores it when `name` matches an existing AVD.
 - `headless` runs the emulator without a window.
 
 Set a device once on the context to share it across every app the test launches. For the full list of device fields, including the ones reserved for later phases, see the [device descriptor](/reference/schemas/device-descriptor) reference.
@@ -223,7 +223,7 @@ Set a device once on the context to share it across every app the test launches.
 
 ## Reserved fields
 
-Some device-descriptor fields are validated today but reserved for later phases of the native app roadmap. Setting `orientation`, `udid`, or `provider` on a `device` fails the step with a message that names the roadmap, rather than silently ignoring what you asked for.
+Doc Detective validates some device-descriptor fields today but reserves them for later phases of the native app roadmap. Setting `orientation`, `udid`, or `provider` on a `device` fails the step with a message that names the roadmap, rather than silently ignoring what you asked for.
 
 ## Wait for the app to be ready
 
