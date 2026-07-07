@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "surface",
-  "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes and browser windows/tabs; app surfaces are added in a later phase.",
+  "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
   "anyOf": [
     {
       "$ref": "#/components/schemas/byName"
@@ -11,6 +11,9 @@
     },
     {
       "$ref": "#/components/schemas/browser"
+    },
+    {
+      "$ref": "#/components/schemas/app"
     }
   ],
   "components": {
@@ -97,6 +100,76 @@
           }
         }
       },
+      "app": {
+        "title": "App surface",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "app"
+        ],
+        "properties": {
+          "app": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ],
+            "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+          },
+          "window": {
+            "$ref": "#/components/schemas/appWindowSelector",
+            "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs."
+          }
+        }
+      },
+      "appWindowSelector": {
+        "title": "App window selector",
+        "description": "Same grammar as the browser window selector, minus `url` (meaningless for native windows).",
+        "anyOf": [
+          {
+            "title": "By index",
+            "type": "integer",
+            "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+          },
+          {
+            "title": "By name",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ],
+            "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+          },
+          {
+            "title": "By criteria",
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ],
+                "description": "Assigned window name."
+              },
+              "index": {
+                "type": "integer",
+                "description": "Index in creation order. Negative counts from the end."
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Window title to match. Substring, or /regex/."
+              }
+            }
+          }
+        ]
+      },
       "windowOrTabSelector": {
         "title": "Window/tab selector",
         "anyOf": [
@@ -174,6 +247,15 @@
     {
       "browser": "chrome",
       "name": "shopper"
+    },
+    {
+      "app": "notepad"
+    },
+    {
+      "app": "notepad",
+      "window": {
+        "title": "/Find/"
+      }
     }
   ]
 }

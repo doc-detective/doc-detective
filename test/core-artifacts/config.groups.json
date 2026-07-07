@@ -1,0 +1,21 @@
+{
+  "input": ".",
+  "output": ".",
+  "recursive": true,
+  "logLevel": "debug",
+  "relativePathBase": "file",
+  "detectSteps": false,
+  "runOn": [
+    {
+      "platforms": ["mac", "linux"],
+      "browsers": [{ "name": "firefox", "headless": true }]
+    },
+    {
+      "platforms": ["windows"],
+      "browsers": [{ "name": "firefox", "headless": true }]
+    }
+  ],
+  "telemetry": {
+    "send": false
+  }
+}

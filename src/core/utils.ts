@@ -6,7 +6,15 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
-import { loadHeavyDep } from "../runtime/loader.js";
+import {
+  loadHeavyDep,
+  resolveHeavyDepPath,
+  ensureRuntimeInstalled,
+} from "../runtime/loader.js";
+import {
+  assertConptyAllocatable,
+  ensurePtyBackendOnDisk,
+} from "./ptyWatchdog.js";
 
 export {
   outputResults,
@@ -37,6 +45,7 @@ export {
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
+  isRetryableSessionError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -46,6 +55,7 @@ export {
   rollUpResults,
   rollUpAssertions,
   createAppiumPool,
+  evaluateContextRequirements,
 };
 
 export type { BackgroundProcess };
@@ -412,6 +422,34 @@ async function spawnPtyBackgroundCommand(
     throw err;
   }
 
+  // #501 guard, part 1 — stale-module self-heal. loadHeavyDep succeeding is
+  // NOT proof the backend is usable: a mid-run JIT install of another heavy
+  // dep used to prune node-pty's files from the runtime cache while the
+  // module stayed importable from the stale resolution + ESM caches, and a
+  // spawn without its on-disk support files freezes the process inside a
+  // native wait. Verify the resolved path physically exists, force-reinstall
+  // when it doesn't (same paths → the loaded module's support files return),
+  // and SKIP (NODE_PTY_UNAVAILABLE) if the files can't be restored.
+  const ptyModulePath = await ensurePtyBackendOnDisk({
+    resolvePath: () =>
+      resolveHeavyDepPath(PTY_PACKAGE, { cacheDir: options.cacheDir }),
+    reinstall: () =>
+      ensureRuntimeInstalled([PTY_PACKAGE], {
+        ctx: { cacheDir: options.cacheDir },
+        force: true,
+      }),
+  });
+
+  // #501 guard, part 2 — Windows-only ConPTY watchdog, defense-in-depth for
+  // wedges the disk check can't see (upstream node-pty hangs at the native
+  // connect: microsoft/node-pty #640/#532/#512; environment-specific console
+  // states). The probe runs in a worker thread because the freeze is a
+  // synchronous native block — a same-thread timeout can never fire — and a
+  // worker shares this process's state where a child process wouldn't. Only a
+  // genuine wedge degrades to SKIP; a healthy/inconclusive probe falls through
+  // to the direct spawn below, so the happy path can never regress.
+  await assertConptyAllocatable({ ptyModulePath });
+
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;
   const isWin = process.platform === "win32";
@@ -699,6 +737,38 @@ async function waitForReady(
   for (const p of probes) p.catch(() => {});
 
   await Promise.race([ready, earlyExit]);
+}
+
+// Two families of transient, retryable session-creation failures, both worse
+// under concurrency:
+//   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
+//      /status returns 200 from the outgoing process while /session no longer
+//      accepts, or Appium's proxy to chromedriver drops the socket ->
+//      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
+//   2. Several Chromes launching at once briefly starve resources and
+//      ChromeDriver "crashed during startup" / "cannot connect to" /
+//      "DevToolsActivePort" / "session not created". A staggered retry lets
+//      the contention clear; it recovers on the next attempt in practice.
+const TRANSIENT_SESSION_ERROR =
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
+
+// The wdio client aborts POST /session with "aborted due to timeout" when the
+// request exceeds connectionRetryTimeout. For native sessions that declared a
+// slow-startup ceiling (XCUITest's wdaLaunchTimeout / Mac2's
+// serverStartupTimeout raise it past the 2-minute default), the server-side
+// WebDriverAgent xcodebuild keeps running after the client gives up, so a
+// fresh POST typically binds quickly — retry it. Default-ceiling (browser /
+// Windows / Android) sessions keep today's fail-fast behavior: there a
+// 2-minute session POST means something is genuinely wrong.
+const SESSION_TIMEOUT_ABORT = /aborted due to timeout/i;
+
+function isRetryableSessionError(
+  message: string | undefined,
+  startupCeiling: number | undefined = 0
+): boolean {
+  if (typeof message !== "string" || !message) return false;
+  if (TRANSIENT_SESSION_ERROR.test(message)) return true;
+  return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
@@ -1134,6 +1204,135 @@ async function log(config: any, level: string, message?: any) {
   }
 }
 
+// --- context `requires` gate ---------------------------------------------
+// Evaluates a context's `requires` capability gate (context_v3.requires):
+// `"node"` → `["node","ffmpeg"]` → `{ commands, files, env }`. All entries are
+// AND-ed; any miss marks the context SKIPPED (same non-failing outcome as a
+// `platforms` mismatch). Deps are injectable so tests never touch the real
+// PATH/fs/env.
+
+type RequirementDeps = {
+  env?: Record<string, string | undefined>;
+  existsSync?: (candidate: string) => boolean;
+  commandExists?: (command: string) => boolean;
+  platform?: NodeJS.Platform;
+};
+
+// Look up an env var's value. On Windows env vars are case-insensitive and may
+// surface under a different case (e.g. `Path` for `PATH`), so fall back to a
+// case-insensitive scan there — mirroring commandOnPath's PATH/Path handling.
+// Elsewhere the lookup stays exact.
+function lookupEnvValue(
+  env: Record<string, string | undefined>,
+  name: string,
+  platform: NodeJS.Platform
+): string | undefined {
+  const direct = env[name];
+  if (direct !== undefined) return direct;
+  if (platform === "win32") {
+    const lower = name.toLowerCase();
+    for (const key of Object.keys(env)) {
+      if (key.toLowerCase() === lower) return env[key];
+    }
+  }
+  return undefined;
+}
+
+// Trim and drop empty/non-string entries — defense-in-depth mirroring the
+// multi-value flag convention; AJV enforces the same shape for schema users.
+function cleanRequirementList(list: any): string[] {
+  const asArray = Array.isArray(list)
+    ? list
+    : typeof list === "string"
+      ? [list]
+      : [];
+  return asArray
+    .filter((entry: any) => typeof entry === "string")
+    .map((entry: string) => entry.trim())
+    .filter((entry: string) => entry.length > 0);
+}
+
+// Expand $VAR tokens against an injected env. `$HOME` falls back to
+// `USERPROFILE` (Windows shells often set only the latter). Unknown variables
+// stay literal so the file check fails visibly rather than silently matching.
+function expandRequirementPath(
+  entry: string,
+  env: Record<string, string | undefined>
+): string {
+  return entry.replace(/\$[A-Za-z0-9_]+/g, (token) => {
+    const name = token.substring(1);
+    const value =
+      env[name] ?? (name === "HOME" ? env.USERPROFILE : undefined);
+    return value !== undefined && value !== "" ? value : token;
+  });
+}
+
+// Cross-platform "is this command on the PATH" without spawning a shell.
+// Honors PATHEXT on Windows (e.g. `adb` → `adb.exe`); an entry containing a
+// path separator is checked directly instead of scanned for.
+function commandOnPath(
+  command: string,
+  env: Record<string, string | undefined>,
+  existsSync: (candidate: string) => boolean
+): boolean {
+  const hasSeparator = command.includes("/") || command.includes("\\");
+  const pathValue = env.PATH ?? env.Path ?? "";
+  const directories = hasSeparator
+    ? [""]
+    : pathValue.split(path.delimiter).filter(Boolean);
+  const extensions =
+    process.platform === "win32"
+      ? ["", ...(env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)]
+      : [""];
+  for (const directory of directories) {
+    const base = hasSeparator ? command : path.join(directory, command);
+    for (const extension of extensions) {
+      if (existsSync(base + extension)) return true;
+    }
+  }
+  return false;
+}
+
+function evaluateContextRequirements({
+  requires,
+  deps = {},
+}: {
+  requires: any;
+  deps?: RequirementDeps;
+}): { met: boolean; missing: string[] } {
+  const env = deps.env ?? (process.env as Record<string, string | undefined>);
+  const existsSync = deps.existsSync ?? fs.existsSync;
+  const platform = deps.platform ?? process.platform;
+  const commandExists =
+    deps.commandExists ??
+    ((command: string) => commandOnPath(command, env, existsSync));
+
+  const isObjectForm =
+    requires &&
+    typeof requires === "object" &&
+    !Array.isArray(requires);
+  const commands = cleanRequirementList(
+    isObjectForm ? requires.commands : requires
+  );
+  const files = cleanRequirementList(isObjectForm ? requires.files : []);
+  const envVars = cleanRequirementList(isObjectForm ? requires.env : []);
+
+  const missing: string[] = [];
+  for (const command of commands) {
+    if (!commandExists(command)) missing.push(`command "${command}"`);
+  }
+  for (const file of files) {
+    if (!existsSync(expandRequirementPath(file, env)))
+      missing.push(`file "${file}"`);
+  }
+  for (const name of envVars) {
+    const value = lookupEnvValue(env, name, platform);
+    if (value === undefined || value === "")
+      missing.push(`environment variable "${name}"`);
+  }
+  return { met: missing.length === 0, missing };
+}
+
 function replaceEnvs(stringOrObject: any): any {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
@@ -1144,8 +1343,14 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
+    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
+    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
+    // treated as an env-var reference. Without it, `$HOME$` matched the
+    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
+    // got rewritten to the home path, corrupting the sentinel. A real env ref
+    // is `$NAME` NOT followed by another `$` (or word char).
+    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
     const matches = stringOrObject.match(variableRegex);
     // If no matches, return string
     if (!matches) return stringOrObject;

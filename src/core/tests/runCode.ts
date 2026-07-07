@@ -23,6 +23,10 @@ function createTempScript(code: string, language: string) {
     case "bash":
       extension = ".sh";
       break;
+    // The runCode_v3 schema restricts `language` to python/bash/javascript, all
+    // handled above, so this default is unreachable through validated input
+    // (ADR 01017).
+    /* c8 ignore next 2 */
     default:
       extension = "";
   }
@@ -182,6 +186,11 @@ async function runCode({
       const entry = processRegistry?.get(step.runCode.background.name);
       if (entry) entry.tempPath = scriptPath;
     }
+    // Defensive catch around the command dispatch + runShell call. runShell
+    // surfaces its own failures as a FAIL result rather than throwing, and the
+    // dispatch above is pure string work, so no hermetic input drives execution
+    // into this catch; it guards against an unexpected throw only (ADR 01017).
+    /* c8 ignore next 4 */
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;

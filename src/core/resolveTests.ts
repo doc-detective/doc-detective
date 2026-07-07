@@ -11,6 +11,7 @@ import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
 import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -51,7 +52,6 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         if (typeof browser === "string") {
           browser = { name: browser };
         }
-        if (browser.name === "safari") browser.name = "webkit";
         // Mark the engine as explicitly requested by the author. The runner's
         // cross-engine fallback uses this to decide PASS vs WARNING when it has
         // to substitute another browser: an auto-selected default falls back
@@ -77,24 +77,53 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     const carry = { ...context };
     delete carry.platforms;
     delete carry.browsers;
-    context.platforms.forEach((platform: any) => {
+    // An entry may omit `platforms` (e.g. a `requires`-only gate) and, for
+    // driver tests, `browsers`. Expand those with an undefined slot so the
+    // static context carries no platform/browser key — runContext fills the
+    // current platform and default browser at run time, exactly as it does
+    // for a test with no runOn at all.
+    const platformsToExpand = context.platforms ?? [undefined];
+    const browsersToExpand = context.browsers ?? [undefined];
+    platformsToExpand.forEach((platform: any) => {
       if (!browserRequired) {
-        const staticContext = { ...carry, platform };
+        const staticContext = { ...carry };
+        if (platform !== undefined) staticContext.platform = platform;
         staticContexts.push(staticContext);
       } else {
-        context.browsers.forEach((browser: any) => {
-          const staticContext = { ...carry, platform, browser };
+        browsersToExpand.forEach((browser: any) => {
+          const staticContext = { ...carry };
+          if (platform !== undefined) staticContext.platform = platform;
+          if (browser !== undefined) {
+            // Desktop `safari` is an alias for the `webkit` engine, so the
+            // rewrite happens per platform pair (not during normalization):
+            // on a mobile target platform (android/ios) the authored name is
+            // preserved — `safari` on ios is the real device browser (phase
+            // A5), and the mobile support matrix, not engine aliasing,
+            // decides unsupported combinations. Every pair gets its own
+            // clone so contexts sharing one authored browser object can't
+            // leak a rewrite (or any later per-context mutation) across
+            // platforms.
+            staticContext.browser =
+              browser.name === "safari" && !isMobileTargetPlatform(platform)
+                ? { ...browser, name: "webkit" }
+                : { ...browser };
+          }
           staticContexts.push(staticContext);
         });
       }
     });
-    // For each static context, check if a matching object already exists in resolvedContexts.
+    // For each static context, check if a matching object already exists in
+    // resolvedContexts. `requires` participates in identity: two entries that
+    // differ only in their capability gate must stay distinct, or one gate
+    // would silently swallow the other.
     staticContexts.forEach((staticContext) => {
       const existingContext = resolvedContexts.find((resolvedContext) => {
         return (
           resolvedContext.platform === staticContext.platform &&
           JSON.stringify(resolvedContext.browser) ===
-            JSON.stringify(staticContext.browser)
+            JSON.stringify(staticContext.browser) &&
+          JSON.stringify(resolvedContext.requires) ===
+            JSON.stringify(staticContext.requires)
         );
       });
       if (!existingContext) {

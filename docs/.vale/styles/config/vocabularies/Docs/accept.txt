@@ -226,3 +226,7 @@ Xcode
 toolchain
 widget
 Temurin
+dialog
+dialogs
+dialog's
+onboarding

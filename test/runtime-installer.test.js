@@ -2,6 +2,7 @@ import {
   installRuntime,
   installBrowsers,
   status,
+  BULK_INSTALL_TIMEOUT_MS,
 } from "../dist/runtime/installer.js";
 import { resolveHeavyDepSource } from "../dist/runtime/loader.js";
 import { writeInstalledRecord } from "../dist/runtime/cacheDir.js";
@@ -113,6 +114,57 @@ describe("runtime/installer", function () {
       expect(reports).to.have.lengthOf(1);
       expect(["installed", "forced", "updated"]).to.include(reports[0].action);
       expect(reports[0].installedVersion).to.equal("7.0.0");
+    });
+
+    it("caps each npm child with the bulk timeout and forwards installTimeoutMs overrides", async function () {
+      // A hanging child + tiny override proves the plumbing end-to-end: if the
+      // option is NOT forwarded, the loader falls back to its 5-minute default
+      // and this test times out instead (rationale in ADR 01035).
+      const hangingSpawner = () => {
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        return child; // never emits 'close'
+      };
+      try {
+        await installRuntime({
+          packages: ["pngjs"],
+          force: true,
+          installTimeoutMs: 25,
+          deps: { spawn: hangingSpawner, logger: () => {} },
+        });
+        throw new Error("expected installRuntime to reject");
+      } catch (err) {
+        expect(String(err.message)).to.match(/timed out after 25ms/);
+      }
+    });
+
+    it("defaults the bulk npm-child timeout to 9 minutes — above the loader's 5-minute single-package default, below the postinstall's 10-minute outer ceiling", function () {
+      expect(BULK_INSTALL_TIMEOUT_MS).to.equal(9 * 60 * 1000);
+    });
+
+    it("rejects a negative installTimeoutMs instead of silently disabling the timeout", async function () {
+      // ensureRuntimeInstalled treats any value ≤ 0 as "no timeout" (its
+      // `installTimeoutMs > 0` gate), so a negative value passed here by
+      // mistake would silently remove hang protection. Only an explicit 0
+      // may disable; anything else negative (or NaN) must fail fast.
+      const spawner = fakeNpmSpawner({ materialize: { pngjs: "7.0.0" } });
+      for (const bad of [-5, Number.NaN]) {
+        try {
+          await installRuntime({
+            packages: ["pngjs"],
+            force: true,
+            installTimeoutMs: bad,
+            deps: { spawn: spawner, logger: () => {} },
+          });
+          throw new Error(
+            `expected installRuntime to reject for installTimeoutMs=${bad}`
+          );
+        } catch (err) {
+          expect(String(err.message)).to.match(/installTimeoutMs/);
+          expect(String(err.message)).to.match(/non-negative/);
+        }
+      }
     });
 
     it("reports installed peer companions, not just the requested package", async function () {

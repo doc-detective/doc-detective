@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "swipe",
+  "description": "Swipe (or scroll) a surface in a direction or between two points. The direction is the virtual finger's motion: swiping up moves content up, revealing content further down the page. Works on app and browser surfaces.",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/direction"
+    },
+    {
+      "$ref": "#/components/schemas/directional"
+    },
+    {
+      "$ref": "#/components/schemas/pointToPoint"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "direction": {
+        "title": "Swipe (simple)",
+        "type": "string",
+        "enum": ["up", "down", "left", "right"],
+        "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
+      },
+      "point": {
+        "title": "Point",
+        "description": "A pixel coordinate on the surface, measured from its top-left corner (0, 0).",
+        "type": "object",
+        "required": ["x", "y"],
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
+          }
+        }
+      },
+      "duration": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 500,
+        "description": "Duration of the swipe movement in milliseconds."
+      },
+      "surface": {
+        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+        "anyOf": [
+          {
+            "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
+          },
+          {
+            "$ref": "surface_v3.schema.json#/components/schemas/browser"
+          },
+          {
+            "$ref": "surface_v3.schema.json#/components/schemas/app"
+          }
+        ]
+      },
+      "directional": {
+        "title": "Swipe (directional)",
+        "type": "object",
+        "required": ["direction"],
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "$ref": "#/components/schemas/direction"
+          },
+          "distance": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1,
+            "default": 0.5,
+            "description": "How far to swipe, as a fraction of the surface's height (for up/down) or width (for left/right)."
+          },
+          "duration": {
+            "$ref": "#/components/schemas/duration"
+          },
+          "surface": {
+            "$ref": "#/components/schemas/surface"
+          }
+        }
+      },
+      "pointToPoint": {
+        "title": "Swipe (point-to-point)",
+        "type": "object",
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/point"
+          },
+          "to": {
+            "$ref": "#/components/schemas/point"
+          },
+          "duration": {
+            "$ref": "#/components/schemas/duration"
+          },
+          "surface": {
+            "$ref": "#/components/schemas/surface"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    "left",
+    {
+      "direction": "up",
+      "distance": 0.8,
+      "surface": {
+        "app": "myapp"
+      }
+    },
+    {
+      "from": {
+        "x": 200,
+        "y": 600
+      },
+      "to": {
+        "x": 200,
+        "y": 200
+      },
+      "duration": 250
+    }
+  ]
+}

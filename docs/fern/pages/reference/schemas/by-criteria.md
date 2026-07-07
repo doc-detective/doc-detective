@@ -9,6 +9,7 @@ description: "Reference for the `By criteria` schema."
 ## Referenced In
 
 - [Browser surface](/reference/schemas/browser-surface)
+- [App surface](/reference/schemas/app-surface)
 
 ## Fields
 
