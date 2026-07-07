@@ -54,7 +54,7 @@
                 "webkit",
                 "edge"
               ],
-              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
             },
             "name": {
               "type": "string",
@@ -301,7 +301,7 @@
                   "webkit",
                   "edge"
                 ],
-                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
               },
               "name": {
                 "type": "string",
@@ -674,7 +674,7 @@
                   "webkit",
                   "edge"
                 ],
-                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
               },
               "name": {
                 "type": "string",
@@ -921,7 +921,7 @@
                     "webkit",
                     "edge"
                   ],
-                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                 },
                 "name": {
                   "type": "string",
