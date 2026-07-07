@@ -1,4 +1,9 @@
-import { BROWSER_STEP_KEYS, stepTargetsAppSurface } from "./browserStepKeys.js";
+import {
+  BROWSER_STEP_KEYS,
+  stepTargetsAppSurface,
+  startSurfaceDescriptors,
+  stepOpensBrowserSurface,
+} from "./browserStepKeys.js";
 
 export type BrowserName = "chrome" | "firefox" | "safari";
 
@@ -50,6 +55,7 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
           if (flags.browser) sawBrowserStep = true;
           if (flags.screenshot) sawScreenshotStep = true;
           if (flags.recording) sawRecordingStep = true;
+          collectStartSurfaceEngines(step, browsers);
         }
       }
       for (const step of arrayOrEmpty<any>(test?.steps)) {
@@ -57,6 +63,7 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
         if (flags.browser) sawBrowserStep = true;
         if (flags.screenshot) sawScreenshotStep = true;
         if (flags.recording) sawRecordingStep = true;
+        collectStartSurfaceEngines(step, browsers);
       }
     }
   }
@@ -95,7 +102,11 @@ function arrayOrEmpty<T>(v: any): T[] {
 
 function addBrowserName(set: Set<BrowserName>, name: string): void {
   const normalized = name.toLowerCase();
-  if (normalized === "chrome" || normalized === "chromium")
+  // Edge is Chromium under the hood and rides the same chromedriver stack
+  // (context resolution rewrites edge -> chrome before the runner sees it);
+  // a startSurface `{ browser: "edge" }` descriptor must provision that same
+  // stack, so map it into the chrome bucket rather than dropping it.
+  if (normalized === "chrome" || normalized === "chromium" || normalized === "edge")
     set.add("chrome");
   else if (normalized === "firefox") set.add("firefox");
   // `webkit` is the resolved alias for `safari` (resolveContexts rewrites
@@ -104,7 +115,18 @@ function addBrowserName(set: Set<BrowserName>, name: string): void {
   // default — provisioning Chrome for a run that only wanted Safari.
   else if (normalized === "safari" || normalized === "webkit")
     set.add("safari");
-  // edge / others — ignored; runner already restricts to chrome/firefox/safari.
+  // others — ignored; runner restricts to chrome/firefox/safari.
+}
+
+// startSurface browser descriptors declare the engine they open (Phase 6) —
+// collect each so `startSurface: { browser: "firefox" }` provisions
+// geckodriver instead of falling through to the chrome default.
+function collectStartSurfaceEngines(step: any, set: Set<BrowserName>): void {
+  for (const d of startSurfaceDescriptors(step)) {
+    if (d && typeof d === "object" && typeof d.browser === "string") {
+      addBrowserName(set, d.browser);
+    }
+  }
 }
 
 function collectBrowserNamesFromRunOn(
@@ -141,5 +163,8 @@ function classifyStep(step: any): {
     if (SCREENSHOT_STEP_KEYS.has(key)) screenshot = true;
     if (RECORDING_STEP_KEYS.has(key)) recording = true;
   }
+  // A startSurface browser descriptor opens a real WebDriver session (Phase
+  // 6) — the goTo-opener sibling. App/process descriptors don't set this.
+  if (stepOpensBrowserSurface(step)) browser = true;
   return { browser, screenshot, recording };
 }

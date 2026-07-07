@@ -13,7 +13,7 @@ You can specify the target URL directly as a string, or use an object for more o
   - `url`: (Required) The URL to navigate to. Can be a full URL, a path, or a variable reference.
   - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. Overrides the global `origin` if set.
   - `params`: (Optional) Query parameters to append to the resolved URL. Merged with config-level `originParams`.
-  - `surface`: (Optional) The browser (session, window, or tab) to navigate. Omit to navigate the active tab. Naming a browser that isn't open yet opens it. `goTo` is the only action that opens browsers.
+  - `surface`: (Optional) The browser (session, window, or tab) to navigate. Omit to navigate the active tab. Naming a browser that isn't open yet opens it. To open a browser with explicit launch options (headless, window size, viewport) before navigating, use [`startSurface`](startSurface).
   - `newTab` / `newWindow`: (Optional) Open the URL in a new tab or window instead of navigating the current one. `goTo` is the only action that opens tabs and windows.
 
 > For comprehensive options, see the [`goTo`](/reference/schemas/goto) reference.

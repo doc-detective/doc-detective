@@ -9,7 +9,7 @@ description: "Reference for the `Device descriptor` schema."
 ## Referenced In
 
 - [context](/reference/schemas/context)
-- [startSurface](/reference/schemas/startsurface)
+- [App descriptor](/reference/schemas/app-descriptor)
 
 ## Fields
 

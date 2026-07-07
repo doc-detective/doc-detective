@@ -125,6 +125,58 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
   });
 
+  it("a startSurface browser descriptor requires that engine's browser stack (Phase 6)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { browser: "firefox", name: "admin" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["firefox"]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+    expect(needs.npmPackages.has("appium")).to.equal(true);
+    expect(needs.npmPackages.has("appium-geckodriver")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
+  });
+
+  it("a startSurface edge descriptor provisions the chromium stack (edge is Chromium)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { browser: "edge", name: "corp" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
+  });
+
+  it("a startSurface process descriptor needs no browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { process: "node", name: "repl" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal([]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+  });
+
+  it("a parallel startSurface array contributes each browser descriptor's engine", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        {
+          startSurface: [
+            { browser: "chrome" },
+            { app: "com.example.myapp" },
+            { process: "node", name: "repl" },
+          ],
+        },
+      ]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
+  });
+
+  it("an app-only startSurface still needs no browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { app: "C:\\Windows\\System32\\notepad.exe" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal([]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+  });
+
   it("a screenshot step adds sharp / pngjs / pixelmatch", function () {
     const needs = inferRuntimeNeeds([
       makeSpec([{ screenshot: { path: "s.png" } }]),
