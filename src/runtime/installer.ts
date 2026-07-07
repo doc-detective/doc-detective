@@ -59,16 +59,10 @@ const defaultLogger: Logger = (msg, level = "info") => {
 };
 
 /**
- * Per-npm-child wall-clock cap for bulk runtime installs. The full
- * HEAVY_NPM_DEPS batch is ~1000 packages and can legitimately outlast the
- * loader's 5-minute single-package default on slow CI runners — the
- * postinstall pre-warm's npm child was reliably killed at 5:00 there,
- * forfeiting the pre-warm and stranding the extracted packages as orphans
- * (ADR 01034 made the orphans safe; this cap stops the kill — ADR 01035).
- * Kept below the postinstall's 10-minute outer ceiling
- * (scripts/postinstall.js) so a genuinely hung npm still dies — and gets
- * reported by ensureRuntimeInstalled's timeout error — before the ceiling
- * silently tears the whole pre-warm down.
+ * Per-npm-child cap for bulk installs: the ~1000-package batch legitimately
+ * outlasts the loader's 5-minute single-package default on slow runners, and
+ * must stay under the postinstall's 10-minute outer ceiling so the
+ * diagnosable inner timeout fires first (ADR 01035).
  */
 export const BULK_INSTALL_TIMEOUT_MS = 9 * 60 * 1000;
 
@@ -78,11 +72,7 @@ export interface InstallRuntimeOptions {
   deps?: InstallerDeps;
   force?: boolean;
   dryRun?: boolean;
-  /**
-   * Wall-clock cap for each spawned npm child; defaults to
-   * BULK_INSTALL_TIMEOUT_MS (not the loader's smaller single-package
-   * default). Must be a non-negative number; pass `0` to disable.
-   */
+  /** Cap per spawned npm child; defaults to BULK_INSTALL_TIMEOUT_MS. Must be ≥ 0; `0` disables. */
   installTimeoutMs?: number;
 }
 

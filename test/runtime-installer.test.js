@@ -2,6 +2,7 @@ import {
   installRuntime,
   installBrowsers,
   status,
+  BULK_INSTALL_TIMEOUT_MS,
 } from "../dist/runtime/installer.js";
 import { resolveHeavyDepSource } from "../dist/runtime/loader.js";
 import { writeInstalledRecord } from "../dist/runtime/cacheDir.js";
@@ -116,15 +117,9 @@ describe("runtime/installer", function () {
     });
 
     it("caps each npm child with the bulk timeout and forwards installTimeoutMs overrides", async function () {
-      // The full runtime batch (~1000 packages) can legitimately outlast the
-      // loader's 5-minute single-package default on slow CI runners — the
-      // postinstall pre-warm's npm child was reliably killed at 5:00 there,
-      // forfeiting the pre-warm (ADR 01034 made the resulting orphans safe;
-      // ADR 01035 stops the kill). installRuntime must own a larger bulk
-      // default and forward installTimeoutMs to its npm children. A hanging
-      // child plus a tiny override proves the plumbing end-to-end without
-      // waiting minutes: if the option is NOT forwarded, the loader falls
-      // back to its 5-minute default and this test times out instead.
+      // A hanging child + tiny override proves the plumbing end-to-end: if the
+      // option is NOT forwarded, the loader falls back to its 5-minute default
+      // and this test times out instead (rationale in ADR 01035).
       const hangingSpawner = () => {
         const child = new EventEmitter();
         child.stdout = new EventEmitter();
@@ -144,9 +139,8 @@ describe("runtime/installer", function () {
       }
     });
 
-    it("defaults the bulk npm-child timeout to 9 minutes — above the loader's 5-minute single-package default, below the postinstall's 10-minute outer ceiling", async function () {
-      const installer = await import("../dist/runtime/installer.js");
-      expect(installer.BULK_INSTALL_TIMEOUT_MS).to.equal(9 * 60 * 1000);
+    it("defaults the bulk npm-child timeout to 9 minutes — above the loader's 5-minute single-package default, below the postinstall's 10-minute outer ceiling", function () {
+      expect(BULK_INSTALL_TIMEOUT_MS).to.equal(9 * 60 * 1000);
     });
 
     it("rejects a negative installTimeoutMs instead of silently disabling the timeout", async function () {
