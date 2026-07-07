@@ -448,7 +448,10 @@ async function resolveAppWindowRect(
 // input stream line (e.g. "Stream #0:0: Video: bmp, bgra, 2560x1440, …") is
 // printed once, early, by every capture backend (gdigrab / avfoundation /
 // x11grab). The first match is the input stream — the output stream line
-// prints later. Pure parse; callers accumulate stderr and stash the first hit.
+// prints later. The 3-digit lower bound on each dimension keeps digit runs
+// inside fourcc/hex tokens (e.g. "0x59565955") and small numeric fields from
+// matching; real display captures are never narrower than 100px. Pure parse;
+// callers accumulate stderr and stash the first hit.
 function parseCaptureFrameSize(
   stderr: string
 ): { w: number; h: number } | null {

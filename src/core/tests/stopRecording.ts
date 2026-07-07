@@ -266,7 +266,8 @@ async function stopRecording({
             displayPointSize,
           });
         } catch {
-          scale = 1;
+          // A probe failure keeps the initial scale of 1 — today's behavior,
+          // correct on scale-1 displays.
         }
         crop = {
           x: Math.round(recording.cropRect.x * scale),
@@ -297,7 +298,20 @@ async function stopRecording({
         dropHandle();
         return result;
       }
-      const buffer = Buffer.from(b64, "base64");
+      // The whole video arrives in one base64 string; a very long recording
+      // (the drivers cap at 30 minutes) can make this allocation fail. Name
+      // the cause instead of surfacing a bare out-of-memory error.
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(b64, "base64");
+      } catch (error: any) {
+        result.status = "FAIL";
+        result.description = `Couldn't buffer the device recording (${Math.round(
+          b64.length / 1024 / 1024
+        )} MB base64) — device recordings transfer in one payload, so long recordings can exhaust memory. Keep device recordings short (they cap at 30 minutes). ${error?.message ?? error}`;
+        dropHandle();
+        return result;
+      }
       if (path.extname(recording.targetPath) === ".mp4") {
         fs.writeFileSync(recording.targetPath, buffer);
       } else {

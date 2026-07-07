@@ -99,7 +99,10 @@ async function startRecording({
         return result;
       }
       if (appRef.window !== undefined) {
-        result.status = "FAIL";
+        // SKIPPED (not FAIL), matching this function's other
+        // unsupported-combination guards. Note: screenshot/find still FAIL on
+        // app window selectors — aligning them is a follow-up.
+        result.status = "SKIPPED";
         result.description =
           "Window selectors on app recordings land in a later part of this phase; the recording crops to the app's active window (omit `window`).";
         return result;

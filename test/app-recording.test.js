@@ -80,7 +80,10 @@ describe("startRecording: app surfaces (desktop)", function () {
     assert.match(result.description, /No app surface named "ghost"/);
   });
 
-  it("FAILs on a window selector (not supported on app recordings)", async function () {
+  it("SKIPs a window selector with guidance (not supported on app recordings)", async function () {
+    // SKIPPED, not FAIL: consistent with every other unsupported-combination
+    // guard in startRecording (viewport-on-app, browser-engine-on-app,
+    // desktop engines on mobile).
     const appSession = makeAppSession({
       surfaces: [
         { name: "notepad", appId: "notepad.exe", driver: {}, platform: "windows" },
@@ -99,7 +102,7 @@ describe("startRecording: app surfaces (desktop)", function () {
       driver: undefined,
       appSession,
     });
-    assert.equal(result.status, "FAIL");
+    assert.equal(result.status, "SKIPPED");
     assert.match(result.description, /[Ww]indow selectors on app recordings/);
   });
 

@@ -39,7 +39,7 @@ Set `engine` as a string to select an engine with its defaults (for example, `"e
 - `target`: (Optional, `ffmpeg` only) What the engine captures. Use `display` to record the full screen, `window` to record the active window, or `viewport` to record the browser content area. If unset, the target defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. The `window` and `viewport` targets are best-effort: FFmpeg captures the full screen and then crops the result. The `browser` engine ignores this field and always captures its tab.
 - `fps`: (Optional, `ffmpeg` only) The capture frame rate (default: `30`).
 
-On Android and iOS contexts, `engine` doesn't apply: Doc Detective records the device screen through the device itself. See [Recording on mobile devices](#recording-on-mobile-devices).
+On Android and iOS contexts, `engine` doesn't apply. Doc Detective records the device screen through the device itself. See [Recording on mobile devices](#recording-on-mobile-devices).
 
 **Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
 
@@ -60,22 +60,22 @@ A `record` step can target a native app surface opened by [`startSurface`](/docs
 }
 ```
 
-App-surface recordings use the `ffmpeg` engine with a `window` target by default: FFmpeg captures the full display, and when the recording stops, Doc Detective crops the video to the app's window — including on scaled (HiDPI/Retina) displays, where the crop is scaled to match the capture's physical pixels. Set `engine: { "name": "ffmpeg", "target": "display" }` to keep the full display instead. The `viewport` target is the browser content area, so it doesn't apply to app surfaces — a record step that combines them is skipped with guidance, as is the `browser` engine (it records a Chrome tab, not a native window).
+App-surface recordings use the `ffmpeg` engine with a `window` target by default. FFmpeg captures the full display, and when the recording stops, Doc Detective crops the video to the app's window—including on scaled (HiDPI/Retina) displays, where Doc Detective scales the crop to match the capture's physical pixels. Set `engine: { "name": "ffmpeg", "target": "display" }` to keep the full display instead. The `viewport` target is the browser content area, so it doesn't apply to app surfaces—Doc Detective skips a record step that combines them and explains why, and does the same for the `browser` engine (it records a Chrome tab, not a native window).
 
 App-surface recordings join the same display serialization as other FFmpeg recordings, and the same overlapping/named-stop rules apply.
 
 <Note>
-Desktop screen capture records whatever is visible in the captured region. If another window overlaps the app during the recording, it appears in the video — Doc Detective doesn't hide or minimize other windows. On a dedicated CI runner this rarely matters; on a shared desktop, keep the recorded app in the foreground.
+Desktop screen capture records whatever is visible in the captured region. If another window overlaps the app during the recording, it appears in the video—Doc Detective doesn't hide or minimize other windows. On a dedicated CI runner this rarely matters. On a shared desktop, keep the recorded app in the foreground.
 </Note>
 
 ## Recording on mobile devices
 
-On Android and iOS contexts, recordings capture the **device screen** through the device itself (Android's screen recorder, the iOS simulator's recorder) — no host display is involved. This means:
+On Android and iOS contexts, recordings capture the **device screen** through the device itself (Android's screen recorder, the iOS simulator's recorder) without touching the host display. This means:
 
-- Omit `engine` — it doesn't apply, and an explicit `browser` or `ffmpeg` engine on a mobile context is skipped with guidance.
+- Omit `engine`. It doesn't apply, and Doc Detective skips an explicit `browser` or `ffmpeg` engine on a mobile context with guidance.
 - Mobile recordings run under full concurrency. They never serialize with FFmpeg recordings or other browser tests, because they don't touch the shared display.
 - The recording is the whole device screen; there's no window cropping to configure.
-- All output formats work: `.mp4` is saved directly, `.webm` and `.gif` are converted after the recording stops.
+- All output formats work: Doc Detective saves `.mp4` directly and converts `.webm` and `.gif` after the recording stops.
 - One recording can run per device at a time, and a single recording caps at 30 minutes.
 
 ```json
@@ -102,7 +102,7 @@ When two recordings overlap and both would use the `browser` engine, the second 
 
 ## Automatic recordings
 
-To record every driver-based test context from start to finish — browser, native app, and mobile contexts alike — enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
+To record every driver-based test context from start to finish—browser, native app, and mobile contexts alike—enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
 
 - Building a video archive of every run
 - Replaying exactly what happened when a test fails
@@ -125,7 +125,7 @@ doc-detective --auto-record
 
 Use `--no-auto-record` to override a config file that enables it.
 
-Automatic recordings wrap the whole context: recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine; in an app-only context the capture starts full-display and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, so the same context lands on the same relative path in every run's folder:
+Automatic recordings wrap the whole context: recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, so the same context lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/runs/<runId>/
@@ -343,7 +343,7 @@ Captures a full session while also recording a shorter clip of one step, stoppin
 
 ### Recording a native app window
 
-Records the Notepad app surface, cropped to its window (the default for app surfaces). On an Android or iOS context, the same step shape records the device screen instead.
+Records the app's window (the default crop for app surfaces). On an Android or iOS context, the same step shape records the device screen instead.
 
 ```json
 {
