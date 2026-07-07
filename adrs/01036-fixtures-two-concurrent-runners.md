@@ -41,6 +41,31 @@ Two problems follow:
 * **B. Leave fixtures at `1`; rely on the mocha suite alone for concurrency coverage.**
 * **C. Set `concurrentRunners: true`** (CPU-core count, capped at 4).
 
+## Pros and Cons of the Options
+
+### A. Set `concurrentRunners: 2` in `config.groups.json`
+
+* Good — smallest change; one lever covers every fixture leg (Action-driven and
+  `runTests`-driven) and every OS with no per-job edit.
+* Good — deterministic (a fixed `2`, not runner-CPU-dependent), so coverage is reproducible across OSes.
+* Good — surfaces latent concurrency-only defects as fixture FAILUREs instead of letting them escape to
+  users (the intended signal).
+* Neutral — `2` is enough to shake out shared-resource contention without maximizing throughput.
+
+### B. Leave fixtures at `1`; rely on the mocha suite alone for concurrency coverage
+
+* Good — zero risk; no change.
+* Bad — leaves a blind spot: concurrency defects that only manifest in real end-to-end fixture runs
+  (shared display/driver contention, session bleed) stay invisible until a user hits them.
+
+### C. Set `concurrentRunners: true` (CPU-core count, capped at 4)
+
+* Good — maximizes throughput on wider runners.
+* Bad — the degree of parallelism varies by runner CPU count, so coverage is non-deterministic and
+  uneven across OSes.
+* Bad — widens the concurrency surface more than needed for a first step; `2` already exercises the
+  `> 1` path.
+
 ## Decision Outcome
 
 Chosen option: **A**. It is the smallest change that makes every fixture group exercise the `> 1` scheduler
