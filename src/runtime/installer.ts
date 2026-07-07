@@ -81,7 +81,7 @@ export interface InstallRuntimeOptions {
   /**
    * Wall-clock cap for each spawned npm child; defaults to
    * BULK_INSTALL_TIMEOUT_MS (not the loader's smaller single-package
-   * default). Pass `0` to disable.
+   * default). Must be a non-negative number; pass `0` to disable.
    */
   installTimeoutMs?: number;
 }
@@ -103,6 +103,15 @@ export async function installRuntime(
     dryRun = false,
     installTimeoutMs = BULK_INSTALL_TIMEOUT_MS,
   } = options;
+  // ensureRuntimeInstalled treats any value ≤ 0 as "no timeout" (its
+  // `installTimeoutMs > 0` gate), so a negative/NaN value passed here by
+  // mistake would silently remove hang protection. Only an explicit 0 may
+  // disable; reject everything else that isn't a non-negative finite number.
+  if (!Number.isFinite(installTimeoutMs) || installTimeoutMs < 0) {
+    throw new Error(
+      `installTimeoutMs must be a non-negative number of milliseconds (0 disables the timeout); got ${installTimeoutMs}.`
+    );
+  }
   const logger = deps.logger ?? defaultLogger;
   const targets = packages && packages.length > 0
     ? packages

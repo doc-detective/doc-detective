@@ -149,6 +149,30 @@ describe("runtime/installer", function () {
       expect(installer.BULK_INSTALL_TIMEOUT_MS).to.equal(9 * 60 * 1000);
     });
 
+    it("rejects a negative installTimeoutMs instead of silently disabling the timeout", async function () {
+      // ensureRuntimeInstalled treats any value ≤ 0 as "no timeout" (its
+      // `installTimeoutMs > 0` gate), so a negative value passed here by
+      // mistake would silently remove hang protection. Only an explicit 0
+      // may disable; anything else negative (or NaN) must fail fast.
+      const spawner = fakeNpmSpawner({ materialize: { pngjs: "7.0.0" } });
+      for (const bad of [-5, Number.NaN]) {
+        try {
+          await installRuntime({
+            packages: ["pngjs"],
+            force: true,
+            installTimeoutMs: bad,
+            deps: { spawn: spawner, logger: () => {} },
+          });
+          throw new Error(
+            `expected installRuntime to reject for installTimeoutMs=${bad}`
+          );
+        } catch (err) {
+          expect(String(err.message)).to.match(/installTimeoutMs/);
+          expect(String(err.message)).to.match(/non-negative/);
+        }
+      }
+    });
+
     it("reports installed peer companions, not just the requested package", async function () {
       // @puppeteer/browsers pulls in proxy-agent; the install report must list
       // both so it matches what was actually installed (and the dry-run).
