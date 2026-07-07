@@ -2,6 +2,7 @@ import {
   HEAVY_NPM_DEPS,
   getDeclaredVersion,
   resolveDeclaredVersion,
+  resolveManagedDepNames,
   withPeerCompanions,
   RUNTIME_PEER_COMPANIONS,
 } from "../dist/runtime/heavyDeps.js";
@@ -89,6 +90,34 @@ describe("runtime/heavyDeps", function () {
           expect(getDeclaredVersion(c), `${c} declared version`).to.be.a("string");
         }
       }
+    });
+  });
+
+  describe("resolveManagedDepNames", function () {
+    it("unions HEAVY_NPM_DEPS with ddRuntimeDependencies and optionalDependencies keys, plus peer companions", function () {
+      const pkg = {
+        ddRuntimeDependencies: { "appium-novawindows-driver": "^1.4.1" },
+        optionalDependencies: { webdriverio: "^9.0.0" },
+        dependencies: { lodash: "^4.17.21" },
+      };
+      const out = resolveManagedDepNames(pkg);
+      // The loader's own list…
+      for (const name of HEAVY_NPM_DEPS) expect(out).to.include(name);
+      // …plus everything the shim declares as a runtime install source —
+      // app-surface drivers live only in ddRuntimeDependencies.
+      expect(out).to.include("appium-novawindows-driver");
+      expect(out).to.include("webdriverio");
+      // …plus peer companions of the union.
+      expect(out).to.include("proxy-agent");
+      // Regular `dependencies` are EXCLUDED: their names can collide with
+      // transitives hoisted into the cache, and sweeping them would promote
+      // a hoisted transitive to a direct dependency.
+      expect(out).to.not.include("lodash");
+    });
+
+    it("tolerates a manifest with none of the runtime fields", function () {
+      const out = resolveManagedDepNames({});
+      for (const name of HEAVY_NPM_DEPS) expect(out).to.include(name);
     });
   });
 

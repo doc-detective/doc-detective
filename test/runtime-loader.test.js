@@ -463,6 +463,53 @@ describe("runtime/loader", function () {
       expect(deps).to.not.have.property("@homebridge/node-pty-prebuilt-multiarch");
     });
 
+    it("sweeps orphans declared only in ddRuntimeDependencies (app-surface drivers), not just HEAVY_NPM_DEPS", async function () {
+      // The app-surface preflights JIT-install drivers that are declared in
+      // package.json#ddRuntimeDependencies but are NOT in HEAVY_NPM_DEPS
+      // (appium-novawindows-driver, appium-mac2-driver,
+      // appium-uiautomator2-driver). An interrupted install of one of those
+      // leaves the same kind of unrecorded on-disk orphan — the sweep list
+      // must cover the full declared universe, not only the loader's own
+      // constant.
+      const runtimeDir = getRuntimeDir({});
+      const orphan = path.join(
+        runtimeDir,
+        "node_modules",
+        "appium-novawindows-driver"
+      );
+      fs.mkdirSync(orphan, { recursive: true });
+      fs.writeFileSync(
+        path.join(orphan, "package.json"),
+        JSON.stringify({ name: "appium-novawindows-driver", version: "1.4.1" })
+      );
+
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: {
+          spawn: makeFakeSpawner({
+            onSpawn: ({ args }) => {
+              const prefix = args[args.indexOf("--prefix") + 1];
+              const target = path.join(prefix, "node_modules", "pngjs");
+              fs.mkdirSync(target, { recursive: true });
+              fs.writeFileSync(
+                path.join(target, "package.json"),
+                JSON.stringify({ name: "pngjs", version: "7.0.0" })
+              );
+            },
+          }),
+          logger: () => {},
+        },
+        force: true,
+      });
+
+      const deps = JSON.parse(
+        fs.readFileSync(path.join(runtimeDir, "package.json"), "utf8")
+      ).dependencies;
+      const shimPkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+      expect(deps["appium-novawindows-driver"]).to.equal(
+        shimPkg.ddRuntimeDependencies["appium-novawindows-driver"]
+      );
+    });
+
     it("drops npm deprecation/funding noise from install output but keeps real lines", async function () {
       // Even a verbose-style logger (records every level) must not see the
       // scary deprecation/funding noise — only the loader's filtered output.

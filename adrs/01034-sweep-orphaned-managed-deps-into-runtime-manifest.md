@@ -58,8 +58,8 @@ job, a crash mid-batch, or a `Ctrl+C` during first-run install. This is the rema
 ## Considered Options
 
 1. **Extend `recordRuntimeDependencies`' candidate set with the shim's full managed-dep universe**
-   (`HEAVY_NPM_DEPS` + peer companions), relying on the existing physical-presence filter to keep
-   only what is actually on disk.
+   (every name the shim declares as a runtime install source, plus peer companions), relying on
+   the existing physical-presence filter to keep only what is actually on disk.
 2. Record the requested specs in a `finally` block when an install batch fails, so a killed batch
    still records what it managed to extract.
 3. Scan `node_modules` top-level directories and record everything found.
@@ -69,10 +69,17 @@ job, a crash mid-batch, or a `Ctrl+C` during first-run install. This is the rema
 ## Decision Outcome
 
 Chosen option: **1 — sweep the managed-dep universe**. `managedDepNames()` (new export in
-[src/runtime/heavyDeps.ts](../src/runtime/heavyDeps.ts)) returns `HEAVY_NPM_DEPS` expanded with
-peer companions; `recordRuntimeDependencies` adds these names to its candidate set. The existing
-rules do the rest: only names with `node_modules/<name>/package.json` on disk are recorded, ranges
-come from the shim's declared constraint, and recording stays best-effort.
+[src/runtime/heavyDeps.ts](../src/runtime/heavyDeps.ts)) returns the union of `HEAVY_NPM_DEPS`
+and the keys of the shim manifest's `ddRuntimeDependencies` / `optionalDependencies` fields,
+expanded with peer companions. The manifest fields matter: the app-surface drivers
+(appium-novawindows-driver, appium-mac2-driver, appium-uiautomator2-driver) are JIT-installed by
+the platform preflights but declared **only** there, not in `HEAVY_NPM_DEPS` (gap flagged by
+Copilot in review). The manifest's regular `dependencies` field is deliberately excluded: its
+names can collide with transitives hoisted into the cache, and sweeping them would promote a
+hoisted transitive to a direct dependency. `recordRuntimeDependencies` adds these names to its
+candidate set. The existing rules do the rest: only names with
+`node_modules/<name>/package.json` on disk are recorded, ranges come from the shim's declared
+constraint, and recording stays best-effort.
 
 Every orphan a doc-detective install can create is by construction a shim-declared name (install
 specs come from `getDeclaredVersion`), so the universe sweep covers exactly the gap. Because the
@@ -93,7 +100,7 @@ prevent. Timeout tuning for the bulk path remains available as an independent la
   eliminated at the root.
 * Good: hard-kill scenarios (OOM, cancelled job) are covered with no extra bookkeeping at failure
   time.
-* Neutral: up to ~15 extra `existsSync` probes per install (the universe is small and static).
+* Neutral: up to ~25 extra `existsSync` probes per install (the universe is small).
 * Neutral: a *partially extracted* orphan (killed mid-package, `package.json` present but files
   missing) is recorded and included in the next ideal tree; npm's reify validates and repairs it.
 
@@ -115,8 +122,9 @@ prevent. Timeout tuning for the bulk path remains available as an independent la
 * Good: covers every interruption class, including hard kills, with one code path.
 * Good: reuses the presence filter, so no-resurrection and managed-set invariants hold by
   construction.
-* Bad: the universe is compile-time static; a legacy orphan the current shim no longer declares is
-  not swept (already covered by the `installed.json` candidate source in practice).
+* Bad: the universe is the *current* shim's declared set; a legacy orphan the current shim no
+  longer declares is not swept (already covered by the `installed.json` candidate source in
+  practice).
 
 ### Option 2 — record on failure in `finally`
 
