@@ -117,8 +117,10 @@ overlapping windows inside the crop; documented as a known limitation.
   memory; documented.
 - Trade-off: only one device recording can run per device at a time
   (screenrecord is single-instance) — overlap/LIFO permutations are
-  desktop-only; a second overlapping device record FAILs with the driver's
-  message.
+  desktop-only; a second overlapping device record on the same device SKIPs
+  with guidance before touching the driver (review round: the guard keeps
+  the driver's single-instance limit from restarting or rejecting the
+  active recording).
 - Trade-off: the macOS point-size probe assumes the capture targets the main
   screen; multi-display setups with per-display scale factors may still
   mis-scale (documented limitation).
