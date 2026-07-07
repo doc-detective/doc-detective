@@ -1,5 +1,5 @@
 # A deterministic two-window Win32 test app for the window-selector fixtures
-# (ADR 01036) — the app-surface counterpart of the purpose-built pages under
+# (ADR 01036) - the app-surface counterpart of the purpose-built pages under
 # test/server/public. Real System32 dialog apps all carry confounders:
 # odbcad32/osk/eudcedit have highestAvailable/uiAccess manifests (demand
 # elevation for admin users), dxdiag gates its buttons behind a hardware scan
