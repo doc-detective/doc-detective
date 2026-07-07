@@ -401,6 +401,38 @@ describe("jobDisplayResources", function () {
     expect(jobDisplayResources(browserJob, ctx)).to.deep.equal([]);
   });
 
+  it("takes nothing for a desktop (mac) browser context — desktop browsers parallelize", function () {
+    // A plain desktop firefox/chrome context on a native app-driver platform
+    // drives no simulator/native driver, so it must STILL run in parallel — the
+    // native-app-driver bound is only for contexts that boot the shared native
+    // driver (mac/windows require an app driver; ios boots the sim for web too).
+    const macBrowserJob = {
+      context: {
+        platform: "mac",
+        browser: { name: "firefox" },
+        steps: [{ goTo: "https://example.com" }],
+      },
+    };
+    expect(jobDisplayResources(macBrowserJob, ctx)).to.deep.equal([]);
+  });
+
+  it("tags an iOS mobile-web (Safari) context with 'native-app-driver'", function () {
+    // A Safari-on-iOS-simulator BROWSER context (isAppDriverRequired == false)
+    // still boots the single per-host iOS simulator/WDA, so two of them clobber
+    // each other's session the same way native app contexts do. It must take
+    // the resource despite having no app step.
+    const iosWebJob = {
+      context: {
+        platform: "ios",
+        browser: { name: "safari" },
+        steps: [{ goTo: "https://example.com" }],
+      },
+    };
+    expect(jobDisplayResources(iosWebJob, ctx)).to.deep.equal([
+      "native-app-driver",
+    ]);
+  });
+
   it("takes nothing for a mixed app+web mobile context (gate SKIPs it)", function () {
     // On a mobile platform, mixing native app + browser steps deterministically
     // SKIPs (mobileBrowserGate), so it drives no native app and must not

@@ -458,24 +458,39 @@ function jobDisplayResources(
       hasBrowserStep: isBrowserRequired({ test: job.context }),
       hasAppStep: isAppDriverRequired({ test: job.context }),
     }).action === "proceed";
-  // Non-android native app-driver contexts (macOS Mac2, Windows, iOS/xcuitest
-  // simulators) share a per-host native driver server that two concurrent
-  // sessions clobber (a proxied step fails because the driver "process is not
-  // running (probably crashed)"). Serialize them against each other on one
-  // exclusive resource — the non-android sibling of the android-emulator bound
-  // (extending ADR 01001 the way ADR 01025 did for emulators). Android already
-  // has its own bound above, so it's excluded here (never double-tagged). As
-  // with attemptsEmulator, only a context that will actually drive a native app
-  // takes the resource: it must need an app driver, sit on a native app-driver
-  // platform, and — for mobile platforms where mixing native app + browser
-  // steps deterministically SKIPs — clear the mobile browser gate, so a
-  // SKIP/FAIL context boots nothing and never needlessly serializes other jobs.
+  // Non-android native app-driver contexts share a per-host driver stack that
+  // two concurrent sessions clobber (a proxied step fails because the driver
+  // "process is not running (probably crashed)" / "Session does not exist" /
+  // ECONNREFUSED to WebDriverAgent on :8100). Serialize them against each other
+  // on one exclusive resource — the non-android sibling of the android-emulator
+  // bound (extending ADR 01001 the way ADR 01025 did for emulators). Android
+  // already has its own bound above, so it's excluded here (never double-tagged).
+  //
+  // Which contexts contend depends on the platform:
+  //   - macOS Mac2 / Windows: only contexts that drive a NATIVE APP contend —
+  //     the driver launches the app under test, but a plain desktop browser
+  //     (firefox/chrome) uses a separate browser session and must STILL
+  //     parallelize. So these require isAppDriverRequired.
+  //   - iOS: the single per-host iOS simulator + WebDriverAgent is shared by
+  //     BOTH native-app (xcuitest) AND mobile-web (Safari-on-sim) contexts, so
+  //     two of EITHER kind clobber each other. So an ios context contends
+  //     whether or not it has an app step (mobile-web-ios failed the same way
+  //     apps-ios did under concurrency).
+  // As with attemptsEmulator, the context must also clear the mobile browser
+  // gate, so a context that deterministically SKIPs/FAILs (mixed app+web on
+  // mobile, unsupported browser, device-fixed config) boots nothing and never
+  // needlessly serializes other jobs.
+  const platform = job.context?.platform;
+  const contendsForNativeDriver =
+    platform === "ios"
+      ? true // any ios context boots the shared simulator (app OR web)
+      : isAppDriverRequired({ test: job.context }); // mac/windows: app only
   const attemptsNativeAppDriver =
-    job.context?.platform !== "android" &&
-    NATIVE_APP_DRIVER_PLATFORMS.includes(job.context?.platform) &&
-    isAppDriverRequired({ test: job.context }) &&
+    platform !== "android" &&
+    NATIVE_APP_DRIVER_PLATFORMS.includes(platform) &&
+    contendsForNativeDriver &&
     mobileBrowserGate({
-      platform: job.context?.platform,
+      platform,
       browser: job.context?.browser,
       hasBrowserStep: isBrowserRequired({ test: job.context }),
       hasAppStep: isAppDriverRequired({ test: job.context }),
