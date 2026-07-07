@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": "../env"
+        },
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "goTo": {
+            "url": "/enhanced-elements.html",
+            "origin": "http://localhost:8092"
+          }
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "goTo": {
+            "url": "/enhanced-elements.html",
+            "origin": "$URL"
+          }
+        }
+      ]
+    }
+  ]
+}

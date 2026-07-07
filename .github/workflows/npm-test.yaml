@@ -12,8 +12,25 @@ on:
       - opened
       - reopened
       - synchronize
-    paths-ignore:
-      - 'docs/**'
+    # Run the full matrix when product code, tests, or the build/dependency
+    # inputs change. `test/**` is included so a PR that only adds or edits tests
+    # (e.g. coverage tests, fixtures) is actually exercised on every OS before
+    # merge — previously those PRs silently skipped the matrix and the
+    # coverage-merge ratchet, and had to be verified via `workflow_dispatch`.
+    # `coverage-thresholds.json` is included so a ratchet re-baseline is verified
+    # against the union too. `src/**` also covers the doc-detective-common
+    # workspace (src/common). Docs-only / samples-only PRs still skip; use
+    # `workflow_dispatch` on demand for those.
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'coverage-thresholds.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'bin/**'
+      - 'scripts/**'
+      - '.github/workflows/npm-test.yaml'
+      - '.github/workflows/test.yml'
   workflow_dispatch:
 
 concurrency:
@@ -24,6 +41,8 @@ permissions:
   contents: read
 
 jobs:
+  # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
+  # of the *.spec.json fixtures no longer run here — see the `fixtures` job.
   test:
     uses: ./.github/workflows/test.yml
     secrets:
@@ -33,3 +52,8 @@ jobs:
       HERETTO_ORG_ID: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_ORG_ID || '' }}
       HERETTO_USERNAME: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_USERNAME || '' }}
       HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
+
+  # Per-feature Doc Detective fixtures, fanned out one small job per (group x OS)
+  # so no single job is a 90-minute monolith. Runs the PR's own build.
+  fixtures:
+    uses: ./.github/workflows/fixtures.yml

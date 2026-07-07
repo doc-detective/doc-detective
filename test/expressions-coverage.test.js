@@ -195,16 +195,64 @@ describe("expressions coverage: resolveEmbeddedExpressions branches", function (
 
   // An embedded jq() whose query string is invalid (but quoted, so the inner
   // expression is still syntactically valid JS — exercising jq's error path, not
-  // a JS SyntaxError). The inner resolveExpression catches the jq failure and
-  // returns its original pre-substitution expression string (so $$d stays
-  // unexpanded), which the embedded loop renders in place — deterministic, no
-  // crash. Asserts the exact output, not a prefix.
-  it("an embedded jq with an invalid query renders the sub-expression verbatim", async function () {
+  // a JS SyntaxError). On failure the embedded loop preserves the author's
+  // ORIGINAL {{...}} text rather than leaking the half-resolved internal
+  // sub-expression (#423/#424). Asserts the exact output, not a prefix.
+  it("an embedded jq with an invalid query preserves the original {{...}}", async function () {
     const r = await resolveExpression({
       expression: 'r={{jq($$d, "@@@invalid")}}',
       context: { d: { a: 1 } },
     });
-    assert.equal(r, 'r=jq($$d, "@@@invalid")');
+    assert.equal(r, 'r={{jq($$d, "@@@invalid")}}');
+  });
+
+  // A failed embedded expression must not disturb the surrounding literal text
+  // or any sibling expressions that DO resolve. Only the failing {{...}} is
+  // preserved verbatim; the good one still resolves.
+  it("a failed embedded expression is preserved while a sibling still resolves", async function () {
+    const r = await resolveExpression({
+      expression: 'ok={{$$n}} bad={{jq($$d, "@@@invalid")}}',
+      context: { n: 5, d: { a: 1 } },
+    });
+    assert.equal(r, 'ok=5 bad={{jq($$d, "@@@invalid")}}');
+  });
+
+  // An embedded expression whose evaluation yields `undefined` (a synchronous
+  // SyntaxError inside evaluateExpression, e.g. the malformed operator call
+  // `jq(`) is rendered as an empty string — the undefined/null embedded branch.
+  // Unlike an async jq REJECTION (which propagates and preserves {{...}}), a sync
+  // eval error resolves to undefined without throwing, so it renders empty.
+  it("an embedded expression evaluating to undefined renders empty", async function () {
+    const r = await resolveExpression({
+      expression: "a={{jq(}}",
+      context: {},
+    });
+    assert.equal(r, "a=");
+  });
+});
+
+describe("expressions coverage: interpolation/variables happy path stays byte-identical (#424)", function () {
+  // The design roadmap pins the default (non-condition) path: a value containing
+  // operator-like text must resolve to its LITERAL string, and an unresolved
+  // $$token must pass through as a literal — the error contract change must not
+  // regress either. These are the byte-identical guarantees for step.variables.
+  it("operator-like literal resolves to itself (no operators active off the condition path)", async function () {
+    assert.equal(
+      await resolveExpression({ expression: "x > out.txt", context: {} }),
+      "x > out.txt"
+    );
+  });
+  it("an unresolved $$token passes through as a literal", async function () {
+    assert.equal(
+      await resolveExpression({ expression: "value=$$missing", context: {} }),
+      "value=$$missing"
+    );
+  });
+  it("a resolved $$token still interpolates normally", async function () {
+    assert.equal(
+      await resolveExpression({ expression: "value=$$here", context: { here: "ok" } }),
+      "value=ok"
+    );
   });
 });
 

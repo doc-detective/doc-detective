@@ -558,16 +558,26 @@ describe("resolveSurface", function () {
     assert.deepEqual(resolveSurface({ process: "repl" }), {
       kind: "process",
       name: "repl",
+      explicit: true,
     });
   });
 
-  it("flags a reserved browser engine keyword as unsupported", function () {
-    assert.equal(resolveSurface("chrome").kind, "unsupported");
-    assert.equal(resolveSurface("firefox").kind, "unsupported");
+  it("resolves a reserved browser engine keyword to a browser surface (Phase 3)", function () {
+    assert.equal(resolveSurface("chrome").kind, "browser");
+    assert.equal(resolveSurface("chrome").engine, "chrome");
+    assert.equal(resolveSurface("firefox").kind, "browser");
   });
 
-  it("flags a non-process object as unsupported", function () {
-    assert.equal(resolveSurface({ browser: "chrome" }).kind, "unsupported");
+  it("resolves a browser object to a browser surface (Phase 3)", function () {
+    assert.equal(resolveSurface({ browser: "chrome" }).kind, "browser");
+    assert.equal(
+      resolveSurface({ browser: "chrome", tab: "cart" }).tab,
+      "cart"
+    );
+  });
+
+  it("flags an unknown surface object kind as unsupported", function () {
+    assert.equal(resolveSurface({ app: "calc" }).kind, "unsupported");
   });
 
   it("returns none for an absent surface", function () {
@@ -702,6 +712,29 @@ describe("runShell/runCode background (integration)", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /already running/);
+  });
+
+  it("runShell fails when the name is already an open browser surface", async function () {
+    // Cross-kind uniqueness (Phase 4): a process can't reuse a browser
+    // surface's name, or a bare-string surface would route to the browser.
+    const registry = new Map();
+    const driver = {
+      state: { sessionRegistry: { sessions: new Map([["web", {}]]) } },
+    };
+    const result = await runShell({
+      config: {},
+      step: {
+        runShell: {
+          command: "echo hi",
+          background: { name: "web", waitUntil: { delayMs: 10 } },
+        },
+      },
+      driver,
+      processRegistry: registry,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /browser surface named "web"/);
+    assert.equal(registry.has("web"), false);
   });
 
   it("runShell fails and deregisters when readiness times out", async function () {

@@ -185,6 +185,12 @@ async function processDitaMap({ config, source }: { config: any; source: string 
     return null;
   }
 
+  // Past the version guard: the `dita` CLI (Apache DITA-OT) is present and is
+  // invoked to transform the map. This success path shells out to a real
+  // external tool that isn't installed in the hermetic test env (the version
+  // guard above returns first there), so it can't be exercised offline — its
+  // outcome branches are covered only in an environment with DITA-OT (ADR 01017).
+  /* c8 ignore start */
   log(config, "info", `Processing DITA map: ${source}`);
   const ditaOutputDir = await spawnCommand("dita", [
     "-i",
@@ -199,6 +205,7 @@ async function processDitaMap({ config, source }: { config: any; source: string 
     return null;
   }
   return outputDir;
+  /* c8 ignore stop */
 }
 
 /**
@@ -264,6 +271,11 @@ async function qualifyFiles({ config }: { config: any }) {
         continue;
       }
 
+      // First-load branch: fetch+export the Heretto scenario over the network
+      // (loadHerettoContent hits the Heretto API). Not reproducible offline;
+      // the hermetic tests cover the no-integration and outputPath-reuse paths
+      // instead (ADR 01017).
+      /* c8 ignore start */
       if (!herettoConfig.outputPath) {
         try {
           const outputPath = await loadHerettoContent(herettoConfig, log, config);
@@ -278,6 +290,7 @@ async function qualifyFiles({ config }: { config: any }) {
         } catch (error: any) {
           log(config, "warning", `Failed to load Heretto content from "${herettoName}": ${error.message}`);
         }
+        /* c8 ignore stop */
       } else {
         config._herettoPathMapping[herettoConfig.outputPath] = herettoName;
         if (!ignoredDitaMaps.includes(herettoConfig.outputPath)) {
@@ -289,7 +302,11 @@ async function qualifyFiles({ config }: { config: any }) {
             phase,
           });
         }
-        // Hydrate resourceDependencies for uploadOnChange on reuse runs
+        // Hydrate resourceDependencies for uploadOnChange on reuse runs. This
+        // fans out to the Heretto API (createApiClient/findScenario/
+        // getResourceDependencies) — a network path not reproducible offline
+        // (ADR 01017).
+        /* c8 ignore start */
         if (herettoConfig.uploadOnChange && !herettoConfig.resourceDependencies) {
           try {
             const client = createApiClient(herettoConfig);
@@ -303,6 +320,7 @@ async function qualifyFiles({ config }: { config: any }) {
             log(config, "warning", `Failed to fetch resource dependencies for "${herettoName}": ${error.message}`);
           }
         }
+        /* c8 ignore stop */
       }
       continue;
     }
@@ -315,6 +333,9 @@ async function qualifyFiles({ config }: { config: any }) {
         log(config, "warning", fetch.message);
         continue;
       }
+      // Success means a remote file was downloaded — a network fetch, not
+      // reproducible offline (the hermetic tests exercise the error arm above).
+      /* c8 ignore next */
       source = fetch.path;
     }
     // Check if source is a file or directory
@@ -336,6 +357,10 @@ async function qualifyFiles({ config }: { config: any }) {
       config.processDitaMaps
     ) {
       const ditaOutput = await processDitaMap({ config, source });
+      // processDitaMap only returns a path when the `dita` CLI is installed and
+      // succeeds; in the hermetic env it returns null (handled by falling
+      // through to `continue`), so the splice branch needs real DITA-OT (ADR 01017).
+      /* c8 ignore next 5 */
       if (ditaOutput) {
         const currentIndex = sequence.findIndex((e) => e.source === source);
         sequence.splice(currentIndex + 1, 0, { source: ditaOutput, phase });
@@ -685,6 +710,35 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         }
 
         spec.tests.push(test);
+
+        // Finalize the spec the same way the non-runShell path does below:
+        // validate spec_v3, then on success resolve paths, re-stamp the phase,
+        // and push. Previously this branch `continue`d straight past the
+        // shared finalization, so a runShell-typed file built a valid test but
+        // never emitted a spec (#435). Skip parseContent — runShell files carry
+        // no inline statements to parse.
+        const specValidation = validate({
+          schemaKey: "spec_v3",
+          object: spec,
+          addDefaults: false,
+        });
+        if (!specValidation.valid) {
+          log(
+            config,
+            "warning",
+            `Tests from ${file} don't create a valid test specification. Skipping.`
+          );
+        } else {
+          spec = await resolvePaths({
+            config: config,
+            object: spec,
+            filePath: file,
+          });
+          // Re-stamp the phase: resolvePaths isn't guaranteed to preserve
+          // unknown keys. Mirrors the JSON/YAML and text branches.
+          spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
+          specs.push(spec);
+        }
         continue;
       }
 

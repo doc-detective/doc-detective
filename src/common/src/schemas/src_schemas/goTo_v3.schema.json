@@ -16,155 +16,386 @@
         "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
         "type": "string",
         "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-        "transform": ["trim"]
+        "transform": [
+          "trim"
+        ]
       },
       "object": {
         "description": "Navigate to an HTTP or HTTPS URL.",
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["url"],
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-            "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-            "transform": ["trim"]
-          },
-          "origin": {
-            "type": "string",
-            "description": "Protocol and domain to navigate to. Prepended to `url`.",
-            "transform": ["trim"]
-          },
-          "params": {
-            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+        "title": "Go to URL (detailed)",
+        "allOf": [
+          {
             "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {}
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
-            "default": 30000,
-            "minimum": 0
-          },
-          "waitUntil": {
-            "type": "object",
-            "description": "Configuration for waiting conditions after navigation.",
             "additionalProperties": false,
+            "required": [
+              "url"
+            ],
             "properties": {
-              "networkIdleTime": {
-                "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.",
+              "surface": {
+                "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
                 "anyOf": [
                   {
-                    "type": "integer",
-                    "minimum": 0
+                    "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
                   },
                   {
-                    "type": "null"
+                    "$ref": "surface_v3.schema.json#/components/schemas/browser"
                   }
-                ],
-                "default": 500
+                ]
               },
-              "domIdleTime": {
-                "description": "Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.",
+              "newTab": {
+                "description": "Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.",
                 "anyOf": [
                   {
-                    "type": "integer",
-                    "minimum": 0
+                    "type": "boolean"
                   },
                   {
-                    "type": "null"
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name for the new tab."
+                      }
+                    }
                   }
-                ],
-                "default": 1000
+                ]
               },
-              "find": {
+              "newWindow": {
+                "description": "Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.",
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name for the new window."
+                      },
+                      "tab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Name for the new window's first tab."
+                      }
+                    }
+                  }
+                ]
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
+                "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "origin": {
+                "type": "string",
+                "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "params": {
+                "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
                 "type": "object",
-                "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "default": {}
+              },
+              "timeout": {
+                "type": "integer",
+                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                "default": 30000,
+                "minimum": 0
+              },
+              "waitUntil": {
+                "type": "object",
+                "description": "Configuration for waiting conditions after navigation.",
                 "additionalProperties": false,
-                "anyOf": [
-                  {
-                    "required": ["selector"]
-                  },
-                  {
-                    "required": ["elementText"]
-                  },
-                  {
-                    "required": ["elementId"]
-                  },
-                  {
-                    "required": ["elementTestId"]
-                  },
-                  {
-                    "required": ["elementClass"]
-                  },
-                  {
-                    "required": ["elementAttribute"]
-                  },
-                  {
-                    "required": ["elementAria"]
-                  }
-                ],
                 "properties": {
-                  "selector": {
-                    "type": "string",
-                    "description": "CSS selector for the element to wait for."
-                  },
-                  "elementText": {
-                    "type": "string",
-                    "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementId": {
-                    "type": "string",
-                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementTestId": {
-                    "type": "string",
-                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementClass": {
+                  "networkIdleTime": {
+                    "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.",
                     "anyOf": [
                       {
-                        "type": "string"
+                        "type": "integer",
+                        "minimum": 0
                       },
                       {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
+                        "type": "null"
                       }
                     ],
-                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                    "default": 500
                   },
-                  "elementAttribute": {
+                  "domIdleTime": {
+                    "description": "Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.",
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": 1000
+                  },
+                  "find": {
                     "type": "object",
-                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                    "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
+                    "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
+                    "additionalProperties": false,
+                    "anyOf": [
+                      {
+                        "required": [
+                          "selector"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementText"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementTestId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementClass"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementAttribute"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementAria"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "selector": {
+                        "type": "string",
+                        "description": "CSS selector for the element to wait for."
+                      },
+                      "elementText": {
+                        "type": "string",
+                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementId": {
+                        "type": "string",
+                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementTestId": {
+                        "type": "string",
+                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementClass": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ],
+                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                      },
+                      "elementAttribute": {
+                        "type": "object",
+                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                        "additionalProperties": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
                         }
-                      ]
+                      },
+                      "elementAria": {
+                        "type": "string",
+                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      }
                     }
-                  },
-                  "elementAria": {
-                    "type": "string",
-                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                   }
                 }
               }
             }
+          },
+          {
+            "title": "newTab and newWindow are mutually exclusive",
+            "if": {
+              "required": [
+                "newTab",
+                "newWindow"
+              ],
+              "properties": {
+                "newTab": {
+                  "not": {
+                    "const": false
+                  }
+                },
+                "newWindow": {
+                  "not": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "newTab"
+                ]
+              }
+            }
+          },
+          {
+            "title": "newTab conflicts with a surface tab selector",
+            "if": {
+              "required": [
+                "newTab",
+                "surface"
+              ],
+              "properties": {
+                "newTab": {
+                  "not": {
+                    "const": false
+                  }
+                },
+                "surface": {
+                  "type": "object",
+                  "required": [
+                    "tab"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "newTab"
+                ]
+              }
+            }
+          },
+          {
+            "title": "newWindow conflicts with a surface window or tab selector",
+            "if": {
+              "required": [
+                "newWindow",
+                "surface"
+              ],
+              "properties": {
+                "newWindow": {
+                  "not": {
+                    "const": false
+                  }
+                },
+                "surface": {
+                  "type": "object",
+                  "anyOf": [
+                    {
+                      "required": [
+                        "window"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "tab"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "newWindow"
+                ]
+              }
+            }
           }
-        },
-        "title": "Go to URL (detailed)"
+        ],
+        "examples": [
+          {
+            "url": "https://www.google.com"
+          },
+          {
+            "url": "/checkout",
+            "origin": "https://my-app.com",
+            "newTab": "cart"
+          },
+          {
+            "url": "/admin",
+            "origin": "https://my-app.com",
+            "newWindow": {
+              "name": "admin",
+              "tab": "overview"
+            }
+          },
+          {
+            "url": "/orders",
+            "surface": {
+              "browser": "chrome",
+              "window": "admin",
+              "tab": "overview"
+            }
+          }
+        ]
       }
     }
   },
@@ -227,6 +458,28 @@
       }
     },
     {
+      "url": "/checkout",
+      "origin": "https://my-app.com",
+      "newTab": "cart"
+    },
+    {
+      "url": "/admin",
+      "origin": "https://my-app.com",
+      "newWindow": {
+        "name": "admin",
+        "tab": "overview"
+      }
+    },
+    {
+      "url": "/orders",
+      "origin": "https://my-app.com",
+      "surface": {
+        "browser": "chrome",
+        "window": "admin",
+        "tab": "overview"
+      }
+    },
+    {
       "url": "http://localhost:8092",
       "waitUntil": {
         "find": {
@@ -235,7 +488,9 @@
           "elementTestId": "standard-btn",
           "elementAria": "Sample Standard Button",
           "elementId": "standard-btn",
-          "elementClass": ["btn"],
+          "elementClass": [
+            "btn"
+          ],
           "elementAttribute": {
             "type": "button",
             "value": "Standard Button"

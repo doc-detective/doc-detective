@@ -82,7 +82,7 @@ Doc Detective can perform browser-based tests on several browser engines. The fo
 
 - **Chrome** (`chrome`): Uses Chromium.
 - **Firefox** (`firefox`): Uses Firefox.
-- **WebKit** (`webkit`): Uses WebKit. The name `safari` can be used as an alias for `webkit`.
+- **WebKit** (`webkit`): Uses WebKit. On desktop platforms, the name `safari` can be used as an alias for `webkit`. On an `ios` platform entry, `safari` instead means the real Safari browser on the managed simulator — see [Mobile browsers](#mobile-browsers-android-and-ios).
 
 <Note>
 When you use the object format for any browser, you must set `name`. If you omit it (for example, `{ "headless": true }`), Doc Detective can't resolve the browser and skips the context.
@@ -207,6 +207,45 @@ You can specify window or viewport dimensions. WebKit/Safari does **not** suppor
 }
 ```
 
+### Mobile browsers (Android and iOS)
+
+With a mobile platform entry (`android` or `ios`), `browsers` means the browser **on the managed device** — Doc Detective boots (or reuses) the emulator/simulator and drives its browser, and `goTo`, `find`, `click`, and `screenshot` behave exactly as on desktop. Element semantics are web DOM, not native accessibility, and no app descriptor is involved.
+
+Each mobile target supports exactly one browser:
+
+| Target | `chrome` | `safari` | `firefox` | `webkit` |
+| :-- | :--: | :--: | :--: | :--: |
+| `android` | ✓ | Skipped | Skipped | Skipped |
+| `ios` | Skipped | ✓ | Skipped | Skipped |
+
+Unsupported combinations skip the context with a reason naming the supported browser — the same non-failing outcome as a `platforms` mismatch. If you omit `browsers` on a mobile entry, the platform's browser fills in automatically, so this is a complete mobile-web context:
+
+```json
+{
+  "platforms": "android"
+}
+```
+
+And this single entry runs one web test on four targets (the `ios` leg skips, because Chrome isn't available there):
+
+```json
+{
+  "platforms": ["windows", "mac", "android", "ios"],
+  "browsers": "chrome"
+}
+```
+
+Things that work differently on a device browser:
+
+- **`safari` means Safari.** On an `ios` entry, `safari` is the device's real Safari (not the desktop `webkit` alias). `webkit` on `ios` is an unsupported combination and skips.
+- **The device owns its display.** Authored `window`/`viewport` dimensions and `headless: false` on the browser config are rejected with an error — set [`device.headless`](/reference/schemas/device-descriptor) to control emulator visibility, and pick a different `device.deviceType` if you need another screen size. (`headless: true` matches the schema default, so it's accepted and ignored.)
+- **No browser fallback.** The device browser is part of the device image, so there's no alternative engine to fall back to; [`browserFallback`](#browser-fallback) doesn't apply.
+- **One browser per device.** The device browser is the context's only browser surface; tests can't open additional browsers on the device.
+- **Native app steps live in separate tests.** A single mobile context can drive the device browser *or* native app surfaces ([`startSurface`](/reference/schemas/startsurface)), not both; a context mixing them skips with a pointer to split the test.
+- **`localhost` is the device's own loopback.** An Android emulator reaches the host machine at `10.0.2.2` (so a local test server at `http://localhost:8092` is `http://10.0.2.2:8092` from the emulator); iOS simulators share the host network, so `localhost` works directly.
+
+Host requirements are the same as for native mobile app testing and are checked automatically: any capable host with the Android SDK and hardware acceleration for `android` (run `doc-detective install android` to prepare one), a macOS host with Xcode for `ios` (`doc-detective install ios`). Incapable hosts skip with actionable guidance. On Android, Chrome ships with `google_apis` system images — the kind `doc-detective install android` installs; images without Chrome skip with a pointer.
+
 ## Platforms
 
 Doc Detective can run tests targeting the following platforms:
@@ -214,8 +253,12 @@ Doc Detective can run tests targeting the following platforms:
 - Windows (`windows`)
 - macOS (`mac`)
 - Linux (`linux`) (Tested primarily on Ubuntu)
+- Android (`android`) — a managed emulator; see [Mobile browsers](#mobile-browsers-android-and-ios) for web tests and [startSurface](/reference/schemas/startsurface) for native apps.
+- iOS (`ios`) — a managed simulator (macOS hosts only); same references as Android.
 
-When you specify a platform (or multiple platforms) in a context, Doc Detective attempts to run the associated tests only when executed on a matching operating system. If `platforms` is omitted, it defaults to the current platform.
+When you specify a desktop platform (or multiple platforms) in a context, Doc Detective attempts to run the associated tests only when executed on a matching operating system. If `platforms` is omitted, it defaults to the current platform.
+
+Mobile platforms name the **target** the test runs against, not the host: an `android` context runs on any host capable of running the emulator, and an `ios` context on any macOS host with Xcode. Incapable hosts skip the context with guidance instead of failing.
 
 For example, this context targets only macOS:
 
@@ -234,6 +277,46 @@ This context targets Windows or Linux:
   "browsers": "firefox"
 }
 ```
+
+## Requirements (`requires`)
+
+Use `requires` to gate a context on host capabilities beyond the operating system: commands on the PATH, files on disk, or environment variables. If any requirement is unmet, Doc Detective skips the context (the same non-failing outcome as a `platforms` mismatch) and reports each missing requirement.
+
+`requires` accepts three shapes:
+
+- A string names one required command:
+
+  ```json
+  {
+    "platforms": ["windows", "mac", "linux"],
+    "requires": "node"
+  }
+  ```
+
+- An array names several required commands (all must be present):
+
+  ```json
+  {
+    "requires": ["node", "ffmpeg"]
+  }
+  ```
+
+- An object checks commands, files, and environment variables. File paths support `$VAR` expansion, and `$HOME` falls back to `USERPROFILE` on Windows. Environment variables must have a non-empty value.
+
+  ```json
+  {
+    "platforms": ["mac", "linux"],
+    "requires": {
+      "commands": ["claude"],
+      "files": ["$HOME/.config/app.toml"],
+      "env": ["ANTHROPIC_API_KEY"]
+    }
+  }
+  ```
+
+All entries combine with AND. A context can consist of only a `requires` gate: with `platforms` omitted, it runs on the current platform whenever the environment meets every requirement.
+
+You don't need `requires` for browsers or drivers, because Doc Detective's own preflight detects, installs, and repairs those automatically.
 
 ## Examples
 
@@ -343,3 +426,9 @@ Specify contexts in the test's `runOn` array. These override config- and spec-le
   ]
 }
 ```
+
+## Contexts and multiple browsers
+
+`browsers` does two jobs: it names the test's **default browser surface**, and — when it lists several engines — it fans the test out to run once per engine. A test can also open **additional** browsers at runtime with a `goTo` step's `surface` field (see [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows)). Only `goTo` opens those browsers, and `runOn` never lists them.
+
+Pin a browser **or** fan out — not both. The engine fan-out suits browser-*agnostic* tests. A test that pins `surface: { "browser": "firefox" }` in its steps would open Firefox alongside every matrix engine, so give it a single `browsers` entry instead.

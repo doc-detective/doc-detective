@@ -14,6 +14,7 @@ description: "Reference for the `Record (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface)) | Optional. The browser window/tab to record. Omit to record the active tab. The targeted tab stays focused afterward. | 
 path | string | Optional. File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.<br/><br/>Pattern: `([A-Za-z0-9_-]*\.(mp4|webm|gif)$|\$[A-Za-z0-9_]+)` | 
 directory | string | Optional. Directory of the file. If the directory doesn't exist, creates the directory. | 
 overwrite | string | Optional. If `true`, overwrites the existing recording at `path` if it exists.<br/><br/>Accepted values: `true`, `false` | 
@@ -24,6 +25,7 @@ engine | one of:<br/>- string<br/>- object([Recording engine (detailed)](/refere
 
 ```json
 {
+  "surface": "chrome",
   "path": "example",
   "directory": "example",
   "overwrite": "true",

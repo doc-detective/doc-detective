@@ -13,6 +13,8 @@ You can specify the target URL directly as a string, or use an object for more o
   - `url`: (Required) The URL to navigate to. Can be a full URL, a path, or a variable reference.
   - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. Overrides the global `origin` if set.
   - `params`: (Optional) Query parameters to append to the resolved URL. Merged with config-level `originParams`.
+  - `surface`: (Optional) The browser (session, window, or tab) to navigate. Omit to navigate the active tab. Naming a browser that isn't open yet opens it. `goTo` is the only action that opens browsers.
+  - `newTab` / `newWindow`: (Optional) Open the URL in a new tab or window instead of navigating the current one. `goTo` is the only action that opens tabs and windows.
 
 > For comprehensive options, see the [`goTo`](/reference/schemas/goto) reference.
 
@@ -162,6 +164,108 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
   ]
 }
 ```
+
+## Tabs, windows, and browsers
+
+`goTo` is the only action that opens new tabs, windows, and browsers. Name what you open, then any later step can act in it with a [`surface`](/docs/test-docs/multiple-tabs-and-windows) reference.
+
+- `newTab`: Open the URL in a new tab of the target window and focus it. `true` opens an anonymous tab; a string (or `{ "name": … }`) names the tab. `false` disables.
+- `newWindow`: Open the URL in a new window and focus it. `true`, a name string, or `{ "name": …, "tab": … }`, where `tab` names the window's first tab. `false` disables.
+- `newTab` and `newWindow` are mutually exclusive on one step.
+- `surface`: Without an opener, selects the browser (and window or tab) to navigate — opening the browser if it isn't running yet. With `newTab`, selects the window the tab opens in.
+
+### Open a second browser
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Open a second, named browser session for the admin account.",
+          "goTo": {
+            "url": "https://my-app.com/admin",
+            "surface": { "browser": "firefox", "name": "admin" }
+          }
+        },
+        {
+          "description": "A bare engine keyword opens (or selects) a browser of that engine.",
+          "goTo": { "url": "https://my-app.com", "surface": "chrome" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Open a named tab, then act in it
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Open the checkout in a new tab named 'cart'.",
+          "goTo": {
+            "url": "https://my-app.com/checkout",
+            "newTab": "cart"
+          }
+        },
+        {
+          "description": "Click in the cart tab by name.",
+          "click": {
+            "elementText": "Place order",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Open a named window with a named first tab
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Open the admin console in its own window.",
+          "goTo": {
+            "url": "https://my-app.com/admin",
+            "newWindow": { "name": "admin", "tab": "overview" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Navigate an existing tab or window
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate the admin window to the orders page.",
+          "goTo": {
+            "url": "https://my-app.com/orders",
+            "surface": { "browser": "chrome", "window": "admin" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+For the full selector grammar (names, indexes, `-1` for newest, title/URL criteria), how to address tabs a page opens itself, and driving multiple browsers at once, see [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 ## Wait conditions
 

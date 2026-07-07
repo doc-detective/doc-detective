@@ -1,0 +1,49 @@
+{
+  "specId": "expression-embedded-failure",
+  "description": "Exercise embedded {{...}} expression resolution end-to-end through step.variables. Covers a valid embedded expression (interpolated) and an invalid one whose evaluation fails (jq syntax error), which must PRESERVE the author's original {{...}} rather than leak the internal sub-expression (#423/#424, ADR 01014). Inherits the default firefox-headless contexts from config.json, so it is SKIPPED where no browser is available.",
+  "tests": [
+    {
+      "testId": "embedded-expression-variable-roundtrip",
+      "description": "Set variables from embedded expressions, then consume them to observe the resolved values.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "description": "Produce a value to feed the embedded expressions below.",
+          "runBrowserScript": "return 'abc';",
+          "variables": {
+            "OK_VAR": "got-{{$$result}}"
+          }
+        },
+        {
+          "description": "A valid embedded expression interpolates: OK_VAR resolves to 'got-abc'.",
+          "runBrowserScript": {
+            "script": "return arguments[0];",
+            "args": [
+              "$OK_VAR"
+            ],
+            "output": "got-abc"
+          }
+        },
+        {
+          "description": "An invalid embedded expression (jq syntax error) is preserved verbatim, not leaked. The jq argument is a literal (no $$token), so consuming the value below via a $VAR arg can't collapse a $$ into $.",
+          "runBrowserScript": "return 'xyz';",
+          "variables": {
+            "BAD_VAR": "keep-{{jq(1, \"@@@invalid\")}}"
+          }
+        },
+        {
+          "description": "BAD_VAR keeps the original {{jq(...)}} text; the internal sub-expression never leaks.",
+          "runBrowserScript": {
+            "script": "return arguments[0];",
+            "args": [
+              "$BAD_VAR"
+            ],
+            "output": "/keep-\\{\\{jq\\(1, \"@@@invalid\"\\)\\}\\}/"
+          }
+        }
+      ]
+    }
+  ]
+}

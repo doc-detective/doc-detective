@@ -16,6 +16,8 @@ description: "Reference for the `Click element (detailed)` schema."
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 button | string | Optional. Kind of click to perform.<br/><br/>Accepted values: `left`, `right`, `middle` | 
+duration | integer | Optional. How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.<br/><br/>Minimum: 1 | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }). | 
 elementText | string | Optional. Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria. | 
 selector | string | Optional. Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria. | 
 elementId | string | Optional. ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax. | 
@@ -29,6 +31,8 @@ elementAria | string | Optional. Computed accessible name of the element per ARI
 ```json
 {
   "button": "left",
+  "duration": 42,
+  "surface": "chrome",
   "elementText": "example",
   "selector": "example",
   "elementId": "example",

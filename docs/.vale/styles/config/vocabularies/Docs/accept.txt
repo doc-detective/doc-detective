@@ -214,6 +214,7 @@ webdriverio
 appium
 geckodriver
 chromedriver
+safaridriver
 subcommand
 subcommands
 postinstall
@@ -222,3 +223,7 @@ ChromeDriver
 Xvfb
 loopback
 SSRF
+dialog
+dialogs
+dialog's
+onboarding

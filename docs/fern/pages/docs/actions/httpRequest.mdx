@@ -14,13 +14,14 @@ You can specify a basic GET request using a string shorthand or use an object fo
   - `method`: (Optional) The HTTP method (for example, `GET`, `POST`, `PUT`, `DELETE`). Defaults to `GET`.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the request to complete.
   - `request`: (Optional) An object defining the request details:
-    - `headers`: (Optional) Key-value pairs for request headers.
+    - `headers`: (Optional) Request headers, as either key-value pairs or a newline-separated string block (for example, `Content-Type: application/json\nAuthorization: Bearer token`). In the string form, Doc Detective splits each line on its first colon, so header values can contain colons themselves—for example, full URLs, timestamps like `12:00:00 GMT`, or `host:port` values.
     - `parameters`: (Optional) Key-value pairs for query string parameters.
     - `body`: (Optional) The request body. Can be a string or JSON object.
   - `response`: (Optional) An object defining expected response validation:
     - `headers`: (Optional) Key-value pairs for expected response headers. Values must be strings.
     - `body`: (Optional) Expected response body. Can be a string or JSON object.
     - `required`: (Optional) Array of field paths that must exist in the response body. Uses dot notation for nested fields (for example, `user.name`) and bracket notation for array indices (for example, `items[0].id`). Fields can have any value, including `null`.
+  - `allowAdditionalFields`: (Optional) Whether the response may contain fields beyond those declared in `response.body`. Defaults to `true`. Set it to `false` to fail the step when the response includes any field not present in `response.body`. This check applies only when `response.body` declares fields; if `response.body` is unset or empty, nothing counts as unexpected and the check passes.
   - `statusCodes`: (Optional) An array of acceptable HTTP status codes. If the response code is not in this list, the step fails (default: `[200]`).
   - `openApi`: (Optional) Define the request based on an OpenAPI definition. Can be a string (operation ID) or an object:
     - `name`: (Optional) Name of the registered OpenAPI definition (if multiple are loaded).
@@ -132,6 +133,35 @@ Here are a few ways you might use the `httpRequest` action:
               "body": {
                 "name": "morpheus",
                 "job": "zion resident"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Send request headers as a string block
+
+You can also provide `request.headers` as a single newline-separated string instead of an object. Doc Detective splits each line on its first colon into a name and value, so values that contain colons—such as callback URLs or timestamps—stay intact.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Send request headers as a newline-separated string.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users",
+            "method": "POST",
+            "request": {
+              "headers": "Content-Type: application/json\nX-Callback: https://example.com/cb",
+              "body": {
+                "name": "morpheus",
+                "job": "leader"
               }
             }
           }
@@ -391,6 +421,35 @@ You can use both `response.required` and `response.body` together to validate th
 ```
 
 > **Note:** Fields with `null`, `""`, `0`, or `false` values are considered to exist and will pass validation.
+
+### Reject unexpected response fields
+
+Set `allowAdditionalFields` to `false` to assert that the response contains only the fields you declared in `response.body`. The step fails if the response includes any extra field.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Fail if the response returns fields beyond those declared.",
+          "httpRequest": {
+            "url": "https://api.example.com/users/123",
+            "method": "GET",
+            "response": {
+              "body": {
+                "id": 123,
+                "name": "morpheus"
+              }
+            },
+            "allowAdditionalFields": false
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 
 

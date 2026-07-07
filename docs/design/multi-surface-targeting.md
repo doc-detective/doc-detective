@@ -111,9 +111,14 @@ complexity, and in conditional *validation*, not *structure*.
 | `goTo` | ✓ | — | — |
 | `runBrowserScript` | ✓ | — | — |
 | `find` / `click` / `dragAndDrop` | ✓ | ✓ | — |
+| `screenshot` | ✓ | ✓ | — (no pixels) |
 | `record` | ✓ | ✓ | — (no pixels) |
 | `type` | ✓ (element/active) | ✓ | ✓ (stdin) |
 | `closeSurface` | ✓ | ✓ | ✓ |
+
+> `screenshot` was added to the matrix during Phase 3 (ADR 01016): focus-follow
+> made it nearly free and "screenshot the cart tab" is a materially better
+> authoring experience than the focus-a-surface-first workaround.
 
 `process` is only ever a `type` / `closeSurface` target. Multi-window does not push
 `process` onto the DOM/spatial actions.
@@ -379,16 +384,35 @@ driver**, which is the natural seam.
 
 ### Block B — browser surfaces (no new deps; current Appium drivers)
 
-- **Phase 3 — windows & tabs in the active browser.** Add the **browser branch**
-  to `surface` with `window` + `tab` selectors; wire `surface` into the
-  browser-targeting steps (goTo/type/click/find/dragAndDrop/runBrowserScript/record);
-  add `goTo` `newTab`/`newWindow`. One driver, multiple handles — extends the
-  existing recorder-tab machinery (`createWindow`/`switchToWindow`). Registry tracks
-  handles we open.
-- **Phase 4 — multiple browser surfaces at once.** Registry holds several driver
-  sessions keyed by surface name; `surface:{browser:engine,name}` opens/selects
-  additional browsers; `runOn.browsers` reinterpreted as the default surface (+ the
-  matrix caveat documented). Still only the installed browser drivers.
+- **Phase 3 — windows & tabs in the active browser.** ✅ **Shipped** (ADR 01016).
+  Added the **browser branch** to `surface` with `window` + `tab` selectors; wired
+  `surface` into the browser-targeting steps
+  (goTo/type/click/find/dragAndDrop/runBrowserScript/record/screenshot);
+  added `goTo` `newTab`/`newWindow`. One driver, multiple handles — extends the
+  existing recorder-tab machinery (`createWindow`/`switchToWindow`); the
+  per-context registry (`driver.state.surfaces`) tracks handles by first-seen
+  order and hides the recorder tab. `type` gained the kind-shaped browser
+  `waitUntil` (`networkIdleTime`/`domIdleTime`/`find`); `closeSurface` closes
+  tabs/windows idempotently. Engine mismatch, browser `name`, and whole-browser
+  close FAIL loudly with "lands in a later phase" guidance.
+- **Phase 4 — multiple browser surfaces at once.** ✅ **Shipped** (ADR 01019).
+  A context-scoped session registry holds several driver sessions keyed by
+  surface name (the default browser registers under its engine name);
+  `surface:{browser:engine,name}` (and the bare engine keyword) selects — and,
+  on **goTo only**, opens — additional browsers on the context's
+  already-acquired Appium port, inheriting the context's headless-ness.
+  Active surface = most recently opened or focused, across sessions.
+  `closeSurface` closes whole browsers (bare name / engine / `{browser,name}`),
+  idempotently, with focus falling back to the most recently focused survivor;
+  it refuses while a recording is active on the session. Phase 3's engine
+  mismatch / `name` / whole-browser-close FAILs became working behavior;
+  unopened references on non-goTo steps FAIL pointing at goTo.
+  `runOn.browsers` reinterpreted as the default surface (+ the matrix caveat
+  documented). Still only the installed browser drivers. Same-engine
+  multi-session recording caveat: ffmpeg window capture can't disambiguate two
+  same-engine sessions' identically-titled windows — record before opening a
+  same-engine twin, or use the browser (MediaRecorder) engine, which is
+  per-session.
 
 ### Block C — additions
 
@@ -396,10 +420,19 @@ driver**, which is the natural seam.
   {app, args, workingDirectory}` (subsumes `openApp`) + app `window` selectors, via
   a lazily-installed native Appium driver (mac2 / windows), graceful skip when
   absent. Add the `context_v3.requires` gate so app/CLI tests SKIP cleanly.
+  **Expanded into its own phased roadmap** (Windows → macOS → emulated Android →
+  emulated iOS → mobile browsers → mobile vocabulary → app recording → Linux
+  spike, phases A1–A8) in [native app surfaces](native-app-surfaces.md); that
+  doc also pulls `startSurface`'s app branch forward into its first phase and
+  adds `android`/`ios` to `runOn.platforms` (with `hosts` + `device` context
+  fields) as the mobile environment model.
 - **Phase 6 — convergence & ergonomics.** Generic `startSurface` incl. the parallel
   array form (browser/process too); extend `closeSurface` to browser/app surfaces;
   factor `browserConfig` and apply the `window`→`size` rename (deprecated alias)
-  shared by `runOn` + `startSurface`. (`closeSurface` itself ships in Phase 1.)
+  shared by `runOn` + `startSurface`. (`closeSurface` itself ships in Phase 1;
+  the `startSurface` step and its app branch ship first in
+  [native app surfaces](native-app-surfaces.md) phase A1 — Phase 6 adds the
+  remaining kind branches and the array form.)
 
 Phase 1 is fully specified in the companion plan file; later phases reuse the
 schema and registry it establishes.

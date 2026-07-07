@@ -22,6 +22,7 @@ You can specify the screenshot action in several ways:
     - `selector`: (Required in object) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text to further specify the element if the selector isn't unique.
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
+  - `surface`: (Optional) The browser (session, window, or tab) to capture, for example `{ "browser": "chrome", "tab": "cart" }`. Omit to capture the active tab. The targeted surface stays focused afterward. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 **Visual Regression Testing:** If `maxVariation` is set and a reference image exists at the target `path`, the action compares the new screenshot to the reference. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting.
 

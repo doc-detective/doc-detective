@@ -59,6 +59,20 @@
         ],
         "additionalProperties": false,
         "properties": {
+          "surface": {
+            "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+            "anyOf": [
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/browser"
+              },
+              {
+                "$ref": "surface_v3.schema.json#/components/schemas/app"
+              }
+            ]
+          },
           "elementText": {
             "type": "string",
             "description": "Display text of the element to find. If combined with other element finding fields, the element must match all specified criteria."
@@ -131,6 +145,9 @@
                 "properties": {
                   "button": {
                     "$ref": "click_v3.schema.json#/components/schemas/button"
+                  },
+                  "duration": {
+                    "$ref": "click_v3.schema.json#/components/schemas/duration"
                   }
                 },
                 "title": "Find element and click"
@@ -198,7 +215,10 @@
     },
     {
       "elementId": "/^user-[0-9]+$/",
-      "elementClass": ["admin", "/^level-[1-5]$/"],
+      "elementClass": [
+        "admin",
+        "/^level-[1-5]$/"
+      ],
       "elementAttribute": {
         "data-active": true,
         "data-score": "/^[0-9]+$/"

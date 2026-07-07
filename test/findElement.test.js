@@ -112,6 +112,91 @@ describe("findElement unified assertion model", function () {
     assert.equal(findAssertion(result.assertions, "found").result, "FAIL");
   });
 
+  it("shorthand string + caller click request → click sub-effect runs", async () => {
+    let clicks = 0;
+    const element = makeElement({
+      clickImpl: async () => {
+        clicks++;
+      },
+    });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await findElement({
+      config,
+      step: { find: "Submit" },
+      driver,
+      click: true,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.found, true);
+    assert.equal(clicks, 1, "caller-requested click must fire on the shorthand path");
+    assert.ok(/Clicked element/.test(result.description));
+  });
+
+  it("shorthand string + click request, click throws → FAIL, found assertion still PASS", async () => {
+    const element = makeElement({
+      clickImpl: async () => {
+        throw new Error("not interactable");
+      },
+    });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await findElement({
+      config,
+      step: { find: "Submit" },
+      driver,
+      click: true,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.outputs.found, true);
+    assert.equal(result.assertions.length, 1);
+    assert.equal(findAssertion(result.assertions, "found").result, "PASS");
+    assert.ok(/Couldn't click/.test(result.description));
+  });
+
+  it("left-button clicks use the argument-less classic click (mobile-web compatible)", async () => {
+    // With options, WebdriverIO implements click via W3C pointer actions,
+    // which XCUITest rejects in a web context ("only supports W3C actions
+    // execution in the native context") — so a default/left click must call
+    // element.click() bare, which maps to the classic element-click endpoint
+    // and works on desktop AND device browsers (phase A5).
+    const calls = [];
+    const element = makeElement({
+      clickImpl: async (...args) => {
+        calls.push(args);
+      },
+    });
+    // Shorthand path.
+    const driver = makeDriver({ $impl: async () => element });
+    await findElement({ config, step: { find: "Submit" }, driver, click: true });
+    // Criteria path with an explicit left button.
+    const driver2 = makeDriver({ candidates: [element] });
+    await findElement({
+      config,
+      step: { find: { selector: "button", click: { button: "left" } } },
+      driver: driver2,
+    });
+    assert.equal(calls.length, 2);
+    for (const args of calls) {
+      assert.deepEqual(args, [], "left click must not pass options");
+    }
+  });
+
+  it("non-left buttons still pass the button option (needs pointer actions)", async () => {
+    const calls = [];
+    const element = makeElement({
+      clickImpl: async (...args) => {
+        calls.push(args);
+      },
+    });
+    const driver = makeDriver({ candidates: [element] });
+    await findElement({
+      config,
+      step: { find: { selector: "button", click: { button: "right" } } },
+      driver,
+    });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0], [{ button: "right" }]);
+  });
+
   it("found but click sub-effect fails → status FAIL with NO extra assertion record", async () => {
     const element = makeElement({
       clickImpl: async () => {

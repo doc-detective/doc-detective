@@ -13,9 +13,9 @@ You can specify the keys to type in several ways:
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
   - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
-  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to send keystrokes to a background process instead. See [Type to a background process](#type-to-a-background-process).
-  - `waitUntil`: (Optional) After sending the keys, wait until the process output matches or a fixed delay elapses. Only valid with a process `surface`. See [Type to a background process](#type-to-a-background-process).
-  - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys. Only applies with a process `surface`.
+  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to a browser reference (for example `{ "browser": "chrome", "tab": "cart" }`, or a named browser `{ "browser": "firefox", "name": "admin" }`) to type in a specific browser or tab, or to a process name to send keystrokes to a background process. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) and [Type to a background process](#type-to-a-background-process).
+  - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. Requires a `surface`, and the conditions depend on its kind: a process surface accepts `stdio`/`delayMs`, and a browser surface accepts `networkIdleTime`/`domIdleTime`/`find` (no condition applies by default). See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
+  - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
 
@@ -86,11 +86,42 @@ Here's a list of special keys you can use:
 | F11            | $F11$              |
 | F12            | $F12$              |
 
+## Device keys (mobile app surfaces)
+
+On an Android or iOS app surface, the `$KEY$` vocabulary grows the device's own keys. Device keys never need element criteria—pressing Back doesn't involve a text field:
+
+```json
+{ "type": { "keys": ["$BACK$"], "surface": { "app": "myapp" } } }
+```
+
+| Key | Code | Android | iOS |
+| --- | --- | --- | --- |
+| Back | $BACK$ | ✓ | ✗—iOS has no back button. Click the app's own back control instead. |
+| Home (device) | $HOME$ | ✓ | ✓ |
+| App switcher | $APP_SWITCH$ | ✓ | ✗ |
+| Volume up | $VOLUME_UP$ | ✓ | ✓ |
+| Volume down | $VOLUME_DOWN$ | ✓ | ✓ |
+
+<Warning>
+
+`$HOME$` means the **device home button** on mobile app surfaces—on browser surfaces it means cursor-to-line-start, as in the table above.
+
+</Warning>
+
+Common editing keys work on mobile app surfaces too. Android maps them to key codes (`$ENTER$`, `$TAB$`, arrows, `$BACKSPACE$`, …), and iOS folds the text-equivalent ones (`$ENTER$`, `$TAB$`, `$BACKSPACE$`) into the typed text.
+
+**Typing text on mobile app surfaces:**
+
+- With element criteria, `type` finds the element, focuses it, and types—same as everywhere else.
+- **Android** also types without criteria, into whatever element has focus—matching how browser typing works: `{ "type": { "keys": ["Hi Bob!", "$ENTER$"], "surface": { "app": "chat" } } }`.
+- **iOS** requires element criteria for text—the platform has no reliable focused-element typing. Device keys alone are fine without criteria.
+- Windows/macOS app surfaces don't support `$KEY$` tokens yet (the vocabulary is mobile-only in this phase) and require element criteria.
+
 ## Type to a background process
 
 By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/run-shell#full-screen-terminal-uis).
 
-A process surface is the only surface kind supported in this release. Browser and app surfaces aren't supported yet, and targeting one fails the step.
+`surface` can also name a browser (session, window, or tab) or an app surface—see [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules.
 
 Identify the process with `surface`, using either form:
 

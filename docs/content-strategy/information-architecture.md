@@ -155,6 +155,8 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
 | Capture screenshots | W2 | ★ | `screenshot`, auto-screenshot. |
 | Record video | W2 | | `record`/`stopRecord`, engines. |
+| Multiple tabs, windows & browsers | W2, W3 | | goTo `newTab`/`newWindow` + browser-session opening, `surface` session/window/tab selectors, whole-browser `closeSurface`. |
+| Test native & mobile apps (new) | W2, D1 | | The native-app-surfaces journey (phases A1–A6): `startSurface`/app surfaces, managed devices, mobile gestures (`swipe`, long-press, device keys, auto-scroll), the permission-dialog pattern, matrix vs. multi-device. Until it exists, the action pages (`click`/`type`/`find`/`swipe`) and generated reference pages carry the content — the permission-dialog pattern lives on the `click` action page. |
 
 **CLI, code & APIs — Diego**
 

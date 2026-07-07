@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click String Shorthand Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Click String Shorthand Test Page</h1>
+    <!-- Each button appends a message paragraph when actually clicked, so a
+         following find step proves the click fired: a find-only no-op leaves
+         the message absent and the find FAILs. -->
+    <button onclick="reveal('Text click landed')">Reveal by text</button>
+    <button id="reveal-by-selector" onclick="reveal('Selector click landed')" oncontextmenu="reveal('Right-click landed'); return false">Reveal by selector</button>
+    <button onclick="reveal('Regex click landed')">Reveal via regex match</button>
+    <button onclick="reveal('Object click landed')">Reveal by object</button>
+
+    <div id="messages"></div>
+
+    <script>
+        function reveal(text) {
+            const p = document.createElement("p");
+            p.textContent = text;
+            document.getElementById("messages").appendChild(p);
+        }
+    </script>
+</body>
+</html>

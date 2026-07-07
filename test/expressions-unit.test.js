@@ -341,6 +341,29 @@ describe("expressions: resolveExpression regressions (default flag, non-breaking
     });
     assert.equal(String(r), "5");
   });
+
+  it("a bad jq() query does NOT leak jq's exit code into process.exitCode", async function () {
+    // jq-web is an emscripten/WASM build of jq: on a COMPILE error it leaks
+    // jq's own exit code (3) into process.exitCode as a side effect. A
+    // gracefully-handled bad jq() must not redden the host process's exit code,
+    // or an otherwise-passing run (e.g. a fixture through the CLI/Action) exits
+    // non-zero. See the jq operator in src/core/expressions.ts and ADR 01014.
+    const prev = process.exitCode;
+    process.exitCode = 0;
+    try {
+      await resolveExpression({
+        expression: 'jq($$outputs.data, "@@@invalid")',
+        context: ctx,
+      });
+      assert.equal(
+        process.exitCode,
+        0,
+        "a handled bad jq() query leaked a non-zero process.exitCode"
+      );
+    } finally {
+      process.exitCode = prev;
+    }
+  });
 });
 
 // Finding 3: a multi-line step-output value (containing literal \n / \r) must be

@@ -5,7 +5,11 @@ import {
   resolveHeavyDepSource,
   resolveHeavyDepVersion,
 } from "../dist/runtime/loader.js";
-import { readInstalledRecord, getRuntimeDir } from "../dist/runtime/cacheDir.js";
+import {
+  readInstalledRecord,
+  writeInstalledRecord,
+  getRuntimeDir,
+} from "../dist/runtime/cacheDir.js";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
@@ -256,6 +260,254 @@ describe("runtime/loader", function () {
       const record = readInstalledRecord({});
       expect(record.npmPackages.pngjs).to.be.an("object");
       expect(record.npmPackages.pngjs.installedVersion).to.equal("7.0.0");
+    });
+
+    // Issue #501 root cause: `npm install --no-save` against a dependency-less
+    // runtime package.json makes npm's arborist treat every already-installed
+    // sibling as extraneous and PRUNE it — a mid-run JIT install of one heavy
+    // dep (the NovaWindows driver) deleted node-pty's files out from under the
+    // loaded module, and the next pty.spawn froze the process. The fix records
+    // every on-disk managed package in the runtime package.json `dependencies`
+    // so installs are additive.
+    it("records installed packages as runtime package.json dependencies so a later install's ideal tree keeps them (#501)", async function () {
+      const materialize = (name, version) => ({ args }) => {
+        const prefix = args[args.indexOf("--prefix") + 1];
+        const target = path.join(prefix, "node_modules", name);
+        fs.mkdirSync(target, { recursive: true });
+        fs.writeFileSync(
+          path.join(target, "package.json"),
+          JSON.stringify({ name, version })
+        );
+      };
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: { spawn: makeFakeSpawner({ onSpawn: materialize("pngjs", "7.0.0") }), logger: () => {} },
+        force: true,
+      });
+      const pkgPath = path.join(getRuntimeDir({}), "package.json");
+      let deps = JSON.parse(fs.readFileSync(pkgPath, "utf8")).dependencies;
+      expect(deps).to.have.property("pngjs");
+
+      // The second install must PRESERVE the first entry — this is the recorded
+      // contract that stops npm pruning siblings.
+      await ensureRuntimeInstalled(["pixelmatch"], {
+        deps: { spawn: makeFakeSpawner({ onSpawn: materialize("pixelmatch", "7.2.0") }), logger: () => {} },
+        force: true,
+      });
+      deps = JSON.parse(fs.readFileSync(pkgPath, "utf8")).dependencies;
+      expect(deps).to.have.property("pngjs");
+      expect(deps).to.have.property("pixelmatch");
+
+      // Ranges mirror the shim's declared constraints (same priority order as
+      // resolveDeclaredVersion).
+      const shimPkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+      const declared =
+        shimPkg.ddRuntimeDependencies?.pngjs ||
+        shimPkg.optionalDependencies?.pngjs ||
+        shimPkg.dependencies?.pngjs;
+      expect(deps.pngjs).to.equal(declared);
+    });
+
+    it("seeds dependencies from a pre-fix cache (installed.json + node_modules) so the first new install can't prune it (#501)", async function () {
+      // Simulate a cache created before the fix: a package physically present
+      // and recorded in installed.json, but absent from package.json
+      // dependencies. It is not declared by the shim, so the range falls back
+      // to ^installedVersion.
+      const runtimeDir = getRuntimeDir({});
+      const legacy = path.join(runtimeDir, "node_modules", "some-legacy-pkg");
+      fs.mkdirSync(legacy, { recursive: true });
+      fs.writeFileSync(
+        path.join(legacy, "package.json"),
+        JSON.stringify({ name: "some-legacy-pkg", version: "1.2.3" })
+      );
+      writeInstalledRecord(
+        {
+          npmPackages: {
+            "some-legacy-pkg": {
+              installedVersion: "1.2.3",
+              installedAt: "2026-01-01T00:00:00.000Z",
+            },
+          },
+          browsers: {},
+        },
+        {}
+      );
+
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: {
+          spawn: makeFakeSpawner({
+            onSpawn: ({ args }) => {
+              const prefix = args[args.indexOf("--prefix") + 1];
+              const target = path.join(prefix, "node_modules", "pngjs");
+              fs.mkdirSync(target, { recursive: true });
+              fs.writeFileSync(
+                path.join(target, "package.json"),
+                JSON.stringify({ name: "pngjs", version: "7.0.0" })
+              );
+            },
+          }),
+          logger: () => {},
+        },
+        force: true,
+      });
+
+      const deps = JSON.parse(
+        fs.readFileSync(path.join(runtimeDir, "package.json"), "utf8")
+      ).dependencies;
+      expect(deps["some-legacy-pkg"]).to.equal("^1.2.3");
+      expect(deps).to.have.property("pngjs");
+    });
+
+    it("never records a package that is not physically on disk (no resurrecting failed/pruned installs)", async function () {
+      // installed.json can be stale (it listed appium while the package was
+      // pruned, in the observed #501 cache). Recording an absent package would
+      // make every future npm install try to fetch it — and a permanently
+      // failing best-effort dep (node-pty on an exotic platform) would then
+      // poison all later installs. Presence on disk is the only trigger.
+      writeInstalledRecord(
+        {
+          npmPackages: {
+            "some-pruned-pkg": {
+              installedVersion: "2.0.0",
+              installedAt: "2026-01-01T00:00:00.000Z",
+            },
+          },
+          browsers: {},
+        },
+        {}
+      );
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: {
+          spawn: makeFakeSpawner({
+            onSpawn: ({ args }) => {
+              const prefix = args[args.indexOf("--prefix") + 1];
+              const target = path.join(prefix, "node_modules", "pngjs");
+              fs.mkdirSync(target, { recursive: true });
+              fs.writeFileSync(
+                path.join(target, "package.json"),
+                JSON.stringify({ name: "pngjs", version: "7.0.0" })
+              );
+            },
+          }),
+          logger: () => {},
+        },
+        force: true,
+      });
+      const deps = JSON.parse(
+        fs.readFileSync(path.join(getRuntimeDir({}), "package.json"), "utf8")
+      ).dependencies;
+      expect(deps).to.not.have.property("some-pruned-pkg");
+    });
+
+    it("protects on-disk shim-declared orphans that installed.json never recorded (interrupted bulk install)", async function () {
+      // The CI failure mode behind the Appium start timeouts: the postinstall
+      // bulk pre-warm's npm child gets killed (install timeout, OOM, job
+      // cancel) AFTER extracting most packages but BEFORE ensureRuntimeInstalled
+      // could write installed.json / record dependencies. Those packages are
+      // physically present but invisible to both recording sources, so the next
+      // JIT install pruned them all ("removed 1064 packages") — gutting the
+      // appium tree while the runner was about to start it. Shim-declared names
+      // found on disk must be swept into the manifest BEFORE this install's
+      // npm child runs, so its reify keeps them.
+      const runtimeDir = getRuntimeDir({});
+      for (const orphan of ["appium", "proxy-agent"]) {
+        const dir = path.join(runtimeDir, "node_modules", orphan);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(
+          path.join(dir, "package.json"),
+          JSON.stringify({ name: orphan, version: "1.0.0" })
+        );
+      }
+      // NO installed.json, NO prior dependencies in the manifest — the orphans
+      // exist on disk only.
+
+      let depsAtSpawnTime;
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: {
+          spawn: makeFakeSpawner({
+            onSpawn: ({ args }) => {
+              const prefix = args[args.indexOf("--prefix") + 1];
+              depsAtSpawnTime = JSON.parse(
+                fs.readFileSync(path.join(prefix, "package.json"), "utf8")
+              ).dependencies;
+              const target = path.join(prefix, "node_modules", "pngjs");
+              fs.mkdirSync(target, { recursive: true });
+              fs.writeFileSync(
+                path.join(target, "package.json"),
+                JSON.stringify({ name: "pngjs", version: "7.0.0" })
+              );
+            },
+          }),
+          logger: () => {},
+        },
+        force: true,
+      });
+
+      // Recorded BEFORE npm ran — protection must cover this very install.
+      expect(depsAtSpawnTime).to.have.property("appium");
+      expect(depsAtSpawnTime).to.have.property("proxy-agent");
+      const deps = JSON.parse(
+        fs.readFileSync(path.join(runtimeDir, "package.json"), "utf8")
+      ).dependencies;
+      expect(deps).to.have.property("appium");
+      // The recorded range mirrors the shim's declared constraint.
+      const shimPkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+      const declaredAppium =
+        shimPkg.ddRuntimeDependencies?.appium ||
+        shimPkg.optionalDependencies?.appium ||
+        shimPkg.dependencies?.appium;
+      expect(deps.appium).to.equal(declaredAppium);
+      // Declared-but-absent names stay unrecorded: the orphan sweep is
+      // presence-filtered, so a genuinely failed install (e.g. the best-effort
+      // PTY backend on an exotic platform) is still never resurrected.
+      expect(deps).to.not.have.property("webdriverio");
+      expect(deps).to.not.have.property("@homebridge/node-pty-prebuilt-multiarch");
+    });
+
+    it("sweeps orphans declared only in ddRuntimeDependencies (app-surface drivers), not just HEAVY_NPM_DEPS", async function () {
+      // The app-surface preflights JIT-install drivers that are declared in
+      // package.json#ddRuntimeDependencies but are NOT in HEAVY_NPM_DEPS
+      // (appium-novawindows-driver, appium-mac2-driver,
+      // appium-uiautomator2-driver). An interrupted install of one of those
+      // leaves the same kind of unrecorded on-disk orphan — the sweep list
+      // must cover the full declared universe, not only the loader's own
+      // constant.
+      const runtimeDir = getRuntimeDir({});
+      const orphan = path.join(
+        runtimeDir,
+        "node_modules",
+        "appium-novawindows-driver"
+      );
+      fs.mkdirSync(orphan, { recursive: true });
+      fs.writeFileSync(
+        path.join(orphan, "package.json"),
+        JSON.stringify({ name: "appium-novawindows-driver", version: "1.4.1" })
+      );
+
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: {
+          spawn: makeFakeSpawner({
+            onSpawn: ({ args }) => {
+              const prefix = args[args.indexOf("--prefix") + 1];
+              const target = path.join(prefix, "node_modules", "pngjs");
+              fs.mkdirSync(target, { recursive: true });
+              fs.writeFileSync(
+                path.join(target, "package.json"),
+                JSON.stringify({ name: "pngjs", version: "7.0.0" })
+              );
+            },
+          }),
+          logger: () => {},
+        },
+        force: true,
+      });
+
+      const deps = JSON.parse(
+        fs.readFileSync(path.join(runtimeDir, "package.json"), "utf8")
+      ).dependencies;
+      const shimPkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+      expect(deps["appium-novawindows-driver"]).to.equal(
+        shimPkg.ddRuntimeDependencies["appium-novawindows-driver"]
+      );
     });
 
     it("drops npm deprecation/funding noise from install output but keeps real lines", async function () {

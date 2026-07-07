@@ -9,6 +9,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
+    "newLine": "lf",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

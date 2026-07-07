@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
+import { switchToSurface } from "./browserSurface.js";
 import { log } from "../utils.js";
 import {
   buildConditionContext,
@@ -23,6 +24,11 @@ export { dragAndDropElement };
 async function dragAndDropElement({ config, step, driver }: { config: any; step: any; driver: any }) {
   async function HTML5DragDrop({ driver, sourceElement, targetElement }: { driver: any; sourceElement: any; targetElement: any }) {
     await driver.execute(
+      /* c8 ignore start - runs inside the browser via driver.execute(): the callback body
+       * (including the nested simulateHTML5DragDrop helper) is serialized and evaluated by the
+       * WebDriver session in the browser process, never in the Node process c8 instruments. It IS
+       * exercised by the real E2E drag-and-drop fixtures, just not visible to Node's coverage tool
+       * (ADR 01017). */
       (sourceElement: any, targetElement: any) => {
         // Create a helper function to simulate HTML5 drag and drop
         function simulateHTML5DragDrop(source: any, target: any) {
@@ -73,6 +79,7 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
 
         return simulateHTML5DragDrop(sourceElement, targetElement);
       },
+      /* c8 ignore stop */
       sourceElement,
       targetElement
     );
@@ -93,6 +100,19 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // Multi-surface Phase 3/4: focus the session + window/tab the source and
+  // target live in. A cross-session reference resolves to that session's
+  // driver.
+  if (step.dragAndDrop.surface !== undefined) {
+    const switched = await switchToSurface(driver, step.dragAndDrop.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
+  }
 
   // Set default duration if not provided
   const duration = step.dragAndDrop.duration || 1000;

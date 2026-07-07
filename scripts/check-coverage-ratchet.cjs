@@ -94,7 +94,10 @@ function main() {
       process.exit(1);
     }
     const currentValue = currentMetric.pct;
-    const diff = (currentValue - baseline).toFixed(2);
+    // Keep toFixed's rounding, but rewrite a "-0.00" string (a tiny negative
+    // delta) to "0.00" so the table doesn't print a confusing "PASS (~-0.00%)"
+    // within the tolerance band.
+    const diff = (currentValue - baseline).toFixed(2).replace(/^-0\.00$/, "0.00");
     
     let status;
     if (currentValue < baseline - tolerance) {
