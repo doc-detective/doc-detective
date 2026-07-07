@@ -745,12 +745,17 @@ async function waitForReady(
 //      /status returns 200 from the outgoing process while /session no longer
 //      accepts, or Appium's proxy to chromedriver drops the socket ->
 //      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
-//   2. Several Chromes launching at once briefly starve resources and
-//      ChromeDriver "crashed during startup" / "cannot connect to" /
-//      "DevToolsActivePort" / "session not created". A staggered retry lets
-//      the contention clear; it recovers on the next attempt in practice.
+//   2. Several browsers launching at once briefly starve resources and a
+//      driver child dies during startup. For Chrome this reads as ChromeDriver
+//      "crashed during startup" / "cannot connect to" / "DevToolsActivePort" /
+//      "session not created"; for Firefox the just-created geckodriver child
+//      crashes right after POST /session, so the next command reports it
+//      "cannot be proxied to Gecko Driver server because its process is not
+//      running (probably crashed)" (ADR 01041). Both are the same transient
+//      concurrent-startup contention: a staggered retry lets it clear and
+//      recovers on the next attempt in practice.
 const TRANSIENT_SESSION_ERROR =
-  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server/i;
 
 // The wdio client aborts POST /session with "aborted due to timeout" when the
 // request exceeds connectionRetryTimeout. For native sessions that declared a
