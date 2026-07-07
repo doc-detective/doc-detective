@@ -103,6 +103,8 @@ Because the system image is multi-GB, this command **never downloads without `--
 doc-detective install android --dry-run
 ```
 
+Google's SDK repository occasionally serves a corrupt or truncated package. `install android` **self-heals** these transient download failures: it retries the affected `sdkmanager` download a few times, and if a system image lands incomplete it re-downloads it once before continuing, so a momentary flake no longer fails the whole install. A genuine failure (an unavailable image, a rejected license) still stops with a clear message.
+
 | Option | Description |
 |--------|-------------|
 | `--os-version` | Android version for the system image and AVD (for example, `14`, or a raw API level like `34`). Default: the newest available. |
