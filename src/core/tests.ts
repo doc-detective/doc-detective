@@ -413,6 +413,15 @@ function isDriverRequired({ test }: { test: any }) {
   return driverRequired;
 }
 
+// Non-android platforms whose native app surface is driven by a shared,
+// per-host Appium driver server (macOS Mac2, Windows NovaWindows, iOS/xcuitest
+// simulator). Two concurrent sessions against one of these clobber the shared
+// server, so app-driver contexts on these platforms serialize on the
+// "native-app-driver" resource. Mirrors the non-android keys of
+// APP_DRIVER_PLATFORMS in tests/appSurface.ts; android is excluded because it
+// already has its own "android-emulator" bound.
+const NATIVE_APP_DRIVER_PLATFORMS = ["mac", "windows", "ios"];
+
 // The exclusive resources a context job must hold to run safely under
 // concurrency. A shared-display ffmpeg recording holds "display" exclusively
 // (jobExclusiveResources). And once ANY such recording is in the run
@@ -449,15 +458,46 @@ function jobDisplayResources(
       hasBrowserStep: isBrowserRequired({ test: job.context }),
       hasAppStep: isAppDriverRequired({ test: job.context }),
     }).action === "proceed";
-  const extra = attemptsEmulator ? ["android-emulator"] : [];
-  if (base.length || extra.length) return [...new Set([...base, ...extra])];
-  if (
+  // Non-android native app-driver contexts (macOS Mac2, Windows, iOS/xcuitest
+  // simulators) share a per-host native driver server that two concurrent
+  // sessions clobber (a proxied step fails because the driver "process is not
+  // running (probably crashed)"). Serialize them against each other on one
+  // exclusive resource — the non-android sibling of the android-emulator bound
+  // (extending ADR 01001 the way ADR 01025 did for emulators). Android already
+  // has its own bound above, so it's excluded here (never double-tagged). As
+  // with attemptsEmulator, only a context that will actually drive a native app
+  // takes the resource: it must need an app driver, sit on a native app-driver
+  // platform, and — for mobile platforms where mixing native app + browser
+  // steps deterministically SKIPs — clear the mobile browser gate, so a
+  // SKIP/FAIL context boots nothing and never needlessly serializes other jobs.
+  const attemptsNativeAppDriver =
+    job.context?.platform !== "android" &&
+    NATIVE_APP_DRIVER_PLATFORMS.includes(job.context?.platform) &&
+    isAppDriverRequired({ test: job.context }) &&
+    mobileBrowserGate({
+      platform: job.context?.platform,
+      browser: job.context?.browser,
+      hasBrowserStep: isBrowserRequired({ test: job.context }),
+      hasAppStep: isAppDriverRequired({ test: job.context }),
+    }).action === "proceed";
+  const extra = [
+    ...(attemptsEmulator ? ["android-emulator"] : []),
+    ...(attemptsNativeAppDriver ? ["native-app-driver"] : []),
+  ];
+  // A run-wide shared-display recording promotes every driver context onto the
+  // "display" resource so its ffmpeg capture doesn't include their windows.
+  // This composes with the native-app-driver bound above — a native app
+  // context in such a run holds BOTH (e.g. ["native-app-driver","display"]).
+  // Android emulator contexts are exempt: an emulator renders off the host
+  // display, so it neither pollutes a screen capture nor needs the display
+  // mutex (it stays on "android-emulator" only, as before).
+  const displayPromotion =
+    !attemptsEmulator &&
     ctx.runHasDisplayRecording &&
     isDriverRequired({ test: { steps: job.context?.steps } })
-  ) {
-    return ["display"];
-  }
-  return [];
+      ? ["display"]
+      : [];
+  return [...new Set([...base, ...extra, ...displayPromotion])];
 }
 
 // Check if context is supported by current platform and available apps
