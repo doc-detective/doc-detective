@@ -14,7 +14,7 @@ description: "Reference for the `Browser descriptor` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-browser | string | Required. Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. Exactly the requested engine — no cross-engine fallback.<br/><br/>Accepted values: `chrome`, `firefox`, `safari`, `webkit`, `edge` | 
+browser | string | Required. Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).<br/><br/>Accepted values: `chrome`, `firefox`, `safari`, `webkit`, `edge` | 
 name | string | Optional. Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.<br/><br/>Minimum length: 1. Pattern: `\S` | 
 headless | boolean | Optional. Run this session headless. Default: the context's browser headless setting. | 
 size | object([Browser window size](/reference/schemas/browser-window-size)) | Optional. Outer window dimensions for this session. Default: the context's browser window size. | 

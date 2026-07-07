@@ -8814,7 +8814,7 @@ export interface AppReadiness1 {
 }
 export interface BrowserDescriptor {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. Exactly the requested engine — no cross-engine fallback.
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -9006,7 +9006,7 @@ export interface AppReadiness2 {
 }
 export interface BrowserDescriptor1 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. Exactly the requested engine — no cross-engine fallback.
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -13381,7 +13381,7 @@ export interface AppReadiness4 {
 }
 export interface BrowserDescriptor2 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. Exactly the requested engine — no cross-engine fallback.
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -13573,7 +13573,7 @@ export interface AppReadiness5 {
 }
 export interface BrowserDescriptor3 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. Exactly the requested engine — no cross-engine fallback.
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**

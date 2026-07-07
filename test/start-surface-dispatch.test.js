@@ -214,6 +214,23 @@ describe("startSurfaceStep: parallel array form", function () {
     assert.equal(calls.length, 0);
   });
 
+  it("pre-FAILs an unnamed edge + unnamed chrome collision (both normalize to chrome)", async function () {
+    // edge is Chromium, so an unnamed edge descriptor's intended name is
+    // "chrome" — the same as an unnamed chrome descriptor. The pre-launch
+    // duplicate check must catch that even though the raw engine strings differ.
+    const { deps } = stubDeps();
+    const result = await startSurfaceStep({
+      config,
+      step: { startSurface: [{ browser: "edge" }, { browser: "chrome" }] },
+      platform: "windows",
+      driver: driverWithRegistry().driver,
+      deps,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /duplicate/i);
+    assert.match(result.description, /"chrome"/);
+  });
+
   it("launches mixed kinds, gathers with allSettled, and rolls up FAIL > PASS", async function () {
     const { driver } = driverWithRegistry();
     const { deps, calls } = stubDeps({

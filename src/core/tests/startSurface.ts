@@ -58,7 +58,12 @@ function descriptorKind(d: any): Kind | null {
 
 function intendedName(d: any, kind: Kind): string {
   if (typeof d.name === "string" && d.name.trim()) return d.name.trim();
-  if (kind === "browser") return String(d.browser).trim();
+  // Browser default name = the NORMALIZED engine (edge -> chrome), matching
+  // what openSession registers. Deriving it from the raw engine would make
+  // the duplicate-name pre-check miss a real collision (unnamed `edge` +
+  // unnamed `chrome` both register as "chrome") and would put a name in
+  // outputs.surfaces that doesn't match the registered surface.
+  if (kind === "browser") return normalizeEngine(String(d.browser).trim());
   if (kind === "app") return defaultAppSurfaceName(String(d.app).trim());
   // Process descriptors require `name` at the schema level; this fallback is
   // defence-in-depth for programmatic callers.

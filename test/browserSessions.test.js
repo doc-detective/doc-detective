@@ -187,6 +187,26 @@ describe("browserSessions: openSession (Phase 6 explicit opener)", function () {
     assert.deepEqual(launches[0].overrides.size, { width: 800, height: 600 });
   });
 
+  it("normalizes edge -> chrome for the launcher, the registered engine, and the default name", async function () {
+    const { openSession } = await import(
+      "../dist/core/tests/browserSessions.js"
+    );
+    const launches = [];
+    const registry = createSessionRegistry({
+      open: async (engine) => {
+        launches.push(engine);
+        return stubDriver({ engine });
+      },
+    });
+    const res = await openSession(registry, { engine: "edge" });
+    assert.equal(res.ok, true);
+    // Launcher receives the normalized engine (edge is Chromium)...
+    assert.deepEqual(launches, ["chrome"]);
+    // ...and the session registers/names as chrome (edge omitted a name).
+    assert.equal(res.name, "chrome");
+    assert.equal(lookupSessionByName(registry, "chrome").engine, "chrome");
+  });
+
   it("defaults the session name to the engine keyword", async function () {
     const { openSession } = await import(
       "../dist/core/tests/browserSessions.js"

@@ -283,16 +283,22 @@ async function resolveSessionForRef(
 // startSurface's browser lane use, so naming rules and collision checks
 // can't drift. `overrides` carries the descriptor's launch knobs
 // (headless/size/driverOptions) through to the injected launcher.
+//
+// The engine is normalized HERE (edge -> chrome — edge is Chromium and rides
+// the chromedriver stack) so BOTH callers get a launchable engine and a
+// consistent default name: the launcher (`registry.open`), the registered
+// engine, and the name-defaults-to-engine key all use the normalized value.
 async function openSession(
   registry: BrowserSessionRegistry,
   {
-    engine,
+    engine: rawEngine,
     name,
     overrides,
   }: { engine: string; name?: string; overrides?: BrowserOpenOverrides }
 ): Promise<
   { ok: true; driver: any; name: string } | { ok: false; message: string }
 > {
+  const engine = normalizeEngine(rawEngine);
   const key = String(name ?? engine).trim();
   if (!registry.open) {
     return {
