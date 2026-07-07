@@ -867,6 +867,39 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Invalid step definition/);
   });
 
+  it("windows: snapshots the window baseline on open (main handle, pid, foreign)", async function () {
+    const appSession = preflighted();
+    const driver = {
+      ...fakeDriver(),
+      async getWindowHandles() {
+        return ["0xA", "0xF"];
+      },
+      async getWindowHandle() {
+        return "0xA";
+      },
+      async $() {
+        return {
+          async getAttribute(name) {
+            return name === "ProcessId" ? "123" : null;
+          },
+        };
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "C:\\x\\app.exe" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("app");
+    assert.equal(entry.mainWindowHandle, "0xA");
+    assert.equal(entry.appPid, 123);
+    assert.deepEqual(entry.knownWindows, ["0xA"]);
+    assert.ok(entry.foreignWindows.has("0xF"));
+  });
+
   it("late-binds pending window crops from the first opened app surface", async function () {
     const appSession = preflighted();
     // A synthetic autoRecord capture started before any app window existed:
@@ -1605,6 +1638,33 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     assert.equal(appSession.surfaces.size, 0);
     assert.equal(appSession.activeApp, undefined);
     assert.equal(deleted, 1);
+  });
+
+  it("closeAppSurface re-roots to the app's main window before deleting the session", async function () {
+    // After window-switching (ADR 01036), the session may be rooted at a
+    // dialog; deleteSession closes whatever the current root is, so the
+    // close path must re-switch to the main window first.
+    const appSession = createAppSessionState();
+    const switches = [];
+    const entry = {
+      name: "a",
+      appId: "x",
+      platform: "windows",
+      mainWindowHandle: "0xA",
+      driver: {
+        deleted: false,
+        async switchToWindow(handle) {
+          switches.push({ handle, afterDelete: this.deleted });
+        },
+        async deleteSession() {
+          this.deleted = true;
+        },
+      },
+    };
+    appSession.surfaces.set("a", entry);
+    await closeAppSurface({ entry, appSession });
+    assert.deepEqual(switches, [{ handle: "0xA", afterDelete: false }]);
+    assert.equal(entry.driver.deleted, true);
   });
 
   it("teardownAppSession closes every surface and kills the server", async function () {

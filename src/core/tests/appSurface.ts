@@ -21,6 +21,7 @@ import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
 import { resolveAppWindowRect } from "./ffmpegRecorder.js";
+import { snapshotAppWindows } from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
@@ -663,6 +664,16 @@ interface AppSurfaceEntry {
   // (multiple app surfaces on one device share one UiAutomator2 session).
   // Absent for desktop surfaces (one driver per app).
   deviceName?: string;
+  // --- Window-selector state (ADR 01036, desktop only; managed by
+  // appWindows.ts). Sticky active window; the Windows baseline (main handle,
+  // best-effort pid, adopted vs foreign desktop-global handles); the macOS
+  // (title, frame) baseline for `-1` newest-window diffs.
+  activeWindow?: { handle?: string; element?: any; title?: string };
+  mainWindowHandle?: string;
+  appPid?: number | null;
+  knownWindows?: string[];
+  foreignWindows?: Set<string>;
+  windowBaseline?: string[];
 }
 
 // Per-context app-session state, created by runContext and threaded through
@@ -1396,6 +1407,13 @@ async function startAppSurface({
   });
   appSession.activeApp = name;
 
+  // Window-selector baseline (ADR 01036, desktop): capture the main window
+  // handle / pid / known-vs-foreign handles (Windows) or the (title, frame)
+  // baseline (macOS) so `-1` "newest window" diffs and pid-filtered adoption
+  // have a reference point. Best-effort — a driver without the needed
+  // endpoints just degrades the -1 semantics (documented).
+  await snapshotAppWindows(appSession.surfaces.get(name));
+
   if (!isMobileTargetPlatform(platform)) {
     // Late-bind window crops (desktop): an autoRecord capture in an app-only
     // context starts before any app window exists, so it records the full
@@ -1513,6 +1531,16 @@ async function closeAppSurface({
 }): Promise<void> {
   appSession.surfaces.delete(entry.name);
   if (appSession.activeApp === entry.name) appSession.activeApp = undefined;
+  // Window selectors may have left the session rooted at a dialog (Windows
+  // switch-then-act); deleteSession closes whatever the current root is, so
+  // re-root to the app's main window first. Best-effort.
+  if (entry.mainWindowHandle && typeof entry.driver?.switchToWindow === "function") {
+    try {
+      await entry.driver.switchToWindow(entry.mainWindowHandle);
+    } catch {
+      // Main window already gone — teardown proceeds on the current root.
+    }
+  }
   if (entry.deviceName) {
     // Android: terminate just this app on the shared device session.
     const session = appSession.deviceSessions?.get(entry.deviceName);
