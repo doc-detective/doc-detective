@@ -25,7 +25,7 @@ lands on the wrong / dead one.
 At `concurrentRunners: 2` (PR #532), `fixtures / capture (windows-latest)` FAILed exactly this way,
 mid-session rather than at session creation:
 
-```
+```text
 goTo action timed out after 4245ms
 ✗ DOM stability timeout: WebDriverError: Could not proxy command to the remote server.
   Original error: connect ECONNREFUSED 127.0.0.1:9515 when running "execute/sync" with method "POST"
