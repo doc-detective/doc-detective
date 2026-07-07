@@ -221,8 +221,11 @@ jobs:
       - name: Fetch sample APK
         # Pinned to an immutable commit (not the mutable `master` ref) so the
         # fixture can't break under us. Appium's stable ApiDemos sample.
+        # --retry (with --retry-all-errors so HTTP 429/5xx count) rides out a
+        # transient GitHub raw rate-limit that otherwise fails the whole leg.
         run: |
-          curl -fsSL -o test/core-artifacts/apps-android/sample.apk \
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+            -o test/core-artifacts/apps-android/sample.apk \
             https://github.com/appium/appium/raw/a1a7b7e981335da5f21304635969ee4222e3ba56/packages/appium/sample-code/apps/ApiDemos-debug.apk
 
       - name: Enable KVM
@@ -317,15 +320,19 @@ jobs:
   # Managed-boot leg: no emulator-runner. `doc-detective install android`
   # augments the runner's preinstalled SDK (installs a system image + creates
   # the default AVD), then Doc Detective BOOTS the AVD itself and sweeps it at
-  # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec.
+  # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec;
+  # DD_FIXTURE_MULTIDEVICE un-gates the phase A6 two-device spec (two more AVD
+  # creations + serial boots — too heavy for the other legs).
   fixtures-android-managed:
     name: apps-android + mobile-web (ubuntu KVM, managed-boot)
     runs-on: ubuntu-latest
     # Headroom for the second (mobile-web, phase A5) gated run, which boots the
-    # managed AVD again after the first run's sweep.
-    timeout-minutes: 45
+    # managed AVD again after the first run's sweep, plus the two serial
+    # two-device boots (phase A6).
+    timeout-minutes: 60
     env:
       DD_FIXTURE_PROVISION: '1'
+      DD_FIXTURE_MULTIDEVICE: '1'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

@@ -932,8 +932,9 @@ function hlJson(json) {
 }
 
 var ACTIONS = ["goTo","find","click","screenshot","checkLink","httpRequest",
-  "runShell","runCode","type","typeKeys","wait","record","stopRecord",
-  "loadVariables","loadCookie","saveCookie","dragAndDrop","moveTo","scroll"];
+  "runShell","runCode","runBrowserScript","type","typeKeys","wait","record",
+  "stopRecord","loadVariables","loadCookie","saveCookie","dragAndDrop",
+  "swipe","startSurface","closeSurface","moveTo","scroll"];
 function actionKey(step) {
   for (var i = 0; i < ACTIONS.length; i++) if (ACTIONS[i] in step) return ACTIONS[i];
   return "step";

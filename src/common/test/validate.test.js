@@ -740,6 +740,196 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("swipe step", function () {
+      it("should validate the simple direction string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: "left" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe).to.equal("left");
+      });
+
+      it("should validate the directional object form with distance, duration, and an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              direction: "up",
+              distance: 0.8,
+              duration: 300,
+              surface: { app: "myapp" },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe.direction).to.equal("up");
+        expect(result.object.swipe.distance).to.equal(0.8);
+      });
+
+      it("should validate the point-to-point form with pixel coordinates", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
+              duration: 250,
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe.from).to.deep.equal({ x: 200, y: 600 });
+        expect(result.object.swipe.to).to.deep.equal({ x: 200, y: 200 });
+      });
+
+      it("should reject an unknown direction", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: "diagonal" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject a distance outside the (0, 1] range", function () {
+        for (const distance of [0, 1.5]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { direction: "up", distance } },
+          });
+
+          expect(result.valid, `distance ${distance}`).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject from without to", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { from: { x: 200, y: 600 } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a point missing a coordinate", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { from: { x: 200 }, to: { x: 200, y: 200 } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject mixing direction with point-to-point coordinates", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              direction: "up",
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject negative and non-integer pixel coordinates", function () {
+        for (const from of [
+          { x: -5, y: 600 },
+          { x: 200.5, y: 600 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { from, to: { x: 200, y: 200 } } },
+          });
+
+          expect(result.valid, JSON.stringify(from)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject a non-positive duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { direction: "up", duration: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface (swipe has no screen to act on)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { direction: "up", surface: { process: "node" } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("click duration (long-press)", function () {
+      it("should validate a click with a duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 800 } },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.click.duration).to.equal(800);
+      });
+
+      it("should validate a find with a duration-only click sub-effect", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: { elementText: "Message", click: { duration: 800 } },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.find.click.duration).to.equal(800);
+      });
+
+      it("should reject a non-positive click duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a non-integer click duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 1.5 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({

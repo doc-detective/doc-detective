@@ -106,9 +106,10 @@ function mobileBrowserGate({
   if (!hasBrowserStep) return { action: "proceed", browserName: null };
   if (hasAppStep) {
     // Interleaving native app surfaces and the device browser in one context
-    // needs foreground + NATIVE_APP/WEBVIEW context switching, which lands
-    // with the mobile interaction vocabulary (phase A6). Both halves run
-    // today — in separate tests/contexts.
+    // needs foreground + NATIVE_APP/WEBVIEW context switching — its own
+    // subsystem, deferred past A6 (which shipped the interaction vocabulary;
+    // see the design doc's A6 entry). Both halves run today — in separate
+    // tests/contexts.
     return {
       action: "skip",
       level: "warning",
