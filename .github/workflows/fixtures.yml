@@ -32,8 +32,10 @@ jobs:
     # The apps and iOS-flavored groups get headroom: the first Mac2/XCUITest
     # session on a macOS runner builds WebDriverAgent(Mac) via xcodebuild
     # (minutes on a cold runner). apps-ios and mobile-web-ios get the most:
-    # a cold WDA build precedes their first simulator session.
-    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 45 || (matrix.group == 'apps' && 30 || 20) }}
+    # a cold WDA build precedes their first simulator session, and a session
+    # POST that aborts at the 15-minute startup ceiling is retried once
+    # (ADR 01033), so the worst case is two ceiling-length attempts.
+    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 55 || (matrix.group == 'apps' && 30 || 20) }}
     strategy:
       fail-fast: false
       matrix:
@@ -136,7 +138,7 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.group }} fixtures
-        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
@@ -439,7 +441,7 @@ jobs:
       - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
         id: android-action
         continue-on-error: true
-        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         with:
           version: ''
           working_directory: .
@@ -449,7 +451,7 @@ jobs:
 
       - name: Retry apps-android via the action
         if: steps.android-action.outcome == 'failure'
-        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         with:
           version: ''
           working_directory: .

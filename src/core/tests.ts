@@ -32,6 +32,7 @@ import {
   runArchivesArtifacts,
   sanitizeFilesystemName,
   evaluateContextRequirements,
+  isRetryableSessionError,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -4678,21 +4679,11 @@ async function driverStart(
   maxAttempts: number = 4,
   ctx: { cacheDir?: string } = {}
 ) {
-  // Two families of transient, retryable session-creation failures, both worse
-  // under concurrency (the TRANSIENT regex below enumerates the specific
-  // patterns):
-  //   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
-  //      /status returns 200 from the outgoing process while /session no longer
-  //      accepts, or Appium's proxy to chromedriver drops the socket ->
-  //      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
-  //   2. Several Chromes launching at once briefly starve resources and
-  //      ChromeDriver "crashed during startup" / "cannot connect to" /
-  //      "DevToolsActivePort" / "session not created". A staggered retry lets
-  //      the contention clear; it recovers on the next attempt in practice.
-  // Retry these with linear backoff; any other error is a real session-
-  // creation failure and propagates immediately.
-  const TRANSIENT =
-    /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
+  // Retryable session-creation failures (transient races/contention, plus the
+  // client-side timeout abort for slow-startup native sessions) are enumerated
+  // by isRetryableSessionError in ./utils.js. Retry those with linear backoff;
+  // any other error is a real session-creation failure and propagates
+  // immediately.
   const wdio = await loadHeavyDep<WdioModule>("webdriverio", { ctx });
   // The wdio client aborts the POST /session request after connectionRetryTimeout.
   // A cold native session can take far longer to create than the 2-minute
@@ -4731,7 +4722,8 @@ async function driverStart(
       return driver;
     } catch (err: any) {
       lastError = err;
-      if (!TRANSIENT.test(String(err && err.message))) throw err;
+      if (!isRetryableSessionError(String(err && err.message), startupCeiling))
+        throw err;
       if (attempt < maxAttempts) {
         await new Promise((r) => setTimeout(r, 500 * attempt));
       }
