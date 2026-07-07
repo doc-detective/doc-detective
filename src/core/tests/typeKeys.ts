@@ -16,6 +16,11 @@ import {
   ensureAppForeground,
 } from "./appSurface.js";
 import {
+  resolveAppWindow,
+  activeAppWindow,
+  scopedFindRoot,
+} from "./appWindows.js";
+import {
   APP_GESTURES,
   ANDROID_KEYCODES,
   IOS_BUTTONS,
@@ -445,6 +450,24 @@ async function typeKeys({
       result.description = appRef.error;
       return result;
     }
+    // Window selectors (ADR 01036): resolve to a real window before any
+    // typing decisions — previously `window` was silently ignored here.
+    let windowTarget: any = null;
+    if (appRef.window !== undefined) {
+      const resolvedWindow = await resolveAppWindow({
+        entry: appRef.entry!,
+        selector: appRef.window,
+        timeoutMs: step.type.timeout ?? 5000,
+      });
+      if (!resolvedWindow.ok) {
+        result.status = "FAIL";
+        result.description = resolvedWindow.message;
+        return result;
+      }
+      windowTarget = resolvedWindow.target;
+    } else {
+      windowTarget = await activeAppWindow(appRef.entry!);
+    }
     const wu = step.type.waitUntil;
     if (
       wu &&
@@ -518,6 +541,7 @@ async function typeKeys({
         // immediate check instead of being clobbered to the default.
         timeout: step.type.timeout ?? 5000,
         platform: appRef.entry!.platform,
+        root: scopedFindRoot(appRef.entry!, windowTarget),
       });
       if (found.error) {
         result.status = "FAIL";
@@ -564,6 +588,7 @@ async function typeKeys({
         criteria: wu.find,
         timeout: step.type.timeout ?? 5000,
         platform: appRef.entry!.platform,
+        root: scopedFindRoot(appRef.entry!, windowTarget),
       });
       if (ready.error) {
         result.status = "FAIL";

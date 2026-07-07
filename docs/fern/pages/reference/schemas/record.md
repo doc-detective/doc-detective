@@ -16,7 +16,7 @@ description: "Reference for the `record` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-record | one of:<br/>- string<br/>- object([Record (detailed)](/reference/schemas/record-detailed))<br/>- boolean | Required. Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. Supported extensions: [ '.mp4', '.webm', '.gif' ] | 
+record | one of:<br/>- string<br/>- object([Record (detailed)](/reference/schemas/record-detailed))<br/>- boolean | Required. Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ] | 
 
 ## Examples
 
@@ -59,6 +59,32 @@ record | one of:<br/>- string<br/>- object([Record (detailed)](/reference/schema
       "name": "ffmpeg",
       "target": "window",
       "fps": 60
+    }
+  }
+}
+```
+
+```json
+{
+  "record": {
+    "path": "notepad.mp4",
+    "surface": {
+      "app": "notepad"
+    }
+  }
+}
+```
+
+```json
+{
+  "record": {
+    "path": "full-screen.mp4",
+    "surface": {
+      "app": "notepad"
+    },
+    "engine": {
+      "name": "ffmpeg",
+      "target": "display"
     }
   }
 }

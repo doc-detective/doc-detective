@@ -1,0 +1,183 @@
+{
+  "specId": "app-recording-a7-macos",
+  "description": "Native app surfaces phase A7 (docs/design/native-app-surfaces.md): explicit `record` steps target app surfaces on macOS. This is the leg where the capture-frame-derived crop scale matters: avfoundation captures physical pixels while Mac2's getWindowRect returns points, so the stop-side transcode scales the window rect by captureFrameSize / displayPointSize (the JXA NSScreen probe) — on scale-1 CI runners the factor derives to 1, on Retina it derives to 2; either way the machinery runs end-to-end. TextEdit is the target app for the same reasons as app-surfaces-macos.spec.json. Gated to macOS hosts; SKIPPED elsewhere.",
+  "tests": [
+    {
+      "testId": "rec-app-macos-default-window",
+      "description": "Record a TextEdit app surface with no engine specified: ffmpeg + window target, cropped to the TextEdit window with the derived scale factor.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "textedit-window.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Recorded by Doc Detective"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "rec-app-macos-explicit-display",
+      "description": "An explicit `target: \"display\"` opts out of the window crop on macOS.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "textedit-display.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Full display capture"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "rec-app-macos-autorecord-overlap",
+      "description": "autoRecord (synthetic full-context capture, window crop late-bound by the first app surface with the pending-scale shape) overlaps an explicit named app recording; the named stop targets only the explicit one, and the synthetic capture is swept at context end.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "textedit-clip.mp4",
+            "overwrite": "true",
+            "name": "clip",
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Overlapping captures"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "stopRecord": "clip"
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    }
+  ]
+}

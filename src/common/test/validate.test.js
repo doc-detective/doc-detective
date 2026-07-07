@@ -269,6 +269,55 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      it("should validate a record step targeting an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", surface: { app: "notepad" } } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a record step targeting an app surface with a window selector", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            record: {
+              path: "out.mp4",
+              surface: { app: "notepad", window: -1 },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a record step with an invalid app surface", function () {
+        // Note: primitive values coerce under ajv coerceTypes (7 -> "7"), so
+        // the type negative uses an object, which never coerces to a string.
+        for (const surface of [
+          { app: "" },
+          { app: {} },
+          { app: "notepad", tab: 1 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", surface } },
+          });
+          expect(
+            result.valid,
+            `expected invalid surface: ${JSON.stringify(surface)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should not inject a default engine target during validation", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", engine: { name: "ffmpeg" } } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.record.engine.target).to.equal(undefined);
+      });
+
       it("should validate a config_v3 object with autoRecord set", function () {
         const result = validate({
           schemaKey: "config_v3",
