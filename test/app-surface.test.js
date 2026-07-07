@@ -867,6 +867,42 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Invalid step definition/);
   });
 
+  it("windows: snapshots the window baseline on open (main handle, pid, lazy baseline)", async function () {
+    const appSession = preflighted();
+    const driver = {
+      ...fakeDriver(),
+      async getWindowHandles() {
+        return ["0xA", "0xF"];
+      },
+      async getWindowHandle() {
+        return "0xA";
+      },
+      async $() {
+        return {
+          async getAttribute(name) {
+            return name === "ProcessId" ? "123" : null;
+          },
+        };
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "C:\\x\\app.exe" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("app");
+    assert.equal(entry.mainWindowHandle, "0xA");
+    assert.equal(entry.appPid, 123);
+    assert.deepEqual(entry.knownWindows, ["0xA"]);
+    // Other baseline windows are recorded, not pre-damned as foreign — the
+    // first selector use pid-probes them (the app may own some of them).
+    assert.equal(entry.foreignWindows.size, 0);
+    assert.ok(entry.baselineWindowHandles.has("0xF"));
+  });
+
   it("late-binds pending window crops from the first opened app surface", async function () {
     const appSession = preflighted();
     // A synthetic autoRecord capture started before any app window existed:
@@ -899,6 +935,45 @@ describe("startAppSurface", function () {
     assert.equal(handle.cropPendingScale, true);
     assert.equal(handle.crop, undefined);
     assert.equal(handle.pendingAppWindowCrop, false);
+  });
+
+  it("mac: late-binds the pending crop from the window ELEMENT rect", async function () {
+    // Mac2's getWindowRect() is the whole main screen — the late-bound
+    // autoRecord crop must come from the window element instead (ADR 01036).
+    const appSession = preflighted();
+    const handle = { type: "ffmpeg", pendingAppWindowCrop: true };
+    appSession.recordingHost.state.recordings.push(handle);
+    const windowEl = {
+      elementId: "w1",
+      async getAttribute(name) {
+        return name === "title" ? "Untitled" : null;
+      },
+      async isExisting() {
+        return true;
+      },
+    };
+    const driver = {
+      async deleteSession() {},
+      async getWindowRect() {
+        return { x: 0, y: 0, width: 3840, height: 2160 };
+      },
+      async $$() {
+        return [windowEl];
+      },
+      async getElementRect() {
+        return { x: 40, y: 50, width: 800, height: 600 };
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.TextEdit" } },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(handle.cropRect, { x: 40, y: 50, w: 800, h: 600 });
+    assert.equal(handle.cropPendingScale, true);
   });
 
   it("waits for element readiness, and tears the session down when readiness never comes", async function () {
@@ -1111,7 +1186,7 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Privacy & Security/);
   });
 
-  it("maps args and workingDirectory into driver capabilities", async function () {
+  it("maps args and driverOptions into driver capabilities", async function () {
     const appSession = preflighted();
     let caps;
     await startAppSurface({
@@ -1120,7 +1195,6 @@ describe("startAppSurface", function () {
         startSurface: {
           app: "C:\\x\\app.exe",
           args: ["--a", "--b"],
-          workingDirectory: "./sandbox",
           driverOptions: { "nova:smoothMouseMove": true },
         },
       },
@@ -1135,9 +1209,45 @@ describe("startAppSurface", function () {
       },
     });
     assert.equal(caps["appium:appArguments"], "--a --b");
-    assert.equal(caps["appium:appWorkingDir"], path.resolve("./sandbox"));
     assert.equal(caps["nova:smoothMouseMove"], true);
     assert.equal(caps["appium:automationName"], "NovaWindows");
+    // workingDirectory is NOT mapped to a capability — NovaWindows ignores
+    // appWorkingDir, so it's rejected up front (see the FAIL test below)
+    // rather than silently sent.
+    assert.equal(caps["appium:appWorkingDir"], undefined);
+  });
+
+  it("fails workingDirectory on Windows with guidance but tolerates the schema default", async function () {
+    // NovaWindows v1.4.1 silently ignores appWorkingDir (the launched app
+    // inherits the driver's cwd), so Doc Detective can't deliver a working
+    // directory on Windows — FAIL loudly with guidance rather than accept a
+    // silent no-op (matching the macOS LaunchServices precedent).
+    const appSession = preflighted();
+    const explicit = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "C:\\x\\app.exe", workingDirectory: "./sandbox" },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(explicit.status, "FAIL");
+    assert.match(explicit.description, /not supported by the Windows app driver/);
+    assert.match(explicit.description, /doesn't honor a launch working directory/);
+
+    // "." is the schema's injected default, not an author request — it must
+    // not trip the unsupported-field guard.
+    const defaulted = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "C:\\x\\other.exe", workingDirectory: "." },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(defaulted.status, "PASS");
   });
 
   // --- Android (phase A3b): shared device session + activateApp switching ---
@@ -1605,6 +1715,33 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     assert.equal(appSession.surfaces.size, 0);
     assert.equal(appSession.activeApp, undefined);
     assert.equal(deleted, 1);
+  });
+
+  it("closeAppSurface re-roots to the app's main window before deleting the session", async function () {
+    // After window-switching (ADR 01036), the session may be rooted at a
+    // dialog; deleteSession closes whatever the current root is, so the
+    // close path must re-switch to the main window first.
+    const appSession = createAppSessionState();
+    const switches = [];
+    const entry = {
+      name: "a",
+      appId: "x",
+      platform: "windows",
+      mainWindowHandle: "0xA",
+      driver: {
+        deleted: false,
+        async switchToWindow(handle) {
+          switches.push({ handle, afterDelete: this.deleted });
+        },
+        async deleteSession() {
+          this.deleted = true;
+        },
+      },
+    };
+    appSession.surfaces.set("a", entry);
+    await closeAppSurface({ entry, appSession });
+    assert.deepEqual(switches, [{ handle: "0xA", afterDelete: false }]);
+    assert.equal(entry.driver.deleted, true);
   });
 
   it("teardownAppSession closes every surface and kills the server", async function () {

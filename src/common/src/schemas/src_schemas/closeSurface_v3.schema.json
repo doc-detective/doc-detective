@@ -38,6 +38,16 @@
     "chrome",
     {
       "app": "charmap"
+    },
+    {
+      "app": "notepad",
+      "window": -1
+    },
+    {
+      "app": "TextEdit",
+      "window": {
+        "title": "Untitled 2"
+      }
     }
   ]
 }
