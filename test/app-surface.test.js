@@ -342,6 +342,49 @@ describe("isAppDriverRequired / stepTargetsAppSurface", function () {
     assert.equal(isAppDriverRequired({ test: {} }), false);
   });
 
+  it("ignores browser/process startSurface descriptors (Phase 6 narrowing)", function () {
+    // A browser- or process-only startSurface must not trigger the app
+    // preflight (Appium server + native driver install probe).
+    assert.equal(
+      isAppDriverRequired({
+        test: { steps: [{ startSurface: { browser: "chrome" } }] },
+      }),
+      false
+    );
+    assert.equal(
+      isAppDriverRequired({
+        test: { steps: [{ startSurface: { process: "node", name: "repl" } }] },
+      }),
+      false
+    );
+    // The parallel array form counts only when a descriptor is an app.
+    assert.equal(
+      isAppDriverRequired({
+        test: {
+          steps: [
+            { startSurface: [{ browser: "chrome" }, { app: "com.example.x" }] },
+          ],
+        },
+      }),
+      true
+    );
+    assert.equal(
+      isAppDriverRequired({
+        test: {
+          steps: [
+            {
+              startSurface: [
+                { browser: "chrome" },
+                { process: "node", name: "repl" },
+              ],
+            },
+          ],
+        },
+      }),
+      false
+    );
+  });
+
   it("does not count string surfaces or browser surfaces", function () {
     assert.equal(
       stepTargetsAppSurface({ find: { elementText: "a", surface: "chrome" } }),

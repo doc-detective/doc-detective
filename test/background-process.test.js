@@ -656,6 +656,118 @@ describe("closeSurface", function () {
   });
 });
 
+describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () {
+  this.timeout(20000);
+
+  it("starts, registers, waits for readiness, and reports outputs", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const port = await findFreePort();
+    const tmp = path.join(os.tmpdir(), `dd-p6-srv-${process.pid}.js`);
+    fs.writeFileSync(
+      tmp,
+      `require('http').createServer((q,r)=>r.end('ok')).listen(+process.argv[2]);`
+    );
+    const registry = new Map();
+    try {
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: {
+          command: `"${process.execPath}" "${tmp}" ${port}`,
+          name: "web",
+          waitUntil: { port },
+          timeout: 10000,
+        },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "PASS");
+      assert.equal(result.outputs.name, "web");
+      assert.equal(result.outputs.ready, "true");
+      assert.ok(registry.has("web"));
+      await waitForPort(port, { deadline: Date.now() + 2000 });
+    } finally {
+      await closeSurface({
+        config: {},
+        step: { closeSurface: "web" },
+        processRegistry: registry,
+      });
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  it("fails fast without a process registry", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "echo hi", name: "web" },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no process registry/);
+  });
+
+  it("fails on a duplicate process name and on a browser-surface name collision", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const dup = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "echo hi", name: "web" },
+      processRegistry: new Map([["web", { name: "web", bg: {} }]]),
+    });
+    assert.equal(dup.status, "FAIL");
+    assert.match(dup.description, /already running/);
+
+    const cross = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "echo hi", name: "web" },
+      processRegistry: new Map(),
+      driver: {
+        state: { sessionRegistry: { sessions: new Map([["web", {}]]) } },
+      },
+    });
+    assert.equal(cross.status, "FAIL");
+    assert.match(cross.description, /browser surface named "web"/);
+  });
+
+  it("fails and deregisters when readiness times out", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const port = await findFreePort(); // nothing will ever listen here
+    const tmp = path.join(os.tmpdir(), `dd-p6-noready-${process.pid}.js`);
+    fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
+    const registry = new Map();
+    try {
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: {
+          command: `"${process.execPath}" "${tmp}"`,
+          name: "stuck",
+          waitUntil: { port },
+          timeout: 600,
+        },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, /failed to become ready/);
+      assert.equal(registry.has("stuck"), false);
+    } finally {
+      // The launcher already killed + deregistered on the timeout, but if an
+      // assertion above regresses, sweep any surviving entry so it can't leak
+      // into later tests; always remove the temp script.
+      await closeSurface({
+        config: {},
+        step: { closeSurface: "stuck" },
+        processRegistry: registry,
+      });
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+});
+
 describe("runShell/runCode background (integration)", function () {
   this.timeout(20000);
 

@@ -2078,11 +2078,50 @@ export type Routing63 =
   | {
       [k: string]: unknown;
     };
+/**
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ */
+export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName1 = string;
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
 export type ElementCriteria2 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Open several surfaces concurrently (any mix of kinds). All descriptors launch in parallel; the step completes when every one is ready. Names must be unique within the array and across the context's open surfaces (checked at runtime). Device boots overlap — worth real wall-clock on 30–60s emulator starts.
+ *
+ * @minItems 1
+ */
+export type ParallelSurfaces = [
+  AppDescriptor1 | BrowserDescriptor1 | ProcessDescriptor1,
+  ...(AppDescriptor1 | BrowserDescriptor1 | ProcessDescriptor1)[],
+];
+export type DeviceByName2 = string;
+/**
+ * Wait for a specific element to be present. At least one finding field must be specified.
+ */
+export type ElementCriteria3 =
   | {
       [k: string]: unknown;
     }
@@ -3787,7 +3826,7 @@ export type TypeKeysDetailed1 = {
   /**
    * After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default.
    */
-  waitUntil?: ProcessReadiness1 | BrowserReadiness1 | AppReadiness2;
+  waitUntil?: ProcessReadiness1 | BrowserReadiness1 | AppReadiness3;
   /**
    * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
    */
@@ -3879,7 +3918,7 @@ export type ByName33 = string;
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
-export type ElementCriteria3 =
+export type ElementCriteria4 =
   | {
       [k: string]: unknown;
     }
@@ -3904,7 +3943,7 @@ export type ElementCriteria3 =
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
-export type ElementCriteria4 =
+export type ElementCriteria5 =
   | {
       [k: string]: unknown;
     }
@@ -4699,11 +4738,50 @@ export type Routing143 =
   | {
       [k: string]: unknown;
     };
-export type DeviceByName2 = string;
+/**
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ */
+export type StartSurface3 = AppDescriptor2 | BrowserDescriptor2 | ProcessDescriptor2 | ParallelSurfaces1;
+export type DeviceByName3 = string;
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
-export type ElementCriteria5 =
+export type ElementCriteria6 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Open several surfaces concurrently (any mix of kinds). All descriptors launch in parallel; the step completes when every one is ready. Names must be unique within the array and across the context's open surfaces (checked at runtime). Device boots overlap — worth real wall-clock on 30–60s emulator starts.
+ *
+ * @minItems 1
+ */
+export type ParallelSurfaces1 = [
+  AppDescriptor3 | BrowserDescriptor3 | ProcessDescriptor3,
+  ...(AppDescriptor3 | BrowserDescriptor3 | ProcessDescriptor3)[],
+];
+export type DeviceByName4 = string;
+/**
+ * Wait for a specific element to be present. At least one finding field must be specified.
+ */
+export type ElementCriteria7 =
   | {
       [k: string]: unknown;
     }
@@ -6172,7 +6250,7 @@ export interface GoTo {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -7031,7 +7109,7 @@ export interface RunBrowserScriptDetailed {
 }
 export interface BrowserSurface1 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -7236,7 +7314,7 @@ export interface ProcessSurface {
 }
 export interface BrowserSurface2 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -7524,7 +7602,7 @@ export interface CaptureScreenshotFields {
 }
 export interface BrowserSurface3 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -7947,7 +8025,7 @@ export interface RecordDetailed {
 }
 export interface BrowserSurface4 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -8344,7 +8422,7 @@ export interface ProcessSurface1 {
 }
 export interface BrowserSurface5 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -8419,7 +8497,7 @@ export interface ProcessSurface2 {
 }
 export interface BrowserSurface6 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -8637,10 +8715,7 @@ export interface StartSurface {
   startSurface: StartSurface1;
   [k: string]: unknown;
 }
-/**
- * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator, and phase A4 adds iOS app surfaces on macOS via XCUITest/simctl. Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
- */
-export interface StartSurface1 {
+export interface AppDescriptor {
   /**
    * The app identifier: an executable path (`C:\\Windows\\System32\\notepad.exe`), a `.app` path, a bundle ID (`com.apple.TextEdit`), a package name (`com.example.myapp`), or a UWP AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`). Disambiguated by syntax — never by a type field.
    */
@@ -8736,6 +8811,293 @@ export interface AppReadiness1 {
    */
   delayMs?: number;
   find?: ElementCriteria2;
+}
+export interface BrowserDescriptor {
+  /**
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
+   */
+  name?: string;
+  /**
+   * Run this session headless. Default: the context's browser headless setting.
+   */
+  headless?: boolean;
+  size?: BrowserWindowSize;
+  viewport?: BrowserViewportSize;
+  /**
+   * Escape-hatch passthrough: merged into the session's capabilities after the ones Doc Detective computes. Driver- and version-specific; use sparingly.
+   */
+  driverOptions?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Outer window dimensions for this session. Default: the context's browser window size.
+ */
+export interface BrowserWindowSize {
+  /**
+   * Outer window width in pixels.
+   */
+  width?: number;
+  /**
+   * Outer window height in pixels.
+   */
+  height?: number;
+}
+/**
+ * Viewport (page-content) dimensions for this session; the window is resized so the content area matches. Takes precedence over `size` when both are set.
+ */
+export interface BrowserViewportSize {
+  /**
+   * Viewport width in pixels.
+   */
+  width?: number;
+  /**
+   * Viewport height in pixels.
+   */
+  height?: number;
+}
+export interface ProcessDescriptor {
+  /**
+   * Shell command to start as a long-running background process (same shell semantics as runShell: pipes, `&&`, globbing, environment-variable expansion). Equivalent to a `runShell` step with `background` — both forms remain valid.
+   */
+  process: string;
+  /**
+   * Surface-registry name later steps use in `surface`, and the handle a closeSurface step stops. Unique across all open surfaces.
+   */
+  name: string;
+  /**
+   * Arguments for the command.
+   */
+  args?: string[];
+  /**
+   * Working directory for the process.
+   */
+  workingDirectory?: string;
+  /**
+   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+   */
+  tty?: boolean;
+  /**
+   * Conditions that must all be met before the process is considered ready and the descriptor completes. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the descriptor fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+   */
+  waitUntil?: {
+    /**
+     * Wait until this TCP port accepts connections on localhost.
+     */
+    port?: number;
+    /**
+     * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+     */
+    stdio?: string;
+    /**
+     * Wait until an HTTP GET request to this URL returns a 2xx status.
+     */
+    httpGet?: string;
+    /**
+     * Wait at least this many milliseconds.
+     */
+    delayMs?: number;
+  };
+  /**
+   * Max time in milliseconds to wait for `waitUntil` before the descriptor fails.
+   */
+  timeout?: number;
+}
+export interface AppDescriptor1 {
+  /**
+   * The app identifier: an executable path (`C:\\Windows\\System32\\notepad.exe`), a `.app` path, a bundle ID (`com.apple.TextEdit`), a package name (`com.example.myapp`), or a UWP AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`). Disambiguated by syntax — never by a type field.
+   */
+  app: string;
+  /**
+   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID.
+   */
+  name?: string;
+  /**
+   * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
+   */
+  args?: string[];
+  /**
+   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
+   */
+  workingDirectory?: string;
+  /**
+   * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
+   */
+  env?: {
+    [k: string]: string;
+  };
+  /**
+   * Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Supported on Android and iOS app surfaces.
+   */
+  install?: string;
+  /**
+   * Android main activity override (defaults to the package's launcher activity). Android-only.
+   */
+  activity?: string;
+  /**
+   * Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets.
+   */
+  device?:
+    | DeviceByName2
+    | (DeviceDescriptor2 & {
+        [k: string]: unknown;
+      });
+  /**
+   * Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly.
+   */
+  driverOptions?: {
+    [k: string]: unknown;
+  };
+  waitUntil?: AppReadiness2;
+  /**
+   * Startup ceiling in milliseconds (launch + install + readiness).
+   */
+  timeout?: number;
+}
+export interface DeviceDescriptor2 {
+  /**
+   * Target platform. Selects the mobile driver. Required in `startSurface.device`; implied by the context in `context.device`.
+   */
+  platform?: "android" | "ios";
+  /**
+   * Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`).
+   */
+  name?: string;
+  /**
+   * Abstract hardware profile used when creating a device (portable across `android`/`ios`). Doc Detective maps it to a built-in profile. Ignored when `name` already matches an existing device. Default: `phone`.
+   */
+  deviceType?: "phone" | "tablet";
+  /**
+   * Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version.
+   */
+  osVersion?: string;
+  /**
+   * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
+   */
+  headless?: boolean;
+  /**
+   * Initial orientation. Reserved; validated now, not yet implemented.
+   */
+  orientation?: "portrait" | "landscape";
+  /**
+   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
+   */
+  udid?: string;
+  /**
+   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
+   */
+  provider?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
+ */
+export interface AppReadiness2 {
+  /**
+   * Fixed delay (ms).
+   */
+  delayMs?: number;
+  find?: ElementCriteria3;
+}
+export interface BrowserDescriptor1 {
+  /**
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
+   */
+  name?: string;
+  /**
+   * Run this session headless. Default: the context's browser headless setting.
+   */
+  headless?: boolean;
+  size?: BrowserWindowSize1;
+  viewport?: BrowserViewportSize1;
+  /**
+   * Escape-hatch passthrough: merged into the session's capabilities after the ones Doc Detective computes. Driver- and version-specific; use sparingly.
+   */
+  driverOptions?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Outer window dimensions for this session. Default: the context's browser window size.
+ */
+export interface BrowserWindowSize1 {
+  /**
+   * Outer window width in pixels.
+   */
+  width?: number;
+  /**
+   * Outer window height in pixels.
+   */
+  height?: number;
+}
+/**
+ * Viewport (page-content) dimensions for this session; the window is resized so the content area matches. Takes precedence over `size` when both are set.
+ */
+export interface BrowserViewportSize1 {
+  /**
+   * Viewport width in pixels.
+   */
+  width?: number;
+  /**
+   * Viewport height in pixels.
+   */
+  height?: number;
+}
+export interface ProcessDescriptor1 {
+  /**
+   * Shell command to start as a long-running background process (same shell semantics as runShell: pipes, `&&`, globbing, environment-variable expansion). Equivalent to a `runShell` step with `background` — both forms remain valid.
+   */
+  process: string;
+  /**
+   * Surface-registry name later steps use in `surface`, and the handle a closeSurface step stops. Unique across all open surfaces.
+   */
+  name: string;
+  /**
+   * Arguments for the command.
+   */
+  args?: string[];
+  /**
+   * Working directory for the process.
+   */
+  workingDirectory?: string;
+  /**
+   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+   */
+  tty?: boolean;
+  /**
+   * Conditions that must all be met before the process is considered ready and the descriptor completes. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the descriptor fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+   */
+  waitUntil?: {
+    /**
+     * Wait until this TCP port accepts connections on localhost.
+     */
+    port?: number;
+    /**
+     * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+     */
+    stdio?: string;
+    /**
+     * Wait until an HTTP GET request to this URL returns a 2xx status.
+     */
+    httpGet?: string;
+    /**
+     * Wait at least this many milliseconds.
+     */
+    delayMs?: number;
+  };
+  /**
+   * Max time in milliseconds to wait for `waitUntil` before the descriptor fails.
+   */
+  timeout?: number;
 }
 export interface Common15 {
   /**
@@ -9063,7 +9425,7 @@ export interface DragAndDrop1 {
 }
 export interface BrowserSurface7 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -9428,7 +9790,7 @@ export interface SwipeDirectional {
 }
 export interface BrowserSurface8 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -9535,7 +9897,7 @@ export interface Point1 {
 }
 export interface BrowserSurface9 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -10455,7 +10817,7 @@ export interface GoTo2 {
 }
 export interface BrowserSurface10 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -11314,7 +11676,7 @@ export interface RunBrowserScriptDetailed1 {
 }
 export interface BrowserSurface11 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -11519,7 +11881,7 @@ export interface ProcessSurface3 {
 }
 export interface BrowserSurface12 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -11605,14 +11967,14 @@ export interface BrowserReadiness1 {
    * Wait for DOM mutations to stop for this duration in milliseconds.
    */
   domIdleTime?: number;
-  find?: ElementCriteria3;
+  find?: ElementCriteria4;
 }
-export interface AppReadiness2 {
+export interface AppReadiness3 {
   /**
    * Fixed delay (ms).
    */
   delayMs?: number;
-  find?: ElementCriteria4;
+  find?: ElementCriteria5;
 }
 export interface WaitUntilRequiresASurface1 {
   [k: string]: unknown;
@@ -11807,7 +12169,7 @@ export interface CaptureScreenshotFields1 {
 }
 export interface BrowserSurface13 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -12230,7 +12592,7 @@ export interface RecordDetailed1 {
 }
 export interface BrowserSurface14 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -12627,7 +12989,7 @@ export interface ProcessSurface4 {
 }
 export interface BrowserSurface15 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -12702,7 +13064,7 @@ export interface ProcessSurface5 {
 }
 export interface BrowserSurface16 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -12920,10 +13282,7 @@ export interface StartSurface2 {
   startSurface: StartSurface3;
   [k: string]: unknown;
 }
-/**
- * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator, and phase A4 adds iOS app surfaces on macOS via XCUITest/simctl. Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
- */
-export interface StartSurface3 {
+export interface AppDescriptor2 {
   /**
    * The app identifier: an executable path (`C:\\Windows\\System32\\notepad.exe`), a `.app` path, a bundle ID (`com.apple.TextEdit`), a package name (`com.example.myapp`), or a UWP AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`). Disambiguated by syntax — never by a type field.
    */
@@ -12958,8 +13317,8 @@ export interface StartSurface3 {
    * Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets.
    */
   device?:
-    | DeviceByName2
-    | (DeviceDescriptor2 & {
+    | DeviceByName3
+    | (DeviceDescriptor3 & {
         [k: string]: unknown;
       });
   /**
@@ -12968,13 +13327,13 @@ export interface StartSurface3 {
   driverOptions?: {
     [k: string]: unknown;
   };
-  waitUntil?: AppReadiness3;
+  waitUntil?: AppReadiness4;
   /**
    * Startup ceiling in milliseconds (launch + install + readiness).
    */
   timeout?: number;
 }
-export interface DeviceDescriptor2 {
+export interface DeviceDescriptor3 {
   /**
    * Target platform. Selects the mobile driver. Required in `startSurface.device`; implied by the context in `context.device`.
    */
@@ -13013,12 +13372,299 @@ export interface DeviceDescriptor2 {
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
-export interface AppReadiness3 {
+export interface AppReadiness4 {
   /**
    * Fixed delay (ms).
    */
   delayMs?: number;
-  find?: ElementCriteria5;
+  find?: ElementCriteria6;
+}
+export interface BrowserDescriptor2 {
+  /**
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
+   */
+  name?: string;
+  /**
+   * Run this session headless. Default: the context's browser headless setting.
+   */
+  headless?: boolean;
+  size?: BrowserWindowSize2;
+  viewport?: BrowserViewportSize2;
+  /**
+   * Escape-hatch passthrough: merged into the session's capabilities after the ones Doc Detective computes. Driver- and version-specific; use sparingly.
+   */
+  driverOptions?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Outer window dimensions for this session. Default: the context's browser window size.
+ */
+export interface BrowserWindowSize2 {
+  /**
+   * Outer window width in pixels.
+   */
+  width?: number;
+  /**
+   * Outer window height in pixels.
+   */
+  height?: number;
+}
+/**
+ * Viewport (page-content) dimensions for this session; the window is resized so the content area matches. Takes precedence over `size` when both are set.
+ */
+export interface BrowserViewportSize2 {
+  /**
+   * Viewport width in pixels.
+   */
+  width?: number;
+  /**
+   * Viewport height in pixels.
+   */
+  height?: number;
+}
+export interface ProcessDescriptor2 {
+  /**
+   * Shell command to start as a long-running background process (same shell semantics as runShell: pipes, `&&`, globbing, environment-variable expansion). Equivalent to a `runShell` step with `background` — both forms remain valid.
+   */
+  process: string;
+  /**
+   * Surface-registry name later steps use in `surface`, and the handle a closeSurface step stops. Unique across all open surfaces.
+   */
+  name: string;
+  /**
+   * Arguments for the command.
+   */
+  args?: string[];
+  /**
+   * Working directory for the process.
+   */
+  workingDirectory?: string;
+  /**
+   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+   */
+  tty?: boolean;
+  /**
+   * Conditions that must all be met before the process is considered ready and the descriptor completes. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the descriptor fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+   */
+  waitUntil?: {
+    /**
+     * Wait until this TCP port accepts connections on localhost.
+     */
+    port?: number;
+    /**
+     * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+     */
+    stdio?: string;
+    /**
+     * Wait until an HTTP GET request to this URL returns a 2xx status.
+     */
+    httpGet?: string;
+    /**
+     * Wait at least this many milliseconds.
+     */
+    delayMs?: number;
+  };
+  /**
+   * Max time in milliseconds to wait for `waitUntil` before the descriptor fails.
+   */
+  timeout?: number;
+}
+export interface AppDescriptor3 {
+  /**
+   * The app identifier: an executable path (`C:\\Windows\\System32\\notepad.exe`), a `.app` path, a bundle ID (`com.apple.TextEdit`), a package name (`com.example.myapp`), or a UWP AppUserModelID (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`). Disambiguated by syntax — never by a type field.
+   */
+  app: string;
+  /**
+   * Surface-registry name later steps use in `surface`. Default: the executable basename without extension, or the final dot-segment of an ID.
+   */
+  name?: string;
+  /**
+   * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
+   */
+  args?: string[];
+  /**
+   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
+   */
+  workingDirectory?: string;
+  /**
+   * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
+   */
+  env?: {
+    [k: string]: string;
+  };
+  /**
+   * Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Supported on Android and iOS app surfaces.
+   */
+  install?: string;
+  /**
+   * Android main activity override (defaults to the package's launcher activity). Android-only.
+   */
+  activity?: string;
+  /**
+   * Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets.
+   */
+  device?:
+    | DeviceByName4
+    | (DeviceDescriptor4 & {
+        [k: string]: unknown;
+      });
+  /**
+   * Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly.
+   */
+  driverOptions?: {
+    [k: string]: unknown;
+  };
+  waitUntil?: AppReadiness5;
+  /**
+   * Startup ceiling in milliseconds (launch + install + readiness).
+   */
+  timeout?: number;
+}
+export interface DeviceDescriptor4 {
+  /**
+   * Target platform. Selects the mobile driver. Required in `startSurface.device`; implied by the context in `context.device`.
+   */
+  platform?: "android" | "ios";
+  /**
+   * Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`).
+   */
+  name?: string;
+  /**
+   * Abstract hardware profile used when creating a device (portable across `android`/`ios`). Doc Detective maps it to a built-in profile. Ignored when `name` already matches an existing device. Default: `phone`.
+   */
+  deviceType?: "phone" | "tablet";
+  /**
+   * Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version.
+   */
+  osVersion?: string;
+  /**
+   * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
+   */
+  headless?: boolean;
+  /**
+   * Initial orientation. Reserved; validated now, not yet implemented.
+   */
+  orientation?: "portrait" | "landscape";
+  /**
+   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
+   */
+  udid?: string;
+  /**
+   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
+   */
+  provider?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
+ */
+export interface AppReadiness5 {
+  /**
+   * Fixed delay (ms).
+   */
+  delayMs?: number;
+  find?: ElementCriteria7;
+}
+export interface BrowserDescriptor3 {
+  /**
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
+   */
+  name?: string;
+  /**
+   * Run this session headless. Default: the context's browser headless setting.
+   */
+  headless?: boolean;
+  size?: BrowserWindowSize3;
+  viewport?: BrowserViewportSize3;
+  /**
+   * Escape-hatch passthrough: merged into the session's capabilities after the ones Doc Detective computes. Driver- and version-specific; use sparingly.
+   */
+  driverOptions?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Outer window dimensions for this session. Default: the context's browser window size.
+ */
+export interface BrowserWindowSize3 {
+  /**
+   * Outer window width in pixels.
+   */
+  width?: number;
+  /**
+   * Outer window height in pixels.
+   */
+  height?: number;
+}
+/**
+ * Viewport (page-content) dimensions for this session; the window is resized so the content area matches. Takes precedence over `size` when both are set.
+ */
+export interface BrowserViewportSize3 {
+  /**
+   * Viewport width in pixels.
+   */
+  width?: number;
+  /**
+   * Viewport height in pixels.
+   */
+  height?: number;
+}
+export interface ProcessDescriptor3 {
+  /**
+   * Shell command to start as a long-running background process (same shell semantics as runShell: pipes, `&&`, globbing, environment-variable expansion). Equivalent to a `runShell` step with `background` — both forms remain valid.
+   */
+  process: string;
+  /**
+   * Surface-registry name later steps use in `surface`, and the handle a closeSurface step stops. Unique across all open surfaces.
+   */
+  name: string;
+  /**
+   * Arguments for the command.
+   */
+  args?: string[];
+  /**
+   * Working directory for the process.
+   */
+  workingDirectory?: string;
+  /**
+   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+   */
+  tty?: boolean;
+  /**
+   * Conditions that must all be met before the process is considered ready and the descriptor completes. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the descriptor fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
+   */
+  waitUntil?: {
+    /**
+     * Wait until this TCP port accepts connections on localhost.
+     */
+    port?: number;
+    /**
+     * Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \d+/`.
+     */
+    stdio?: string;
+    /**
+     * Wait until an HTTP GET request to this URL returns a 2xx status.
+     */
+    httpGet?: string;
+    /**
+     * Wait at least this many milliseconds.
+     */
+    delayMs?: number;
+  };
+  /**
+   * Max time in milliseconds to wait for `waitUntil` before the descriptor fails.
+   */
+  timeout?: number;
 }
 export interface Common35 {
   /**
@@ -13346,7 +13992,7 @@ export interface DragAndDrop3 {
 }
 export interface BrowserSurface17 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -13711,7 +14357,7 @@ export interface SwipeDirectional1 {
 }
 export interface BrowserSurface18 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
@@ -13818,7 +14464,7 @@ export interface Point3 {
 }
 export interface BrowserSurface19 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
   /**
