@@ -136,7 +136,7 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.group }} fixtures
-        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
@@ -432,7 +432,7 @@ jobs:
       - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
         id: android-action
         continue-on-error: true
-        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         with:
           version: ''
           working_directory: .
@@ -442,7 +442,7 @@ jobs:
 
       - name: Retry apps-android via the action
         if: steps.android-action.outcome == 'failure'
-        uses: doc-detective/github-action@0ce9fef5b3a533d9b2a1f22f02c4583ed904f416 # ios WDA cache (github-action#73)
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         with:
           version: ''
           working_directory: .
