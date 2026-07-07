@@ -33,7 +33,7 @@ iOS app surfaces run only on a macOS host and drive an iOS simulator that Doc De
 - `env`: (Optional, macOS only) Extra environment variables for the launched app. The Windows, Android, and iOS drivers don't support `env`, and setting it there fails the step with guidance. Instead, set variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell).
 - `workingDirectory`: (Optional, Windows only) The working directory for the launched app. Defaults to the run's working directory. macOS launches apps through LaunchServices, which offers no working-directory control, and Android and iOS offer none at launch, so a non-default value fails the step there with guidance; use [`runShell`](/docs/actions/runshell) if the working directory matters.
 - `device`: (Optional, Android and iOS) The device the app runs on, as a device name or a device descriptor object. Omit it for a desktop app, or (in an Android or iOS context) to use the context's default device. See [Choose the emulator](#choose-the-emulator) and [Choose the simulator](#choose-the-simulator).
-- `install`: (Optional, Android and iOS) A path to an app bundle to install on the device before launch, so you can test an app that isn't already on it: an `.apk` on Android, or an `.app` or `.ipa` on iOS. When set on iOS, the installable payload also becomes the app to launch, overriding `app`. On desktop platforms the field validates but is ignored.
+- `install`: (Optional, Android and iOS) A path to an app bundle to install on the device before launch, so you can test an app that isn't already on it: an `.apk` on Android, or an `.app` or `.ipa` on iOS. When you set `install` on iOS, the installable payload also becomes the app to launch, overriding `app`. On desktop platforms, Doc Detective validates the field but ignores it.
 - `activity`: (Optional, Android) The main activity to launch, overriding the package's default launcher activity. Only meaningful on Android; setting it on iOS fails the step, since iOS launches by bundle identifier or installed app payload.
 - `waitUntil`: (Optional) A readiness condition that must hold before Doc Detective considers the surface open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
 - `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode, which can take several minutes on a cold machine; Doc Detective raises the server startup ceiling to at least 120000 ms for that first build regardless of `timeout`. iOS does the same: the first surface builds WebDriverAgent for the simulator, and Doc Detective floors the agent's launch and connection ceilings at 120000 ms so a cold build isn't aborted early. On Android, booting a cold emulator (or creating one) can also take longer than the default, so give the first surface a generous `timeout`.
@@ -94,7 +94,7 @@ CSS selectors are browser-only and fail on app surfaces, as do the `elementClass
 
 ## Platform support
 
-`startSurface` launches native apps on Windows, macOS, Android, and iOS. On other platforms, including Linux, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run. iOS app surfaces run only on a macOS host; an `ios` context on Windows or Linux skips with a pointer to that requirement.
+`startSurface` launches native apps on Windows, macOS, Android, and iOS. On other platforms, including Linux, the app preflight skips the context with a reason rather than failing, which keeps a mixed-platform spec passing where it can't run. iOS app surfaces run only on a macOS host. An `ios` context on Windows or Linux skips with a pointer to that requirement.
 
 Because an app targets one platform, gate app tests to the platform they run on with a [context](/docs/test-docs/platforms-and-browsers). A Windows app targets the `windows` platform:
 
@@ -239,8 +239,8 @@ Without a `device`, an iOS app runs on the context's default simulator: Doc Dete
 ```
 
 - `name` is the simulator's identity. If a simulator with that name already exists, Doc Detective reuses it (booting it if needed); otherwise it creates one under that name. Reusing a name across steps and tests targets the same simulator.
-- `deviceType` picks the device family that Doc Detective creates: `phone` (the default, an iPhone) or `tablet` (an iPad). It's ignored when `name` matches an existing simulator.
-- `osVersion` picks the iOS runtime version for a newly created simulator and must match a runtime you've installed through Xcode. It defaults to the newest installed version and is ignored when `name` matches an existing simulator.
+- `deviceType` picks the device family that Doc Detective creates: `phone` (the default, an iPhone) or `tablet` (an iPad). Doc Detective ignores it when `name` matches an existing simulator.
+- `osVersion` picks the iOS runtime version for a newly created simulator and must match a runtime you've installed through Xcode. It defaults to the newest installed version. Doc Detective ignores it when `name` matches an existing simulator.
 - `headless` is a no-op on iOS: simulators boot without the Simulator UI on CI, so there's no window to suppress.
 
 Doc Detective only ever boots an iPhone or iPad simulator for an `ios` context, so a visionOS, watchOS, or tvOS simulator is never selected. At the end of a run, Doc Detective shuts down only the simulators it booted, leaving any you had already booted running.
