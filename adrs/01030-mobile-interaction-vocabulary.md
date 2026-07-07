@@ -175,6 +175,17 @@ creations and boots are too heavy for every leg. The parallel array form of
 - Neutral: permission dialogs are a documented pattern (`click: "Allow"` as a
   normal element; `driverOptions.autoGrantPermissions` when the dialog isn't
   the thing being documented), not a primitive.
+- Neutral: adding `swipe` to the shared `BROWSER_STEP_KEYS` list surfaced a
+  pre-existing gap — the runtime asset inference (`inferRuntimeNeeds`) counted
+  any browser-keyed step as needing a browser binary, even one that names an
+  app surface with the object form (`surface: { app: … }`). The runner's own
+  per-context predicate (`isBrowserRequired`) already excludes app-object-
+  targeted steps, so the fix teaches inference the same exclusion (via a
+  `stepTargetsAppSurface` predicate now centralized in the runtime layer). An
+  app-only spec no longer provisions Chrome; app screenshots still infer the
+  image stack (the exclusion gates only the browser flag). Surface-agnostic
+  app steps that inherit the context (`click`/`type` with no per-step surface)
+  are unaffected — they still infer the generic driver stack, as before.
 
 ### Confirmation
 

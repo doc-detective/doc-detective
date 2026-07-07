@@ -423,15 +423,11 @@ describe("core/utils coverage", function () {
       // must survive env substitution. Regression: on Unix $HOME is set, and
       // `$HOME$` used to get rewritten to the home path, breaking the device
       // key. A trailing `$` marks a sentinel, not an env reference.
-      const prevHome = process.env.DD_TEST_VAL;
+      // (The describe's afterEach restores DD_TEST_VAL, so no local dance.)
       process.env.DD_TEST_VAL = "/home/runner";
-      try {
-        assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
-        // A bare $NAME reference still substitutes.
-        assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
-      } finally {
-        process.env.DD_TEST_VAL = prevHome;
-      }
+      assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
+      // A bare $NAME reference still substitutes.
+      assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
     });
     it("parses a whole-string variable holding a JSON object into an object", function () {
       process.env.DD_TEST_OBJ = JSON.stringify({ k: "v" });

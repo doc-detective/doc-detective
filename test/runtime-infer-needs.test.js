@@ -211,4 +211,58 @@ describe("runtime/inferRuntimeNeeds", function () {
       );
     }
   });
+
+  // A step whose action payload names an app surface with the object form
+  // (`surface: { app: … }`) drives a native app driver, not a browser — the
+  // same exclusion `isBrowserRequired` applies in the runner. So even though
+  // `swipe`/`click` are shared browser step keys, an app-object-targeted step
+  // must NOT pull in the browser stack (webdriverio/appium/chromium/chrome).
+  // This is narrower than the android-toolchain test above: there the
+  // find/click/type steps carry NO per-step surface object (they inherit the
+  // app context), so they legitimately still infer the generic driver stack.
+  it("an app-surface-targeted step (object form) does not provision the browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec(
+        [
+          { startSurface: { app: "com.android.settings" } },
+          {
+            swipe: {
+              direction: "up",
+              surface: { app: "com.android.settings" },
+            },
+          },
+          {
+            click: {
+              elementText: "Wi-Fi",
+              surface: { app: "com.android.settings" },
+            },
+          },
+        ],
+        { runOn: [{ platforms: "android" }] }
+      ),
+    ]);
+    expect([...needs.browsers]).to.deep.equal([]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+    expect(needs.npmPackages.has("appium")).to.equal(false);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
+  });
+
+  // Guard the boundary: an app-object screenshot still needs the image stack
+  // (sharp/pngjs/pixelmatch) — the app-surface exclusion gates only the
+  // browser flag, not screenshot/recording bundles.
+  it("an app-surface screenshot still infers the image stack but no browser", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        {
+          screenshot: {
+            path: "s.png",
+            surface: { app: "com.android.settings" },
+          },
+        },
+      ]),
+    ]);
+    expect(needs.npmPackages.has("sharp")).to.equal(true);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+    expect([...needs.browsers]).to.deep.equal([]);
+  });
 });

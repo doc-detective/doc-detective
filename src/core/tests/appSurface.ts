@@ -24,6 +24,7 @@ import { resolveCropGeometry } from "./ffmpegRecorder.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
+import { stepTargetsAppSurface } from "../../runtime/browserStepKeys.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -721,20 +722,10 @@ function isAppDriverRequired({ test }: { test: any }): boolean {
   );
 }
 
-// True when any action payload in the step names an app surface with the
-// object form ({ app: … }). The bare-string form is identity-only and
-// resolves against the registries at runtime instead.
-function stepTargetsAppSurface(step: any): boolean {
-  if (!step || typeof step !== "object") return false;
-  return Object.values(step).some(
-    (payload: any) =>
-      payload &&
-      typeof payload === "object" &&
-      payload.surface &&
-      typeof payload.surface === "object" &&
-      typeof payload.surface.app === "string"
-  );
-}
+// `stepTargetsAppSurface` (imported from ../../runtime/browserStepKeys.js and
+// re-exported above) decides whether an action payload names an app surface
+// with the object form — shared with the runtime's browser-need inference so
+// the two never drift.
 
 // Resolve a step's `surface` reference to a registered app surface, or null
 // when the reference isn't an app reference (browser/process/engine) or names
