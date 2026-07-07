@@ -793,18 +793,8 @@ describe("closeSurface app-surface branch", function () {
     );
   });
 
-  it("rejects window-scoped app closes and resolves bare strings via the app registry", async function () {
+  it("resolves bare strings via the app registry", async function () {
     const appSession = fakeAppSession({});
-    const windowClose = await closeSurface({
-      config: {},
-      step: { closeSurface: { app: "charmap", window: -1 } },
-      driver: undefined,
-      processRegistry: new Map(),
-      appSession,
-    });
-    assert.equal(windowClose.status, "FAIL");
-    assert.match(windowClose.description, /lands in a later phase/);
-
     const byName = await closeSurface({
       config: {},
       step: { closeSurface: "charmap" },
@@ -814,5 +804,92 @@ describe("closeSurface app-surface branch", function () {
     });
     assert.equal(byName.status, "PASS");
     assert.deepEqual(byName.outputs.closed, ["charmap"]);
+  });
+
+  it("windows: closes ONE window and keeps the surface open (ADR 01036)", async function () {
+    const { appSession, driver } = windowsAppSession({
+      windows: [
+        { handle: "0xA", title: "Main", pid: 100 },
+        { handle: "0xB", title: "Dialog", pid: 100 },
+      ],
+    });
+    // Give the strategy a closable root: "windows: closeApp" marks the
+    // current window closed in the helper's window table.
+    const table = await driver.getWindowHandles();
+    assert.equal(table.length, 2);
+    driver.execute = async (cmd) => {
+      if (cmd === "windows: closeApp") {
+        const current = driver.state.current;
+        const w = (await driver.getWindowHandles()).includes(current);
+        if (w) driver.state.closedHandle = current;
+      }
+    };
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { app: "charmap", window: { title: "Dialog" } } },
+      driver: undefined,
+      processRegistry: new Map(),
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(driver.state.closedHandle, "0xB");
+    // The surface itself stays open, rooted back at the main window.
+    assert.equal(appSession.surfaces.size, 1);
+    assert.equal(driver.state.current, "0xA");
+  });
+
+  it("refuses to close an app's last window, pointing at the bare form", async function () {
+    const { appSession } = windowsAppSession({
+      windows: [{ handle: "0xA", title: "Main", pid: 100 }],
+    });
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { app: "charmap", window: { title: "Main" } } },
+      driver: undefined,
+      processRegistry: new Map(),
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Refusing to close the last window/);
+    assert.equal(appSession.surfaces.size, 1);
+  });
+
+  it("treats a window selector that matches nothing as an absent no-op", async function () {
+    const { appSession } = windowsAppSession({
+      windows: [
+        { handle: "0xA", title: "Main", pid: 100 },
+        { handle: "0xB", title: "Dialog", pid: 100 },
+      ],
+    });
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { app: "charmap", window: { title: "Long gone" } } },
+      driver: undefined,
+      processRegistry: new Map(),
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(appSession.surfaces.size, 1);
+  });
+
+  it("mobile: window-scoped app closes FAIL single-window", async function () {
+    const appSession = createAppSessionState();
+    appSession.surfaces.set("chat", {
+      name: "chat",
+      appId: "com.example.chat",
+      driver: {},
+      launchedByUs: true,
+      platform: "android",
+      deviceName: "Pixel_7",
+    });
+    const result = await closeSurface({
+      config: {},
+      step: { closeSurface: { app: "chat", window: -1 } },
+      driver: undefined,
+      processRegistry: new Map(),
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /single-window/);
   });
 });
