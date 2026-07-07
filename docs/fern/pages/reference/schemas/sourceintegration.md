@@ -11,6 +11,7 @@ Information about the source integration for this screenshot, enabling upload of
 ## Referenced In
 
 - [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
+- [Capture screenshot fields](/reference/schemas/capture-screenshot-fields)
 
 ## Fields
 

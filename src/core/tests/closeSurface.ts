@@ -8,6 +8,7 @@ import {
   syncHandles,
 } from "./browserSurface.js";
 import { findSession, closeSession } from "./browserSessions.js";
+import { closeAppSurface, type AppSessionState } from "./appSurface.js";
 import kill from "tree-kill";
 import fs from "node:fs";
 
@@ -38,11 +39,13 @@ async function closeSurface({
   step,
   driver,
   processRegistry,
+  appSession,
 }: {
   config: any;
   step: any;
   driver?: any;
   processRegistry?: Map<string, any>;
+  appSession?: AppSessionState;
 }) {
   const result: any = {
     status: "PASS",
@@ -202,13 +205,57 @@ async function closeSurface({
       continue;
     }
 
-    // Every item reaching this loop passed surface_v3 validation, so it is
-    // either a browser ref (handled and `continue`d above) or a process ref
-    // with a non-empty name; a kind-less or nameless surface cannot pass the
-    // schema, so this guard's `continue` arm is unreachable (ADR 01017).
+    // App surfaces (native app phase A1). The object form is authoritative;
+    // window-scoped app closes land in a later phase (the whole surface
+    // closes for now — the session ends, terminating a driver-launched app).
+    if (
+      item &&
+      typeof item === "object" &&
+      typeof (item as any).app === "string"
+    ) {
+      const appName = (item as any).app.trim();
+      const appEntry = appSession?.surfaces.get(appName);
+      if (!appEntry) {
+        absent.push(appName);
+        continue;
+      }
+      if ((item as any).window !== undefined) {
+        result.status = "FAIL";
+        result.description = `Closing a single app window lands in a later phase; close the whole app surface ("closeSurface": {"app": "${appName}"}) instead.`;
+        return result;
+      }
+      await closeAppSurface({ entry: appEntry, appSession: appSession! });
+      log(config, "debug", `Closed app surface "${appName}".`);
+      closed.push(appName);
+      continue;
+    }
+
+    // Every item reaching this point passed surface_v3 validation, so it is
+    // a browser ref (handled and `continue`d above), an app object ref
+    // (likewise), or a process ref with a non-empty name; a kind-less or
+    // nameless surface cannot pass the schema, so this guard's `continue`
+    // arm is unreachable (ADR 01017).
     /* c8 ignore next */
     if (ref.kind !== "process" || !ref.name) continue;
     const name = ref.name;
+    // A bare string can name a process OR an app surface; processes resolve
+    // first (the pre-app behavior), then the app registry. A collision is
+    // logged so the priority is visible; the object form ({"app": …}) always
+    // targets the app unambiguously.
+    const appEntry = appSession?.surfaces.get(name);
+    if (processRegistry?.get(name) && appEntry) {
+      log(
+        config,
+        "debug",
+        `"${name}" names both a background process and an app surface; closing the process (processes resolve first). Use {"app": "${name}"} to close the app surface.`
+      );
+    }
+    if (!processRegistry?.get(name) && appEntry) {
+      await closeAppSurface({ entry: appEntry, appSession: appSession! });
+      log(config, "debug", `Closed app surface "${name}".`);
+      closed.push(name);
+      continue;
+    }
     const entry = processRegistry?.get(name);
     if (!entry) {
       // Idempotent: closing an absent surface is a no-op (still PASS).

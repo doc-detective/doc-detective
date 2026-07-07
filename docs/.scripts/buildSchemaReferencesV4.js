@@ -410,8 +410,14 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   if (propSchema.minimum !== undefined) {
     constraints.push(`Minimum: ${propSchema.minimum}`);
   }
+  if (propSchema.exclusiveMinimum !== undefined) {
+    constraints.push(`Exclusive minimum: ${propSchema.exclusiveMinimum}`);
+  }
   if (propSchema.maximum !== undefined) {
     constraints.push(`Maximum: ${propSchema.maximum}`);
+  }
+  if (propSchema.exclusiveMaximum !== undefined) {
+    constraints.push(`Exclusive maximum: ${propSchema.exclusiveMaximum}`);
   }
   if (propSchema.minLength !== undefined) {
     constraints.push(`Minimum length: ${propSchema.minLength}`);
@@ -569,6 +575,7 @@ async function main() {
     "spec_v3",
     "step_v3",
     "stopRecord_v3",
+    "swipe_v3",
     "test_v3",
     "type_v3",
     "wait_v3",

@@ -1,4 +1,4 @@
-import { BROWSER_STEP_KEYS } from "./browserStepKeys.js";
+import { BROWSER_STEP_KEYS, stepTargetsAppSurface } from "./browserStepKeys.js";
 
 export type BrowserName = "chrome" | "firefox" | "safari";
 
@@ -130,8 +130,14 @@ function classifyStep(step: any): {
   let browser = false;
   let screenshot = false;
   let recording = false;
+  // An app-object-targeted step (`surface: { app: … }`) drives a native app
+  // driver, not a browser — mirror the runner's `isBrowserRequired` exclusion
+  // so app-only specs don't provision a browser binary. This gates ONLY the
+  // browser flag: an app screenshot still needs the image stack, and an app
+  // recording still needs ffmpeg.
+  const appTargeted = stepTargetsAppSurface(step);
   for (const key of Object.keys(step)) {
-    if (BROWSER_STEP_KEY_SET.has(key)) browser = true;
+    if (!appTargeted && BROWSER_STEP_KEY_SET.has(key)) browser = true;
     if (SCREENSHOT_STEP_KEYS.has(key)) screenshot = true;
     if (RECORDING_STEP_KEYS.has(key)) recording = true;
   }

@@ -147,3 +147,16 @@ byte-identical.
 ### C — Propagate / fail the step
 * Good: loudest; a broken expression can never produce wrong output.
 * Bad: breaking for `step.variables`, which the roadmap requires to stay byte-identical.
+
+## Follow-up: a handled bad `jq()` must not leak jq's exit code
+
+`jq-web` is an emscripten/WASM build of jq. On a jq **compile** error (an invalid query) its runtime
+leaks jq's own exit code (`3`) into `process.exitCode` as a side effect — so even though this ADR's
+contract handles the error gracefully (preserve `{{…}}`), the host process would still exit non-zero
+on an otherwise-passing run. That was invisible under mocha (the framework owns the process exit) but
+surfaced once fixtures began running through the standalone CLI / GitHub Action (see
+[ADR 01022](01022-parallel-feature-fixture-jobs.md)): the `guards` fixture group exited `3` purely
+because of `expression-embedded-failure.spec.json`. The `jq` operator in `src/core/expressions.ts` now
+snapshots and restores `process.exitCode` around the `jq-web` call, so a gracefully-handled bad `jq()`
+query never reddens the caller's exit code. Regression test: `test/expressions-unit.test.js` ("a bad
+jq() query does NOT leak jq's exit code into process.exitCode").

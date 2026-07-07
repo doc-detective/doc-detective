@@ -10,6 +10,7 @@ export const HEAVY_NPM_DEPS = [
   "appium-chromium-driver",
   "appium-geckodriver",
   "appium-safari-driver",
+  "appium-xcuitest-driver",
   "sharp",
   "@ffmpeg-installer/ffmpeg",
   "@puppeteer/browsers",
@@ -64,6 +65,42 @@ export function withPeerCompanions(names: string[]): string[] {
     }
   }
   return out;
+}
+
+/**
+ * Every npm package name the shim itself may install into <cacheDir>/runtime.
+ * This is the sweep list recordRuntimeDependencies uses to find packages
+ * physically on disk but missing from installed.json — the orphans an
+ * interrupted install batch (killed npm child, install timeout, cancelled CI
+ * job) leaves behind, which would otherwise be invisible to the recorded
+ * sources and pruned as extraneous by the next install's reify.
+ */
+export function managedDepNames(): string[] {
+  return resolveManagedDepNames(readShimPackageJson());
+}
+
+/**
+ * Pure union of every field the shim declares runtime installs from, split
+ * out from managedDepNames so it can be unit-tested against synthetic
+ * manifests: HEAVY_NPM_DEPS (the loader's own list) plus the keys of
+ * `ddRuntimeDependencies` / `optionalDependencies` — the app-surface drivers
+ * (appium-novawindows-driver, appium-mac2-driver, appium-uiautomator2-driver)
+ * are JIT-installed by the platform preflights but live ONLY in those
+ * manifest fields, not in HEAVY_NPM_DEPS — expanded with peer companions.
+ *
+ * `dependencies` is deliberately EXCLUDED: those are the shim's regular
+ * runtime deps, whose names can collide with transitives hoisted into the
+ * cache's node_modules — sweeping them would promote a hoisted transitive to
+ * a direct dependency, distorting every future ideal tree. (It only exists
+ * as a legacy fallback in resolveDeclaredVersion, predating the cache.)
+ */
+export function resolveManagedDepNames(pkg: ShimPackageJson): string[] {
+  const names = new Set<string>([
+    ...HEAVY_NPM_DEPS,
+    ...Object.keys(pkg.ddRuntimeDependencies ?? {}),
+    ...Object.keys(pkg.optionalDependencies ?? {}),
+  ]);
+  return withPeerCompanions([...names]);
 }
 
 export interface ShimPackageJson {
