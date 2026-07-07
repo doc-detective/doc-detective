@@ -260,7 +260,7 @@ When you specify a desktop platform (or multiple platforms) in a context, Doc De
 
 Mobile platforms name the **target** the test runs against, not the host: an `android` context runs on any host capable of running the emulator, and an `ios` context on any macOS host with Xcode. Incapable hosts skip the context with guidance instead of failing.
 
-The desktop platforms (`windows`, `mac`, and `linux`) run browser tests and, on Windows and macOS, [native desktop app tests](/docs/actions/startsurface). The mobile platforms drive native apps rather than a browser: `android` runs native Android app tests on a managed emulator (see [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator)), and its default device is set with the context's `device` field. `ios` is accepted but not yet functional; an `ios` context skips with a pointer to the native app roadmap. Mobile browser testing isn't available yet either, so an Android context with a browser step skips.
+The desktop platforms (`windows`, `mac`, and `linux`) run browser tests and, on Windows and macOS, [native desktop app tests](/docs/actions/startsurface). The mobile platforms drive native apps rather than a browser: `android` runs native Android app tests on a managed emulator (see [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator)), and you set its default device with the context's `device` field. Doc Detective accepts `ios` but it isn't yet functional. An `ios` context skips with a pointer to the native app roadmap. Mobile browser testing isn't available yet either, so an Android context with a browser step skips.
 
 For example, this context targets only macOS:
 
