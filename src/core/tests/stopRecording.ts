@@ -112,10 +112,16 @@ async function stopRecording({
     if (idx !== -1) recordings.splice(idx, 1);
   };
 
-  // A pending device recording never actually started (no app surface opened
-  // a device session after the record step) — there's nothing to save.
+  // A pending device recording never actually started. If the late-start
+  // attempt errored, surface that as the FAIL; otherwise no app surface ever
+  // opened a device session — there's nothing to save.
   if (recording.type === "appium-pending") {
     dropHandle();
+    if (recording.startError) {
+      result.status = "FAIL";
+      result.description = recording.startError;
+      return result;
+    }
     result.status = "SKIPPED";
     result.description =
       "The device recording never started (no app surface opened a device session), so there is nothing to save.";

@@ -1416,6 +1416,12 @@ async function startAppSurface({
         if (rect) {
           handle.cropRect = rect;
           handle.cropPendingScale = true;
+        } else {
+          log(
+            config,
+            "warning",
+            "Couldn't resolve the app window geometry for the active recording (malformed window rect); it stays full-display."
+          );
         }
         handle.pendingAppWindowCrop = false;
       } catch (error: any) {
@@ -1444,11 +1450,11 @@ async function startAppSurface({
         handle.type = "appium";
         handle.driver = driver;
       } catch (error: any) {
-        log(
-          config,
-          "warning",
-          `Couldn't start the pending device recording: ${error?.message ?? error}`
-        );
+        // Stash the real error on the handle so stopRecording surfaces it as
+        // a FAIL instead of the misleading "never started" skip.
+        const message = `Couldn't start the pending device recording: ${error?.message ?? error}`;
+        handle.startError = message;
+        log(config, "warning", message);
       }
     }
   }

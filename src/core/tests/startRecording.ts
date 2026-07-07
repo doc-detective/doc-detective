@@ -231,12 +231,21 @@ async function startRecording({
   // stopRecording writes/transcodes it to the target path.
   if (plan.name === "device") {
     // Recording driver: the targeted app surface's driver, the device browser
-    // session (mobile web), or any live device session. None yet (autoRecord
-    // starts before the first startSurface) -> a pending handle that
-    // startAppSurface late-starts once the device session exists.
+    // session (mobile web), the ACTIVE app surface's session (omit surface =>
+    // act on the active surface — with several devices open, "first device
+    // session" would record the wrong device), or any live device session.
+    // None yet (autoRecord starts before the first startSurface) -> a pending
+    // handle that startAppSurface late-starts once the device session exists.
     let recordingDriver = appRef?.entry?.driver ?? driver;
-    if (!recordingDriver && appSession?.deviceSessions?.size > 0) {
-      recordingDriver = appSession.deviceSessions.values().next().value?.driver;
+    if (!recordingDriver && appSession) {
+      const activeEntry = appSession.activeApp
+        ? appSession.surfaces?.get?.(appSession.activeApp)
+        : undefined;
+      recordingDriver = activeEntry?.driver;
+      if (!recordingDriver && appSession.deviceSessions?.size > 0) {
+        recordingDriver =
+          appSession.deviceSessions.values().next().value?.driver;
+      }
     }
     if (!recordingDriver) {
       result.recording = { type: "appium-pending", targetPath: filePath };
@@ -479,6 +488,13 @@ async function startRecording({
   if (appRef && plan.target === "window") {
     try {
       appWindowRect = await resolveAppWindowRect(appRef.entry!.driver);
+      if (!appWindowRect) {
+        log(
+          config,
+          "warning",
+          "Couldn't resolve the app window geometry for recording (malformed window rect); capturing the full display."
+        );
+      }
     } catch (err) {
       log(
         config,

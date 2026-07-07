@@ -1207,6 +1207,38 @@ describe("startAppSurface", function () {
     assert.equal(handle.cropRect, undefined);
   });
 
+  it("android: a failed late-start stashes the error on the pending handle", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.startRecordingScreen = async () => {
+      throw new Error("screenrecord unavailable");
+    };
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    // The surface still opens — the recording failure is a warning, and the
+    // stored error surfaces as a FAIL when stopRecording drains the handle.
+    assert.equal(result.status, "PASS");
+    assert.equal(handle.type, "appium-pending");
+    assert.match(handle.startError, /screenrecord unavailable/);
+  });
+
   it("android: a second app on the same device reuses the session and activates it", async function () {
     const appSession = preflighted();
     const driver = fakeDriver();

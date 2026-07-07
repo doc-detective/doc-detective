@@ -33,12 +33,12 @@ async function probeVideoSize(videoPath) {
   return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
 }
 
-function makeAppSession({ surfaces = [], deviceSessions = [] } = {}) {
+function makeAppSession({ surfaces = [], deviceSessions = [], activeApp } = {}) {
   return {
     surfaces: new Map(surfaces.map((s) => [s.name, s])),
     deviceSessions: new Map(deviceSessions.map((d) => [d.name, d])),
     recordingHost: { state: { recordings: [] } },
-    activeApp: surfaces[0]?.name,
+    activeApp: activeApp ?? surfaces[0]?.name,
   };
 }
 
@@ -463,6 +463,56 @@ describe("startRecording: device engine (android/ios)", function () {
     assert.equal(result.recording.targetPath, path.join(tmpDir, "a.mp4"));
   });
 
+  it("records the ACTIVE app surface's device when no surface is targeted (multi-device)", async function () {
+    // "Omit surface => act on the active surface": with two devices open, an
+    // untargeted record must pick the active surface's session, not whichever
+    // device session happens to be first in the map.
+    const firstDriver = {
+      startRecordingScreen: async () => {
+        throw new Error("wrong device");
+      },
+    };
+    let recordingOpts = null;
+    const activeDriver = {
+      startRecordingScreen: async (opts) => {
+        recordingOpts = opts;
+      },
+    };
+    const appSession = makeAppSession({
+      surfaces: [
+        {
+          name: "alice",
+          appId: "com.example.chat",
+          driver: firstDriver,
+          platform: "android",
+          deviceName: "Pixel_7",
+        },
+        {
+          name: "bob",
+          appId: "com.example.chat",
+          driver: activeDriver,
+          platform: "android",
+          deviceName: "Pixel_7_second",
+        },
+      ],
+      deviceSessions: [
+        { name: "Pixel_7", driver: firstDriver },
+        { name: "Pixel_7_second", driver: activeDriver },
+      ],
+      activeApp: "bob",
+    });
+    const result = await startRecording({
+      config,
+      context: { platform: "android" },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "a.mp4") } },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.recording.driver, activeDriver);
+    assert.equal(recordingOpts.timeLimit, 1800);
+  });
+
   it("starts immediately on an existing device session when no surface is targeted", async function () {
     let recordingOpts = null;
     const sessionDriver = {
@@ -603,6 +653,26 @@ describe("stopRecording: device (appium) handles", function () {
     });
     assert.equal(result.status, "SKIPPED");
     assert.match(result.description, /never started/);
+    assert.equal(host.state.recordings.length, 0);
+  });
+
+  it("FAILs (and drops) a pending device recording whose late start errored", async function () {
+    // A late-start failure (startAppSurface) must surface the real driver
+    // error at stopRecord, not the misleading "never started" skip.
+    const handle = {
+      type: "appium-pending",
+      startError:
+        "Couldn't start the pending device recording: screenrecord unavailable",
+      targetPath: path.join(tmpDir, "out.mp4"),
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /screenrecord unavailable/);
     assert.equal(host.state.recordings.length, 0);
   });
 
