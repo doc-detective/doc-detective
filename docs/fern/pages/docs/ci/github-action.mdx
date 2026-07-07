@@ -194,7 +194,7 @@ The `ios` input controls this behavior:
 |---|---|---|
 | `ios` | `auto` | Cache the WebDriverAgent build on macOS runners. `auto` scans your resolved specs and config and caches only when it finds an `ios` platform, `true` always caches, and `false` never does. |
 
-The first run compiles WDA cold and saves the result to the cache. Later runs restore it and do a quick incremental build. The cache key covers the runner OS and Xcode version, so an Xcode upgrade starts a fresh cache. If a restored build is out of date, the XCUITest driver detects the mismatch and rebuilds WDA on its own, so a stale cache heals itself.
+The first run compiles WDA cold and saves the build to the cache. Later runs restore it and finish with a quick incremental build. The cache key covers the runner OS, the Xcode version, and the XCUITest driver version. A change to the runner OS or Xcode starts a fresh, cold build. A driver-version bump is gentler: the exact key misses, but the action falls back to the most recent build for the same OS and Xcode, warms an incremental rebuild from it, and re-caches the result under the new driver version. That way a driver upgrade repairs the cache on the next run instead of leaving it stale.
 
 Caching only affects build speed—Doc Detective still bootstraps the XCUITest driver and simulator it needs at test time. Leave `ios` at `auto` for most workflows. Set it to `true` when your `ios` platform lives outside the scanned specs and config, or `false` to turn caching off.
 
