@@ -28,7 +28,10 @@ import {
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
-import { stepTargetsAppSurface } from "../../runtime/browserStepKeys.js";
+import {
+  stepTargetsAppSurface,
+  stepOpensAppSurface,
+} from "../../runtime/browserStepKeys.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -739,11 +742,13 @@ function createAppSessionState(): AppSessionState {
 
 // Steps that provision or (by object form) target an app surface. Used by
 // runContext to decide whether the app preflight must run for this test.
+// Phase 6 narrowing: startSurface counts only when a descriptor actually
+// opens an APP — a browser/process-only startSurface must not boot the app
+// preflight (Appium server + native driver probe).
 function isAppDriverRequired({ test }: { test: any }): boolean {
   if (!Array.isArray(test?.steps)) return false;
   return test.steps.some(
-    (step: any) =>
-      typeof step?.startSurface !== "undefined" || stepTargetsAppSurface(step)
+    (step: any) => stepOpensAppSurface(step) || stepTargetsAppSurface(step)
   );
 }
 

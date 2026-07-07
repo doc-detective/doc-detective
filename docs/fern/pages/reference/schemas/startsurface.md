@@ -16,7 +16,7 @@ description: "Reference for the `startSurface` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-startSurface | object([startSurface](/reference/schemas/startsurface)) | Required. Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator, and phase A4 adds iOS app surfaces on macOS via XCUITest/simctl. Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md. | 
+startSurface | one of:<br/>- object([App descriptor](/reference/schemas/app-descriptor))<br/>- object([Browser descriptor](/reference/schemas/browser-descriptor))<br/>- object([Process descriptor](/reference/schemas/process-descriptor))<br/>- array of one of: object([App descriptor](/reference/schemas/app-descriptor)), object([Browser descriptor](/reference/schemas/browser-descriptor)), object([Process descriptor](/reference/schemas/process-descriptor)) | Required. Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md. | 
 
 ## Examples
 
@@ -63,5 +63,73 @@ startSurface | object([startSurface](/reference/schemas/startsurface)) | Require
       "name": "Pixel_7"
     }
   }
+}
+```
+
+```json
+{
+  "startSurface": {
+    "browser": "firefox",
+    "name": "admin",
+    "headless": true,
+    "size": {
+      "width": 1366,
+      "height": 768
+    }
+  }
+}
+```
+
+```json
+{
+  "startSurface": {
+    "process": "node server.js",
+    "name": "api",
+    "waitUntil": {
+      "httpGet": "http://localhost:8080"
+    },
+    "timeout": 30000
+  }
+}
+```
+
+```json
+{
+  "startSurface": [
+    {
+      "browser": "chrome",
+      "name": "web"
+    },
+    {
+      "process": "node server.js",
+      "name": "api",
+      "waitUntil": {
+        "port": 8080
+      }
+    }
+  ]
+}
+```
+
+```json
+{
+  "startSurface": [
+    {
+      "app": "com.example.chat",
+      "name": "alice",
+      "device": {
+        "platform": "android",
+        "name": "Pixel_7"
+      }
+    },
+    {
+      "app": "com.example.chat",
+      "name": "bob",
+      "device": {
+        "platform": "android",
+        "name": "Pixel_7_second"
+      }
+    }
+  ]
 }
 ```
