@@ -751,7 +751,7 @@ async function waitForReady(
 //      "session not created"; for Firefox the just-created geckodriver child
 //      crashes right after POST /session, so the next command reports it
 //      "cannot be proxied to Gecko Driver server because its process is not
-//      running (probably crashed)" (ADR 01041). Both are the same transient
+//      running (probably crashed)" (ADR 01042). Both are the same transient
 //      concurrent-startup contention: a staggered retry lets it clear and
 //      recovers on the next attempt in practice.
 const TRANSIENT_SESSION_ERROR =
