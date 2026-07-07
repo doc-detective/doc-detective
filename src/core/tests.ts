@@ -3625,24 +3625,46 @@ async function runContext({
       };
 
       // Start a session for one engine, headed first then (on failure) headless.
+      // `overrides` carries a startSurface browser descriptor's launch knobs
+      // (Phase 6): explicit headless wins over the context setting, `size`
+      // wins over the context window dimensions, and `driverOptions` merges
+      // into the computed capabilities last (the app branch's escape-hatch
+      // precedent).
       const startDriverForBrowser = async (
-        browserName: string
+        browserName: string,
+        overrides?: {
+          headless?: boolean;
+          size?: { width?: number; height?: number };
+          driverOptions?: Record<string, any>;
+        }
       ): Promise<
         | { ok: true; driver: any; headless: boolean }
         | { ok: false; error: string }
       > => {
-        const wantHeadless = context.browser?.headless !== false;
-        const buildCaps = (headless: boolean) =>
-          getDriverCapabilities({
+        const wantHeadless =
+          overrides?.headless !== undefined
+            ? overrides.headless
+            : context.browser?.headless !== false;
+        const buildCaps = (headless: boolean) => {
+          const caps = getDriverCapabilities({
             runnerDetails,
             name: browserName,
             options: {
-              width: context.browser?.window?.width || 1200,
-              height: context.browser?.window?.height || 800,
+              width:
+                overrides?.size?.width ||
+                context.browser?.window?.width ||
+                1200,
+              height:
+                overrides?.size?.height ||
+                context.browser?.window?.height ||
+                800,
               headless,
               ...recordOptions,
             },
           });
+          if (overrides?.driverOptions) Object.assign(caps, overrides.driverOptions);
+          return caps;
+        };
         const startFailure = () => {
           let error = `Failed to start context '${browserName}' on '${platform}'.`;
           if (browserName === "safari" || browserName === "webkit") {
@@ -3789,8 +3811,8 @@ async function runContext({
       // stamps driver.state.engine and back-links driver.state.sessionRegistry.
       if (driver) {
         browserSessions = createSessionRegistry({
-          open: async (engine: string) => {
-            const res = await startDriverForBrowser(engine);
+          open: async (engine: string, overrides?: any) => {
+            const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             return res.driver;
           },

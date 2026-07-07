@@ -18,11 +18,13 @@ export {
   registerSession,
   findSession,
   resolveSessionForRef,
+  openSession,
   lookupSessionByName,
   closeSession,
   sweepSessions,
   activeDriver,
 };
+export type { BrowserOpenOverrides };
 
 // Reserved browser engine keywords. A session may only be named after an
 // engine keyword that matches its OWN engine (the default session's name is
@@ -75,6 +77,17 @@ export interface BrowserSessionEntry {
   lastFocused: number;
 }
 
+// Per-session launch knobs a startSurface browser descriptor can set
+// (multi-surface Phase 6). All optional — the launcher falls back to the
+// context's browser settings.
+interface BrowserOpenOverrides {
+  headless?: boolean;
+  // Outer window dimensions (the startSurface `size` field).
+  size?: { width?: number; height?: number };
+  // Escape-hatch caps passthrough, merged after the computed capabilities.
+  driverOptions?: Record<string, any>;
+}
+
 export interface BrowserSessionRegistry {
   sessions: Map<string, BrowserSessionEntry>;
   // The active surface — the session surface-less steps act on. Null only
@@ -82,8 +95,9 @@ export interface BrowserSessionRegistry {
   activeName: string | null;
   focusSeq: number;
   // Launcher injected by the runner (closes over the context's Appium port
-  // and capability builder). Absent in driverless contexts.
-  open?: (engine: string) => Promise<any>;
+  // and capability builder). Absent in driverless contexts. `overrides`
+  // carries per-session launch knobs (Phase 6 startSurface).
+  open?: (engine: string, overrides?: BrowserOpenOverrides) => Promise<any>;
   // Cross-kind name collision check (e.g. background process names), so one
   // name never means two surfaces.
   isNameTaken?: (name: string) => boolean;
@@ -91,7 +105,7 @@ export interface BrowserSessionRegistry {
 
 function createSessionRegistry(
   opts: {
-    open?: (engine: string) => Promise<any>;
+    open?: (engine: string, overrides?: BrowserOpenOverrides) => Promise<any>;
     isNameTaken?: (name: string) => boolean;
   } = {}
 ): BrowserSessionRegistry {
@@ -239,35 +253,65 @@ async function resolveSessionForRef(
   // An engine-less ref (a bare-string name reinterpretation) can never open —
   // there is nothing to launch without an engine.
   if (opts.allowOpen && registry.open && ref.engine) {
-    if (registry.isNameTaken?.(name)) {
-      return {
-        ok: false,
-        message: `The surface name "${name}" is already in use by another surface (e.g. a background process). Choose a different name.`,
-      };
-    }
-    const engineConflict = engineKeywordNameConflict(name, ref.engine);
-    if (engineConflict) return { ok: false, message: engineConflict };
-    let driver: any;
-    try {
-      driver = await registry.open(ref.engine);
-    } catch (error: any) {
-      return {
-        ok: false,
-        message: `Couldn't open browser surface "${name}" (${ref.engine}). ${error?.message ?? error}`,
-      };
-    }
-    const entry = registerSession(registry, {
-      name,
-      engine: ref.engine,
-      driver,
-    });
-    return { ok: true, driver: entry.driver, name: entry.name };
+    const opened = await openSession(registry, { engine: ref.engine, name });
+    if (!opened.ok) return opened;
+    return { ok: true, driver: opened.driver, name: opened.name };
   }
 
   return {
     ok: false,
-    message: `No browser surface named "${name}" is open in this context. Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": … } }).`,
+    message: `No browser surface named "${name}" is open in this context. Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": … } }) or a startSurface step (e.g. { "startSurface": { "browser": … } }).`,
   };
+}
+
+// Launch + register + activate one browser session (multi-surface Phase 6).
+// The one opener both goTo (via resolveSessionForRef's allowOpen path) and
+// startSurface's browser lane use, so naming rules and collision checks
+// can't drift. `overrides` carries the descriptor's launch knobs
+// (headless/size/driverOptions) through to the injected launcher.
+async function openSession(
+  registry: BrowserSessionRegistry,
+  {
+    engine,
+    name,
+    overrides,
+  }: { engine: string; name?: string; overrides?: BrowserOpenOverrides }
+): Promise<
+  { ok: true; driver: any; name: string } | { ok: false; message: string }
+> {
+  const key = String(name ?? engine).trim();
+  if (!registry.open) {
+    return {
+      ok: false,
+      message:
+        "This context can't open a browser session (no browser launcher is available).",
+    };
+  }
+  if (registry.sessions.has(key)) {
+    return {
+      ok: false,
+      message: `A browser surface named "${key}" already exists in this context. Surface names must be unique.`,
+    };
+  }
+  if (registry.isNameTaken?.(key)) {
+    return {
+      ok: false,
+      message: `The surface name "${key}" is already in use by another surface (e.g. a background process). Choose a different name.`,
+    };
+  }
+  const engineConflict = engineKeywordNameConflict(key, engine);
+  if (engineConflict) return { ok: false, message: engineConflict };
+  let driver: any;
+  try {
+    driver = await registry.open(engine, overrides);
+  } catch (error: any) {
+    return {
+      ok: false,
+      message: `Couldn't open browser surface "${key}" (${engine}). ${error?.message ?? error}`,
+    };
+  }
+  const entry = registerSession(registry, { name: key, engine, driver });
+  return { ok: true, driver: entry.driver, name: entry.name };
 }
 
 // End one session and deregister it. Idempotent: an unknown name reports

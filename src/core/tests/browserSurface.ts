@@ -310,11 +310,11 @@ function checkSingleSessionTarget(
   ref: Extract<ParsedSurface, { kind: "browser" }>
 ): string | null {
   if (ref.name) {
-    return `No browser surface named "${ref.name}" is open in this context. Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": { "browser": "${ref.engine}", "name": "${ref.name}" } } }).`;
+    return `No browser surface named "${ref.name}" is open in this context. Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": { "browser": "${ref.engine}", "name": "${ref.name}" } } }) or a startSurface step (e.g. { "startSurface": { "browser": "${ref.engine}", "name": "${ref.name}" } }).`;
   }
   const active = driver?.state?.engine;
   if (ref.engine && active && normalizeEngine(ref.engine) !== normalizeEngine(active)) {
-    return `"${ref.engine}" is not open in this context (active browser: ${active}). Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": "${ref.engine}" } }).`;
+    return `"${ref.engine}" is not open in this context (active browser: ${active}). Open it first with a goTo step (e.g. { "goTo": { "url": …, "surface": "${ref.engine}" } }) or a startSurface step (e.g. { "startSurface": { "browser": "${ref.engine}" } }).`;
   }
   return null;
 }

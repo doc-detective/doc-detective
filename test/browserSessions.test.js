@@ -161,6 +161,96 @@ describe("browserSessions: registration", function () {
   });
 });
 
+describe("browserSessions: openSession (Phase 6 explicit opener)", function () {
+  it("opens, registers, and activates a named session, passing overrides to the launcher", async function () {
+    const { openSession } = await import(
+      "../dist/core/tests/browserSessions.js"
+    );
+    const launches = [];
+    const registry = createSessionRegistry({
+      open: async (engine, overrides) => {
+        launches.push({ engine, overrides });
+        return stubDriver({ engine });
+      },
+    });
+    const res = await openSession(registry, {
+      engine: "firefox",
+      name: "admin",
+      overrides: { headless: true, size: { width: 800, height: 600 } },
+    });
+    assert.equal(res.ok, true);
+    assert.equal(res.name, "admin");
+    assert.equal(registry.activeName, "admin");
+    assert.equal(launches.length, 1);
+    assert.equal(launches[0].engine, "firefox");
+    assert.equal(launches[0].overrides.headless, true);
+    assert.deepEqual(launches[0].overrides.size, { width: 800, height: 600 });
+  });
+
+  it("defaults the session name to the engine keyword", async function () {
+    const { openSession } = await import(
+      "../dist/core/tests/browserSessions.js"
+    );
+    const { registry } = stubRegistry();
+    const res = await openSession(registry, { engine: "chrome" });
+    assert.equal(res.ok, true);
+    assert.equal(res.name, "chrome");
+    assert.equal(lookupSessionByName(registry, "chrome").engine, "chrome");
+  });
+
+  it("rejects duplicate names, cross-kind collisions, and engine-keyword misuse", async function () {
+    const { openSession } = await import(
+      "../dist/core/tests/browserSessions.js"
+    );
+    const { registry } = stubRegistry({ isNameTaken: (n) => n === "srv" });
+    registerSession(registry, {
+      name: "chrome",
+      engine: "chrome",
+      driver: stubDriver(),
+    });
+    const dup = await openSession(registry, { engine: "chrome" });
+    assert.equal(dup.ok, false);
+    assert.match(dup.message, /already exists|already open/);
+    const cross = await openSession(registry, {
+      engine: "chrome",
+      name: "srv",
+    });
+    assert.equal(cross.ok, false);
+    assert.match(cross.message, /already in use/);
+    const keyword = await openSession(registry, {
+      engine: "chrome",
+      name: "firefox",
+    });
+    assert.equal(keyword.ok, false);
+    assert.match(keyword.message, /engine keyword/);
+  });
+
+  it("wraps launcher failures in a friendly message and registers nothing", async function () {
+    const { openSession } = await import(
+      "../dist/core/tests/browserSessions.js"
+    );
+    const { registry } = stubRegistry({ failWith: "no driver binary" });
+    const res = await openSession(registry, {
+      engine: "firefox",
+      name: "admin",
+    });
+    assert.equal(res.ok, false);
+    assert.match(res.message, /Couldn't open browser surface "admin"/);
+    assert.match(res.message, /no driver binary/);
+    assert.equal(registry.sessions.size, 0);
+  });
+
+  it("fails cleanly when the registry has no launcher (driverless context)", async function () {
+    const { openSession } = await import(
+      "../dist/core/tests/browserSessions.js"
+    );
+    const registry = createSessionRegistry();
+    const res = await openSession(registry, { engine: "chrome" });
+    assert.equal(res.ok, false);
+    assert.match(res.message, /can't open a browser/i);
+  });
+});
+
 describe("browserSessions: resolveSessionForRef", function () {
   it("rejects non-browser references", async function () {
     const { registry } = stubRegistry();
