@@ -6,6 +6,8 @@ description: Close one or more surfaces, such as background processes or browser
 
 The `closeSurface` action closes one or more surfaces. A surface is anything a step can target: a background process, a browser window or tab, or a [native app surface](/docs/actions/startsurface). `closeSurface` replaces the earlier `stopProcess` action.
 
+For native apps, `{ "closeSurface": { "app": "notepad" } }` ends the app surface (terminating the app if Doc Detective launched it), and `{ "closeSurface": { "app": "notepad", "window": -1 } }` closes just one window—a dialog, say—keeping the app open. Window selectors use the shared grammar of title, `/regex/`, and `-1` for the newest window (see [App windows](find#app-windows)). Doc Detective refuses to close an app's **last** window and points at the bare form instead, and a selector that matches nothing is a no-op.
+
 Provide a surface as the value for the `closeSurface` key. You can identify a surface in any of these ways:
 
 - **String name:** The `name` of the surface.

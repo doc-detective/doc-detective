@@ -1,0 +1,239 @@
+{
+  "specId": "app-recording-a7",
+  "description": "Native app surfaces phase A7 (docs/design/native-app-surfaces.md): explicit `record` steps target app surfaces on Windows. A record whose surface is an app defaults to the ffmpeg engine with a window target — the capture is full-display and the stop-side transcode crops it to the app window rect, scaled by the capture-frame-derived factor (scale 1 on Windows by construction: UIA rects and gdigrab both use physical desktop pixels). Character Map is the target app for the same reason as app-surfaces.spec.json (a real Win32 executable on every Windows edition). Gated to Windows hosts with the binary present; SKIPPED elsewhere.",
+  "tests": [
+    {
+      "testId": "rec-app-default-window",
+      "description": "Record an app surface with no engine specified: the plan resolves to ffmpeg with a window target, so the finished recording is cropped to the Character Map window. An interaction between record and stopRecord gives the capture real frames.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "charmap-window.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "rec-app-explicit-display",
+      "description": "An explicit `target: \"display\"` opts out of the window crop: the recording keeps the full display even though the surface is an app.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "charmap-display.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            },
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "rec-app-viewport-skip",
+      "description": "The `viewport` target is the browser content area — on an app surface the record step lands SKIPPED with guidance (asserted behavior, not a gap). The follow-up untargeted stopRecord also SKIPs (nothing started).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "charmap-viewport.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            },
+            "engine": {
+              "name": "ffmpeg",
+              "target": "viewport"
+            }
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "rec-app-named-lifo",
+      "description": "The recording stack is surface-agnostic: an anonymous window-cropped app recording overlaps a named full-display one. The named stop targets `full-display` by name; the untargeted stop then LIFO-pops the remaining anonymous recording.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "charmap-anon.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "charmap-named.mp4",
+            "overwrite": "true",
+            "name": "full-display",
+            "surface": {
+              "app": "charmap"
+            },
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "stopRecord": "full-display"
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    }
+  ]
+}
