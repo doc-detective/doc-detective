@@ -79,10 +79,10 @@ import {
   appSurfacePreflight,
   isAppDriverRequired,
   stepTargetsAppSurface,
-  startAppSurface,
   teardownAppSession,
   type AppSessionState,
 } from "./tests/appSurface.js";
+import { startSurfaceStep } from "./tests/startSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 import {
   mobileBrowserGate,
@@ -4557,17 +4557,17 @@ async function runStep({
   } else if (typeof step.closeSurface !== "undefined") {
     actionResult = await closeSurface({ config: config, step: step, driver, processRegistry, appSession });
   } else if (typeof step.startSurface !== "undefined") {
-    if (!appSession) {
-      actionResult = {
-        status: "FAIL",
-        description:
-          "startSurface ran without an app session; this is a runner bug (runContext must preflight app-driver tests).",
-      };
-    } else {
-      actionResult = await startAppSurface({
+    {
+      // Multi-surface Phase 6: startSurfaceStep dispatches app / browser /
+      // process descriptors (and the parallel array form). The app lane
+      // FAILs per descriptor when no app session was preflighted; browser
+      // descriptors ride the context's session registry via `driver`.
+      actionResult = await startSurfaceStep({
         config: config,
         step: step,
         appSession,
+        driver,
+        processRegistry,
         platform: context?.platform ?? "",
         serverDeps: {
           startServer: async (appiumEntry: string, appiumHome: string) => {

@@ -19,6 +19,7 @@ export {
   findSession,
   resolveSessionForRef,
   openSession,
+  activateSession,
   lookupSessionByName,
   closeSession,
   sweepSessions,
@@ -168,6 +169,19 @@ function lookupSessionByName(
   name: string
 ): BrowserSessionEntry | undefined {
   return registry.sessions.get(String(name).trim());
+}
+
+// Make a registered session the active surface by name (multi-surface Phase
+// 6: the array-form startSurface re-asserts authored-order activation after
+// its parallel opens settle). Returns false when no session has that name.
+function activateSession(
+  registry: BrowserSessionRegistry,
+  name: string
+): boolean {
+  const entry = lookupSessionByName(registry, name);
+  if (!entry) return false;
+  activate(registry, entry);
+  return true;
 }
 
 function activeDriver(
