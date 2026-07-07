@@ -772,6 +772,11 @@ describe("core/utils coverage", function () {
     it("keeps the existing transient patterns retryable at any ceiling", function () {
       for (const message of [
         "connect ECONNREFUSED 127.0.0.1:4723",
+        // The concurrent-chromedriver collision on the fixed default port
+        // (9515) that ADR 01039 fixes: the browser driver must retry this the
+        // same way the Appium path does.
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        'WebDriverError: Could not proxy command to the remote server. Original error: connect ECONNREFUSED 127.0.0.1:9515 when running "execute/sync" with method "POST"',
         "read ECONNRESET",
         "socket hang up",
         "unknown error: could not proxy command to the remote browser",
