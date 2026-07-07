@@ -6,6 +6,7 @@
 // finds chain under them, and there are no window handles at all. Mobile is
 // single-window and FAILs with one shared message.
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   snapshotAppWindows,
@@ -512,6 +513,26 @@ describe("appWindows: mobile + helpers", function () {
     const res = await closeAppWindow({ entry, selector: -1, timeoutMs: 300 });
     assert.equal(res.ok, false);
     assert.match(res.message, /single-window/);
+  });
+
+  it("the windows fixture's -EncodedCommand blob matches two-windows.ps1", function () {
+    // The fixture app ships as two-windows.ps1 (the readable source of
+    // truth) but launches via -EncodedCommand, because NovaWindows v1.4.1
+    // ignores the appWorkingDir capability and relative -File paths don't
+    // resolve. This pin keeps the embedded blob from drifting.
+    const ps1 = fs.readFileSync(
+      "test/core-artifacts/apps/two-windows.ps1",
+      "utf8"
+    );
+    const expected = Buffer.from(ps1, "utf16le").toString("base64");
+    const spec = JSON.parse(
+      fs.readFileSync("test/core-artifacts/apps/app-windows.spec.json", "utf8")
+    );
+    for (const t of spec.tests) {
+      const args = t.steps[0].startSurface.args;
+      const blob = args[args.indexOf("-EncodedCommand") + 1];
+      assert.equal(blob, expected, `${t.testId} embeds a stale app blob`);
+    }
   });
 
   it("rewriteXPathForScopedFind anchors absolute XPaths to the scope element", function () {

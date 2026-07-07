@@ -229,6 +229,89 @@ function macAppSession({ windows }) {
   return { appSession, driver, state };
 }
 
+describe("windows app left-clicks use the UIA Invoke pattern (ADR 01036)", function () {
+  // The driver's physical click is real mouse input at absolute coordinates,
+  // which lands off-target on scaled (HiDPI) displays. The Invoke pattern is
+  // coordinate-free; plain left clicks prefer it and fall back to the
+  // physical click when the element doesn't support it.
+  function clickSession({ executeImpl }) {
+    const state = { executes: [], elementClicks: 0 };
+    const element = {
+      elementId: "el-1",
+      async waitForExist() {},
+      async getText() {
+        return "Open Dialog";
+      },
+      async click() {
+        state.elementClicks++;
+      },
+    };
+    const driver = {
+      state,
+      async $() {
+        return element;
+      },
+      async execute(cmd, arg) {
+        state.executes.push({ cmd, arg });
+        if (executeImpl) return executeImpl(cmd, arg);
+      },
+    };
+    const appSession = createAppSessionState();
+    appSession.surfaces.set("twowin", {
+      name: "twowin",
+      appId: "powershell.exe",
+      driver,
+      launchedByUs: true,
+      platform: "windows",
+    });
+    return { appSession, state };
+  }
+
+  it("invokes instead of physically clicking on Windows", async function () {
+    const { appSession, state } = clickSession({});
+    const result = await findElement({
+      config: {},
+      step: {
+        find: {
+          elementText: "Open Dialog",
+          click: true,
+          surface: { app: "twowin" },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    const invoke = state.executes.find((e) => e.cmd === "windows: invoke");
+    assert.ok(invoke, "expected a windows: invoke call");
+    assert.equal(invoke.arg["element-6066-11e4-a52e-4f735466cecf"], "el-1");
+    assert.equal(state.elementClicks, 0);
+  });
+
+  it("falls back to the physical click when the element isn't invokable", async function () {
+    const { appSession, state } = clickSession({
+      executeImpl: (cmd) => {
+        if (cmd === "windows: invoke")
+          throw new Error("does not support the InvokePattern");
+      },
+    });
+    const result = await findElement({
+      config: {},
+      step: {
+        find: {
+          elementText: "Open Dialog",
+          click: true,
+          surface: { app: "twowin" },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(state.elementClicks, 1);
+  });
+});
+
 describe("app window selectors: find/type wiring (ADR 01036)", function () {
   it("windows: find resolves a window by title and acts in it (sticky root)", async function () {
     const okElement = {

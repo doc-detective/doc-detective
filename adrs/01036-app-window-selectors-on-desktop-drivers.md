@@ -104,6 +104,29 @@ probing (2b)**; **pid-filtered adoption (3b)**; **shared mobile FAIL (4b)**;
   is refused with guidance toward the bare form (closing it would end the
   app as a side effect the author didn't spell).
 
+Two additional decisions came out of live fixture verification:
+
+- **Windows app left-clicks use the UIA Invoke pattern** (`windows: invoke`)
+  with a physical-click fallback for non-invokable elements. The driver's
+  physical click is real mouse input at absolute coordinates and lands
+  off-target on scaled (HiDPI) displays — verified live: the click's UIA
+  SetFocus reached the button (focus rectangle visible) while the mouse
+  click missed, on a 3840×2160 display at 175 %. Every prior fixture
+  "passed" clicks without asserting their effect, which is why this went
+  unnoticed. Non-left and duration clicks keep the physical paths
+  (`windows: click`) — they have no pattern equivalent.
+- **The Windows fixture targets a purpose-built two-window WinForms app**
+  (`two-windows.ps1` via `powershell.exe -EncodedCommand`) — the app-surface
+  counterpart of the test-server pages. Every candidate System32 dialog app
+  carries a confounder: odbcad32/osk/eudcedit have highestAvailable/uiAccess
+  manifests (CreateProcess fails with "requires elevation" for admin users),
+  dxdiag gates its buttons behind a hardware scan and shows crash-recovery
+  modals, and menu popups are separate top-level HWNDs the one-root-window
+  driver can't reach. `-EncodedCommand` (not `-File`) because **NovaWindows
+  v1.4.1 silently ignores the `appWorkingDir` capability** — a latent A1 gap
+  (the `workingDirectory` field never reached the launched process) worth an
+  upstream report; a unit test pins the embedded blob against the `.ps1`.
+
 ### Consequences
 
 - Good: dialogs and secondary windows — the design doc's headline case —

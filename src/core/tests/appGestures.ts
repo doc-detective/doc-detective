@@ -56,6 +56,11 @@ interface AppGestureAdapter {
     element: any,
     button: string
   ): Promise<{ error?: string }>;
+  // Plain left click. Optional: platforms without an entry use
+  // element.click(). Windows overrides it with the UIA Invoke pattern —
+  // the driver's physical click is real mouse input at absolute
+  // coordinates, which lands off-target on scaled (HiDPI) displays.
+  leftClick?(driver: any, element: any): Promise<void>;
   // Handle one $KEY$ token. Returns {} on success or { error } when the token
   // is meaningless on this platform. Absent on desktop rows — the desktop key
   // vocabulary is a later phase, and typeKeys keeps its rejection.
@@ -376,6 +381,18 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
         button,
       });
       return {};
+    },
+    async leftClick(driver, element) {
+      // The UIA Invoke pattern is coordinate-free — the driver's physical
+      // click misses on scaled (HiDPI) displays (ADR 01036). Elements that
+      // don't support Invoke fall back to the physical click.
+      try {
+        await driver.execute("windows: invoke", {
+          "element-6066-11e4-a52e-4f735466cecf": element.elementId,
+        });
+      } catch {
+        await element.click();
+      }
     },
   },
 

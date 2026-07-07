@@ -191,7 +191,11 @@ async function findElement({ config, step, driver, click, appSession }: { config
           }
         } else {
           try {
-            await found.element.click();
+            if (gestures?.leftClick) {
+              await gestures.leftClick(appDriver, found.element);
+            } else {
+              await found.element.click();
+            }
             result.description += " Clicked element.";
           } catch (error: any) {
             result.status = "FAIL";
