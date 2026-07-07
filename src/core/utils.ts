@@ -6,7 +6,15 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
-import { loadHeavyDep } from "../runtime/loader.js";
+import {
+  loadHeavyDep,
+  resolveHeavyDepPath,
+  ensureRuntimeInstalled,
+} from "../runtime/loader.js";
+import {
+  assertConptyAllocatable,
+  ensurePtyBackendOnDisk,
+} from "./ptyWatchdog.js";
 
 export {
   outputResults,
@@ -37,6 +45,7 @@ export {
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
+  isRetryableSessionError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -413,6 +422,34 @@ async function spawnPtyBackgroundCommand(
     throw err;
   }
 
+  // #501 guard, part 1 — stale-module self-heal. loadHeavyDep succeeding is
+  // NOT proof the backend is usable: a mid-run JIT install of another heavy
+  // dep used to prune node-pty's files from the runtime cache while the
+  // module stayed importable from the stale resolution + ESM caches, and a
+  // spawn without its on-disk support files freezes the process inside a
+  // native wait. Verify the resolved path physically exists, force-reinstall
+  // when it doesn't (same paths → the loaded module's support files return),
+  // and SKIP (NODE_PTY_UNAVAILABLE) if the files can't be restored.
+  const ptyModulePath = await ensurePtyBackendOnDisk({
+    resolvePath: () =>
+      resolveHeavyDepPath(PTY_PACKAGE, { cacheDir: options.cacheDir }),
+    reinstall: () =>
+      ensureRuntimeInstalled([PTY_PACKAGE], {
+        ctx: { cacheDir: options.cacheDir },
+        force: true,
+      }),
+  });
+
+  // #501 guard, part 2 — Windows-only ConPTY watchdog, defense-in-depth for
+  // wedges the disk check can't see (upstream node-pty hangs at the native
+  // connect: microsoft/node-pty #640/#532/#512; environment-specific console
+  // states). The probe runs in a worker thread because the freeze is a
+  // synchronous native block — a same-thread timeout can never fire — and a
+  // worker shares this process's state where a child process wouldn't. Only a
+  // genuine wedge degrades to SKIP; a healthy/inconclusive probe falls through
+  // to the direct spawn below, so the happy path can never regress.
+  await assertConptyAllocatable({ ptyModulePath });
+
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;
   const isWin = process.platform === "win32";
@@ -700,6 +737,38 @@ async function waitForReady(
   for (const p of probes) p.catch(() => {});
 
   await Promise.race([ready, earlyExit]);
+}
+
+// Two families of transient, retryable session-creation failures, both worse
+// under concurrency:
+//   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
+//      /status returns 200 from the outgoing process while /session no longer
+//      accepts, or Appium's proxy to chromedriver drops the socket ->
+//      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
+//   2. Several Chromes launching at once briefly starve resources and
+//      ChromeDriver "crashed during startup" / "cannot connect to" /
+//      "DevToolsActivePort" / "session not created". A staggered retry lets
+//      the contention clear; it recovers on the next attempt in practice.
+const TRANSIENT_SESSION_ERROR =
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created/i;
+
+// The wdio client aborts POST /session with "aborted due to timeout" when the
+// request exceeds connectionRetryTimeout. For native sessions that declared a
+// slow-startup ceiling (XCUITest's wdaLaunchTimeout / Mac2's
+// serverStartupTimeout raise it past the 2-minute default), the server-side
+// WebDriverAgent xcodebuild keeps running after the client gives up, so a
+// fresh POST typically binds quickly — retry it. Default-ceiling (browser /
+// Windows / Android) sessions keep today's fail-fast behavior: there a
+// 2-minute session POST means something is genuinely wrong.
+const SESSION_TIMEOUT_ABORT = /aborted due to timeout/i;
+
+function isRetryableSessionError(
+  message: string | undefined,
+  startupCeiling: number | undefined = 0
+): boolean {
+  if (typeof message !== "string" || !message) return false;
+  if (TRANSIENT_SESSION_ERROR.test(message)) return true;
+  return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
@@ -1274,8 +1343,14 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
+    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
+    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
+    // treated as an env-var reference. Without it, `$HOME$` matched the
+    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
+    // got rewritten to the home path, corrupting the sentinel. A real env ref
+    // is `$NAME` NOT followed by another `$` (or word char).
+    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
     const matches = stringOrObject.match(variableRegex);
     // If no matches, return string
     if (!matches) return stringOrObject;

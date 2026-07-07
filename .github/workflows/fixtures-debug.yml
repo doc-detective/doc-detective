@@ -39,7 +39,8 @@ jobs:
   fixtures:
     name: ${{ inputs.group }} (${{ inputs.os }})
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 30
+    # iOS-flavored groups can cold-build WebDriverAgent; give them headroom.
+    timeout-minutes: ${{ (inputs.group == 'apps-ios' || inputs.group == 'mobile-web-ios') && 45 || 30 }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -71,9 +72,13 @@ jobs:
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 
       - name: Run ${{ inputs.group }} fixtures
-        uses: doc-detective/github-action@922131748e00f25f608fcfd7742d6f65b1cc6cb9 # v1.5.0
+        # `ios: auto` lets the action cache the WebDriverAgent build for the
+        # apps-ios macOS leg (first cold WDA compile ~10 min; later runs restore
+        # it), which replaces the workflow-level cache.
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         with:
           version: ''
+          ios: auto
           working_directory: .
           config: test/core-artifacts/config.groups.json
           input: test/core-artifacts/${{ inputs.group }}

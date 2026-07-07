@@ -193,6 +193,9 @@ export function pickSystemImage(
 interface FsDeps {
   existsSync?: (p: string) => boolean;
   readdirSync?: (p: string) => string[];
+  // Only used by the Layer-2 integrity repair to wipe a partial system-image
+  // dir before re-installing. Injectable so the repair path is hermetic.
+  rmSync?: (p: string, opts?: { recursive?: boolean; force?: boolean }) => void;
 }
 
 // Scan <sdkRoot>/system-images/<api>/<tag>/<abi> offline (no java, no network)
@@ -232,6 +235,64 @@ export function listInstalledSystemImages(
     }
   }
   return out;
+}
+
+// Canonical files sdkmanager writes into a fully-installed system-image dir.
+// A truncated/partial extraction that still exited 0 leaves these missing, so
+// their presence is the integrity signal: `source.properties` is the package
+// manifest sdkmanager writes, `system.img` is the image payload the emulator
+// boots. Both must be present for the image to count as healthy.
+const SYSTEM_IMAGE_MARKERS = ["source.properties", "system.img"];
+
+// The on-disk directory for a system-image package id
+// (`system-images;android-<API>;<tag>;<abi>` -> `<sdkRoot>/system-images/<API>/<tag>/<abi>`).
+function systemImageDir(sdkRoot: string, pkg: string): string | null {
+  const parts = pkg.split(";");
+  if (parts.length !== 4 || parts[0] !== "system-images") return null;
+  const base = path.join(sdkRoot, "system-images");
+  const dir = path.join(base, parts[1], parts[2], parts[3]);
+  // Containment guard: a `..` or absolute segment in the package id could
+  // otherwise resolve outside <sdkRoot>/system-images and, via wipeSystemImage's
+  // recursive rmSync, delete an unintended directory. Reject anything that
+  // escapes the images root (mirrors the loader's exports-target containment
+  // check). In practice the id is validated upstream; this is defense-in-depth
+  // for the destructive path.
+  const rel = path.relative(base, dir);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  return dir;
+}
+
+// Verify a just-installed system image is structurally complete (all marker
+// files present). Guards the rare case where sdkmanager exits 0 on a partial
+// extraction. Pure over injected fs so the repair path is hermetically testable.
+export function isSystemImageComplete(
+  sdkRoot: string,
+  pkg: string,
+  deps: FsDeps = {}
+): boolean {
+  const existsSync = deps.existsSync ?? fs.existsSync;
+  const dir = systemImageDir(sdkRoot, pkg);
+  if (!dir) return false;
+  return SYSTEM_IMAGE_MARKERS.every((marker) =>
+    existsSync(path.join(dir, marker))
+  );
+}
+
+// Remove a (partial/corrupt) system-image dir so the next sdkmanager install
+// re-downloads and re-extracts cleanly. Best-effort — a failed wipe still lets
+// the reinstall attempt proceed, and the post-repair integrity re-check is the
+// real gate.
+function wipeSystemImage(sdkRoot: string, pkg: string, deps: FsDeps = {}): void {
+  const rmSync = deps.rmSync ?? fs.rmSync;
+  const dir = systemImageDir(sdkRoot, pkg);
+  /* c8 ignore next — callers only pass a validated system-image id, so dir is non-null. */
+  if (!dir) return;
+  try {
+    rmSync(dir, { recursive: true, force: true });
+    /* c8 ignore next 3 — best-effort; the post-repair integrity re-check is the gate. */
+  } catch {
+    /* swallow a failed wipe; the reinstall + re-check still runs */
+  }
 }
 
 export type AndroidInstallAction =
@@ -323,6 +384,99 @@ export function buildAndroidInstallPlan(
   return { sdkRoot, bootstrapped, actions, systemImage };
 }
 
+// --- Self-repair for transient SDK download flakes ---
+//
+// Google's SDK repo intermittently serves a truncated/corrupt package; sdkmanager
+// aborts with "Error on ZipFile unknown archive" (the #501/#523 flake) and exits
+// non-zero. sdkmanager re-downloads a fresh copy on the next invocation, so a
+// bounded retry genuinely self-repairs — the runtime equivalent of #523's CI
+// retry, but it also protects real users, not just CI. A NON-transient failure
+// (bad license, unknown arg) rethrows immediately so real errors are never masked.
+
+// Total attempts (initial + retries) for a single sdkmanager package install.
+export const SDK_INSTALL_MAX_ATTEMPTS = 3;
+
+// Transient signatures: corrupt/truncated download (sdkmanager) + the common
+// network-transient classes. Matched case-insensitively as a substring of the
+// error message. Kept deliberately tight — anything not listed is a real failure.
+const TRANSIENT_SDK_ERROR_SIGNATURES = [
+  "error on zipfile",
+  "unknown archive",
+  "an error occurred while preparing sdk package",
+  "econnreset",
+  "etimedout",
+  "connection reset",
+  "read timed out",
+];
+
+export function isTransientSdkError(message: unknown): boolean {
+  const lower = String(message ?? "").toLowerCase();
+  return TRANSIENT_SDK_ERROR_SIGNATURES.some((sig) => lower.includes(sig));
+}
+
+// The `run` effect shape (sdkmanager/avdmanager spawner), shared by the deps and
+// the retry wrapper.
+type SdkRun = (
+  command: string,
+  args: string[],
+  opts?: { input?: string; cwd?: string }
+) => Promise<string>;
+
+export interface SdkRetryDeps {
+  logger?: Logger;
+  sleep?: (ms: number) => Promise<void>;
+  maxAttempts?: number;
+}
+
+// Short, bounded backoff between attempts (2s, 4s…). Kept modest so a real user
+// isn't left waiting long, but enough to let a momentary CDN blip clear.
+function sdkRetryBackoffMs(attempt: number): number {
+  return attempt * 2000;
+}
+
+/* c8 ignore start */
+// Real inter-attempt wait; injected as a no-op in tests so they never block.
+function realSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    if (typeof timer.unref === "function") timer.unref();
+  });
+}
+/* c8 ignore stop */
+
+/**
+ * Run a single sdkmanager/avdmanager command with bounded self-repair for
+ * TRANSIENT download failures. On a transient rejection with attempts left, log
+ * a warn (the retry is surfaced, never silent) and retry after a short backoff;
+ * a non-transient failure — or the last attempt — rethrows unchanged.
+ */
+export async function runSdkInstallWithRetry(
+  run: SdkRun,
+  command: string,
+  args: string[],
+  opts: { input?: string; cwd?: string } = {},
+  deps: SdkRetryDeps = {}
+): Promise<string> {
+  const logger = deps.logger ?? (() => {});
+  const sleep = deps.sleep ?? realSleep;
+  const maxAttempts = deps.maxAttempts ?? SDK_INSTALL_MAX_ATTEMPTS;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await run(command, args, opts);
+    } catch (error) {
+      const message = (error as Error)?.message ?? String(error);
+      if (attempt >= maxAttempts || !isTransientSdkError(message)) throw error;
+      logger(
+        `Transient Android SDK download error (attempt ${attempt}/${maxAttempts}); retrying: ${message}`,
+        "warn"
+      );
+      await sleep(sdkRetryBackoffMs(attempt));
+    }
+  }
+  /* c8 ignore next 2 — the loop always returns or throws; this satisfies the type. */
+  throw new Error("unreachable");
+}
+
 export interface InstallReport {
   kind: "android";
   assetId: string;
@@ -351,6 +505,9 @@ export interface AndroidInstallerDeps {
   fs?: FsDeps;
   arch?: string;
   platform?: NodeJS.Platform;
+  // Inter-attempt backoff for the transient-install retry; injected as a no-op
+  // in tests so they never wait. Defaults to a real timer.
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface EnsureJavaResult {
@@ -534,6 +691,8 @@ export async function installAndroid({
   const reports: InstallReport[] = [];
   const sdkRoot = plan.sdkRoot;
   const sdkArg = "--sdk_root=" + sdkRoot;
+  // Self-repair transient corrupt-download flakes on every package install.
+  const retryDeps: SdkRetryDeps = { logger, sleep: deps.sleep };
 
   // 1. Bootstrap the command-line tools when no SDK exists (the "portable
   //    Android" download: fetch + unzip + relocate into the cache).
@@ -568,7 +727,7 @@ export async function installAndroid({
       (pkg === "platform-tools" && detected?.adb) ||
       (pkg === "emulator" && detected?.emulator);
     if (alreadyHave) continue;
-    await run(sdkmanager, [sdkArg, pkg]);
+    await runSdkInstallWithRetry(run, sdkmanager, [sdkArg, pkg], {}, retryDeps);
     reports.push({ kind: "android", assetId: pkg, action: "installed" });
   }
 
@@ -596,7 +755,28 @@ export async function installAndroid({
       );
       return [...reports, { kind: "android", assetId: "system-image", action: "blocked" }];
     }
-    await run(sdkmanager, [sdkArg, systemImage]);
+    await runSdkInstallWithRetry(run, sdkmanager, [sdkArg, systemImage], {}, retryDeps);
+    // Integrity probe: a truncated extraction can still exit 0. If the freshly
+    // installed image is structurally incomplete, wipe it and reinstall once; if
+    // it's STILL incomplete, abort before building an AVD from a bad image.
+    if (!isSystemImageComplete(sdkRoot, systemImage, fsDeps)) {
+      logger(
+        `Installed system image ${systemImage} looks incomplete; wiping and reinstalling…`,
+        "warn"
+      );
+      wipeSystemImage(sdkRoot, systemImage, fsDeps);
+      await runSdkInstallWithRetry(run, sdkmanager, [sdkArg, systemImage], {}, retryDeps);
+      if (!isSystemImageComplete(sdkRoot, systemImage, fsDeps)) {
+        logger(
+          `System image ${systemImage} is still incomplete after reinstalling; aborting before AVD creation.`,
+          "error"
+        );
+        return [
+          ...reports,
+          { kind: "android", assetId: "system-image", action: "corrupt" },
+        ];
+      }
+    }
     reports.push({ kind: "android", assetId: systemImage, action: "installed" });
   }
 

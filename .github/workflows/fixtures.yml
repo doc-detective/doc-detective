@@ -29,9 +29,13 @@ jobs:
   fixtures:
     name: ${{ matrix.group }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # The apps group gets headroom: the first Mac2 session on a macOS runner
-    # builds WebDriverAgentMac via xcodebuild (minutes on a cold runner).
-    timeout-minutes: ${{ matrix.group == 'apps' && 30 || 20 }}
+    # The apps and iOS-flavored groups get headroom: the first Mac2/XCUITest
+    # session on a macOS runner builds WebDriverAgent(Mac) via xcodebuild
+    # (minutes on a cold runner). apps-ios and mobile-web-ios get the most:
+    # a cold WDA build precedes their first simulator session, and a session
+    # POST that aborts at the 15-minute startup ceiling is retried once
+    # (ADR 01033), so the worst case is two ceiling-length attempts.
+    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 55 || (matrix.group == 'apps' && 30 || 20) }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,13 +56,14 @@ jobs:
           - http
           - process
           - sessions
-          # Native app surfaces (phase A1). Deliberately its own job: the app
-          # context's NovaWindows/console side effects on a service-session
-          # runner deterministically wedged a LATER ConPTY spawn when both ran
-          # in one process (the pre-split combined pass froze 4/4 at the first
-          # `tty` fixture ~11 min after the app fixture passed). Isolating the
-          # groups per job dissolves that interaction; the in-process pairing
-          # is tracked separately.
+          # Native app surfaces (phase A1). Its own job for job-size reasons
+          # (driver install + UIA automation are the slowest fixtures). The
+          # historical freeze that first motivated isolating it — the app
+          # preflight's mid-run driver install pruned node-pty from the runtime
+          # cache and the next ConPTY spawn froze the process (issue #501) — is
+          # fixed at the root (ADR 01025 non-destructive installs, ADR 01024
+          # spawn guards), and the in-process app→tty pairing is exercised ON
+          # PURPOSE by apps/app-then-tty.spec.json in this very group.
           - apps
           # Native app surfaces (phase A3b, Android). On the general matrix
           # (Windows/macOS runners, and Linux without KVM) every android spec
@@ -66,6 +71,24 @@ jobs:
           # gating, skip-tolerant here. The real PASS coverage runs in the two
           # dedicated KVM jobs below (reuse + managed-boot).
           - apps-android
+          # Native app surfaces (phase A4, iOS). iOS app contexts run end-to-end
+          # on a managed simulator via XCUITest; the macOS leg gates on ≥1 PASS
+          # (DD_FIXTURES_REQUIRE_PASS below, ADR 01028), while Windows/Linux legs
+          # legitimately SKIP (iOS simulators are macOS-only).
+          - apps-ios
+          # Mobile web (phase A5, Chrome on Android). On the general matrix the
+          # android contexts land SKIPPED (no KVM / no SDK — same gating as
+          # apps-android); the SKIP-matrix permutations (firefox/webkit/safari
+          # on android, mixed app+web) land SKIPPED on every host by design.
+          # The four-targets spec's windows/mac contexts run desktop Chrome
+          # where the host matches. Real Android PASS coverage runs in the KVM
+          # jobs below (skip-tolerant here).
+          - mobile-web-android
+          # Mobile web (phase A5, Safari on iOS). Safari runs on the managed
+          # simulator end-to-end on the macOS leg (gated on ≥1 PASS below);
+          # Windows/Linux legs legitimately SKIP, and the SKIP-matrix
+          # permutations land SKIPPED everywhere by design.
+          - mobile-web-ios
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -115,31 +138,40 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.group }} fixtures
-        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
-        # real install/boot coverage lives in the KVM jobs below.
+        # real install/boot coverage lives in the KVM jobs below. `ios: auto`
+        # lets the action cache the WebDriverAgent build for the apps-ios macOS
+        # leg (first cold WDA compile ~10 min; later runs restore it), which
+        # replaces the workflow-level cache.
         env:
-          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.group == 'apps-android' && '1' || '' }}
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ (matrix.group == 'apps-android' || matrix.group == 'mobile-web-android') && '1' || '' }}
         with:
           version: ''
           working_directory: .
           config: test/core-artifacts/config.groups.json
           input: test/core-artifacts/${{ matrix.group }}
           android: 'false'
+          ios: auto
 
       # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
-      # job. PASS and SKIPPED both pass the gate. The apps legs on Windows and
-      # macOS additionally require at least one PASS: those runners are known
-      # to support native app surfaces (macOS images pre-grant Accessibility
-      # to Xcode-Helper, which WebDriverAgentMac runs under), so an
-      # all-SKIPPED run there means the environment regressed, not that
-      # skipping is expected. Linux stays skip-tolerant until phase A8.
+      # job. PASS and SKIPPED both pass the gate. Two legs additionally require
+      # at least one PASS, because their runners are known to support native app
+      # surfaces so an all-SKIPPED run means the environment regressed, not that
+      # skipping is expected:
+      #   - `apps` on Windows AND macOS (macOS images pre-grant Accessibility to
+      #     Xcode-Helper, which WebDriverAgentMac runs under);
+      #   - `apps-ios` AND `mobile-web-ios` on macOS only (iOS simulators +
+      #     XCUITest are macOS-only; Windows/Linux legitimately SKIP).
+      # Linux `apps` and non-macOS iOS groups stay skip-tolerant until phase A8;
+      # `mobile-web-android` is skip-tolerant on the whole general matrix (its
+      # real PASS coverage is the KVM jobs below).
       - name: Gate on results
         shell: bash
         env:
-          DD_FIXTURES_REQUIRE_PASS: ${{ (matrix.group == 'apps' && matrix.os != 'ubuntu-latest') && '1' || '0' }}
+          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.group == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
         run: |
           cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.group }}.json"
           node scripts/check-fixture-results.cjs "dd-output-${{ matrix.group }}.json"
@@ -166,9 +198,11 @@ jobs:
   # Reuse leg: the emulator-runner boots an emulator, and Doc Detective detects
   # and REUSES it (bootedByUs=false, left running) — the default-device path.
   fixtures-android-reuse:
-    name: apps-android (ubuntu KVM, reuse)
+    name: apps-android + mobile-web (ubuntu KVM, reuse)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Headroom for the second (mobile-web, phase A5) gated run on the same
+    # emulator — chromedriver download + Chrome session.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -187,8 +221,11 @@ jobs:
       - name: Fetch sample APK
         # Pinned to an immutable commit (not the mutable `master` ref) so the
         # fixture can't break under us. Appium's stable ApiDemos sample.
+        # --retry (with --retry-all-errors so HTTP 429/5xx count) rides out a
+        # transient GitHub raw rate-limit that otherwise fails the whole leg.
         run: |
-          curl -fsSL -o test/core-artifacts/apps-android/sample.apk \
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+            -o test/core-artifacts/apps-android/sample.apk \
             https://github.com/appium/appium/raw/a1a7b7e981335da5f21304635969ee4222e3ba56/packages/appium/sample-code/apps/ApiDemos-debug.apk
 
       - name: Enable KVM
@@ -197,40 +234,105 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run apps-android on a booted emulator (reuse)
+      # The mobile-web fixtures hit the test server from INSIDE the emulator
+      # via the 10.0.2.2 host-loopback alias, so the server must be up on the
+      # host before that run.
+      - name: Start test servers
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      # Two gated runs on the same booted emulator: the native app group, then
+      # the mobile-web group (phase A5 — Chrome through the shared device
+      # session, chromedriver auto-downloaded to match the image's Chrome).
+      # Both REUSE the runner-booted emulator (bootedByUs=false, left running).
+      # The emulator-runner has no built-in retry, and its slowest-to-fail step is
+      # the pre-boot `sdkmanager --install` of the system image: the Google SDK
+      # repo intermittently serves a truncated package, sdkmanager aborts with
+      # "Error on ZipFile unknown archive", the emulator never launches, and the
+      # action's cleanup then reports the misleading `could not connect to TCP
+      # port 5554: Connection refused` (the boot timeout is never reached — the
+      # whole step dies in <1 min). That download corruption is transient, so we
+      # run the step with `continue-on-error` and retry it ONCE on failure; the
+      # retry re-downloads a fresh SDK package and re-boots. A genuine fixture
+      # FAIL also triggers the single retry (cheap insurance against a flaky
+      # first run) and, if it recurs, still fails the job on the second attempt.
+      #
+      # emulator-options match reactivecircus's documented-stable CI string
+      # (adds `-gpu swiftshader_indirect` for headless-Linux software GL). The
+      # two steps below are intentional duplicates — GitHub Actions can't share
+      # a `uses:` step's `with:` block via a YAML anchor — so keep them in sync.
+      - name: Run apps-android + mobile-web-android on a booted emulator (reuse)
+        id: android-reuse
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
           force-avd-creation: true
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # Single-line the doc-detective command: the emulator-runner passes
           # `script` to the shell in a way that doesn't preserve backslash
           # line-continuations (they reach doc-detective as a literal `\` arg).
+          # Both gates run regardless of the other's outcome and their exit
+          # codes aggregate at the end, so a mobile-web pass can't mask an
+          # apps-android failure (or vice versa) in this single sh -c script.
           script: |
+            rc=0
             npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
-            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json || rc=1
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
+            exit $rc
+
+      # Retry once when the first attempt failed (transient SDK download / boot).
+      # This step is NOT continue-on-error, so a second failure fails the job.
+      - name: Retry apps-android + mobile-web-android (reuse)
+        if: steps.android-reuse.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            rc=0
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json || rc=1
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
+            exit $rc
 
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-reuse
-          path: dd-output-apps-android.json
+          path: |
+            dd-output-apps-android.json
+            dd-output-mobile-web-android.json
           retention-days: 3
           if-no-files-found: warn
 
   # Managed-boot leg: no emulator-runner. `doc-detective install android`
   # augments the runner's preinstalled SDK (installs a system image + creates
   # the default AVD), then Doc Detective BOOTS the AVD itself and sweeps it at
-  # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec.
+  # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec;
+  # DD_FIXTURE_MULTIDEVICE un-gates the phase A6 two-device spec (two more AVD
+  # creations + serial boots — too heavy for the other legs).
   fixtures-android-managed:
-    name: apps-android (ubuntu KVM, managed-boot)
+    name: apps-android + mobile-web (ubuntu KVM, managed-boot)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Headroom for the second (mobile-web, phase A5) gated run, which boots the
+    # managed AVD again after the first run's sweep, plus the two serial
+    # two-device boots (phase A6).
+    timeout-minutes: 60
     env:
       DD_FIXTURE_PROVISION: '1'
+      DD_FIXTURE_MULTIDEVICE: '1'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -251,9 +353,24 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       # Augment the runner's SDK: install a system image + create the default
-      # AVD. Dogfoods the A3a installer's augment path.
+      # AVD. Dogfoods the A3a installer's augment path. Retried once because the
+      # underlying `sdkmanager` system-image download intermittently serves a
+      # truncated package ("Error on ZipFile unknown archive"); the retry pulls
+      # a fresh copy. A second failure fails the step.
       - name: Provision Android toolchain (augment)
-        run: npx doc-detective install android --yes --os-version 34
+        shell: bash
+        run: |
+          npx doc-detective install android --yes --os-version 34 || {
+            echo "install android failed (likely a transient SDK download) — retrying once"
+            npx doc-detective install android --yes --os-version 34
+          }
+
+      # The mobile-web run needs the test server up on the host (reached from
+      # the emulator via 10.0.2.2).
+      - name: Start test servers
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
 
       - name: Run apps-android (Doc Detective boots the emulator)
         run: |
@@ -263,11 +380,24 @@ jobs:
             --output dd-output-apps-android.json || true
           DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
 
+      # Mobile web (phase A5) on the managed-boot path: Doc Detective boots the
+      # AVD itself, opens Chrome through the device session, and sweeps the
+      # emulator at run end.
+      - name: Run mobile-web-android (Doc Detective boots the emulator)
+        run: |
+          npx doc-detective runTests \
+            --config test/core-artifacts/config.groups.json \
+            --input test/core-artifacts/mobile-web-android \
+            --output dd-output-mobile-web-android.json || true
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
+
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-managed
-          path: dd-output-apps-android.json
+          path: |
+            dd-output-apps-android.json
+            dd-output-mobile-web-android.json
           retention-days: 3
           if-no-files-found: warn
 
@@ -301,8 +431,27 @@ jobs:
       # The action enables KVM (android: auto detects the android specs) and runs
       # the linked local build — no manual KVM step, no `install android`. Doc
       # Detective downloads the toolchain and boots the emulator itself.
+      #
+      # Retried once on failure: the lazy bootstrap's `sdkmanager` system-image
+      # download intermittently serves a truncated package ("Error on ZipFile
+      # unknown archive"), aborting before the emulator can boot. The first
+      # attempt runs with `continue-on-error`; the retry re-downloads and
+      # re-boots. The gate below reads the final run's output, so a second
+      # failure still fails the job.
       - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
-        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
+        id: android-action
+        continue-on-error: true
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/apps-android
+          android: auto
+
+      - name: Retry apps-android via the action
+        if: steps.android-action.outcome == 'failure'
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         with:
           version: ''
           working_directory: .

@@ -18,6 +18,8 @@ description: "Reference for the `Browser surface` schema."
 - [Record (detailed)](/reference/schemas/record-detailed)
 - [closeSurface](/reference/schemas/closesurface)
 - [dragAndDrop](/reference/schemas/draganddrop)
+- [Swipe (directional)](/reference/schemas/swipe-directional)
+- [Swipe (point-to-point)](/reference/schemas/swipe-point-to-point)
 
 ## Fields
 

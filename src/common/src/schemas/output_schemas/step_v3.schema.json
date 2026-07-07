@@ -4032,6 +4032,11 @@
                         "middle"
                       ]
                     },
+                    "duration": {
+                      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                      "type": "integer",
+                      "minimum": 1
+                    },
                     "surface": {
                       "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
@@ -4325,6 +4330,11 @@
                       "middle"
                     ]
                   },
+                  "duration": {
+                    "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                    "type": "integer",
+                    "minimum": 1
+                  },
                   "object": {
                     "title": "Click element (detailed)",
                     "type": "object",
@@ -4374,6 +4384,11 @@
                           "right",
                           "middle"
                         ]
+                      },
+                      "duration": {
+                        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                        "type": "integer",
+                        "minimum": 1
                       },
                       "surface": {
                         "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
@@ -6009,6 +6024,11 @@
                                     "middle"
                                   ]
                                 },
+                                "duration": {
+                                  "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                  "type": "integer",
+                                  "minimum": 1
+                                },
                                 "surface": {
                                   "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                                   "anyOf": [
@@ -6302,6 +6322,11 @@
                                   "middle"
                                 ]
                               },
+                              "duration": {
+                                "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                "type": "integer",
+                                "minimum": 1
+                              },
                               "object": {
                                 "title": "Click element (detailed)",
                                 "type": "object",
@@ -6351,6 +6376,11 @@
                                       "right",
                                       "middle"
                                     ]
+                                  },
+                                  "duration": {
+                                    "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                    "type": "integer",
+                                    "minimum": 1
                                   },
                                   "surface": {
                                     "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
@@ -6652,6 +6682,11 @@
                                 "right",
                                 "middle"
                               ]
+                            },
+                            "duration": {
+                              "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                              "type": "integer",
+                              "minimum": 1
                             }
                           },
                           "title": "Find element and click"
@@ -10127,6 +10162,11 @@
                                       "middle"
                                     ]
                                   },
+                                  "duration": {
+                                    "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
                                   "surface": {
                                     "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                                     "anyOf": [
@@ -10420,6 +10460,11 @@
                                     "middle"
                                   ]
                                 },
+                                "duration": {
+                                  "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                  "type": "integer",
+                                  "minimum": 1
+                                },
                                 "object": {
                                   "title": "Click element (detailed)",
                                   "type": "object",
@@ -10469,6 +10514,11 @@
                                         "right",
                                         "middle"
                                       ]
+                                    },
+                                    "duration": {
+                                      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                      "type": "integer",
+                                      "minimum": 1
                                     },
                                     "surface": {
                                       "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
@@ -10770,6 +10820,11 @@
                                   "right",
                                   "middle"
                                 ]
+                              },
+                              "duration": {
+                                "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                                "type": "integer",
+                                "minimum": 1
                               }
                             },
                             "title": "Find element and click"
@@ -35470,7 +35525,7 @@
             "startSurface": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "startSurface",
-              "description": "Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator via the `device`, `install`, and `activity` fields (iOS lands in A4). Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.",
+              "description": "Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator, and phase A4 adds iOS app surfaces on macOS via XCUITest/simctl. Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.",
               "components": {
                 "schemas": {
                   "appDescriptor": {
@@ -35522,15 +35577,15 @@
                       "install": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Lands with the Android phase (A3); on other platforms it is validated but not yet honored."
+                        "description": "Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Supported on Android and iOS app surfaces."
                       },
                       "activity": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Android main activity override (defaults to the package's launcher activity). Lands with the Android phase (A3)."
+                        "description": "Android main activity override (defaults to the package's launcher activity). Android-only."
                       },
                       "device": {
-                        "description": "Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Lands with the Android phase (A3).",
+                        "description": "Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets.",
                         "anyOf": [
                           {
                             "type": "string",
@@ -35563,7 +35618,7 @@
                                     "transform": [
                                       "trim"
                                     ],
-                                    "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`)."
+                                    "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`)."
                                   },
                                   "deviceType": {
                                     "type": "string",
@@ -35576,11 +35631,11 @@
                                   "osVersion": {
                                     "type": "string",
                                     "minLength": 1,
-                                    "description": "Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version."
+                                    "description": "Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version."
                                   },
                                   "headless": {
                                     "type": "boolean",
-                                    "description": "Run the Android emulator without a window. Ignored where not applicable."
+                                    "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
                                   },
                                   "orientation": {
                                     "type": "string",
@@ -35752,7 +35807,7 @@
                         "transform": [
                           "trim"
                         ],
-                        "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`)."
+                        "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`)."
                       },
                       "deviceType": {
                         "type": "string",
@@ -35765,11 +35820,11 @@
                       "osVersion": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version."
+                        "description": "Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version."
                       },
                       "headless": {
                         "type": "boolean",
-                        "description": "Run the Android emulator without a window. Ignored where not applicable."
+                        "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
                       },
                       "orientation": {
                         "type": "string",
@@ -35868,15 +35923,15 @@
                 "install": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Lands with the Android phase (A3); on other platforms it is validated but not yet honored."
+                  "description": "Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Supported on Android and iOS app surfaces."
                 },
                 "activity": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "Android main activity override (defaults to the package's launcher activity). Lands with the Android phase (A3)."
+                  "description": "Android main activity override (defaults to the package's launcher activity). Android-only."
                 },
                 "device": {
-                  "description": "Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Lands with the Android phase (A3).",
+                  "description": "Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets.",
                   "anyOf": [
                     {
                       "type": "string",
@@ -35909,7 +35964,7 @@
                               "transform": [
                                 "trim"
                               ],
-                              "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`)."
+                              "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`)."
                             },
                             "deviceType": {
                               "type": "string",
@@ -35922,11 +35977,11 @@
                             "osVersion": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version."
+                              "description": "Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version."
                             },
                             "headless": {
                               "type": "boolean",
-                              "description": "Run the Android emulator without a window. Ignored where not applicable."
+                              "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
                             },
                             "orientation": {
                               "type": "string",
@@ -40756,6 +40811,2326 @@
           "title": "Common"
         },
         {
+          "title": "swipe",
+          "type": "object",
+          "required": [
+            "swipe"
+          ],
+          "properties": {
+            "swipe": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "title": "swipe",
+              "description": "Swipe (or scroll) a surface in a direction or between two points. The direction is the virtual finger's motion: swiping up moves content up, revealing content further down the page. Works on app and browser surfaces.",
+              "anyOf": [
+                {
+                  "title": "Swipe (simple)",
+                  "type": "string",
+                  "enum": [
+                    "up",
+                    "down",
+                    "left",
+                    "right"
+                  ],
+                  "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
+                },
+                {
+                  "title": "Swipe (directional)",
+                  "type": "object",
+                  "required": [
+                    "direction"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "direction": {
+                      "title": "Swipe (simple)",
+                      "type": "string",
+                      "enum": [
+                        "up",
+                        "down",
+                        "left",
+                        "right"
+                      ],
+                      "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
+                    },
+                    "distance": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1,
+                      "default": 0.5,
+                      "description": "How far to swipe, as a fraction of the surface's height (for up/down) or width (for left/right)."
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "default": 500,
+                      "description": "Duration of the swipe movement in milliseconds."
+                    },
+                    "surface": {
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "anyOf": [
+                        {
+                          "title": "Surface (by browser engine)",
+                          "type": "string",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                        },
+                        {
+                          "title": "Browser surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "browser"
+                          ],
+                          "properties": {
+                            "browser": {
+                              "type": "string",
+                              "enum": [
+                                "chrome",
+                                "firefox",
+                                "safari",
+                                "webkit",
+                                "edge"
+                              ],
+                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                            },
+                            "window": {
+                              "description": "Which window to act on. Omit to use the active window.",
+                              "title": "Window/tab selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name assigned when the window/tab was opened."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page title to match. Substring, or /regex/."
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page URL to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "tab": {
+                              "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                              "title": "Window/tab selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name assigned when the window/tab was opened."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page title to match. Substring, or /regex/."
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page URL to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "title": "App surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "app"
+                          ],
+                          "properties": {
+                            "app": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                            },
+                            "window": {
+                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                              "title": "App window selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Window title to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "title": "Swipe (point-to-point)",
+                  "type": "object",
+                  "required": [
+                    "from",
+                    "to"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "from": {
+                      "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner.",
+                      "title": "Point",
+                      "type": "object",
+                      "required": [
+                        "x",
+                        "y"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "x": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
+                        },
+                        "y": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
+                        }
+                      }
+                    },
+                    "to": {
+                      "description": "Where the virtual finger releases, in pixels from the surface's top-left corner.",
+                      "title": "Point",
+                      "type": "object",
+                      "required": [
+                        "x",
+                        "y"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "x": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
+                        },
+                        "y": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
+                        }
+                      }
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "default": 500,
+                      "description": "Duration of the swipe movement in milliseconds."
+                    },
+                    "surface": {
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "anyOf": [
+                        {
+                          "title": "Surface (by browser engine)",
+                          "type": "string",
+                          "enum": [
+                            "chrome",
+                            "firefox",
+                            "safari",
+                            "webkit",
+                            "edge"
+                          ],
+                          "transform": [
+                            "trim"
+                          ],
+                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                        },
+                        {
+                          "title": "Browser surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "browser"
+                          ],
+                          "properties": {
+                            "browser": {
+                              "type": "string",
+                              "enum": [
+                                "chrome",
+                                "firefox",
+                                "safari",
+                                "webkit",
+                                "edge"
+                              ],
+                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                            },
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                            },
+                            "window": {
+                              "description": "Which window to act on. Omit to use the active window.",
+                              "title": "Window/tab selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name assigned when the window/tab was opened."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page title to match. Substring, or /regex/."
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page URL to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "tab": {
+                              "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                              "title": "Window/tab selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Name assigned when the window/tab was opened."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page title to match. Substring, or /regex/."
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Page URL to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "title": "App surface",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "app"
+                          ],
+                          "properties": {
+                            "app": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S",
+                              "transform": [
+                                "trim"
+                              ],
+                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                            },
+                            "window": {
+                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                              "title": "App window selector",
+                              "anyOf": [
+                                {
+                                  "title": "By index",
+                                  "type": "integer",
+                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                },
+                                {
+                                  "title": "By name",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
+                                  "transform": [
+                                    "trim"
+                                  ],
+                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                },
+                                {
+                                  "title": "By criteria",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "minProperties": 1,
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "transform": [
+                                        "trim"
+                                      ],
+                                      "description": "Assigned window name."
+                                    },
+                                    "index": {
+                                      "type": "integer",
+                                      "description": "Index in creation order. Negative counts from the end."
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Window title to match. Substring, or /regex/."
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "components": {
+                "schemas": {
+                  "direction": {
+                    "title": "Swipe (simple)",
+                    "type": "string",
+                    "enum": [
+                      "up",
+                      "down",
+                      "left",
+                      "right"
+                    ],
+                    "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
+                  },
+                  "point": {
+                    "title": "Point",
+                    "type": "object",
+                    "required": [
+                      "x",
+                      "y"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
+                      },
+                      "y": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
+                      }
+                    }
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 500,
+                    "description": "Duration of the swipe movement in milliseconds."
+                  },
+                  "surface": {
+                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                    "anyOf": [
+                      {
+                        "title": "Surface (by browser engine)",
+                        "type": "string",
+                        "enum": [
+                          "chrome",
+                          "firefox",
+                          "safari",
+                          "webkit",
+                          "edge"
+                        ],
+                        "transform": [
+                          "trim"
+                        ],
+                        "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                      },
+                      {
+                        "title": "Browser surface",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "browser"
+                        ],
+                        "properties": {
+                          "browser": {
+                            "type": "string",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
+                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                          },
+                          "window": {
+                            "description": "Which window to act on. Omit to use the active window.",
+                            "title": "Window/tab selector",
+                            "anyOf": [
+                              {
+                                "title": "By index",
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                              },
+                              {
+                                "title": "By name",
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                              },
+                              {
+                                "title": "By criteria",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name assigned when the window/tab was opened."
+                                  },
+                                  "index": {
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end."
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Page title to match. Substring, or /regex/."
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Page URL to match. Substring, or /regex/."
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "tab": {
+                            "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                            "title": "Window/tab selector",
+                            "anyOf": [
+                              {
+                                "title": "By index",
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                              },
+                              {
+                                "title": "By name",
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                              },
+                              {
+                                "title": "By criteria",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name assigned when the window/tab was opened."
+                                  },
+                                  "index": {
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end."
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Page title to match. Substring, or /regex/."
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Page URL to match. Substring, or /regex/."
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "title": "App surface",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "app"
+                        ],
+                        "properties": {
+                          "app": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                          },
+                          "window": {
+                            "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                            "title": "App window selector",
+                            "anyOf": [
+                              {
+                                "title": "By index",
+                                "type": "integer",
+                                "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                              },
+                              {
+                                "title": "By name",
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                              },
+                              {
+                                "title": "By criteria",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name."
+                                  },
+                                  "index": {
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end."
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Window title to match. Substring, or /regex/."
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "directional": {
+                    "title": "Swipe (directional)",
+                    "type": "object",
+                    "required": [
+                      "direction"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "direction": {
+                        "title": "Swipe (simple)",
+                        "type": "string",
+                        "enum": [
+                          "up",
+                          "down",
+                          "left",
+                          "right"
+                        ],
+                        "description": "Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card)."
+                      },
+                      "distance": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1,
+                        "default": 0.5,
+                        "description": "How far to swipe, as a fraction of the surface's height (for up/down) or width (for left/right)."
+                      },
+                      "duration": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "default": 500,
+                        "description": "Duration of the swipe movement in milliseconds."
+                      },
+                      "surface": {
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "anyOf": [
+                          {
+                            "title": "Surface (by browser engine)",
+                            "type": "string",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                          },
+                          {
+                            "title": "Browser surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "browser"
+                            ],
+                            "properties": {
+                              "browser": {
+                                "type": "string",
+                                "enum": [
+                                  "chrome",
+                                  "firefox",
+                                  "safari",
+                                  "webkit",
+                                  "edge"
+                                ],
+                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                              },
+                              "window": {
+                                "description": "Which window to act on. Omit to use the active window.",
+                                "title": "Window/tab selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Name assigned when the window/tab was opened."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page title to match. Substring, or /regex/."
+                                      },
+                                      "url": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page URL to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "tab": {
+                                "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                                "title": "Window/tab selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Name assigned when the window/tab was opened."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page title to match. Substring, or /regex/."
+                                      },
+                                      "url": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page URL to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "title": "App surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "app"
+                            ],
+                            "properties": {
+                              "app": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                              },
+                              "window": {
+                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                "title": "App window selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "pointToPoint": {
+                    "title": "Swipe (point-to-point)",
+                    "type": "object",
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "from": {
+                        "description": "Where the virtual finger presses down, in pixels from the surface's top-left corner.",
+                        "title": "Point",
+                        "type": "object",
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "x": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
+                          },
+                          "y": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
+                          }
+                        }
+                      },
+                      "to": {
+                        "description": "Where the virtual finger releases, in pixels from the surface's top-left corner.",
+                        "title": "Point",
+                        "type": "object",
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "x": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Horizontal position in pixels from the left edge of the surface (the app window, or the browser viewport)."
+                          },
+                          "y": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Vertical position in pixels from the top edge of the surface (the app window, or the browser viewport)."
+                          }
+                        }
+                      },
+                      "duration": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "default": 500,
+                        "description": "Duration of the swipe movement in milliseconds."
+                      },
+                      "surface": {
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "anyOf": [
+                          {
+                            "title": "Surface (by browser engine)",
+                            "type": "string",
+                            "enum": [
+                              "chrome",
+                              "firefox",
+                              "safari",
+                              "webkit",
+                              "edge"
+                            ],
+                            "transform": [
+                              "trim"
+                            ],
+                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+                          },
+                          {
+                            "title": "Browser surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "browser"
+                            ],
+                            "properties": {
+                              "browser": {
+                                "type": "string",
+                                "enum": [
+                                  "chrome",
+                                  "firefox",
+                                  "safari",
+                                  "webkit",
+                                  "edge"
+                                ],
+                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+                              },
+                              "window": {
+                                "description": "Which window to act on. Omit to use the active window.",
+                                "title": "Window/tab selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Name assigned when the window/tab was opened."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page title to match. Substring, or /regex/."
+                                      },
+                                      "url": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page URL to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "tab": {
+                                "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+                                "title": "Window/tab selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Name assigned when the window/tab was opened."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page title to match. Substring, or /regex/."
+                                      },
+                                      "url": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Page URL to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "title": "App surface",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "app"
+                            ],
+                            "properties": {
+                              "app": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "\\S",
+                                "transform": [
+                                  "trim"
+                                ],
+                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+                              },
+                              "window": {
+                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+                                "title": "App window selector",
+                                "anyOf": [
+                                  {
+                                    "title": "By index",
+                                    "type": "integer",
+                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+                                  },
+                                  {
+                                    "title": "By name",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "transform": [
+                                      "trim"
+                                    ],
+                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                                  },
+                                  {
+                                    "title": "By criteria",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
+                                        "transform": [
+                                          "trim"
+                                        ],
+                                        "description": "Assigned window name."
+                                      },
+                                      "index": {
+                                        "type": "integer",
+                                        "description": "Index in creation order. Negative counts from the end."
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Window title to match. Substring, or /regex/."
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": [
+                "left",
+                {
+                  "direction": "up",
+                  "distance": 0.8,
+                  "surface": {
+                    "app": "myapp"
+                  }
+                },
+                {
+                  "from": {
+                    "x": 200,
+                    "y": 600
+                  },
+                  "to": {
+                    "x": 200,
+                    "y": 200
+                  },
+                  "duration": 250
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "type": "object",
+          "dynamicDefaults": {
+            "stepId": "uuid"
+          },
+          "properties": {
+            "$schema": {
+              "description": "JSON Schema for this object.",
+              "type": "string",
+              "enum": [
+                "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
+              ]
+            },
+            "stepId": {
+              "type": "string",
+              "description": "ID of the step."
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the step."
+            },
+            "unsafe": {
+              "type": "boolean",
+              "description": "Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.",
+              "default": false
+            },
+            "outputs": {
+              "type": "object",
+              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+              "default": {},
+              "patternProperties": {
+                "^[A-Za-z0-9_]+$": {
+                  "type": "string",
+                  "description": "Runtime expression for a user-defined output value."
+                }
+              },
+              "title": "Outputs (step)"
+            },
+            "variables": {
+              "type": "object",
+              "description": "Environment variables to set from user-defined expressions.",
+              "default": {},
+              "patternProperties": {
+                "^[A-Za-z0-9_]+$": {
+                  "type": "string",
+                  "description": "Runtime expression for a user-defined output value."
+                }
+              },
+              "title": "Variables (step)"
+            },
+            "breakpoint": {
+              "type": "boolean",
+              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
+              "default": false
+            },
+            "if": {
+              "title": "Condition",
+              "description": "A condition expression, or an array of expressions combined with logical AND.",
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                }
+              ]
+            },
+            "assertions": {
+              "description": "Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).",
+              "anyOf": [
+                {
+                  "title": "Condition",
+                  "description": "A condition expression, or an array of expressions combined with logical AND.",
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "title": "assertion",
+                    "description": "An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "statement",
+                      "source",
+                      "result"
+                    ],
+                    "properties": {
+                      "statement": {
+                        "description": "Human-readable articulation of the check, e.g. `exitCode in [0]`.",
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "source": {
+                        "description": "Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).",
+                        "type": "string",
+                        "enum": [
+                          "implicit",
+                          "custom"
+                        ]
+                      },
+                      "result": {
+                        "description": "Outcome of evaluating the assertion.",
+                        "type": "string",
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "WARNING",
+                          "SKIPPED"
+                        ]
+                      },
+                      "expected": {
+                        "description": "The value (or values) the assertion expected. Optional.",
+                        "type": [
+                          "array",
+                          "boolean",
+                          "integer",
+                          "null",
+                          "number",
+                          "object",
+                          "string"
+                        ]
+                      },
+                      "actual": {
+                        "description": "The value actually observed. Optional.",
+                        "type": [
+                          "array",
+                          "boolean",
+                          "integer",
+                          "null",
+                          "number",
+                          "object",
+                          "string"
+                        ]
+                      },
+                      "description": {
+                        "description": "Human-readable explanation of the outcome. Optional.",
+                        "type": "string"
+                      }
+                    },
+                    "examples": [
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "PASS",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 0,
+                        "description": "Returned exit code 0."
+                      },
+                      {
+                        "statement": "exitCode in [0]",
+                        "source": "implicit",
+                        "result": "FAIL",
+                        "expected": [
+                          0
+                        ],
+                        "actual": 1,
+                        "description": "Returned exit code 1. Expected one of [0]."
+                      },
+                      {
+                        "statement": "saved-file variation <= 0.1",
+                        "source": "implicit",
+                        "result": "WARNING"
+                      },
+                      {
+                        "statement": "$$outputs.exitCode == 0",
+                        "source": "custom",
+                        "result": "SKIPPED"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "onPass": {
+              "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+              "type": "array",
+              "items": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "routing",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "if": {
+                    "title": "Condition",
+                    "description": "A condition expression, or an array of expressions combined with logical AND.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        }
+                      }
+                    ]
+                  },
+                  "continue": {
+                    "description": "Continue execution with the next step. Use to explicitly suppress a default handler behavior.",
+                    "const": true
+                  },
+                  "stop": {
+                    "description": "Stop execution at the given scope.",
+                    "type": "string",
+                    "enum": [
+                      "test",
+                      "spec",
+                      "run"
+                    ]
+                  },
+                  "retry": {
+                    "description": "Retry the current step.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "limit"
+                    ],
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "delay": {
+                        "description": "Delay in milliseconds before each retry.",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3600000
+                      },
+                      "backoff": {
+                        "description": "Backoff strategy applied to the delay between retries.",
+                        "type": "string",
+                        "enum": [
+                          "fixed",
+                          "exponential"
+                        ]
+                      }
+                    },
+                    "title": "Retry"
+                  },
+                  "goToStep": {
+                    "description": "Identifier of the step to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "goToTest": {
+                    "description": "Identifier of the test to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "continue"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "stop"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "retry"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToStep"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToTest"
+                    ]
+                  }
+                ],
+                "components": {
+                  "schemas": {
+                    "condition": {
+                      "title": "Condition",
+                      "description": "A condition expression, or an array of expressions combined with logical AND.",
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "examples": [
+                  {
+                    "continue": true
+                  },
+                  {
+                    "stop": "test"
+                  },
+                  {
+                    "if": "$$platform == windows",
+                    "goToTest": "cleanup"
+                  },
+                  {
+                    "if": [
+                      "$$platform == linux",
+                      "$$outputs.exitCode == 0"
+                    ],
+                    "goToStep": "verify"
+                  },
+                  {
+                    "retry": {
+                      "limit": 3,
+                      "delay": 1000,
+                      "backoff": "exponential"
+                    }
+                  },
+                  {
+                    "retry": {
+                      "limit": 1
+                    }
+                  }
+                ]
+              }
+            },
+            "onFail": {
+              "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+              "type": "array",
+              "items": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "routing",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "if": {
+                    "title": "Condition",
+                    "description": "A condition expression, or an array of expressions combined with logical AND.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        }
+                      }
+                    ]
+                  },
+                  "continue": {
+                    "description": "Continue execution with the next step. Use to explicitly suppress a default handler behavior.",
+                    "const": true
+                  },
+                  "stop": {
+                    "description": "Stop execution at the given scope.",
+                    "type": "string",
+                    "enum": [
+                      "test",
+                      "spec",
+                      "run"
+                    ]
+                  },
+                  "retry": {
+                    "description": "Retry the current step.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "limit"
+                    ],
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "delay": {
+                        "description": "Delay in milliseconds before each retry.",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3600000
+                      },
+                      "backoff": {
+                        "description": "Backoff strategy applied to the delay between retries.",
+                        "type": "string",
+                        "enum": [
+                          "fixed",
+                          "exponential"
+                        ]
+                      }
+                    },
+                    "title": "Retry"
+                  },
+                  "goToStep": {
+                    "description": "Identifier of the step to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "goToTest": {
+                    "description": "Identifier of the test to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "continue"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "stop"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "retry"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToStep"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToTest"
+                    ]
+                  }
+                ],
+                "components": {
+                  "schemas": {
+                    "condition": {
+                      "title": "Condition",
+                      "description": "A condition expression, or an array of expressions combined with logical AND.",
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "examples": [
+                  {
+                    "continue": true
+                  },
+                  {
+                    "stop": "test"
+                  },
+                  {
+                    "if": "$$platform == windows",
+                    "goToTest": "cleanup"
+                  },
+                  {
+                    "if": [
+                      "$$platform == linux",
+                      "$$outputs.exitCode == 0"
+                    ],
+                    "goToStep": "verify"
+                  },
+                  {
+                    "retry": {
+                      "limit": 3,
+                      "delay": 1000,
+                      "backoff": "exponential"
+                    }
+                  },
+                  {
+                    "retry": {
+                      "limit": 1
+                    }
+                  }
+                ]
+              }
+            },
+            "onWarning": {
+              "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+              "type": "array",
+              "items": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "routing",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "if": {
+                    "title": "Condition",
+                    "description": "A condition expression, or an array of expressions combined with logical AND.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        }
+                      }
+                    ]
+                  },
+                  "continue": {
+                    "description": "Continue execution with the next step. Use to explicitly suppress a default handler behavior.",
+                    "const": true
+                  },
+                  "stop": {
+                    "description": "Stop execution at the given scope.",
+                    "type": "string",
+                    "enum": [
+                      "test",
+                      "spec",
+                      "run"
+                    ]
+                  },
+                  "retry": {
+                    "description": "Retry the current step.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "limit"
+                    ],
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "delay": {
+                        "description": "Delay in milliseconds before each retry.",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3600000
+                      },
+                      "backoff": {
+                        "description": "Backoff strategy applied to the delay between retries.",
+                        "type": "string",
+                        "enum": [
+                          "fixed",
+                          "exponential"
+                        ]
+                      }
+                    },
+                    "title": "Retry"
+                  },
+                  "goToStep": {
+                    "description": "Identifier of the step to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "goToTest": {
+                    "description": "Identifier of the test to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "continue"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "stop"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "retry"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToStep"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToTest"
+                    ]
+                  }
+                ],
+                "components": {
+                  "schemas": {
+                    "condition": {
+                      "title": "Condition",
+                      "description": "A condition expression, or an array of expressions combined with logical AND.",
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "examples": [
+                  {
+                    "continue": true
+                  },
+                  {
+                    "stop": "test"
+                  },
+                  {
+                    "if": "$$platform == windows",
+                    "goToTest": "cleanup"
+                  },
+                  {
+                    "if": [
+                      "$$platform == linux",
+                      "$$outputs.exitCode == 0"
+                    ],
+                    "goToStep": "verify"
+                  },
+                  {
+                    "retry": {
+                      "limit": 3,
+                      "delay": 1000,
+                      "backoff": "exponential"
+                    }
+                  },
+                  {
+                    "retry": {
+                      "limit": 1
+                    }
+                  }
+                ]
+              }
+            },
+            "onSkip": {
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "type": "array",
+              "items": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "routing",
+                "description": "A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "if": {
+                    "title": "Condition",
+                    "description": "A condition expression, or an array of expressions combined with logical AND.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        }
+                      }
+                    ]
+                  },
+                  "continue": {
+                    "description": "Continue execution with the next step. Use to explicitly suppress a default handler behavior.",
+                    "const": true
+                  },
+                  "stop": {
+                    "description": "Stop execution at the given scope.",
+                    "type": "string",
+                    "enum": [
+                      "test",
+                      "spec",
+                      "run"
+                    ]
+                  },
+                  "retry": {
+                    "description": "Retry the current step.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "limit"
+                    ],
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.",
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "delay": {
+                        "description": "Delay in milliseconds before each retry.",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3600000
+                      },
+                      "backoff": {
+                        "description": "Backoff strategy applied to the delay between retries.",
+                        "type": "string",
+                        "enum": [
+                          "fixed",
+                          "exponential"
+                        ]
+                      }
+                    },
+                    "title": "Retry"
+                  },
+                  "goToStep": {
+                    "description": "Identifier of the step to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "goToTest": {
+                    "description": "Identifier of the test to jump to.",
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "continue"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "stop"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "retry"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToStep"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "goToTest"
+                    ]
+                  }
+                ],
+                "components": {
+                  "schemas": {
+                    "condition": {
+                      "title": "Condition",
+                      "description": "A condition expression, or an array of expressions combined with logical AND.",
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "examples": [
+                  {
+                    "continue": true
+                  },
+                  {
+                    "stop": "test"
+                  },
+                  {
+                    "if": "$$platform == windows",
+                    "goToTest": "cleanup"
+                  },
+                  {
+                    "if": [
+                      "$$platform == linux",
+                      "$$outputs.exitCode == 0"
+                    ],
+                    "goToStep": "verify"
+                  },
+                  {
+                    "retry": {
+                      "limit": 3,
+                      "delay": 1000,
+                      "backoff": "exponential"
+                    }
+                  },
+                  {
+                    "retry": {
+                      "limit": 1
+                    }
+                  }
+                ]
+              }
+            },
+            "location": {
+              "type": "object",
+              "description": "Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.",
+              "readOnly": true,
+              "properties": {
+                "line": {
+                  "type": "integer",
+                  "description": "1-indexed line number in the source file where the step was detected.",
+                  "minimum": 1
+                },
+                "startIndex": {
+                  "type": "integer",
+                  "description": "0-indexed character offset from the start of the source file where the step begins.",
+                  "minimum": 0
+                },
+                "endIndex": {
+                  "type": "integer",
+                  "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "line",
+                "startIndex",
+                "endIndex"
+              ],
+              "additionalProperties": false,
+              "title": "Source Location"
+            },
+            "autoScreenshot": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "readOnly": true
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 2,
+              "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+              "readOnly": true
+            },
+            "visit": {
+              "type": "integer",
+              "minimum": 2,
+              "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            }
+          },
+          "title": "Common"
+        },
+        {
           "title": "wait",
           "type": "object",
           "required": [
@@ -40846,6 +43221,21 @@
     },
     {
       "wait": 5000
+    },
+    {
+      "swipe": "up"
+    },
+    {
+      "swipe": {
+        "from": {
+          "x": 200,
+          "y": 600
+        },
+        "to": {
+          "x": 200,
+          "y": 200
+        }
+      }
     },
     {
       "runCode": {
