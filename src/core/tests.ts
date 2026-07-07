@@ -16,7 +16,11 @@ import {
   type BrowserAssetName,
 } from "../runtime/browsers.js";
 // Single source of truth for browser/driver-requiring step keys.
-import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import {
+  BROWSER_STEP_KEYS as driverActions,
+  startSurfaceDescriptors,
+  stepOpensBrowserSurface,
+} from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
   log,
@@ -75,10 +79,10 @@ import {
   appSurfacePreflight,
   isAppDriverRequired,
   stepTargetsAppSurface,
-  startAppSurface,
   teardownAppSession,
   type AppSessionState,
 } from "./tests/appSurface.js";
+import { startSurfaceStep } from "./tests/startSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 import {
   mobileBrowserGate,
@@ -433,6 +437,9 @@ function isDriverRequired({ test }: { test: any }) {
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
     });
+    // A startSurface browser descriptor opens a WebDriver session (Phase 6);
+    // app/process descriptors provision their own runtimes and don't count.
+    if (stepOpensBrowserSurface(step)) driverRequired = true;
   });
   return driverRequired;
 }
@@ -597,8 +604,11 @@ function isBrowserRequired({ test }: { test: any }): boolean {
   return test.steps.some(
     (step: any) =>
       !step?.__autoRecord &&
-      driverActions.some((action) => typeof step[action] !== "undefined") &&
-      !stepTargetsAppSurface(step)
+      ((driverActions.some((action) => typeof step[action] !== "undefined") &&
+        !stepTargetsAppSurface(step)) ||
+        // Phase 6: `startSurface: { browser: … }` opens a browser session
+        // (the goTo-opener sibling); app/process descriptors don't.
+        stepOpensBrowserSurface(step))
   );
 }
 
@@ -637,13 +647,19 @@ function contextRequirementsSkipMessage({
   return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
 }
 
-// The device descriptors a test needs: each startSurface's `device` (undefined
-// when it omits one — the context default / auto device). At least one entry so
-// a test with no explicit device still validates the default device.
-function collectDeviceDescriptors(context: any): any[] {
+// The device descriptors a test needs: each APP startSurface descriptor's
+// `device` (undefined when it omits one — the context default / auto device),
+// across both the object form and the Phase 6 parallel array form. Browser /
+// process descriptors boot no device and contribute nothing. At least one
+// entry so a test with no explicit device still validates the default device.
+// Exported for a focused unit test.
+export function collectDeviceDescriptors(context: any): any[] {
   const out: any[] = [];
   for (const step of context?.steps ?? []) {
-    if (step?.startSurface) out.push(step.startSurface.device);
+    for (const d of startSurfaceDescriptors(step)) {
+      if (d && typeof d === "object" && typeof d.app === "string")
+        out.push(d.device);
+    }
   }
   return out.length ? out : [undefined];
 }
@@ -3653,24 +3669,46 @@ async function runContext({
       };
 
       // Start a session for one engine, headed first then (on failure) headless.
+      // `overrides` carries a startSurface browser descriptor's launch knobs
+      // (Phase 6): explicit headless wins over the context setting, `size`
+      // wins over the context window dimensions, and `driverOptions` merges
+      // into the computed capabilities last (the app branch's escape-hatch
+      // precedent).
       const startDriverForBrowser = async (
-        browserName: string
+        browserName: string,
+        overrides?: {
+          headless?: boolean;
+          size?: { width?: number; height?: number };
+          driverOptions?: Record<string, any>;
+        }
       ): Promise<
         | { ok: true; driver: any; headless: boolean }
         | { ok: false; error: string }
       > => {
-        const wantHeadless = context.browser?.headless !== false;
-        const buildCaps = (headless: boolean) =>
-          getDriverCapabilities({
+        const wantHeadless =
+          overrides?.headless !== undefined
+            ? overrides.headless
+            : context.browser?.headless !== false;
+        const buildCaps = (headless: boolean) => {
+          const caps = getDriverCapabilities({
             runnerDetails,
             name: browserName,
             options: {
-              width: context.browser?.window?.width || 1200,
-              height: context.browser?.window?.height || 800,
+              width:
+                overrides?.size?.width ||
+                context.browser?.window?.width ||
+                1200,
+              height:
+                overrides?.size?.height ||
+                context.browser?.window?.height ||
+                800,
               headless,
               ...recordOptions,
             },
           });
+          if (overrides?.driverOptions) Object.assign(caps, overrides.driverOptions);
+          return caps;
+        };
         const startFailure = () => {
           let error = `Failed to start context '${browserName}' on '${platform}'.`;
           if (browserName === "safari" || browserName === "webkit") {
@@ -3817,8 +3855,8 @@ async function runContext({
       // stamps driver.state.engine and back-links driver.state.sessionRegistry.
       if (driver) {
         browserSessions = createSessionRegistry({
-          open: async (engine: string) => {
-            const res = await startDriverForBrowser(engine);
+          open: async (engine: string, overrides?: any) => {
+            const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             return res.driver;
           },
@@ -4563,17 +4601,17 @@ async function runStep({
   } else if (typeof step.closeSurface !== "undefined") {
     actionResult = await closeSurface({ config: config, step: step, driver, processRegistry, appSession });
   } else if (typeof step.startSurface !== "undefined") {
-    if (!appSession) {
-      actionResult = {
-        status: "FAIL",
-        description:
-          "startSurface ran without an app session; this is a runner bug (runContext must preflight app-driver tests).",
-      };
-    } else {
-      actionResult = await startAppSurface({
+    {
+      // Multi-surface Phase 6: startSurfaceStep dispatches app / browser /
+      // process descriptors (and the parallel array form). The app lane
+      // FAILs per descriptor when no app session was preflighted; browser
+      // descriptors ride the context's session registry via `driver`.
+      actionResult = await startSurfaceStep({
         config: config,
         step: step,
         appSession,
+        driver,
+        processRegistry,
         platform: context?.platform ?? "",
         serverDeps: {
           startServer: async (appiumEntry: string, appiumHome: string) => {

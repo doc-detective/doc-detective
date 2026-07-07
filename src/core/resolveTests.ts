@@ -10,7 +10,10 @@ import { generateSpecId } from "./detectTests.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
-import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import {
+  BROWSER_STEP_KEYS as driverActions,
+  stepOpensBrowserSurface,
+} from "../runtime/browserStepKeys.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 
 function isDriverRequired({ test }: { test: any }) {
@@ -20,6 +23,9 @@ function isDriverRequired({ test }: { test: any }) {
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
     });
+    // A startSurface browser descriptor opens a WebDriver session (Phase 6);
+    // app/process descriptors provision their own runtimes and don't count.
+    if (stepOpensBrowserSurface(step)) driverRequired = true;
   });
   return driverRequired;
 }
@@ -35,6 +41,8 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") browserRequired = true;
     });
+    // Phase 6: `startSurface: { browser: … }` opens a session too.
+    if (stepOpensBrowserSurface(step)) browserRequired = true;
   });
 
   // Standardize context format

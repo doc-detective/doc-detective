@@ -1,12 +1,16 @@
 ---
 title: startSurface
-description: Launch a native desktop or Android app as a surface that later steps can target.
+description: Open one or more surfaces—native apps, browsers, or background processes—and register them by name.
 ---
 
 
-The `startSurface` action launches a native application and registers it as a surface, so later steps can target it with `surface`. Once an app surface is open, `find`, `click`, `type`, and `screenshot` steps can act on it, and `closeSurface` can close it.
+The `startSurface` action opens (provisions) a surface and registers it by name so later steps can target it with `surface`. It handles three kinds of surface, told apart by which key the descriptor carries:
 
-App surfaces are the third kind of surface, alongside background processes and browser windows and tabs. `startSurface` supports **native Windows and macOS desktop apps** and **Android apps on a managed emulator**. On unsupported platforms, Doc Detective skips the context with an actionable reason instead of failing, so cross-platform specs stay green (see [Platform support](#platform-support)).
+- **App** (`app`): launch a native application—a Windows or macOS desktop app, or an Android app on a managed emulator.
+- **Browser** (`browser`): open a browser session explicitly, with per-session launch options. The session opens blank and ready. Navigate it with [`goTo`](goTo).
+- **Process** (`process`): start a long-running background process—first-class sugar over [`runShell`](/docs/actions/runshell) with a `background` object. Both forms share one launcher.
+
+Pass a single descriptor to open one surface, or an **array of descriptors to open several concurrently**—browser and process descriptors launch in parallel, and app descriptors boot their devices in parallel (the sessions themselves open in authored order). One step can boot two emulators for a two-phone conversation instead of waiting out two serial boots.
 
 <Note>
 Doc Detective drives native apps through a platform-specific Appium driver — `appium-novawindows-driver` on Windows, `appium-mac2-driver` on macOS, and `appium-uiautomator2-driver` on Android — and installs it on demand the first time an app surface starts. To install one ahead of time, run `doc-detective install runtime appium-novawindows-driver` on Windows or `doc-detective install runtime appium-mac2-driver` on macOS.
@@ -14,11 +18,9 @@ Doc Detective drives native apps through a platform-specific Appium driver — `
 Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
 </Note>
 
-## Descriptor
+## App descriptors
 
-Provide an object as the value for the `startSurface` key. You only need to provide `app`.
-
-- `app`: (Required) The application to launch. Doc Detective identifies the kind from the value's syntax, never from a separate type field:
+- `app`: (Required) The app identifier. Doc Detective identifies the kind from the value's syntax, never from a separate type field:
   - An **executable path** (Windows), such as `C:\Windows\System32\charmap.exe`.
   - A **`.app` path** (macOS), such as `/System/Applications/Calculator.app`.
   - A **bundle ID or package name**, such as `com.apple.TextEdit` (macOS) or `com.android.settings` (Android).
@@ -35,6 +37,30 @@ Provide an object as the value for the `startSurface` key. You only need to prov
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
 On Windows and macOS, opening two app surfaces with the same `name` in one context fails, so pass a distinct `name` when you launch more than one app. Android is the exception: apps on one device share a single session, so a later `startSurface` installs the app if `install` is set and brings it to the foreground, letting one test drive several apps on the same emulator.
+
+## Browser descriptors
+
+- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. No cross-engine fallback—you named the engine, so Doc Detective never substitutes another.
+- `name`: (Optional) Surface-registry name. Default: the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name` (an unnamed duplicate fails with guidance).
+- `headless`: (Optional) Overrides the context's headless setting for this session.
+- `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
+- `viewport`: (Optional) Page-content dimensions, which win over `size`.
+- `driverOptions`: (Optional) Escape-hatch capability passthrough.
+
+There's deliberately no `url` on the browser descriptor—[`goTo`](goTo) stays the navigation step—and no `waitUntil`: a browser session is ready the moment it opens.
+
+## Process descriptors
+
+- `process`: (Required) The shell command, same semantics as [`runShell`](/docs/actions/runshell).
+- `name`: (Required) Surface-registry name. Required because background commands are generic interpreters (`node`, `docker`) whose derived defaults would collide.
+- `args`, `workingDirectory`: (Optional) Command arguments and working directory.
+- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step).
+- `waitUntil`: (Optional) Readiness: `port`, `stdio` (substring or `/regex/`), `httpGet`, and/or `delayMs`. Same conditions as runShell's `background.waitUntil`.
+- `timeout`: (Optional) Readiness ceiling in milliseconds (default 60000).
+
+## Parallel arrays
+
+Pass an array to open several surfaces in one step. Names must be unique within the array (a duplicate fails the step before anything launches). The step passes only when every descriptor opened. One failure fails the step, but the other surfaces still finish opening and appear in `outputs.surfaces`, so nothing leaks half-started. After a parallel open, the **last authored** descriptor of each kind is that kind's active surface—deterministic regardless of which lane finished first.
 
 > For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
 
@@ -193,112 +219,21 @@ You don't have to close every app explicitly. Doc Detective closes any app surfa
 
 ## Examples
 
-### Launch a Windows app by path
+### Open a native app
 
 ```json
 {
   "tests": [
     {
-      "runOn": [
-        {
-          "platforms": ["windows"]
-        }
-      ],
       "steps": [
         {
-          "description": "Launch Character Map.",
-          "startSurface": {
-            "app": "C:\\Windows\\System32\\charmap.exe"
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-<Note>
-On Windows 11, `notepad.exe` launches a Store app that hands off to a separate process and never owns its own window, so the app driver times out waiting for it. Pick an app that owns its window, such as `charmap.exe`, which ships on every Windows edition.
-</Note>
-
-### Launch an app and name the surface
-
-Set `name` when the default wouldn't be memorable, or when you launch more than one app.
-
-```json
-{
-  "tests": [
-    {
-      "runOn": [
-        {
-          "platforms": ["windows"]
-        }
-      ],
-      "steps": [
-        {
-          "description": "Launch Calculator and name the surface.",
-          "startSurface": {
-            "app": "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
-            "name": "calc"
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Wait for the app to be ready, then act on it
-
-This example launches Character Map, waits until its **Select** button exists, clicks it, types into the copy box with a native selector, and closes the surface.
-
-```json
-{
-  "tests": [
-    {
-      "runOn": [
-        {
-          "platforms": ["windows"],
-          "requires": {
-            "files": ["C:\\Windows\\System32\\charmap.exe"]
-          }
-        }
-      ],
-      "steps": [
-        {
-          "description": "Launch Character Map and wait until it's ready.",
           "startSurface": {
             "app": "C:\\Windows\\System32\\charmap.exe",
-            "waitUntil": {
-              "find": { "elementText": "Select" }
-            }
+            "waitUntil": { "find": { "elementText": "Select" } }
           }
         },
         {
-          "description": "Click the Select button.",
-          "click": {
-            "elementText": "Select",
-            "surface": { "app": "charmap" }
-          }
-        },
-        {
-          "description": "Type into the copy box.",
-          "type": {
-            "keys": ["AB"],
-            "selector": "//Edit[@Name=\"Characters to copy :\"]",
-            "surface": { "app": "charmap" }
-          }
-        },
-        {
-          "description": "Capture the window.",
-          "screenshot": {
-            "path": "charmap.png",
-            "surface": { "app": "charmap" }
-          }
-        },
-        {
-          "description": "Close Character Map.",
-          "closeSurface": { "app": "charmap" }
+          "click": { "elementText": "Select", "surface": { "app": "charmap" } }
         }
       ]
     }
@@ -421,3 +356,108 @@ This example targets the `android` platform, launches the Settings app by its pa
   ]
 }
 ```
+
+### Open a named browser session with launch options
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "browser": "firefox",
+            "name": "admin",
+            "headless": true,
+            "viewport": { "width": 800, "height": 600 }
+          }
+        },
+        {
+          "goTo": {
+            "url": "https://example.com/admin",
+            "surface": { "browser": "firefox", "name": "admin" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Start a background server and call it
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "process": "npm start",
+            "name": "web",
+            "waitUntil": { "port": 3000 }
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "http://localhost:3000/health",
+            "statusCodes": [200]
+          }
+        },
+        {
+          "closeSurface": "web"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Open several surfaces concurrently
+
+Two managed Android devices boot in parallel—the "two-phone conversation" pattern:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": [
+            {
+              "app": "com.example.chat",
+              "name": "phone-a",
+              "device": { "platform": "android", "name": "dd-phone-a" }
+            },
+            {
+              "app": "com.example.chat",
+              "name": "phone-b",
+              "device": { "platform": "android", "name": "dd-phone-b" }
+            }
+          ]
+        },
+        {
+          "find": { "elementText": "Sign in", "surface": { "app": "phone-a" } }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Kinds mix freely in one array—a browser and the server it talks to:
+
+```json
+{
+  "startSurface": [
+    { "process": "npm start", "name": "web", "waitUntil": { "port": 3000 } },
+    { "browser": "chrome", "name": "shopper" }
+  ]
+}
+```
+
+## Related actions
+
+- [`goTo`](goTo): Navigate a browser surface (and open one implicitly).
+- [`runShell`](/docs/actions/runshell): Run a command, or start a background process with `background`.
+- [`closeSurface`](closeSurface): Close any surface by name.
