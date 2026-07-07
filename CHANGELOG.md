@@ -1,3 +1,18 @@
+# [4.24.0](https://github.com/doc-detective/doc-detective/compare/v4.23.0...v4.24.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* **core:** retry native session creation after client timeout abort ([#526](https://github.com/doc-detective/doc-detective/issues/526)) ([d1fb01a](https://github.com/doc-detective/doc-detective/commit/d1fb01a293e747f2293f06701d9c9b81f694dacc))
+* **install:** 9-minute npm-child timeout for bulk runtime installs ([#530](https://github.com/doc-detective/doc-detective/issues/530)) ([b364c19](https://github.com/doc-detective/doc-detective/commit/b364c193d398600b788eca8db3b3a8342fc45a37)), closes [#528](https://github.com/doc-detective/doc-detective/issues/528)
+* **runtime:** self-repair transient Android SDK download flakes in installAndroid ([#525](https://github.com/doc-detective/doc-detective/issues/525)) ([cb516ca](https://github.com/doc-detective/doc-detective/commit/cb516cadb284642e4c54ad5d0912479118572adb)), closes [#523](https://github.com/doc-detective/doc-detective/issues/523)
+* **runtime:** sweep on-disk managed-dep orphans into the runtime manifest ([#528](https://github.com/doc-detective/doc-detective/issues/528)) ([d625248](https://github.com/doc-detective/doc-detective/commit/d62524862b6c166e93ebf7d52318ad145700191b)), closes [#501](https://github.com/doc-detective/doc-detective/issues/501) [#501](https://github.com/doc-detective/doc-detective/issues/501) [package.json#ddRuntimeDependencies](https://github.com/package.json/issues/ddRuntimeDependencies)
+
+
+### Features
+
+* **app-surface:** mobile interaction vocabulary (native-app phase A6) ([#517](https://github.com/doc-detective/doc-detective/issues/517)) ([d6e4ef5](https://github.com/doc-detective/doc-detective/commit/d6e4ef59a523dfe706750a5c2dad75854ee465ee)), closes [#submit-button](https://github.com/doc-detective/doc-detective/issues/submit-button) [#reveal-by-selector](https://github.com/doc-detective/doc-detective/issues/reveal-by-selector)
+
 # [4.23.0](https://github.com/doc-detective/doc-detective/compare/v4.22.0...v4.23.0) (2026-07-06)
 
 
