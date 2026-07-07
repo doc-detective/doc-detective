@@ -676,6 +676,10 @@ interface AppSurfaceEntry {
   appPid?: number | null;
   knownWindows?: string[];
   foreignWindows?: Set<string>;
+  // Desktop windows that already existed at the surface snapshot (Windows).
+  // Unprobed until the first selector use; a same-pid one adopts as OLD
+  // (right after main) so it never shadows a genuinely new dialog under -1.
+  baselineWindowHandles?: Set<string>;
   windowBaseline?: string[];
 }
 

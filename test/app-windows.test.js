@@ -151,7 +151,10 @@ function macEntry(driver, overrides = {}) {
 // ---------------------------------------------------------------------------
 
 describe("appWindows: Windows (switch-then-act)", function () {
-  it("snapshot captures the main handle, app pid, and marks other apps' windows foreign", async function () {
+  it("snapshot captures the main handle and app pid; other windows are probed lazily", async function () {
+    // Baseline windows are NOT pre-damned as foreign: the app may have
+    // launched with several of its own windows open (splash + main, multiple
+    // documents). They stay unprobed until a selector is actually used.
     const driver = fakeWinDriver([
       { handle: "0xA", title: "ODBC Data Source Administrator", pid: 100 },
       { handle: "0xF", title: "Some other app", pid: 999 },
@@ -161,7 +164,53 @@ describe("appWindows: Windows (switch-then-act)", function () {
     assert.equal(entry.mainWindowHandle, "0xA");
     assert.equal(entry.appPid, 100);
     assert.deepEqual(entry.knownWindows, ["0xA"]);
+    assert.equal(entry.foreignWindows.size, 0);
+    // A selector probe classifies the other-pid baseline window as foreign.
+    const res = await resolveAppWindow({
+      entry,
+      selector: { title: "Nonexistent" },
+      timeoutMs: 300,
+    });
+    assert.equal(res.ok, false);
     assert.ok(entry.foreignWindows.has("0xF"));
+  });
+
+  it("adopts the app's own pre-existing windows (launch splash/extra document) on first selector use", async function () {
+    const driver = fakeWinDriver([
+      { handle: "0xA", title: "Main", pid: 100 },
+      // The app's own second window, already open when the surface snapshot
+      // ran — it must stay adoptable, not be permanently foreign.
+      { handle: "0xB", title: "Welcome Splash", pid: 100 },
+      { handle: "0xF", title: "Some other app", pid: 999 },
+    ]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    const res = await resolveAppWindow({
+      entry,
+      selector: { title: "Welcome Splash" },
+      timeoutMs: 1000,
+    });
+    assert.equal(res.ok, true);
+    assert.equal(driver.state.current, "0xB");
+    assert.ok(entry.knownWindows.includes("0xB"));
+    assert.ok(entry.foreignWindows.has("0xF"));
+  });
+
+  it("-1 prefers a window opened after launch over the app's pre-existing ones", async function () {
+    // Baseline same-pid windows adopt as OLD (right after main in adoption
+    // order), so -1 = newest still lands on the post-launch dialog even when
+    // both are probed in the same sweep.
+    const driver = fakeWinDriver([
+      { handle: "0xA", title: "Main", pid: 100 },
+      { handle: "0xB", title: "Welcome Splash", pid: 100 },
+    ]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ handle: "0xC", title: "Dialog", pid: 100 });
+    const res = await resolveAppWindow({ entry, selector: -1, timeoutMs: 1000 });
+    assert.equal(res.ok, true);
+    assert.equal(driver.state.current, "0xC");
+    assert.deepEqual(entry.knownWindows, ["0xA", "0xB", "0xC"]);
   });
 
   it("resolves a title regex to a new same-pid window and sticks (session root)", async function () {

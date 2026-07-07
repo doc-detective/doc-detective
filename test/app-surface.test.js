@@ -867,7 +867,7 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Invalid step definition/);
   });
 
-  it("windows: snapshots the window baseline on open (main handle, pid, foreign)", async function () {
+  it("windows: snapshots the window baseline on open (main handle, pid, lazy baseline)", async function () {
     const appSession = preflighted();
     const driver = {
       ...fakeDriver(),
@@ -897,7 +897,10 @@ describe("startAppSurface", function () {
     assert.equal(entry.mainWindowHandle, "0xA");
     assert.equal(entry.appPid, 123);
     assert.deepEqual(entry.knownWindows, ["0xA"]);
-    assert.ok(entry.foreignWindows.has("0xF"));
+    // Other baseline windows are recorded, not pre-damned as foreign — the
+    // first selector use pid-probes them (the app may own some of them).
+    assert.equal(entry.foreignWindows.size, 0);
+    assert.ok(entry.baselineWindowHandles.has("0xF"));
   });
 
   it("late-binds pending window crops from the first opened app surface", async function () {

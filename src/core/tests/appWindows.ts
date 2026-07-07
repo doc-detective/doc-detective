@@ -159,10 +159,20 @@ async function syncWindowsHandles(entry: any): Promise<void> {
       // Adopt on pid match — or best-effort when either side is unreadable
       // (documented caveat: adoption degrades to an unfiltered diff).
       if (pid === null || entry.appPid == null || pid === entry.appPid) {
-        entry.knownWindows.push(handle);
+        // knownWindows is adoption-ordered (`-1` = newest = last). A window
+        // that already existed at the surface snapshot is OLD by definition:
+        // insert it right after the main window so it never shadows a
+        // genuinely new dialog probed in the same sweep.
+        if (entry.baselineWindowHandles?.has(handle)) {
+          const mainIdx = entry.knownWindows.indexOf(entry.mainWindowHandle);
+          entry.knownWindows.splice(mainIdx >= 0 ? mainIdx + 1 : 0, 0, handle);
+        } else {
+          entry.knownWindows.push(handle);
+        }
       } else {
         entry.foreignWindows.add(handle);
       }
+      entry.baselineWindowHandles?.delete(handle);
     } catch {
       // Window vanished mid-probe — ignore.
     }
@@ -492,13 +502,18 @@ async function snapshotAppWindows(entry: any): Promise<void> {
       entry.windowBaseline = macBaselineKeys(await enumerateMacWindows(entry));
       return;
     }
-    // Windows: the current root is the app's main window; every other
-    // desktop window present at baseline belongs to someone else.
+    // Windows: the current root is the app's main window. Other desktop
+    // windows present at baseline are NOT pre-damned as foreign — the app may
+    // have launched with several of its own (splash + main, multiple
+    // documents). They're recorded as baseline handles and pid-probed lazily
+    // by syncWindowsHandles on the first selector use, so startSurface pays
+    // no probe sweep and the app's own launch windows stay selectable.
     const driver = entry.driver;
     const main = await driver.getWindowHandle();
     entry.mainWindowHandle = main;
     entry.knownWindows = [main];
-    entry.foreignWindows = new Set<string>(
+    entry.foreignWindows = new Set<string>();
+    entry.baselineWindowHandles = new Set<string>(
       (await driver.getWindowHandles()).filter((h: string) => h !== main)
     );
     entry.appPid = await readCurrentRootPid(driver);

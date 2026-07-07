@@ -50,7 +50,8 @@ which selector forms can each honor honestly, and what happens on mobile?
    ourselves.
 3. **Windows window adoption**: handles are desktop-global — (a) match
    against every handle, (b) filter by the root element's `ProcessId`
-   against the app's pid (best-effort), with baseline handles marked foreign.
+   against the app's pid (best-effort), with baseline handles probed lazily
+   on first selector use (the app may launch with several of its own).
 4. **Mobile**: (a) tolerate index 0/-1 as the single window, vs. (b) FAIL
    with one shared message.
 5. **Closing the last window** via `{app, window}`: allow (ends the app as a
@@ -67,9 +68,14 @@ probing (2b)**; **pid-filtered adoption (3b)**; **shared mobile FAIL (4b)**;
   NaN-foreground bug, plus a 20×500ms internal retry burned per miss) —
   handles only. New desktop windows are adopted per surface when their root
   `ProcessId` matches the app's pid (captured at startSurface; unreadable
-  pid degrades to unfiltered adoption, documented); baseline windows of
-  other apps are remembered as foreign and never probed again. `-1` = the
-  most recently adopted window (the dialog case); title/`{name}`/`{title}`
+  pid degrades to unfiltered adoption, documented). Windows already present
+  at the surface snapshot are recorded as baseline handles and pid-probed
+  lazily on the first selector use — same-pid ones adopt as OLD (right after
+  main in adoption order, so they never shadow a new dialog under `-1`),
+  other-pid ones are remembered as foreign and never probed again. This
+  keeps an app's own launch windows (splash + main, multiple documents)
+  selectable without paying a desktop-wide probe sweep at startSurface.
+  `-1` = the most recently adopted window (the dialog case); title/`{name}`/`{title}`
   match by probing candidates; **`index ≥ 0` FAILs** (no app-scoped creation
   order exists). A match leaves the session rooted there — sticky by
   construction. Close = `windows: closeApp` on the switched root, then
