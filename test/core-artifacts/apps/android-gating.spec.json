@@ -1,0 +1,36 @@
+{
+  "specId": "android-gating-a3a",
+  "description": "Native app surfaces gating (docs/design/native-app-surfaces.md): mobile-context gates validated on the general matrix. This spec is deterministic on EVERY host — as of phase A5 (mobile web), a SUPPORTED browser+platform pair proceeds to real toolchain/device work, so the always-SKIP assertions here use UNSUPPORTED pairs, which the mobile-browser support matrix rejects before any SDK/emulator/simulator detection. No host lazily installs a toolchain or boots a device here. Native mobile app runs and supported mobile-web runs (which PASS on capable hosts) are exercised in the apps-android, apps-ios, mobile-web-android, and mobile-web-ios groups, not here.",
+  "tests": [
+    {
+      "testId": "android-mobile-web-gates",
+      "description": "An android context with an unsupported browser (firefox) is SKIPPED by the mobile-browser support matrix, naming chrome as the supported Android browser. Fires before any SDK detection, so the outcome is deterministic on every host and never triggers a toolchain install or emulator boot.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "firefox"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "https://example.com"
+        }
+      ]
+    },
+    {
+      "testId": "ios-mobile-web-gates",
+      "description": "An ios context with an unsupported browser (chrome) is SKIPPED by the mobile-browser support matrix, naming safari as the supported iOS browser. Fires before any simulator detection, so the outcome is deterministic on every host — including macOS — and never boots a simulator. Supported mobile-web runs (safari on ios) are exercised in the mobile-web-ios group.",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "https://example.com"
+        }
+      ]
+    }
+  ]
+}

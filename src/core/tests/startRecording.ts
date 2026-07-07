@@ -26,7 +26,12 @@ import os from "node:os";
 
 export { startRecording };
 
-async function startRecording({ config, context, step, driver }: { config: any; context: any; step: any; driver: any }) {
+// `recordingHost` is where this context's recordings are tracked: the browser
+// driver's state when one exists, or the app session's recordingHost in
+// app-only contexts. It is ONLY a state holder — `driver` remains the browser
+// session used for crop geometry, cursor instantiation, and the browser
+// engine, and stays undefined in app-only contexts so those paths skip.
+async function startRecording({ config, context, step, driver, recordingHost }: { config: any; context: any; step: any; driver: any; recordingHost?: any }) {
   let result: any = {
     status: "PASS",
     description: "Started recording.",
@@ -119,9 +124,10 @@ async function startRecording({ config, context, step, driver }: { config: any; 
       : resolved;
   };
   const normalizedTarget = normalizeActiveTarget(filePath);
+  const stateHolder = recordingHost ?? driver;
   if (
-    Array.isArray(driver?.state?.recordings) &&
-    driver.state.recordings.some(
+    Array.isArray(stateHolder?.state?.recordings) &&
+    stateHolder.state.recordings.some(
       (r: any) =>
         typeof r?.targetPath === "string" &&
         normalizeActiveTarget(r.targetPath) === normalizedTarget
@@ -143,8 +149,8 @@ async function startRecording({ config, context, step, driver }: { config: any; 
   // the ffmpeg engine with a `viewport` target (cropped to the browser content
   // area, approximating the browser-engine capture) and warn.
   const hasActiveBrowserRecording =
-    Array.isArray(driver?.state?.recordings) &&
-    driver.state.recordings.some((r: any) => r?.type === "MediaRecorder");
+    Array.isArray(stateHolder?.state?.recordings) &&
+    stateHolder.state.recordings.some((r: any) => r?.type === "MediaRecorder");
   if (plan.name === "browser" && hasActiveBrowserRecording) {
     log(
       config,

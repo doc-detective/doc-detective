@@ -17,9 +17,23 @@ export interface InstalledBrowser {
   latestCheckedAt?: string;
 }
 
+// What `doc-detective install android` provisioned. Recorded so `install
+// status` can report it and later runs can skip already-done work. `sdkRoot`
+// is where the SDK lives (a pre-existing one it augmented, or the cache SDK it
+// bootstrapped); `bootstrapped` distinguishes the two.
+export interface InstalledAndroid {
+  sdkRoot: string;
+  bootstrapped: boolean;
+  systemImages: string[];
+  avds: string[];
+  installedAt: string;
+}
+
 export interface InstalledRecord {
   npmPackages: Record<string, InstalledNpmPackage>;
   browsers: Record<string, InstalledBrowser>;
+  // Optional so pre-A3 records (and runs that never touched android) stay lean.
+  android?: InstalledAndroid;
 }
 
 export interface CacheDirContext {
@@ -187,10 +201,15 @@ export function readInstalledRecord(ctx: CacheDirContext = {}): InstalledRecord 
     // schema change, hand-edit) shouldn't crash a reader OR a subsequent
     // writer. Both top-level slots must end up as plain objects so that
     // later `record.npmPackages[name] = …` assignments don't throw.
-    return {
+    const record: InstalledRecord = {
       npmPackages: isPlainObject(parsed?.npmPackages) ? parsed.npmPackages : {},
       browsers: isPlainObject(parsed?.browsers) ? parsed.browsers : {},
     };
+    // Preserve the optional android slot (unlike the two required slots, it's
+    // absent on pre-A3 records). A non-object value is dropped rather than
+    // carried through, mirroring the coercion above.
+    if (isPlainObject(parsed?.android)) record.android = parsed.android;
+    return record;
   } catch {
     return emptyRecord();
   }

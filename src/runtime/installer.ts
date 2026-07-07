@@ -58,12 +58,22 @@ const defaultLogger: Logger = (msg, level = "info") => {
   else console.log(msg);
 };
 
+/**
+ * Per-npm-child cap for bulk installs: the ~1000-package batch legitimately
+ * outlasts the loader's 5-minute single-package default on slow runners, and
+ * must stay under the postinstall's 10-minute outer ceiling so the
+ * diagnosable inner timeout fires first (ADR 01035).
+ */
+export const BULK_INSTALL_TIMEOUT_MS = 9 * 60 * 1000;
+
 export interface InstallRuntimeOptions {
   packages?: string[];
   ctx?: CacheDirContext;
   deps?: InstallerDeps;
   force?: boolean;
   dryRun?: boolean;
+  /** Cap per spawned npm child; defaults to BULK_INSTALL_TIMEOUT_MS. Must be ≥ 0; `0` disables. */
+  installTimeoutMs?: number;
 }
 
 /**
@@ -81,7 +91,17 @@ export async function installRuntime(
     deps = {},
     force = false,
     dryRun = false,
+    installTimeoutMs = BULK_INSTALL_TIMEOUT_MS,
   } = options;
+  // ensureRuntimeInstalled treats any value ≤ 0 as "no timeout" (its
+  // `installTimeoutMs > 0` gate), so a negative/NaN value passed here by
+  // mistake would silently remove hang protection. Only an explicit 0 may
+  // disable; reject everything else that isn't a non-negative finite number.
+  if (!Number.isFinite(installTimeoutMs) || installTimeoutMs < 0) {
+    throw new Error(
+      `installTimeoutMs must be a non-negative number of milliseconds (0 disables the timeout); got ${installTimeoutMs}.`
+    );
+  }
   const logger = deps.logger ?? defaultLogger;
   const targets = packages && packages.length > 0
     ? packages
@@ -120,6 +140,7 @@ export async function installRuntime(
     ctx,
     deps: { logger, spawn: deps.spawn },
     force,
+    installTimeoutMs,
   });
 
   const bestEffortFailed = new Set<string>();
@@ -129,6 +150,7 @@ export async function installRuntime(
         ctx,
         deps: { logger, spawn: deps.spawn },
         force,
+        installTimeoutMs,
       });
     } catch {
       // Non-fatal: the dep has no installable binary here; runtime SKIPs it.

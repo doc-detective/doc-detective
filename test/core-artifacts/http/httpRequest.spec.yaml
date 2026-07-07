@@ -1,6 +1,6 @@
 tests:
 - steps:
-  - loadVariables: env
+  - loadVariables: ../env
   - httpRequest:
       url: http://localhost:8092/api/users
       method: post

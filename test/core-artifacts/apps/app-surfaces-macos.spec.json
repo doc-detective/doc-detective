@@ -1,0 +1,216 @@
+{
+  "specId": "app-surfaces-a2-macos",
+  "description": "Native app surfaces phase A2 (docs/design/native-app-surfaces.md): startSurface launches macOS desktop apps through the lazily-installed Mac2 driver, find/click/type act on them via the AX semantic mapping, and closeSurface terminates them. TextEdit exercises the bundle-ID launch form plus args (a file path argument that must visibly open, proving the arguments capability); Calculator exercises the .app-path launch form plus AX-column clicks; the env permutation exercises the appium:environment capability path (stock apps offer nothing that renders an env var, so readiness is the assertion — noted here so the weaker check is a documented choice, not an oversight). Gated to macOS hosts; on Windows/Linux every test lands SKIPPED via runOn. The macOS runner needs Accessibility (TCC) granted — without it the app preflight lands the context as SKIPPED with the System Settings walkthrough (asserted behavior on unprovisioned machines, actively granted in CI so these tests PASS).",
+  "tests": [
+    {
+      "testId": "app-textedit-flow",
+      "description": "Launch TextEdit by bundle ID with launch arguments that must visibly take effect: the argv user-defaults pair -NSShowAppCentricOpenPanelInsteadOfUntitledFile NO makes TextEdit open an untitled document instead of its open panel, so the text view the readiness check waits on only exists when the args flowed. (A file-path argument was the first attempt; TextEdit is sandboxed and cannot open an arbitrary /tmp path from argv.) Then type into the text view via the native-selector escape hatch, assert the typed content back out via elementText (which matches AXValue on text views), long-press the text view (phase A6 click.duration → the Mac2 W3C mouse chain; on a text view it just places the cursor), swipe both object forms (phase A6 → macos: scroll pixel deltas and macos: clickAndDrag; dragging across text selects it, which nothing later asserts against), screenshot, and close the surface. autoRecord proves app-context recording on macOS: the capture starts full-display and the first app surface late-binds its window rect as the crop.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Typed by Doc Detective"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Typed by Doc Detective",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "click": {
+            "selector": "//XCUIElementTypeTextView",
+            "duration": 600,
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.3,
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 250,
+              "y": 300
+            },
+            "to": {
+              "x": 250,
+              "y": 250
+            },
+            "duration": 300,
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "textedit-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-calculator-flow",
+      "description": "Launch Calculator by .app path, click digits through the AX semantic column (elementAria accessible-name matching — the string form; the { role, name } object form is not yet schema-reachable, see ADR 01023) and the operator keys through the native-selector escape hatch (their accessible names are words like Add/Equals, not symbols — the OR-candidates absorb casing differences across macOS versions), verify the result renders via elementText (matches the display's AXValue), screenshot, and close the surface.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "1",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "click": {
+            "selector": "//XCUIElementTypeButton[@title=\"+\" or @label=\"+\" or @title=\"Add\" or @label=\"Add\" or @label=\"add\"]",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "2",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "click": {
+            "selector": "//XCUIElementTypeButton[@title=\"=\" or @label=\"=\" or @title=\"Equals\" or @label=\"Equals\" or @label=\"equals\"]",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "3",
+            "surface": {
+              "app": "Calculator"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "calculator-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "Calculator"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "Calculator"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-env-launch",
+      "description": "Launch Calculator by bundle ID with env set, proving the appium:environment capability path end-to-end. Stock apps render nothing env-derived, so launch readiness is the assertion (documented trade-off in the spec description).",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.calculator",
+            "name": "calc-env",
+            "env": {
+              "DD_A2_ENV": "1"
+            },
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "calc-env"
+          }
+        }
+      ]
+    }
+  ]
+}

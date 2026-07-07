@@ -227,3 +227,7 @@ toolchain
 widget
 Temurin
 XCUITest
+dialog
+dialogs
+dialog's
+onboarding

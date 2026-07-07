@@ -41,6 +41,8 @@ permissions:
   contents: read
 
 jobs:
+  # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
+  # of the *.spec.json fixtures no longer run here — see the `fixtures` job.
   test:
     uses: ./.github/workflows/test.yml
     secrets:
@@ -50,3 +52,8 @@ jobs:
       HERETTO_ORG_ID: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_ORG_ID || '' }}
       HERETTO_USERNAME: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_USERNAME || '' }}
       HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
+
+  # Per-feature Doc Detective fixtures, fanned out one small job per (group x OS)
+  # so no single job is a 90-minute monolith. Runs the PR's own build.
+  fixtures:
+    uses: ./.github/workflows/fixtures.yml

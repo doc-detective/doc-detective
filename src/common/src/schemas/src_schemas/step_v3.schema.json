@@ -456,6 +456,23 @@
           "$ref": "#/components/schemas/common"
         },
         {
+          "type": "object",
+          "required": ["startSurface"],
+          "properties": {
+            "startSurface": {
+              "$ref": "startSurface_v3.schema.json#"
+            }
+          },
+          "title": "startSurface"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
           "title": "loadVariables",
           "type": "object",
           "required": ["loadVariables"],
@@ -496,6 +513,23 @@
           "properties": {
             "loadCookie": {
               "$ref": "loadCookie_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "swipe",
+          "type": "object",
+          "required": ["swipe"],
+          "properties": {
+            "swipe": {
+              "$ref": "swipe_v3.schema.json#"
             }
           }
         }
@@ -555,6 +589,21 @@
     },
     {
       "wait": 5000
+    },
+    {
+      "swipe": "up"
+    },
+    {
+      "swipe": {
+        "from": {
+          "x": 200,
+          "y": 600
+        },
+        "to": {
+          "x": 200,
+          "y": 200
+        }
+      }
     },
     {
       "runCode": {

@@ -1,0 +1,131 @@
+{
+  "specId": "app-surfaces-a1",
+  "description": "Native app surfaces phase A1 (docs/design/native-app-surfaces.md): startSurface launches a Windows desktop app through the lazily-installed NovaWindows driver, find/click/type act on it via the UIA semantic mapping, and closeSurface (plus the context sweep) terminates it. Character Map (charmap.exe) is the target app because it is a real Win32 executable on every Windows edition including Server CI runners — unlike notepad.exe, which on Windows 11 clients is a stub that hands off to the Store app, so the launched process never owns a window. Gated to Windows hosts with the binary present; on Linux the app preflight lands the context as SKIPPED (asserted behavior, not a gap), and macOS runs its own flows in app-surfaces-macos.spec.json (phase A2).",
+  "tests": [
+    {
+      "testId": "app-charmap-flow",
+      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, long-press Select (phase A6 click.duration → windows: click durationMs — a held click on a button is still a click, so it's harmless), swipe both object forms (phase A6 → windows: scroll wheel clicks and windows: clickAndDrag; the character grid tolerates both), and close the surface explicitly. autoRecord proves app-context recording: the capture starts full-display (no window exists yet), and the first app surface to open late-binds its window rect as the crop, so the finished recording is scoped to the Character Map window.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "AB"
+            ],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "duration": 500,
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.3,
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 180,
+              "y": 230
+            },
+            "to": {
+              "x": 180,
+              "y": 190
+            },
+            "duration": 300,
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "charmap-app.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "app-preflight-skip",
+      "description": "On hosts with no native app driver (Linux, until phase A8) the app preflight SKIPs the context with an actionable reason — this permutation asserts the skip path itself. macOS left this list in phase A2: it is a supported platform now, covered by app-surfaces-macos.spec.json.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/usr/bin/never-launched"
+          }
+        }
+      ]
+    }
+  ]
+}
