@@ -157,6 +157,10 @@ function windowsAppSession({ windows, elementsByWindow = {} }) {
       }
       return elementsByWindow[state.current] ?? missingElement;
     },
+    async saveScreenshot(p) {
+      state.capturedWindow = state.current;
+      fs.writeFileSync(p, PNG_1X1);
+    },
     async deleteSession() {},
   };
   const appSession = createAppSessionState();
@@ -185,6 +189,10 @@ function macAppSession({ windows }) {
     },
     async isExisting() {
       return true;
+    },
+    async saveScreenshot(p) {
+      state.capturedWindow = w.id;
+      fs.writeFileSync(p, PNG_1X1);
     },
     async $(selector) {
       state.scopedSelectors.push(selector);
@@ -567,21 +575,110 @@ describe("saveScreenshot app-surface branch", function () {
     assert.ok(fs.existsSync(target));
   });
 
-  it("fails on window selectors and unknown app refs", async function () {
-    const appSession = fakeAppSession({});
-    const windowSel = await saveScreenshot({
+  it("windows: captures a selected window (switched root, driver capture)", async function () {
+    const { appSession, driver } = windowsAppSession({
+      windows: [
+        { handle: "0xA", title: "Main", pid: 100 },
+        { handle: "0xB", title: "Dialog", pid: 100 },
+      ],
+    });
+    const target = path.join(dir, "win-window.png");
+    const result = await saveScreenshot({
       config: {},
       step: {
         screenshot: {
-          path: path.join(dir, "w.png"),
-          surface: { app: "charmap", window: -1 },
+          path: target,
+          overwrite: "true",
+          surface: { app: "charmap", window: { title: "Dialog" } },
         },
       },
       driver: undefined,
       appSession,
     });
-    assert.match(windowSel.description, /Window selectors on app captures/);
+    assert.equal(result.status, "PASS");
+    assert.ok(fs.existsSync(target));
+    assert.equal(driver.state.capturedWindow, "0xB");
+  });
 
+  it("mac: captures the selected window ELEMENT", async function () {
+    const { appSession, state } = macAppSession({
+      windows: [
+        { id: "w1", title: "Untitled", rect: { x: 0, y: 0, width: 1, height: 1 } },
+        { id: "w2", title: "Untitled 2", rect: { x: 5, y: 5, width: 2, height: 2 } },
+      ],
+    });
+    const target = path.join(dir, "mac-window.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        screenshot: {
+          path: target,
+          overwrite: "true",
+          surface: { app: "TextEdit", window: "Untitled 2" },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.ok(fs.existsSync(target));
+    assert.equal(state.capturedWindow, "w2");
+  });
+
+  it("mac: a selector-less app capture uses the default window element (not the full display)", async function () {
+    const { appSession, state } = macAppSession({
+      windows: [
+        { id: "w1", title: "Untitled", rect: { x: 0, y: 0, width: 1, height: 1 } },
+      ],
+    });
+    const target = path.join(dir, "mac-default.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        screenshot: {
+          path: target,
+          overwrite: "true",
+          surface: { app: "TextEdit" },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(state.capturedWindow, "w1");
+  });
+
+  it("mobile: a window selector on an app capture FAILs single-window", async function () {
+    const appSession = createAppSessionState();
+    appSession.surfaces.set("chat", {
+      name: "chat",
+      appId: "com.example.chat",
+      driver: {},
+      launchedByUs: true,
+      platform: "android",
+      deviceName: "Pixel_7",
+    });
+    appSession.deviceSessions.set("Pixel_7", {
+      driver: {},
+      foregroundApp: "com.example.chat",
+    });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        screenshot: {
+          path: path.join(dir, "m.png"),
+          surface: { app: "chat", window: -1 },
+        },
+      },
+      driver: undefined,
+      appSession,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /single-window/);
+  });
+
+  it("fails on unknown app refs", async function () {
+    const appSession = fakeAppSession({});
     const unknown = await saveScreenshot({
       config: {},
       step: {
