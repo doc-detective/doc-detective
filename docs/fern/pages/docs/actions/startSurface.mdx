@@ -1,0 +1,178 @@
+---
+title: startSurface
+description: Open one or more surfaces — native apps, browsers, or background processes — and register them by name.
+---
+
+
+The `startSurface` action opens (provisions) a surface and registers it by name so later steps can target it with `surface`. It handles three kinds of surface, told apart by which key the descriptor carries:
+
+- **App** (`app`): launch a native application — a Windows or macOS desktop app, or an Android/iOS app on a managed device.
+- **Browser** (`browser`): open a browser session explicitly, with per-session launch options. The session opens blank and ready; navigate it with [`goTo`](goTo).
+- **Process** (`process`): start a long-running background process — first-class sugar over [`runShell`](/docs/actions/runshell) with a `background` object; both forms share one launcher.
+
+Pass a single descriptor to open one surface, or an **array of descriptors to open several concurrently** — browser and process descriptors launch in parallel, and app descriptors boot their devices in parallel (the sessions themselves open in authored order). One step can boot two emulators for a two-phone conversation instead of waiting out two serial boots.
+
+## App descriptors
+
+- `app`: (Required) The app identifier: an executable path (`C:\\Windows\\System32\\notepad.exe`), a `.app` path, a bundle ID (`com.apple.TextEdit`), a package name (`com.example.myapp`), or a UWP AppUserModelID. Disambiguated by syntax.
+- `name`: (Optional) Surface-registry name. Default: derived from the identifier (`notepad`, `TextEdit`, `myapp`).
+- `args`, `workingDirectory`, `env`: (Optional) Launch parameters (desktop apps; support varies by platform — see the [startSurface reference](/reference/schemas/startsurface)).
+- `install`: (Optional) An `.apk`/`.app`/`.ipa` to install before launch (mobile).
+- `device`: (Optional) The managed device to run on (mobile) — a name, or a descriptor with `platform`, `name`, `deviceType`, `osVersion`, `headless`.
+- `waitUntil`, `timeout`: (Optional) Startup readiness (a delay and/or an element that must exist) and its ceiling.
+- `driverOptions`: (Optional) Escape-hatch capability passthrough.
+
+## Browser descriptors
+
+- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. No cross-engine fallback — you named the engine, so Doc Detective never substitutes another.
+- `name`: (Optional) Surface-registry name. Default: the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name` (an unnamed duplicate fails with guidance).
+- `headless`: (Optional) Overrides the context's headless setting for this session.
+- `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
+- `viewport`: (Optional) Page-content dimensions; wins over `size`.
+- `driverOptions`: (Optional) Escape-hatch capability passthrough.
+
+There's deliberately no `url` on the browser descriptor — [`goTo`](goTo) stays the navigation step — and no `waitUntil`: a browser session is ready the moment it opens.
+
+## Process descriptors
+
+- `process`: (Required) The shell command, same semantics as [`runShell`](/docs/actions/runshell).
+- `name`: (Required) Surface-registry name. Required because background commands are generic interpreters (`node`, `docker`) whose derived defaults would collide.
+- `args`, `workingDirectory`: (Optional) Command arguments and working directory.
+- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency; its absence skips the step).
+- `waitUntil`: (Optional) Readiness: `port`, `stdio` (substring or `/regex/`), `httpGet`, and/or `delayMs`. Same conditions as runShell's `background.waitUntil`.
+- `timeout`: (Optional) Readiness ceiling in milliseconds (default 60000).
+
+## Parallel arrays
+
+Pass an array to open several surfaces in one step. Names must be unique within the array (a duplicate fails the step before anything launches). The step passes only when every descriptor opened; one failure fails the step, but the other surfaces still finish opening and appear in `outputs.surfaces`, so nothing leaks half-started. After a parallel open, the **last authored** descriptor of each kind is that kind's active surface — deterministic regardless of which lane finished first.
+
+> For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
+
+## Examples
+
+### Open a native app
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "waitUntil": { "find": { "elementText": "Select" } }
+          }
+        },
+        {
+          "click": { "elementText": "Select", "surface": { "app": "charmap" } }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Open a named browser session with launch options
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "browser": "firefox",
+            "name": "admin",
+            "headless": true,
+            "viewport": { "width": 800, "height": 600 }
+          }
+        },
+        {
+          "goTo": {
+            "url": "https://example.com/admin",
+            "surface": { "browser": "firefox", "name": "admin" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Start a background server and call it
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "process": "npm start",
+            "name": "web",
+            "waitUntil": { "port": 3000 }
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "http://localhost:3000/health",
+            "statusCodes": [200]
+          }
+        },
+        {
+          "closeSurface": "web"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Open several surfaces concurrently
+
+Two managed Android devices boot in parallel — the "two-phone conversation" pattern:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": [
+            {
+              "app": "com.example.chat",
+              "name": "phone-a",
+              "device": { "platform": "android", "name": "dd-phone-a" }
+            },
+            {
+              "app": "com.example.chat",
+              "name": "phone-b",
+              "device": { "platform": "android", "name": "dd-phone-b" }
+            }
+          ]
+        },
+        {
+          "find": { "elementText": "Sign in", "surface": { "app": "phone-a" } }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Kinds mix freely in one array — a browser and the server it talks to:
+
+```json
+{
+  "startSurface": [
+    { "process": "npm start", "name": "web", "waitUntil": { "port": 3000 } },
+    { "browser": "chrome", "name": "shopper" }
+  ]
+}
+```
+
+## Related Actions
+
+- [`goTo`](goTo): Navigate a browser surface (and open one implicitly).
+- [`runShell`](/docs/actions/runshell): Run a command, or start a background process with `background`.
+- [`closeSurface`](closeSurface): Close any surface by name.

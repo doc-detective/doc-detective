@@ -43,8 +43,9 @@ surfaces, the **driver architecture**, and the **phasing**. That's this document
 - **`startSurface` ships with the first app phase** (A1), pulled forward from
   multi-surface Phase 6. Apps are its first *required* consumer — browsers have
   `goTo` auto-open and processes have `runShell.background`, but apps have no
-  inline sugar. The generic browser/process branches of `startSurface` still land
-  in multi-surface Phase 6; adding branches later is additive.
+  inline sugar. The generic browser/process branches of `startSurface` shipped
+  in multi-surface Phase 6 (✅ ADR 01039); adding the branches was additive as
+  designed.
 - **Provisioning stays in steps; `runOn` stays matrix + gating** — with one
   deliberate, additive extension: **the environment matrix learns mobile target
   platforms** (`platforms: "android" | "ios"`), because a device is
@@ -312,9 +313,12 @@ the process registry — devices are *not* surfaces and are never targeted by
 ```
 
 - Sequential `startSurface` steps boot devices **serially** from A3 onward; the
-  **parallel array form** (multi-surface Phase 6) overlaps boots — worth real
-  wall-clock on 30–60s emulator starts. Concurrent *actions* across devices
-  remain a dynamic-routing concern, not a surface concern.
+  **parallel array form** (multi-surface Phase 6, ✅ shipped — ADR 01039)
+  overlaps boots — one `startSurface: [ … ]` step pre-acquires every
+  descriptor's device concurrently, worth real wall-clock on 30–60s emulator
+  starts (the app sessions themselves still open in authored order).
+  Concurrent *actions* across devices remain a dynamic-routing concern, not a
+  surface concern.
 - **Matrix vs. multi-device, disambiguated in docs:** `platforms:
   ["android","ios"]` runs the *same* test once per target (fan-out);
   two `startSurface` devices put *both* devices in *one* test run. Same
@@ -471,8 +475,9 @@ preflight handles "driver missing / not installable" automatically.
   window selectors, no `tab`). Additive `oneOf` entry; steps that allow apps add
   the branch to their `$ref` list per phase.
 - **`startSurface_v3.schema.json`** (new in A1): object | array, kind-keyed
-  entries. A1 ships the **app branch only**; browser/process branches land in
-  multi-surface Phase 6 as designed.
+  entries. A1 shipped the **app branch only**; the browser/process branches
+  and the parallel array form landed in multi-surface Phase 6 (✅ ADR 01039)
+  as designed.
 - **`appDescriptor`** and **`deviceDescriptor`** components (shapes above) —
   `deviceDescriptor` carries `deviceType` (`phone`|`tablet`) plus the reserved
   `orientation`/`udid`/`provider` fields with full validation from day one, and
@@ -572,8 +577,8 @@ fixtures.
   `find` auto-scroll (bounded, downward, mobile-only — UIA/AX expose
   off-screen elements without it), the permission-dialog docs pattern, and
   the two-phone multi-device fixture (serial boots,
-  `DD_FIXTURE_MULTIDEVICE`-gated to the managed KVM leg); the parallel array
-  form arrives with multi-surface Phase 6. **Deviations found in
+  `DD_FIXTURE_MULTIDEVICE`-gated to the managed KVM leg); the fixture moved
+  to the parallel array form when multi-surface Phase 6 shipped (ADR 01039). **Deviations found in
   implementation:** XCUITest's `mobile: keys` is iPad-only (Xcode 15+), so
   criteria-less *text* typing shipped on Android only (`mobile: type` into
   the focused element) — iOS keeps requiring element criteria for text, and

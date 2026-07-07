@@ -1,0 +1,141 @@
+{
+  "specId": "start-surface-parallel",
+  "description": "Multi-surface Phase 6: the PARALLEL ARRAY form of startSurface — one step opens several surfaces concurrently across kinds. Covers a mixed browser + process array (the lanes overlap; the step PASSes only when every descriptor opened), authored-order activation (the LAST authored descriptor of each kind is that kind's active surface regardless of which lane finished first), addressing every opened surface by name afterwards, and the array form of closeSurface tearing them down. Runs in the default headless-firefox context on every platform.",
+  "tests": [
+    {
+      "testId": "start-surface-parallel-mixed",
+      "description": "One array opens a chrome session and a background REPL concurrently. Both register under their descriptor names, the chrome session is the active browser afterwards (authored-order activation), and both close in one array step.",
+      "steps": [
+        {
+          "description": "The default firefox session exists first, with a page loaded",
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "Open a browser and a process in ONE parallel startSurface step",
+          "startSurface": [
+            {
+              "process": "node -i",
+              "name": "par-repl",
+              "waitUntil": {
+                "stdio": "/>/"
+              },
+              "timeout": 15000
+            },
+            {
+              "browser": "chrome",
+              "name": "par-chrome"
+            }
+          ]
+        },
+        {
+          "description": "The last authored browser descriptor is the active browser: a surface-less goTo navigates the new chrome session",
+          "goTo": "http://localhost:8092/multi-tab-child.html?page=par1"
+        },
+        {
+          "find": {
+            "elementText": "PAGE par1",
+            "surface": {
+              "browser": "chrome",
+              "name": "par-chrome"
+            }
+          }
+        },
+        {
+          "description": "The process surface opened in the same step is a real, typable process",
+          "type": {
+            "keys": [
+              "2+3",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "par-repl"
+            },
+            "waitUntil": {
+              "stdio": "5"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "description": "The default firefox session was untouched by the parallel open",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": "firefox"
+          }
+        },
+        {
+          "description": "Tear both down with one array closeSurface",
+          "closeSurface": [
+            "par-chrome",
+            {
+              "process": "par-repl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "start-surface-parallel-two-browsers",
+      "description": "Two named sessions of the same engine open in one array; the LAST authored one is active afterwards.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "startSurface": [
+            {
+              "browser": "firefox",
+              "name": "beta",
+              "headless": true
+            },
+            {
+              "browser": "firefox",
+              "name": "alpha",
+              "headless": true
+            }
+          ]
+        },
+        {
+          "description": "The last authored session (alpha) is active: a surface-less goTo navigates it",
+          "goTo": "http://localhost:8092/multi-tab-child.html?page=alpha1"
+        },
+        {
+          "find": {
+            "elementText": "PAGE alpha1",
+            "surface": {
+              "browser": "firefox",
+              "name": "alpha"
+            }
+          }
+        },
+        {
+          "description": "The sibling session from the same array is addressable too",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=beta1",
+            "surface": {
+              "browser": "firefox",
+              "name": "beta"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE beta1"
+          }
+        },
+        {
+          "closeSurface": [
+            "alpha",
+            "beta"
+          ]
+        },
+        {
+          "description": "Focus falls back to the surviving default session",
+          "find": {
+            "elementText": "MULTI-TAB HOME"
+          }
+        }
+      ]
+    }
+  ]
+}
