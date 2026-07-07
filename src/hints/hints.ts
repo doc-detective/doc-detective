@@ -106,8 +106,11 @@ export const HINTS: Hint[] = [
       "doc-detective --auto-record",
       "```",
     ].join("\n"),
+    // Browser contexts or app surfaces (startSurface) — autoRecord covers
+    // desktop app and mobile device contexts too (phase A7).
     when: (ctx) =>
-      ctx.usedBrowserContexts.size > 0 &&
+      (ctx.usedBrowserContexts.size > 0 ||
+        ctx.usedStepTypes.has("startSurface")) &&
       !ctx.producedRecordings &&
       !ctx.config?.autoRecord,
   },
