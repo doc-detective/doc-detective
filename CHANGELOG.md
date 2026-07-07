@@ -1,3 +1,10 @@
+# [4.25.0](https://github.com/doc-detective/doc-detective/compare/v4.24.0...v4.25.0) (2026-07-07)
+
+
+### Features
+
+* **record:** app window and device recording (native-app phase A7) ([#524](https://github.com/doc-detective/doc-detective/issues/524)) ([c177317](https://github.com/doc-detective/doc-detective/commit/c1773176c6cf386d2329f186571d2a0b93b4cbec))
+
 # [4.24.0](https://github.com/doc-detective/doc-detective/compare/v4.23.0...v4.24.0) (2026-07-07)
 
 
