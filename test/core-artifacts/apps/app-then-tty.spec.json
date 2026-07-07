@@ -1,0 +1,79 @@
+{
+  "specId": "app-then-tty",
+  "description": "Regression fixture for issue #501: a native app surface (whose preflight JIT-installs the NovaWindows driver mid-run on a fresh runner) followed by a ConPTY `tty` background process in the same runner process. Before the fix, that mid-run npm install pruned node-pty's files from the runtime cache (`--no-save` against a dependency-less runtime manifest made npm treat every sibling as extraneous), and the next pty.spawn — served from the stale module caches — froze the whole process; in a fresh process it silently SKIPped instead. With the non-destructive-install fix and the on-disk self-heal gate, this pairing must PASS: the tty step starts, echoes through the PTY, and closes. Lives in the apps group so the driver-install/tty interleaving actually occurs in one process; the tty half runs on every platform leg, the app half is Windows-gated.",
+  "tests": [
+    {
+      "testId": "app-then-tty-app",
+      "description": "Open and close a real app surface first, so the app session lifecycle (driver JIT install, per-context Appium server, teardown tree-kill) runs before any PTY work.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "name": "att-cm",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": "att-cm"
+        }
+      ]
+    },
+    {
+      "testId": "app-then-tty-tty",
+      "description": "Start node -i under a PTY after the app test, type an expression, wait for the echoed result, close. Must never freeze; SKIPs only when node-pty is genuinely unavailable on the platform.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "att-tty-repl-1",
+              "tty": true,
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 30000
+          },
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "type": {
+            "keys": [
+              "3 + 4",
+              "$ENTER$"
+            ],
+            "surface": "att-tty-repl-1",
+            "waitUntil": {
+              "stdio": "/7/"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "att-tty-repl-1"
+        }
+      ]
+    }
+  ]
+}

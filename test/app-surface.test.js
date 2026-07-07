@@ -13,17 +13,23 @@ import {
   classifyNativeSelector,
   buildUiaLocator,
   buildAxLocator,
+  buildUiAutomator2Locator,
   createAppSessionState,
   appSurfacePreflight,
   probeMacAccessibility,
+  probeIosToolchain,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
+  ensureAppForeground,
   startAppSurface,
   buildAppLocator,
   findAppElement,
   closeAppSurface,
   teardownAppSession,
+  snapshotAppServerDescendants,
+  reapConsoleOrphans,
+  listWindowsDescendantPids,
   invalidateStaleAppiumManifest,
 } from "../dist/core/tests/appSurface.js";
 
@@ -242,6 +248,77 @@ describe("buildAxLocator", function () {
   });
 });
 
+describe("buildUiAutomator2Locator", function () {
+  it("maps a lone elementId to the `id` strategy (resource-id, NOT accessibility id)", function () {
+    // Critical A3b correction: on UiAutomator2 the WebDriver "accessibility id"
+    // strategy is content-desc, so a lone resource-id must use the `id`
+    // strategy (which auto-prefixes the current appPackage).
+    assert.deepEqual(buildUiAutomator2Locator({ elementId: "save_button" }), {
+      strategy: "id",
+      value: "save_button",
+    });
+    assert.deepEqual(buildUiAutomator2Locator({ elementTestId: "save_button" }), {
+      strategy: "id",
+      value: "save_button",
+    });
+  });
+
+  it("maps elementText to an XPath @text match", function () {
+    assert.deepEqual(buildUiAutomator2Locator({ elementText: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@text="Save"]',
+    });
+  });
+
+  it("maps elementAria.name to @content-desc (distinct from @text)", function () {
+    assert.deepEqual(buildUiAutomator2Locator({ elementAria: "Save" }), {
+      strategy: "xpath",
+      value: '//*[@content-desc="Save"]',
+    });
+  });
+
+  it("combines resource-id + text into one XPath (@resource-id, not id-strategy)", function () {
+    assert.deepEqual(
+      buildUiAutomator2Locator({ elementId: "com.app:id/save", elementText: "Save" }),
+      {
+        strategy: "xpath",
+        value: '//*[@resource-id="com.app:id/save" and @text="Save"]',
+      }
+    );
+  });
+
+  it("coexists elementText (@text) and elementAria.name (@content-desc) — different attributes", function () {
+    // Unlike Windows/macOS (one accessible-name attribute), these are distinct
+    // on Android, so both apply — no conflict.
+    assert.deepEqual(
+      buildUiAutomator2Locator({ elementText: "Save", elementAria: "Persist" }),
+      {
+        strategy: "xpath",
+        value: '//*[@text="Save" and @content-desc="Persist"]',
+      }
+    );
+  });
+
+  it("maps elementAria.role to a widget class tag", function () {
+    assert.deepEqual(
+      buildUiAutomator2Locator({ elementAria: { role: "button", name: "Save" } }),
+      {
+        strategy: "xpath",
+        value: '//android.widget.Button[@content-desc="Save"]',
+      }
+    );
+    assert.deepEqual(buildUiAutomator2Locator({ elementAria: { role: "textbox" } }), {
+      strategy: "xpath",
+      value: "//android.widget.EditText",
+    });
+  });
+
+  it("returns null for criteria with no UiAutomator2 mapping", function () {
+    assert.equal(buildUiAutomator2Locator({}), null);
+    assert.equal(buildUiAutomator2Locator({ elementClass: "x" }), null);
+  });
+});
+
 // --- runtime helpers (hermetic: injected deps, fake drivers, temp dirs) ---
 
 describe("isAppDriverRequired / stepTargetsAppSurface", function () {
@@ -354,6 +431,37 @@ describe("buildAppLocator", function () {
     const merged = buildAppLocator({ elementText: "Save", elementAria: "Save" });
     assert.deepEqual(merged, { strategy: "xpath", value: '//*[@Name="Save"]' });
   });
+
+  it("routes android to the UiAutomator2 column", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "android"), {
+      strategy: "xpath",
+      value: '//*[@text="Save"]',
+    });
+    assert.deepEqual(buildAppLocator({ elementId: "save_button" }, "android"), {
+      strategy: "id",
+      value: "save_button",
+    });
+  });
+
+  it("routes ios to the XCUITest column", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "ios"), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
+    });
+  });
+
+  it("does NOT flag elementText/elementAria as conflicting on android", function () {
+    // On Android the two map to distinct attributes (@text vs @content-desc),
+    // so different values are a legal AND, not a conflict — the per-platform
+    // conflict rule must not fire here.
+    assert.deepEqual(
+      buildAppLocator({ elementText: "Save", elementAria: "Persist" }, "android"),
+      {
+        strategy: "xpath",
+        value: '//*[@text="Save" and @content-desc="Persist"]',
+      }
+    );
+  });
 });
 
 describe("invalidateStaleAppiumManifest", function () {
@@ -423,7 +531,23 @@ describe("appSurfacePreflight", function () {
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows and macOS/);
+    assert.match(outcome.reason, /Windows/);
+    assert.match(outcome.reason, /iOS/);
+  });
+
+  it("skips ios on non-mac hosts with toolchain guidance", async function () {
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "ios",
+      deps: {
+        probeIosToolchain: () => ({
+          ok: false,
+          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+        }),
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
   });
 
   it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
@@ -581,6 +705,80 @@ describe("appSurfacePreflight", function () {
   });
 });
 
+describe("probeIosToolchain", function () {
+  it("skips on a non-mac host without probing commands", function () {
+    let probed = false;
+    const outcome = probeIosToolchain({
+      platform: "win32",
+      run: () => {
+        probed = true;
+        return { status: 0 };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
+    assert.equal(probed, false);
+  });
+
+  it("skips when xcode-select is not configured", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select" ? { status: 1 } : { status: 0 },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /Xcode command-line tools/);
+  });
+
+  it("skips with the developer dir + diagnostic when simctl fails", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command, args) => {
+        if (command === "xcode-select")
+          return { status: 0, stdout: "/Applications/Xcode.app/Contents/Developer\n" };
+        // xcrun simctl
+        return { status: 72, stderr: "xcrun: error: unable to find utility \"simctl\"" };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /simctl/);
+    assert.match(outcome.reason, /Xcode\.app\/Contents\/Developer/);
+    assert.match(outcome.reason, /unable to find utility/);
+  });
+
+  it("reports a timed-out simctl (null status) distinctly", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select"
+          ? { status: 0, stdout: "/dev" }
+          : { status: null, stderr: "" },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /timed out/);
+  });
+
+  it("passes when xcode-select and simctl both succeed", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: () => ({ status: 0, stdout: "/Applications/Xcode.app/Contents/Developer" }),
+    });
+    assert.deepEqual(outcome, { ok: true });
+  });
+
+  it("the real probe returns a definitive ok/not-ok shape on macOS", async function () {
+    // Exercise the real spawnSync path (default runner) so a broken invocation
+    // is visible; on non-mac hosts the early return already covers this.
+    if (process.platform !== "darwin") this.skip();
+    // probeIosToolchain is synchronous and the first cold `xcrun simctl` call on
+    // a fresh macOS runner can take much longer than mocha's 2s default before
+    // it returns — give it the same 2-minute ceiling the probe itself uses.
+    this.timeout(130000);
+    const outcome = probeIosToolchain();
+    assert.equal(typeof outcome.ok, "boolean");
+  });
+});
+
 describe("startAppSurface", function () {
   const fakeDriver = () => ({
     deleted: false,
@@ -617,8 +815,11 @@ describe("startAppSurface", function () {
   it("fails reserved fields, env, unsupported platforms, and name collisions with guidance", async function () {
     const appSession = preflighted();
     const cases = [
-      [{ app: "x", device: "phone" }, /reserved for the mobile phases/],
-      [{ app: "x", install: "./a.apk" }, /reserved for the mobile phases/],
+      // device/install/activity are Android-only; the Windows driver rejects
+      // them via its unsupported-fields rules (A3b moved this off a blanket gate).
+      [{ app: "x", device: "phone" }, /not supported by the Windows app driver/],
+      [{ app: "x", install: "./a.apk" }, /not supported by the Windows app driver/],
+      [{ app: "x", activity: ".Main" }, /not supported by the Windows app driver/],
       [{ app: "x", env: { A: "1" } }, /not supported by the Windows app driver/],
     ];
     for (const [descriptor, pattern] of cases) {
@@ -640,7 +841,7 @@ describe("startAppSurface", function () {
       platform: "linux",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.match(unsupportedPlatform.description, /Windows and macOS/);
+    assert.match(unsupportedPlatform.description, /iOS/);
 
     appSession.surfaces.set("x", { name: "x", appId: "x", driver: {} });
     const collision = await startAppSurface({
@@ -932,6 +1133,292 @@ describe("startAppSurface", function () {
     assert.equal(caps["nova:smoothMouseMove"], true);
     assert.equal(caps["appium:automationName"], "NovaWindows");
   });
+
+  // --- Android (phase A3b): shared device session + activateApp switching ---
+
+  it("android: first app creates a device session and registers the surface with deviceName", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.android.settings" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return driver;
+        },
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("settings");
+    assert.equal(entry.deviceName, "pixel7");
+    assert.equal(entry.driver, driver);
+    assert.equal(caps["appium:udid"], "emulator-5554");
+    assert.equal(caps["appium:appPackage"], "com.android.settings");
+    assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.android.settings");
+  });
+
+  it("android: a second app on the same device reuses the session and activates it", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.installed = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    driver.installApp = async (p) => driver.installed.push(p);
+    let startDriverCalls = 0;
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => {
+        startDriverCalls++;
+        return driver;
+      },
+      acquireDevice: async () => ({
+        entry: { name: "pixel7", udid: "emulator-5554" },
+      }),
+    };
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a", name: "a" } },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "com.example.b",
+          name: "b",
+          install: "./b.apk",
+        },
+      },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    // One driver session for the device, shared by both apps.
+    assert.equal(startDriverCalls, 1);
+    assert.equal(appSession.deviceSessions.size, 1);
+    // The second app was installed + activated on the shared session.
+    assert.deepEqual(driver.activated, ["com.example.b"]);
+    assert.equal(driver.installed.length, 1);
+    assert.equal(appSession.surfaces.get("b").deviceName, "pixel7");
+  });
+
+  it("android: a reused app with an activity launches it via mobile: startActivity", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.execArgs = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    driver.execute = async (cmd, arg) => driver.execArgs.push([cmd, arg]);
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => driver,
+      acquireDevice: async () => ({
+        entry: { name: "pixel7", udid: "emulator-5554" },
+      }),
+    };
+    // First app creates the session (no reuse).
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a", name: "a" } },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    // Second app on the same device WITH an activity -> startActivity, not activateApp.
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.example.b", name: "b", activity: ".Main" },
+      },
+      appSession,
+      platform: "android",
+      serverDeps,
+    });
+    assert.deepEqual(driver.execArgs, [
+      ["mobile: startActivity", { appPackage: "com.example.b", appActivity: ".Main" }],
+    ]);
+    // The second app was NOT brought up via the plain activateApp path.
+    assert.deepEqual(driver.activated, []);
+  });
+
+  it("android: an acquire skip becomes a step FAIL naming the reason", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.a" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => fakeDriver(),
+        acquireDevice: async () => ({ skip: "no image installed" }),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no image installed/);
+  });
+
+  // --- iOS (phase A4): shared simulator session + activateApp switching ---
+
+  it("ios: first app creates a simulator session with XCUITest udid/bundleId capabilities", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.Preferences", name: "settings", timeout: 300000 },
+      },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return driver;
+        },
+        acquireDevice: async () => ({
+          entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("settings");
+    assert.equal(entry.deviceName, "iPhone 15");
+    assert.equal(entry.platform, "ios");
+    assert.equal(caps.platformName, "iOS");
+    assert.equal(caps["appium:automationName"], "XCUITest");
+    assert.equal(caps["appium:udid"], "SIM-UDID-1");
+    assert.equal(caps["appium:bundleId"], "com.apple.Preferences");
+    // The descriptor timeout floors the WDA build/connect timeouts.
+    assert.equal(caps["appium:wdaLaunchTimeout"], 300000);
+    assert.equal(caps["appium:wdaConnectionTimeout"], 300000);
+    assert.equal(
+      appSession.deviceSessions.get("iPhone 15").foregroundApp,
+      "com.apple.Preferences"
+    );
+  });
+
+  it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {
+    const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    const launch = async () => {
+      let caps;
+      await startAppSurface({
+        config: {},
+        step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+        appSession: preflighted(),
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async (c) => {
+            caps = c;
+            return fakeDriver();
+          },
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        },
+      });
+      return caps;
+    };
+    try {
+      delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      assert.equal((await launch())["appium:derivedDataPath"], undefined);
+      process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = "/tmp/dd-wda";
+      assert.equal((await launch())["appium:derivedDataPath"], "/tmp/dd-wda");
+    } finally {
+      if (prev === undefined)
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
+    }
+  });
+
+  it("ios: a second app on the same simulator reuses the session and activates it", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    let startDriverCalls = 0;
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => {
+        startDriverCalls++;
+        return driver;
+      },
+      acquireDevice: async () => ({
+        entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+      }),
+    };
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "a" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.mobilecal", name: "b" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    // One XCUITest session for the simulator, shared by both apps.
+    assert.equal(startDriverCalls, 1);
+    assert.equal(appSession.deviceSessions.size, 1);
+    assert.deepEqual(driver.activated, ["com.apple.mobilecal"]);
+    assert.equal(appSession.surfaces.get("b").deviceName, "iPhone 15");
+  });
+
+  it("ios: rejects Android-only/desktop-only fields with iOS-specific guidance", async function () {
+    const appSession = preflighted();
+    const cases = [
+      [{ app: "com.apple.Preferences", activity: ".Main" }, /Android-only/],
+      [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
+      [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
+      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /not meaningful for iOS/],
+    ];
+    for (const [descriptor, pattern] of cases) {
+      const result = await startAppSurface({
+        config: {},
+        step: { startSurface: descriptor },
+        appSession,
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async () => fakeDriver(),
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "SIM-UDID-1" } }),
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, pattern);
+    }
+  });
+
+  it("ios: an acquire skip becomes a step FAIL naming the reason", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences" } },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => fakeDriver(),
+        acquireDevice: async () => ({ skip: "no iOS runtime installed" }),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no iOS runtime installed/);
+  });
 });
 
 describe("findAppElement / closeAppSurface / teardownAppSession", function () {
@@ -1041,5 +1528,194 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     assert.equal(appSession.server, undefined);
     // No-ops safely on undefined.
     await teardownAppSession(undefined, async () => {});
+  });
+
+  it("closeAppSurface (android) terminates the app but leaves the shared session", async function () {
+    const appSession = createAppSessionState();
+    const terminated = [];
+    let deleted = 0;
+    const driver = {
+      async terminateApp(id) {
+        terminated.push(id);
+      },
+      async deleteSession() {
+        deleted++;
+      },
+    };
+    appSession.deviceSessions.set("pixel7", {
+      driver,
+      udid: "emulator-5554",
+      foregroundApp: "com.example.a",
+    });
+    const entry = { name: "a", appId: "com.example.a", driver, deviceName: "pixel7" };
+    appSession.surfaces.set("a", entry);
+    await closeAppSurface({ entry, appSession });
+    // The app was terminated, but the shared device session was NOT deleted.
+    assert.deepEqual(terminated, ["com.example.a"]);
+    assert.equal(deleted, 0);
+    assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, undefined);
+  });
+
+  it("teardownAppSession (android) ends each device session after closing surfaces", async function () {
+    const appSession = createAppSessionState();
+    let sessionDeleted = 0;
+    const driver = {
+      async terminateApp() {},
+      async deleteSession() {
+        sessionDeleted++;
+      },
+    };
+    appSession.deviceSessions.set("pixel7", { driver, udid: "emulator-5554" });
+    appSession.surfaces.set("a", {
+      name: "a",
+      appId: "com.example.a",
+      driver,
+      deviceName: "pixel7",
+    });
+    await teardownAppSession(appSession, async () => {});
+    assert.equal(sessionDeleted, 1);
+    assert.equal(appSession.deviceSessions.size, 0);
+  });
+
+  it("ensureAppForeground activates only on a real switch (android)", async function () {
+    const appSession = createAppSessionState();
+    const activated = [];
+    const driver = {
+      async activateApp(id) {
+        activated.push(id);
+      },
+    };
+    appSession.deviceSessions.set("pixel7", {
+      driver,
+      udid: "emulator-5554",
+      foregroundApp: "com.example.a",
+    });
+    // Already foreground -> no activate.
+    await ensureAppForeground(
+      { name: "a", appId: "com.example.a", deviceName: "pixel7" },
+      appSession
+    );
+    assert.deepEqual(activated, []);
+    // Different app on the device -> activate + update foreground.
+    await ensureAppForeground(
+      { name: "b", appId: "com.example.b", deviceName: "pixel7" },
+      appSession
+    );
+    assert.deepEqual(activated, ["com.example.b"]);
+    assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.example.b");
+    // Desktop surface (no deviceName) -> no-op.
+    await ensureAppForeground({ name: "c", appId: "x" }, appSession);
+    assert.deepEqual(activated, ["com.example.b"]);
+  });
+
+  it("ensureAppForeground errors when the device session is missing (android)", async function () {
+    const appSession = createAppSessionState();
+    // Surface carries a deviceName but no session was registered for it.
+    const { error } = await ensureAppForeground(
+      { name: "a", appId: "com.example.a", deviceName: "pixel7" },
+      appSession
+    );
+    assert.match(error, /no active session for device "pixel7"/);
+  });
+});
+
+describe("Windows console-orphan sweep (issue #501)", function () {
+  it("listWindowsDescendantPids walks the whole descendant subtree", async function () {
+    // 42 -> 100 -> 101, plus a sibling tree (200) that must NOT be included.
+    const table = [
+      { pid: 100, ppid: 42 },
+      { pid: 101, ppid: 100 },
+      { pid: 200, ppid: 1 },
+      { pid: 201, ppid: 200 },
+    ];
+    const snap = await listWindowsDescendantPids(42, async () => table);
+    assert.deepEqual([...snap].sort((a, b) => a - b), [100, 101]);
+  });
+
+  it("listWindowsDescendantPids returns empty when the table query fails", async function () {
+    const snap = await listWindowsDescendantPids(42, async () => {
+      throw new Error("no powershell");
+    });
+    assert.equal(snap.size, 0);
+  });
+
+  it("reapConsoleOrphans force-kills only the snapshotted pids still alive", async function () {
+    const alive = new Set([1, 2, 3]);
+    const killed = [];
+    const reaped = await reapConsoleOrphans([1, 2, 4], {
+      isAlive: (p) => alive.has(p),
+      forceKill: (p) => killed.push(p),
+    });
+    // 4 was already dead -> not reaped; 3 wasn't in the snapshot -> untouched.
+    assert.deepEqual(reaped, [1, 2]);
+    assert.deepEqual(killed, [1, 2]);
+  });
+
+  it("snapshotAppServerDescendants only sweeps on Windows and skips a dead server", async function () {
+    const table = [{ pid: 100, ppid: 42 }];
+    const snap = await snapshotAppServerDescendants(42, {
+      isAlive: () => true,
+      runQuery: async () => table,
+    });
+    if (process.platform === "win32") {
+      assert.deepEqual([...snap], [100]);
+    } else {
+      assert.equal(snap.size, 0);
+    }
+    // A dead server pid never triggers the (subprocess) table query.
+    let queried = false;
+    const snap2 = await snapshotAppServerDescendants(42, {
+      isAlive: () => false,
+      runQuery: async () => {
+        queried = true;
+        return table;
+      },
+    });
+    assert.equal(snap2.size, 0);
+    assert.equal(queried, false);
+  });
+
+  it("uses a real liveness probe by default (a long-dead pid is neither swept nor reaped)", async function () {
+    // Exercises the default isAlive (process.kill(pid, 0) → ESRCH) without
+    // injected fakes. An astronomically high pid is guaranteed dead.
+    const deadPid = 2147483646;
+    const snap = await snapshotAppServerDescendants(deadPid);
+    assert.equal(snap.size, 0);
+    const reaped = await reapConsoleOrphans([deadPid]);
+    assert.deepEqual(reaped, []);
+  });
+
+  it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {
+    if (process.platform !== "win32") this.skip();
+    const appSession = createAppSessionState();
+    appSession.server = { port: 1, process: { pid: 42 } };
+    const events = [];
+    // 42 is the server; 500 -> 501 are descendants that detach and survive the
+    // tree-kill (still alive afterward), so they must be force-reaped.
+    const alive = new Set([42, 500, 501]);
+    await teardownAppSession(
+      appSession,
+      async (pid) => {
+        events.push(["kill", pid]);
+        alive.delete(42);
+      },
+      {
+        isAlive: (p) => alive.has(p),
+        runQuery: async () => [
+          { pid: 500, ppid: 42 },
+          { pid: 501, ppid: 500 },
+        ],
+        forceKill: (p) => {
+          events.push(["reap", p]);
+          alive.delete(p);
+        },
+      }
+    );
+    assert.deepEqual(events, [
+      ["kill", 42],
+      ["reap", 500],
+      ["reap", 501],
+    ]);
+    assert.equal(appSession.server, undefined);
   });
 });

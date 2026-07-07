@@ -1,0 +1,101 @@
+{
+  "specId": "android-interactions-a6",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on Android. find auto-scrolls (mobile: scrollGesture) from the fresh top of the Settings list to locate an entry below the fold; click.duration long-presses (mobile: longClickGesture); swipe (directional-object and point-to-point forms) drives mobile: swipeGesture / W3C touch actions; a criteria-less device-key press ($BACK$) goes through mobile: pressKey. Ordering matters: the find + long-press run first, from the deterministic top-of-list state, because find auto-scroll only pages toward content further down — running the swipes first would leave the list at an indeterminate position the downward auto-scroll can't recover from. The swipes therefore come after and assert nothing (pure gestures). Settings is preinstalled on every Android system image and 'System' sits below the fold on every API level. Criteria-less focused text typing (mobile: type) can't reach a guaranteed-focusable field in stock Settings across images, so it is covered by unit tests (test/type-mobile-keys.test.js) rather than here. SKIPPED on hosts without emulator acceleration — the real PASS coverage runs on the KVM legs.",
+  "tests": [
+    {
+      "testId": "android-find-longpress-swipe-back",
+      "description": "From the fresh Settings list: auto-scroll-find 'System' (below the fold), long-press it (mobile: longClickGesture — Settings ignores long-clicks, so the list stays put), then exercise the directional and point-to-point swipe forms (pure gestures, no assertion), screenshot, and press the device Back key with no element criteria. The bare-string swipe form is exercised on browser surfaces, where a surface-less step has an active tab to act on.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "System",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "click": {
+            "elementText": "System",
+            "duration": 700,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "down",
+            "distance": 0.3,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 150,
+              "y": 380
+            },
+            "to": {
+              "x": 150,
+              "y": 200
+            },
+            "duration": 400,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-interactions.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "$BACK$"
+            ],
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "app-textedit-flow",
-      "description": "Launch TextEdit by bundle ID with launch arguments that must visibly take effect: the argv user-defaults pair -NSShowAppCentricOpenPanelInsteadOfUntitledFile NO makes TextEdit open an untitled document instead of its open panel, so the text view the readiness check waits on only exists when the args flowed. (A file-path argument was the first attempt; TextEdit is sandboxed and cannot open an arbitrary /tmp path from argv.) Then type into the text view via the native-selector escape hatch, assert the typed content back out via elementText (which matches AXValue on text views), screenshot, and close the surface. autoRecord proves app-context recording on macOS: the capture starts full-display and the first app surface late-binds its window rect as the crop.",
+      "description": "Launch TextEdit by bundle ID with launch arguments that must visibly take effect: the argv user-defaults pair -NSShowAppCentricOpenPanelInsteadOfUntitledFile NO makes TextEdit open an untitled document instead of its open panel, so the text view the readiness check waits on only exists when the args flowed. (A file-path argument was the first attempt; TextEdit is sandboxed and cannot open an arbitrary /tmp path from argv.) Then type into the text view via the native-selector escape hatch, assert the typed content back out via elementText (which matches AXValue on text views), long-press the text view (phase A6 click.duration → the Mac2 W3C mouse chain; on a text view it just places the cursor), swipe both object forms (phase A6 → macos: scroll pixel deltas and macos: clickAndDrag; dragging across text selects it, which nothing later asserts against), screenshot, and close the surface. autoRecord proves app-context recording on macOS: the capture starts full-display and the first app surface late-binds its window rect as the crop.",
       "autoRecord": true,
       "runOn": [
         {
@@ -48,6 +48,40 @@
               "app": "TextEdit"
             },
             "timeout": 15000
+          }
+        },
+        {
+          "click": {
+            "selector": "//XCUIElementTypeTextView",
+            "duration": 600,
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.3,
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 250,
+              "y": 300
+            },
+            "to": {
+              "x": 250,
+              "y": 250
+            },
+            "duration": 300,
+            "surface": {
+              "app": "TextEdit"
+            }
           }
         },
         {

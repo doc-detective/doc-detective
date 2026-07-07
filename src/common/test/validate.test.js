@@ -740,6 +740,196 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("swipe step", function () {
+      it("should validate the simple direction string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: "left" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe).to.equal("left");
+      });
+
+      it("should validate the directional object form with distance, duration, and an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              direction: "up",
+              distance: 0.8,
+              duration: 300,
+              surface: { app: "myapp" },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe.direction).to.equal("up");
+        expect(result.object.swipe.distance).to.equal(0.8);
+      });
+
+      it("should validate the point-to-point form with pixel coordinates", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
+              duration: 250,
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe.from).to.deep.equal({ x: 200, y: 600 });
+        expect(result.object.swipe.to).to.deep.equal({ x: 200, y: 200 });
+      });
+
+      it("should reject an unknown direction", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: "diagonal" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject a distance outside the (0, 1] range", function () {
+        for (const distance of [0, 1.5]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { direction: "up", distance } },
+          });
+
+          expect(result.valid, `distance ${distance}`).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject from without to", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { from: { x: 200, y: 600 } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a point missing a coordinate", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { from: { x: 200 }, to: { x: 200, y: 200 } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject mixing direction with point-to-point coordinates", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              direction: "up",
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject negative and non-integer pixel coordinates", function () {
+        for (const from of [
+          { x: -5, y: 600 },
+          { x: 200.5, y: 600 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { from, to: { x: 200, y: 200 } } },
+          });
+
+          expect(result.valid, JSON.stringify(from)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject a non-positive duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { direction: "up", duration: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface (swipe has no screen to act on)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { direction: "up", surface: { process: "node" } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("click duration (long-press)", function () {
+      it("should validate a click with a duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 800 } },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.click.duration).to.equal(800);
+      });
+
+      it("should validate a find with a duration-only click sub-effect", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: { elementText: "Message", click: { duration: 800 } },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.find.click.duration).to.equal(800);
+      });
+
+      it("should reject a non-positive click duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a non-integer click duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 1.5 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({
@@ -3147,7 +3337,6 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
                 platform: "ios",
                 name: "iPhone 15",
                 orientation: "landscape",
-                type: "device",
                 udid: "00008110-001234567890ABCD",
                 provider: { browserstack: { app: "bs://abc123" } },
               },
@@ -3317,6 +3506,121 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               keys: ["hello"],
               surface: { app: "notepad" },
               waitUntil: { stdio: "/ready/" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+    });
+
+    describe("native app surfaces (phase A3a): mobile contexts + revised device descriptor", function () {
+      // --- context_v3: android/ios target platforms ---
+
+      it("should validate an android target platform in a context", function () {
+        for (const platforms of ["android", "ios", ["android", "ios"]]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms },
+          });
+          expect(result.valid, JSON.stringify(platforms)).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate a context device (reference form, platform implied)", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: "android", device: { name: "pixel7" } },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a context device (provisioning form)", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: {
+            platforms: "android",
+            device: {
+              name: "phone",
+              deviceType: "phone",
+              osVersion: "14",
+              headless: true,
+            },
+          },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should validate a context device string reference", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: "android", device: "pixel7" },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+      });
+
+      it("should reject an unknown context device field", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: "android", device: { name: "p", foo: 1 } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      // --- deviceDescriptor: deviceType replaces the old reserved `type` ---
+
+      it("should validate deviceType phone and tablet on a startSurface device", function () {
+        for (const deviceType of ["phone", "tablet"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              startSurface: {
+                app: "com.example.app",
+                device: { platform: "android", name: "d", deviceType },
+              },
+            },
+          });
+          expect(result.valid, deviceType).to.be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should reject the retired reserved `type` device field", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { platform: "android", name: "d", type: "emulator" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject an unknown deviceType value", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { platform: "android", name: "d", deviceType: "tv" },
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should still require platform on a startSurface device object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              app: "com.example.app",
+              device: { name: "pixel7", deviceType: "phone" },
             },
           },
         });

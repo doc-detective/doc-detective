@@ -221,5 +221,8 @@ postinstall
 Geckodriver
 ChromeDriver
 Xvfb
-
 Temurin
+dialog
+dialogs
+dialog's
+onboarding

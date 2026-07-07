@@ -10,7 +10,18 @@ import {
   reinterpretForSessions,
   switchToSurface,
 } from "./browserSurface.js";
-import { resolveAppSurfaceRef, findAppElement } from "./appSurface.js";
+import {
+  resolveAppSurfaceRef,
+  findAppElement,
+  ensureAppForeground,
+} from "./appSurface.js";
+import {
+  APP_GESTURES,
+  ANDROID_KEYCODES,
+  IOS_BUTTONS,
+  IOS_TEXT_KEYS,
+  DEVICE_KEYS,
+} from "./appGestures.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
   buildConditionContext,
@@ -18,7 +29,62 @@ import {
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
 
-export { typeKeys, translateProcessKeys, resolveSurface, resolveInputDelay };
+export {
+  typeKeys,
+  translateProcessKeys,
+  splitKeyRuns,
+  resolveSurface,
+  resolveInputDelay,
+};
+
+// Split a `keys` array into ordered runs of literal text and $KEY$ tokens for
+// a mobile app surface (phase A6). Adjacent text merges into one run. On iOS,
+// text-equivalent tokens ($ENTER$ → "\n", …) fold INTO the text; physical
+// buttons and the deliberately-unsupported device keys stay tokens so the
+// adapter can press them or explain why it can't. Unknown $…$ sentinels pass
+// through verbatim as text — the process-path convention.
+function splitKeyRuns(
+  keys: string[],
+  platform: "android" | "ios"
+): Array<{ kind: "text"; text: string } | { kind: "token"; token: string }> {
+  const runs: Array<
+    { kind: "text"; text: string } | { kind: "token"; token: string }
+  > = [];
+  const pushText = (text: string) => {
+    const last = runs[runs.length - 1];
+    if (last?.kind === "text") last.text += text;
+    else runs.push({ kind: "text", text });
+  };
+  for (const key of keys) {
+    // Digits included: F-keys and numpad tokens ($F11$, $NUMPAD_0$) are part
+    // of the vocabulary too.
+    const isSentinel = /^\$[A-Z0-9_]+\$$/.test(key);
+    if (!isSentinel) {
+      pushText(key);
+      continue;
+    }
+    if (platform === "ios") {
+      const folded = IOS_TEXT_KEYS[key];
+      if (folded !== undefined) {
+        pushText(folded);
+        continue;
+      }
+      if (IOS_BUTTONS[key] !== undefined || DEVICE_KEYS.has(key)) {
+        runs.push({ kind: "token", token: key });
+        continue;
+      }
+      pushText(key);
+      continue;
+    }
+    // android
+    if (ANDROID_KEYCODES[key] !== undefined) {
+      runs.push({ kind: "token", token: key });
+    } else {
+      pushText(key);
+    }
+  }
+  return runs;
+}
 
 // Control-byte map for keystrokes sent to a PROCESS surface (stdin pipe). Kept
 // module-level and webdriverio-free so the process path never loads the heavy
@@ -391,42 +457,99 @@ async function typeKeys({
         "App surfaces accept only delayMs/find readiness conditions.";
       return result;
     }
+    const platform = appRef.entry!.platform ?? "windows";
+    const isMobile = platform === "android" || platform === "ios";
     const specialTokens = (step.type.keys as any[]).filter(
-      (key) => typeof key === "string" && /^\$[A-Z_]+\$$/.test(key)
+      // Digits included so F-key/numpad tokens ($F11$, $NUMPAD_0$) are
+      // recognized and rejected on desktop app surfaces like the rest.
+      (key) => typeof key === "string" && /^\$[A-Z0-9_]+\$$/.test(key)
     );
-    if (specialTokens.length) {
+    if (specialTokens.length && !isMobile) {
       result.status = "FAIL";
-      result.description = `Special key tokens (${specialTokens.join(", ")}) aren't supported on app surfaces yet; the device key vocabulary lands in a later phase.`;
+      result.description = `Special key tokens (${specialTokens.join(", ")}) aren't supported on Windows/macOS app surfaces yet — the device key vocabulary is mobile-only in this phase.`;
       return result;
     }
+    // Phase A6: mobile surfaces split keys into text/token runs; desktop
+    // surfaces keep the single-text path.
+    const runs: Array<
+      { kind: "text"; text: string } | { kind: "token"; token: string }
+    > = isMobile
+      ? splitKeyRuns(step.type.keys, platform as "android" | "ios")
+      : [{ kind: "text", text: step.type.keys.join("") }];
+    const textRuns = runs.filter((run) => run.kind === "text");
     const hasAppElementCriteria =
       step.type.selector ||
       step.type.elementText ||
       step.type.elementId ||
       step.type.elementTestId ||
       step.type.elementAria;
-    if (!hasAppElementCriteria) {
+    if (!hasAppElementCriteria && textRuns.length) {
+      // Text needs a destination. Android can type into the focused element
+      // (mobile: type); iOS can't (XCUITest's mobile: keys is iPad-only), and
+      // desktop focused-window typing is a later phase. Device-key-only steps
+      // (e.g. ["$BACK$"]) never need criteria.
+      if (platform === "ios") {
+        result.status = "FAIL";
+        result.description =
+          "Typing text on an iOS app surface requires element criteria (elementText, elementId, elementAria, or a native selector) — iOS has no focused-element typing. Device keys alone (e.g. [\"$HOME$\"]) don't need criteria.";
+        return result;
+      }
+      if (!isMobile) {
+        result.status = "FAIL";
+        result.description =
+          "Typing on an app surface requires element criteria (elementText, elementId, elementAria, or a native selector) in this phase.";
+        return result;
+      }
+    }
+    const switched = await ensureAppForeground(appRef.entry!, appSession);
+    if (switched.error) {
       result.status = "FAIL";
-      result.description =
-        "Typing on an app surface requires element criteria (elementText, elementId, elementAria, or a native selector) in this phase.";
+      result.description = switched.error;
       return result;
     }
-    const found = await findAppElement({
-      driver: appRef.entry!.driver,
-      criteria: step.type,
-      // ?? so an explicit `timeout: 0` (schema minimum) stays an
-      // immediate check instead of being clobbered to the default.
-      timeout: step.type.timeout ?? 5000,
-      platform: appRef.entry!.platform,
-    });
-    if (found.error) {
-      result.status = "FAIL";
-      result.description = found.error;
-      return result;
+    const appDriver = appRef.entry!.driver;
+    const gestures = APP_GESTURES[platform];
+    let element: any = null;
+    if (hasAppElementCriteria) {
+      const found = await findAppElement({
+        driver: appDriver,
+        criteria: step.type,
+        // ?? so an explicit `timeout: 0` (schema minimum) stays an
+        // immediate check instead of being clobbered to the default.
+        timeout: step.type.timeout ?? 5000,
+        platform: appRef.entry!.platform,
+      });
+      if (found.error) {
+        result.status = "FAIL";
+        result.description = found.error;
+        return result;
+      }
+      element = found.element;
     }
     try {
-      await found.element.click();
-      await found.element.addValue(step.type.keys.join(""));
+      if (element) await element.click();
+      // No inputDelay between runs on app surfaces: the schema promises the
+      // native driver types atomically ("Not applied on app surfaces in this
+      // phase"), and AJV's useDefaults injects inputDelay=100 even when the
+      // author omits it — so applying it here would add an unpromised 100ms
+      // between every text/token run (e.g. "text" + $ENTER$).
+      for (const run of runs) {
+        if (run.kind === "text") {
+          if (element) {
+            await element.addValue(run.text);
+          } else {
+            // Android focused-element typing (criteria-less, mobile: type).
+            await gestures!.typeFocused!(appDriver, run.text);
+          }
+        } else {
+          const pressed = await gestures!.pressKey!(appDriver, run.token);
+          if (pressed.error) {
+            result.status = "FAIL";
+            result.description = pressed.error;
+            return result;
+          }
+        }
+      }
     } catch (error: any) {
       result.status = "FAIL";
       result.description = `Couldn't type into the app element: ${error.message}`;

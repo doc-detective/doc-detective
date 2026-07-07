@@ -8,18 +8,19 @@ description: "Reference for the `Device descriptor` schema."
 
 ## Referenced In
 
+- [context](/reference/schemas/context)
 - [startSurface](/reference/schemas/startsurface)
 
 ## Fields
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-platform | string | Required. Target platform. Selects the mobile driver.<br/><br/>Accepted values: `android`, `ios` | 
-name | string | Optional. AVD name (Android) or simulator device name (iOS). Also the device's registry identity: the same name resolves to the same device.<br/><br/>Minimum length: 1. Pattern: `\S` | 
-osVersion | string | Optional. Platform version. Default: the newest available.<br/><br/>Minimum length: 1 | 
-headless | boolean | Optional. Run the Android emulator without a window. Ignored where not applicable. | 
+platform | string | Optional. Target platform. Selects the mobile driver. Required in `startSurface.device`; implied by the context in `context.device`.<br/><br/>Accepted values: `android`, `ios` | 
+name | string | Optional. Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`).<br/><br/>Minimum length: 1. Pattern: `\S` | 
+deviceType | string | Optional. Abstract hardware profile used when creating a device (portable across `android`/`ios`). Doc Detective maps it to a built-in profile. Ignored when `name` already matches an existing device. Default: `phone`.<br/><br/>Accepted values: `phone`, `tablet` | 
+osVersion | string | Optional. Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version.<br/><br/>Minimum length: 1 | 
+headless | boolean | Optional. Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable. | 
 orientation | string | Optional. Initial orientation. Reserved; validated now, not yet implemented.<br/><br/>Accepted values: `portrait`, `landscape` | 
-type | string | Optional. Device kind. `emulator`/`simulator` (the default, inferred from `platform`) or `device` for real hardware. Reserved; validated now, not yet implemented.<br/><br/>Accepted values: `emulator`, `simulator`, `device` | 
 udid | string | Optional. Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.<br/><br/>Minimum length: 1 | 
 provider | object | Optional. Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented. | 
 
@@ -29,10 +30,10 @@ provider | object | Optional. Cloud device farm configuration, keyed by provider
 {
   "platform": "android",
   "name": "example",
+  "deviceType": "phone",
   "osVersion": "example",
   "headless": true,
   "orientation": "portrait",
-  "type": "emulator",
   "udid": "example",
   "provider": {}
 }

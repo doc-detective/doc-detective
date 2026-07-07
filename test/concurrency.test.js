@@ -486,6 +486,25 @@ describe("selectWarmUpTargets", function () {
     expect(jobs[0].context.browser).to.equal(undefined);
   });
 
+  it("excludes mobile-platform contexts from the desktop warm-up pre-pass", function () {
+    // A mobile-web context (phase A5) runs its browser ON the device through
+    // the per-context app Appium server — warming up a desktop engine for it
+    // would launch the wrong browser on the wrong machine. It must not appear
+    // as a target NOR get a desktop default browser written onto its context
+    // (runContext's mobile branch resolves the device browser itself).
+    const jobs = [
+      job({ platform: "android", steps: [{ goTo: "x" }] }),
+      job({
+        platform: "ios",
+        browser: { name: "safari" },
+        steps: [{ goTo: "x" }],
+      }),
+    ];
+    const targets = selectWarmUpTargets(jobs, runner("linux", ["chrome"]));
+    expect(targets).to.deep.equal([]);
+    expect(jobs[0].context.browser).to.equal(undefined);
+  });
+
   it("still warms up a mixed browser+app context", function () {
     // A context with both browser and app-targeted steps still needs a browser.
     const jobs = [
