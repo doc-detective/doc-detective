@@ -357,6 +357,9 @@ navigation:
           - page: Resources
             path: pages/docs/get-started/resources.mdx
             slug: /resources
+          - page: Telemetry and data collection
+            path: pages/legal/telemetry.mdx
+            slug: /legal/telemetry
           - page: Privacy policy (Companion app)
             path: pages/legal/privacy-policy-companion.md
             slug: /legal/privacy-policy-companion

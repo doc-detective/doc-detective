@@ -21,7 +21,7 @@ You must specify the `runCode` action using an object format with the following 
   - `exitCodes`: (Optional) An array of acceptable exit codes. If the code execution's exit code is not in this list, the step fails (default: `[0]`).
   - `stdio`: (Optional) A string or regular expression to validate against the code's combined stdout and stderr. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^hello world.*/`).
   - `background`: (Optional) An object that starts the code as a long-running background process and returns as soon as it's ready, instead of waiting for it to exit. Including this object enables background mode; omit it for a normal blocking run. See [Background processes](#background-processes).
-    - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/close-surface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
+    - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/closesurface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
     - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
     - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
   - *Output Saving:* You can also save the code's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runCode`](/reference/schemas/runcode) reference for details.
@@ -40,7 +40,7 @@ This allows tests to continue while flagging output changes that exceed your acc
 
 ## Background processes
 
-To start a long-running process, such as a local server, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/close-surface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`.
+To start a long-running process, such as a local server, add a `background` object. The step returns as soon as the process is ready instead of waiting for it to exit, and the process keeps running while later steps and tests execute. To stop it, use a [`closeSurface`](/docs/actions/closesurface) step. To send keystrokes to an interactive process while it runs, use a [`type`](/docs/actions/type) step with a `surface`.
 
 When you add a `background` object:
 
@@ -179,7 +179,7 @@ The first step runs Python code to print "setup", validates the output using a r
 
 ### Start a background server and stop it later
 
-This example starts a Node.js HTTP server in the background, waits until port `8088` accepts connections, and then stops the server with a [`closeSurface`](/docs/actions/close-surface) step.
+This example starts a Node.js HTTP server in the background, waits until port `8088` accepts connections, and then stops the server with a [`closeSurface`](/docs/actions/closesurface) step.
 
 ```json
 {
