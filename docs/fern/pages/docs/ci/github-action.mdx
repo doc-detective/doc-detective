@@ -161,6 +161,17 @@ The action exposes the run's results so later steps can act on them. Give the st
 | `pull_request_url` | URL of the created pull request, when `create_pr_on_change` opens one. |
 | `issue_url` | URL of the created issue, when `create_issue_on_fail` opens one. |
 
+## Run reports
+
+Every run attaches its results to the workflow run automatically—no configuration needed, whether tests pass or fail. Two things show up on the run:
+
+- **Job summary:** a Markdown summary of the results, written to the run's summary page so you can read the pass, fail, warning, and skipped counts without opening the job logs.
+- **`doc-detective-report` artifact:** a downloadable bundle with the JSON results (`doc-detective-results.json`), the Markdown summary (`doc-detective-summary.md`), and, on Doc Detective 4.10.0 and later, the HTML report. Download it from the run's summary page.
+
+Because the `version` input defaults to `latest`, most workflows get the HTML report. If you pin `version` to a release before 4.10.0, the artifact omits it. The bundle holds the results only. To collect the screenshots and recordings a run captures, write them to a run folder with the `runFolder` reporter and upload it yourself. For the output formats, the run folder layout, and how to consume the JSON in a later step, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts) and [Use the results in later steps](#step-6-use-the-results-in-later-steps).
+
+Attaching reports is best-effort. If the action can't attach them, it logs a warning and the run continues, so it never turns a passing run red or hides a failing test.
+
 ## Browser modes
 
 On Ubuntu runners, the action runs browsers headless. Chrome and Firefox contexts fall back to headless mode automatically.
@@ -266,6 +277,7 @@ Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every 
 Open a pull request that touches a documented command, screenshot, or API response, then confirm:
 
 - The `doc-detective` job runs and its log shows the terminal summary.
+- The run's summary page shows the job summary and a `doc-detective-report` artifact to download.
 - With `exit_on_fail: true`, a failing test fails the job and blocks the pull request.
 - With `create_pr_on_change: true`, a run that changes files opens a pull request.
 - With `create_issue_on_fail: true`, a run with failing tests opens an issue.
