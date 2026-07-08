@@ -768,6 +768,163 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
   });
 });
 
+// ADR 010NN: transient concurrent-spawn recovery. Under concurrentRunners > 1
+// on Windows, spawning many node/ConPTY children at once can starve a transient
+// Windows loader/console limit so one child dies during init before it can
+// signal ready (STATUS_DLL_INIT_FAILED 0xC0000142 / STATUS_CONTROL_C_EXIT
+// 0xC000013A). A fresh spawn on the next attempt recovers, mirroring the
+// driverStart transient-session retry. The launcher takes injectable `deps` so
+// this can be proven deterministically without racing real processes.
+describe("startBackgroundProcessSurface: transient init retry (Phase 6)", function () {
+  this.timeout(10000);
+
+  // A minimal BackgroundProcess-shaped stub whose readiness outcome the test
+  // controls via `exitCode` (early-exit) or `ready` (becomes ready).
+  function stubBg({ exitCode = null, ready = false } = {}) {
+    return {
+      pid: 4321,
+      kill: async () => {},
+      getStdout: () => "",
+      getStderr: () => "",
+      getCombined: () => "",
+      write: () => true,
+      onChunk: () => () => {},
+      // Only used by the real waitForReady, which we stub out here.
+      exited: ready ? new Promise(() => {}) : Promise.resolve(exitCode),
+      _exitCode: exitCode,
+      _ready: ready,
+    };
+  }
+
+  it("retries a transient win32 init early-exit with a fresh spawn, then succeeds", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    // Attempt 1 crashes during init (STATUS_CONTROL_C_EXIT, as seen in CI);
+    // attempt 2 becomes ready.
+    const outcomes = [
+      stubBg({ exitCode: -1073741510 }),
+      stubBg({ ready: true }),
+    ];
+    const registry = new Map();
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "flaky-under-load", name: "p6-tty" },
+      processRegistry: registry,
+      deps: {
+        platform: "win32",
+        spawnBackgroundCommand: () => {
+          const bg = outcomes[spawns.length];
+          spawns.push(bg);
+          return bg;
+        },
+        waitForReady: async (bg) => {
+          if (bg._ready) return;
+          throw new Error(
+            `Process exited before becoming ready (exit code ${bg._exitCode}).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    // Two spawns: the first crashed transiently, the second succeeded.
+    assert.equal(spawns.length, 2);
+    // The surviving (ready) process is the one registered.
+    assert.ok(registry.has("p6-tty"));
+    assert.equal(registry.get("p6-tty").bg, outcomes[1]);
+  });
+
+  it("does not retry a non-transient readiness failure — fails after one attempt", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    const registry = new Map();
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "genuinely-broken", name: "broken" },
+      processRegistry: registry,
+      deps: {
+        platform: "win32",
+        spawnBackgroundCommand: () => {
+          const bg = stubBg({ exitCode: 1 });
+          spawns.push(bg);
+          return bg;
+        },
+        // A normal non-zero exit (a broken command) is not a transient init crash.
+        waitForReady: async () => {
+          throw new Error(
+            `Process exited before becoming ready (exit code 1).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /failed to become ready/);
+    // Exactly one spawn — a genuine failure fails fast, no retry.
+    assert.equal(spawns.length, 1);
+    assert.equal(registry.has("broken"), false);
+  });
+
+  it("does not retry a transient-looking exit on a non-win32 platform", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "x", name: "linux-proc" },
+      processRegistry: new Map(),
+      deps: {
+        platform: "linux",
+        spawnBackgroundCommand: () => {
+          const bg = stubBg({ exitCode: -1073741510 });
+          spawns.push(bg);
+          return bg;
+        },
+        waitForReady: async () => {
+          throw new Error(
+            `Process exited before becoming ready (exit code -1073741510).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    // The transient codes are Windows NTSTATUS values; other platforms fail fast.
+    assert.equal(spawns.length, 1);
+  });
+
+  it("gives up after the retry bound when every attempt crashes transiently", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "always-crashes", name: "doomed" },
+      processRegistry: new Map(),
+      deps: {
+        platform: "win32",
+        spawnBackgroundCommand: () => {
+          const bg = stubBg({ exitCode: -1073741502 }); // STATUS_DLL_INIT_FAILED
+          spawns.push(bg);
+          return bg;
+        },
+        waitForReady: async () => {
+          throw new Error(
+            `Process exited before becoming ready (exit code -1073741502).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /failed to become ready/);
+    // Bounded: a fixed, small number of attempts (not unbounded).
+    assert.ok(spawns.length >= 2 && spawns.length <= 4, `attempts=${spawns.length}`);
+  });
+});
+
 describe("runShell/runCode background (integration)", function () {
   this.timeout(20000);
 
