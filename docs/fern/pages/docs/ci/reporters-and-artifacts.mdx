@@ -48,9 +48,18 @@ The `json` reporter writes the full results to a file:
 - If `output` ends in `.json`, Doc Detective writes to that path, adding a numeric suffix (`-0.json`, `-1.json`, …) to avoid overwriting an existing file.
 - Otherwise it writes `testResults-<timestamp>.json` in the output directory.
 
-The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-5-fail-ci-when-tests-fail)).
+The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail)).
 
-## Step 4: Collect the run folder and artifacts
+## Step 4: Find the HTML report
+
+The `html` reporter writes a self-contained HTML report you can open in a browser:
+
+- If `output` ends in `.html` or `.htm`, Doc Detective writes to that path, adding a numeric suffix (`-0.html`, `-1.html`, …) to avoid overwriting an existing file.
+- Otherwise it treats `output` as a directory and writes `testResults-<timestamp>.html` there (or `coverageResults-<timestamp>.html` for a coverage run).
+
+The report embeds the same results the `json` reporter produces, so a single file is enough to share a run with someone who doesn't have Doc Detective installed.
+
+## Step 5: Collect the run folder and artifacts
 
 The `runFolder` reporter archives each run into its own folder so you can attach it to a CI job or diff one run against another:
 
@@ -67,7 +76,7 @@ The `runFolder` reporter archives each run into its own folder so you can attach
 
 The file names inside the folder are constant—the run ID lives in the folder name—so two run folders compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder, which makes the whole folder a single artifact to upload from CI for reviewers to inspect.
 
-## Step 5: Fail CI when tests fail
+## Step 6: Fail CI when tests fail
 
 This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
 
