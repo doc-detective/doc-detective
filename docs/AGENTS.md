@@ -59,6 +59,22 @@ No custom React components at this time.
 - Documentation must follow the [Google Developer Style Guide](https://developers.google.com/style).
 - The Vale linter implements these style rules.
 
+### User-impact lens (applies to every docs change, including bot-authored PRs)
+
+Filter every addition through: **what does the user need to know, and does it solve their pain
+point?** Do not document functionality merely because it exists — the code is the record of *what
+it does*. Only document things with direct user impact: something users configure, run, rely on,
+or get burned by.
+
+- When a PR (especially a Promptless one) adds a paragraph, ask whether a real user hits it.
+- Cut or soften narrow edge cases and internal-mechanics detail; keep the practical "here's what
+  you set and what happens."
+- Prefer trimming over documenting a corner case. Rare edge cases tied to internal mechanics — or
+  to unmerged behavior — are noise.
+
+This aligns with the persona/CUJ organization in [content-strategy/](content-strategy/): pages
+serve journeys, not an exhaustive mirror of the code surface.
+
 Style guide key principles:
 
 > Tone and content

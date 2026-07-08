@@ -1,7 +1,11 @@
 # Dynamic Routing, Assertions & Runtime Expressions — Implementation Roadmap
 
-> Status: **planning** (no runtime code yet; Phase 1 schema work exists on a sibling branch).
-> Last revised: 2026-06-18.
+> Status: **code-complete on `next`** — all phases shipped (schema → operators → meta/outputs →
+> unified assertions → custom assertions → guard `if` → routing handlers → retry → `goToStep` →
+> test routing/`goToTest` → hints), via PRs #355–#376; companion docs merged via the Promptless
+> chain. See ["Final delivery status"](#final-delivery-status) below. The design sections in this
+> document remain the semantic reference (flow ≠ verdict, handler defaults, `if` timing).
+> Last revised: 2026-07-08.
 > Origin: the "Dynamic routing" design post in Discord `#dev-discuss → "Arazzo features"`
 > (Manny, 2024-11-16):
 > https://discord.com/channels/1066417654899937453/1307377637248864368/1307378108197896324
@@ -294,6 +298,38 @@ assertions (Phase 4b) then fall out of the same path. `tests.ts` stays untouched
   family in the OLD prose model (unreviewed); that work was reverted and will be redone unified.
 - **Remaining unified conversions — pending.** Rework committed prose-model httpRequest/checkLink/
   runCode; freshly convert find/click/type/dragAndDrop/runBrowserScript/screenshot.
+
+### Final delivery status (2026-06-21)
+
+Everything above (and the remainder of the phase table) shipped to `next` — the per-stage detail
+lives in the merged PRs and their review threads:
+
+- Foundation + unified assertions across **all** actions: [#355](https://github.com/doc-detective/doc-detective/pull/355),
+  [#357](https://github.com/doc-detective/doc-detective/pull/357),
+  [#359](https://github.com/doc-detective/doc-detective/pull/359) (schema normalization).
+- Custom user assertions: [#360](https://github.com/doc-detective/doc-detective/pull/360) —
+  evaluated after implicit ones; custom can add a failure but never rescue/upgrade a failing or
+  skipped step.
+- Guard `if` (spec/test/step): [#362](https://github.com/doc-detective/doc-detective/pull/362).
+- Step routing handlers (`onPass`/`onFail`/`onWarning`/`onSkip`, continue/stop):
+  [#364](https://github.com/doc-detective/doc-detective/pull/364).
+- Step `retry` (limit/delay/backoff, `attempts` report field):
+  [#366](https://github.com/doc-detective/doc-detective/pull/366).
+- Step `goToStep` (index-driven step loop, cycle cap, `visit` report field):
+  [#370](https://github.com/doc-detective/doc-detective/pull/370).
+- Test routing + `goToTest` (non-breaking dual-path sequencer — non-routed specs keep the exact
+  flat concurrent path): [#372](https://github.com/doc-detective/doc-detective/pull/372),
+  [#374](https://github.com/doc-detective/doc-detective/pull/374).
+- Hints (`useAssertionsForOutputChecks`, `useRetryForTransientErrors`):
+  [#376](https://github.com/doc-detective/doc-detective/pull/376).
+
+**Durable namespace nuance:** action outputs are referenceable two ways — `step.variables`
+resolves against bare `$$name` (e.g. `$$found`, `$$statusCode`), while conditions/assertions use
+the `$$outputs.*` namespace via `buildConditionContext`. Docs must use the right form per context;
+unifying the two namespaces is a possible future change.
+
+**Still-deferred items:** `$$assertions.*` (reading individual assertion outcomes in `if`),
+WARNING severity for custom assertions, `when` alias for `if`, `stop: "run"` full propagation.
 
 ## Implicit-assertion inventory (Phase 4a — classifications locked)
 
