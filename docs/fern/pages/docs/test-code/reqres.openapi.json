@@ -5,7 +5,7 @@
     "description": "A small OpenAPI description used by the \"Generate requests from OpenAPI\" guide's inline Doc Detective tests. Modeled on the public reqres.in test API.",
     "version": "1.0.0"
   },
-  "servers": [{ "url": "https://reqres.in/api" }],
+  "servers": [{ "url": "http://localhost:8092/api" }],
   "paths": {
     "/users/{id}": {
       "get": {
@@ -66,6 +66,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["name", "job"],
                 "properties": {
                   "name": { "type": "string" },
                   "job": { "type": "string" }
@@ -87,7 +88,7 @@
                     "name": { "type": "string" },
                     "job": { "type": "string" },
                     "id": { "type": "string" },
-                    "createdAt": { "type": "string" }
+                    "createdAt": { "type": "string", "format": "date-time" }
                   }
                 },
                 "example": {

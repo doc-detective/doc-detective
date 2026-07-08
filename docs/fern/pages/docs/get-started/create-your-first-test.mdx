@@ -31,7 +31,9 @@ To create your first test, follow these steps:
     cd /path/to/your/project
     ```
 
+    {/* test ignore start */}
     {/* step {"stepId":"navigate-to-project","description":"Navigate to project directory","runShell":{"command":"cd /path/to/your/project"}} */}
+    {/* test ignore end */}
 
 2.  Create a new test file named `homepage-check.spec.json`:
 
@@ -93,6 +95,7 @@ To create your first test, follow these steps:
       </Tab>
       {/* test end */}
 
+      {/* test ignore start */}
       {/* test {"testId":"create-first-test-docker-flow","detectSteps":false} */}
       <Tab title="Docker" language="docker">
 
@@ -110,6 +113,7 @@ To create your first test, follow these steps:
 
       </Tab>
       {/* test end */}
+      {/* test ignore end */}
     </Tabs>
 
 By default, Doc Detective scans the current directory for valid tests, but you can specify your test file using the `--input` argument. For more information, see [Run tests](/docs/get-started/sample-tests#run-tests).

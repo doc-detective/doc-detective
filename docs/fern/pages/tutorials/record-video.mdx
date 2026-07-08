@@ -37,6 +37,9 @@ To record, you must run the test with _headless_ mode turned off. The display wi
 
 ## Code walkthrough
 
+{/* This tutorial records a browser session against a locally served sample form; it needs the tutorial harness (static server + ffmpeg + a display), which the docs-test CI job doesn't provide, so it's skipped there. */}
+{/* test ignore start */}
+
 These are the notable additions to the spec used in the [Capture screenshot](capture-screenshot) tutorial.
 
 For this example, the _headless_ setting must be false, so that the test actions are visible in the browser.
@@ -56,6 +59,8 @@ After the actions are complete, stop the recording with the [`stopRecord`](/docs
 ```md
 {/* step {"description":"Stop recording.","stopRecord":true} */}
 ```
+
+{/* test ignore end */}
 
 ## Complete test spec
 

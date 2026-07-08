@@ -1,0 +1,32 @@
+# Runs Doc Detective against the documentation so the inline tests embedded in
+# the docs (the docs-as-tests pattern) execute on every docs change. Deliberately
+# minimal: a single Doc Detective Action that picks up and runs all tests from the
+# docs, and fails the job if any of them fail.
+name: Test docs
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/test-docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: test-docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-docs:
+    name: Test docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run Doc Detective on the docs
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # v4
+        with:
+          config: docs/.doc-detective.json
+          input: docs/fern/pages
+          exit_on_fail: true

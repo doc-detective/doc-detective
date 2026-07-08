@@ -115,6 +115,9 @@ You can use single or double quotes for either attribute. Use `<data>` elements 
 
 ## Examples
 
+{/* The examples below are documentation of the inline-test syntax, not runnable tests. Doc Detective would otherwise extract and execute them (they navigate real sites like example.com/google.com and act on elements that don't exist there), so skip them. */}
+{/* test ignore start */}
+
 Here's an example using **JSON syntax** in Markdown:
 
 ```markdown
@@ -161,6 +164,7 @@ To search for American Shorthair kittens,
 **HTML example**:
 
 ```html
+<!-- test ignore start -->
 <!-- test { "testId": "navigation-test" } -->
 <p>Navigate to our homepage:</p>
 <!-- step { "goTo": "https://example.com" } -->
@@ -169,6 +173,7 @@ To search for American Shorthair kittens,
 <!-- step { "click": "Menu" } -->
 
 <!-- test end -->
+<!-- test ignore end -->
 ```
 
 **AsciiDoc example**:
@@ -185,3 +190,5 @@ Click the *Start* button:
 
 // (test end)
 ```
+
+{/* test ignore end */}

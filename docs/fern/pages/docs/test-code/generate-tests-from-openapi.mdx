@@ -40,7 +40,7 @@ If you'd rather keep everything in one file, skip the config and load the descri
 
 In a step, set `httpRequest.openApi` to the operation you want to call. There are three ways to do it:
 
-{/* test {"testId":"generate-tests-from-openapi","detectSteps":false,"openApi":[{"name":"reqres","descriptionPath":"./reqres.openapi.json","server":"https://reqres.in/api","mockResponse":true}]} */}
+{/* test {"testId":"generate-tests-from-openapi","detectSteps":false,"openApi":[{"name":"reqres","descriptionPath":"./reqres.openapi.json","server":"http://localhost:8092/api","mockResponse":true}]} */}
 
 - **By `operationId` only (string shorthand).** Provide the operation ID as the value of `openApi`. Doc Detective searches every registered description for a matching operation.
 

@@ -39,6 +39,9 @@ While the form is too large to fit on the computer screen, increasing the window
 
 ## Code walkthrough
 
+{/* This tutorial drives a browser against a locally served sample form; it needs the tutorial harness, which the docs-test CI job doesn't provide, so it's skipped there. */}
+{/* test ignore start */}
+
 These are the notable additions to the spec used in the [Fill in fields](fill-fields) tutorial.
 
 To capture the full form, this example runs in _headless_ mode. The screenshot can then capture the entire virtual viewport.
@@ -70,6 +73,8 @@ Use the screenshot action with an output path to capture the state of the form o
 ```md
 {/* step {"description":"Capture a screenshot of the completed form.","screenshot":"./output/form-filled-2-complete.png"} */}
 ```
+
+{/* test ignore end */}
 
 ## Complete test spec
 
