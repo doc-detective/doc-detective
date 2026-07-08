@@ -97,10 +97,12 @@ slug.
 > **Implementation status.** The nav, tabs, sections, page URLs (via explicit `slug`s in `docs.yml`),
 > and redirects below are **live** — the umbrella "Test your docs" track (with the UI and CLI/code/API
 > sub-sections) is in effect and `fern check` passes. To avoid breaking colocated assets (e.g. the
-> tutorials' shared `TestExamples.zip` and `img/`), the **page files have not yet been physically
+> tutorials' shared `img/`), the **page files have not yet been physically
 > relocated** into the directories in the table below; they keep their current paths (some still under
 > `pages/docs/test-code/`) while serving the new `/docs/test-docs/…` slugs. Physically moving files to
-> match this map (carrying their assets) is a deferred mechanical pass.
+> match this map (carrying their assets) is a deferred mechanical pass. The tutorials' sample test
+> specs now live as hosted Markdown under `docs/examples/watson-and-holmes/` and are referenced by URL
+> rather than bundled in a downloadable zip.
 
 ### Directory mapping (Fern content paths)
 
