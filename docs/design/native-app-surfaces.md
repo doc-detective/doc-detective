@@ -1,6 +1,18 @@
 # Design: native app surfaces
 
-Status: **proposed (schema-first)** — this expands
+Status: **A1–A7 delivered to `main`; A8 pending** — A1 Windows/NovaWindows
+([#491](https://github.com/doc-detective/doc-detective/pull/491), ADRs 01020/01021),
+A2 macOS/Mac2 ([#502](https://github.com/doc-detective/doc-detective/pull/502), ADR 01023),
+A3 Android apps + managed emulators ([#505](https://github.com/doc-detective/doc-detective/pull/505),
+ADR 01026 portable JRE; github-action v1.6.1 auto-KVM), A4 iOS preflight/installer,
+A5 mobile browsers ([#516](https://github.com/doc-detective/doc-detective/pull/516), ADR 01029),
+A6 mobile interaction vocabulary ([#517](https://github.com/doc-detective/doc-detective/pull/517)),
+A7 app window + device recording ([#524](https://github.com/doc-detective/doc-detective/pull/524),
+ADR 01032 — the A2 Retina crop-scale gap was fixed here via frame-derived scale), plus app window
+selectors ([#536](https://github.com/doc-detective/doc-detective/pull/536), ADR 01036) and
+multi-surface Phase 6 generic/parallel `startSurface`
+([#539](https://github.com/doc-detective/doc-detective/pull/539), ADR 01039). Per-phase
+implementation detail lives in those PRs and ADRs. This document expands
 [multi-surface targeting](multi-surface-targeting.md) **Phase 5** ("native app
 surfaces") into a full phased roadmap: native **Windows** apps first, then native
 **macOS**, then **emulated Android**, then **emulated iOS** — including
