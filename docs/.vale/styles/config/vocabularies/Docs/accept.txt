@@ -221,6 +221,8 @@ postinstall
 Geckodriver
 ChromeDriver
 Xvfb
+loopback
+SSRF
 WebDriverAgent
 WDA
 xcodebuild

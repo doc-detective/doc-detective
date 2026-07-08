@@ -32,6 +32,8 @@ You can specify the screenshot action in several ways:
 URL paths must end in `.png` (or `.PNG`) and can include query strings for signed URLs. The step fails if the URL is unreachable or returns invalid image data.
 </Note>
 
+**Private addresses:** remote reference URLs must resolve to a public host. To guard against server-side request forgery (SSRF), Doc Detective won't fetch reference images from private, loopback, or link-local addresses—including their IPv4-mapped IPv6 forms. This covers hosts like `localhost` and `127.0.0.1`, ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`, and the `169.254.169.254` cloud-metadata endpoint. A blocked URL fails the step with a message that starts with `Couldn't fetch remote reference image` and notes it's `Refusing to fetch private/loopback address`. To compare against a reference image on an internal address, such as a local development server, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to opt out of this check.
+
 **Outputs:** depending on which options you configure, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Each output is present only when its check applies:
 
 - `$$cropElementFound`: whether the element to crop to was located (when `crop` is set).
