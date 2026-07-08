@@ -60,8 +60,11 @@ must take on no added latency or changed control flow.
 Chosen option: **option 1 — a bounded, device-web-only post-navigation settle in `goTo`.**
 
 After the existing readiness gate's parallel checks succeed (and only then), `goTo` checks
-`isDeviceWebContext(driver)` and, if true, runs a single `driver.waitUntil` that polls `driver.$$("body *")`
-until the element tree is non-empty, with a ceiling of `min(3000ms, remaining goTo timeout)`. It returns
+`isDeviceWebContext(driver)` and, if true, runs a single `driver.waitUntil` (100ms poll interval) that
+polls `driver.$$("body")` until the element tree is queryable, with a ceiling of
+`min(3000ms, remaining goTo timeout)`. `readyState === "complete"` already guarantees the DOM is parsed,
+so probing one well-known element (rather than an unbounded descendant set) is enough to confirm the WDA
+element-tree bridge has materialized. It returns
 as soon as the tree is queryable — it is not a fixed sleep. The settle is **best-effort**: if the ceiling
 elapses with the tree still empty, `goTo` proceeds to PASS anyway and hands control to `find`, which
 retains its own 5s wait and remains the sole authority on a genuinely-absent element.

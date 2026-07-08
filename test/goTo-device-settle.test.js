@@ -184,8 +184,10 @@ describe("goTo post-navigation settle (device web only)", function () {
       1,
       "desktop must not add a settle waitUntil"
     );
-    // The settle is the only thing that would call $$ here (no find step, no
-    // network/dom monitors since both are null). Desktop must never poll it.
+    // The readiness monitors DO run (goTo's schema coerces the null idle times
+    // to an immediate threshold), but they don't poll the element tree — the
+    // settle is the only thing that would call $$, and it's gated off on
+    // desktop. So a zero $$ count proves desktop skips the settle.
     assert.equal(
       record.dollarDollarCalls,
       0,
@@ -200,8 +202,9 @@ describe("goTo post-navigation settle (device web only)", function () {
       android: true,
       browserName: "Chrome",
     });
-    // Override $$ to return a truthy non-array (some driver shims do) — the
-    // settle must treat that as "tree present" via its `!!elements` fallback.
+    // Override $$ to return an array-LIKE (non-Array) with a numeric length —
+    // some driver shims do this. The settle must honor its `.length` (treat
+    // `{ length: 1 }` as "tree present") rather than materializing an Array.
     let dollarCalled = 0;
     driver.$$ = async () => {
       dollarCalled++;
@@ -211,7 +214,7 @@ describe("goTo post-navigation settle (device web only)", function () {
     assert.equal(result.status, "PASS");
     assert.ok(
       dollarCalled > 0,
-      "settle should have polled $$ and accepted the truthy non-array via the !!elements fallback"
+      "settle should have polled $$ and accepted the array-like via its numeric length check"
     );
   });
 
@@ -222,14 +225,14 @@ describe("goTo post-navigation settle (device web only)", function () {
       ios: true,
       browserName: "Safari",
     });
-    // timeout: 1 (ms): the pre-settle readiness phases (doc-ready gate + the
-    // schema-coerced network/DOM idle waits + goTo's fixed render pause) all
-    // run before the settle, so by the time it computes its ceiling the 1ms
-    // budget is spent — remaining <= 0 → settleCeiling = 0 → the
-    // `settleCeiling > 0` guard skips the settle with no tree poll. NOTE:
-    // `timeout: 0` does NOT work — the step is validated with schema defaults
-    // inbound and a 0 timeout is replaced by the goTo default (30000), leaving
-    // a full budget.
+    // timeout: 1 (ms): the pre-settle readiness phases run before the settle
+    // and spend the 1ms budget — in this harness the time comes from the
+    // schema-coerced network/DOM idle waits (the mock's pause() is a no-op) —
+    // so by the time the settle computes its ceiling, remaining <= 0 →
+    // settleCeiling = 0 → the `settleCeiling > 0` guard skips the settle with
+    // no tree poll. NOTE: `timeout: 0` does NOT work — the step is validated
+    // with schema defaults inbound and a 0 timeout is replaced by the goTo
+    // default (30000), leaving a full budget.
     const step = {
       goTo: {
         url: "https://example.com",
