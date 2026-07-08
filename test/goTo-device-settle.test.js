@@ -202,9 +202,17 @@ describe("goTo post-navigation settle (device web only)", function () {
     });
     // Override $$ to return a truthy non-array (some driver shims do) — the
     // settle must treat that as "tree present" via its `!!elements` fallback.
-    driver.$$ = async () => ({ length: 1 });
+    let dollarCalled = 0;
+    driver.$$ = async () => {
+      dollarCalled++;
+      return { length: 1 };
+    };
     const result = await goTo({ config: {}, step: baseStep(), driver });
     assert.equal(result.status, "PASS");
+    assert.ok(
+      dollarCalled > 0,
+      "settle should have polled $$ and accepted the truthy non-array via the !!elements fallback"
+    );
   });
 
   it("iOS web context with no settle budget left (remaining <= 0) skips the settle and PASSes", async function () {
@@ -214,13 +222,17 @@ describe("goTo post-navigation settle (device web only)", function () {
       ios: true,
       browserName: "Safari",
     });
-    // A tiny timeout that the document-ready pause (100ms) already overruns,
-    // so by the time the settle computes its ceiling there is no budget left
-    // and it must not poll the tree at all.
+    // A tiny timeout so that by the time the doc-ready gate has resolved there
+    // is no budget left for the settle (remaining <= 0 → settleCeiling = 0 →
+    // the `settleCeiling > 0` guard skips it). NOTE: `timeout: 0` does NOT work
+    // here — the step is validated with schema defaults on the way in, and a 0
+    // timeout is replaced by the goTo default (30000), which would leave a full
+    // budget. A small positive timeout that the doc-ready gate outlives is the
+    // reliable way to reach the zero-budget branch.
     const step = {
       goTo: {
         url: "https://example.com",
-        timeout: 50,
+        timeout: 1,
         waitUntil: { networkIdleTime: null, domIdleTime: null },
       },
     };

@@ -378,7 +378,11 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
                   return false;
                 }
               },
-              { timeout: settleCeiling }
+              // interval 100ms (not wdio's 500ms default): the empty-tree
+              // window is typically 10-100ms, so poll often enough to return
+              // as soon as it repopulates instead of holding ~500ms — otherwise
+              // the settle would add up to half a second to every iOS web goTo.
+              { timeout: settleCeiling, interval: 100 }
             );
           }
         } catch {
