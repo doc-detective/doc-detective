@@ -370,10 +370,13 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
             await driver.waitUntil(
               async () => {
                 try {
-                  // Probe body's DIRECT children, not `body *` — enough to
-                  // confirm the element tree has populated without
-                  // materializing every descendant on a large page.
-                  const elements = await driver.$$("body > *");
+                  // Probe just `body`, not `body *`/`body > *`: goTo already
+                  // gated on readyState === "complete", so the DOM (and its
+                  // content) is parsed — the only thing this settle waits on is
+                  // the WDA element-tree BRIDGE becoming queryable, which
+                  // `$$("body")` tests with one well-known element instead of
+                  // serializing an unbounded descendant set across the bridge.
+                  const elements = await driver.$$("body");
                   if (Array.isArray(elements)) return elements.length > 0;
                   // Some driver shims return an array-LIKE (not a real Array).
                   // Honor its numeric length so a `{ length: 0 }` shim is
