@@ -25,6 +25,13 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
 
   // Identify OpenAPI definition
   if (step.httpRequest.openApi) {
+    // Normalize the string shorthand (openApi: "operationId") to the object
+    // form so a bare operationId resolves like { operationId: "..." }. The
+    // schema permits the string branch, but the resolution below reads
+    // .operationId/.name/.descriptionPath off the value.
+    if (typeof step.httpRequest.openApi === "string") {
+      step.httpRequest.openApi = { operationId: step.httpRequest.openApi };
+    }
     if (step.httpRequest.openApi.descriptionPath) {
       // Load OpenAPI definition from step
       openApiDefinition = await loadDescription(

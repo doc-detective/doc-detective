@@ -261,6 +261,13 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
       context,
       usedContextIds,
     });
+    // resolveContext seeds openApi from the *original* test, whose openApi
+    // array carries no loaded `definition` (and omits spec-level entries).
+    // The merged, description-loaded set lives on resolvedTest.openApi
+    // (fetchOpenApiDocuments over spec + test). Without this, httpRequest
+    // receives an empty openApiDefinitions and every OpenAPI step fails with
+    // "OpenAPI definition not found." See ADR 01044.
+    resolvedContext.openApi = resolvedTest.openApi;
     resolvedTest.contexts.push(resolvedContext);
   }
   log(config, "debug", `RESOLVED TEST ${testId}:\n${JSON.stringify(resolvedTest, null, 2)}`);
