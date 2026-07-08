@@ -123,6 +123,7 @@ import {
   activeDriver,
   sweepSessions,
   type BrowserSessionRegistry,
+  type BrowserOpenOverrides,
 } from "./tests/browserSessions.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -3676,11 +3677,7 @@ async function runContext({
       // precedent).
       const startDriverForBrowser = async (
         browserName: string,
-        overrides?: {
-          headless?: boolean;
-          size?: { width?: number; height?: number };
-          driverOptions?: Record<string, any>;
-        }
+        overrides?: BrowserOpenOverrides
       ): Promise<
         | { ok: true; driver: any; headless: boolean }
         | { ok: false; error: string }
@@ -3855,7 +3852,7 @@ async function runContext({
       // stamps driver.state.engine and back-links driver.state.sessionRegistry.
       if (driver) {
         browserSessions = createSessionRegistry({
-          open: async (engine: string, overrides?: any) => {
+          open: async (engine: string, overrides?: BrowserOpenOverrides) => {
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             return res.driver;

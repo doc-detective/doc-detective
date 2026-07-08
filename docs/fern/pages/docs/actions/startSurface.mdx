@@ -24,7 +24,7 @@ Pass a single descriptor to open one surface, or an **array of descriptors to op
 
 ## Browser descriptors
 
-- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. No cross-engine fallback—you named the engine, so Doc Detective never substitutes another.
+- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. No cross-engine fallback—you named the engine, so Doc Detective never substitutes another. The exception is `edge`: it's Chromium, so it opens on the Chrome/chromedriver stack and registers under the `chrome` engine name—which makes an unnamed `edge` session collide with a `chrome` one, so one of them needs an explicit `name` (see the next bullet).
 - `name`: (Optional) Surface-registry name. Default: the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name` (an unnamed duplicate fails with guidance).
 - `headless`: (Optional) Overrides the context's headless setting for this session.
 - `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
@@ -45,6 +45,8 @@ There's deliberately no `url` on the browser descriptor—[`goTo`](goTo) stays t
 ## Parallel arrays
 
 Pass an array to open several surfaces in one step. Names must be unique within the array (a duplicate fails the step before anything launches). The step passes only when every descriptor opened. One failure fails the step, but the other surfaces still finish opening and appear in `outputs.surfaces`, so nothing leaks half-started. After a parallel open, the **last authored** descriptor of each kind is that kind's active surface—deterministic regardless of which lane finished first.
+
+Safari is the exception: `safaridriver` allows only one automation session per host, so an array with two `safari` descriptors can't open both—the second fails when the driver refuses its session, and that fails the step. The same limit covers `webkit`, which Doc Detective resolves to Safari. Pair Safari with `chrome`, `firefox`, or `edge` instead. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 > For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
 

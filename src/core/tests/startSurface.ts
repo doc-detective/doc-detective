@@ -238,12 +238,10 @@ async function startSurfaceStep({
 
   // --- Array form: three lanes, all concurrent. ---
 
-  const indexed = descriptors.map((d: any, i: number) => ({
-    d,
-    i,
-    kind: descriptorKind(d) as Kind,
-    name: intendedName(d, descriptorKind(d) as Kind),
-  }));
+  const indexed = descriptors.map((d: any, i: number) => {
+    const kind = descriptorKind(d) as Kind;
+    return { d, i, kind, name: intendedName(d, kind) };
+  });
   const results: LaneResult[] = new Array(indexed.length);
 
   const record = (slot: (typeof indexed)[number], r: any) => {
@@ -338,8 +336,14 @@ async function startSurfaceStep({
       ? "SKIPPED"
       : "PASS";
 
+  // Tolerate a hole the same way the roll-up above does: an unclassifiable
+  // descriptor (schema-unreachable, but defensive) never lands in a lane, so
+  // its slot stays undefined rather than throwing here.
   const description = results
-    .map((r) => `${r.name} (${r.kind}): ${r.status} — ${r.description}`)
+    .map(
+      (r) =>
+        `${r?.name ?? "?"} (${r?.kind ?? "?"}): ${r?.status ?? "FAIL"} — ${r?.description ?? "No result."}`
+    )
     .join("\n");
 
   return {
