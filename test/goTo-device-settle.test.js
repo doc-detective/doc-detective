@@ -222,13 +222,14 @@ describe("goTo post-navigation settle (device web only)", function () {
       ios: true,
       browserName: "Safari",
     });
-    // A tiny timeout so that by the time the doc-ready gate has resolved there
-    // is no budget left for the settle (remaining <= 0 → settleCeiling = 0 →
-    // the `settleCeiling > 0` guard skips it). NOTE: `timeout: 0` does NOT work
-    // here — the step is validated with schema defaults on the way in, and a 0
-    // timeout is replaced by the goTo default (30000), which would leave a full
-    // budget. A small positive timeout that the doc-ready gate outlives is the
-    // reliable way to reach the zero-budget branch.
+    // timeout: 1 (ms): the pre-settle readiness phases (doc-ready gate + the
+    // schema-coerced network/DOM idle waits + goTo's fixed render pause) all
+    // run before the settle, so by the time it computes its ceiling the 1ms
+    // budget is spent — remaining <= 0 → settleCeiling = 0 → the
+    // `settleCeiling > 0` guard skips the settle with no tree poll. NOTE:
+    // `timeout: 0` does NOT work — the step is validated with schema defaults
+    // inbound and a 0 timeout is replaced by the goTo default (30000), leaving
+    // a full budget.
     const step = {
       goTo: {
         url: "https://example.com",

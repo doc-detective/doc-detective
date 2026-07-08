@@ -370,10 +370,19 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
             await driver.waitUntil(
               async () => {
                 try {
-                  const elements = await driver.$$("body *");
-                  return Array.isArray(elements)
-                    ? elements.length > 0
-                    : !!elements;
+                  // Probe body's DIRECT children, not `body *` — enough to
+                  // confirm the element tree has populated without
+                  // materializing every descendant on a large page.
+                  const elements = await driver.$$("body > *");
+                  if (Array.isArray(elements)) return elements.length > 0;
+                  // Some driver shims return an array-LIKE (not a real Array).
+                  // Honor its numeric length so a `{ length: 0 }` shim is
+                  // correctly treated as "still empty" — falling back to bare
+                  // truthiness only when there is no length to read.
+                  if (elements && typeof elements.length === "number") {
+                    return elements.length > 0;
+                  }
+                  return !!elements;
                 } catch {
                   return false;
                 }
