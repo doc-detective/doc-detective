@@ -103,7 +103,9 @@ are regenerated:
 1. `src/common/dist` — produced by `npm run build` inside `src/common`. The `src/common` test
    suite reads this.
 2. **Root `dist/common`** — a separate copy the **runner** imports `validate` from. Regenerate
-   from the repo root with `npm run compile` + `npm run copy:schemas`.
+   from the repo root with `npm run build`, which sequences `build:common` (rebuilds
+   `src/common`), then `compile` and `copy:schemas`. Running `compile` + `copy:schemas` alone can
+   copy a **stale** `src/common/src/schemas/schemas.json` if `src/common` wasn't rebuilt first.
 
 Symptom of forgetting #2: `src/common` tests pass, but the runner (runTests / core fixtures)
 still validates against the stale schema — a fixture using a newly-added field fails with

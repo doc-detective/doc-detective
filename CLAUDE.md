@@ -28,7 +28,7 @@ the home by kind:
 | Repo-wide agent workflow rules | This file (`CLAUDE.md`) |
 | Maintainer/release/CI operations | [docs/maintenance/](docs/maintenance/) |
 | Roadmaps and design | [docs/design/](docs/design) |
-| Reusable multi-step procedures | Skills (`SKILL.md` under `.claude/skills/`) |
+| Reusable multi-step procedures | Skills (one dir per skill: `.claude/skills/<skill-name>/SKILL.md`) |
 | Contributor onboarding | `README.md` / package READMEs |
 | Ephemeral working notes | Session scratchpad only — never committed, never memory |
 

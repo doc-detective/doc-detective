@@ -5,15 +5,17 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
 
 ## Local environment gotchas
 
-- **Port 8092 collisions.** The mocha hooks ([hooks.js](hooks.js)) start a local test server
-  hardcoded to port 8092 and silently continue if it's "already running". Two failure modes:
-  parallel worktree sessions running mocha at the same time, and orphaned servers left behind by a
-  killed run. Either way, dynamically-seeded fixtures 404 (e.g. `url-reference-fixture.png` in
-  core-screenshot tests) and browser sessions can die with "invalid session id". Before trusting
-  failures in the core-screenshot/core-core suites, check
-  `Get-NetTCPConnection -LocalPort 8092 -State Listen` and inspect the owning process's command
-  line (it may be mocha from a sibling `.claude/worktrees/*` checkout, or a days-old orphan). Wait
-  or kill only orphaned listeners, then rerun.
+- **Port 8092 collisions.** The mocha hooks ([hooks.js](hooks.js)) start the test servers via
+  `createTestServers()`, whose ports are hardcoded in [server/instances.js](server/instances.js)
+  (8092 main / 8093 API); the hooks silently continue if a server is "already running". Two
+  failure modes: parallel worktree sessions running mocha at the same time, and orphaned servers
+  left behind by a killed run. Either way, dynamically-seeded fixtures 404 (e.g.
+  `url-reference-fixture.png` in core-screenshot tests) and browser sessions can die with "invalid
+  session id". Before trusting failures in the core-screenshot/core-core suites, find the listener
+  — `Get-NetTCPConnection -LocalPort 8092 -State Listen` on Windows, `ss -ltnp 'sport = :8092'` or
+  `lsof -iTCP:8092 -sTCP:LISTEN` on Linux/macOS — and inspect the owning process's command line (it
+  may be mocha from a sibling `.claude/worktrees/*` checkout, or a days-old orphan). Wait or kill
+  only orphaned listeners, then rerun.
 - **Browserless worktrees fail ~22 browser-dependent tests.** A worktree with no Chrome/Firefox/
   Appium installed and no network to lazy-provision fails browser-dependent tests with "Chrome
   browser is not available" or step-count assertions (`0 !== 1`, `undefined (reading 'result')`)
