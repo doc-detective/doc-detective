@@ -228,3 +228,8 @@ onboarding
 startSurface
 passthrough
 TUIs
+checksummed
+libc
+reinstalls
+tarball
+tarballs
