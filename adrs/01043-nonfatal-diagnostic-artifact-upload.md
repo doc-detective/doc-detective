@@ -9,9 +9,11 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Every `fixtures.yml` job ends with an `actions/upload-artifact` step that preserves the run's
-`dd-output-<group>.json` for debugging (`if: always()`, `retention-days: 3`). This upload runs
-**after** the real pass/fail gate (`Gate on results` → `scripts/check-fixture-results.cjs`), so its
-only purpose is diagnostics.
+`dd-output-*.json` output(s) for debugging (`if: always()`, `retention-days: 3`) — a single
+`dd-output-<group>.json` on the general matrix leg, and multiple files (`dd-output-apps-android.json`
++ `dd-output-mobile-web-android.json`) on the Android KVM legs. This upload runs **after** the real
+pass/fail gate (`Gate on results` → `scripts/check-fixture-results.cjs`), so its only purpose is
+diagnostics.
 
 GitHub's ArtifactService is occasionally unavailable. When it is, the upload exhausts the
 action's internal retries and the step fails:
