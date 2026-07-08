@@ -154,7 +154,7 @@ Two caveats:
 
 ## Current limits
 
-Native app surfaces (and the generic `startSurface` provisioner) land in later phases of the [multi-surface design](https://github.com/doc-detective/doc-detective/blob/main/docs/design/multi-surface-targeting.md).
+Native app surfaces launch through [`startSurface`](/docs/actions/startsurface) on Windows and macOS. Opening several surfaces at once with the array form of `startSurface` lands in a later phase of the [multi-surface design](https://github.com/doc-detective/doc-detective/blob/main/docs/design/multi-surface-targeting.md).
 
 Indexes reflect **creation order** (the order Doc Detective first saw each tab), not on-screen tab order.
 

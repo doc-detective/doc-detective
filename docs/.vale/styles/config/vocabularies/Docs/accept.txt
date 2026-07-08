@@ -180,6 +180,7 @@ cacheDir
 waitUntil
 sourceIntegration
 closeSurface
+startSurface
 integrationName
 fileId
 filePath
@@ -222,13 +223,15 @@ Geckodriver
 ChromeDriver
 Xvfb
 Temurin
+Xcode
+toolchain
+widget
+XCUITest
 loopback
 SSRF
 WebDriverAgent
 WDA
 xcodebuild
-XCUITest
-Xcode
 dialog
 dialogs
 dialog's
