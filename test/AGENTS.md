@@ -69,9 +69,10 @@ in `src/core/utils.ts`) keeps it safe:
 
 ## CI flake triage playbook
 
-**Always read the actual job log tail first** (`gh api repos/<owner>/<repo>/actions/jobs/<id>/logs`)
-before blaming a workflow or mocha timeout — most of the entries below were misdiagnosable from
-config alone.
+**Always read the actual job logs first** (`gh run view --job <id> --log`, or
+`gh run view <run-id> --log-failed` to jump straight to the failed steps; pipe to `tail` for the
+end) before blaming a workflow or mocha timeout — most of the entries below were misdiagnosable
+from config alone.
 
 Known flake signatures and dispositions:
 
