@@ -155,6 +155,10 @@ async function startBackgroundProcessSurface({
           cacheDir: config?.cacheDir,
         });
       } catch (error: any) {
+        // Spawn-time errors are NOT retried — only a transient early-exit from
+        // waitForReady (below) is. The NTSTATUS init-crash codes this loop
+        // recovers from surface as an early exit during readiness, never as a
+        // throw from the spawn call itself, so a spawn failure here is genuine.
         if (error?.code !== "NODE_PTY_UNAVAILABLE") {
           return {
             status: "FAIL",

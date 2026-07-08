@@ -924,8 +924,13 @@ describe("startBackgroundProcessSurface: transient init retry (Phase 6)", functi
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /failed to become ready/);
-    // Bounded: a fixed, small number of attempts (not unbounded).
-    assert.ok(spawns.length >= 2 && spawns.length <= 4, `attempts=${spawns.length}`);
+    // Bounded to EXACTLY maxAttempts = 1 initial + PROCESS_INIT_RETRIES(2).
+    // An exact check (not a range) catches a bumped constant or an extra attempt.
+    assert.equal(
+      spawns.length,
+      3,
+      `expected 3 spawns (1 initial + 2 retries), got ${spawns.length}`
+    );
   });
 });
 
