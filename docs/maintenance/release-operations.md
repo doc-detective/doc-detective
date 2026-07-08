@@ -44,9 +44,9 @@ realities around them.
 - **Vale vocab path (version-dependent):** with Vale 3.x pinned in `.github/workflows/vale.yml`,
   the active accepted-spelling list is `docs/.vale/styles/config/vocabularies/Docs/accept.txt`;
   terms added only to the legacy `docs/.vale/styles/Vocab/Docs/accept.txt` do nothing. Safest is
-  to add new terms to both until the legacy dir is deleted. `.vale.ini` exempts generated schema
-  reference pages — fix prose flagged there at the JSON-schema source under `src/`, not the
-  generated `.md`. Note reviewdog re-posts stale annotation batches per push; verify HEAD is
+  to add new terms to both until the legacy dir is deleted. `docs/.vale.ini` (the config the
+  workflow runs, via `--config=docs/.vale.ini`) exempts generated schema reference pages — fix
+  prose flagged there at the JSON-schema source under `src/`, not the generated `.md`. Note reviewdog re-posts stale annotation batches per push; verify HEAD is
   actually clean before assuming a real miss.
 
 ## `next` → `main` promotion
