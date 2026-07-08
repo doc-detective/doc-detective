@@ -221,6 +221,11 @@ postinstall
 Geckodriver
 ChromeDriver
 Xvfb
+WebDriverAgent
+WDA
+xcodebuild
+XCUITest
+Xcode
 dialog
 dialogs
 dialog's
