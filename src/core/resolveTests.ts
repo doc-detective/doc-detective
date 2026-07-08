@@ -205,7 +205,7 @@ function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<stri
   return uniqueId(base, usedIds);
 }
 
-async function resolveContext({ config, test, context, usedContextIds }: { config: any; test: any; context: any; usedContextIds: Set<string> }) {
+async function resolveContext({ config, test, context, usedContextIds, openApi }: { config: any; test: any; context: any; usedContextIds: Set<string>; openApi?: any[] }) {
   // Normalize the resolved ID back onto the context so any downstream reader
   // of `context.contextId` (not just the resolved copy) sees the same value.
   // Explicit IDs win, but are still de-duplicated: one authored context with
@@ -221,7 +221,11 @@ async function resolveContext({ config, test, context, usedContextIds }: { confi
   const resolvedContext = {
     ...context,
     unsafe: test.unsafe || false,
-    openApi: test.openApi || [],
+    // Prefer the caller's description-loaded set (resolvedTest.openApi, which
+    // merges spec + test and attaches each `definition`). The raw
+    // `test.openApi` carries no loaded definition and omits spec-level entries,
+    // so httpRequest would receive an empty openApiDefinitions. See ADR 01044.
+    openApi: openApi ?? test.openApi ?? [],
     steps: [...test.steps],
     contextId: contextId,
   };
@@ -260,6 +264,8 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
       test: test,
       context,
       usedContextIds,
+      // The description-loaded, spec+test-merged set — see resolveContext.
+      openApi: resolvedTest.openApi,
     });
     resolvedTest.contexts.push(resolvedContext);
   }
