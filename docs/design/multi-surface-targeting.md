@@ -1,9 +1,14 @@
 # Design: multi-surface targeting
 
-Status: **proposed (schema-only)** — this records the long-term target shape so the
-near-term `type`→process work and any future multi-window/-app work slot in
-without breaking refactors. Functionality is built incrementally; the **schema**
-is designed up front.
+Status: **delivered through Phase 6** — Phase 1 process surfaces
+([#386](https://github.com/doc-detective/doc-detective/pull/386)), Phase 2 `background.tty`
+(ADR 01004), Phase 3 browser window/tab selectors (ADR 01016), Phase 4 multi-session browser
+registry ([#483](https://github.com/doc-detective/doc-detective/pull/483), ADR 01019), Phase 5
+native apps (see [native-app-surfaces.md](native-app-surfaces.md) for the A1–A8 breakdown and
+status), and Phase 6 generic + parallel `startSurface`
+([#539](https://github.com/doc-detective/doc-detective/pull/539), ADR 01039). This document
+remains the reference for the target shape and semantics; per-phase detail lives in the PRs and
+ADRs.
 
 ## Problem
 

@@ -252,11 +252,11 @@ export type GoToURLDetailed = {
    */
   waitUntil?: {
     /**
-     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
+     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).
      */
     networkIdleTime?: number | null;
     /**
-     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
+     * Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).
      */
     domIdleTime?: number | null;
     /**

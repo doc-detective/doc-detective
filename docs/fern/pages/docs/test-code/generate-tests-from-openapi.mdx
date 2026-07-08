@@ -40,6 +40,8 @@ If you'd rather keep everything in one file, skip the config and load the descri
 
 In a step, set `httpRequest.openApi` to the operation you want to call. There are three ways to do it:
 
+{/* test {"testId":"generate-tests-from-openapi","detectSteps":false,"openApi":[{"name":"reqres","descriptionPath":"./reqres.openapi.json","server":"http://localhost:8092/api","mockResponse":true}]} */}
+
 - **By `operationId` only (string shorthand).** Provide the operation ID as the value of `openApi`. Doc Detective searches every registered description and uses the first operation whose ID matches. Because it stops at the first match, the shorthand only targets the operation you mean when that ID is unique across your registered descriptions. If the same ID appears in more than one description, pin the lookup with a registered `name` and the object form instead (see below).
 
   ```json
@@ -53,6 +55,8 @@ In a step, set `httpRequest.openApi` to the operation you want to call. There ar
     }
   }
   ```
+
+  {/* step {"stepId":"openapi-shorthand","description":"Resolve getUserById via the string shorthand","httpRequest":{"openApi":"getUserById","request":{"parameters":{"id":2}},"response":{}}} */}
 
 - **By registered `name` and `operationId`.** Pin the lookup to one registered description. This is useful when the same operation ID exists in more than one description.
 
@@ -71,6 +75,8 @@ In a step, set `httpRequest.openApi` to the operation you want to call. There ar
   }
   ```
 
+  {/* step {"stepId":"openapi-name-operationid","description":"Resolve getUserById via name + operationId","httpRequest":{"openApi":{"name":"reqres","operationId":"getUserById"},"request":{"parameters":{"id":2}},"response":{}}} */}
+
 - **By inline `descriptionPath` and `operationId`.** Load a description straight from the step, with no config entry.
 
   ```json
@@ -87,6 +93,8 @@ In a step, set `httpRequest.openApi` to the operation you want to call. There ar
     }
   }
   ```
+
+  {/* step {"stepId":"openapi-descriptionpath","description":"Resolve getUserById via inline descriptionPath","httpRequest":{"openApi":{"descriptionPath":"./reqres.openapi.json","operationId":"getUserById","mockResponse":true},"request":{"parameters":{"id":3}},"response":{}}} */}
 
 Doc Detective derives the URL and method from the operation and substitutes path parameters (such as `{id}`) from the values you pass in `request.parameters`. You can still set `request.headers`, `request.parameters`, `request.body`, and `response` expectations on the step, and they layer on top of whatever the description provides.
 
@@ -114,6 +122,8 @@ To authenticate every request built from one description, set `openApi.headers`.
 }
 ```
 
+{/* step {"stepId":"openapi-headers-auth","description":"Authenticate the whole description via openApi.headers","httpRequest":{"openApi":{"name":"reqres","operationId":"getUserById","headers":{"Authorization":"Bearer $TOKEN"}},"request":{"parameters":{"id":2}},"response":{}}} */}
+
 To override the header for a single request, set `request.headers.Authorization`. A header in `request.headers` wins over the same header from `openApi.headers`, so use it to swap credentials for one step:
 
 ```json
@@ -133,6 +143,8 @@ To override the header for a single request, set `request.headers.Authorization`
   }
 }
 ```
+
+{/* step {"stepId":"openapi-request-header-override","description":"Override Authorization for one request via request.headers","httpRequest":{"openApi":{"name":"reqres","operationId":"getUserById"},"request":{"headers":{"Authorization":"Bearer $ADMIN_TOKEN"},"parameters":{"id":2}},"response":{}}} */}
 
 When the same header is set in more than one place, the most specific value wins. From lowest to highest precedence: a header from an example (see [Step 4](#step-4-seed-requests-with-example-data)), then a config-level `openApi.headers`, then a step-level `openApi.headers`, then `request.headers`.
 
@@ -160,6 +172,8 @@ OpenAPI descriptions often include example requests and responses. Set `useExamp
 }
 ```
 
+{/* step {"stepId":"openapi-useexample","description":"Seed the createUser request from the operation example","httpRequest":{"openApi":{"name":"reqres","operationId":"createUser","useExample":"request"},"response":{}}} */}
+
 When an operation defines more than one example, set `exampleKey` to choose which one to use. Anything you set in `request` still overrides the matching part of the example, so you can seed most of the request and adjust a single field.
 
 ## Step 5: Validate the response and mock unfinished endpoints
@@ -181,6 +195,10 @@ If the endpoint isn't built yet, set `mockResponse` to `true`. Doc Detective ski
   }
 }
 ```
+
+{/* step {"stepId":"openapi-mockresponse","description":"Mock the createUser response from the description","httpRequest":{"openApi":{"name":"reqres","operationId":"createUser","mockResponse":true,"statusCode":201,"useExample":"request"},"response":{}}} */}
+
+{/* test end */}
 
 ## Step 6: Run the test
 

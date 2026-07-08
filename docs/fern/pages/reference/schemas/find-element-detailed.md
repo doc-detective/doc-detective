@@ -14,7 +14,7 @@ description: "Reference for the `Find element (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }). | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form (&#123; "app": … &#125;). | 
 elementText | string | Optional. Display text of the element to find. If combined with other element finding fields, the element must match all specified criteria. | 
 selector | string | Optional. Selector of the element to find. If combined with other element finding fields, the element must match all specified criteria. | 
 elementId | string | Optional. ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax. | 

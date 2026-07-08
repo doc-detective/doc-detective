@@ -37,6 +37,9 @@ To run the test:
 
 ## Code walkthrough
 
+{/* This tutorial drives a browser against a locally served sample form; it needs the tutorial harness (a static server for the form), which the docs-test CI job doesn't provide, so it's skipped there. */}
+{/* test ignore start */}
+
 The test spec is a Markdown file with [inline tests](/docs/test-docs/inline-tests): each numbered step describes the action in prose, followed by a `{/* step ... */}` comment that Doc Detective runs.
 
 The test opens with an inline `test` comment that defines the execution environment: the platform and browser the test runs on. You can specify your own platform, but making the test compatible with other platforms doesn't hurt. Chrome is currently the only browser that supports the record feature, which later examples use. When you run the test in the _headless_ state, it runs without showing the actions in a browser window; set `headless` to `false` to watch the actions instead. The form in this example is too large to fit on the screen, so the viewport is set to the full size, even when it isn't displayed. This matters for taking screenshots, which a later tutorial covers.
@@ -70,6 +73,8 @@ Capture a screenshot of the completed fields, then pause 10 seconds so you can s
 
 {/* step {"description":"Pause long enough to show the changes.","wait":10000} */}
 ```
+
+{/* test ignore end */}
 
 ## Complete test spec
 

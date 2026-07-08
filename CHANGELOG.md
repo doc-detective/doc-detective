@@ -1,3 +1,11 @@
+## [4.26.1](https://github.com/doc-detective/doc-detective/compare/v4.26.0...v4.26.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **core:** resolve OpenAPI descriptions at runtime for httpRequest steps ([#550](https://github.com/doc-detective/doc-detective/issues/550)) ([315a62c](https://github.com/doc-detective/doc-detective/commit/315a62c581c92309cb1cd126d8fef77a48689323))
+* repair broken goTo/closeSurface action links ([#481](https://github.com/doc-detective/doc-detective/issues/481)) ([beb6d85](https://github.com/doc-detective/doc-detective/commit/beb6d853852273c9f2e55605198cd05f9816f9f7))
+
 # [4.26.0](https://github.com/doc-detective/doc-detective/compare/v4.25.1...v4.26.0) (2026-07-08)
 
 
