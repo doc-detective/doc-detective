@@ -768,7 +768,7 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
   });
 });
 
-// ADR 010NN: transient concurrent-spawn recovery. Under concurrentRunners > 1
+// ADR 01045: transient concurrent-spawn recovery. Under concurrentRunners > 1
 // on Windows, spawning many node/ConPTY children at once can starve a transient
 // Windows loader/console limit so one child dies during init before it can
 // signal ready (STATUS_DLL_INIT_FAILED 0xC0000142 / STATUS_CONTROL_C_EXIT
@@ -814,6 +814,8 @@ describe("startBackgroundProcessSurface: transient init retry (Phase 6)", functi
       processRegistry: registry,
       deps: {
         platform: "win32",
+        // No-op the backoff so the retry loop completes instantly.
+        sleep: () => Promise.resolve(),
         spawnBackgroundCommand: () => {
           const bg = outcomes[spawns.length];
           spawns.push(bg);
@@ -906,6 +908,8 @@ describe("startBackgroundProcessSurface: transient init retry (Phase 6)", functi
       processRegistry: new Map(),
       deps: {
         platform: "win32",
+        // No-op the backoff so the exhausted-retry path completes instantly.
+        sleep: () => Promise.resolve(),
         spawnBackgroundCommand: () => {
           const bg = stubBg({ exitCode: -1073741502 }); // STATUS_DLL_INIT_FAILED
           spawns.push(bg);
