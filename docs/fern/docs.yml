@@ -178,6 +178,9 @@ navigation:
               - page: HTTP & APIs
                 path: pages/docs/test-code/http-and-api.mdx
                 slug: http-and-api
+              - page: Generate requests from OpenAPI
+                path: pages/docs/test-code/generate-tests-from-openapi.mdx
+                slug: generate-tests-from-openapi
               - page: Integrations
                 path: pages/docs/get-started/integrations.mdx
                 slug: integrations
