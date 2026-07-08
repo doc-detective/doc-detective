@@ -15,7 +15,7 @@ description: "Reference for the `Recording engine (detailed)` schema."
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 name | string | Required. Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.<br/><br/>Accepted values: `browser`, `ffmpeg` | 
-target | string | Optional. What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped).<br/><br/>Accepted values: `display`, `window`, `viewport` | `display`
+target | string | Optional. What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).<br/><br/>Accepted values: `display`, `window`, `viewport` | 
 fps | integer | Optional. Capture frame rate for the `ffmpeg` engine.<br/><br/>Minimum: 1 | `30`
 
 ## Examples

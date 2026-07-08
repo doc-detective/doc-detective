@@ -223,7 +223,15 @@ ChromeDriver
 Xvfb
 loopback
 SSRF
+WebDriverAgent
+WDA
+xcodebuild
+XCUITest
+Xcode
 dialog
 dialogs
 dialog's
 onboarding
+startSurface
+passthrough
+TUIs

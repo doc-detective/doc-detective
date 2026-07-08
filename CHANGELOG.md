@@ -1,3 +1,47 @@
+# [4.26.0](https://github.com/doc-detective/doc-detective/compare/v4.25.1...v4.26.0) (2026-07-08)
+
+
+### Bug Fixes
+
+* **core:** retry geckodriver startup crash under concurrent context-starts ([#542](https://github.com/doc-detective/doc-detective/issues/542)) ([24bc220](https://github.com/doc-detective/doc-detective/commit/24bc2208e4b818ce5f23ff8ea3b6e02e0ced529a))
+
+
+### Features
+
+* **app-surface:** app window selectors on desktop drivers ([#536](https://github.com/doc-detective/doc-detective/issues/536)) ([db4b8f1](https://github.com/doc-detective/doc-detective/commit/db4b8f1762bb0faf877827706aeea252e65308a8)), closes [#537](https://github.com/doc-detective/doc-detective/issues/537) [appium-novawindows-driver#85](https://github.com/appium-novawindows-driver/issues/85)
+* **start-surface:** generic + parallel startSurface (multi-surface phase 6) ([#539](https://github.com/doc-detective/doc-detective/issues/539)) ([3e136f7](https://github.com/doc-detective/doc-detective/commit/3e136f7898188283172bc354ba85414ff6fa609a))
+
+## [4.25.1](https://github.com/doc-detective/doc-detective/compare/v4.25.0...v4.25.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **core:** assign a unique chromedriver port per browser driver ([#535](https://github.com/doc-detective/doc-detective/issues/535)) ([82033a0](https://github.com/doc-detective/doc-detective/commit/82033a0d4ed30dc88b94023bbd392ffb44e5213d))
+* **core:** serialize native app-surface driver contexts under concurrency ([#534](https://github.com/doc-detective/doc-detective/issues/534)) ([65fc563](https://github.com/doc-detective/doc-detective/commit/65fc56365a1898adc41e55ead30a819a50db3075)), closes [#532](https://github.com/doc-detective/doc-detective/issues/532) [#532](https://github.com/doc-detective/doc-detective/issues/532)
+* **core:** serialize recording native-app contexts under concurrency ([#538](https://github.com/doc-detective/doc-detective/issues/538)) ([4ab3b72](https://github.com/doc-detective/doc-detective/commit/4ab3b72424006e99b916c60e78e957e6eb88fe1a))
+
+# [4.25.0](https://github.com/doc-detective/doc-detective/compare/v4.24.0...v4.25.0) (2026-07-07)
+
+
+### Features
+
+* **record:** app window and device recording (native-app phase A7) ([#524](https://github.com/doc-detective/doc-detective/issues/524)) ([c177317](https://github.com/doc-detective/doc-detective/commit/c1773176c6cf386d2329f186571d2a0b93b4cbec))
+
+# [4.24.0](https://github.com/doc-detective/doc-detective/compare/v4.23.0...v4.24.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* **core:** retry native session creation after client timeout abort ([#526](https://github.com/doc-detective/doc-detective/issues/526)) ([d1fb01a](https://github.com/doc-detective/doc-detective/commit/d1fb01a293e747f2293f06701d9c9b81f694dacc))
+* **install:** 9-minute npm-child timeout for bulk runtime installs ([#530](https://github.com/doc-detective/doc-detective/issues/530)) ([b364c19](https://github.com/doc-detective/doc-detective/commit/b364c193d398600b788eca8db3b3a8342fc45a37)), closes [#528](https://github.com/doc-detective/doc-detective/issues/528)
+* **runtime:** self-repair transient Android SDK download flakes in installAndroid ([#525](https://github.com/doc-detective/doc-detective/issues/525)) ([cb516ca](https://github.com/doc-detective/doc-detective/commit/cb516cadb284642e4c54ad5d0912479118572adb)), closes [#523](https://github.com/doc-detective/doc-detective/issues/523)
+* **runtime:** sweep on-disk managed-dep orphans into the runtime manifest ([#528](https://github.com/doc-detective/doc-detective/issues/528)) ([d625248](https://github.com/doc-detective/doc-detective/commit/d62524862b6c166e93ebf7d52318ad145700191b)), closes [#501](https://github.com/doc-detective/doc-detective/issues/501) [#501](https://github.com/doc-detective/doc-detective/issues/501) [package.json#ddRuntimeDependencies](https://github.com/package.json/issues/ddRuntimeDependencies)
+
+
+### Features
+
+* **app-surface:** mobile interaction vocabulary (native-app phase A6) ([#517](https://github.com/doc-detective/doc-detective/issues/517)) ([d6e4ef5](https://github.com/doc-detective/doc-detective/commit/d6e4ef59a523dfe706750a5c2dad75854ee465ee)), closes [#submit-button](https://github.com/doc-detective/doc-detective/issues/submit-button) [#reveal-by-selector](https://github.com/doc-detective/doc-detective/issues/reveal-by-selector)
+
 # [4.23.0](https://github.com/doc-detective/doc-detective/compare/v4.22.0...v4.23.0) (2026-07-06)
 
 

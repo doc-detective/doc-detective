@@ -772,6 +772,11 @@ describe("core/utils coverage", function () {
     it("keeps the existing transient patterns retryable at any ceiling", function () {
       for (const message of [
         "connect ECONNREFUSED 127.0.0.1:4723",
+        // The concurrent-chromedriver collision on the fixed default port
+        // (9515) that ADR 01039 fixes: the browser driver must retry this the
+        // same way the Appium path does.
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        'WebDriverError: Could not proxy command to the remote server. Original error: connect ECONNREFUSED 127.0.0.1:9515 when running "execute/sync" with method "POST"',
         "read ECONNRESET",
         "socket hang up",
         "unknown error: could not proxy command to the remote browser",
@@ -779,6 +784,13 @@ describe("core/utils coverage", function () {
         "unknown error: cannot connect to chrome at 127.0.0.1:9222",
         "unknown error: DevToolsActivePort file doesn't exist",
         "session not created: This version of ChromeDriver only supports...",
+        // The concurrent-geckodriver startup crash that ADR 01041 fixes: several
+        // Firefox sessions launching at once starve a 2-core runner and one
+        // geckodriver child dies right after POST /session, so the next command
+        // can't be proxied. This is the Gecko analog of Chrome's "crashed during
+        // startup" and must retry the same way (observed verbatim in CI).
+        "WebDriverError: 'GET /session/54907282-d714-43cf-971b-e387db5a3810/window' cannot be proxied to Gecko Driver server because its process is not running (probably crashed). Check the Appium log for more details when running \"window\" with method \"GET\"",
+        "cannot be proxied to Gecko Driver server because its process is not running (probably crashed)",
       ]) {
         assert.equal(isRetryableSessionError(message, 0), true, message);
         assert.equal(isRetryableSessionError(message, 120000), true, message);

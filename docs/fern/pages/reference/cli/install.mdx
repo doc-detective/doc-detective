@@ -103,7 +103,7 @@ Because the system image is multi-GB, this command **never downloads without `--
 doc-detective install android --dry-run
 ```
 
-Google's SDK repository occasionally serves a corrupt or truncated package. `install android` **self-heals** these transient download failures: it retries the affected `sdkmanager` download a few times, and if a system image lands incomplete it re-downloads it once before continuing, so a momentary flake no longer fails the whole install. A genuine failure (an unavailable image, a rejected license) still stops with a clear message.
+Google's SDK repository occasionally serves a corrupt or truncated package. `install android` **self-heals** these transient download failures: it retries the affected `sdkmanager` download a few times, and if a system image lands incomplete it re-downloads it once before continuing, so a momentary flake no longer fails the whole install. A genuine failure (an unavailable image, a rejected license) still stops with a clear message. If a freshly downloaded system image is still incomplete after that one repair, `install android` logs an error, records it in the report as `[android] system-image — corrupt`, and stops before creating the AVD rather than building on a bad image. This outcome doesn't set a non-zero exit code, so scripts should watch the report or logs for `corrupt` instead of the exit status. Re-run the command to fetch a clean copy. The integrity check covers only images from the current run, so `install android` never touches a system image you already had.
 
 | Option | Description |
 |--------|-------------|

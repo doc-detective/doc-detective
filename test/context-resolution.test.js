@@ -3,11 +3,13 @@ import {
   isSupportedContext,
   getDefaultBrowser,
   getDriverCapabilities,
+  withChromedriverPort,
   combinationKey,
   warmUpDecision,
   contextRequirementsSkipMessage,
 } from "../dist/core/tests.js";
 import { resolveContexts } from "../dist/core/resolveTests.js";
+import { findFreePort } from "../dist/core/utils.js";
 
 // A step that requires a browser driver, and one that doesn't.
 const driverStep = { goTo: "https://example.com" };
@@ -427,5 +429,78 @@ describe("getDriverCapabilities", function () {
       options,
     });
     assert.equal(caps.browserName, "Safari");
+  });
+
+  it("does not pin a fixed chromedriver port in chrome capabilities", function () {
+    // The chromedriver port must be assigned per-driver (a unique free port),
+    // never baked into the caps at a fixed default. Two concurrent browser
+    // contexts that shared the chromedriver default port (9515) would collide
+    // — one driver's connection is refused mid-session (ECONNREFUSED :9515).
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options,
+    });
+    assert.equal(caps["appium:chromedriverPort"], undefined);
+  });
+});
+
+describe("withChromedriverPort", function () {
+  const chromeCaps = {
+    "appium:automationName": "Chromium",
+    browserName: "chrome",
+  };
+
+  it("assigns a chromedriver port for a Chromium session", function () {
+    const out = withChromedriverPort(chromeCaps, 51234);
+    assert.equal(out["appium:chromedriverPort"], 51234);
+  });
+
+  it("returns a copy, leaving the input capabilities untouched", function () {
+    const input = { ...chromeCaps };
+    const out = withChromedriverPort(input, 51235);
+    assert.equal(input["appium:chromedriverPort"], undefined);
+    assert.notStrictEqual(out, input);
+  });
+
+  it("assigns distinct ports on repeated calls (fresh free port per attempt)", function () {
+    const a = withChromedriverPort(chromeCaps, 40001);
+    const b = withChromedriverPort(chromeCaps, 40002);
+    assert.notEqual(
+      a["appium:chromedriverPort"],
+      b["appium:chromedriverPort"]
+    );
+  });
+
+  it("does not override an explicitly supplied chromedriver port", function () {
+    const out = withChromedriverPort(
+      { ...chromeCaps, "appium:chromedriverPort": 9999 },
+      51236
+    );
+    assert.equal(out["appium:chromedriverPort"], 9999);
+  });
+
+  it("leaves non-Chromium capabilities untouched", function () {
+    const gecko = { "appium:automationName": "Gecko", browserName: "firefox" };
+    const out = withChromedriverPort(gecko, 51237);
+    assert.equal(out["appium:chromedriverPort"], undefined);
+    // Gecko/Safari pick their own free port internally; nothing to assign.
+    assert.deepEqual(out, gecko);
+  });
+
+  it("gives two concurrent Chromium driver starts distinct chromedriver ports", async function () {
+    // Model the two concurrent browser contexts that collided on 9515: each
+    // driverStart allocates its own free chromedriver port, so their caps must
+    // never share a port. This is the concurrency invariant the fix restores.
+    const build = async () =>
+      withChromedriverPort(
+        { "appium:automationName": "Chromium", browserName: "chrome" },
+        await findFreePort()
+      );
+    const [a, b] = await Promise.all([build(), build()]);
+    assert.notEqual(
+      a["appium:chromedriverPort"],
+      b["appium:chromedriverPort"]
+    );
   });
 });

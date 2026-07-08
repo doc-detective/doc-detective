@@ -10,6 +10,11 @@ import {
   switchToSurface,
 } from "./browserSurface.js";
 import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
+import {
+  resolveAppWindow,
+  activeAppWindow,
+  appWindowRect,
+} from "./appWindows.js";
 import { APP_GESTURES } from "./appGestures.js";
 import {
   directionToPoints,
@@ -97,11 +102,24 @@ async function swipeSurface({
       result.description = appRef.error;
       return result;
     }
+    // Window selectors (ADR 01036): resolve to a real window; the gesture's
+    // coordinate math then uses THAT window's rect (macOS especially — Mac2's
+    // getWindowRect is the whole main screen).
+    let windowTarget: any = null;
     if (appRef.window !== undefined) {
-      result.status = "FAIL";
-      result.description =
-        "Window selectors on app surfaces land in a later part of this phase; act on the app's active window for now (omit `window`).";
-      return result;
+      const resolvedWindow = await resolveAppWindow({
+        entry: appRef.entry!,
+        selector: appRef.window,
+        timeoutMs: 5000,
+      });
+      if (!resolvedWindow.ok) {
+        result.status = "FAIL";
+        result.description = resolvedWindow.message;
+        return result;
+      }
+      windowTarget = resolvedWindow.target;
+    } else {
+      windowTarget = await activeAppWindow(appRef.entry!);
     }
     const switched = await ensureAppForeground(appRef.entry!, appSession);
     if (switched.error) {
@@ -117,7 +135,17 @@ async function swipeSurface({
       return result;
     }
     try {
-      await gestures.swipe(appRef.entry!.driver, gesture as any);
+      const rect = await appWindowRect(appRef.entry!, windowTarget);
+      // When a specific window was resolved but its bounds can't be read (a
+      // transient enumeration/rect failure), don't fall through to the
+      // driver's default rect — on Mac2 getWindowRect reports the whole main
+      // screen, which would place the swipe in the wrong region. FAIL instead.
+      if (!rect && windowTarget) {
+        result.status = "FAIL";
+        result.description = `Couldn't determine the bounds of the targeted window on app surface "${appRef.entry!.name}"; the swipe was not attempted.`;
+        return result;
+      }
+      await gestures.swipe(appRef.entry!.driver, gesture as any, rect ?? undefined);
     } catch (error: any) {
       result.status = "FAIL";
       result.description = `Couldn't swipe the app surface: ${error?.message ?? error}`;

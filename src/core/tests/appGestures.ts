@@ -35,8 +35,16 @@ interface SwipeGesture {
 
 interface AppGestureAdapter {
   // Swipe the app's window/screen. Throws on driver errors; the step handler
-  // wraps them into FAIL results.
-  swipe(driver: any, gesture: SwipeGesture): Promise<void>;
+  // wraps them into FAIL results. `rect` (ADR 01036) is the resolved window
+  // rect ({x,y,w,h}) for the surface's selected/default window — the desktop
+  // adapters use it for coordinate math instead of driver.getWindowRect()
+  // (which is one-root-only on Windows and the WHOLE SCREEN on Mac2); the
+  // mobile adapters ignore it (their getWindowRect IS the device screen).
+  swipe(
+    driver: any,
+    gesture: SwipeGesture,
+    rect?: { x: number; y: number; w: number; h: number }
+  ): Promise<void>;
   // Press-and-hold a located element for durationMs.
   longPress(driver: any, element: any, durationMs: number): Promise<void>;
   // Click a located element with a non-left mouse button. Returns {} on
@@ -48,6 +56,11 @@ interface AppGestureAdapter {
     element: any,
     button: string
   ): Promise<{ error?: string }>;
+  // Plain left click. Optional: platforms without an entry use
+  // element.click(). Windows overrides it with the UIA Invoke pattern —
+  // the driver's physical click is real mouse input at absolute
+  // coordinates, which lands off-target on scaled (HiDPI) displays.
+  leftClick?(driver: any, element: any): Promise<void>;
   // Handle one $KEY$ token. Returns {} on success or { error } when the token
   // is meaningless on this platform. Absent on desktop rows — the desktop key
   // vocabulary is a later phase, and typeKeys keeps its rejection.
@@ -114,6 +127,16 @@ export const DEVICE_KEYS: Set<string> = new Set([
   "$VOLUME_UP$",
   "$VOLUME_DOWN$",
 ]);
+
+// Normalize the step handler's resolved window rect ({x,y,w,h}, ADR 01036)
+// to the driver-rect shape, or fall back to the session's getWindowRect.
+async function gestureRect(
+  driver: any,
+  rect?: { x: number; y: number; w: number; h: number }
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  if (rect) return { x: rect.x, y: rect.y, width: rect.w, height: rect.h };
+  return await driver.getWindowRect();
+}
 
 // The window area directional swipes act within, inset per MOVEMENT_INSET.
 async function insetWindowArea(driver: any): Promise<{
@@ -316,8 +339,8 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
   },
 
   windows: {
-    async swipe(driver, gesture) {
-      const rect = await driver.getWindowRect();
+    async swipe(driver, gesture, windowRect) {
+      const rect = await gestureRect(driver, windowRect);
       if (gesture.from && gesture.to) {
         const fromPx = surfaceToAbsolutePixels(rect, gesture.from);
         const toPx = surfaceToAbsolutePixels(rect, gesture.to);
@@ -359,11 +382,23 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
       });
       return {};
     },
+    async leftClick(driver, element) {
+      // The UIA Invoke pattern is coordinate-free — the driver's physical
+      // click misses on scaled (HiDPI) displays (ADR 01036). Elements that
+      // don't support Invoke fall back to the physical click.
+      try {
+        await driver.execute("windows: invoke", {
+          "element-6066-11e4-a52e-4f735466cecf": element.elementId,
+        });
+      } catch {
+        await element.click();
+      }
+    },
   },
 
   mac: {
-    async swipe(driver, gesture) {
-      const rect = await driver.getWindowRect();
+    async swipe(driver, gesture, windowRect) {
+      const rect = await gestureRect(driver, windowRect);
       if (gesture.from && gesture.to) {
         const fromPx = surfaceToAbsolutePixels(rect, gesture.from);
         const toPx = surfaceToAbsolutePixels(rect, gesture.to);

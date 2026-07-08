@@ -25,7 +25,9 @@ Tests tell Doc Detective what actions to perform, how, and where. Tests are made
   - [**runShell**](/docs/actions/runshell): Perform a native shell command.
   - [**runBrowserScript**](/docs/actions/runbrowserscript): Run JavaScript in the browser page context and capture its return value.
   - [**screenshot**](/docs/actions/screenshot): Take a screenshot in PNG format.
+  - [**startSurface**](/docs/actions/startsurface): Open a surface—a native app, browser session, or background process—and register it by name, or open several concurrently with an array.
   - [**closeSurface**](/docs/actions/close-surface): Close a surface, such as a background process started by `runShell` or `runCode`.
+  - [**swipe**](/docs/actions/swipe): Swipe or scroll a surface in a direction or between two points.
   - [**type**](/docs/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key's enum. For example, to type the Escape key, enter `$ESCAPE$`.
   - [**wait**](/docs/actions/wait): Pause before performing the next action.
 
@@ -814,11 +816,12 @@ You can also set this in your configuration file using the `concurrentRunners` p
 Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners.
 
 <Warning>
-Parallel execution has limitations:
-
-- **Cross-context variables**: Tests that share variables via `loadVariables` or `variables` steps between contexts won't work correctly with concurrent runners, as variables write to `process.env` shared across all contexts.
-- **Recording steps**: Concurrent screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include `record` steps.
+**Cross-context variables**: Tests that share variables via `loadVariables` or `variables` steps between contexts won't work correctly with concurrent runners, as variables write to `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.
 </Warning>
+
+<Note>
+Recordings are safe to run concurrently, so you no longer need to keep `concurrentRunners` at `1` to record. The `browser` engine records each context's own window, Doc Detective automatically serializes `ffmpeg` recordings with other browser-based tests, and Android and iOS device recordings capture the device screen and run fully concurrently because they never touch the shared display. See [`record`](/docs/actions/record) for details.
+</Note>
 
 ## Read the results
 

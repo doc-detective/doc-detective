@@ -83,3 +83,23 @@ closeSurface | one of:<br/>- one of:<br/>- string<br/>- object([Process surface]
   }
 }
 ```
+
+```json
+{
+  "closeSurface": {
+    "app": "notepad",
+    "window": -1
+  }
+}
+```
+
+```json
+{
+  "closeSurface": {
+    "app": "TextEdit",
+    "window": {
+      "title": "Untitled 2"
+    }
+  }
+}
+```

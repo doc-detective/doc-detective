@@ -98,7 +98,7 @@ export const HINTS: Hint[] = [
     id: "enableAutoRecord",
     priority: 40,
     markdown: [
-      "Want a video of every run? Enable `--auto-record` to record each browser context end-to-end with the ffmpeg engine.",
+      "Want a video of every run? Enable `--auto-record` to record each driver-based context end-to-end — browser and desktop app contexts capture the screen with the ffmpeg engine; Android/iOS contexts record the device screen.",
       "",
       "Videos are archived per run under `.doc-detective/runs/<runId>/` alongside test results, so you can replay exactly what happened.",
       "",
@@ -106,8 +106,11 @@ export const HINTS: Hint[] = [
       "doc-detective --auto-record",
       "```",
     ].join("\n"),
+    // Browser contexts or app surfaces (startSurface) — autoRecord covers
+    // desktop app and mobile device contexts too (phase A7).
     when: (ctx) =>
-      ctx.usedBrowserContexts.size > 0 &&
+      (ctx.usedBrowserContexts.size > 0 ||
+        ctx.usedStepTypes.has("startSurface")) &&
       !ctx.producedRecordings &&
       !ctx.config?.autoRecord,
   },
@@ -295,6 +298,8 @@ export const HINTS: Hint[] = [
       "```json",
       '{ "record": { "engine": "browser" } }',
       "```",
+      "",
+      "Recordings on Android/iOS contexts capture the device screen and always run concurrently — no engine change needed there.",
     ].join("\n"),
     when: (ctx) => ctx.recordingSerialized,
   },
