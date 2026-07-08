@@ -21,7 +21,10 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
     ```bash
       npm i -g doc-detective
     ```
+    {/* Illustrative install command; not run in the docs gate — a global npm install mutates the environment and would clobber the npm-linked local build the workflow depends on. */}
+    {/* test ignore start */}
     {/* step {"stepId":"install-npm","description":"Install Doc Detective globally via npm","runShell":{"command":"npm i -g doc-detective"}} */}
+    {/* test ignore end */}
 
     <Note>
 
@@ -44,7 +47,10 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
     ```bash
       npx doc-detective --input sample.spec.json
     ```
+    {/* Illustrative CLI invocation (nested doc-detective run needing a sample.spec.json); not run in the docs gate. */}
+    {/* test ignore start */}
     {/* step {"stepId":"run-npx-test","description":"Run Doc Detective test with NPX","runShell":{"command":"npx doc-detective --input sample.spec.json","workingDirectory":"."}} */}
+    {/* test ignore end */}
 
   </Tab>
 {/* test end */}
