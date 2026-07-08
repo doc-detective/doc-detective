@@ -15,6 +15,9 @@ concurrency:
   group: test-docs-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test-docs:
     name: Test docs
