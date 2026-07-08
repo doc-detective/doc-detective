@@ -41,6 +41,7 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  isDeviceWebContext,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
@@ -826,6 +827,26 @@ function isRelativeUrl(url: string) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+// Is this WebdriverIO session a DEVICE (iOS/Android) session running in a WEB
+// (browser) context? This is the tight gate for the post-navigation settle in
+// goTo (ADR 01044): the settle exists only to absorb the freshly-built-WDA
+// window where an iOS Safari (XCUITest web context) element tree is momentarily
+// empty right after navigation while readyState already reports complete.
+//
+// - `isMobile` is WebdriverIO's own device flag (true when platformName is
+//   iOS/Android or Appium caps are present) — desktop browser sessions have it
+//   falsy, so desktop keeps a byte-identical control path (no settle).
+// - `capabilities.browserName` distinguishes a mobile-WEB session (Safari on
+//   iOS, Chrome on Android) from a native-app session (no browserName). A
+//   native-app context never reaches goTo, but gating on browserName keeps the
+//   predicate honest and self-describing.
+function isDeviceWebContext(driver: any): boolean {
+  if (!driver) return false;
+  const isMobile = driver.isMobile === true;
+  const browserName = driver.capabilities?.browserName;
+  return isMobile && typeof browserName === "string" && browserName.length > 0;
 }
 
 function appendQueryParams(

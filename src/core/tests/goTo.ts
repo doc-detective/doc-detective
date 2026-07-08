@@ -1,5 +1,9 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import {
+  isRelativeUrl,
+  appendQueryParams,
+  isDeviceWebContext,
+} from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
@@ -339,6 +343,47 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
           // Throw the first error to trigger the catch block
           // All waitResults have been updated by individual catch blocks
           throw (failures[0] as PromiseRejectedResult).reason;
+        }
+      }
+
+      // Device-web post-navigation settle (ADR 01044). goTo's readiness gate
+      // above queries the JS bridge (document.readyState / network / DOM), a
+      // SEPARATE path from the WebDriver element tree (the remote-debugger DOM
+      // the next `find` walks). On a freshly-built WDA under macOS-runner load,
+      // an iOS Safari (XCUITest web) context can momentarily hand back an EMPTY
+      // element tree right after navigation even though readyState already
+      // reports "complete" — so the first `find` after goTo can spuriously miss.
+      //
+      // Bound-wait for the element tree to become queryable before returning,
+      // reusing the driver's own waitUntil (returns as soon as satisfied — NOT a
+      // fixed sleep). Gated as tightly as possible to device web contexts, so
+      // desktop (and every app context) keeps a byte-identical control path with
+      // no added latency. This is best-effort: it does not weaken the gate above
+      // and never fails goTo — if the ceiling elapses we still hand control to
+      // `find`, which owns the real "element genuinely absent" verdict via its
+      // own wait.
+      if (isDeviceWebContext(driver)) {
+        try {
+          const remaining = waitTimeout - (Date.now() - waitStartTime);
+          const settleCeiling = Math.max(0, Math.min(3000, remaining));
+          if (settleCeiling > 0) {
+            await driver.waitUntil(
+              async () => {
+                try {
+                  const elements = await driver.$$("body *");
+                  return Array.isArray(elements)
+                    ? elements.length > 0
+                    : !!elements;
+                } catch {
+                  return false;
+                }
+              },
+              { timeout: settleCeiling }
+            );
+          }
+        } catch {
+          // Ceiling elapsed with the tree still empty: proceed anyway. find's
+          // own wait remains the authority on a genuinely-absent element.
         }
       }
 
