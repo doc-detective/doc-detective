@@ -84,6 +84,7 @@ FFmpeg
 Xvfb
 untargeted
 closeSurface
+startSurface
 waitUntil
 httpGet
 delayMs
@@ -122,14 +123,14 @@ sdkmanager
 avdmanager
 toolchains
 Xcode
+widget
+Temurin
+XCUITest
 simctl
 xcrun
 WebDriverAgent
-XCUITest
 loopback
 viewport
-startSurface
-closeSurface
 chromedrivers
 dialog
 dialogs

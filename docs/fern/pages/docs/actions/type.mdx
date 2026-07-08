@@ -13,8 +13,8 @@ You can specify the keys to type in several ways:
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
   - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
-  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to a browser reference (for example `{ "browser": "chrome", "tab": "cart" }`, or a named browser `{ "browser": "firefox", "name": "admin" }`) to type in a specific browser or tab, or to a process name to send keystrokes to a background process. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) and [Type to a background process](#type-to-a-background-process).
-  - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. Requires a `surface`, and the conditions depend on its kind: a process surface accepts `stdio`/`delayMs`, and a browser surface accepts `networkIdleTime`/`domIdleTime`/`find` (no condition applies by default). See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
+  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to a browser reference (for example `{ "browser": "chrome", "tab": "cart" }`, or a named browser `{ "browser": "firefox", "name": "admin" }`) to type in a specific browser or tab, to a process name to send keystrokes to a background process, or to an app reference (for example `{ "app": "notepad" }`) to type into an element on a [native app surface](/docs/actions/startsurface). See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Type to a background process](#type-to-a-background-process), and [Type into an app surface](#type-into-an-app-surface).
+  - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. Requires a `surface`, and the conditions depend on its kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, and an app surface accepts `delayMs`/`find` (no condition applies by default). See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
   - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
@@ -121,7 +121,7 @@ Common editing keys work on mobile app surfaces too. Android maps them to key co
 
 By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/run-shell#full-screen-terminal-uis).
 
-`surface` can also name a browser (session, window, or tab) or an app surface—see [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules. On Windows and macOS app surfaces, add a `window` selector to type in a specific window of the app (`{ "app": "notepad", "window": { "title": "/Find/" } }`)—see [App windows](find#app-windows).
+To send keystrokes to a native desktop app instead, target an [app surface](#type-into-an-app-surface). `surface` can also name a browser (session, window, or tab) or an app surface—see [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules. On Windows and macOS app surfaces, add a `window` selector to type in a specific window of the app (`{ "app": "notepad", "window": { "title": "/Find/" } }`)—see [App windows](find#app-windows).
 
 Identify the process with `surface`, using either form:
 
@@ -160,6 +160,19 @@ After sending the keys, use `waitUntil` to wait for the process before the step 
 `timeout` (default `5000` ms) caps how long Doc Detective waits for `waitUntil`. When you set a `stdio` condition, the step asserts that the output matched, so it fails if the expected output doesn't appear before `timeout` elapses. If you omit `waitUntil`, the step sends the keys and finishes without waiting.
 
 The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`.
+
+## Type into an app surface
+
+Set `surface` to an app reference, such as `{ "app": "notepad" }`, to type into a control on a [native app surface](/docs/actions/startsurface) that a `startSurface` step opened.
+
+Unlike browser typing, typing on an app surface requires element criteria to name the target control. Provide `elementText`, `elementId`, `elementAria`, or a native `selector` (an XPath or a `~`-prefixed accessibility ID). Typing into the active element isn't available on app surfaces. Doc Detective clicks the control to focus it, then types.
+
+Two limits apply in this phase:
+
+- `$KEY$` key tokens (listed under [Special keys](#special-keys)) aren't supported on app surfaces. The device key vocabulary lands in a later phase.
+- `waitUntil` on an app surface accepts only `delayMs` and `find`.
+
+App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to Windows.
 
 ## Examples
 
@@ -323,6 +336,34 @@ This example sends `Ctrl+C` to a running background process. Without a `waitUnti
           "type": {
             "keys": ["$CTRL$", "c"],
             "surface": { "process": "repl" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Type into an app surface
+
+This example types into a control on an app surface, naming the control with a native selector. See [`startSurface`](/docs/actions/startsurface) for the full launch-to-close flow.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Type into the copy box.",
+          "type": {
+            "keys": ["AB"],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
+            "surface": { "app": "charmap" }
           }
         }
       ]
