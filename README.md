@@ -69,6 +69,20 @@ Either way, the *published* package declares the heavy packages in neither `depe
   DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
   ```
 
+#### Prebuilt runtime cache
+
+To make the *first* run on a fresh machine fast, each Doc Detective release ships prebuilt, per-platform tarballs of the warm cache (the heavy npm packages and the browsers/drivers) attached to the GitHub Release. Before falling back to the lazy `npm install`/browser download, the loader tries to restore the matching tarball for your exact platform and Doc Detective version, verifying it against a checksummed manifest.
+
+The restore is **strict and self-healing**: it only proceeds when the release version, platform (OS, arch, libc, and OS major version), and every pinned dependency version match exactly, and the downloaded archive's SHA-256 matches its manifest. Any mismatch, checksum failure, or missing asset (e.g. a platform with no published tarball) silently falls back to the normal lazy install — you never get a broken cache, only a slower first run. Restores are recorded so a known-bad asset isn't re-downloaded on the next run.
+
+Environment variables:
+
+- **`DOC_DETECTIVE_PREBUILT=0`** — opt out of the prebuilt-cache restore entirely (also accepts `false`/`no`/`off`). Behavior is then identical to today's lazy install. Orthogonal to `DOC_DETECTIVE_AUTOINSTALL`.
+- **`DOC_DETECTIVE_PREBUILT_BASE_URL`** — override the base URL the tarballs and manifests are fetched from (trailing slash optional). Useful for air-gapped mirrors or internal artifact stores. Defaults to the GitHub Release download path for your installed version.
+- **`DOC_DETECTIVE_PIN_BROWSERS=1`** — treat an already-installed browser/driver record as authoritative and skip the daily channel re-check (the `resolveBuildId`/latest-geckodriver network call). Combined with a warm cache this makes repeat runs do zero browser-related network I/O. `--force` still bypasses it and reinstalls.
+
+**Proxy note:** downloads use `axios`, which honors the standard `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` environment variables. Doc Detective's shim deliberately does not bundle a proxy agent, so in an environment where those variables aren't enough for the download to succeed, the prewarm restore simply fails and falls back to the lazy install path — it never blocks the run.
+
 ### Auto-update
 
 By default, `doc-detective` checks the npm registry on startup and self-updates if a newer release is available — global installs run `npm install -g`, `npx` invocations re-exec via `npx -y doc-detective@latest`, and local project installs print an "update available" hint instead of mutating your `package.json`. To opt out:

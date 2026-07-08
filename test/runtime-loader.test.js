@@ -676,6 +676,37 @@ describe("runtime/loader", function () {
       expect(spawner.calls).to.deep.equal([]);
     });
 
+    it("prewarm disabled (DOC_DETECTIVE_PREBUILT=0) → the npm install path is unchanged", async function () {
+      // With prewarm opted out, ensureRuntimeInstalled must behave exactly as it
+      // did before the hook existed: a missing declared package still triggers a
+      // single npm install. (hooks.js already sets DOC_DETECTIVE_PREBUILT=0
+      // globally, but assert it here explicitly for a self-contained regression.)
+      const prev = process.env.DOC_DETECTIVE_PREBUILT;
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+      try {
+        const spawner = makeFakeSpawner({
+          onSpawn: ({ args }) => {
+            const prefix = args[args.indexOf("--prefix") + 1];
+            const target = path.join(prefix, "node_modules", "pngjs");
+            fs.mkdirSync(target, { recursive: true });
+            fs.writeFileSync(
+              path.join(target, "package.json"),
+              JSON.stringify({ name: "pngjs", version: "7.0.0" })
+            );
+          },
+        });
+        await ensureRuntimeInstalled(["pngjs"], {
+          deps: { spawn: spawner, logger: () => {} },
+          force: true,
+        });
+        // Exactly one npm spawn — the prewarm hook did not add or remove work.
+        expect(spawner.calls).to.have.lengthOf(1);
+      } finally {
+        if (prev === undefined) delete process.env.DOC_DETECTIVE_PREBUILT;
+        else process.env.DOC_DETECTIVE_PREBUILT = prev;
+      }
+    });
+
     it("force: true reinstalls even when the package is already present", async function () {
       const runtimeDir = path.join(tmpRoot, "runtime");
       const target = path.join(runtimeDir, "node_modules", "pngjs");

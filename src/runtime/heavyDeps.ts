@@ -104,6 +104,9 @@ export function resolveManagedDepNames(pkg: ShimPackageJson): string[] {
 }
 
 export interface ShimPackageJson {
+  // The shim's own version — used by the prewarm restore path to match a
+  // published release's assets exactly (manifest.ddVersion === this).
+  version?: string;
   // The published manifest carries heavy-dep version constraints here:
   // the publish step moves `optionalDependencies` into this custom field so npm
   // never auto-installs them, while the source manifest keeps
@@ -162,6 +165,23 @@ export function resolveDeclaredVersion(
   throw new Error(
     `${name} is not declared in doc-detective's package.json (ddRuntimeDependencies, optionalDependencies, or dependencies). Add it before invoking the runtime loader.`
   );
+}
+
+/**
+ * The shim's own version string (from its package.json `version` field). The
+ * prewarm restore path matches a published release's assets against this: a
+ * manifest whose `ddVersion` differs is for a different release and must be
+ * rejected. Returns `null` when the field is missing/unreadable (a
+ * pathological package.json) so callers degrade to lazy install rather than
+ * throwing.
+ */
+export function getShimVersion(): string | null {
+  try {
+    const v = readShimPackageJson().version;
+    return typeof v === "string" && v.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Test seam: drop the cached package.json read. */

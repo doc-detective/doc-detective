@@ -63,6 +63,15 @@ function onUncaughtException(err) {
 
 export const mochaHooks = {
   async beforeAll() {
+    // Disable the prewarm restore path globally by default so unrelated suites
+    // (loader/browser installs) never make a real GitHub asset request as a
+    // side effect of hitting ensurePrewarmRestored. The dedicated prewarm
+    // suites (runtime-prewarm*.test.js) opt back in per-test via
+    // DOC_DETECTIVE_PREBUILT_BASE_URL + a stubbed http seam, so this default
+    // never masks their coverage.
+    if (process.env.DOC_DETECTIVE_PREBUILT === undefined) {
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+    }
     process.on("unhandledRejection", onUnhandledRejection);
     process.on("uncaughtException", onUncaughtException);
     for (const { name, server: s } of servers) {

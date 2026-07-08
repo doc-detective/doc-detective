@@ -10,6 +10,7 @@ import {
   withPeerCompanions,
 } from "./heavyDeps.js";
 import { isNpmNoiseLine } from "./installOutput.js";
+import { ensurePrewarmRestored } from "./prewarm.js";
 import {
   assertSafeRuntimePath,
   getRuntimeDir,
@@ -417,24 +418,41 @@ export async function ensureRuntimeInstalled(
   //      stale version; we re-install in that case so an upgraded shim
   //      doesn't run against an outdated cache (the bug Copilot
   //      flagged for persistent DOC_DETECTIVE_CACHE_DIR setups).
-  const toInstall = force
-    ? [...packages]
-    : packages.filter((name) => {
-        if (tryResolveFromShim(name)) return false;
-        if (!tryResolveFromCache(name, ctx)) return true;
-        try {
-          const installed = readInstalledVersionFromCache(name, ctx);
-          const expected = getDeclaredVersion(name);
-          if (!installed) return true;
-          return !satisfiesRange(installed, expected);
-        } catch {
-          // getDeclaredVersion throws for names not in package.json.
-          // The caller passed an unknown name; let the npm install
-          // path produce its own error rather than silently skipping.
-          return true;
-        }
-      });
+  // The skip-filter, factored out so it can be re-run identically after a
+  // prewarm restore populates the cache. When not forced, a package is skipped
+  // if it already resolves from the shim or from an up-to-date cache entry.
+  const computeToInstall = (): string[] =>
+    force
+      ? [...packages]
+      : packages.filter((name) => {
+          if (tryResolveFromShim(name)) return false;
+          if (!tryResolveFromCache(name, ctx)) return true;
+          try {
+            const installed = readInstalledVersionFromCache(name, ctx);
+            const expected = getDeclaredVersion(name);
+            if (!installed) return true;
+            return !satisfiesRange(installed, expected);
+          } catch {
+            // getDeclaredVersion throws for names not in package.json.
+            // The caller passed an unknown name; let the npm install
+            // path produce its own error rather than silently skipping.
+            return true;
+          }
+        });
+
+  let toInstall = computeToInstall();
+  // A fully warm cache short-circuits here BEFORE any prewarm work: no manifest
+  // request, no download. Only when there's real install work to do do we try a
+  // prewarmed tarball first (guarded by !force), then re-run the identical
+  // skip-filter — if the restore satisfied everything we return without ever
+  // touching npm. Any prewarm mismatch/failure returns "skipped" and the npm
+  // path below runs unchanged.
   if (toInstall.length === 0) return;
+  if (!force) {
+    await ensurePrewarmRestored("runtime", { ctx, deps: { logger: deps.logger } });
+    toInstall = computeToInstall();
+    if (toInstall.length === 0) return;
+  }
 
   const specs = toInstall.map(
     (name) => `${name}@${getDeclaredVersion(name)}`

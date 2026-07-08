@@ -1,0 +1,143 @@
+# Build and attach per-platform "prewarmed runtime" assets to the GitHub
+# Release. Each matrix job installs the PUBLISHED doc-detective globally, drives
+# a cold `install all` into a scratch cache, verifies the result, tars the
+# runtime + browsers caches, and uploads them (plus a manifest sidecar each) to
+# the existing `v<version>` release. The runtime loader (src/runtime/prewarm.ts)
+# restores these before falling back to lazy install.
+#
+# Two callers (mirrors promote.yml's dual-caller shape):
+#   - workflow_call     → release.yml chains this after semantic-release
+#                         publishes to `staging-<version>`.
+#   - workflow_dispatch → manual recovery re-runs, and backfilling assets for a
+#                         NEW runner-OS image on an existing release. platform
+#                         keys are computed on-runner (never hardcoded), so a
+#                         runner-image OS bump flows through automatically and
+#                         adds a new asset variant without clobbering the old.
+
+name: Prewarm runtime assets
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version already published on npm (as `staging-<version>` or `<version>`).
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build prewarm assets for (must exist as `staging-<version>` or `<version>` on npm, and have a `v<version>` GitHub Release).
+        required: true
+        type: string
+
+concurrency:
+  group: prewarm-${{ inputs.version }}
+  cancel-in-progress: false
+
+# `contents: write` lets `gh release upload` attach assets to the release the
+# release job created. Same repo + github.token is sufficient.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Prewarm ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-13
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve npm tag (staging-<version> or <version>)
+        id: resolve
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          STAGING_TAG="staging-$VERSION"
+          RESOLVED=""
+          for i in $(seq 1 12); do
+            # Prefer the staging tag (automated path or fresh recovery).
+            PUB=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
+            if [ "$PUB" = "$VERSION" ]; then
+              RESOLVED="$STAGING_TAG"
+              echo "doc-detective@$STAGING_TAG resolves to $PUB — using staging tag."
+              break
+            fi
+            # Fall back to the plain version — covers recovery runs where staging
+            # was already retired by promote.
+            PUB=$(npm view "doc-detective@$VERSION" version 2>/dev/null || echo "")
+            if [ "$PUB" = "$VERSION" ]; then
+              RESOLVED="$VERSION"
+              echo "staging-$VERSION not present; $VERSION is published — using plain version."
+              break
+            fi
+            echo "Attempt $i: neither staging-$VERSION nor $VERSION resolves yet. Waiting 10s..."
+            sleep 10
+          done
+          if [ -z "$RESOLVED" ]; then
+            echo "ERROR: Timed out waiting for doc-detective@$VERSION to resolve (staging or plain)." >&2
+            exit 1
+          fi
+          echo "resolved=$RESOLVED" >> "$GITHUB_OUTPUT"
+
+      - name: Install published doc-detective globally (no auto-install)
+        shell: bash
+        env:
+          RESOLVED: ${{ steps.resolve.outputs.resolved }}
+          # The builder runs its own controlled cold `install all`; keep the
+          # global install lean and side-effect-free.
+          DOC_DETECTIVE_AUTOINSTALL: '0'
+        run: |
+          set -euo pipefail
+          npm install -g "doc-detective@$RESOLVED"
+
+      - name: Build prewarm assets
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          # Assets don't exist yet — guarantee a genuinely cold build.
+          DOC_DETECTIVE_PREBUILT: '0'
+        run: |
+          set -euo pipefail
+          node scripts/prewarm-build.mjs --version "$VERSION" --out "$RUNNER_TEMP/prewarm-out"
+
+      - name: Upload assets to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/prewarm-out"
+          # IMPORTANT: upload each tarball BEFORE its manifest sidecar, so a
+          # reader never sees a manifest pointing at a half-uploaded archive.
+          # The manifest's sha256 covers the residual window. `--clobber` makes
+          # re-runs (and dispatch backfills) idempotent.
+          for archive in "$OUT"/prewarm-*.tar.gz; do
+            [ -e "$archive" ] || { echo "ERROR: no prewarm tarballs in $OUT" >&2; exit 1; }
+            manifest="${archive%.tar.gz}.manifest.json"
+            gh release upload "v$VERSION" "$archive" --clobber
+            if [ -f "$manifest" ]; then
+              gh release upload "v$VERSION" "$manifest" --clobber
+            else
+              echo "ERROR: manifest sidecar missing for $archive" >&2
+              exit 1
+            fi
+          done

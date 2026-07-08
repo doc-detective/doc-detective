@@ -8,6 +8,7 @@ import {
   type CacheDirContext,
 } from "./cacheDir.js";
 import { loadHeavyDep, type Logger } from "./loader.js";
+import { ensurePrewarmRestored } from "./prewarm.js";
 
 export type BrowserAssetName = "chrome" | "firefox" | "chromedriver" | "geckodriver";
 
@@ -192,6 +193,23 @@ export const BROWSER_CHANNELS = {
 const FRESHNESS_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 const RESOLVE_TIMEOUT_MS = 5_000;
 
+/**
+ * True when the user has pinned browsers via DOC_DETECTIVE_PIN_BROWSERS
+ * (0/false/no/off ⇒ NOT pinned; any other set value ⇒ pinned). When pinned, an
+ * installed record entry is treated as authoritative and the 24h channel
+ * re-check (resolveBuildId / latest-geckodriver network call) is skipped
+ * entirely. `--force` still bypasses. Mirrors the same truthy parser shape used
+ * elsewhere: only an explicit falsy string disables it, so `=1`, `=true`, etc.
+ * all enable.
+ */
+function isBrowsersPinned(env: NodeJS.ProcessEnv = process.env): boolean {
+  const raw = env.DOC_DETECTIVE_PIN_BROWSERS;
+  if (raw === undefined) return false;
+  const v = String(raw).trim().toLowerCase();
+  if (v === "" || v === "0" || v === "false" || v === "no" || v === "off") return false;
+  return true;
+}
+
 export interface EnsureBrowserResult {
   /** Absolute path to the executable (or driver binary). */
   path: string;
@@ -338,6 +356,13 @@ async function ensureBrowserInstalledImpl(
   const logger = deps.logger ?? defaultLogger;
   const now = (deps.now ?? (() => new Date()))();
   const cacheDir = getBrowsersDir(ctx);
+  // Try a prewarmed browsers tarball before reading the record (guarded !force):
+  // on a cold cache this populates <cacheDir>/browsers + installed.json so the
+  // read below sees the restored entries. Any mismatch/failure is a silent
+  // skip and the normal install path runs unchanged.
+  if (!force) {
+    await ensurePrewarmRestored("browsers", { ctx, deps: { logger } });
+  }
   const record = readInstalledRecord(ctx);
   const existing = record.browsers[name];
 
@@ -348,6 +373,27 @@ async function ensureBrowserInstalledImpl(
       existing,
       logger
     );
+  }
+
+  // Phase 3.1: when browsers are pinned, an installed record entry is
+  // authoritative — skip the 24h channel re-check entirely (no resolveBuildId
+  // network call). --force still bypasses (handled by the branches below).
+  if (!force && existing && isBrowsersPinned()) {
+    const browsersModulePinned = await loadPuppeteerBrowsers(deps, ctx);
+    const platformPinned: any = browsersModulePinned.detectBrowserPlatform
+      ? browsersModulePinned.detectBrowserPlatform()
+      : undefined;
+    if (platformPinned) {
+      const pinnedPath = await locateExecutable(
+        browsersModulePinned,
+        name,
+        existing.installedVersion,
+        cacheDir,
+        platformPinned
+      );
+      return { path: pinnedPath, version: existing.installedVersion, outdated: false };
+    }
+    // No platform ⇒ fall through to the normal path, which surfaces a clean error.
   }
 
   const browsersModule = await loadPuppeteerBrowsers(deps, ctx);
@@ -655,7 +701,15 @@ async function ensureGeckodriver(
     return fromModule ?? geckodriverBinaryInCache(cacheDir) ?? cacheDir;
   };
 
-  if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {
+  // Phase 3.1: pinned browsers treat an installed record entry as
+  // authoritative — skip the freshness/latest re-check entirely. --force still
+  // bypasses (this branch is guarded by !force). The fresh-path logic below is
+  // reused for resolving the actual binary path.
+  if (
+    !ctxBag.force &&
+    existing &&
+    (isBrowsersPinned() || isStillFresh(existing.latestCheckedAt, ctxBag.now))
+  ) {
     // Load the geckodriver module so the returned `path` is the actual
     // binary path, not just the cache directory — matches the contract
     // EnsureBrowserResult documents. Tests can inject `geckodriverModule`

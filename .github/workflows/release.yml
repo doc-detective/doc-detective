@@ -109,3 +109,17 @@ jobs:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  # Build + attach per-platform prewarmed-runtime assets to the `v<version>`
+  # release. Runs PARALLEL to `promote` (no needs-edge between them) so assets
+  # land ASAP; a prewarm failure must never gate the @latest promote. If prewarm
+  # races ahead of promote and an asset is missing, consumers silently fall back
+  # to lazy install. Recovery/backfill re-runs go through prewarm.yml's
+  # workflow_dispatch.
+  prewarm:
+    name: Build prewarmed runtime assets
+    needs: release
+    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/prewarm.yml
+    with:
+      version: ${{ needs.release.outputs.version }}

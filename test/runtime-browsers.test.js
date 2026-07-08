@@ -591,4 +591,130 @@ describe("runtime/browsers", function () {
     expect(threw).to.equal(true);
     expect(downloads).to.equal(2); // initial + one re-download
   });
+
+  describe("prewarm hook + DOC_DETECTIVE_PIN_BROWSERS (Phase 3.1)", function () {
+    let prevPrebuilt;
+    let prevPin;
+    beforeEach(function () {
+      prevPrebuilt = process.env.DOC_DETECTIVE_PREBUILT;
+      prevPin = process.env.DOC_DETECTIVE_PIN_BROWSERS;
+    });
+    afterEach(function () {
+      if (prevPrebuilt === undefined) delete process.env.DOC_DETECTIVE_PREBUILT;
+      else process.env.DOC_DETECTIVE_PREBUILT = prevPrebuilt;
+      if (prevPin === undefined) delete process.env.DOC_DETECTIVE_PIN_BROWSERS;
+      else process.env.DOC_DETECTIVE_PIN_BROWSERS = prevPin;
+    });
+
+    it("prewarm disabled → the install/download path is unchanged (nothing recorded ⇒ one install)", async function () {
+      // hooks.js sets DOC_DETECTIVE_PREBUILT=0 globally, but make it explicit:
+      // with the restore opted out and no record, ensureBrowserInstalled installs
+      // exactly as it did before the hook existed.
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+      const browsersModule = makeFakeBrowsersModule({ latest: "121.0.0" });
+      const result = await ensureBrowserInstalled("chrome", {
+        deps: { browsersModule, logger: () => {} },
+      });
+      expect(result.version).to.equal("121.0.0");
+      expect(browsersModule._calls.installs).to.have.lengthOf(1);
+    });
+
+    it("pinned + installed ⇒ zero resolveBuildId (channel) calls, no install", async function () {
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+      process.env.DOC_DETECTIVE_PIN_BROWSERS = "1";
+      // Record present but with a STALE latestCheckedAt: without pinning this
+      // would trip the slow-path channel re-check. Pinning must skip it.
+      writeInstalledRecord({
+        npmPackages: {},
+        browsers: {
+          chrome: {
+            installedVersion: "121.0.0",
+            installedAt: "2026-01-01T00:00:00Z",
+            latestKnownVersion: "121.0.0",
+            latestCheckedAt: "2020-01-01T00:00:00Z", // stale
+          },
+        },
+      }, {});
+      let resolveCalls = 0;
+      const browsersModule = makeFakeBrowsersModule({ latest: "999.0.0" });
+      const wrapped = {
+        ...browsersModule,
+        resolveBuildId: async (...args) => {
+          resolveCalls++;
+          return browsersModule.resolveBuildId(...args);
+        },
+      };
+      const result = await ensureBrowserInstalled("chrome", {
+        deps: { browsersModule: wrapped, logger: () => {} },
+      });
+      expect(result.version).to.equal("121.0.0");
+      expect(result.outdated).to.equal(false);
+      expect(resolveCalls, "pinned browsers must not resolve the channel").to.equal(0);
+      expect(browsersModule._calls.installs).to.deep.equal([]);
+    });
+
+    it("pinned + missing ⇒ install proceeds normally", async function () {
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+      process.env.DOC_DETECTIVE_PIN_BROWSERS = "1";
+      // No record for chrome → pin has nothing authoritative to trust, so the
+      // normal install path runs.
+      const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+      const result = await ensureBrowserInstalled("chrome", {
+        deps: { browsersModule, logger: () => {} },
+      });
+      expect(result.version).to.equal("124.0.0");
+      expect(browsersModule._calls.installs).to.have.lengthOf(1);
+    });
+
+    it("pinned + installed geckodriver ⇒ no download (record authoritative)", async function () {
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+      process.env.DOC_DETECTIVE_PIN_BROWSERS = "1";
+      writeInstalledRecord({
+        npmPackages: {},
+        browsers: {
+          geckodriver: {
+            installedVersion: "0.36.0",
+            installedAt: "2026-01-01T00:00:00Z",
+            latestKnownVersion: "0.36.0",
+            latestCheckedAt: "2020-01-01T00:00:00Z", // stale
+          },
+        },
+      }, {});
+      let downloads = 0;
+      const geckodriverModule = {
+        path: path.join(tmpRoot, "browsers", "geckodriver"),
+        download: async () => {
+          downloads++;
+        },
+      };
+      const result = await ensureBrowserInstalled("geckodriver", {
+        deps: { geckodriverModule, logger: () => {} },
+      });
+      expect(downloads, "pinned geckodriver must not re-download").to.equal(0);
+      expect(result.version).to.equal("0.36.0");
+    });
+
+    it("pinned but --force still bypasses (installs)", async function () {
+      process.env.DOC_DETECTIVE_PREBUILT = "0";
+      process.env.DOC_DETECTIVE_PIN_BROWSERS = "1";
+      writeInstalledRecord({
+        npmPackages: {},
+        browsers: {
+          chrome: {
+            installedVersion: "121.0.0",
+            installedAt: "2026-01-01T00:00:00Z",
+            latestKnownVersion: "121.0.0",
+            latestCheckedAt: new Date().toISOString(),
+          },
+        },
+      }, {});
+      const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+      const result = await ensureBrowserInstalled("chrome", {
+        deps: { browsersModule, logger: () => {} },
+        force: true,
+      });
+      expect(result.version).to.equal("124.0.0");
+      expect(browsersModule._calls.installs).to.have.lengthOf(1);
+    });
+  });
 });
