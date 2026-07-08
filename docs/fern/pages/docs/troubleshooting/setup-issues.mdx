@@ -127,10 +127,10 @@ When a driver can't start a session, Doc Detective falls back to another availab
 Skipping context: could not start a browser session for 'firefox' on 'windows', and no other available browser could start either. A present-but-broken driver (for example a partially downloaded geckodriver) can cause this; reinstall the driver or its browser.
 ```
 
-Reinstall the runtime to replace the broken driver:
+Reinstall the browsers and their drivers to replace the broken driver:
 
 ```bash
-doc-detective install runtime
+doc-detective install browsers
 ```
 
 To control whether Doc Detective falls back across browsers, set the `browserFallback` policy in your config or on an individual context. See [Browser fallback](/docs/test-docs/platforms-and-browsers#browser-fallback) for the full behavior.
