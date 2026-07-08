@@ -71,6 +71,8 @@ In PTY mode, the process's stdout and stderr merge into a single stream that bot
 
 Doc Detective guards the `tty` start against environment problems that could otherwise hang a run. Before each `tty` process starts, it verifies the pseudo-terminal backend's files are intact on disk and reinstalls them if a dependency install removed them mid-run; on Windows it additionally probes that a new pseudo-terminal can actually be allocated. If the backend can't be restored or allocation is wedged, the step is **skipped** with an explanatory message instead of freezing the run.
 
+The Windows allocation probe waits up to 15 seconds by default. To change that budget, set the `DOC_DETECTIVE_PTY_PROBE_TIMEOUT_MS` environment variable to a duration in milliseconds. Non-Windows platforms don't run the probe.
+
 ## Examples
 
 Here are a few ways you might use the `runShell` action:
