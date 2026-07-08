@@ -9,7 +9,7 @@ description: "Reference for the `App readiness` schema."
 ## Referenced In
 
 - [Type keys (detailed)](/reference/schemas/type-keys-detailed)
-- [startSurface](/reference/schemas/startsurface)
+- [App descriptor](/reference/schemas/app-descriptor)
 
 ## Fields
 

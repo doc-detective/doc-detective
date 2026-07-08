@@ -177,7 +177,13 @@ jobs:
           node scripts/check-fixture-results.cjs "dd-output-${{ matrix.group }}.json"
 
       # Preserve the run's JSON for debugging a failure.
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
       - if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-${{ matrix.group }}-${{ matrix.os }}
@@ -307,7 +313,13 @@ jobs:
             DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
             exit $rc
 
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
       - if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-reuse
@@ -391,7 +403,13 @@ jobs:
             --output dd-output-mobile-web-android.json || true
           DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
 
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
       - if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-managed
@@ -467,7 +485,13 @@ jobs:
           cp "$RUNNER_TEMP/doc-detective-output.json" dd-output-apps-android.json
           DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
 
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
       - if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fixture-output-apps-android-action

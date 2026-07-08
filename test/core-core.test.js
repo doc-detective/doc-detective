@@ -1180,6 +1180,85 @@ describe("browserJobCount() Appium pool sizing", function () {
     assert.equal(browserJobCount([]), 0);
     assert.equal(browserJobCount([{ context: {} }, { context: { steps: [] } }, {}]), 0);
   });
+
+  it("counts a context whose only browser touch is a startSurface browser descriptor (Phase 6)", function () {
+    const jobs = [
+      { context: { steps: [{ startSurface: { browser: "chrome" } }] } },
+      // Process- and app-only startSurface forms never size the browser pool.
+      { context: { steps: [{ startSurface: { process: "srv", name: "srv" } }] } },
+      { context: { steps: [{ startSurface: { app: "charmap" } }] } },
+      // Array form: one browser descriptor among others still counts once.
+      {
+        context: {
+          steps: [
+            {
+              startSurface: [
+                { app: "charmap" },
+                { browser: "firefox", name: "admin" },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    assert.equal(browserJobCount(jobs), 2);
+  });
+});
+
+describe("collectDeviceDescriptors() device planning", function () {
+  let collectDeviceDescriptors;
+  before(async function () {
+    const testsModule = await import("../dist/core/tests.js");
+    collectDeviceDescriptors = testsModule.collectDeviceDescriptors;
+  });
+
+  it("collects each app descriptor's device across object and parallel array forms (Phase 6)", function () {
+    const context = {
+      steps: [
+        { startSurface: { app: "com.example.a", device: "pixel" } },
+        {
+          startSurface: [
+            { app: "com.example.b", device: { platform: "android", name: "tab" } },
+            // Non-app descriptors have no device and contribute nothing.
+            { browser: "chrome" },
+            { process: "srv", name: "srv" },
+          ],
+        },
+      ],
+    };
+    assert.deepEqual(collectDeviceDescriptors(context), [
+      "pixel",
+      { platform: "android", name: "tab" },
+    ]);
+  });
+
+  it("falls back to [undefined] so a test with no explicit device still validates the default", function () {
+    assert.deepEqual(collectDeviceDescriptors({ steps: [] }), [undefined]);
+    // A device-less app descriptor still contributes its (undefined) slot —
+    // the context default / auto device.
+    assert.deepEqual(
+      collectDeviceDescriptors({
+        steps: [{ startSurface: { app: "com.example.a" } }],
+      }),
+      [undefined]
+    );
+  });
+
+  it("falls back to [undefined] for a parallel array with only browser/process descriptors (no app boots a device)", function () {
+    assert.deepEqual(
+      collectDeviceDescriptors({
+        steps: [
+          {
+            startSurface: [
+              { browser: "chrome" },
+              { process: "srv", name: "srv" },
+            ],
+          },
+        ],
+      }),
+      [undefined]
+    );
+  });
 });
 
 describe("getRunner() function", function () {

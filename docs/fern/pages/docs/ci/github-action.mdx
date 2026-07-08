@@ -45,11 +45,16 @@ By default, the action runs from the repository root and uses the config file Do
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `latest` | Doc Detective version to run—a version number or an npm tag such as `latest`. |
+| `version` | `latest` | Doc Detective version to run—a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `android` | `auto` | Set up the Android emulator on Linux runners so `android`-platform tests can run. `auto` sets it up only when your specs use an `android` platform, `true` always sets it up, and `false` never does. No effect on macOS or Windows runners. See [Run Android tests on Linux](#run-android-tests-on-linux). |
+| `ios` | `auto` | Cache the WebDriverAgent build on macOS runners so `ios`-platform tests skip the slow cold compile. `auto` caches only when your specs use an `ios` platform, `true` always caches, and `false` never does. No effect off macOS. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos). |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
+
+<Note>
+Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory—for example, a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
+</Note>
 
 ## Step 3: Fail the build when tests fail
 
@@ -62,7 +67,7 @@ By default, the action doesn't fail the job when tests fail—it reports the res
 ```
 
 <Note>
-This is the action's main advantage over running the CLI directly in a workflow. The standalone `doc-detective` CLI exits non-zero only when it crashes or your config is invalid—never because a test failed—so a script that relies on its exit code reports success even when documentation tests failed. The action reads the results and exits non-zero for you. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-5-fail-ci-when-tests-fail) for the CLI behavior in detail.
+This is the action's main advantage over running the CLI directly in a workflow. The standalone `doc-detective` CLI exits non-zero only when it crashes or your config is invalid—never because a test failed—so a script that relies on its exit code reports success even when documentation tests failed. The action reads the results and exits non-zero for you. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the CLI behavior in detail.
 </Note>
 
 ## Step 4: Open a pull request when files change
@@ -200,6 +205,34 @@ Setup is best-effort. If a runner can't grant KVM access, the action logs a warn
 
 <Note>
 The emulator only accelerates on Linux, so this input has no effect on macOS or Windows runners.
+</Note>
+
+## Speed up iOS tests on macOS
+
+Tests against the `ios` platform run on macOS runners, where the first XCUITest session compiles the WebDriverAgent (WDA) with `xcodebuild`. On a cold, ephemeral runner that compile takes around 10 minutes and dominates the run. To avoid paying that cost every time, the action caches the WDA build products and restores them on later runs, so the build becomes near-instant.
+
+```yaml
+jobs:
+  runTests:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v1
+        # ios: auto is the default—nothing else is needed on macOS.
+```
+
+The `ios` input controls this behavior:
+
+| Input | Default | Description |
+|---|---|---|
+| `ios` | `auto` | Cache the WebDriverAgent build on macOS runners. `auto` scans your resolved specs and config and caches only when it finds an `ios` platform, `true` always caches, and `false` never does. |
+
+The first run compiles WDA cold and saves the build to the cache. Later runs restore it and finish with a quick incremental build. The cache key covers the runner OS, the Xcode version, and the XCUITest driver version. A change to the runner OS or Xcode starts a fresh, cold build. A driver-version bump is gentler: the exact key misses, but the action falls back to the most recent build for the same OS and Xcode, warms an incremental rebuild from it, and re-caches the result under the new driver version. That way a driver upgrade repairs the cache on the next run instead of leaving it stale.
+
+Caching only affects build speed—Doc Detective still bootstraps the XCUITest driver and simulator it needs at test time. Leave `ios` at `auto` for most workflows. Set it to `true` when your `ios` platform lives outside the scanned specs and config, or `false` to turn caching off.
+
+<Note>
+iOS simulators run only on macOS, so this input has no effect on Linux or Windows runners.
 </Note>
 
 ## Runtime caching
