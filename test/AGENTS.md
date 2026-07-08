@@ -16,7 +16,7 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `lsof -iTCP:8092 -sTCP:LISTEN` on Linux/macOS — and inspect the owning process's command line (it
   may be mocha from a sibling `.claude/worktrees/*` checkout, or a days-old orphan). Wait or kill
   only orphaned listeners, then rerun.
-- **Browserless worktrees fail ~22 browser-dependent tests.** A worktree with no Chrome/Firefox/
+- **Browserless worktrees fail the browser-dependent tests.** A worktree with no Chrome/Firefox/
   Appium installed and no network to lazy-provision fails browser-dependent tests with "Chrome
   browser is not available" or step-count assertions (`0 !== 1`, `undefined (reading 'result')`)
   because browser contexts skip. These are environmental, not regressions. Verify: (a) the failing
@@ -40,7 +40,8 @@ in `src/core/utils.ts`) keeps it safe:
 - **Recordings serialize on a `"display"` mutex on every platform** — per-context Xvfb displays do
   NOT make concurrent recordings safe (driver sessions still clobber each other → "invalid session
   id"). While any recording is present in a run, all driver contexts serialize; only non-driver
-  (HTTP/shell) work stays parallel. The runner reports this via `result.recordingSerialized`.
+  (HTTP/shell) work stays parallel. The runner sets `report.recordingSerialized = true`, surfaced
+  to consumers (e.g. hints) as `results.recordingSerialized`.
 - **Never set `concurrentRunners` in the shared `core-artifacts/config.json`.** Other suites load
   the same file (e.g. `appium-port-conflict.test.js`, which probes single-Appium port-conflict
   behavior); a leaked `concurrentRunners: 2` starts a second Appium server while port 4723 is held
