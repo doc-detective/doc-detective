@@ -28,9 +28,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": ["data"],
                   "properties": {
                     "data": {
                       "type": "object",
+                      "required": ["id", "email", "first_name", "last_name"],
                       "properties": {
                         "id": { "type": "integer" },
                         "email": { "type": "string" },
@@ -80,6 +82,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": ["name", "job", "id", "createdAt"],
                   "properties": {
                     "name": { "type": "string" },
                     "job": { "type": "string" },
