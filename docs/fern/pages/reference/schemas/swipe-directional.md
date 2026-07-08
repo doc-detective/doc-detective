@@ -17,7 +17,7 @@ Field | Type | Description | Default
 direction | string | Required. Direction the virtual finger moves. `up` reveals content below; `left` reveals content to the right (for example, the next carousel card).<br/><br/>Accepted values: `up`, `down`, `left`, `right` | 
 distance | number | Optional. How far to swipe, as a fraction of the surface's height (for up/down) or width (for left/right).<br/><br/>Exclusive minimum: 0. Maximum: 1 | `0.5`
 duration | integer | Optional. Duration of the swipe movement in milliseconds.<br/><br/>Minimum: 1 | `500`
-surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }). | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form (&#123; "app": … &#125;). | 
 
 ## Examples
 

@@ -115,7 +115,15 @@ You can use single or double quotes for either attribute. Use `<data>` elements 
 
 ## Examples
 
+{/* The examples below document inline-test syntax; they aren't runnable tests (they navigate real
+sites like example.com/google.com and act on elements that don't exist there). Each is wrapped in
+its OWN `test ignore` block — a shared block wouldn't work, because a `test end` inside one example
+resets the ignore state (src/common/src/detectTests.ts), which would re-enable extraction of the
+next example's steps. */}
+
 Here's an example using **JSON syntax** in Markdown:
+
+{/* test ignore start */}
 
 ```markdown
 [comment]: # 'test {"testId": "kitten-search"}'
@@ -138,7 +146,11 @@ To search for American Shorthair kittens,
 [comment]: # "test end"
 ```
 
+{/* test ignore end */}
+
 Here's the same example using **YAML syntax** in Markdown:
+
+{/* test ignore start */}
 
 ```markdown
 {/* test testId: kitten-search */}
@@ -158,7 +170,11 @@ To search for American Shorthair kittens,
 {/* step screenshot: search-results.png */} {/* test end */}
 ```
 
+{/* test ignore end */}
+
 **HTML example**:
+
+{/* test ignore start */}
 
 ```html
 <!-- test { "testId": "navigation-test" } -->
@@ -171,7 +187,11 @@ To search for American Shorthair kittens,
 <!-- test end -->
 ```
 
+{/* test ignore end */}
+
 **AsciiDoc example**:
+
+{/* test ignore start */}
 
 ```asciidoc
 // (test { "testId": "doc-test" })
@@ -185,3 +205,5 @@ Click the *Start* button:
 
 // (test end)
 ```
+
+{/* test ignore end */}

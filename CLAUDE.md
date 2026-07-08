@@ -10,6 +10,22 @@ Repo-wide guidance for AI agents. Package-specific rules live alongside the code
 - [docs/maintenance/](docs/maintenance/) — maintainer operations: merge gating, release recovery, branch promotion, lockfile regeneration.
 - [docs/content-strategy/](docs/content-strategy/) — audiences, personas, CUJs, and the information architecture that govern every documentation change. Consult before writing docs (see ["Documentation content strategy"](#documentation-content-strategy-required)).
 
+## Environment setup (required)
+
+**Install dependencies before you start working.** A fresh clone or git worktree has no
+`node_modules` (it's gitignored and not shared between worktrees), so tests, the local
+`doc-detective` CLI, husky commit hooks (`commitlint`), and `npm run build` all fail until you
+install. Run this once at the start of any task:
+
+```bash
+npm ci                              # or `npm i`; installs root + src/common deps
+node ./bin/doc-detective.js install all --yes   # browsers + drivers, if you'll run browser/doc tests
+```
+
+Don't reach for `--no-verify` when a husky hook fails for a missing dependency — install the deps
+instead. Verify runnable changes against the real toolchain (e.g. run a doc's inline tests with
+`doc-detective runTests --input <file>`) rather than guessing at CI behavior.
+
 ## Persistent knowledge: repo instructions, not Claude memory (required)
 
 Do **not** use Claude Code's auto-memory feature (the per-project `~/.claude/projects/**/memory/`
