@@ -227,6 +227,11 @@ toolchain
 widget
 Temurin
 XCUITest
+loopback
+SSRF
+WebDriverAgent
+WDA
+xcodebuild
 dialog
 dialogs
 dialog's

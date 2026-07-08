@@ -113,6 +113,28 @@ Install the required browser driver:
 npm install appium appium-chromium-driver
 ```
 
+### A browser is present but its driver won't run
+
+Sometimes a browser driver exists on disk but won't run. The most common case is a partially downloaded `geckodriver`. Doc Detective validates each driver by running it, not just by checking that the file is present, so a broken driver no longer silently drops that browser's coverage.
+
+When a driver can't start a session, Doc Detective falls back to another available browser. Chrome, Firefox, and Safari/WebKit can each substitute for one another. The run then reports one of the following:
+
+- `PASS` when Doc Detective auto-selected the browser and a fallback browser ran the context.
+- `WARNING` when you requested the browser explicitly and a fallback ran it instead, so a degraded run never looks like a clean success.
+- `SKIPPED` when no browser can start a session. The diagnostic names the requested browser and points to the likely cause:
+
+```
+Skipping context: could not start a browser session for 'firefox' on 'windows', and no other available browser could start either. A present-but-broken driver (for example a partially downloaded geckodriver) can cause this; reinstall the driver or its browser.
+```
+
+Reinstall the browsers and their drivers to replace the broken driver:
+
+```bash
+doc-detective install browsers
+```
+
+To control whether Doc Detective falls back across browsers, set the `browserFallback` policy in your config or on an individual context. See [Browser fallback](/docs/test-docs/platforms-and-browsers#browser-fallback) for the full behavior.
+
 ### Version mismatch warning
 
 If you see a warning about version drift:

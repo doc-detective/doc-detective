@@ -1,3 +1,16 @@
+# [4.26.0](https://github.com/doc-detective/doc-detective/compare/v4.25.1...v4.26.0) (2026-07-08)
+
+
+### Bug Fixes
+
+* **core:** retry geckodriver startup crash under concurrent context-starts ([#542](https://github.com/doc-detective/doc-detective/issues/542)) ([24bc220](https://github.com/doc-detective/doc-detective/commit/24bc2208e4b818ce5f23ff8ea3b6e02e0ced529a))
+
+
+### Features
+
+* **app-surface:** app window selectors on desktop drivers ([#536](https://github.com/doc-detective/doc-detective/issues/536)) ([db4b8f1](https://github.com/doc-detective/doc-detective/commit/db4b8f1762bb0faf877827706aeea252e65308a8)), closes [#537](https://github.com/doc-detective/doc-detective/issues/537) [appium-novawindows-driver#85](https://github.com/appium-novawindows-driver/issues/85)
+* **start-surface:** generic + parallel startSurface (multi-surface phase 6) ([#539](https://github.com/doc-detective/doc-detective/issues/539)) ([3e136f7](https://github.com/doc-detective/doc-detective/commit/3e136f7898188283172bc354ba85414ff6fa609a))
+
 ## [4.25.1](https://github.com/doc-detective/doc-detective/compare/v4.25.0...v4.25.1) (2026-07-07)
 
 
