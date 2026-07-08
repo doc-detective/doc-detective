@@ -7,9 +7,10 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
 
 - **Port 8092 collisions.** The mocha hooks ([hooks.js](hooks.js)) start the test servers via
   `createTestServers()`, whose ports are hardcoded in [server/instances.js](server/instances.js)
-  (8092 main / 8093 API); the hooks silently continue if a server is "already running". Two
-  failure modes: parallel worktree sessions running mocha at the same time, and orphaned servers
-  left behind by a killed run. Either way, dynamically-seeded fixtures 404 (e.g.
+  (8092 main / 8093 API); on `EADDRINUSE` the hooks log `Test server (<name>) already running` and
+  continue against the existing listener (so watch for that line when debugging). Two failure
+  modes: parallel worktree sessions running mocha at the same time, and orphaned servers left
+  behind by a killed run. Either way, dynamically-seeded fixtures 404 (e.g.
   `url-reference-fixture.png` in core-screenshot tests) and browser sessions can die with "invalid
   session id". Before trusting failures in the core-screenshot/core-core suites, find the listener
   — `Get-NetTCPConnection -LocalPort 8092 -State Listen` on Windows, `ss -ltnp 'sport = :8092'` or
