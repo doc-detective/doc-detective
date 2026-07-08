@@ -54,8 +54,11 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       };
       delete step.httpRequest.openApi.definition;
     } else if (openApiDefinitions.length > 0) {
-      // Identify first definition that contains the operation
-      for (const openApiConfig of openApiDefinitions) {
+      // Identify the first definition that contains the operation. The labeled
+      // break stops all three loops on the first match; a plain `break` would
+      // only exit the innermost (method) loop and let later definitions
+      // overwrite the match, making the *last* one win instead of the first.
+      findOperation: for (const openApiConfig of openApiDefinitions) {
         for (const path in openApiConfig.definition.paths) {
           for (const method in openApiConfig.definition.paths[path]) {
             if (
@@ -68,7 +71,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
                 ...step.httpRequest.openApi,
               };
               delete step.httpRequest.openApi.definition;
-              break;
+              break findOperation;
             }
           }
         }

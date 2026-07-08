@@ -120,7 +120,7 @@
           {
             "name": "page",
             "in": "query",
-            "description": "Select the portition of record you want back",
+            "description": "Select the portion of record you want back",
             "required": false,
             "schema": {
               "type": "integer",

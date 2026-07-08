@@ -128,13 +128,13 @@ describe("httpRequest openApi string shorthand", function () {
 
   before(async function () {
     definition = await loadDescription(
-      path.resolve("test/core-need_updates/reqres.openapi.json")
+      path.resolve("test/core-artifacts/http/reqres.openapi.json")
     );
   });
 
   // A registered openApi entry that mocks the response so the test never
-  // touches the network. Deep-cloned per call because httpRequest mutates
-  // step.httpRequest.openApi during resolution.
+  // touches the network. The dereferenced definition is deep-cloned per call
+  // so one test's resolution can't mutate the shared object another test reads.
   const definitions = () => [
     {
       name: "reqres",

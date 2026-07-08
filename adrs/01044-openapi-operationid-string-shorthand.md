@@ -50,9 +50,9 @@ the same "OpenAPI definition not found."
 
 Chosen option: **propagate + normalize.**
 
-* **Propagation** (`src/core/resolveTests.ts`): after `resolveContext` returns, assign the loaded set
-  — `resolvedContext.openApi = resolvedTest.openApi` — so the description-loaded, spec+test-merged
-  documents reach `context.openApi` and thus `httpRequest`'s `openApiDefinitions`.
+* **Propagation** (`src/core/resolveTests.ts`): `resolveTest` passes the loaded set
+  (`resolvedTest.openApi`) into `resolveContext`, which uses it for `context.openApi` — so the
+  description-loaded, spec+test-merged documents reach `httpRequest`'s `openApiDefinitions`.
 * **Normalization** (`src/core/tests/httpRequest.ts`): at the top of the `openApi` block, a bare
   string becomes `{ operationId: <string> }`, then the existing object-form resolution runs
   unchanged.
