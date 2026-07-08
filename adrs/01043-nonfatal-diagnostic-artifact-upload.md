@@ -18,7 +18,7 @@ diagnostics.
 GitHub's ArtifactService is occasionally unavailable. When it is, the upload exhausts the
 action's internal retries and the step fails:
 
-```
+```text
 Attempt 1 of 5 failed with error: Request timeout: /twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact …
 ##[error]Failed to CreateArtifact: Failed to make request after 5 attempts: Request timeout …
 ```
