@@ -175,9 +175,29 @@ See [Docker and headless](/docs/ci/docker-and-headless) for how headless environ
 
 ## Runtime caching
 
-Doc Detective installs heavy runtime assets—browsers, drivers, and npm packages—on first use. To speed up CI, cache them between runs.
+Doc Detective installs large runtime assets—browsers, drivers, and npm packages such as webdriverio, Appium, sharp, and ffmpeg—the first time it needs them. The action caches these assets between runs, so the warm-up happens once per repository instead of on every run.
 
-### Cache the runtime directory
+### Cache the runtime automatically
+
+By default, the action caches the runtime for you. Use the `cache` input to control this behavior:
+
+```yaml
+- uses: doc-detective/github-action@v1
+  with:
+    cache: true  # default
+```
+
+| Input | Default | Description |
+|---|---|---|
+| `cache` | `true` | Persist the runtime and browser cache across runs. Set to `false` to disable caching entirely. |
+
+When you enable `cache`, the action points Doc Detective's cache directory at a stable path, restores the cache before the run, and saves it afterward with [`actions/cache`](https://github.com/actions/cache)—even when a test fails. You don't add an `actions/cache` step of your own. The action caches only the installed runtime, downloaded browsers, and install record. On every runner platform, it always skips the multi-GB Android SDK and Java runtime—Linux runners already include an Android SDK that Doc Detective finds first, so caching it adds no benefit. The cache key includes the platform and architecture, so each runner OS keeps its own cache.
+
+The cache key is `dd-deps-v1-<platform>-<arch>-node<major>-<version>`, where `<version>` is the resolved exact Doc Detective version. Because the version is part of the key, a new release produces a fresh key instead of a stale hit. The previous cache still restores as a prefix match to warm the install, so a version bump installs only the dependencies that changed rather than starting cold.
+
+### Manage the cache yourself
+
+Set `cache` to `false` to restore the behavior from before this input existed: the action doesn't pin a cache directory, and each run installs its dependencies again. Turn caching off when you want to manage the cache with your own `actions/cache` step—for example, to key it differently or share it across jobs. While caching stays on, the action sets `DOC_DETECTIVE_CACHE_DIR` itself and overrides any value you set at the job or step level, so set `cache` to `false` before you manage the directory yourself.
 
 Point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
 
@@ -196,13 +216,13 @@ jobs:
           restore-keys: |
             doc-detective-${{ runner.os }}-
       - uses: doc-detective/github-action@v1
+        with:
+          cache: false
 ```
 
 Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs.
 
-### Pre-install assets
-
-To control exactly when assets download, install them before the action runs:
+To control exactly when assets download, pre-install them before the action runs. Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory:
 
 ```yaml
 jobs:
@@ -224,9 +244,9 @@ jobs:
       - run: npm install -g doc-detective
       - run: doc-detective install all --yes
       - uses: doc-detective/github-action@v1
+        with:
+          cache: false
 ```
-
-Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory.
 
 ## Verify it works
 
@@ -253,9 +273,9 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### Runs are slow because assets download every time
 
-**Cause:** The runtime cache isn't persisted between runs.
+**Cause:** The `cache` input is `false`, so each run installs the browsers, drivers, and npm packages again.
 
-**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a cached workspace path and pre-install assets. See [Runtime caching](#runtime-caching).
+**Solution:** Leave the `cache` input at its default of `true` so the action persists the runtime between runs. See [Runtime caching](#runtime-caching).
 
 ## What's next
 
