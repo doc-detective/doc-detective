@@ -178,6 +178,9 @@ navigation:
               - page: HTTP & APIs
                 path: pages/docs/test-code/http-and-api.mdx
                 slug: http-and-api
+              - page: Generate requests from OpenAPI
+                path: pages/docs/test-code/generate-tests-from-openapi.mdx
+                slug: generate-tests-from-openapi
               - page: Integrations
                 path: pages/docs/get-started/integrations.mdx
                 slug: integrations
@@ -357,6 +360,9 @@ navigation:
           - page: Resources
             path: pages/docs/get-started/resources.mdx
             slug: /resources
+          - page: Telemetry and data collection
+            path: pages/legal/telemetry.mdx
+            slug: /legal/telemetry
           - page: Privacy policy (Companion app)
             path: pages/legal/privacy-policy-companion.md
             slug: /legal/privacy-policy-companion

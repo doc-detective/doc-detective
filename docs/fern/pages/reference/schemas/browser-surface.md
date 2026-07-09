@@ -18,12 +18,14 @@ description: "Reference for the `Browser surface` schema."
 - [Record (detailed)](/reference/schemas/record-detailed)
 - [closeSurface](/reference/schemas/closesurface)
 - [dragAndDrop](/reference/schemas/draganddrop)
+- [Swipe (directional)](/reference/schemas/swipe-directional)
+- [Swipe (point-to-point)](/reference/schemas/swipe-point-to-point)
 
 ## Fields
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-browser | string | Required. Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open.<br/><br/>Accepted values: `chrome`, `firefox`, `safari`, `webkit`, `edge` | 
+browser | string | Required. Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.<br/><br/>Accepted values: `chrome`, `firefox`, `safari`, `webkit`, `edge` | 
 name | string | Optional. Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.<br/><br/>Minimum length: 1. Pattern: `\S` | 
 window | one of:<br/>- integer<br/>- string<br/>- object([By criteria](/reference/schemas/by-criteria)) | Optional. Which window to act on. Omit to use the active window. | 
 tab | one of:<br/>- integer<br/>- string<br/>- object([By criteria](/reference/schemas/by-criteria)) | Optional. Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself. | 

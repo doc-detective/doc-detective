@@ -524,6 +524,23 @@
           "$ref": "#/components/schemas/common"
         },
         {
+          "title": "swipe",
+          "type": "object",
+          "required": ["swipe"],
+          "properties": {
+            "swipe": {
+              "$ref": "swipe_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
           "title": "wait",
           "type": "object",
           "required": ["wait"],
@@ -572,6 +589,21 @@
     },
     {
       "wait": 5000
+    },
+    {
+      "swipe": "up"
+    },
+    {
+      "swipe": {
+        "from": {
+          "x": 200,
+          "y": 600
+        },
+        "to": {
+          "x": 200,
+          "y": 200
+        }
+      }
     },
     {
       "runCode": {

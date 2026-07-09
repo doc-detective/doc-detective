@@ -3,41 +3,31 @@ title: Fill in fields
 description: Run a short test that fills in the first and last name fields in a form.
 ---
 
-A common task in procedures involves filling in the fields of a form. This short test opens a sample input form for the Watson and Holmes Forensic Consulting agency and fills in just the first and last name.
+Filling in form fields is a common task in procedures. This short test opens a sample input form for the Watson and Holmes Forensic Consulting agency and fills in just the first and last name.
+
+The test spec is hosted online as a Markdown file, so you don't need to download it. Pass its URL to Doc Detective with the `--input` argument, and Doc Detective fetches and runs it.
 
 To run the test:
 
-1. [Set up your test environment](/docs/ci/set-up-environment).
-2. In a terminal window, navigate to the `TestExamples` directory.
-
-   ```shell
-   cd TestExamples
-   ```
-
-3. Start your local server:
-
-    ```shell
-    live-server
-    ```
-
-3. Run the _form-filler1.json_ test spec with Doc Detective:
+1. [Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.
+2. Run the hosted _form-filler1.md_ test spec with Doc Detective:
 
     <Tabs>
       <Tab title="NPX" language="npx">
 
     ```shell
-    npx doc-detective -i form-filler1.json
+    npx doc-detective --input https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/examples/watson-and-holmes/form-filler1.md
     ```
 
       </Tab>
       <Tab title="Docker" language="docker">
 
     ```shell
-    docker run -v .:/app docdetective/docdetective -i /app/form-filler1.json
+    docker run docdetective/docdetective --input https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/examples/watson-and-holmes/form-filler1.md
     ```
 
     <Note>
-    The `-v` argument mounts your current directory (`.`) to `/app` in the container.
+    The `-v` argument isn't necessary for remotely hosted tests, since Docker doesn't need access to local files.
     </Note>
 
       </Tab>
@@ -47,153 +37,47 @@ To run the test:
 
 ## Code walkthrough
 
-```json
-{
-    "tests": [
-        {
+{/* This tutorial drives a browser against a locally served sample form; it needs the tutorial harness (a static server for the form), which the docs-test CI job doesn't provide, so it's skipped there. */}
+{/* test ignore start */}
+
+The test spec is a Markdown file with [inline tests](/docs/test-docs/inline-tests): each numbered step describes the action in prose, followed by a `{/* step ... */}` comment that Doc Detective runs.
+
+The test opens with an inline `test` comment that defines the execution environment: the platform and browser the test runs on. You can specify your own platform, but making the test compatible with other platforms doesn't hurt. Chrome is currently the only browser that supports the record feature, which later examples use. When you run the test in the _headless_ state, it runs without showing the actions in a browser window; set `headless` to `false` to watch the actions instead. The form in this example is too large to fit on the screen, so the viewport is set to the full size, even when it isn't displayed. This matters for taking screenshots, which a later tutorial covers.
+
+```md
+{/* test {"testId":"form-filler1","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false,"viewport":{"width":1180,"height":1480}}}]} */}
 ```
 
-The first part of the test specification describes the execution environment (what platform and browser the test should run on). You can specify your own platform, but it doesn't hurt to make the script compatible with other platforms, as well.
+Having set up the run environment, the test defines its steps. First, open the form in a web browser.
 
-```json
-            "runOn": [
-                {
-                    "platforms": [
-                        "windows",
-                        "mac",
-                        "linux"
-                    ],
-```
-
-The Chrome browser is the only browser that currently supports the record feature, which will be used in later examples.
-
-```json
-                    "browsers": {
-                        "name": "chrome",
-```
-
-When you run the test in the _headless_ state, the test runs without displaying the actions in a browser window. Setting this to false lets you watch the actions in your test.
-
-```json
-                        "headless": false,
-```
-
-The form in this example is too large to fit on the screen. The window and viewport can be set to the full size, even if it isn't displayed at this time. This is important for taking screenshots, which this tutorial covers.
-
-```json
-                        "viewport": {
-                            "width": 1180,
-                            "height": 1480
-                        }
-                    }
-                }
-            ],
-```
-
-Having set up the run environment, you can define the action steps for the test. First, open the form in a web browser.
-
-```json
-            "steps": [
-                {
-                    "description": "Go to the specified URL",
-                    "goTo": "http://localhost:8080/watson_and_holmes_intake_form.html"
-                },
+```md
+{/* step {"description":"Go to the specified URL","goTo":"http://localhost:8080/watson_and_holmes_intake_form.html"} */}
 ```
 
 Locate an element with the label "First Name:" and type in the value _Alphie_.
 
-```json
-                {
-                    "description": "Type in the First Name",
-                    "find": {
-                        "elementText": "First Name:",
-                        "click": true,
-                        "type": "Alphie"
-                    }
-                },
+```md
+{/* step {"description":"Type in the First Name","find":{"elementText":"First Name:","click":true,"type":"Alphie"}} */}
 ```
 
 Locate an element with the label "Last Name:" and type in the value _Betaux_.
 
-```json
-                {
-                    "description": "Type in the Last Name",
-                    "find": {
-                        "elementText": "Last Name:",
-                        "click": true,
-                        "type": "Betaux"
-                    }
-                },
+```md
+{/* step {"description":"Type in the Last Name","find":{"elementText":"Last Name:","click":true,"type":"Betaux"}} */}
 ```
 
-Pause 10 seconds, allowing you to see the results, then end the test. In real tests, you want to avoid long pauses to let tests run as quickly as possible, but pauses are invaluable when you're learning or debugging.
+Capture a screenshot of the completed fields, then pause 10 seconds so you can see the results before the test ends. In real tests, you want to avoid long pauses to let tests run as quickly as possible, but pauses are invaluable when you're learning or debugging.
 
-```json
-                {
-                    "description": "Pause long enough to show the changes.",
-                    "wait": 10000
-                }
-            ]
-        }
-    ]
-}
+```md
+{/* step {"description":"Capture a screenshot of the completed form.","screenshot":"./output/form-filled-1-first-and-last-name.png"} */}
+
+{/* step {"description":"Pause long enough to show the changes.","wait":10000} */}
 ```
 
-## Complete code sample
+{/* test ignore end */}
 
-```json
-{
-    "tests": [
-        {
-            "runOn": [
-                {
-                    "platforms": [
-                        "windows",
-                        "mac",
-                        "linux"
-                    ],
-                    "browsers": {
-                        "name": "chrome",
-                        "headless": false,
-                        "viewport": {
-                            "width": 1180,
-                            "height": 1480
-                        }
-                    }
-                }
-            ],
-            "steps": [
-                {
-                    "description": "Go to the specified URL",
-                    "goTo": "http://localhost:8080/watson_and_holmes_intake_form.html"
-                },
-                {
-                    "description": "Type in the First Name",
-                    "find": {
-                        "elementText": "First Name:",
-                        "click": true,
-                        "type": "Alphie"
-                    }
-                },
-                {
-                    "description": "Type in the Last Name",
-                    "find": {
-                        "elementText": "Last Name:",
-                        "click": true,
-                        "type": "Betaux"
-                    }
-                },
-                {
-                    "description": "Capture a screenshot of the completed form.",
-                    "screenshot": "./output/form-filled-1-first-and-last-name.png"
-                },
-                {
-                    "description": "Pause long enough to show the changes.",
-                    "wait": 10000
-                }
-            ]
-        }
-    ]
-}
-```
+## Complete test spec
+
+View the complete spec at [form-filler1.md](https://github.com/doc-detective/doc-detective/blob/main/docs/examples/watson-and-holmes/form-filler1.md).
+
 Next step: see [Capturing a screenshot](/docs/test-docs/capture-screenshots).

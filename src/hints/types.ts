@@ -90,10 +90,9 @@ export interface HintContext {
   totalSteps: number;
   /**
    * Set of v3 step-action keys seen at least once across the run.
-   * Mirrors the `step_v3` schema's action discriminators: `checkLink`,
-   * `click`, `dragAndDrop`, `find`, `goTo`, `httpRequest`,
-   * `loadCookie`, `loadVariables`, `record`, `runCode`, `runShell`,
-   * `saveCookie`, `screenshot`, `stopRecord`, `type`, `wait`.
+   * Mirrors the `step_v3` schema's action discriminators — the
+   * authoritative list is `STEP_ACTION_KEYS` in `context.ts`, kept in
+   * sync with `step_v3.schema.json`'s anyOf branches.
    */
   usedStepTypes: Set<string>;
   /** Browser names seen across `results.specs[].tests[].contexts[]`. */

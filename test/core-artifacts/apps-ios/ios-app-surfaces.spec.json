@@ -1,17 +1,17 @@
 {
   "specId": "app-surfaces-a4-ios",
-  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS contexts run through XCUITest preflight and either execute on capable macOS hosts or SKIP with actionable host/toolchain guidance. This group is intended for focused macOS workflow-dispatch validation from non-macOS development hosts.",
+  "description": "Native app surfaces phase A4 (docs/design/native-app-surfaces.md): iOS app contexts run end-to-end on a managed simulator via the lazily-installed XCUITest driver. startSurface resolves/boots the newest installed iPhone simulator through simctl, find/click/screenshot act on it through the XCUITest semantic mapping, and closeSurface terminates the app; the run-end sweep shuts down only simulators Doc Detective booted. Gated to iOS targets via runOn; on Windows/Linux every test lands SKIPPED with actionable macOS/Xcode/simctl guidance. The first XCUITest session on a cold runner builds WebDriverAgent via xcodebuild (minutes), so startSurface timeouts are generous. Built-in stock apps (Settings, Calendar) are used so no app payload is fetched. The named-device create-boot path is covered by unit tests (test/ios-simulator.test.js) rather than here: creating a fresh simulator forces a second, highly variable cold WDA build (10-25 min) that doesn't fit the CI budget, and the effectful `simctl create` is a thin wrapper over the thoroughly unit-tested planner.",
   "tests": [
     {
       "testId": "ios-mobile-browser-gate-a5",
-      "description": "A5 remains gated: iOS mobile-browser contexts SKIP with the phase A5 message.",
+      "description": "The mobile-browser support matrix gates unsupported iOS pairs: a chrome+ios context SKIPs deterministically on every host (safari is the supported iOS browser, phase A5). Supported mobile-web runs (safari on the managed simulator) are exercised in the mobile-web-ios group, not here.",
       "runOn": [
         {
           "platforms": [
             "ios"
           ],
           "browsers": [
-            "safari"
+            "chrome"
           ]
         }
       ],
@@ -22,8 +22,8 @@
       ]
     },
     {
-      "testId": "ios-startsurface-preflight",
-      "description": "A4 app context: attempts to open Settings on iOS. On capable macOS hosts this can PASS; elsewhere it SKIPs with iOS/macOS toolchain guidance.",
+      "testId": "ios-default-device-flow",
+      "description": "Launch Settings by bundle ID on the default (newest installed iPhone) simulator, wait for a stable row to exist, find it through the XCUITest column, screenshot the app, then close it. The real end-to-end PASS on a capable macOS host; SKIPs elsewhere.",
       "runOn": [
         {
           "platforms": [
@@ -35,13 +35,95 @@
         {
           "startSurface": {
             "app": "com.apple.Preferences",
-            "name": "ios-settings",
-            "timeout": 120000
+            "name": "settings",
+            "timeout": 900000,
+            "waitUntil": {
+              "delayMs": 5000
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "General",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-settings.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
           }
         },
         {
           "closeSurface": {
-            "app": "ios-settings"
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ios-multi-app-switch",
+      "description": "Two stock apps (Settings + Calendar) share one simulator session; acting on each surface foregrounds it via activateApp, proving multi-app-per-simulator switching. Each surface is screenshotted (which forces the foreground switch) and then closed.",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "settings-multi",
+            "timeout": 900000,
+            "waitUntil": {
+              "delayMs": 5000
+            }
+          }
+        },
+        {
+          "startSurface": {
+            "app": "com.apple.mobilecal",
+            "name": "calendar-multi",
+            "timeout": 120000,
+            "waitUntil": {
+              "delayMs": 3000
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-settings-multi.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings-multi"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-calendar-multi.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "calendar-multi"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "calendar-multi"
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings-multi"
           }
         }
       ]

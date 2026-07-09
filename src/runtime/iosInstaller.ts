@@ -19,7 +19,10 @@ function defaultRun(command: string, args: string[]) {
   const result = spawnSync(command, args, {
     encoding: "utf8",
     windowsHide: true,
-    timeout: 15000,
+    // `xcrun simctl` gets the same generous ceiling probeIosToolchain uses: the
+    // first cold simctl call on a hosted macOS image launches CoreSimulator and
+    // can take far longer than a warm call. `xcode-select` is a cheap lookup.
+    timeout: command === "xcrun" ? 120000 : 15000,
   });
   return {
     status: result.status,
@@ -34,7 +37,6 @@ export async function installIos({
   deps = {},
 }: {
   yes?: boolean;
-  force?: boolean;
   dryRun?: boolean;
   ctx?: CacheDirContext;
   deps?: IOSInstallerDeps;

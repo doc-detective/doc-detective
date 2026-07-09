@@ -10,7 +10,11 @@ import { generateSpecId } from "./detectTests.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
-import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import {
+  BROWSER_STEP_KEYS as driverActions,
+  stepOpensBrowserSurface,
+} from "../runtime/browserStepKeys.js";
+import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -19,6 +23,9 @@ function isDriverRequired({ test }: { test: any }) {
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
     });
+    // A startSurface browser descriptor opens a WebDriver session (Phase 6);
+    // app/process descriptors provision their own runtimes and don't count.
+    if (stepOpensBrowserSurface(step)) driverRequired = true;
   });
   return driverRequired;
 }
@@ -34,6 +41,8 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") browserRequired = true;
     });
+    // Phase 6: `startSurface: { browser: … }` opens a session too.
+    if (stepOpensBrowserSurface(step)) browserRequired = true;
   });
 
   // Standardize context format
@@ -51,7 +60,6 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         if (typeof browser === "string") {
           browser = { name: browser };
         }
-        if (browser.name === "safari") browser.name = "webkit";
         // Mark the engine as explicitly requested by the author. The runner's
         // cross-engine fallback uses this to decide PASS vs WARNING when it has
         // to substitute another browser: an auto-selected default falls back
@@ -93,7 +101,21 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         browsersToExpand.forEach((browser: any) => {
           const staticContext = { ...carry };
           if (platform !== undefined) staticContext.platform = platform;
-          if (browser !== undefined) staticContext.browser = browser;
+          if (browser !== undefined) {
+            // Desktop `safari` is an alias for the `webkit` engine, so the
+            // rewrite happens per platform pair (not during normalization):
+            // on a mobile target platform (android/ios) the authored name is
+            // preserved — `safari` on ios is the real device browser (phase
+            // A5), and the mobile support matrix, not engine aliasing,
+            // decides unsupported combinations. Every pair gets its own
+            // clone so contexts sharing one authored browser object can't
+            // leak a rewrite (or any later per-context mutation) across
+            // platforms.
+            staticContext.browser =
+              browser.name === "safari" && !isMobileTargetPlatform(platform)
+                ? { ...browser, name: "webkit" }
+                : { ...browser };
+          }
           staticContexts.push(staticContext);
         });
       }
@@ -183,7 +205,7 @@ function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<stri
   return uniqueId(base, usedIds);
 }
 
-async function resolveContext({ config, test, context, usedContextIds }: { config: any; test: any; context: any; usedContextIds: Set<string> }) {
+async function resolveContext({ config, test, context, usedContextIds, openApi }: { config: any; test: any; context: any; usedContextIds: Set<string>; openApi?: any[] }) {
   // Normalize the resolved ID back onto the context so any downstream reader
   // of `context.contextId` (not just the resolved copy) sees the same value.
   // Explicit IDs win, but are still de-duplicated: one authored context with
@@ -199,7 +221,11 @@ async function resolveContext({ config, test, context, usedContextIds }: { confi
   const resolvedContext = {
     ...context,
     unsafe: test.unsafe || false,
-    openApi: test.openApi || [],
+    // Prefer the caller's description-loaded set (resolvedTest.openApi, which
+    // merges spec + test and attaches each `definition`). The raw
+    // `test.openApi` carries no loaded definition and omits spec-level entries,
+    // so httpRequest would receive an empty openApiDefinitions. See ADR 01044.
+    openApi: openApi ?? test.openApi ?? [],
     steps: [...test.steps],
     contextId: contextId,
   };
@@ -238,6 +264,8 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
       test: test,
       context,
       usedContextIds,
+      // The description-loaded, spec+test-merged set — see resolveContext.
+      openApi: resolvedTest.openApi,
     });
     resolvedTest.contexts.push(resolvedContext);
   }

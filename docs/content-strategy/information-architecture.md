@@ -97,10 +97,12 @@ slug.
 > **Implementation status.** The nav, tabs, sections, page URLs (via explicit `slug`s in `docs.yml`),
 > and redirects below are **live** — the umbrella "Test your docs" track (with the UI and CLI/code/API
 > sub-sections) is in effect and `fern check` passes. To avoid breaking colocated assets (e.g. the
-> tutorials' shared `TestExamples.zip` and `img/`), the **page files have not yet been physically
+> tutorials' shared `img/`), the **page files have not yet been physically
 > relocated** into the directories in the table below; they keep their current paths (some still under
 > `pages/docs/test-code/`) while serving the new `/docs/test-docs/…` slugs. Physically moving files to
-> match this map (carrying their assets) is a deferred mechanical pass.
+> match this map (carrying their assets) is a deferred mechanical pass. The tutorials' sample test
+> specs now live as hosted Markdown under `docs/examples/watson-and-holmes/` and are referenced by URL
+> rather than bundled in a downloadable zip.
 
 ### Directory mapping (Fern content paths)
 
@@ -156,6 +158,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Capture screenshots | W2 | ★ | `screenshot`, auto-screenshot. |
 | Record video | W2 | | `record`/`stopRecord`, engines. |
 | Multiple tabs, windows & browsers | W2, W3 | | goTo `newTab`/`newWindow` + browser-session opening, `surface` session/window/tab selectors, whole-browser `closeSurface`. |
+| Test native & mobile apps (new) | W2, D1 | | The native-app-surfaces journey (phases A1–A6): `startSurface`/app surfaces, managed devices, mobile gestures (`swipe`, long-press, device keys, auto-scroll), the permission-dialog pattern, matrix vs. multi-device. Until it exists, the action pages (`click`/`type`/`find`/`swipe`/`startSurface`) and generated reference pages carry the content — the permission-dialog pattern lives on the `click` action page, and the `startSurface` action page (multi-surface Phase 6) documents app/browser/process descriptors and the parallel array form. |
 
 **CLI, code & APIs — Diego**
 
@@ -249,7 +252,9 @@ tab so they don't sit inside the user-facing Documentation tab.
 
 ### Support — `support.mdx`, `legal/`
 
-Support · Resources · Legal / Privacy policy.
+Support · Resources · Legal / Privacy policy · Telemetry and data collection (what anonymous
+telemetry Doc Detective collects and how to turn it off; cross-cutting trust concern, serves all
+personas).
 
 ---
 

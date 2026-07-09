@@ -269,6 +269,55 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      it("should validate a record step targeting an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", surface: { app: "notepad" } } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a record step targeting an app surface with a window selector", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            record: {
+              path: "out.mp4",
+              surface: { app: "notepad", window: -1 },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a record step with an invalid app surface", function () {
+        // Note: primitive values coerce under ajv coerceTypes (7 -> "7"), so
+        // the type negative uses an object, which never coerces to a string.
+        for (const surface of [
+          { app: "" },
+          { app: {} },
+          { app: "notepad", tab: 1 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", surface } },
+          });
+          expect(
+            result.valid,
+            `expected invalid surface: ${JSON.stringify(surface)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should not inject a default engine target during validation", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", engine: { name: "ffmpeg" } } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.record.engine.target).to.equal(undefined);
+      });
+
       it("should validate a config_v3 object with autoRecord set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -737,6 +786,196 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors.length).to.be.greaterThan(0);
+      });
+    });
+
+    describe("swipe step", function () {
+      it("should validate the simple direction string form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: "left" },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe).to.equal("left");
+      });
+
+      it("should validate the directional object form with distance, duration, and an app surface", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              direction: "up",
+              distance: 0.8,
+              duration: 300,
+              surface: { app: "myapp" },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe.direction).to.equal("up");
+        expect(result.object.swipe.distance).to.equal(0.8);
+      });
+
+      it("should validate the point-to-point form with pixel coordinates", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
+              duration: 250,
+            },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.swipe.from).to.deep.equal({ x: 200, y: 600 });
+        expect(result.object.swipe.to).to.deep.equal({ x: 200, y: 200 });
+      });
+
+      it("should reject an unknown direction", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: "diagonal" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors.length).to.be.greaterThan(0);
+      });
+
+      it("should reject a distance outside the (0, 1] range", function () {
+        for (const distance of [0, 1.5]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { direction: "up", distance } },
+          });
+
+          expect(result.valid, `distance ${distance}`).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject from without to", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { from: { x: 200, y: 600 } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a point missing a coordinate", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { from: { x: 200 }, to: { x: 200, y: 200 } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject mixing direction with point-to-point coordinates", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            swipe: {
+              direction: "up",
+              from: { x: 200, y: 600 },
+              to: { x: 200, y: 200 },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject negative and non-integer pixel coordinates", function () {
+        for (const from of [
+          { x: -5, y: 600 },
+          { x: 200.5, y: 600 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { swipe: { from, to: { x: 200, y: 200 } } },
+          });
+
+          expect(result.valid, JSON.stringify(from)).to.be.false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should reject a non-positive duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { direction: "up", duration: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a process surface (swipe has no screen to act on)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { swipe: { direction: "up", surface: { process: "node" } } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("click duration (long-press)", function () {
+      it("should validate a click with a duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 800 } },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.click.duration).to.equal(800);
+      });
+
+      it("should validate a find with a duration-only click sub-effect", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: { elementText: "Message", click: { duration: 800 } },
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.find.click.duration).to.equal(800);
+      });
+
+      it("should reject a non-positive click duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject a non-integer click duration", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { elementText: "Message", duration: 1.5 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
       });
     });
 
@@ -3071,6 +3310,151 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
+      });
+    });
+
+    describe("multi-surface Phase 6: startSurface browser/process branches + parallel array", function () {
+      it("should validate a minimal browser descriptor", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { startSurface: { browser: "chrome" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a full browser descriptor (size, not window)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              browser: "firefox",
+              name: "admin",
+              headless: true,
+              size: { width: 1366, height: 768 },
+              viewport: { width: 1280, height: 720 },
+              driverOptions: { "moz:firefoxOptions": {} },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject invalid browser descriptors", function () {
+        for (const startSurface of [
+          { browser: "opera" },
+          { browser: "chrome", window: { width: 800, height: 600 } },
+          { browser: "chrome", url: "https://example.com" },
+          { browser: "chrome", waitUntil: { delayMs: 100 } },
+          { browser: "chrome", timeout: 1000 },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { startSurface },
+          });
+          expect(
+            result.valid,
+            `expected invalid: ${JSON.stringify(startSurface)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should validate a minimal process descriptor (name required)", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { startSurface: { process: "node server.js", name: "api" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a full process descriptor", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: {
+              process: "python",
+              name: "repl",
+              args: ["-q"],
+              workingDirectory: "./sandbox",
+              tty: true,
+              waitUntil: {
+                port: 8080,
+                stdio: "/ready on \\d+/",
+                httpGet: "http://localhost:8080/health",
+                delayMs: 100,
+              },
+              timeout: 30000,
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject invalid process descriptors", function () {
+        for (const startSurface of [
+          { process: "node server.js" },
+          { process: "node", name: "api", waitUntil: {} },
+          { process: "node", name: "api", env: { A: "b" } },
+          { process: "  ", name: "api" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { startSurface },
+          });
+          expect(
+            result.valid,
+            `expected invalid: ${JSON.stringify(startSurface)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should validate parallel arrays: one element, mixed kinds, two devices", function () {
+        for (const startSurface of [
+          [{ browser: "chrome" }],
+          [
+            { browser: "chrome", name: "web" },
+            { process: "node server.js", name: "api" },
+            { app: "C:\\Windows\\System32\\notepad.exe" },
+          ],
+          [
+            {
+              app: "com.example.chat",
+              name: "alice",
+              device: { platform: "android", name: "Pixel_7" },
+            },
+            {
+              app: "com.example.chat",
+              name: "bob",
+              device: { platform: "android", name: "Pixel_7_second" },
+            },
+          ],
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { startSurface },
+          });
+          expect(
+            result.valid,
+            `${JSON.stringify(startSurface)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject malformed arrays and kind-less descriptors", function () {
+        for (const startSurface of [
+          [],
+          [{ name: "x" }],
+          ["chrome"],
+          { name: "x" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { startSurface },
+          });
+          expect(
+            result.valid,
+            `expected invalid: ${JSON.stringify(startSurface)}`
+          ).to.be.false;
+        }
       });
     });
 

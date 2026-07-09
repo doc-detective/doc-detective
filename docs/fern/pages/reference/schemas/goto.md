@@ -108,7 +108,7 @@ goTo | one of:<br/>- string<br/>- object([Go to URL (detailed)](/reference/schem
     "url": "https://www.example.com/app",
     "timeout": 60000,
     "waitUntil": {
-      "networkIdleTime": null
+      "networkIdleTime": 0
     }
   }
 }

@@ -1,3 +1,10 @@
 require:
   - ./test/hooks.js
 exit: true
+# Raise mocha's default per-test timeout from 2000ms. On hosted CI runners the
+# root suite's real async work (env injection, schema validation, driver
+# preflight) occasionally exceeds 2s and trips a spurious "Timeout of 2000ms
+# exceeded" on whichever test is unlucky — an intermittent, test-agnostic flake
+# (see ADR 01037). 10s gives ample headroom while still catching genuine hangs.
+# Individual slow tests keep their own longer `this.timeout(...)`.
+timeout: 10000

@@ -265,6 +265,9 @@ Check out our [documentation](https://docs.example.com) for more information.
 
 You can mix inline test statements with detected tests for maximum flexibility:
 
+{/* Illustrative example (types into a page that was never navigated to); not a runnable test. */}
+{/* test ignore start */}
+
 ```markdown
 {/* test { "testId": "tutorial", "detectSteps": true } */}
 
@@ -280,6 +283,8 @@ You can mix inline test statements with detected tests for maximum flexibility:
 
 {/* test end */}
 ```
+
+{/* test ignore end */}
 
 In this example:
 - The navigation and button clicks are detected automatically

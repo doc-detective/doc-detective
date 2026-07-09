@@ -95,6 +95,29 @@ When `validate()` is called:
 4. Run `npm run build` (runs `dereferenceSchemas` + tests)
 5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
 
+### Dual-build requirement (schema edits aren't live until BOTH builds run)
+
+Schemas compile to **two separate dist artifacts**, and a schema edit isn't fully live until both
+are regenerated:
+
+1. `src/common/dist` — produced by `npm run build` inside `src/common`. The `src/common` test
+   suite reads this.
+2. **Root `dist/common`** — a separate copy the **runner** imports `validate` from. Regenerate
+   from the repo root with `npm run build`, which sequences `build:common` (rebuilds
+   `src/common`), then `compile` and `copy:schemas`. Running `compile` + `copy:schemas` alone can
+   copy a **stale** `src/common/src/schemas/schemas.json` if `src/common` wasn't rebuilt first.
+
+Symptom of forgetting #2: `src/common` tests pass, but the runner (runTests / core fixtures)
+still validates against the stale schema — a fixture using a newly-added field fails with
+`/<field> must NOT be valid` even though the source schema allows it.
+
+Related notes:
+- `output_schemas/*` regeneration on Windows produces large CRLF-only diffs — harmless build
+  churn, not content changes.
+- `spec_v3` has no `additionalProperties: false`, so unknown root keys on a spec are silently
+  accepted (a misplaced spec-level key validates but is ignored) — spec-level fields can't be
+  enforced by rejection without making `spec_v3` strict (a separate, potentially-breaking change).
+
 ### Schema Compatibility
 
 When creating new schema version (e.g., v4):
@@ -218,6 +241,23 @@ Allowed types default to `@commitlint/config-conventional`: `feat`, `fix`, `docs
 - `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` — Docker image push (stable releases only)
 
 ## Important Patterns
+
+### Ajv coercion vs. `anyOf` branch ordering
+
+`validate()` builds Ajv with `coerceTypes: true`, so in any `anyOf` union that includes a string
+branch, **branch order decides what authored values become**: Ajv tries branches in order and
+coerces values to make a branch pass. With a string branch first, an authored integer (`tab: 0`,
+`tab: -1`) is silently coerced to the string `"0"`/`"-1"` and reaches the runtime as a name, not
+an index — string branches accept coercion from nearly everything, so whichever branch is first
+wins.
+
+**Rule:** in schema `anyOf` unions, order narrow scalar types (integer, boolean) BEFORE string
+branches, and note the reasoning in the schema description.
+
+Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
+consumer's validated objects. Keep shared schemas default-free unless every consumer wants the
+default (this is why `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its
+own).
 
 ### Error Handling
 

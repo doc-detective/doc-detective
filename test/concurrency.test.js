@@ -5,7 +5,11 @@ import {
   rollUpResults,
   createAppiumPool,
 } from "../dist/core/utils.js";
-import { runSpecs, selectWarmUpTargets } from "../dist/core/tests.js";
+import {
+  runSpecs,
+  selectWarmUpTargets,
+  jobDisplayResources,
+} from "../dist/core/tests.js";
 import {
   getEnvironment,
   resolveConcurrentRunners,
@@ -331,6 +335,276 @@ describe("runResourceAware", function () {
   });
 });
 
+describe("jobDisplayResources", function () {
+  // The exclusivity context passed by runSpecs at limit>1. Native app-driver
+  // serialization must not depend on there being a recording in the run, so
+  // runHasDisplayRecording is false in these cases.
+  const ctx = {
+    platform: "darwin",
+    xvfbAvailable: false,
+    runHasDisplayRecording: false,
+  };
+  const nativeAppJob = (platform) => ({
+    context: {
+      platform,
+      steps: [
+        { startSurface: { app: "/System/Applications/Calculator.app" } },
+        { find: { elementText: "5", surface: { app: "Calculator" } } },
+      ],
+    },
+  });
+
+  it("tags a non-android native app-driver context with 'native-app-driver'", function () {
+    // A macOS Mac2 app context: two of these under concurrency clobber the
+    // shared driver server, so each must hold an exclusive resource.
+    expect(jobDisplayResources(nativeAppJob("mac"), ctx)).to.deep.equal([
+      "native-app-driver",
+    ]);
+  });
+
+  it("tags a Windows native app-driver context with 'native-app-driver'", function () {
+    expect(jobDisplayResources(nativeAppJob("windows"), ctx)).to.deep.equal([
+      "native-app-driver",
+    ]);
+  });
+
+  it("tags an iOS simulator app-driver context with 'native-app-driver'", function () {
+    // Two native iOS sims on one host also contend on the shared driver.
+    expect(jobDisplayResources(nativeAppJob("ios"), ctx)).to.deep.equal([
+      "native-app-driver",
+    ]);
+  });
+
+  it("keeps android app contexts on 'android-emulator', not 'native-app-driver'", function () {
+    // Android is already bounded by the emulator resource; it must not be
+    // double-tagged with the new resource.
+    expect(jobDisplayResources(nativeAppJob("android"), ctx)).to.deep.equal([
+      "android-emulator",
+    ]);
+  });
+
+  it("takes nothing for a non-app (HTTP/shell) context", function () {
+    const shellJob = {
+      context: { platform: "darwin", steps: [{ runShell: "echo hi" }] },
+    };
+    expect(jobDisplayResources(shellJob, ctx)).to.deep.equal([]);
+  });
+
+  it("takes nothing for a browser-only driver context (no app)", function () {
+    const browserJob = {
+      context: {
+        platform: "darwin",
+        browser: { name: "chrome" },
+        steps: [{ goTo: "https://example.com" }],
+      },
+    };
+    expect(jobDisplayResources(browserJob, ctx)).to.deep.equal([]);
+  });
+
+  it("takes nothing for a desktop (mac) browser context — desktop browsers parallelize", function () {
+    // A plain desktop firefox/chrome context on a native app-driver platform
+    // drives no simulator/native driver, so it must STILL run in parallel — the
+    // native-app-driver bound is only for contexts that boot the shared native
+    // driver (mac/windows require an app driver; ios boots the sim for web too).
+    const macBrowserJob = {
+      context: {
+        platform: "mac",
+        browser: { name: "firefox" },
+        steps: [{ goTo: "https://example.com" }],
+      },
+    };
+    expect(jobDisplayResources(macBrowserJob, ctx)).to.deep.equal([]);
+  });
+
+  it("tags an iOS mobile-web (Safari) context with 'native-app-driver'", function () {
+    // A Safari-on-iOS-simulator BROWSER context (isAppDriverRequired == false)
+    // still boots the single per-host iOS simulator/WDA, so two of them clobber
+    // each other's session the same way native app contexts do. It must take
+    // the resource despite having no app step.
+    const iosWebJob = {
+      context: {
+        platform: "ios",
+        browser: { name: "safari" },
+        steps: [{ goTo: "https://example.com" }],
+      },
+    };
+    expect(jobDisplayResources(iosWebJob, ctx)).to.deep.equal([
+      "native-app-driver",
+    ]);
+  });
+
+  it("takes nothing for a mixed app+web mobile context (gate SKIPs it)", function () {
+    // On a mobile platform, mixing native app + browser steps deterministically
+    // SKIPs (mobileBrowserGate), so it drives no native app and must not
+    // needlessly serialize other native-app jobs.
+    const mixedJob = {
+      context: {
+        platform: "ios",
+        steps: [
+          { startSurface: { app: "com.example.app" } },
+          { goTo: "https://example.com" },
+        ],
+      },
+    };
+    expect(jobDisplayResources(mixedJob, ctx)).to.deep.equal([]);
+  });
+
+  it("composes 'native-app-driver' with 'display' when a recording is present", function () {
+    // A native app context in a run that also has a shared-display recording
+    // holds BOTH the app-driver and the display resource.
+    expect(
+      jobDisplayResources(nativeAppJob("mac"), {
+        ...ctx,
+        runHasDisplayRecording: true,
+      })
+    ).to.deep.equal(["native-app-driver", "display"]);
+  });
+
+  // A desktop native-app context that ALSO records: its `record` step names the
+  // app surface (object form), but the paired `stopRecord: true` (and any
+  // non-object record payload) does NOT — so isBrowserRequired sees a
+  // BROWSER_STEP_KEYS step that isn't app-targeting and reports a browser step.
+  // On mac/windows that must NOT drop the native-app-driver bound (there is no
+  // device browser to mix with on desktop): the context still boots the shared
+  // Mac2 / NovaWindows driver and MUST serialize against other native-app
+  // contexts, or two concurrent sessions clobber the per-host driver
+  // ("Session does not exist" / "process is not running (probably crashed)" /
+  // "No element matched"). Regression for the apps-group macOS+Windows failures
+  // at concurrentRunners: 2 (recording app context overlapped a plain app one).
+  const recordingAppJob = (platform) => ({
+    context: {
+      platform,
+      steps: [
+        { startSurface: { app: "com.apple.TextEdit" } },
+        { record: { path: "x.mp4", surface: { app: "TextEdit" } } },
+        { type: { keys: ["x"], surface: { app: "TextEdit" } } },
+        { stopRecord: true },
+        { closeSurface: { app: "TextEdit" } },
+      ],
+    },
+  });
+
+  it("tags a macOS recording app context (record + stopRecord) with 'native-app-driver'", function () {
+    // The stopRecord step is a BROWSER_STEP_KEY that isn't app-targeting, so the
+    // old mobileBrowserGate path SKIPped the native-app-driver bound and let this
+    // context run concurrently with another native app context.
+    expect(
+      jobDisplayResources(recordingAppJob("mac"), {
+        ...ctx,
+        allowOverlappingCaptures: false,
+        runHasDisplayRecording: true,
+      })
+    ).to.deep.equal(["native-app-driver", "display"]);
+  });
+
+  it("tags a Windows recording app context (record + stopRecord) with 'native-app-driver'", function () {
+    expect(
+      jobDisplayResources(recordingAppJob("windows"), {
+        ...ctx,
+        allowOverlappingCaptures: false,
+        runHasDisplayRecording: true,
+      })
+    ).to.deep.equal(["native-app-driver", "display"]);
+  });
+});
+
+describe("runResourceAware native-app-driver serialization", function () {
+  function tracker() {
+    const t = { perResource: {}, perResourceHigh: {}, total: 0, totalHigh: 0 };
+    return {
+      enter(resources) {
+        t.total++;
+        t.totalHigh = Math.max(t.totalHigh, t.total);
+        for (const r of resources) {
+          t.perResource[r] = (t.perResource[r] || 0) + 1;
+          t.perResourceHigh[r] = Math.max(
+            t.perResourceHigh[r] || 0,
+            t.perResource[r]
+          );
+        }
+      },
+      exit(resources) {
+        t.total--;
+        for (const r of resources) t.perResource[r]--;
+      },
+      stats: t,
+    };
+  }
+
+  it("never runs two native-app-driver jobs at once, but overlaps a disjoint job", async function () {
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    const job = (id, exclusiveResources, ms) => ({ id, exclusiveResources, ms });
+    const items = [
+      job("app1", ["native-app-driver"], 40),
+      job("shell1", [], 40),
+      job("app2", ["native-app-driver"], 40),
+    ];
+    await runResourceAware(items, 3, reg, async (item) => {
+      tk.enter(item.exclusiveResources);
+      await sleep(item.ms);
+      tk.exit(item.exclusiveResources);
+    });
+    // The two native-app jobs never overlap...
+    expect(tk.stats.perResourceHigh["native-app-driver"]).to.equal(1);
+    // ...but overall parallelism still exceeded 1 (the shell job overlapped).
+    expect(tk.stats.totalHigh).to.be.above(1);
+  });
+
+  it("serializes a recording app context against a plain app context (real apps-group tags)", async function () {
+    // The exact apps-group scenario: a recording native-app context (tagged via
+    // jobDisplayResources with an explicit display recording in the run) and a
+    // plain native-app context must NOT overlap — before the fix the recording
+    // one was tagged ["display"] only, disjoint from the plain one's
+    // ["native-app-driver"], so they ran concurrently and clobbered the shared
+    // per-host driver.
+    const displayCtx = {
+      platform: "darwin",
+      xvfbAvailable: false,
+      allowOverlappingCaptures: false,
+      runHasDisplayRecording: true,
+    };
+    const recCtx = {
+      context: {
+        platform: "mac",
+        steps: [
+          { startSurface: { app: "com.apple.TextEdit" } },
+          { record: { path: "x.mp4", surface: { app: "TextEdit" } } },
+          { stopRecord: true },
+          { closeSurface: { app: "TextEdit" } },
+        ],
+      },
+    };
+    const plainCtx = {
+      context: {
+        platform: "mac",
+        steps: [{ startSurface: { app: "com.apple.calculator" } }],
+      },
+    };
+    recCtx.exclusiveResources = jobDisplayResources(recCtx, displayCtx);
+    plainCtx.exclusiveResources = jobDisplayResources(plainCtx, displayCtx);
+    // Both must hold the native-app-driver bound (the recording one also holds
+    // display) so the pool serializes them on the shared driver.
+    expect(recCtx.exclusiveResources).to.include("native-app-driver");
+    expect(plainCtx.exclusiveResources).to.include("native-app-driver");
+
+    const reg = createResourceRegistry();
+    const tk = tracker();
+    await runResourceAware(
+      [recCtx, plainCtx],
+      2,
+      reg,
+      async (item) => {
+        tk.enter(item.exclusiveResources);
+        await sleep(30);
+        tk.exit(item.exclusiveResources);
+      }
+    );
+    // The two native-app driver sessions never ran at the same time.
+    expect(tk.stats.perResourceHigh["native-app-driver"]).to.equal(1);
+  });
+});
+
 describe("rollUpResults", function () {
   it("FAIL beats everything", function () {
     expect(
@@ -482,6 +756,25 @@ describe("selectWarmUpTargets", function () {
       }),
     ];
     const targets = selectWarmUpTargets(jobs, runner("windows", ["chrome"]));
+    expect(targets).to.deep.equal([]);
+    expect(jobs[0].context.browser).to.equal(undefined);
+  });
+
+  it("excludes mobile-platform contexts from the desktop warm-up pre-pass", function () {
+    // A mobile-web context (phase A5) runs its browser ON the device through
+    // the per-context app Appium server — warming up a desktop engine for it
+    // would launch the wrong browser on the wrong machine. It must not appear
+    // as a target NOR get a desktop default browser written onto its context
+    // (runContext's mobile branch resolves the device browser itself).
+    const jobs = [
+      job({ platform: "android", steps: [{ goTo: "x" }] }),
+      job({
+        platform: "ios",
+        browser: { name: "safari" },
+        steps: [{ goTo: "x" }],
+      }),
+    ];
+    const targets = selectWarmUpTargets(jobs, runner("linux", ["chrome"]));
     expect(targets).to.deep.equal([]);
     expect(jobs[0].context.browser).to.equal(undefined);
   });

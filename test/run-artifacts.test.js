@@ -807,31 +807,34 @@ describe("buildAutoRecordStep", function () {
     expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
   });
 
-  it("builds a synthetic record step for a native app surface (startSurface with app)", function () {
-    // A native app / emulator context has a visual surface on the host display,
-    // so autoRecord's ffmpeg screen grab is meaningful — even though startSurface
-    // isn't a BROWSER driver step.
-    const context = {
-      contextId: "android",
-      steps: [
-        { startSurface: { app: "com.android.settings" } },
-        { closeSurface: { app: "settings" } },
-      ],
-    };
-    const step = buildAutoRecordStep({ config, spec, test, context });
-    expect(step, "expected a synthetic step for a visual app surface").to.not.equal(null);
-    expect(step.record.engine).to.equal("ffmpeg");
-    expect(step.__autoRecord).to.equal(true);
+  it("omits the ffmpeg engine pin on mobile-platform contexts (device recording)", function () {
+    // Pinning ffmpeg on an android/ios context would host-capture the
+    // emulator window (or nothing, headless) — the device plan records the
+    // device screen instead, and it resolves from the platform.
+    for (const platform of ["android", "ios"]) {
+      const context = {
+        contextId: `${platform}-app`,
+        platform,
+        steps: [
+          { startSurface: { app: "com.example.app" } },
+          { find: { elementText: "Ready" } },
+        ],
+      };
+      const step = buildAutoRecordStep({ config, spec, test, context });
+      expect(step, platform).to.not.equal(null);
+      expect(step.record.engine, platform).to.equal(undefined);
+      expect(step.__autoRecord).to.equal(true);
+    }
   });
 
-  it("does not record a non-visual surface (a command/process startSurface has no app to capture)", function () {
-    // A future process/command surface carries no `app` — there is nothing
-    // visual to capture, so autoRecord must not inject a recording for it.
+  it("keeps the ffmpeg engine pin on desktop contexts", function () {
     const context = {
-      contextId: "process",
-      steps: [{ startSurface: { command: "npm run build" } }],
+      contextId: "windows-app",
+      platform: "windows",
+      steps: [{ find: { elementText: "Ready" } }],
     };
-    expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
+    const step = buildAutoRecordStep({ config, spec, test, context });
+    expect(step.record.engine).to.equal("ffmpeg");
   });
 });
 
@@ -961,6 +964,10 @@ describe("deterministic resolved-test IDs", function () {
 });
 
 describe("detected spec/test IDs from files", function () {
+  // detectTests compiles the full config_v3 schema on first use; the compile
+  // has outgrown mocha's 2 s default as the schema grew (step surface
+  // branches, app phases).
+  this.timeout(10000);
   let tempDir;
 
   beforeEach(function () {

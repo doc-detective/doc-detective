@@ -9,7 +9,7 @@ description: "Reference for the `Device descriptor` schema."
 ## Referenced In
 
 - [context](/reference/schemas/context)
-- [startSurface](/reference/schemas/startsurface)
+- [App descriptor](/reference/schemas/app-descriptor)
 
 ## Fields
 
@@ -19,7 +19,7 @@ platform | string | Optional. Target platform. Selects the mobile driver. Requir
 name | string | Optional. Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`).<br/><br/>Minimum length: 1. Pattern: `\S` | 
 deviceType | string | Optional. Abstract hardware profile used when creating a device (portable across `android`/`ios`). Doc Detective maps it to a built-in profile. Ignored when `name` already matches an existing device. Default: `phone`.<br/><br/>Accepted values: `phone`, `tablet` | 
 osVersion | string | Optional. Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version.<br/><br/>Minimum length: 1 | 
-headless | boolean | Optional. Run the Android emulator without a window. Ignored where not applicable. | 
+headless | boolean | Optional. Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable. | 
 orientation | string | Optional. Initial orientation. Reserved; validated now, not yet implemented.<br/><br/>Accepted values: `portrait`, `landscape` | 
 udid | string | Optional. Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.<br/><br/>Minimum length: 1 | 
 provider | object | Optional. Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented. | 

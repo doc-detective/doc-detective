@@ -1,0 +1,63 @@
+---
+title: swipe
+description: Swipe or scroll a surface in a direction or between two points.
+---
+
+The `swipe` action moves a virtual finger (or pointer) across a browser or app surface. Use it when your documentation walks the reader through a gesture that [`find`](find) can't infer: carousels, onboarding pagers, pull-to-refresh, sliders, and plain "scroll down to see more."
+
+`swipe` is the movement subset of [`dragAndDrop`](dragAndDrop): `dragAndDrop` locates two elements and moves between them, while `swipe` moves between two points—authored directly, or computed from a direction shorthand.
+
+**The direction is the finger's motion.** Swiping `up` moves content up, revealing content further down the page—the gesture you make to read more. Swiping `left` reveals content to the right (for example, the next carousel card).
+
+## Forms
+
+**String shorthand**—swipe up on the active browser tab:
+
+```json
+{ "swipe": "up" }
+```
+
+**Directional**—swipe 80% of the app window's height:
+
+```json
+{ "swipe": { "direction": "up", "distance": 0.8, "surface": { "app": "myapp" } } }
+```
+
+**Point-to-point**—drag from one point to another:
+
+```json
+{ "swipe": { "from": { "x": 200, "y": 600 }, "to": { "x": 200, "y": 200 }, "duration": 400 } }
+```
+
+Point coordinates are pixels from the surface's top-left corner—the app window for app surfaces, the viewport for browsers—the same pixel convention as browser `window`/`viewport` sizing. The directional form's `distance` stays a fraction of the surface, so directional swipes are portable across window sizes without knowing pixels.
+
+## Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `direction` | string | `up`, `down`, `left`, or `right`—the finger's motion. Directional form only. |
+| `distance` | number | How far to swipe, as a fraction (0–1] of the surface's height (up/down) or width (left/right). Default: `0.5`. Directional form only. |
+| `from`, `to` | object | `{ "x": px, "y": px }` pixel coordinates (from the surface's top-left) where the finger presses down and releases. Point-to-point form only—mutually exclusive with `direction`/`distance`. |
+| `duration` | integer | Movement time in milliseconds. Default: `500`. |
+| `surface` | string or object | The browser or app surface to swipe. Omit to act on the active browser tab. App surfaces use the object form (`{ "app": "…" }`). On Windows/macOS, add a `window` selector to swipe a specific window of the app (see [App windows](find#app-windows)). |
+
+See the [swipe schema reference](/reference/schemas/swipe) for the full shapes.
+
+## Surface behavior
+
+- **Mobile app surfaces (Android/iOS)**: a real touch gesture through the device driver. Directional swipes stay inside a 10%-inset box so a full-length swipe can't trigger a system edge gesture (Android back/home).
+- **Desktop app surfaces (Windows/macOS)**: a directional swipe scrolls the window (mouse wheel at the window center—dragging a desktop window's content doesn't scroll it); a point-to-point swipe is a real click-and-drag.
+- **Browser surfaces**: a directional swipe scrolls the page (`window.scrollBy` with finger-motion semantics—a mouse drag on a web page selects text instead of scrolling); a point-to-point swipe is a real pointer drag (sliders, canvases, maps). Point-to-point needs the W3C actions endpoint, so like non-left-button clicks it's desktop-browser-only for now.
+- **Process surfaces**: not applicable—a background process has no screen to swipe, and the schema doesn't accept one.
+
+<Info>
+
+A browser directional swipe *scrolls*; it doesn't synthesize touch events. A web carousel driven by touch listeners won't respond—test it on a mobile app surface, or drive it with a point-to-point swipe if it also handles pointer drags.
+
+</Info>
+
+<Tip>
+
+If you're swiping just to bring an element into view before a [`find`](find), you usually don't need to: `find` auto-scrolls on mobile app surfaces (and scrolls into view on browsers). Reach for `swipe` when the gesture itself is what the documentation describes.
+
+</Tip>

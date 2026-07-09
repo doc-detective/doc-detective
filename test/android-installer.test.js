@@ -21,6 +21,10 @@ import {
   resolveJavaHome,
   javaBinPath,
   ensureJava,
+  isTransientSdkError,
+  runSdkInstallWithRetry,
+  isSystemImageComplete,
+  SDK_INSTALL_MAX_ATTEMPTS,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -306,6 +310,16 @@ describe("android installer: installAndroid orchestration", function () {
     avdmanager: "/opt/android/cmdline-tools/latest/bin/avdmanager",
   };
 
+  // A post-install integrity probe checks for a system image's marker files
+  // (source.properties + system.img). Fixtures that install an image use this so
+  // the probe sees a COMPLETE extraction — it deliberately does not match the
+  // bare `system-images` dir, so listInstalledSystemImages still reports none
+  // installed and the `--list` path is exercised.
+  const isImageMarker = (p) => {
+    const n = String(p).replace(/\\/g, "/");
+    return n.endsWith("source.properties") || n.endsWith("system.img");
+  };
+
   it("dry-run reports the plan without running anything", async function () {
     await withTmpCache(async () => {
       const calls = [];
@@ -467,8 +481,10 @@ describe("android installer: installAndroid orchestration", function () {
           detect: () => detectedSdk,
           arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
-          // No installed images -> must query available and install one.
-          fs: { existsSync: () => false, readdirSync: () => [] },
+          // No installed images -> must query available and install one. The
+          // marker files read present so the post-install integrity probe sees a
+          // complete extraction (models a successful download).
+          fs: { existsSync: (p) => isImageMarker(p), readdirSync: () => [] },
           run: (command, args) => {
             runCalls.push(args.join(" "));
             if (args.includes("--list")) return Promise.resolve(listOutput);
@@ -519,7 +535,9 @@ describe("android installer: installAndroid orchestration", function () {
           detect: () => null,
           arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
           javaPresent: () => true,
-          fs: { existsSync: () => false, readdirSync: () => [] },
+          // Markers present so the freshly-installed image passes the integrity
+          // probe (models a complete extraction after the bootstrap).
+          fs: { existsSync: (p) => isImageMarker(p), readdirSync: () => [] },
           bootstrap: (url, dest) => {
             bootstrapCalls.push({ url, dest });
             return Promise.resolve();
@@ -683,6 +701,117 @@ describe("android installer: installAndroid orchestration", function () {
       expect(reports.every((r) => r.action === "planned")).to.equal(true);
     });
   });
+
+  // Discriminates the sdkmanager system-image install (`[--sdk_root=…, <image>]`)
+  // from the license/tool installs and the avdmanager create (which also carries
+  // the image id via `-k`).
+  const isImageInstallCall = (args) =>
+    args.length === 2 &&
+    String(args[0]).startsWith("--sdk_root=") &&
+    String(args[1]).startsWith("system-images;");
+
+  const availableImageList = [
+    "Available Packages:",
+    "  system-images;android-34;google_apis;x86_64 | 3 | Google APIs",
+  ].join("\n");
+
+  it("self-repairs a transient system-image install, then creates the AVD", async function () {
+    await withTmpCache(async () => {
+      let imageInstalls = 0;
+      const warns = [];
+      const reports = await installAndroid({
+        yes: true,
+        deps: {
+          detect: () => detectedSdk,
+          arch: "x64",
+          javaPresent: () => true,
+          sleep: () => Promise.resolve(), // no real backoff wait
+          logger: (msg, level) => warns.push([String(msg), level]),
+          // Markers present -> the (eventually) installed image is complete, so
+          // the retry (not the integrity repair) is what's under test here.
+          fs: { existsSync: (p) => isImageMarker(p), readdirSync: () => [] },
+          run: (command, args) => {
+            if (args.includes("--list")) return Promise.resolve(availableImageList);
+            if (isImageInstallCall(args)) {
+              imageInstalls++;
+              if (imageInstalls === 1)
+                return Promise.reject(
+                  new Error("Error on ZipFile unknown archive")
+                );
+            }
+            return Promise.resolve("");
+          },
+        },
+      });
+      expect(imageInstalls).to.equal(2); // failed once, retried, succeeded
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
+      expect(warns.some(([m, l]) => l === "warn" && /retry/i.test(m))).to.equal(true);
+    });
+  });
+
+  it("repairs a structurally-incomplete system image, then creates the AVD", async function () {
+    await withTmpCache(async () => {
+      let imageInstalls = 0;
+      const wiped = [];
+      const reports = await installAndroid({
+        yes: true,
+        deps: {
+          detect: () => detectedSdk,
+          arch: "x64",
+          javaPresent: () => true,
+          sleep: () => Promise.resolve(),
+          fs: {
+            // Markers only appear AFTER the repair install: the first extraction
+            // is partial (probe fails), the reinstall completes it.
+            existsSync: (p) => isImageMarker(p) && imageInstalls >= 2,
+            readdirSync: () => [],
+            rmSync: (p) => wiped.push(String(p).replace(/\\/g, "/")),
+          },
+          run: (command, args) => {
+            if (args.includes("--list")) return Promise.resolve(availableImageList);
+            if (isImageInstallCall(args)) imageInstalls++;
+            return Promise.resolve("");
+          },
+        },
+      });
+      expect(imageInstalls).to.equal(2); // partial install -> wiped -> reinstalled
+      expect(
+        wiped.some((p) =>
+          /system-images\/android-34\/google_apis\/x86_64$/.test(p)
+        )
+      ).to.equal(true);
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
+    });
+  });
+
+  it("returns a corrupt report and skips the AVD when a system image stays incomplete", async function () {
+    await withTmpCache(async () => {
+      let imageInstalls = 0;
+      const reports = await installAndroid({
+        yes: true,
+        deps: {
+          detect: () => detectedSdk,
+          arch: "x64",
+          javaPresent: () => true,
+          sleep: () => Promise.resolve(),
+          // Markers never appear -> image stays incomplete through the repair.
+          fs: { existsSync: () => false, readdirSync: () => [], rmSync: () => {} },
+          run: (command, args) => {
+            if (args.includes("--list")) return Promise.resolve(availableImageList);
+            if (isImageInstallCall(args)) imageInstalls++;
+            return Promise.resolve("");
+          },
+        },
+      });
+      expect(imageInstalls).to.equal(2); // initial install + one repair attempt
+      expect(
+        reports.some(
+          (r) => r.assetId === "system-image" && r.action === "corrupt"
+        )
+      ).to.equal(true);
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(false);
+    });
+  });
 });
 
 describe("android installer: portable JRE", function () {
@@ -773,5 +902,162 @@ describe("android installer: portable JRE", function () {
     });
     expect(res.ok).to.equal(false);
     expect(res.reason).to.match(/network down/);
+  });
+});
+
+describe("android installer: SDK install self-repair", function () {
+  it("classifies only transient SDK download errors as retryable", function () {
+    // The #501/#523 corrupt-download signatures.
+    expect(isTransientSdkError("Error on ZipFile unknown archive")).to.equal(true);
+    expect(
+      isTransientSdkError(
+        "Warning: An error occurred while preparing SDK package Google APIs"
+      )
+    ).to.equal(true);
+    // Network transients (case-insensitive).
+    expect(isTransientSdkError("read ECONNRESET")).to.equal(true);
+    expect(isTransientSdkError("connect ETIMEDOUT 1.2.3.4:443")).to.equal(true);
+    expect(isTransientSdkError("Connection reset by peer")).to.equal(true);
+    expect(isTransientSdkError("Read timed out")).to.equal(true);
+    // Real failures must NOT be retried.
+    expect(isTransientSdkError("Accept? (y/N): license not accepted")).to.equal(
+      false
+    );
+    expect(isTransientSdkError("Unknown argument --nope")).to.equal(false);
+    expect(isTransientSdkError("")).to.equal(false);
+    expect(isTransientSdkError(undefined)).to.equal(false);
+  });
+
+  it("returns on first success without retrying", async function () {
+    let calls = 0;
+    const out = await runSdkInstallWithRetry(
+      () => {
+        calls++;
+        return Promise.resolve("ok");
+      },
+      "sdkmanager",
+      ["system-images;android-34;google_apis;x86_64"],
+      {},
+      { sleep: () => Promise.resolve() }
+    );
+    expect(out).to.equal("ok");
+    expect(calls).to.equal(1);
+  });
+
+  it("self-repairs a transient failure then succeeds (no real wait)", async function () {
+    let calls = 0;
+    const slept = [];
+    const warns = [];
+    const out = await runSdkInstallWithRetry(
+      () => {
+        calls++;
+        if (calls === 1)
+          return Promise.reject(new Error("Error on ZipFile unknown archive"));
+        return Promise.resolve("ok");
+      },
+      "sdkmanager",
+      ["system-images;android-34;google_apis;x86_64"],
+      {},
+      {
+        sleep: (ms) => {
+          slept.push(ms);
+          return Promise.resolve();
+        },
+        logger: (msg, level) => warns.push([String(msg), level]),
+      }
+    );
+    expect(out).to.equal("ok");
+    expect(calls).to.equal(2);
+    expect(slept).to.have.length(1); // backed off once
+    // The retry is surfaced, never silent.
+    expect(warns.some(([m, l]) => l === "warn" && /retry/i.test(m))).to.equal(true);
+  });
+
+  it("rethrows a non-transient failure immediately (no retry, no mask)", async function () {
+    let calls = 0;
+    let threw;
+    try {
+      await runSdkInstallWithRetry(
+        () => {
+          calls++;
+          return Promise.reject(new Error("license not accepted"));
+        },
+        "sdkmanager",
+        ["--licenses"],
+        {},
+        { sleep: () => Promise.resolve() }
+      );
+    } catch (e) {
+      threw = e;
+    }
+    expect(threw).to.be.an("error");
+    expect(threw.message).to.match(/license not accepted/);
+    expect(calls).to.equal(1); // never retried
+  });
+
+  it("gives up after SDK_INSTALL_MAX_ATTEMPTS on a persistent transient error", async function () {
+    let calls = 0;
+    let threw;
+    try {
+      await runSdkInstallWithRetry(
+        () => {
+          calls++;
+          return Promise.reject(new Error("unknown archive"));
+        },
+        "sdkmanager",
+        ["system-images;android-34;google_apis;x86_64"],
+        {},
+        { sleep: () => Promise.resolve() }
+      );
+    } catch (e) {
+      threw = e;
+    }
+    expect(threw).to.be.an("error");
+    expect(calls).to.equal(SDK_INSTALL_MAX_ATTEMPTS);
+  });
+
+  it("verifies a system image's integrity by its canonical marker files", function () {
+    const pkg = "system-images;android-34;google_apis;x86_64";
+    const imageDir = ["android-34", "google_apis", "x86_64"];
+    const has = (names) => ({
+      existsSync: (p) => {
+        const n = p.replace(/\\/g, "/");
+        // Only "complete" when the marker file under the exact image dir exists.
+        return names.some(
+          (name) => n.endsWith(`system-images/${imageDir.join("/")}/${name}`)
+        );
+      },
+    });
+    // Both markers present -> complete.
+    expect(
+      isSystemImageComplete("/sdk", pkg, has(["source.properties", "system.img"]))
+    ).to.equal(true);
+    // A truncated extraction missing the payload -> incomplete.
+    expect(
+      isSystemImageComplete("/sdk", pkg, has(["source.properties"]))
+    ).to.equal(false);
+    // Nothing extracted -> incomplete.
+    expect(isSystemImageComplete("/sdk", pkg, has([]))).to.equal(false);
+    // A non-image package id -> not a valid image, not complete.
+    expect(
+      isSystemImageComplete("/sdk", "platform-tools", has(["source.properties", "system.img"]))
+    ).to.equal(false);
+  });
+
+  it("rejects a package id whose segments escape <sdkRoot>/system-images (rm safety)", function () {
+    // A traversal/absolute segment must never resolve outside the images root —
+    // wipeSystemImage does a recursive rm on this path. Even with markers
+    // "present", an escaping id is treated as not-a-valid-image (dir is null).
+    const anythingExists = { existsSync: () => true };
+    expect(
+      isSystemImageComplete("/sdk", "system-images;../../../../etc;x;y", anythingExists)
+    ).to.equal(false);
+    expect(
+      isSystemImageComplete(
+        "/sdk",
+        "system-images;android-34;google_apis;../../../../../../etc",
+        anythingExists
+      )
+    ).to.equal(false);
   });
 });

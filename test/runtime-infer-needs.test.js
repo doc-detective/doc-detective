@@ -125,6 +125,58 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
   });
 
+  it("a startSurface browser descriptor requires that engine's browser stack (Phase 6)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { browser: "firefox", name: "admin" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["firefox"]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+    expect(needs.npmPackages.has("appium")).to.equal(true);
+    expect(needs.npmPackages.has("appium-geckodriver")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
+  });
+
+  it("a startSurface edge descriptor provisions the chromium stack (edge is Chromium)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { browser: "edge", name: "corp" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
+  });
+
+  it("a startSurface process descriptor needs no browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { process: "node", name: "repl" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal([]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+  });
+
+  it("a parallel startSurface array contributes each browser descriptor's engine", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        {
+          startSurface: [
+            { browser: "chrome" },
+            { app: "com.example.myapp" },
+            { process: "node", name: "repl" },
+          ],
+        },
+      ]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
+  });
+
+  it("an app-only startSurface still needs no browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ startSurface: { app: "C:\\Windows\\System32\\notepad.exe" } }]),
+    ]);
+    expect([...needs.browsers]).to.deep.equal([]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+  });
+
   it("a screenshot step adds sharp / pngjs / pixelmatch", function () {
     const needs = inferRuntimeNeeds([
       makeSpec([{ screenshot: { path: "s.png" } }]),
@@ -210,5 +262,59 @@ describe("runtime/inferRuntimeNeeds", function () {
         /android|uiautomator|emulator|sdk/i
       );
     }
+  });
+
+  // A step whose action payload names an app surface with the object form
+  // (`surface: { app: … }`) drives a native app driver, not a browser — the
+  // same exclusion `isBrowserRequired` applies in the runner. So even though
+  // `swipe`/`click` are shared browser step keys, an app-object-targeted step
+  // must NOT pull in the browser stack (webdriverio/appium/chromium/chrome).
+  // This is narrower than the android-toolchain test above: there the
+  // find/click/type steps carry NO per-step surface object (they inherit the
+  // app context), so they legitimately still infer the generic driver stack.
+  it("an app-surface-targeted step (object form) does not provision the browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec(
+        [
+          { startSurface: { app: "com.android.settings" } },
+          {
+            swipe: {
+              direction: "up",
+              surface: { app: "com.android.settings" },
+            },
+          },
+          {
+            click: {
+              elementText: "Wi-Fi",
+              surface: { app: "com.android.settings" },
+            },
+          },
+        ],
+        { runOn: [{ platforms: "android" }] }
+      ),
+    ]);
+    expect([...needs.browsers]).to.deep.equal([]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+    expect(needs.npmPackages.has("appium")).to.equal(false);
+    expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(false);
+  });
+
+  // Guard the boundary: an app-object screenshot still needs the image stack
+  // (sharp/pngjs/pixelmatch) — the app-surface exclusion gates only the
+  // browser flag, not screenshot/recording bundles.
+  it("an app-surface screenshot still infers the image stack but no browser", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        {
+          screenshot: {
+            path: "s.png",
+            surface: { app: "com.android.settings" },
+          },
+        },
+      ]),
+    ]);
+    expect(needs.npmPackages.has("sharp")).to.equal(true);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+    expect([...needs.browsers]).to.deep.equal([]);
   });
 });
