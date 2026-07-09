@@ -868,6 +868,7 @@ describe("runner-entrypoint: main()", () => {
     const code = await main();
     assert.equal(code, 1);
     assert.ok(observed.specHit, "expected /spec to have been hit");
+    assert.ok(observed.finalize, "expected a /finalize POST to have been received");
     assert.equal(observed.finalize.status, "failed");
     assert.equal(observed.finalize.exit_code, 1);
     assert.equal(observed.finalize.summary.reason, "spec_fetch_failed");
