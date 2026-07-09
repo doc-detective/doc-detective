@@ -22,10 +22,6 @@ You can specify the target URL directly as a string, or use an object for more o
 
 Here are a few ways you might use the `goTo` action:
 
-{/* test {"testId":"goto-server-setup","detectSteps":false} */}
-{/* step {"stepId":"start-test-server","description":"Start the local test server in the background","runShell":{"command":"node test/server/start.js","background":{"name":"goto-server","waitUntil":{"port":8092}},"timeout":30000}} */}
-{/* test end */}
-
 ### Navigate to a full URL (string shorthand)
 
 {/* test {"testId":"goto-string-shorthand","detectSteps":false} */}
@@ -91,11 +87,6 @@ Assumes the browser is currently at `https://example.com` or a global `origin` i
 
 {/* step {"stepId":"goto-object","description":"Navigate to the local test server using object format","goTo":{"url":"http://localhost:8092"}} */}
 {/* step {"stepId":"verify-heading-object","description":"Confirm the test server page loaded","find":"Common HTML Elements"} */}
-{/* test end */}
-
-{/* Cleanup runs as its own test so the server is stopped even if a test above fails. */}
-{/* test {"testId":"goto-server-cleanup","detectSteps":false} */}
-{/* step {"stepId":"stop-test-server","description":"Stop the local test server","closeSurface":"goto-server"} */}
 {/* test end */}
 
 ### Navigate using an object with a relative path and specific origin
