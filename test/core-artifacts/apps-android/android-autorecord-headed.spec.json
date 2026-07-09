@@ -1,0 +1,35 @@
+{
+  "specId": "android-autorecord-headed",
+  "description": "Minimal headed-emulator + autoRecord permutation. A `device.headless: false` context asks Doc Detective to boot the Android emulator with a visible window, and `autoRecord` (test-level) injects a synthetic full-context ffmpeg screen capture around the steps. autoRecord fires because the context opens a VISUAL surface — the native app surface (`startSurface` with an `app`), not just a browser step — so the emulator window on the host display is captured. The `device` omits a `name`, so the default provisioned `doc-detective` AVD is reused (booted, not created) — no runtime avdmanager/Java needed. On a capable host (virtualization enabled, SDK/system image installed) this boots the headed emulator and records the run; on every incapable host (no KVM/HVF/WHPX, or no SDK — e.g. headless CI) the android preflight lands the context SKIPPED, never FAIL.",
+  "tests": [
+    {
+      "testId": "android-headed-autorecord",
+      "description": "Open the preinstalled Settings app on a headed emulator, wait for it to become ready, and close the surface. autoRecord wraps these steps in a synthetic ffmpeg recording of the host display.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": "android",
+          "device": {
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}
