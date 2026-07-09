@@ -465,14 +465,15 @@ describe("runtime/cacheDir.ts — guard + fallback branches", function () {
 
   it("getBrowsersDir skips legacy candidates whose statSync throws and falls back to the default cache", function () {
     // No override → the legacy loop runs; every statSync throws → catch/skip →
-    // fall through to <cacheDir>/browsers. Redirect the default cache root to a
-    // temp dir so we don't create anything under the real tmpdir cache.
+    // fall through to <cacheDir>/browsers. Redirect the default cache root (now
+    // <homedir>/.doc-detective) to a temp dir so we don't create anything under
+    // the real home cache.
     delete process.env.DOC_DETECTIVE_CACHE_DIR;
-    const fakeTmp = mkTmp("dd-edge-tmproot-");
-    sinon.stub(os, "tmpdir").returns(fakeTmp);
+    const fakeHome = mkTmp("dd-edge-homeroot-");
+    sinon.stub(os, "homedir").returns(fakeHome);
     sinon.stub(fs, "statSync").throws(Object.assign(new Error("nope"), { code: "ENOENT" }));
     const out = getBrowsersDir({});
-    assert.equal(out, path.join(fakeTmp, "doc-detective", "browsers"));
+    assert.equal(out, path.join(fakeHome, ".doc-detective", "browsers"));
   });
 
   it("readInstalledRecord degrades to an empty record on a non-ENOENT read error", function () {
@@ -861,11 +862,20 @@ describe("core/utils.ts — cleanTemp / waitForStdio / run output helpers", func
     sinon.stub(os, "tmpdir").returns(fakeTmp);
     const ddDir = path.join(fakeTmp, "doc-detective");
     fs.mkdirSync(path.join(ddDir, "runtime"), { recursive: true });
+    fs.mkdirSync(path.join(ddDir, "browsers"), { recursive: true });
+    // The heavy toolchain caches — a blanket wipe used to delete these when a
+    // user co-locates the cache in the scratch root, purging a multi-GB Android
+    // SDK / portable JRE that the next run needs.
+    fs.mkdirSync(path.join(ddDir, "android-sdk"), { recursive: true });
+    fs.mkdirSync(path.join(ddDir, "jre"), { recursive: true });
     fs.mkdirSync(path.join(ddDir, "scratch-dir"), { recursive: true });
     fs.writeFileSync(path.join(ddDir, "installed.json"), "{}");
     fs.writeFileSync(path.join(ddDir, "scratch.txt"), "x");
     cleanTemp();
     assert.ok(fs.existsSync(path.join(ddDir, "runtime")), "runtime preserved");
+    assert.ok(fs.existsSync(path.join(ddDir, "browsers")), "browsers preserved");
+    assert.ok(fs.existsSync(path.join(ddDir, "android-sdk")), "android-sdk preserved");
+    assert.ok(fs.existsSync(path.join(ddDir, "jre")), "jre preserved");
     assert.ok(fs.existsSync(path.join(ddDir, "installed.json")), "installed.json preserved");
     assert.ok(!fs.existsSync(path.join(ddDir, "scratch-dir")), "scratch dir removed");
     assert.ok(!fs.existsSync(path.join(ddDir, "scratch.txt")), "scratch file removed");

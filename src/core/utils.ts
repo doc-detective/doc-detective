@@ -804,17 +804,22 @@ function appendQueryParams(
   return pathAndAuthority + (query ? "?" + query : "") + fragment;
 }
 
-// Delete transient scratch files from the doc-detective temp directory.
-// PRESERVED entries: the lazy-install cache subdirectories (`browsers/`,
-// `runtime/`) and `installed.json`. The default cacheDir is
-// `<os.tmpdir()>/doc-detective/`, which means cache assets and scratch
-// files share the same root directory. A blanket wipe here would delete
-// the very chromedriver/firefox binaries the next runTests call needs
-// (this regression broke sequential `runTests` calls in CI on every
-// platform — see test/core-core.test.js's getRunner suite).
+// Delete transient scratch files from the doc-detective temp directory
+// (`<os.tmpdir()>/doc-detective`, the scratch root — recordings, detect scratch,
+// etc.). PRESERVED entries are the lazy-install cache subdirectories and
+// `installed.json`. The default cacheDir now lives at `<homedir>/.doc-detective`
+// (separate from this scratch root), but a user can still point cacheDir back
+// here — and cache assets and scratch would then share this directory. A blanket
+// wipe would delete the very binaries the next runTests call needs: the
+// chromedriver/firefox snapshots (this regression broke sequential `runTests`
+// calls in CI on every platform — see test/core-core.test.js's getRunner suite)
+// and the multi-GB Android SDK / portable JRE. So preserve every cache asset,
+// not just the browser/runtime ones.
 const PRESERVED_TEMP_ENTRIES = new Set([
   "browsers",
   "runtime",
+  "android-sdk",
+  "jre",
   "installed.json",
 ]);
 

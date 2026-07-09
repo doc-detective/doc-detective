@@ -97,6 +97,8 @@ doc-detective install android --yes
 
 This command **augments an existing SDK** when one is found (via `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`): it runs `sdkmanager` and `avdmanager` from that SDK to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's command-line tools into `<cacheDir>/android-sdk` first.
 
+If a detected SDK is **incomplete** — for example an earlier install was interrupted, leaving `adb` present but Google's command-line tools (`sdkmanager`/`avdmanager`) missing — the command re-fetches those tools into the existing SDK before continuing. Re-running `install android` therefore **recovers a partial install** instead of failing on a missing `sdkmanager`, and already-downloaded pieces such as the system image are reused, not downloaded again.
+
 Because the system image is multi-GB, this command **never downloads without `--yes`** — run it with `--dry-run` first to preview the plan:
 
 ```bash
@@ -153,9 +155,9 @@ Check this log to diagnose network issues, authentication problems, or native bu
 
 ## Cache directory
 
-By default, runtime assets install to `<os.tmpdir()>/doc-detective/`. This location may not persist across reboots on some systems.
+By default, runtime assets install to `<homedir>/.doc-detective/` — a persistent per-user location that survives reboots and OS temp cleanup.
 
-To set a persistent cache location:
+To set a different cache location (for example, a shared cache or a mounted volume):
 
 1. **Environment variable**: `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`
 2. **Config file**: Set `cacheDir` in `.doc-detective.json`

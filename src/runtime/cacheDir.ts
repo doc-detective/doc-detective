@@ -44,13 +44,20 @@ function emptyRecord(): InstalledRecord {
   return { npmPackages: {}, browsers: {} };
 }
 
+// The default cache root is `<homedir>/.doc-detective`, a PERSISTENT location.
+// It deliberately does NOT live under os.tmpdir(): the OS purges temp (Windows
+// Storage Sense, `/tmp` on reboot), and Doc Detective's own scratch cleanup
+// (`cleanTemp` in core/utils.ts) targets `<os.tmpdir()>/doc-detective` — so a
+// cache co-located there could be wiped out from under a run, forcing costly
+// re-downloads (browsers, and especially the multi-GB Android SDK). Home is
+// writable, stable across reboots, and per-user.
 function defaultCacheRoot(): string {
-  return path.join(os.tmpdir(), "doc-detective");
+  return path.join(os.homedir(), ".doc-detective");
 }
 
 /**
  * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > <os.tmpdir()>/doc-detective. The directory is created if missing — every
+ * > <homedir>/.doc-detective. The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.

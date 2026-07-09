@@ -139,7 +139,7 @@ function buildYargs(args: any): any {
     })
     .option("cache-dir", {
       description:
-        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg, the Android SDK). Defaults to <homedir>/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
       type: "string",
     })
     .option("concurrent-runners", {

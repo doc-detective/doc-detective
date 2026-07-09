@@ -84,7 +84,7 @@ You should see output in the terminal indicating the progress and results of the
 
 ## Runtime installation
 
-Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—into `<os.tmpdir()>/doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps your install ready to run tests without a separate step.
+Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—into `<homedir>/.doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps your install ready to run tests without a separate step.
 
 The pre-install runs in a child process and captures its output, so npm's deprecation warnings from transitive dependencies won't clutter your terminal.
 
@@ -126,7 +126,7 @@ doc-detective install status
 
 ### Override the cache location
 
-The default cache location (`<os.tmpdir()>/doc-detective/`) may not persist across reboots on some systems. For containers, CI runners, or any environment where you want the cache to survive, set a custom location:
+The default cache location is `<homedir>/.doc-detective/` — a persistent per-user directory that survives reboots. To share one cache across users or point it at a mounted volume (CI runners, baked container images), set a custom location:
 
 ```bash
 DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
