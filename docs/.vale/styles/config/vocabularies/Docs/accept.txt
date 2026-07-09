@@ -158,6 +158,7 @@ CMS
 CCMS
 Appium
 ffmpeg
+framebuffer
 subcommand
 runCode
 runBrowserScript

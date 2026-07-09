@@ -58,11 +58,13 @@ When two recordings overlap and both would use the `browser` engine, the second 
 
 ## Automatic recordings
 
-To record every browser-based test context from start to finish, enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
+To record every visual test context from start to finish, enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
 
 - Building a video archive of every run
 - Replaying exactly what happened when a test fails
 - Comparing behavior from one run to the next
+
+A context records whenever it puts something on the host display: a browser context, or a native app or headed-emulator surface opened with a `startSurface` step that targets an `app`. If a context only runs non-visual work—a command or process surface with nothing on screen, or steps such as `httpRequest` and `runShell`—it has nothing to capture, so `autoRecord` skips it.
 
 Enable it at the config, spec, or test level (test overrides spec, which overrides config):
 
@@ -81,7 +83,7 @@ doc-detective --auto-record
 
 Use `--no-auto-record` to override a config file that enables it.
 
-Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, so the same context lands on the same relative path in every run's folder:
+Automatic recordings always use the `ffmpeg` engine and wrap the whole context: recording starts before the first step and stops after the last. Because `ffmpeg` captures the host display, an app or emulator recording shows that surface's window on your screen, not the device's own framebuffer, and only a headed surface produces meaningful video—a headless browser or emulator captures an idle display. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, so the same context lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/runs/<runId>/
