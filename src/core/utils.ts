@@ -15,6 +15,7 @@ import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
+import YAML from "yaml";
 
 export {
   outputResults,
@@ -56,6 +57,12 @@ export {
   rollUpAssertions,
   createAppiumPool,
   evaluateContextRequirements,
+  verifiedDate,
+  shieldsBadge,
+  parseVerifiedMarkers,
+  applyVerifiedToContent,
+  resolveVerifiedId,
+  applyVerifiedMarkers,
 };
 
 export type { BackgroundProcess };
@@ -1387,6 +1394,430 @@ function replaceEnvs(stringOrObject: any): any {
     });
   }
   return stringOrObject;
+}
+
+// ===========================================================================
+// "Last Verified On" — marker-driven write-back.
+//
+// Authors place a static `verified` marker carrying an `id` (a test or spec id)
+// they choose; after a run we resolve that id to its roll-up result and, only
+// when it PASSED, write today's date back into the marker. On non-pass the date
+// is left untouched so the badge silently "ages". There is no config: the
+// feature acts wherever a marker exists, and nowhere else. See
+// adrs/01046-last-verified-on-marker-writeback.md.
+// ===========================================================================
+
+// Map a file extension to the doc format whose comment syntax we use. `.mdx`
+// shares the markdown grammar (and uses the JSX-comment variant).
+const VERIFIED_FORMAT_BY_EXT: Record<string, string> = {
+  md: "markdown",
+  markdown: "markdown",
+  mdx: "markdown",
+  adoc: "asciidoc",
+  asciidoc: "asciidoc",
+  asc: "asciidoc",
+  html: "html",
+  htm: "html",
+  dita: "dita",
+  ditamap: "dita",
+  // `.xml` is intentionally omitted: it's a generic extension (POMs, SVGs, feeds,
+  // Spring configs), and treating every .xml as DITA would put unrelated files on
+  // the write-back scan path. DITA authored as `.xml` is uncommon; use `.dita`.
+};
+
+// Per-format marker patterns. Three capture groups: (open)(attrs)(close) so a
+// rewrite preserves the exact comment delimiters that matched — critical for
+// MDX, where an HTML comment would break the build. Markdown/MDX offers all
+// three variants the existing `test`/`step` statements do.
+const VERIFIED_MARKER_PATTERNS: Record<string, string[]> = {
+  markdown: [
+    "(<!--\\s*verified\\s+)([\\s\\S]*?)(\\s*-->)",
+    "(\\{/\\*\\s*verified\\s+)([\\s\\S]*?)(\\s*\\*/\\})",
+    "(\\[comment\\]:\\s*#\\s*\\(verified\\s+)([^)]*?)(\\))",
+  ],
+  asciidoc: ["(//\\s*\\(verified\\s+)([^)]*?)(\\))"],
+  html: ["(<!--\\s*verified\\s+)([\\s\\S]*?)(\\s*-->)"],
+  dita: [
+    "(<!--\\s*verified\\s+)([\\s\\S]*?)(\\s*-->)",
+    "(<\\?doc-detective\\s+verified\\s+)([\\s\\S]*?)(\\s*\\?>)",
+  ],
+};
+
+// Body of an existing DD-managed shields.io image, per format — used to detect
+// and replace the badge line on re-runs instead of duplicating it.
+const VERIFIED_IMG_BODY: Record<string, string> = {
+  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge[^)]*\\)",
+  html: "<img[^>]*img\\.shields\\.io/badge[^>]*>",
+  asciidoc: "image:\\S*img\\.shields\\.io/badge\\S*\\[[^\\]]*\\]",
+  dita: "<image[^>]*img\\.shields\\.io/badge[\\s\\S]*?</image>",
+};
+
+interface VerifiedMarker {
+  id: string;
+  badge: boolean;
+  date?: string;
+  open: string;
+  attrs: string;
+  close: string;
+  start: number;
+  end: number;
+}
+
+// Filesystem-/badge-friendly calendar date, `YYYY-MM-DD` in UTC (deterministic
+// across runners/timezones), e.g. `2026-06-26`.
+function verifiedDate(d: Date = new Date()): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Escape one shields.io URL path segment: `_`→`__`, `-`→`--`, ` `→`_`. The
+// dash-doubling is the easy-to-get-wrong bit (a literal `-` is otherwise the
+// label/message/color separator), so `2026-06-26` → `2026--06--26`.
+function shieldsEscape(segment: string): string {
+  return segment.replace(/_/g, "__").replace(/-/g, "--").replace(/ /g, "_");
+}
+
+// Build a shields.io static badge, wrapped in the format's native image syntax.
+// DD only writes the URL; shields.io renders it client-side (no network call).
+function shieldsBadge(
+  format: string,
+  date: string,
+  { label = "Last verified", color = "brightgreen" }: { label?: string; color?: string } = {}
+): string {
+  const url = `https://img.shields.io/badge/${shieldsEscape(label)}-${shieldsEscape(
+    date
+  )}-${shieldsEscape(color)}`;
+  const alt = `${label} ${date}`;
+  switch (format) {
+    case "asciidoc":
+      return `image:${url}[${alt}]`;
+    case "html":
+      return `<img src="${url}" alt="${alt}">`;
+    case "dita":
+      return `<image href="${url}"><alt>${alt}</alt></image>`;
+    default:
+      return `![${alt}](${url})`;
+  }
+}
+
+// Parse a marker's attribute string (`id=… badge date=…`) into fields. Bare
+// `badge` is a boolean flag; everything else is `key=value`.
+function parseVerifiedAttrs(attrs: string): { id?: string; date?: string; badge: boolean } {
+  const out: { id?: string; date?: string; badge: boolean } = { badge: false };
+  for (const token of attrs.trim().split(/\s+/)) {
+    if (!token) continue;
+    if (token === "badge") {
+      out.badge = true;
+      continue;
+    }
+    const eq = token.indexOf("=");
+    if (eq === -1) continue;
+    const key = token.slice(0, eq);
+    const value = token.slice(eq + 1).replace(/^["']|["']$/g, "");
+    if (key === "id") out.id = value;
+    else if (key === "date") out.date = value;
+    else if (key === "badge") out.badge = value !== "false";
+  }
+  return out;
+}
+
+// Find all inline `verified` markers in `content` for the given format.
+function parseVerifiedMarkers(content: string, format: string): VerifiedMarker[] {
+  const patterns = VERIFIED_MARKER_PATTERNS[format] || VERIFIED_MARKER_PATTERNS.markdown;
+  const markers: VerifiedMarker[] = [];
+  for (const pattern of patterns) {
+    const regex = new RegExp(pattern, "g");
+    for (const m of content.matchAll(regex)) {
+      const parsed = parseVerifiedAttrs(m[2]);
+      if (!parsed.id) continue;
+      markers.push({
+        id: parsed.id,
+        badge: parsed.badge,
+        date: parsed.date,
+        open: m[1],
+        attrs: m[2],
+        close: m[3],
+        start: m.index!,
+        end: m.index! + m[0].length,
+      });
+    }
+  }
+  markers.sort((a, b) => a.start - b.start);
+  return markers;
+}
+
+// Set or replace the `date=` attribute, preserving attribute order and the
+// `badge` flag. Any quotes on an existing value are intentionally normalized away
+// (`date="…"` → `date=…`): the value is an unquoted comment attribute, not YAML,
+// and parseVerifiedAttrs strips quotes on read, so this is a one-time no-op that
+// stays idempotent thereafter.
+function setVerifiedAttrDate(attrs: string, date: string): string {
+  if (/\bdate=\S+/.test(attrs)) return attrs.replace(/\bdate=\S+/, `date=${date}`);
+  return `${attrs.replace(/\s+$/, "")} date=${date}`;
+}
+
+// Idempotent, form-preserving in-place update of every inline marker whose id
+// has a date in `dates` (a Map<id, date>). Markers absent from the map are left
+// untouched (they age). Processed right-to-left so earlier indices stay valid.
+function applyVerifiedToContent(
+  content: string,
+  format: string,
+  dates: Map<string, string>
+): string {
+  // Match the file's existing newline style so a CRLF-authored doc doesn't get
+  // an LF badge line spliced in (which would break byte-idempotency on Windows).
+  const eol = content.includes("\r\n") ? "\r\n" : "\n";
+  const markers = parseVerifiedMarkers(content, format);
+  for (const marker of [...markers].sort((a, b) => b.start - a.start)) {
+    const date = dates.get(marker.id);
+    if (!date) continue;
+    // Badge image lives on the line after the marker (indices ≥ marker.end), so
+    // edit it before rewriting the marker to keep marker.start/end valid.
+    if (marker.badge) {
+      const img = shieldsBadge(format, date);
+      const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
+      const imgLineRe = new RegExp(`^([ \\t]*\\r?\\n[ \\t]*)(?:${body})`);
+      const tail = content.slice(marker.end);
+      const mm = tail.match(imgLineRe);
+      if (mm) {
+        content =
+          content.slice(0, marker.end) + mm[1] + img + content.slice(marker.end + mm[0].length);
+      } else {
+        // Indent the new badge line to match the marker's own line, so a marker
+        // inside an indented construct (e.g. a nested list item) doesn't get a
+        // column-0 badge that breaks out of it. Re-runs preserve this via mm[1].
+        const lineStart = content.lastIndexOf("\n", marker.start - 1) + 1;
+        const indent = (content.slice(lineStart, marker.start).match(/^[ \t]*/) || [""])[0];
+        content = content.slice(0, marker.end) + eol + indent + img + content.slice(marker.end);
+      }
+    }
+    const newAttrs = setVerifiedAttrDate(marker.attrs, date);
+    content =
+      content.slice(0, marker.start) +
+      marker.open +
+      newAttrs +
+      marker.close +
+      content.slice(marker.end);
+  }
+  return content;
+}
+
+// Read the `doc-detective.verified.id` from a file's leading YAML front matter,
+// or null if there is none.
+function frontMatterVerifiedId(content: string): string | null {
+  const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fm) return null;
+  try {
+    const doc = YAML.parseDocument(fm[1]);
+    const id = doc.getIn(["doc-detective", "verified", "id"]);
+    return id != null ? String(id) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Fallback for non-block-style (e.g. flow) front matter: re-serialize the block
+// via the YAML parser so the date is still written (honoring the marker
+// contract), accepting that a flow collection may be reformatted. The date is a
+// double-quoted string so YAML 1.1 readers (e.g. js-yaml) don't coerce it to a
+// timestamp.
+function upsertFrontMatterViaYaml(
+  content: string,
+  fm: RegExpMatchArray,
+  eol: string,
+  date: string
+): string {
+  // Only reached after frontMatterVerifiedId() already parsed the id from this
+  // same block, so the parse succeeds and the id path exists; any unexpected
+  // throw is caught by applyVerifiedMarkers' per-file guard.
+  const doc: any = YAML.parseDocument(fm[1]);
+  const node = doc.createNode(date);
+  node.type = "QUOTE_DOUBLE";
+  doc.setIn(["doc-detective", "verified", "date"], node);
+  const newBlock = doc.toString().replace(/\r?\n$/, "").replace(/\r?\n/g, eol);
+  return (
+    content.slice(0, fm.index!) +
+    `---${eol}` +
+    newBlock +
+    `${eol}---` +
+    content.slice(fm.index! + fm[0].length)
+  );
+}
+
+// Set `doc-detective.verified.date` in the leading front matter. The id is read
+// with the YAML parser (robust). For the common block-style shape the write is a
+// *surgical text edit* of only the `date:` line — never a re-stringify of the
+// whole document, which would reflow unrelated fields (e.g. an inline
+// `tags: [a, b]` gains inner padding). Flow-style / unusual shapes fall back to
+// upsertFrontMatterViaYaml so the date is still written. The value is quoted so
+// downstream YAML 1.1 parsers don't coerce it to a Date.
+function upsertFrontMatterVerified(content: string, dates: Map<string, string>): string {
+  const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fm) return content;
+  const id = frontMatterVerifiedId(content);
+  if (id == null) return content;
+  const date = dates.get(id);
+  if (!date) return content;
+
+  // Preserve the front matter's newline style (see applyVerifiedToContent).
+  const eol = fm[0].includes("\r\n") ? "\r\n" : "\n";
+  const lines = fm[1].split(/\r?\n/);
+
+  // Locate the `doc-detective:` mapping first, then the `verified:` key nested
+  // within it — so an unrelated top-level `verified:` elsewhere in the front
+  // matter can't be matched by mistake.
+  let ddIndex = -1;
+  let ddIndent = "";
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^([ \t]*)(?:"doc-detective"|'doc-detective'|doc-detective):[ \t]*(?:#.*)?$/);
+    if (m) {
+      ddIndex = i;
+      ddIndent = m[1];
+      break;
+    }
+  }
+  if (ddIndex === -1) return upsertFrontMatterViaYaml(content, fm, eol, date); // flow style
+
+  // Find the block-style `verified:` key among doc-detective's children and the
+  // extent of its own child lines (those indented deeper than the key).
+  let vIndex = -1;
+  let vIndent = "";
+  for (let i = ddIndex + 1; i < lines.length; i++) {
+    const indentMatch = lines[i].match(/^([ \t]*)\S/);
+    if (!indentMatch) continue; // blank line within the block
+    if (indentMatch[1].length <= ddIndent.length) break; // dedent ends doc-detective
+    const m = lines[i].match(/^([ \t]*)verified:[ \t]*(?:#.*)?$/);
+    if (m) {
+      vIndex = i;
+      vIndent = m[1];
+      break;
+    }
+  }
+  if (vIndex === -1) return upsertFrontMatterViaYaml(content, fm, eol, date); // unusual shape
+
+  let childIndent: string | null = null;
+  let idIndex = -1;
+  let dateIndex = -1;
+  let lastChildIndex = vIndex;
+  for (let i = vIndex + 1; i < lines.length; i++) {
+    const indentMatch = lines[i].match(/^([ \t]*)\S/);
+    if (!indentMatch) continue; // blank line within the block
+    if (indentMatch[1].length <= vIndent.length) break; // dedent ends the block
+    if (childIndent === null) childIndent = indentMatch[1];
+    lastChildIndex = i;
+    // Only direct children of `verified:` count — a deeper `verified.meta.date`
+    // must not be mistaken for `verified.date`.
+    if (indentMatch[1] === childIndent) {
+      if (/^\s*id:/.test(lines[i])) idIndex = i;
+      if (/^\s*date:/.test(lines[i])) dateIndex = i;
+    }
+  }
+  if (childIndent === null) childIndent = `${vIndent}  `;
+
+  if (dateIndex !== -1) {
+    // Replace only the value, preserving any trailing inline comment (` # …`).
+    lines[dateIndex] = lines[dateIndex].replace(
+      /^(\s*date:\s*)("[^"]*"|'[^']*'|[^\s#]*)/,
+      `$1"${date}"`
+    );
+  } else {
+    const insertAfter = idIndex !== -1 ? idIndex : lastChildIndex;
+    lines.splice(insertAfter + 1, 0, `${childIndent}date: "${date}"`);
+  }
+
+  return (
+    content.slice(0, fm.index!) +
+    `---${eol}` +
+    lines.join(eol) +
+    `${eol}---` +
+    content.slice(fm.index! + fm[0].length)
+  );
+}
+
+// Resolve a marker id against a run report: a matching specId or testId returns
+// that unit's roll-up result; otherwise null.
+function resolveVerifiedId(results: any, id: string): string | null {
+  if (!results || !Array.isArray(results.specs)) return null;
+  for (const spec of results.specs) {
+    if (spec?.specId === id) return spec.result ?? null;
+    for (const test of spec?.tests || []) {
+      if (test?.testId === id) return test.result ?? null;
+    }
+  }
+  return null;
+}
+
+// Post-run write-back: for every candidate source file, find its `verified`
+// markers (inline + front matter), resolve each id against the report, and write
+// today's date where the unit PASSED. Unknown ids warn and are skipped; non-pass
+// ids are left to age. Per-file failures warn and continue. Never throws.
+//
+// The candidate set is the union of the report's content paths and the full
+// detected input set (`files`), so a prose-only page that carries a marker but
+// contributes no spec is still updated.
+function applyVerifiedMarkers({
+  config,
+  results,
+  files: detectedFiles = [],
+}: {
+  config: any;
+  results: any;
+  files?: string[];
+}): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  const files = new Set<string>();
+  for (const file of detectedFiles) {
+    if (file) files.add(file);
+  }
+  for (const spec of results.specs) {
+    if (spec?.contentPath) files.add(spec.contentPath);
+    for (const test of spec?.tests || []) {
+      if (test?.contentPath) files.add(test.contentPath);
+    }
+  }
+
+  const today = verifiedDate();
+  for (const file of files) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      // Cheap fast-path: both the inline keyword and the front-matter key are the
+      // literal "verified", so a file without it has no markers to update — skip
+      // the regex scans and YAML parse entirely (the common case on large sets).
+      if (!original.includes("verified")) continue;
+      const inline = parseVerifiedMarkers(original, format);
+      const fmId = frontMatterVerifiedId(original);
+      const ids = new Set(inline.map((m) => m.id));
+      if (fmId) ids.add(fmId);
+      if (ids.size === 0) continue;
+
+      const dates = new Map<string, string>();
+      for (const id of ids) {
+        // Resolve through resolveVerifiedId so the bulk path gives specId
+        // precedence over testId, consistent with the single-lookup helper.
+        const result = resolveVerifiedId(results, id);
+        if (result === null) {
+          log(config, "warning", `verified marker references unknown id '${id}' in ${file}; skipping.`);
+          continue;
+        }
+        if (result === "PASS") dates.set(id, today);
+        // Non-pass: leave the existing date to age.
+      }
+
+      let content = applyVerifiedToContent(original, format, dates);
+      content = upsertFrontMatterVerified(content, dates);
+      if (content !== original) fs.writeFileSync(file, content);
+    } catch (error: any) {
+      log(config, "warning", `Failed to update verified markers in ${file}: ${error?.message ?? error}`);
+    }
+  }
 }
 
 // Filesystem-safe instant token, matching the `doc-detective debug` dump's
