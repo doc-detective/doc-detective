@@ -35,6 +35,8 @@ Here are a few ways you might use the `click` action:
 
 ### Click by element text (string shorthand)
 
+{/* test {"testId":"click-by-text","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -50,7 +52,14 @@ Here are a few ways you might use the `click` action:
 }
 ```
 
+{/* step {"stepId":"goto-click-text","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"click-text","description":"Click the button by its display text","click":"Reveal by text"} */}
+{/* step {"stepId":"verify-click-text","description":"The button appends a message only when actually clicked","find":"Text click landed"} */}
+{/* test end */}
+
 ### Click by selector (string shorthand)
+
+{/* test {"testId":"click-by-selector","detectSteps":false} */}
 
 ```json
 {
@@ -67,7 +76,14 @@ Here are a few ways you might use the `click` action:
 }
 ```
 
+{/* step {"stepId":"goto-click-selector","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"click-selector","description":"Click the button by its CSS selector","click":"#reveal-by-selector"} */}
+{/* step {"stepId":"verify-click-selector","description":"Confirm the selector click fired","find":"Selector click landed"} */}
+{/* test end */}
+
 ### Click an element by text (object format)
+
+{/* test {"testId":"click-by-object","detectSteps":false} */}
 
 ```json
 {
@@ -86,6 +102,11 @@ Here are a few ways you might use the `click` action:
   ]
 }
 ```
+
+{/* step {"stepId":"goto-click-object","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"click-object","description":"Left-click the button using object format","click":{"elementText":"Reveal by object","button":"left"}} */}
+{/* step {"stepId":"verify-click-object","description":"Confirm the object-format click fired","find":"Object click landed"} */}
+{/* test end */}
 
 ### Click an element by selector (object format)
 
