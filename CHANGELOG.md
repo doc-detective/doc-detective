@@ -1,3 +1,10 @@
+# [4.27.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.26.1...v4.27.0-last-verified-on.1) (2026-07-09)
+
+
+### Features
+
+* **runner:** write "Last Verified On" dates back into source docs ([ceb7aeb](https://github.com/doc-detective/doc-detective/commit/ceb7aebcdb211d85922d6565001e92cbf2dab172))
+
 ## [4.26.1](https://github.com/doc-detective/doc-detective/compare/v4.26.0...v4.26.1) (2026-07-08)
 
 
