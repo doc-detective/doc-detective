@@ -170,7 +170,7 @@ During `install all` and `install runtime`, Doc Detective writes the full npm ou
 If installation fails, the error message includes the log path:
 
 ```
-npm install exited with code 1 while installing webdriverio@…. See full npm output: /tmp/doc-detective/runtime/install.log
+npm install exited with code 1 while installing webdriverio@…. See full npm output: ~/.doc-detective/runtime/install.log
 ```
 
 Check this log to diagnose network issues, authentication problems, or native build failures that the filtered terminal output hides.
@@ -185,7 +185,7 @@ To set a different cache location (for example, a shared cache or a mounted volu
 2. **Config file**: Set `cacheDir` in `.doc-detective.json`
 3. **CLI flag**: `--cache-dir /opt/doc-detective`
 
-Priority: environment variable > config file > default temp directory.
+Priority: environment variable > config file > default home-directory location.
 
 ## Examples
 
