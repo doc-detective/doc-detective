@@ -9,6 +9,7 @@
           "description": "Start the local test server in the background for docs tests",
           "runShell": {
             "command": "node test/server/start.js",
+            "workingDirectory": "../..",
             "background": {
               "name": "docs-test-server",
               "waitUntil": {
