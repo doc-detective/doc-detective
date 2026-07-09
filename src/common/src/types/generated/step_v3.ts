@@ -4314,7 +4314,7 @@ export interface StartSurface {
   [k: string]: unknown;
 }
 /**
- * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator via the `device`, `install`, and `activity` fields (iOS lands in A4). Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
+ * Open (provision) a surface and register it by name so later steps can target it with `surface`. Phases A1–A2 ship the desktop native app branch: launch a Windows or macOS application by executable path, `.app` path, bundle ID, or UWP AppUserModelID. macOS additionally requires the Accessibility permission for the process that runs Doc Detective (System Settings → Privacy & Security → Accessibility); without it the context lands as SKIPPED with a walkthrough. Phase A3 adds Android apps on a managed emulator, and phase A4 adds iOS app surfaces on macOS via XCUITest/simctl. Browser/process branches and the parallel array form arrive with multi-surface Phase 6. See docs/design/native-app-surfaces.md.
  */
 export interface StartSurface1 {
   /**
@@ -4340,15 +4340,15 @@ export interface StartSurface1 {
     [k: string]: string;
   };
   /**
-   * Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Lands with the Android phase (A3); on other platforms it is validated but not yet honored.
+   * Path to an installable artifact (`.apk`/`.app`/`.ipa`) to install on the device before launch. Supported on Android and iOS app surfaces.
    */
   install?: string;
   /**
-   * Android main activity override (defaults to the package's launcher activity). Lands with the Android phase (A3).
+   * Android main activity override (defaults to the package's launcher activity). Android-only.
    */
   activity?: string;
   /**
-   * Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Lands with the Android phase (A3).
+   * Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets.
    */
   device?:
     | DeviceByName
@@ -4373,7 +4373,7 @@ export interface DeviceDescriptor {
    */
   platform?: "android" | "ios";
   /**
-   * Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`).
+   * Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`).
    */
   name?: string;
   /**
@@ -4381,7 +4381,7 @@ export interface DeviceDescriptor {
    */
   deviceType?: "phone" | "tablet";
   /**
-   * Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version.
+   * Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version.
    */
   osVersion?: string;
   /**
