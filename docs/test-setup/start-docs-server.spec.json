@@ -8,7 +8,7 @@
           "stepId": "start-docs-server",
           "description": "Start the Fern docs preview server in the background",
           "runShell": {
-            "command": "npx --yes fern-api docs dev --legacy --port 3000",
+            "command": "npx fern docs dev --legacy --port 3000",
             "workingDirectory": "..",
             "background": {
               "name": "docs-site",
