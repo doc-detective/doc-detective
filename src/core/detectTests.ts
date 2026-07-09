@@ -308,6 +308,7 @@ async function qualifyFiles({ config }: { config: any }) {
 
   if (sequence.length === 0) {
     log(config, "warning", "No input sources specified.");
+    config._qualifiedFiles = [];
     return [];
   }
 
@@ -500,6 +501,10 @@ async function qualifyFiles({ config }: { config: any }) {
       }
     }
   }
+  // Side-channel the full qualified file set (same pattern as `_phaseByFile`)
+  // so the "Last Verified On" write-back can scan prose-only files that carry a
+  // `verified` marker but contribute no spec to the report.
+  config._qualifiedFiles = files;
   return files;
 }
 
