@@ -836,6 +836,48 @@ describe("runner-entrypoint: main()", () => {
     assert.equal(observed.finalize, null, "no finalize POST expected on 410");
   });
 
+  it("posts failed finalize with spec_fetch_failed reason and the real error when /spec's network call fails", async function () {
+    if (isWindows) this.skip();
+    // Regression: previously an uncaught fetchSpec() failure crashed
+    // main() with zero report back to the platform — the run just sat
+    // at 'starting' until Sweep A reaped it as a generic
+    // 'cold_start_exceeded' with no indication of the real cause. This
+    // simulates a network-level failure (connection reset, no
+    // response) on GET /spec specifically, while /finalize is still
+    // served normally by the same loopback server — mirroring a Fly
+    // machine whose outbound call intermittently fails on the very
+    // first hop but can still reach the platform moments later.
+    observed = { logs: [], finalize: null, specReturned: false };
+    api = await makeApiServer((req, res, body) => {
+      const url = req.url;
+      if (req.method === "GET" && url.endsWith("/spec")) {
+        observed.specReturned = true;
+        req.socket.destroy();
+        return;
+      }
+      if (req.method === "POST" && url.endsWith("/finalize")) {
+        observed.finalize = JSON.parse(body);
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+    envForRun();
+    const code = await main();
+    assert.equal(code, 1);
+    assert.ok(observed.specReturned, "expected /spec to have been hit");
+    assert.equal(observed.finalize.status, "failed");
+    assert.equal(observed.finalize.exit_code, 1);
+    assert.equal(observed.finalize.summary.reason, "spec_fetch_failed");
+    assert.ok(
+      typeof observed.finalize.summary.error === "string" &&
+        observed.finalize.summary.error.length > 0,
+      "expected the real fetch error to be captured in summary.error"
+    );
+  });
+
   it("posts succeeded finalize when child exits 0", async function () {
     if (isWindows) this.skip();
     await writeRunnerFixture(

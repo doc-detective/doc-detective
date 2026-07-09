@@ -611,7 +611,32 @@ async function main() {
 	process.on('SIGTERM', onPreSpawnSigterm);
 
 	// Step 1: fetch spec.
-	const { canceled, spec } = await fetchSpec(apiBase, runId, token);
+	//
+	// Unlike provisionWorkspace/runChild below, this call previously had
+	// no try/catch: any failure (network blip, DNS hiccup, timeout) blew
+	// up main() uncaught, and the platform never learned why — the run
+	// just sat at 'starting' until Sweep A reaped it as a generic
+	// 'cold_start_exceeded' with zero indication of the real cause. Report
+	// the actual error into finalize's summary so it's visible on the
+	// run detail page without needing Fly or platform-server log access.
+	let canceled, spec;
+	try {
+		({ canceled, spec } = await fetchSpec(apiBase, runId, token));
+	} catch (e) {
+		localLog('error', 'spec fetch failed', { err: String(e) });
+		// Best-effort: if this failure is a total network blackout, the
+		// finalize POST below (same host) may also fail — postFinalize
+		// swallows that and just returns false. Any case that isn't a
+		// total blackout (transient blip, one-off timeout, a 5xx that
+		// clears on retry) now gets its real cause surfaced instead of
+		// disappearing into Sweep A's generic reap message.
+		await postFinalize(apiBase, runId, token, {
+			status: 'failed',
+			exit_code: 1,
+			summary: { reason: 'spec_fetch_failed', error: String(e) }
+		});
+		return 1;
+	}
 	if (canceled) {
 		localLog('info', 'run canceled before spec fetch (410); exiting cleanly');
 		// Nothing to finalize — the row is already terminal on the server.
