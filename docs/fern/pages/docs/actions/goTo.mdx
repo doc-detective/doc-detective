@@ -91,6 +91,10 @@ Assumes the browser is currently at `https://example.com` or a global `origin` i
 
 {/* step {"stepId":"goto-object","description":"Navigate to the local test server using object format","goTo":{"url":"http://localhost:8092"}} */}
 {/* step {"stepId":"verify-heading-object","description":"Confirm the test server page loaded","find":"Common HTML Elements"} */}
+{/* test end */}
+
+{/* Cleanup runs as its own test so the server is stopped even if a test above fails. */}
+{/* test {"testId":"goto-server-cleanup","detectSteps":false} */}
 {/* step {"stepId":"stop-test-server","description":"Stop the local test server","closeSurface":"goto-server"} */}
 {/* test end */}
 
