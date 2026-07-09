@@ -759,11 +759,11 @@ describe("runner-entrypoint: main()", () => {
   let runnerScriptPath;
 
   async function setupSpec(spec) {
-    observed = { logs: [], finalize: null, specReturned: false };
+    observed = { logs: [], finalize: null, specHit: false };
     api = await makeApiServer((req, res, body) => {
       const url = req.url;
       if (req.method === "GET" && url.endsWith("/spec")) {
-        observed.specReturned = true;
+        observed.specHit = true;
         if (spec === 410) {
           res.writeHead(410);
           res.end();
@@ -847,11 +847,11 @@ describe("runner-entrypoint: main()", () => {
     // served normally by the same loopback server — mirroring a Fly
     // machine whose outbound call intermittently fails on the very
     // first hop but can still reach the platform moments later.
-    observed = { logs: [], finalize: null, specReturned: false };
+    observed = { logs: [], finalize: null, specHit: false };
     api = await makeApiServer((req, res, body) => {
       const url = req.url;
       if (req.method === "GET" && url.endsWith("/spec")) {
-        observed.specReturned = true;
+        observed.specHit = true;
         req.socket.destroy();
         return;
       }
@@ -867,7 +867,7 @@ describe("runner-entrypoint: main()", () => {
     envForRun();
     const code = await main();
     assert.equal(code, 1);
-    assert.ok(observed.specReturned, "expected /spec to have been hit");
+    assert.ok(observed.specHit, "expected /spec to have been hit");
     assert.equal(observed.finalize.status, "failed");
     assert.equal(observed.finalize.exit_code, 1);
     assert.equal(observed.finalize.summary.reason, "spec_fetch_failed");
