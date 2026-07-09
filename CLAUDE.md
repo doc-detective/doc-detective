@@ -12,6 +12,19 @@ Repo-wide guidance for AI agents. Package-specific rules live alongside the code
 
 ## Environment setup (required)
 
+**Rebase onto `main` before doing anything else.** When you start work in a new worktree cut from
+`main`, the base may already be stale. Before installing dependencies or making any change, bring the
+branch up to date:
+
+```bash
+git fetch origin
+git rebase origin/main
+```
+
+Do this *first* — before `npm ci`, before browser/driver installs, before touching code — so you build
+and test against the current tree rather than a stale snapshot. Resolve any conflicts, then proceed to
+dependency install below.
+
 **Install dependencies before you start working.** A fresh clone or git worktree has no
 `node_modules` (it's gitignored and not shared between worktrees), so tests, the local
 `doc-detective` CLI, husky commit hooks (`commitlint`), and `npm run build` all fail until you
