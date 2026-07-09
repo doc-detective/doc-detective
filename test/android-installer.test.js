@@ -193,6 +193,11 @@ describe("android installer: buildAndroidInstallPlan", function () {
         source: "ANDROID_HOME",
         adb: "/opt/android/platform-tools/adb",
         emulator: "/opt/android/emulator/emulator",
+        // A COMPLETE SDK has the command-line tools too — that's what makes an
+        // augment (no bootstrap) the right plan. A detected SDK missing these is
+        // a partial install and re-bootstraps (covered by its own case below).
+        sdkmanager: "/opt/android/cmdline-tools/latest/bin/sdkmanager",
+        avdmanager: "/opt/android/cmdline-tools/latest/bin/avdmanager",
       },
       hasPlatformTools: true,
       hasEmulator: true,
@@ -206,6 +211,50 @@ describe("android installer: buildAndroidInstallPlan", function () {
     expect(types).to.include("create-avd");
     expect(plan.bootstrapped).to.equal(false);
     expect(plan.sdkRoot).to.equal("/opt/android");
+  });
+
+  it("re-bootstraps command-line tools when a detected SDK is missing them (partial install)", function () {
+    // A half-installed SDK: adb landed (so detection considers the root usable),
+    // but cmdline-tools/sdkmanager never did. The plan must re-fetch the
+    // command-line tools INTO THE SAME sdkRoot — healing in place — rather than
+    // skip the bootstrap and later die running the absent sdkmanager.
+    const plan = buildAndroidInstallPlan({
+      ...base,
+      detected: {
+        sdkRoot: "/cache/android-sdk",
+        source: "cache",
+        adb: "/cache/android-sdk/platform-tools/adb",
+        // no sdkmanager / avdmanager -> cmdline-tools absent
+      },
+      hasPlatformTools: true,
+      installedImages: ["system-images;android-34;google_apis;x86_64"],
+    });
+    const types = plan.actions.map((a) => a.type);
+    expect(plan.bootstrapped).to.equal(true);
+    expect(types[0]).to.equal("bootstrap-cmdline-tools");
+    const boot = plan.actions.find((a) => a.type === "bootstrap-cmdline-tools");
+    expect(boot.dest).to.equal("/cache/android-sdk");
+    expect(plan.sdkRoot).to.equal("/cache/android-sdk");
+  });
+
+  it("re-bootstraps when only one of the command-line tools is present", function () {
+    // The tools ship together, so a root with sdkmanager but no avdmanager is a
+    // broken cmdline-tools install — the plan re-bootstraps rather than proceed to
+    // an avdmanager (AVD creation) that isn't there.
+    const plan = buildAndroidInstallPlan({
+      ...base,
+      detected: {
+        sdkRoot: "/opt/android",
+        source: "ANDROID_HOME",
+        adb: "/opt/android/platform-tools/adb",
+        sdkmanager: "/opt/android/cmdline-tools/latest/bin/sdkmanager",
+        // avdmanager missing
+      },
+      hasPlatformTools: true,
+      installedImages: ["system-images;android-34;google_apis;x86_64"],
+    });
+    expect(plan.bootstrapped).to.equal(true);
+    expect(plan.actions[0].type).to.equal("bootstrap-cmdline-tools");
   });
 
   it("uses the deviceType profile and default AVD name", function () {
@@ -250,6 +299,11 @@ describe("android installer: installAndroid orchestration", function () {
     source: "ANDROID_HOME",
     adb: "/opt/android/platform-tools/adb",
     emulator: "/opt/android/emulator/emulator",
+    // A complete SDK: the command-line tools are present, so these orchestration
+    // cases take the augment (no-bootstrap) path. The partial-SDK heal has its
+    // own case below.
+    sdkmanager: "/opt/android/cmdline-tools/latest/bin/sdkmanager",
+    avdmanager: "/opt/android/cmdline-tools/latest/bin/avdmanager",
   };
 
   it("dry-run reports the plan without running anything", async function () {
@@ -489,6 +543,60 @@ describe("android installer: installAndroid orchestration", function () {
       expect(joined).to.match(/emulator/);
       expect(joined).to.match(/system-images;android-34;google_apis;x86_64/);
       expect(joined).to.match(/create avd -n doc-detective/);
+      expect(reports[0].assetId).to.equal("cmdline-tools");
+      expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
+    });
+  });
+
+  it("heals a partial SDK (adb but no cmdline-tools) by re-bootstrapping, then proceeds", async function () {
+    await withTmpCache(async () => {
+      const runCalls = [];
+      const bootstrapCalls = [];
+      // Detected but partial: adb only, no cmdline-tools. This is the exact state
+      // an interrupted earlier install leaves behind, which used to wedge every
+      // re-install ("sdkmanager.bat ... The system cannot find the path specified").
+      const partialSdk = {
+        sdkRoot: "/cache/android-sdk",
+        source: "cache",
+        adb: "/cache/android-sdk/platform-tools/adb",
+      };
+      const reports = await installAndroid({
+        yes: true,
+        deps: {
+          detect: () => partialSdk,
+          arch: "x64", // pin the ABI so the assertions hold on arm64 CI (macOS)
+          javaPresent: () => true,
+          // The system image is already present -> reused, not re-downloaded.
+          fs: {
+            existsSync: (p) => p.replace(/\\/g, "/").endsWith("system-images"),
+            readdirSync: (p) => {
+              const norm = p.replace(/\\/g, "/");
+              if (norm.endsWith("system-images")) return ["android-34"];
+              if (norm.endsWith("android-34")) return ["google_apis"];
+              if (norm.endsWith("google_apis")) return ["x86_64"];
+              return [];
+            },
+          },
+          bootstrap: (url, dest) => {
+            bootstrapCalls.push({ url, dest });
+            return Promise.resolve();
+          },
+          run: (command, args) => {
+            runCalls.push(args.join(" "));
+            return Promise.resolve("");
+          },
+        },
+      });
+      // cmdline-tools were re-fetched into the existing (partial) SDK root...
+      expect(bootstrapCalls).to.have.length(1);
+      expect(bootstrapCalls[0].dest).to.match(/android-sdk$/);
+      // ...then the install proceeded (licenses + AVD), reusing the installed
+      // image — so no `--list` availability query (that only runs when the image
+      // isn't already present).
+      const joined = runCalls.join(" | ");
+      expect(joined).to.match(/--licenses/);
+      expect(joined).to.match(/create avd -n doc-detective/);
+      expect(joined).to.not.match(/--list/);
       expect(reports[0].assetId).to.equal("cmdline-tools");
       expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
     });

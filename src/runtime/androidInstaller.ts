@@ -271,7 +271,18 @@ export function buildAndroidInstallPlan(
   input: AndroidInstallPlanInput
 ): AndroidInstallPlan {
   const actions: AndroidInstallAction[] = [];
-  const bootstrapped = input.detected === null;
+  // Bootstrap the command-line tools when there's no SDK at all, OR when a
+  // detected SDK is missing them. Detection counts a root as usable on adb/
+  // emulator alone (androidSdk.ts `usable`), so an interrupted install — adb
+  // present, cmdline-tools/sdkmanager never landed — is "detected" yet has no
+  // sdkmanager to run. Without re-bootstrapping, every re-install skips the
+  // download and then dies on the absent sdkmanager ("The system cannot find
+  // the path specified"). Re-fetching cmdline-tools into the existing sdkRoot
+  // heals the partial install in place.
+  const cmdlineToolsMissing =
+    input.detected !== null &&
+    (!input.detected.sdkmanager || !input.detected.avdmanager);
+  const bootstrapped = input.detected === null || cmdlineToolsMissing;
   const sdkRoot = input.detected?.sdkRoot ?? input.cacheSdkRoot;
   const avdName = input.avdName ?? DEFAULT_AVD_NAME;
   const device =
