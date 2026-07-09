@@ -28,7 +28,7 @@ describe("runtime/cacheDir", function () {
   });
 
   describe("precedence", function () {
-    it("DOC_DETECTIVE_CACHE_DIR env var wins over config.cacheDir and tmpdir default", function () {
+    it("DOC_DETECTIVE_CACHE_DIR env var wins over config.cacheDir and the home-dir default", function () {
       const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-prec-"));
       try {
         process.env.DOC_DETECTIVE_CACHE_DIR = tmpRoot;
@@ -39,7 +39,7 @@ describe("runtime/cacheDir", function () {
       }
     });
 
-    it("config.cacheDir wins over the tmpdir default", function () {
+    it("config.cacheDir wins over the home-dir default", function () {
       const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-cfg-"));
       try {
         const dir = getCacheDir({ cacheDir: tmpRoot });
@@ -49,19 +49,19 @@ describe("runtime/cacheDir", function () {
       }
     });
 
-    it("falls back to <os.tmpdir()>/doc-detective when neither override is set", function () {
+    it("falls back to <homedir>/.doc-detective when neither override is set", function () {
       const dir = getCacheDir({});
-      expect(dir).to.equal(path.join(os.tmpdir(), "doc-detective"));
+      expect(dir).to.equal(path.join(os.homedir(), ".doc-detective"));
     });
 
     it("treats empty config.cacheDir as absent and falls back to the default", function () {
       const dir = getCacheDir({ cacheDir: "" });
-      expect(dir).to.equal(path.join(os.tmpdir(), "doc-detective"));
+      expect(dir).to.equal(path.join(os.homedir(), ".doc-detective"));
     });
 
     it("treats a whitespace-only config.cacheDir as absent and falls back to the default", function () {
       const dir = getCacheDir({ cacheDir: "   " });
-      expect(dir).to.equal(path.join(os.tmpdir(), "doc-detective"));
+      expect(dir).to.equal(path.join(os.homedir(), ".doc-detective"));
     });
 
     it("trims surrounding whitespace from config.cacheDir", function () {

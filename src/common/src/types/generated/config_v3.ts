@@ -160,7 +160,7 @@ export interface Config {
    */
   autoUpdate?: boolean;
   /**
-   * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., baked container images where temp gets cleared on reboot).
+   * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg, the Android SDK). Defaults to `<homedir>/.doc-detective/`, a persistent per-user location. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI (e.g., a shared cache for CI runners or baked container images).
    */
   cacheDir?: string;
   /**
