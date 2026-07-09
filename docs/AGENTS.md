@@ -33,6 +33,19 @@ This project uses Doc Detective to test its own documentation.
 
 - **DO:** When you change documentation related to a feature, review the corresponding `.spec.json` file to see if the test needs to be updated.
 
+### Test servers
+
+Two Doc Detective configs live at the docs root:
+
+- `.doc-detective.json` — used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). Its `beforeAny`/`afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
+- `.doc-detective.preview.json` — for local runs. It layers a second background process on top of the static server that starts the **Fern docs preview server** (`fern docs dev --legacy`, port `3000`), so you can write and run tests against the rendered docs site itself. Run with:
+
+  ```bash
+  npx doc-detective --config docs/.doc-detective.preview.json
+  ```
+
+The setup/teardown specs are in `test-setup/`. The docs preview uses the `--legacy` server because the default preview bundle can take several minutes to build and is prone to a `pnpm` patch error on some platforms; the legacy server starts in seconds. This second server is intentionally **not** wired into the CI config so `test-docs.yml` stays fast and network-independent.
+
 ## Documentation pages
 
 - Documentation pages are MDX (`.mdx`) files in subdirectories of `fern/pages`.
