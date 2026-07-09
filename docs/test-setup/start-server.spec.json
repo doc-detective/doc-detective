@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "testId": "start-docs-test-server",
+      "detectSteps": false,
+      "steps": [
+        {
+          "stepId": "start-test-server",
+          "description": "Start the local test server in the background for docs tests",
+          "runShell": {
+            "command": "node test/server/start.js",
+            "workingDirectory": "../..",
+            "background": {
+              "name": "docs-test-server",
+              "waitUntil": {
+                "port": 8092
+              }
+            },
+            "timeout": 30000
+          }
+        }
+      ]
+    }
+  ]
+}
