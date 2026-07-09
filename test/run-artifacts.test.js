@@ -806,6 +806,33 @@ describe("buildAutoRecordStep", function () {
     };
     expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
   });
+
+  it("builds a synthetic record step for a native app surface (startSurface with app)", function () {
+    // A native app / emulator context has a visual surface on the host display,
+    // so autoRecord's ffmpeg screen grab is meaningful — even though startSurface
+    // isn't a BROWSER driver step.
+    const context = {
+      contextId: "android",
+      steps: [
+        { startSurface: { app: "com.android.settings" } },
+        { closeSurface: { app: "settings" } },
+      ],
+    };
+    const step = buildAutoRecordStep({ config, spec, test, context });
+    expect(step, "expected a synthetic step for a visual app surface").to.not.equal(null);
+    expect(step.record.engine).to.equal("ffmpeg");
+    expect(step.__autoRecord).to.equal(true);
+  });
+
+  it("does not record a non-visual surface (a command/process startSurface has no app to capture)", function () {
+    // A future process/command surface carries no `app` — there is nothing
+    // visual to capture, so autoRecord must not inject a recording for it.
+    const context = {
+      contextId: "process",
+      steps: [{ startSurface: { command: "npm run build" } }],
+    };
+    expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
+  });
 });
 
 describe("deterministic resolved-test IDs", function () {

@@ -398,6 +398,24 @@ function isDriverRequired({ test }: { test: any }) {
   return driverRequired;
 }
 
+// Whether a context puts something VISUAL on the host display — the trigger for
+// an autoRecord ffmpeg screen capture. True for a browser/driver step OR a
+// native app surface (a GUI app / emulator window, which the BROWSER_STEP_KEYS
+// list doesn't cover). A NON-visual surface has nothing to capture: a future
+// process/command `startSurface` carries no `app`, so it must NOT trigger a
+// recording — hence the `.app` check, not a bare `startSurface` presence test.
+function contextHasVisualSurface(context: any): boolean {
+  if (isDriverRequired({ test: context })) return true;
+  const steps = Array.isArray(context?.steps) ? context.steps : [];
+  return steps.some(
+    (step: any) =>
+      (step?.startSurface &&
+        typeof step.startSurface === "object" &&
+        typeof step.startSurface.app === "string") ||
+      stepTargetsAppSurface(step)
+  );
+}
+
 // The exclusive resources a context job must hold to run safely under
 // concurrency. A shared-display ffmpeg recording holds "display" exclusively
 // (jobExclusiveResources). And once ANY such recording is in the run
@@ -2736,7 +2754,7 @@ function buildAutoRecordStep({
   test: any;
   context: any;
 }): any | null {
-  if (!isDriverRequired({ test: context })) return null;
+  if (!contextHasVisualSurface(context)) return null;
   // Compute the path only — runSpecs reserves the run folder up front when
   // runArchivesArtifacts is true (autoRecord counts), so creating it here would
   // be redundant. (startRecording also mkdirs the recording's target dir up
