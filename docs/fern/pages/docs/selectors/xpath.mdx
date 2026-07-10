@@ -48,6 +48,8 @@ XPath selectors in Doc Detective must start with `//` or `/` to be recognized as
 
 Find all elements of a specific type anywhere in the document:
 
+{/* test {"testId":"xpath-selector-element-type","detectSteps":false} */}
+
 ```json
 {
   "find": {
@@ -56,9 +58,15 @@ Find all elements of a specific type anywhere in the document:
 }
 ```
 
+{/* step {"stepId":"xpath-goto-element-type","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-element-type","description":"Find the first button in the document","find":{"selector":"//button"}} */}
+{/* test end */}
+
 ### Select by attribute
 
 Find elements with a specific attribute value using the `[@attribute='value']` syntax:
+
+{/* test {"testId":"xpath-selector-attribute","detectSteps":false} */}
 
 ```json
 {
@@ -68,9 +76,15 @@ Find elements with a specific attribute value using the `[@attribute='value']` s
 }
 ```
 
+{/* step {"stepId":"xpath-goto-attribute","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-attribute","description":"Find the password input by its type attribute","find":{"selector":"//input[@type='password']"}} */}
+{/* test end */}
+
 ### Select by ID
 
 Target elements by their `id` attribute using the `@id` selector:
+
+{/* test {"testId":"xpath-selector-id","detectSteps":false} */}
 
 ```json
 {
@@ -84,9 +98,15 @@ Target elements by their `id` attribute using the `@id` selector:
 The `*` matches any element type. You can also be more specific: `//input[@id='username']`.
 </Note>
 
+{/* step {"stepId":"xpath-goto-id","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-id","description":"Find an input by its ID (adapted from the doc's 'username' to the fixture's real 'username-input' ID)","find":{"selector":"//*[@id='username-input']"}} */}
+{/* test end */}
+
 ### Select by class
 
 Use the `contains()` function to match elements by their class attribute:
+
+{/* test {"testId":"xpath-selector-class","detectSteps":false} */}
 
 ```json
 {
@@ -100,9 +120,15 @@ Use the `contains()` function to match elements by their class attribute:
 Use `contains()` because an element can have multiple classes. This matches any element whose `class` attribute contains "submit-button".
 </Note>
 
+{/* step {"stepId":"xpath-goto-class","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-class","description":"Find an element whose class contains 'btn-primary' (adapted to a class that actually exists in the fixture)","find":{"selector":"//*[contains(@class, 'btn-primary')]"}} */}
+{/* test end */}
+
 ### Select by text content
 
 One of XPath's most powerful features is selecting elements by their visible text:
+
+{/* test {"testId":"xpath-selector-text","detectSteps":false} */}
 
 ```json
 {
@@ -114,9 +140,15 @@ One of XPath's most powerful features is selecting elements by their visible tex
 
 This finds a `button` element with the exact text "Submit".
 
+{/* step {"stepId":"xpath-goto-text","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-text","description":"Find a button by its exact text (adapted to text that actually exists in the fixture)","find":{"selector":"//button[text()='Save']"}} */}
+{/* test end */}
+
 ### Select by partial text
 
 Use the `contains()` function to match elements that contain specific text:
+
+{/* test {"testId":"xpath-selector-partial-text","detectSteps":false} */}
 
 ```json
 {
@@ -128,11 +160,17 @@ Use the `contains()` function to match elements that contain specific text:
 
 This finds a `button` element whose text contains "Submit" (like "Submit Form" or "Click to Submit").
 
+{/* step {"stepId":"xpath-goto-partial-text","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-partial-text","description":"Find a button whose text contains 'Submit'","find":{"selector":"//button[contains(text(), 'Submit')]"}} */}
+{/* test end */}
+
 ## Combining conditions
 
 ### Multiple attributes
 
 Use the `and` operator to combine multiple attribute conditions:
+
+{/* test {"testId":"xpath-selector-and","detectSteps":false} */}
 
 ```json
 {
@@ -142,9 +180,15 @@ Use the `and` operator to combine multiple attribute conditions:
 }
 ```
 
+{/* step {"stepId":"xpath-goto-and","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-and","description":"Find an input matching two attribute conditions (adapted to attributes that co-occur in the fixture: type=email and the required flag)","find":{"selector":"//input[@type='email' and @required]"}} */}
+{/* test end */}
+
 ### OR conditions
 
 Use the `or` operator to match elements that satisfy any of the specified conditions:
+
+{/* test {"testId":"xpath-selector-or","detectSteps":false} */}
 
 ```json
 {
@@ -154,9 +198,15 @@ Use the `or` operator to match elements that satisfy any of the specified condit
 }
 ```
 
+{/* step {"stepId":"xpath-goto-or","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-or","description":"Find a button matching either of two aria-label values (adapted, since the fixture's buttons don't set a type attribute)","find":{"selector":"//button[@aria-label='Close dialog' or @aria-label='Save document button']"}} */}
+{/* test end */}
+
 ### Element type and attribute
 
 Combine element types with attribute matching and text content for highly specific selectors:
+
+{/* test {"testId":"xpath-selector-combined","detectSteps":false} */}
 
 ```json
 {
@@ -166,11 +216,17 @@ Combine element types with attribute matching and text content for highly specif
 }
 ```
 
+{/* step {"stepId":"xpath-goto-combined","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-combined","description":"Find a button by exact class and partial text together (adapted to the fixture's real class value and text)","find":{"selector":"//button[@class='btn btn-primary' and contains(text(), 'Save')]"}} */}
+{/* test end */}
+
 ## Navigating the DOM
 
 ### Parent elements
 
 Select the parent of an element using the `parent::` axis or the `..` shorthand:
+
+{/* test {"testId":"xpath-selector-parent","detectSteps":false} */}
 
 ```json
 {
@@ -190,9 +246,16 @@ Or use the shorter form:
 }
 ```
 
+{/* step {"stepId":"xpath-goto-parent","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-parent-axis","description":"Find the password input's parent (adapted: the fixture wraps inputs in a <section>, not a <div>)","find":{"selector":"//input[@type='password']/parent::section"}} */}
+{/* step {"stepId":"xpath-find-parent-shorthand","description":"Same navigation using the '..' shorthand","find":{"selector":"//input[@type='password']/.."}} */}
+{/* test end */}
+
 ### Ancestor elements
 
 Find any ancestor element (not just the direct parent) using the `ancestor::` axis:
+
+{/* test {"testId":"xpath-selector-ancestor","detectSteps":false} */}
 
 ```json
 {
@@ -202,9 +265,15 @@ Find any ancestor element (not just the direct parent) using the `ancestor::` ax
 }
 ```
 
+{/* step {"stepId":"xpath-goto-ancestor","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-ancestor","description":"Find the password input's ancestor section (adapted: the fixture has no <form>)","find":{"selector":"//input[@type='password']/ancestor::section"}} */}
+{/* test end */}
+
 ### Following siblings
 
 Select sibling elements that come after the current element using the `following-sibling::` axis:
+
+{/* test {"testId":"xpath-selector-following-sibling","detectSteps":false} */}
 
 ```json
 {
@@ -215,6 +284,10 @@ Select sibling elements that come after the current element using the `following
 ```
 
 This finds an `input` that comes after a `label` with text "Email".
+
+{/* step {"stepId":"xpath-goto-following-sibling","description":"Open a page with a real label/input pairing (the enhanced-elements fixture uses placeholders instead of labels)","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"xpath-find-following-sibling","description":"Find the input that follows a label with this exact text","find":{"selector":"//label[text()='Text Input:']/following-sibling::input"}} */}
+{/* test end */}
 
 ### Preceding siblings
 
@@ -232,6 +305,8 @@ Select sibling elements that come before the current element using the `precedin
 
 Find elements nested at any depth within other elements using the `//` operator:
 
+{/* test {"testId":"xpath-selector-descendant","detectSteps":false} */}
+
 ```json
 {
   "find": {
@@ -242,11 +317,17 @@ Find elements nested at any depth within other elements using the `//` operator:
 
 This finds any `input` within a `div` with class "form-group", regardless of nesting depth.
 
+{/* step {"stepId":"xpath-goto-descendant","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-descendant","description":"Find an input nested anywhere inside the inputs section (adapted: the fixture nests inputs in a <section>, not a div.form-group)","find":{"selector":"//section[@id='inputs-section']//input"}} */}
+{/* test end */}
+
 ## Position-based selection
 
 ### Select by index
 
 Select a specific occurrence using square brackets with a number (XPath indexes start at 1):
+
+{/* test {"testId":"xpath-selector-index","detectSteps":false} */}
 
 ```json
 {
@@ -262,9 +343,15 @@ This selects the second `button` element in the document.
 Use parentheses to select from all matching elements. Without them, `//button[2]` means "a button that is the second button child of its parent."
 </Note>
 
+{/* step {"stepId":"xpath-goto-index","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-index","description":"Find the second button in the document","find":{"selector":"(//button)[2]"}} */}
+{/* test end */}
+
 ### First element
 
 Select the first matching element using index `[1]`:
+
+{/* test {"testId":"xpath-selector-first","detectSteps":false} */}
 
 ```json
 {
@@ -274,9 +361,15 @@ Select the first matching element using index `[1]`:
 }
 ```
 
+{/* step {"stepId":"xpath-goto-first","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-first","description":"Find the first text input in the document","find":{"selector":"(//input[@type='text'])[1]"}} */}
+{/* test end */}
+
 ### Last element
 
 Select the last matching element using the `last()` function:
+
+{/* test {"testId":"xpath-selector-last","detectSteps":false} */}
 
 ```json
 {
@@ -286,9 +379,15 @@ Select the last matching element using the `last()` function:
 }
 ```
 
+{/* step {"stepId":"xpath-goto-last","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-last","description":"Find the last button in the document","find":{"selector":"(//button)[last()]"}} */}
+{/* test end */}
+
 ### Position greater than
 
 Select elements beyond a certain position using the `position()` function:
+
+{/* test {"testId":"xpath-selector-position","detectSteps":false} */}
 
 ```json
 {
@@ -300,11 +399,17 @@ Select elements beyond a certain position using the `position()` function:
 
 This selects all `li` elements from the third onwards.
 
+{/* step {"stepId":"xpath-goto-position","description":"Open a page with a list","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"xpath-find-position","description":"Find the third (or later) list item across the page's lists","find":{"selector":"(//li)[position()>2]"}} */}
+{/* test end */}
+
 ## Advanced functions
 
 ### Attribute contains
 
 Match elements whose attributes contain a specific substring:
+
+{/* test {"testId":"xpath-selector-attribute-contains","detectSteps":false} */}
 
 ```json
 {
@@ -314,9 +419,15 @@ Match elements whose attributes contain a specific substring:
 }
 ```
 
+{/* step {"stepId":"xpath-goto-attribute-contains","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-attribute-contains","description":"Find an element whose data-testid contains 'user' (an exact match against this doc's own example -- the fixture's username-field data-testid genuinely contains it)","find":{"selector":"//*[contains(@data-testid, 'user')]"}} */}
+{/* test end */}
+
 ### Attribute starts with
 
 Match elements whose attributes begin with a specific value:
+
+{/* test {"testId":"xpath-selector-starts-with","detectSteps":false} */}
 
 ```json
 {
@@ -325,6 +436,10 @@ Match elements whose attributes begin with a specific value:
   }
 }
 ```
+
+{/* step {"stepId":"xpath-goto-starts-with","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-starts-with","description":"Find an element whose ID starts with 'submit-' (adapted to a prefix that actually exists in the fixture)","find":{"selector":"//*[starts-with(@id, 'submit-')]"}} */}
+{/* test end */}
 
 ### Case-insensitive text matching
 
@@ -344,6 +459,8 @@ This converts text to lowercase before matching.
 
 Exclude elements with specific attributes using the `not()` function:
 
+{/* test {"testId":"xpath-selector-not","detectSteps":false} */}
+
 ```json
 {
   "find": {
@@ -353,6 +470,10 @@ Exclude elements with specific attributes using the `not()` function:
 ```
 
 This finds enabled buttons (those without a `disabled` attribute).
+
+{/* step {"stepId":"xpath-goto-not","description":"Open a page with both enabled and disabled buttons","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"xpath-find-not","description":"Find the first button that isn't disabled","find":{"selector":"//button[not(@disabled)]"}} */}
+{/* test end */}
 
 ## Best practices
 
@@ -522,6 +643,8 @@ Target links that contain specific URL patterns:
 
 ### Select third item in a list
 
+{/* test {"testId":"xpath-example-third-item","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -534,6 +657,10 @@ Target links that contain specific URL patterns:
   ]
 }
 ```
+
+{/* step {"stepId":"xpath-goto-third-item","description":"Open a page with a nav menu","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"xpath-click-third-item","description":"Click the third menu item (an in-page anchor link, so clicking it doesn't navigate away)","click":{"selector":"(//nav//li)[3]//a"}} */}
+{/* test end */}
 
 ### Find element with specific data attribute
 
