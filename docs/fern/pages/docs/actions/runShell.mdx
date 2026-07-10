@@ -81,6 +81,8 @@ Here are a few ways you might use the `runShell` action:
 
 This example prints "hello world" to the output.
 
+{/* test {"testId":"runshell-string-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -96,7 +98,12 @@ This example prints "hello world" to the output.
 }
 ```
 
+{/* step {"stepId":"runshell-echo-string","description":"Run a basic command (unquoted, so it behaves identically on cmd.exe and POSIX shells)","runShell":{"command":"echo hello world","stdio":"hello world"}} */}
+{/* test end */}
+
 ### Run a command with arguments (object format)
+
+{/* test {"testId":"runshell-object-args","detectSteps":false} */}
 
 ```json
 {
@@ -115,6 +122,9 @@ This example prints "hello world" to the output.
   ]
 }
 ```
+
+{/* step {"stepId":"runshell-echo-args","description":"Run echo with arguments","runShell":{"command":"echo","args":["hello","world"],"stdio":"hello world"}} */}
+{/* test end */}
 
 ### Run a command with expected output validation
 
@@ -142,6 +152,8 @@ This example runs a Docker container and checks the output for a specific string
 
 This example runs a failing command (`false`) and checks that the exit code is `1`. Because the command is expected to fail with exit code 1, the step passes.
 
+{/* test {"testId":"runshell-exitcode","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -160,9 +172,14 @@ This example runs a failing command (`false`) and checks that the exit code is `
 }
 ```
 
+{/* step {"stepId":"runshell-exit","description":"Run a command that exits 1 (using the exit builtin, since false isn't available on Windows) and expect exit code 1","runShell":{"command":"exit 1","exitCodes":[1]}} */}
+{/* test end */}
+
 ### Set a variable based on command output
 
 The first step echoes "setup", validates the output using a regex, and captures the full stdout into a variable named `TEST`. The second step echoes the content of the `TEST` variable and validates that the output is indeed "setup".
+
+{/* test {"testId":"runshell-variable-capture","detectSteps":false} */}
 
 ```json
 {
@@ -191,6 +208,10 @@ The first step echoes "setup", validates the output using a regex, and captures 
   ]
 }
 ```
+
+{/* step {"stepId":"runshell-set-var","description":"Set a variable based on command output","runShell":{"command":"echo setup","stdio":"/.+/"},"variables":{"TEST":"$$stdio.stdout"}} */}
+{/* step {"stepId":"runshell-use-var","description":"Echo and validate the variable","runShell":{"command":"echo $TEST","stdio":"setup"}} */}
+{/* test end */}
 
 ### Start a background process and stop it later
 
