@@ -159,6 +159,8 @@ Here are a few ways you might use the `record` and `stopRecord` actions:
 
 Starts recording to a default path like `output/record_1745032062266.mp4` and stops later.
 
+{/* test {"testId":"record-boolean-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -182,9 +184,16 @@ Starts recording to a default path like `output/record_1745032062266.mp4` and st
 }
 ```
 
+{/* step {"stepId":"record-start-boolean","description":"Start recording, directed at a gitignored output folder instead of the default path (on this headless docs-test runner, with no virtual display, this step SKIPS rather than fails -- see PR notes)","record":{"path":"record_boolean.mp4","directory":"./.dd-output"}} */}
+{/* step {"stepId":"record-action-boolean","description":"Perform some actions","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-stop-boolean","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
 ### Recording to a specific path (string shorthand)
 
 Records to `./output/media/login_flow.webm`.
+
+{/* test {"testId":"record-string-shorthand","detectSteps":false} */}
 
 ```json
 {
@@ -209,9 +218,17 @@ Records to `./output/media/login_flow.webm`.
 }
 ```
 
+{/* step {"stepId":"record-goto-string","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"record-string","description":"Start recording (string shorthand)","record":"./.dd-output/login_flow.webm"} */}
+{/* step {"stepId":"record-find-string","description":"Locate an element on the page","find":"Reveal by text"} */}
+{/* step {"stepId":"record-stop-string","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
 ### Recording with object format (overwrite enabled)
 
 Records to `test_video.gif` in the `output/gifs` directory, overwriting if it exists.
+
+{/* test {"testId":"record-object-overwrite","detectSteps":false} */}
 
 ```json
 {
@@ -239,6 +256,12 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
   ]
 }
 ```
+
+{/* step {"stepId":"record-goto-gif","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-gif","description":"Start recording a GIF, overwriting if necessary, directed at a gitignored output folder","record":{"path":"test_video.gif","directory":"./.dd-output","overwrite":true}} */}
+{/* step {"stepId":"record-wait-gif","description":"Wait briefly","wait":1000} */}
+{/* step {"stepId":"record-stop-gif","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 
 ### Pinning the browser engine
 
@@ -304,6 +327,8 @@ Records the screen with FFmpeg so the recording isn't limited to Chrome.
 
 Captures a full session while also recording a shorter clip of one step, stopping each by name.
 
+{/* test {"testId":"record-overlapping-named","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -345,6 +370,15 @@ Captures a full session while also recording a shorter clip of one step, stoppin
 }
 ```
 
+{/* step {"stepId":"record-goto-overlap","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"record-session","description":"Start recording the full session","record":{"path":"session.mp4","directory":"./.dd-output","name":"record-session"}} */}
+{/* step {"stepId":"record-login-clip","description":"Start a clip of one step","record":{"path":"clip.mp4","directory":"./.dd-output","name":"record-clip"}} */}
+{/* step {"stepId":"record-find-overlap","description":"Locate an element on the page","find":"Reveal by text"} */}
+{/* step {"stepId":"record-stop-clip","description":"Stop the clip","stopRecord":"record-clip"} */}
+{/* step {"stepId":"record-goto-overlap2","description":"Navigate to another page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-stop-session","description":"Stop the full session","stopRecord":{"name":"record-session"}} */}
+{/* test end */}
+
 ### Recording a native app window
 
 Records the app's window (the default crop for app surfaces). On an Android or iOS context, the same step shape records the device screen instead.
@@ -383,6 +417,8 @@ Records the app's window (the default crop for app surfaces). On an Android or i
 
 Records the active window at 60 fps with FFmpeg.
 
+{/* test {"testId":"record-ffmpeg-detailed","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -413,4 +449,9 @@ Records the active window at 60 fps with FFmpeg.
 }
 ```
 
+{/* step {"stepId":"record-goto-ffmpeg","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-ffmpeg-window","description":"Start recording the active window at 60 fps with FFmpeg, directed at a gitignored output folder","record":{"path":"ffmpeg_window.mp4","directory":"./.dd-output","engine":{"name":"ffmpeg","target":"window","fps":60}}} */}
+{/* step {"stepId":"record-wait-ffmpeg","description":"Wait briefly","wait":1000} */}
+{/* step {"stepId":"record-stop-ffmpeg","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 
