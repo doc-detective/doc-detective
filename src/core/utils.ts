@@ -893,6 +893,9 @@ function isDeviceWebContext(driver: any): boolean {
 // at 0. A non-positive result means "no budget left" — goTo's `> 0` guard then
 // skips the settle entirely. Pure so the guard's arithmetic is tested directly,
 // without racing wall-clock timing through the runner.
+//
+// @internal — an implementation detail of goTo's settle, exported only so the
+// unit tests can exercise it. Not a public API; do not rely on it externally.
 const SETTLE_CEILING_MAX_MS = 3000;
 function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
   return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));

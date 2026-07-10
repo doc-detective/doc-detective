@@ -878,14 +878,15 @@ describe("core/utils coverage", function () {
   // racing wall-clock timing through the runner.
   describe("computeSettleCeiling", function () {
     it("returns the remaining budget when under the 3s cap", function () {
-      assert.equal(computeSettleCeiling(4000, 1000), 3000); // capped
       assert.equal(computeSettleCeiling(2500, 1000), 1500);
       assert.equal(computeSettleCeiling(500, 100), 400);
+      assert.equal(computeSettleCeiling(3000, 100), 2900);
     });
 
     it("caps at 3000ms no matter how much budget remains", function () {
       assert.equal(computeSettleCeiling(30000, 0), 3000);
       assert.equal(computeSettleCeiling(10000, 5000), 3000);
+      assert.equal(computeSettleCeiling(4000, 1000), 3000); // 3000 remaining == cap boundary
     });
 
     it("floors at 0 when the budget is spent (the guard then skips the settle)", function () {
