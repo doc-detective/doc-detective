@@ -112,5 +112,5 @@ tests:
 {/* step {"stepId":"standalone-type-search","description":"Type a query and press Enter (Enter is a no-op here since there's no form to submit, but it exercises the same keys array as the doc)","type":["American Shorthair kittens","$ENTER$"]} */}
 {/* step {"stepId":"standalone-verify-search","description":"Confirm the query was actually typed into the field","runBrowserScript":{"script":"return document.querySelector(\"[title='Search input field']\").value;","output":"American Shorthair kittens"}} */}
 {/* step {"stepId":"standalone-wait-search","description":"Wait, matching the doc's pacing before a screenshot","wait":1000} */}
-{/* step {"stepId":"standalone-screenshot-search","description":"Save a screenshot of the result","screenshot":"standalone-search-results.png"} */}
+{/* step {"stepId":"standalone-screenshot-search","description":"Save a screenshot of the result","screenshot":".dd-output/standalone-search-results.png"} */}
 {/* test end */}
