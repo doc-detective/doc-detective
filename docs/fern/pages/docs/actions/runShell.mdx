@@ -110,6 +110,11 @@ The Windows allocation probe waits up to 15 seconds by default. To change that b
 
 Here are a few ways you might use the `runShell` action:
 
+A couple of the examples below rely on POSIX shell conventions that behave differently on Windows, where commands run through `cmd.exe`:
+
+- `cmd.exe` doesn't treat single quotes as special. The string-shorthand example runs `echo 'hello world'`, which prints `hello world` on macOS and Linux but prints the quotes literally (`'hello world'`) on Windows. For output that matches across platforms, drop the quotes and use `echo hello world`.
+- `false` isn't a `cmd.exe` command. The exit-codes example runs `false`, which exits with code `1` on POSIX shells. On Windows, `cmd.exe` reports it as an unrecognized command instead of exiting `1`. To fail with exit code `1` on every platform, use `exit 1` instead.
+
 ### Run a basic command (string shorthand)
 
 This example prints "hello world" to the output.
