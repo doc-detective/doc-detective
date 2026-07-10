@@ -1546,6 +1546,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
+        // Carry `badge` + the source `location` forward: applyBadgeAnchoredTests
+        // (core/utils.ts) resolves a badge-flagged test by its position in the
+        // source file, not by name, so both need to survive into the report.
+        badge: test.badge,
+        location: test.location,
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
@@ -2230,6 +2235,9 @@ async function runRoutedSpec({
       description: test.description,
       contentPath: test.contentPath,
       detectSteps: test.detectSteps,
+      // See the matching comment above.
+      badge: test.badge,
+      location: test.location,
       contexts: new Array(test.contexts.length),
     };
     // Stamp the visit number when a backward goToTest re-ran this test (additive

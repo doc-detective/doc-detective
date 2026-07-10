@@ -1,7 +1,7 @@
 import { setConfig } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp, applyVerifiedMarkers } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
 import { telemetryNotice, sendTelemetry } from "./telem.js";
 import { readFile, resolvePaths } from "./files.js";
@@ -257,6 +257,16 @@ async function runTests(config: any, options: any = {}) {
     applyVerifiedMarkers({ config, results, files: qualifiedFiles });
   } catch (err: any) {
     log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
+  }
+
+  // Badge-anchored test verification: update any `badge: true` inline test's
+  // "Last verified" badge with today's date where the test PASSED. No config
+  // to thread through — resolution is entirely report-driven (see the
+  // `applyBadgeAnchoredTests` doc comment in utils.ts).
+  try {
+    applyBadgeAnchoredTests({ config, results });
+  } catch (err: any) {
+    log(config, "warning", `badge-anchored write-back failed: ${err?.message ?? err}`);
   }
 
   // Send telemetry
