@@ -131,6 +131,8 @@ Here are a few ways you might use the `checkLink` action:
 
 Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail. This is useful for testing endpoints that return rate limiting (`429`), authentication errors (`403`), or other expected non-success responses.
 
+Doc Detective's retry-with-backoff and HEAD-fallback logic (described above in [Behavior](#behavior)) only runs while the response code isn't yet accepted. As soon as a response matches `statusCodes`—including on the very first `GET`, as in the example below—Doc Detective stops immediately and passes; it doesn't retry or fall back to `HEAD` just because the code happens to be `429` or `403`.
+
 {/* test {"testId":"checklink-non-2xx","detectSteps":false} */}
 
 ```json
@@ -151,7 +153,7 @@ Include non-2xx status codes in `statusCodes` to accept responses that would oth
 }
 ```
 
-{/* step {"stepId":"checklink-429","description":"Check a URL that always returns 429, accepting it explicitly","checkLink":{"url":"http://localhost:8092/status/429","statusCodes":[200,429]}} */}
+{/* step {"stepId":"checklink-429","description":"Check a URL that always returns 429; because 429 is already accepted, this passes on the first GET with no retries or HEAD fallback","checkLink":{"url":"http://localhost:8092/status/429","statusCodes":[200,429]}} */}
 {/* test end */}
 
 ### Check a link with a separate origin and URL path
