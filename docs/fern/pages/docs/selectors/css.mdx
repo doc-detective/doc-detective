@@ -19,6 +19,8 @@ Use CSS selectors in Doc Detective actions like [`find`](/docs/actions/find), [`
 
 If there's only one instance of your target element on the page, you can specify the element type directly:
 
+{/* test {"testId":"css-selector-element-type","detectSteps":false} */}
+
 ```json
 {
   "find": {
@@ -27,9 +29,15 @@ If there's only one instance of your target element on the page, you can specify
 }
 ```
 
+{/* step {"stepId":"css-goto-element-type","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-element-type","description":"Find the page's single h1 by element type (the fixture has several inputs, so this uses a genuinely unique element)","find":{"selector":"h1"}} */}
+{/* test end */}
+
 ### Target by ID
 
 Elements with unique `id` attributes are ideal selector targets. Use the `#` prefix followed by the ID value:
+
+{/* test {"testId":"css-selector-id","detectSteps":false} */}
 
 ```json
 {
@@ -39,6 +47,10 @@ Elements with unique `id` attributes are ideal selector targets. Use the `#` pre
 }
 ```
 
+{/* step {"stepId":"css-goto-id","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-id","description":"Find an input by its ID","find":{"selector":"#username-input"}} */}
+{/* test end */}
+
 <Info title="Example">
 An element like `<input id="username">` can be targeted with `#username`.
 </Info>
@@ -46,6 +58,8 @@ An element like `<input id="username">` can be targeted with `#username`.
 ### Target by class
 
 You can target elements by their CSS class using the `.` prefix. However, classes are often shared across multiple elements, so use them carefully:
+
+{/* test {"testId":"css-selector-class","detectSteps":false} */}
 
 ```json
 {
@@ -55,6 +69,10 @@ You can target elements by their CSS class using the `.` prefix. However, classe
 }
 ```
 
+{/* step {"stepId":"css-goto-class","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-class","description":"Find the first element with this class (several buttons share it)","find":{"selector":".btn-primary"}} */}
+{/* test end */}
+
 <Note>
 If multiple elements share the same class, Doc Detective uses the first matching element. For unique targeting, combine classes with other selectors.
 </Note>
@@ -63,6 +81,8 @@ If multiple elements share the same class, Doc Detective uses the first matching
 
 Custom attributes provide reliable, unique selectors. Use square brackets with the attribute name and value:
 
+{/* test {"testId":"css-selector-attribute","detectSteps":false} */}
+
 ```json
 {
   "find": {
@@ -70,6 +90,10 @@ Custom attributes provide reliable, unique selectors. Use square brackets with t
   }
 }
 ```
+
+{/* step {"stepId":"css-goto-attribute","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-attribute","description":"Find an element by its type attribute","find":{"selector":"[type='password']"}} */}
+{/* test end */}
 
 <Tip title="Common attributes to target">
 - `type` (for input fields)
@@ -87,6 +111,8 @@ When a single attribute isn't unique, combine multiple selectors to create a mor
 
 Combine an element type with an attribute selector to narrow your target:
 
+{/* test {"testId":"css-selector-element-attribute","detectSteps":false} */}
+
 ```json
 {
   "find": {
@@ -97,9 +123,15 @@ Combine an element type with an attribute selector to narrow your target:
 
 This finds an `input` element specifically with `type="password"`.
 
+{/* step {"stepId":"css-goto-element-attribute","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-element-attribute","description":"Find the input with type=password","find":{"selector":"input[type='password']"}} */}
+{/* test end */}
+
 ### Element with class
 
 Target a specific element type that has a particular class:
+
+{/* test {"testId":"css-selector-element-class","detectSteps":false} */}
 
 ```json
 {
@@ -111,9 +143,15 @@ Target a specific element type that has a particular class:
 
 This finds a `button` element with the class `primary`.
 
+{/* step {"stepId":"css-goto-element-class","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-element-class","description":"Find a button with the btn-primary class (adapted from the doc's generic 'primary' class name to the fixture's real class)","find":{"selector":"button.btn-primary"}} */}
+{/* test end */}
+
 ### Multiple attributes
 
 Combine multiple attribute selectors to create more specific targets:
+
+{/* test {"testId":"css-selector-multiple-attributes","detectSteps":false} */}
 
 ```json
 {
@@ -125,9 +163,15 @@ Combine multiple attribute selectors to create more specific targets:
 
 This finds an `input` element with both `type="text"` and `name="email"`.
 
+{/* step {"stepId":"css-goto-multiple-attributes","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-multiple-attributes","description":"Find the input with both type=email and the required attribute set","find":{"selector":"input[type='email'][required]"}} */}
+{/* test end */}
+
 ### Class combinations
 
 Target elements that have multiple classes by chaining class selectors:
+
+{/* test {"testId":"css-selector-class-combinations","detectSteps":false} */}
 
 ```json
 {
@@ -139,11 +183,17 @@ Target elements that have multiple classes by chaining class selectors:
 
 This finds elements with both `btn` and `btn-primary` classes.
 
+{/* step {"stepId":"css-goto-class-combinations","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-class-combinations","description":"Find an element with both classes","find":{"selector":".btn.btn-primary"}} */}
+{/* test end */}
+
 ## Advanced patterns
 
 ### Child selectors
 
 Use the `>` combinator to select only direct children in a specific hierarchy:
+
+{/* test {"testId":"css-selector-child","detectSteps":false} */}
 
 ```json
 {
@@ -155,9 +205,15 @@ Use the `>` combinator to select only direct children in a specific hierarchy:
 
 This finds an `a` element that's a direct child of an `li`, which is a direct child of a `ul`, which is a direct child of a `nav`.
 
+{/* step {"stepId":"css-goto-child","description":"Open a page with a nav list","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"css-find-child","description":"Find a nav link matching the exact hierarchy","find":{"selector":"nav > ul > li > a"}} */}
+{/* test end */}
+
 ### Descendant selectors
 
 Use a space between selectors to match elements nested at any depth:
+
+{/* test {"testId":"css-selector-descendant","detectSteps":false} */}
 
 ```json
 {
@@ -169,9 +225,15 @@ Use a space between selectors to match elements nested at any depth:
 
 This finds any `a` element within a `div` with class `content`, regardless of nesting depth.
 
+{/* step {"stepId":"css-goto-descendant","description":"Open a page with a link nested in a paragraph","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"css-find-descendant","description":"Find the hyperlink nested inside a paragraph (adapted from the doc's div.content example to this fixture's actual structure)","find":{"selector":"p a"}} */}
+{/* test end */}
+
 ### Attribute contains
 
 Use the `*=` operator to match attributes that contain a specific substring:
+
+{/* test {"testId":"css-selector-attribute-contains","detectSteps":false} */}
 
 ```json
 {
@@ -183,9 +245,15 @@ Use the `*=` operator to match attributes that contain a specific substring:
 
 This matches any element whose `class` attribute contains the text "button".
 
+{/* step {"stepId":"css-goto-attribute-contains","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-attribute-contains","description":"Find an element whose class contains 'btn'","find":{"selector":"[class*='btn']"}} */}
+{/* test end */}
+
 ### Attribute starts with
 
 Use the `^=` operator to match attributes that begin with a specific prefix:
+
+{/* test {"testId":"css-selector-attribute-starts-with","detectSteps":false} */}
 
 ```json
 {
@@ -197,9 +265,15 @@ Use the `^=` operator to match attributes that begin with a specific prefix:
 
 This matches elements with IDs like `user-profile`, `user-settings`, etc.
 
+{/* step {"stepId":"css-goto-attribute-starts-with","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-attribute-starts-with","description":"Find an element whose ID starts with 'submit-' (adapted from the doc's 'user-' prefix to IDs that actually exist in the fixture)","find":{"selector":"[id^='submit-']"}} */}
+{/* test end */}
+
 ### nth-child
 
 Use the `:nth-child()` pseudo-class to select elements by their position:
+
+{/* test {"testId":"css-selector-nth-child","detectSteps":false} */}
 
 ```json
 {
@@ -210,6 +284,10 @@ Use the `:nth-child()` pseudo-class to select elements by their position:
 ```
 
 This selects the second `li` element within its parent.
+
+{/* step {"stepId":"css-goto-nth-child","description":"Open a page with a list","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"css-find-nth-child","description":"Find the second list item","find":{"selector":"li:nth-child(2)"}} */}
+{/* test end */}
 
 ## Best practices
 
@@ -273,6 +351,8 @@ Most modern browsers provide tools to help you identify selectors:
 
 ### Find and click a submit button
 
+{/* test {"testId":"css-example-click-submit","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -287,7 +367,13 @@ Most modern browsers provide tools to help you identify selectors:
 }
 ```
 
+{/* step {"stepId":"css-goto-click-submit","description":"Open a page with a submit input","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"css-click-submit","description":"Click the submit input (adapted from a <button type='submit'> to this fixture's <input type='submit'>, which isn't inside a <form> so clicking it doesn't navigate away)","find":{"selector":"input[type='submit']","click":true}} */}
+{/* test end */}
+
 ### Type into a password field
+
+{/* test {"testId":"css-example-type-password","detectSteps":false} */}
 
 ```json
 {
@@ -304,7 +390,14 @@ Most modern browsers provide tools to help you identify selectors:
 }
 ```
 
+{/* step {"stepId":"css-goto-type-password","description":"Open a page with a password field","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-type-password","description":"Enter a password","find":{"selector":"input[type='password']","click":true,"type":"mySecurePassword123"}} */}
+{/* step {"stepId":"css-verify-password","description":"Confirm the value was actually typed, not just that the click resolved","runBrowserScript":{"script":"return document.querySelector(\"input[type='password']\").value;","output":"mySecurePassword123"}} */}
+{/* test end */}
+
 ### Click a specific navigation link
+
+{/* test {"testId":"css-example-click-nav-link","detectSteps":false} */}
 
 ```json
 {
@@ -319,7 +412,13 @@ Most modern browsers provide tools to help you identify selectors:
 }
 ```
 
+{/* step {"stepId":"css-goto-click-nav","description":"Open a page with a nav link","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"css-click-nav-link","description":"Click a nav link (adapted from the doc's /downloads href to this fixture's in-page anchor link)","click":{"selector":"nav a[href='#buttons']"}} */}
+{/* test end */}
+
 ### Find an element by custom data attribute
+
+{/* test {"testId":"css-example-data-testid","detectSteps":false} */}
 
 ```json
 {
@@ -333,6 +432,10 @@ Most modern browsers provide tools to help you identify selectors:
   ]
 }
 ```
+
+{/* step {"stepId":"css-goto-data-testid","description":"Open a page with data-testid attributes","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"css-find-data-testid","description":"Find a button by its data-testid (adapted to a data-testid that actually exists in the fixture)","find":{"selector":"[data-testid='login-form-submit']"}} */}
+{/* test end */}
 
 ## Related resources
 
