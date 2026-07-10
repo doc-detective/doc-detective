@@ -129,11 +129,13 @@ jobs:
     # workflow_call. A bare `github.event_name != 'push'` guard therefore
     # skips this job on every automated release. `inputs.version` doesn't
     # have that problem: it's only populated (and required) for
-    # workflow_call/workflow_dispatch, so it's empty on a genuine direct
-    # push to this workflow's own `push:` trigger (the windows-base path
-    # filter) and non-empty on a chained workflow_call.
+    # workflow_call/workflow_dispatch, so it's unset (falsy) on a genuine
+    # direct push to this workflow's own `push:` trigger (the windows-base
+    # path filter) and set on a chained workflow_call. Use a falsy check
+    # (`!inputs.version`) rather than `== ''` to avoid depending on the
+    # null-to-string coercion GitHub Actions applies to that comparison.
     if: >-
-      !(github.event_name == 'push' && inputs.version == '') &&
+      !(github.event_name == 'push' && !inputs.version) &&
       !(github.event_name == 'workflow_dispatch' && inputs.build_base)
     timeout-minutes: 60
     env:
@@ -324,9 +326,10 @@ jobs:
     #
     # See the NOTE on build-linux above: `github.event_name` alone can't
     # tell a direct push apart from a workflow_call chain that inherited
-    # 'push' from the root event, so this checks `inputs.version` too.
+    # 'push' from the root event, so this checks `inputs.version` too
+    # (falsy-checked, not `== ''`, to avoid relying on coercion).
     if: >-
-      !(github.event_name == 'push' && inputs.version == '') &&
+      !(github.event_name == 'push' && !inputs.version) &&
       !(github.event_name == 'workflow_dispatch' && inputs.build_base) &&
       !(github.event_name == 'pull_request' && needs.detect-base-change.outputs.base == 'true')
     timeout-minutes: 60
@@ -474,13 +477,13 @@ jobs:
   #     so that base-image breakages are caught pre-merge.
   build-windows-base:
     needs: [detect-base-change]
-    # See the NOTE on build-linux above: without the `inputs.version == ''`
+    # See the NOTE on build-linux above: without the `!inputs.version`
     # check, this job also fires on every automated release (release.yml
     # -> promote.yml -> docker-build.yml via workflow_call), since
     # `github.event_name` inherits 'push' from the root event even though
     # this run never touched the windows-base files.
     if: >-
-      (github.event_name == 'push' && inputs.version == '') ||
+      (github.event_name == 'push' && !inputs.version) ||
       (github.event_name == 'workflow_dispatch' && inputs.build_base) ||
       (github.event_name == 'pull_request' && needs.detect-base-change.outputs.base == 'true')
     timeout-minutes: 90
