@@ -932,6 +932,50 @@ describe("startBackgroundProcessSurface: transient init retry (Phase 6)", functi
       `expected 3 spawns (1 initial + 2 retries), got ${spawns.length}`
     );
   });
+
+  // teardown() is best-effort cleanup of an ALREADY-crashed child (that's why
+  // readiness failed). A kill() rejection must never (a) escape and turn a
+  // clean FAIL into a thrown step, (b) mask the real readiness error, or
+  // (c) strand a stale processRegistry entry that the next attempt's register
+  // would silently overwrite.
+  it("a teardown kill() rejection neither escapes, masks the readiness error, nor strands the registry entry", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const registry = new Map();
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "kill-explodes", name: "kill-rejects" },
+      processRegistry: registry,
+      deps: {
+        platform: "linux",
+        sleep: () => Promise.resolve(),
+        spawnBackgroundCommand: () => ({
+          pid: 4321,
+          // The crashed handle's kill() rejects (e.g. node-pty on a dead pid).
+          kill: async () => {
+            throw new Error("kill failed: process already gone");
+          },
+          getStdout: () => "",
+          getStderr: () => "",
+          getCombined: () => "",
+          write: () => true,
+          onChunk: () => () => {},
+          exited: Promise.resolve(1),
+        }),
+        waitForReady: async () => {
+          throw new Error(`Process exited before becoming ready (exit code 1).`);
+        },
+      },
+    });
+    // (a) it returned rather than threw, and (b) the readiness error survived.
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /failed to become ready/);
+    assert.match(result.description, /exit code 1/);
+    assert.doesNotMatch(result.description, /kill failed/);
+    // (c) no stale entry left behind.
+    assert.equal(registry.has("kill-rejects"), false);
+  });
 });
 
 describe("runShell/runCode background (integration)", function () {

@@ -184,8 +184,19 @@ async function startBackgroundProcessSurface({
     } catch (error: any) {
       lastReadyError = error;
       // Kill + deregister the crashed handle before deciding whether to retry.
-      await teardown(bg);
-      processRegistry.delete(name);
+      // teardown is BEST-EFFORT: the child has typically already exited (that's
+      // why readiness failed), so a kill() rejection here is meaningless noise.
+      // Swallow it so it can't (a) escape and turn this clean FAIL into a thrown
+      // step, or (b) mask the real readiness error below. Deregister in
+      // `finally` so a failed kill can't strand a stale registry entry that the
+      // next attempt's register() would silently overwrite (ADR 01048).
+      try {
+        await teardown(bg);
+      } catch {
+        // Ignore: best-effort cleanup of an already-dead handle.
+      } finally {
+        processRegistry.delete(name);
+      }
       // Retry only a transient win32 init crash, and only within the bound; a
       // fresh spawn on the next attempt clears the contention in practice.
       if (
