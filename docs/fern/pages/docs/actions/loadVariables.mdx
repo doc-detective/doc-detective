@@ -51,6 +51,6 @@ You can load these variables using the `loadVariables` action:
 ```
 
 {/* step {"stepId":"loadvariables-load","description":"Load environment variables from secrets.env","loadVariables":"./secrets.env"} */}
-{/* step {"stepId":"loadvariables-use","description":"Use both loaded variables: BASE_URL in the URL, API_KEY in a header and the request body so the echoed response proves it substituted correctly","httpRequest":{"url":"$BASE_URL/data","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
+{/* step {"stepId":"loadvariables-use","description":"Use both loaded variables: BASE_URL in the URL (proven by the request reaching the local server at all) and API_KEY in both a header and the request body -- only the body's substitution is independently verified below, since the echo API reflects the body/query but not request headers","httpRequest":{"url":"$BASE_URL/data","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
 {/* test end */}
 
