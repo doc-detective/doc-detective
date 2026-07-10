@@ -56,6 +56,8 @@ tests:
 
 Here's an example test for performing a Google search and saving a screenshot of the results:
 
+{/* test {"testId":"standalone-guide-search-example","detectSteps":false} */}
+
 <Tabs>
 <Tab language="json" title="JSON">
 ```json
@@ -104,3 +106,11 @@ tests:
 ```
 </Tab>
 </Tabs>
+
+{/* step {"stepId":"standalone-goto-search","description":"Open a page with a search-like input (adapted from google.com to a local fixture)","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"standalone-find-search","description":"Find and click the search input (adapted from the doc's [title=Search] to the fixture's real [title='Search input field'])","find":{"selector":"[title='Search input field']","click":true}} */}
+{/* step {"stepId":"standalone-type-search","description":"Type a query and press Enter (Enter is a no-op here since there's no form to submit, but it exercises the same keys array as the doc)","type":["American Shorthair kittens","$ENTER$"]} */}
+{/* step {"stepId":"standalone-verify-search","description":"Confirm the query was actually typed into the field","runBrowserScript":{"script":"return document.querySelector(\"[title='Search input field']\").value;","output":"American Shorthair kittens"}} */}
+{/* step {"stepId":"standalone-wait-search","description":"Wait, matching the doc's pacing before a screenshot","wait":1000} */}
+{/* step {"stepId":"standalone-screenshot-search","description":"Save a screenshot of the result","screenshot":"standalone-search-results.png"} */}
+{/* test end */}
