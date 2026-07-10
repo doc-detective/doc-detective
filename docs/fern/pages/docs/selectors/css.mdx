@@ -48,7 +48,7 @@ Elements with unique `id` attributes are ideal selector targets. Use the `#` pre
 ```
 
 {/* step {"stepId":"css-goto-id","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"css-find-id","description":"Find an input by its ID","find":{"selector":"#username-input"}} */}
+{/* step {"stepId":"css-find-id","description":"Find an input by its ID (adapted from the doc's #username to the fixture's real #username-input, since the fixture has no id=\"username\")","find":{"selector":"#username-input"}} */}
 {/* test end */}
 
 <Info title="Example">
@@ -70,7 +70,7 @@ You can target elements by their CSS class using the `.` prefix. However, classe
 ```
 
 {/* step {"stepId":"css-goto-class","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"css-find-class","description":"Find the first element with this class (several buttons share it)","find":{"selector":".btn-primary"}} */}
+{/* step {"stepId":"css-find-class","description":"Find the first element with this class (several buttons share it; adapted from the doc's .submit-button to the fixture's real .btn-primary, since .submit-button doesn't exist in the fixture)","find":{"selector":".btn-primary"}} */}
 {/* test end */}
 
 <Note>
@@ -164,7 +164,7 @@ Combine multiple attribute selectors to create more specific targets:
 This finds an `input` element with both `type="text"` and `name="email"`.
 
 {/* step {"stepId":"css-goto-multiple-attributes","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"css-find-multiple-attributes","description":"Find the input with both type=email and the required attribute set","find":{"selector":"input[type='email'][required]"}} */}
+{/* step {"stepId":"css-find-multiple-attributes","description":"Find the input with both type=email and the required attribute set (adapted from the doc's type='text'][name='email' combination, which doesn't exist in the fixture, to a real multi-attribute combination)","find":{"selector":"input[type='email'][required]"}} */}
 {/* test end */}
 
 ### Class combinations
@@ -246,7 +246,7 @@ Use the `*=` operator to match attributes that contain a specific substring:
 This matches any element whose `class` attribute contains the text "button".
 
 {/* step {"stepId":"css-goto-attribute-contains","description":"Open a page with elements to select against","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"css-find-attribute-contains","description":"Find an element whose class contains 'btn'","find":{"selector":"[class*='btn']"}} */}
+{/* step {"stepId":"css-find-attribute-contains","description":"Find an element whose class contains 'btn' (adapted from the doc's 'button' substring, which doesn't appear in any fixture class, to the fixture's real 'btn' classes)","find":{"selector":"[class*='btn']"}} */}
 {/* test end */}
 
 ### Attribute starts with
@@ -286,7 +286,8 @@ Use the `:nth-child()` pseudo-class to select elements by their position:
 This selects the second `li` element within its parent.
 
 {/* step {"stepId":"css-goto-nth-child","description":"Open a page with a list","goTo":"http://localhost:8092"} */}
-{/* step {"stepId":"css-find-nth-child","description":"Find the second list item","find":{"selector":"li:nth-child(2)"}} */}
+{/* step {"stepId":"css-find-nth-child","description":"Find the second list item, scoped to the Lists section's unordered list (adapted from the doc's unscoped li:nth-child(2), since index.html has multiple li elements across the nav, both lists, and other sections that would otherwise match ambiguously)","find":{"selector":"#lists ul li:nth-child(2)"}} */}
+{/* step {"stepId":"css-verify-nth-child","description":"Confirm the matched element is actually the second item, not just that the step resolved","runBrowserScript":{"script":"return document.querySelector(\"#lists ul li:nth-child(2)\").textContent;","output":"Item 2"}} */}
 {/* test end */}
 
 ## Best practices
