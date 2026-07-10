@@ -16,16 +16,25 @@
          before the delay elapses will not see it; a preceding wait of 2
          seconds or more proves the wait action's effect. -->
     <p id="auto-message"></p>
-    <script>
-        setTimeout(function () {
-            document.getElementById("auto-message").textContent = "Loaded after 2 seconds";
-        }, 2000);
-    </script>
 
     <!-- Reveals its message 200ms after the button is clicked, simulating a
          short animation/transition. A find step immediately after the click
          (with no wait) would race the timeout; a short wait proves it out. -->
-    <button id="click-trigger" onclick="setTimeout(function () { document.getElementById('click-message').textContent = 'Action complete!'; }, 200)">Trigger delayed action</button>
+    <button id="click-trigger" onclick="revealClickMessage()">Trigger delayed action</button>
     <p id="click-message"></p>
+
+    <script>
+        function revealAutoMessage() {
+            document.getElementById("auto-message").textContent = "Loaded after 2 seconds";
+        }
+
+        function revealClickMessage() {
+            setTimeout(function () {
+                document.getElementById("click-message").textContent = "Action complete!";
+            }, 200);
+        }
+
+        setTimeout(revealAutoMessage, 2000);
+    </script>
 </body>
 </html>
