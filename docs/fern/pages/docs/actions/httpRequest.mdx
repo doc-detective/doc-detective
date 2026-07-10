@@ -335,7 +335,7 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
 ```
 
 {/* step {"stepId":"httprequest-capture-var","description":"Create a user (including an id) and capture it into a variable","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"name":"neo","job":"the one","id":"neo-101"}}},"variables":{"USER_ID":"$$response.body.id"}} */}
-{/* step {"stepId":"httprequest-use-var","description":"Use the captured ID in the next request's URL (a single path segment, since the local echo API only supports one after /api/)","httpRequest":{"url":"http://localhost:8092/api/$USER_ID","method":"GET"}} */}
+{/* step {"stepId":"httprequest-use-var","description":"Use the captured ID as a query parameter and assert the echoed response contains it, proving the variable was actually substituted","httpRequest":{"url":"http://localhost:8092/api/users?id=$USER_ID","method":"GET","response":{"body":{"id":"neo-101"}}}} */}
 {/* test end */}
 
 ### Save response body to a file
