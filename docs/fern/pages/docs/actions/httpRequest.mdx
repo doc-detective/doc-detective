@@ -22,7 +22,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `body`: (Optional) Expected response body. Can be a string or JSON object.
     - `required`: (Optional) Array of field paths that must exist in the response body. Uses dot notation for nested fields (for example, `user.name`) and bracket notation for array indices (for example, `items[0].id`). Fields can have any value, including `null`.
   - `allowAdditionalFields`: (Optional) Whether the response may contain fields beyond those declared in `response.body`. Defaults to `true`. Set it to `false` to fail the step when the response includes any field not declared in `response.body`. The check is recursive: it descends into nested objects and names each undeclared field by its dot-path (for example, `user.extra`). It applies only when the top-level `response.body` declares fields—if `response.body` is unset or empty, the response has no key constraint and the check passes. A nested empty object still constrains: a `response.body` of `{ "user": {} }` requires `user` to be empty, so any field under it fails the step.
-  - `statusCodes`: (Optional) An array of acceptable HTTP status codes. If the response code is not in this list, the step fails (default: `[200]`).
+  - `statusCodes`: (Optional) An array of acceptable HTTP status codes. If the response code is not in this list, the step fails (default: `[200, 201]`).
   - `openApi`: (Optional) Define the request based on an OpenAPI definition. Can be a string (operation ID) or an object:
     - `name`: (Optional) Name of the registered OpenAPI definition (if multiple are loaded).
     - `descriptionPath`: (Optional) Path or URL to the OpenAPI description file.
