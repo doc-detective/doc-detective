@@ -117,14 +117,32 @@ function tryResolveFromCache(
   name: string,
   ctx: CacheDirContext = {}
 ): string | null {
-  const runtimeDir = getRuntimeDir(ctx);
-  // Probe directly with require.resolve anchored at the runtime dir; this
-  // honors package "exports" maps that a naive existsSync(node_modules/<name>)
-  // check would miss for scoped or sub-path entry points.
-  const pkgJsonAnchor = path.join(runtimeDir, "package.json");
-  if (!fs.existsSync(pkgJsonAnchor)) return null;
-  const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
-  return resolveEntry(requireFromCache, name);
+  // This is a READ-ONLY locator — it never spawns. Any failure to even
+  // construct the runtime dir means the cache cannot resolve the dep, so
+  // return null ("not in cache") instead of throwing. Two real triggers:
+  //   1. getRuntimeDir → getCacheDir → assertSafeRuntimePath rejects an
+  //      unsafe cacheDir (a shell-metacharacter in DOC_DETECTIVE_CACHE_DIR
+  //      / config.cacheDir), or getCacheDir's own mkdirSync fails.
+  //   2. The fs.existsSync probe below throws (permissions, a stubbed fs).
+  // Swallowing here does NOT weaken the security gate: the only path that
+  // actually shells out (ensureRuntimeInstalled) re-runs
+  // assertSafeRuntimePath on the runtime dir and throws before spawning, so
+  // an unsafe cacheDir still fails loudly at install time. What this
+  // prevents is a bad cacheDir crashing pure resolvers — the `doc-detective
+  // debug` probes (probeAppium, the Appium/Browsers collectors) that only
+  // want to LOCATE a dep and degrade gracefully when they can't.
+  try {
+    const runtimeDir = getRuntimeDir(ctx);
+    // Probe directly with require.resolve anchored at the runtime dir; this
+    // honors package "exports" maps that a naive existsSync(node_modules/<name>)
+    // check would miss for scoped or sub-path entry points.
+    const pkgJsonAnchor = path.join(runtimeDir, "package.json");
+    if (!fs.existsSync(pkgJsonAnchor)) return null;
+    const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
+    return resolveEntry(requireFromCache, name);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -226,6 +244,13 @@ export async function loadHeavyDep<T = unknown>(
 
   if (!resolved) {
     if (!autoInstall) {
+      // tryResolveFromCache deliberately swallows an unusable cacheDir so pure
+      // locators can answer null (see it). Here we're about to tell the caller
+      // the dep "is not installed" and point them at `install runtime` — which
+      // would be actively misdirecting when the real fault is the cache dir
+      // itself (that command fails the same way). Re-derive it so an unsafe or
+      // unwritable cacheDir surfaces with its own diagnostic instead.
+      getRuntimeDir(ctx);
       throw new Error(
         `Heavy dep '${name}' is not installed in either the shim's node_modules or <cacheDir>/runtime. Run \`doc-detective install runtime\` to install it, or call loadHeavyDep with { autoInstall: true }.`
       );
