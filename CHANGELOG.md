@@ -1,3 +1,12 @@
+## [4.26.4](https://github.com/doc-detective/doc-detective/compare/v4.26.3...v4.26.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* **core:** process-surface teardown is best-effort and always deregisters ([#599](https://github.com/doc-detective/doc-detective/issues/599)) ([3b108c5](https://github.com/doc-detective/doc-detective/commit/3b108c5e614ad8a7d2fbd51b320b7cfe28aaaa1a))
+* **core:** retry process-surface init crash under concurrent startup ([#547](https://github.com/doc-detective/doc-detective/issues/547)) ([c65d8c3](https://github.com/doc-detective/doc-detective/commit/c65d8c396bb3424647bd1c972da0cfdd7e958ee1)), closes [#532](https://github.com/doc-detective/doc-detective/issues/532)
+* **core:** settle device web element tree after goTo before find ([#545](https://github.com/doc-detective/doc-detective/issues/545)) ([657daa3](https://github.com/doc-detective/doc-detective/commit/657daa31d710af05483f3c5284495820b9c81751)), closes [#547](https://github.com/doc-detective/doc-detective/issues/547)
+
 ## [4.26.3](https://github.com/doc-detective/doc-detective/compare/v4.26.2...v4.26.3) (2026-07-10)
 
 
