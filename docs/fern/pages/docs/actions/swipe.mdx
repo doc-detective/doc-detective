@@ -13,15 +13,30 @@ The `swipe` action moves a virtual finger (or pointer) across a browser or app s
 
 **String shorthand**—swipe up on the active browser tab:
 
+{/* test {"testId":"swipe-string-shorthand","detectSteps":false} */}
+
 ```json
 { "swipe": "up" }
 ```
 
+{/* step {"stepId":"swipe-goto-string","description":"Open a page with scrollable content","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"swipe-check-initial-scroll","description":"Confirm the page starts unscrolled","runBrowserScript":{"script":"return window.scrollY;","output":"0"}} */}
+{/* step {"stepId":"swipe-up-string","description":"Swipe up (string shorthand)","swipe":"up"} */}
+{/* step {"stepId":"swipe-verify-string","description":"Confirm the swipe actually scrolled the page down","runBrowserScript":{"script":"return window.scrollY > 0;","output":"true"}} */}
+{/* test end */}
+
 **Directional**—swipe 80% of the app window's height:
+
+{/* test {"testId":"swipe-directional","detectSteps":false} */}
 
 ```json
 { "swipe": { "direction": "up", "distance": 0.8, "surface": { "app": "myapp" } } }
 ```
+
+{/* step {"stepId":"swipe-goto-directional","description":"Open a page with scrollable content","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"swipe-directional-up","description":"Swipe up 80% of the viewport height (a browser surface here, since the app-surface form needs a native app driver)","swipe":{"direction":"up","distance":0.8}} */}
+{/* step {"stepId":"swipe-verify-directional","description":"Confirm the swipe actually scrolled the page down","runBrowserScript":{"script":"return window.scrollY > 0;","output":"true"}} */}
+{/* test end */}
 
 **Point-to-point**—drag from one point to another:
 
