@@ -236,6 +236,42 @@ describe("Badge-anchored test verification — write-back", function () {
       applyBadgeAnchoredTests({ config: silent, results: report(missing) });
       expect(fs.existsSync(missing)).to.equal(false);
     });
+    it("skips a spec with no tests array", function () {
+      applyBadgeAnchoredTests({ config: silent, results: { specs: [{ specId: "s1", contentPath: "x" }] } });
+    });
+    it("skips a badge:true test with no contentPath", function () {
+      const results = {
+        specs: [
+          { specId: "s1", tests: [{ testId: "t1", result: "PASS", badge: true, location: { line: 1 } }] },
+        ],
+      };
+      applyBadgeAnchoredTests({ config: silent, results });
+    });
+    it("skips a badge:true test whose contentPath has an unsupported extension", function () {
+      const f = write("a.txt", '<!-- test {"badge": true} -->\n<!-- step {"wait": 10} -->\n<!-- test end -->\n');
+      const before = read(f);
+      applyBadgeAnchoredTests({ config: silent, results: report(f, { line: 1 }) });
+      expect(read(f)).to.equal(before);
+    });
+    it("skips a badge:true test whose location is out of range for the current file", function () {
+      const f = write("a.md", '<!-- test {"badge": true} -->\n<!-- step {"wait": 10} -->\n<!-- test end -->\n');
+      const before = read(f);
+      applyBadgeAnchoredTests({ config: silent, results: report(f, { line: 999 }) });
+      expect(read(f)).to.equal(before);
+    });
+    it("warns and continues when the content path is unreadable (e.g. a directory)", function () {
+      const dir = path.join(tmpDir, "a-directory.md");
+      fs.mkdirSync(dir);
+      const logs = [];
+      const realLog = console.log;
+      console.log = (...a) => logs.push(a.join(" "));
+      try {
+        applyBadgeAnchoredTests({ config: { logLevel: "warning" }, results: report(dir, { line: 1 }) });
+      } finally {
+        console.log = realLog;
+      }
+      expect(logs.join("\n")).to.match(/failed to update badge-anchored tests/i);
+    });
   });
 
   describe("end-to-end via runTests — no testId anywhere", function () {
