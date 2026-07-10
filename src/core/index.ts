@@ -259,10 +259,7 @@ async function runTests(config: any, options: any = {}) {
     log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
   }
 
-  // Badge-anchored test verification: update any `badge: true` inline test's
-  // "Last verified" badge with today's date where the test PASSED. No config
-  // to thread through — resolution is entirely report-driven (see the
-  // `applyBadgeAnchoredTests` doc comment in utils.ts).
+  // Badge-anchored write-back — see ADR 01047.
   try {
     applyBadgeAnchoredTests({ config, results });
   } catch (err: any) {
