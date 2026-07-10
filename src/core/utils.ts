@@ -46,6 +46,7 @@ export {
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -774,6 +775,43 @@ function isRetryableSessionError(
   if (typeof message !== "string" || !message) return false;
   if (TRANSIENT_SESSION_ERROR.test(message)) return true;
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+}
+
+// Windows NTSTATUS exit codes for a process that died *during initialization*
+// under concurrent-spawn contention — the process-surface analogue of the
+// driver-start transient session races above (ADR 01042). At
+// `concurrentRunners > 1` a startSurface that opens many process/PTY children
+// at once can transiently exhaust a Windows loader/console limit so one child
+// crashes before it can signal ready:
+//   • 0xC0000142 (-1073741502) STATUS_DLL_INIT_FAILED — the loader couldn't
+//     initialize a DLL for the child (classic heavy-concurrent-spawn failure).
+//   • 0xC000013A (-1073741510) STATUS_CONTROL_C_EXIT — a spurious console-control
+//     termination delivered to a just-spawned console/ConPTY child during
+//     startup; observed in CI on `p6-tty` at concurrentRunners 2.
+// Both clear on a fresh spawn in practice, so a bounded retry recovers.
+// Windows-only: these are NTSTATUS values, meaningless on POSIX (where the same
+// decimals would be ordinary signal/exit codes), so the guard never fires off
+// win32 and `concurrentRunners: 1` behavior is byte-identical.
+const TRANSIENT_PROCESS_INIT_EXIT_CODES = new Set([
+  -1073741502, // 0xC0000142 STATUS_DLL_INIT_FAILED
+  -1073741510, // 0xC000013A STATUS_CONTROL_C_EXIT
+]);
+
+function isTransientProcessInitError(
+  message: string | undefined,
+  platform: string = process.platform
+): boolean {
+  if (platform !== "win32") return false;
+  if (typeof message !== "string" || !message) return false;
+  // waitForReady's early-exit rejection is
+  // `Process exited before becoming ready (exit code <n>).` — pull the code and
+  // match it against the transient NTSTATUS set. Only the early-exit shape is
+  // retryable; a readiness *timeout* (a genuinely stuck process) is not.
+  const match = message.match(
+    /exited before becoming ready \(exit code (-?\d+)\)/
+  );
+  if (!match) return false;
+  return TRANSIENT_PROCESS_INIT_EXIT_CODES.has(Number(match[1]));
 }
 
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
