@@ -1,3 +1,10 @@
+## [4.26.3](https://github.com/doc-detective/doc-detective/compare/v4.26.2...v4.26.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* **ci:** stop docker-build.yml app-image jobs from skipping on release chain ([#579](https://github.com/doc-detective/doc-detective/issues/579)) ([2996204](https://github.com/doc-detective/doc-detective/commit/2996204f147c0d53d5319af9e52c94305e2ed270))
+
 ## [4.26.2](https://github.com/doc-detective/doc-detective/compare/v4.26.1...v4.26.2) (2026-07-10)
 
 
