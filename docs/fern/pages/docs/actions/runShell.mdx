@@ -90,7 +90,7 @@ This example prints "hello world" to the output.
       "steps": [
         {
           "description": "Run a basic command.",
-          "runShell": "echo 'hello world'"
+          "runShell": "echo hello world"
         }
       ]
     }
@@ -98,7 +98,9 @@ This example prints "hello world" to the output.
 }
 ```
 
-{/* step {"stepId":"runshell-echo-string","description":"Run a basic command (unquoted, so it behaves identically on cmd.exe and POSIX shells)","runShell":{"command":"echo hello world","stdio":"hello world"}} */}
+`runShell` uses `cmd` on Windows and `bash` (or another default shell) on macOS/Linux, so avoid shell syntax that differs between them — for example, `cmd` doesn't strip single quotes the way POSIX shells do, so `echo 'hello world'` would print the quotes literally there.
+
+{/* step {"stepId":"runshell-echo-string","description":"Run a basic command","runShell":{"command":"echo hello world","stdio":"hello world"}} */}
 {/* test end */}
 
 ### Run a command with arguments (object format)
@@ -150,7 +152,7 @@ This example runs a Docker container and checks the output for a specific string
 
 ### Test a failure condition using exit codes
 
-This example runs a failing command (`false`) and checks that the exit code is `1`. Because the command is expected to fail with exit code 1, the step passes.
+This example runs a command that exits with code `1` (`exit 1`, a builtin both `cmd` and POSIX shells understand) and checks for that exit code. Because the command is expected to fail with exit code 1, the step passes.
 
 {/* test {"testId":"runshell-exitcode","detectSteps":false} */}
 
@@ -162,7 +164,7 @@ This example runs a failing command (`false`) and checks that the exit code is `
         {
           "description": "Run a failing command and expect exit code 1.",
           "runShell": {
-            "command": "false",
+            "command": "exit 1",
             "exitCodes": [1]
           }
         }
@@ -172,7 +174,7 @@ This example runs a failing command (`false`) and checks that the exit code is `
 }
 ```
 
-{/* step {"stepId":"runshell-exit","description":"Run a command that exits 1 (using the exit builtin, since false isn't available on Windows) and expect exit code 1","runShell":{"command":"exit 1","exitCodes":[1]}} */}
+{/* step {"stepId":"runshell-exit","description":"Run a command that exits 1 and expect exit code 1","runShell":{"command":"exit 1","exitCodes":[1]}} */}
 {/* test end */}
 
 ### Set a variable based on command output
