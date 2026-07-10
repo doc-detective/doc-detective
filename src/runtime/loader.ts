@@ -140,7 +140,14 @@ function tryResolveFromCache(
     if (!fs.existsSync(pkgJsonAnchor)) return null;
     const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
     return resolveEntry(requireFromCache, name);
-  } catch {
+  } catch (err) {
+    // Keep the cause reachable for whoever is debugging the installer itself.
+    // defaultLogger drops "debug" unless DOC_DETECTIVE_RUNTIME_DEBUG=1, so this
+    // stays silent on the normal path.
+    defaultLogger(
+      `tryResolveFromCache(${JSON.stringify(name)}) treated as a cache miss: ${err}`,
+      "debug"
+    );
     return null;
   }
 }
@@ -250,6 +257,11 @@ export async function loadHeavyDep<T = unknown>(
       // would be actively misdirecting when the real fault is the cache dir
       // itself (that command fails the same way). Re-derive it so an unsafe or
       // unwritable cacheDir surfaces with its own diagnostic instead.
+      //
+      // Discards the result on purpose: this call is for its throw, not its
+      // value. It re-runs getCacheDir's mkdirSync, which tryResolveFromCache
+      // already attempted — idempotent under `{recursive: true}`, so the repeat
+      // is free when the cacheDir is valid and the dep is simply absent.
       getRuntimeDir(ctx);
       throw new Error(
         `Heavy dep '${name}' is not installed in either the shim's node_modules or <cacheDir>/runtime. Run \`doc-detective install runtime\` to install it, or call loadHeavyDep with { autoInstall: true }.`

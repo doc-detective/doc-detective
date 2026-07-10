@@ -249,6 +249,31 @@ describe("runtime/loader", function () {
       }
     });
 
+    it("autoInstall:true fails loudly and never spawns npm with an unsafe cacheDir", async function () {
+      // The default path delegates to ensureRuntimeInstalled. Note it does NOT
+      // surface the shell-metacharacter error for an *undeclared* name:
+      // `specs = toInstall.map(getDeclaredVersion)` runs before
+      // `getRuntimeDir(ctx)`, so getDeclaredVersion throws first. For a
+      // *declared* dep missing from the shim (the published-package layout),
+      // getRuntimeDir throws the cacheDir error instead — that ordering is
+      // pinned by the ensureRuntimeInstalled test below. Either way the
+      // invariant that matters holds: it throws, and npm is never spawned.
+      let spawnCalled = false;
+      const spawner = makeFakeSpawner({ onSpawn: () => { spawnCalled = true; } });
+      let caught;
+      try {
+        await loadHeavyDep(BOGUS, {
+          autoInstall: true,
+          ctx: { cacheDir: BAD_CACHE_DIR },
+          deps: { spawn: spawner, logger: () => {} },
+        });
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught, "expected loadHeavyDep to throw").to.exist;
+      expect(spawnCalled, "npm must never be spawned with an unsafe cacheDir").to.equal(false);
+    });
+
     it("ensureRuntimeInstalled still refuses to spawn npm with an unsafe cacheDir", async function () {
       // Security regression guard: swallowing the throw in the read-only
       // resolver must never let an unsafe path reach the `shell: true` npm
