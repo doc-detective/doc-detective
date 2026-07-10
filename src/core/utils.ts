@@ -1821,37 +1821,7 @@ function applyVerifiedMarkers({
   }
 }
 
-// ===========================================================================
-// Badge-anchored test verification — no authored `testId` required.
-//
-// An author opts a test in with `"badge": true` in its inline `test`
-// statement; Doc Detective maintains a shields.io "Last verified" badge on
-// the line immediately BEFORE that statement, updated whenever the test
-// PASSES (and left alone — "aged" — on any other result).
-//
-// Unlike the `verified` marker (which an author anchors to a test/spec by
-// hand-copying its id), a badge-anchored test needs no id at all: detection
-// stamps each inline test with its own source `location` (see
-// common/detectTests.ts), that flows straight through to the report (see the
-// `badge`/`location` passthrough in core/tests.ts), and this writer resolves
-// each badge-flagged test by (contentPath, location.line) — a lookup that
-// costs nothing extra, since the report already carries exactly the answer
-// detection previously computed. There is no need to re-read and re-parse the
-// source file's test statements a second time as a separate step: doing so
-// would only risk drifting from what detection actually parsed.
-//
-// Only applies to tests detected from an inline `test` statement (markdown/
-// MDX, AsciiDoc, HTML, DITA). Tests authored directly in a JSON/YAML spec file
-// carry no `location` (there is no comparable "line above" to anchor a badge
-// to), so a `badge: true` there is a no-op — logged, not silently dropped.
-// See adrs/01047-badge-anchored-test-verification.md.
-// ===========================================================================
-
-// Post-run write-back for badge-anchored tests: group every `badge: true`
-// report test by its contentPath, and for each, insert/update a shields.io
-// badge on the line above its `location.line` whenever that test PASSED.
-// Mirrors applyVerifiedMarkers's gating (PASS-only, ages otherwise) and
-// idempotency approach, but resolves and anchors by position instead of id.
+// Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01047.
 function applyBadgeAnchoredTests({ config, results }: { config: any; results: any }): void {
   if (!results || !Array.isArray(results.specs)) return;
 
@@ -1890,8 +1860,7 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
       const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
       let changed = false;
 
-      // Bottom-to-top so earlier insertions/replacements don't shift the line
-      // indices of matches still to be processed.
+      // Bottom-to-top so an insertion doesn't shift indices still to process.
       for (const t of [...badgeTests].sort((a, b) => b.line - a.line)) {
         if (t.result !== "PASS") continue; // non-pass: leave the existing badge to age
         const li = t.line - 1; // 0-indexed into `lines`

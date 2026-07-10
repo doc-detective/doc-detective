@@ -563,13 +563,7 @@ export async function parseContent({
         if (!test.steps) {
           test.steps = [];
         }
-        // Stamp the testStart statement's own source span onto the test,
-        // mirroring how steps already carry `location`. Excluded from
-        // contentHash via HASH_EXCLUDED_KEYS, so it never perturbs an
-        // auto-derived testId. This is what lets a `badge: true` test opt into
-        // write-back without an authored testId — the writer resolves the
-        // report entry by (contentPath, location.line) instead of by name.
-        // See adrs/01047-badge-anchored-test-verification.md.
+        // Mirrors step `location`; excluded from contentHash. See ADR 01047.
         test.location = {
           line: statement._line,
           startIndex: statement._startIndex,

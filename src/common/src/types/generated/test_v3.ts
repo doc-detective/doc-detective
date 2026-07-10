@@ -31,21 +31,21 @@ export type Test = {
    */
   badge?: boolean;
   /**
-   * Source location where this test's inline `test` statement was detected in the original file. System-populated metadata; should not be set manually.
+   * Source location where this test's inline `test` statement was detected in the original file. System-populated metadata; should not be set manually. Setting it by hand on a JSON/YAML spec test is unsupported: if that test also sets `badge: true` and its `contentPath` resolves to a writable format, the write-back writer treats the hand-set location as genuine and may write into that line.
    */
   location?: {
     /**
      * 1-indexed line number in the source file where the `test` statement begins.
      */
-    line?: number;
+    line: number;
     /**
      * 0-indexed character offset from the start of the source file where the `test` statement begins.
      */
-    startIndex?: number;
+    startIndex: number;
     /**
      * 0-indexed character offset from the start of the source file immediately after the `test` statement.
      */
-    endIndex?: number;
+    endIndex: number;
     [k: string]: unknown;
   };
   /**

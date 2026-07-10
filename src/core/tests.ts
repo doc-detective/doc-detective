@@ -1546,9 +1546,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
-        // Carry `badge` + the source `location` forward: applyBadgeAnchoredTests
-        // (core/utils.ts) resolves a badge-flagged test by its position in the
-        // source file, not by name, so both need to survive into the report.
+        // Resolved by position via applyBadgeAnchoredTests (ADR 01047), not by name.
         badge: test.badge,
         location: test.location,
         contexts: new Array(test.contexts.length),
@@ -2235,7 +2233,6 @@ async function runRoutedSpec({
       description: test.description,
       contentPath: test.contentPath,
       detectSteps: test.detectSteps,
-      // See the matching comment above.
       badge: test.badge,
       location: test.location,
       contexts: new Array(test.contexts.length),
