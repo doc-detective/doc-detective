@@ -54,6 +54,3 @@ You can load these variables using the `loadVariables` action:
 {/* step {"stepId":"loadvariables-use","description":"Use both loaded variables: BASE_URL in the URL, API_KEY in a header and the request body so the echoed response proves it substituted correctly","httpRequest":{"url":"$BASE_URL/data","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
 {/* test end */}
 
-This example uses a `secrets.env` file that lives alongside this page in the repository (`docs/fern/pages/docs/actions/secrets.env`), pointing `BASE_URL` at the local test server rather than a real API. If the `httpRequest` step's URL resolved correctly and its response echoes back the literal `API_KEY` value, both variables loaded and substituted as expected.
-
-
