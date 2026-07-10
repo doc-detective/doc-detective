@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Type Echo Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input { padding: 8px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Type Echo Test Page</h1>
+    <!-- The input mirrors its current value into #echo on every keystroke, so a
+         following find step proves the type action actually entered the text: a
+         focus-only no-op leaves #echo empty and the find FAILs. -->
+    <label for="type-input">Type here:</label>
+    <input id="type-input" type="text"
+           oninput="document.getElementById('echo').textContent = this.value">
+
+    <p id="echo"></p>
+</body>
+</html>
