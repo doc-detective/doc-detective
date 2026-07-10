@@ -200,6 +200,62 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoScreenshot");
       });
 
+      it("should validate a test_v3 object with badge: true", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            badge: true,
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.badge).to.equal(true);
+      });
+
+      it("should reject a test_v3 object whose badge is not a boolean", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            badge: "yes",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("badge");
+      });
+
+      it("should validate a test_v3 object carrying a system-populated location", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            location: { line: 5, startIndex: 10, endIndex: 40 },
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.location).to.deep.equal({ line: 5, startIndex: 10, endIndex: 40 });
+      });
+
+      it("should reject a test_v3 object whose location is not an object", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            location: "line 5",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("location");
+      });
+
       it("should accept a relative forward-slash step autoScreenshot path", function () {
         const result = validate({
           schemaKey: "step_v3",

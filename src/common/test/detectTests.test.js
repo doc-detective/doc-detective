@@ -3060,6 +3060,91 @@ function readFixture(filename) {
       });
     });
 
+    // ========== test location tracking (badge-anchored write-back) ==========
+    describe("test location", function () {
+      const testLocationFileType = {
+        extensions: ["md"],
+        inlineStatements: {
+          testStart: ["<!-- test (.*?)-->"],
+          testEnd: ["<!-- test end -->"],
+          step: ["<!-- step (.*?)-->"],
+        },
+        markup: [],
+      };
+
+      it("should include location on an inline test statement", async function () {
+        const content = '<!-- test {"badge": true} -->\n<!-- step {"wait": 1} -->\n<!-- test end -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: testLocationFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        const test = result[0];
+        expect(test).to.have.property("location");
+        expect(test.location).to.have.property("line", 1);
+        expect(test.location.startIndex).to.equal(0);
+        expect(test.location.endIndex).to.equal(content.indexOf("-->") + 3);
+      });
+
+      it("should have the correct line number when the test is not on line 1", async function () {
+        const content =
+          'Intro text.\n\n<!-- test {"badge": true} -->\n<!-- step {"wait": 1} -->\n<!-- test end -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: testLocationFileType,
+        });
+        const test = result[0];
+        expect(test.location.line).to.equal(3);
+        expect(test.location.startIndex).to.equal(content.indexOf("<!-- test "));
+      });
+
+      it("should track location per test for multiple tests in one file", async function () {
+        const content =
+          '<!-- test {"badge": true} -->\n<!-- step {"wait": 1} -->\n<!-- test end -->\n\n' +
+          '<!-- test {"badge": true} -->\n<!-- step {"wait": 1} -->\n<!-- test end -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: testLocationFileType,
+        });
+        expect(result).to.have.lengthOf(2);
+        expect(result[0].location.line).to.equal(1);
+        expect(result[1].location.line).to.equal(5);
+      });
+
+      it("should not perturb the content-hash-derived testId (location is excluded from the hash)", async function () {
+        // Two structurally identical tests (same steps, no authored testId) at
+        // different locations. If location leaked into the hash, they'd still
+        // collide (content is identical) — the real assertion is that a single
+        // test's auto-id is stable regardless of WHERE location says it is,
+        // which we check by comparing against the same test re-detected with a
+        // shifted (but content-identical) location.
+        const contentA = '<!-- test {"badge": true} -->\n<!-- step {"wait": 1} -->\n<!-- test end -->';
+        const contentB =
+          "\n\n" + '<!-- test {"badge": true} -->\n<!-- step {"wait": 1} -->\n<!-- test end -->';
+        const resultA = await parseContent({
+          config: {},
+          content: contentA,
+          filePath: "test.md",
+          fileType: testLocationFileType,
+        });
+        const resultB = await parseContent({
+          config: {},
+          content: contentB,
+          filePath: "test.md",
+          fileType: testLocationFileType,
+        });
+        expect(resultA[0].location.line).to.equal(1);
+        expect(resultB[0].location.line).to.equal(3);
+        expect(resultA[0].testId).to.equal(resultB[0].testId);
+      });
+    });
+
     // ========== contentPath on detected tests ==========
     describe("contentPath on detected tests", function () {
       it("should set contentPath on each test when filePath is provided", async function () {

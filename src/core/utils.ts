@@ -63,6 +63,7 @@ export {
   applyVerifiedToContent,
   resolveVerifiedId,
   applyVerifiedMarkers,
+  applyBadgeAnchoredTests,
 };
 
 export type { BackgroundProcess };
@@ -1816,6 +1817,77 @@ function applyVerifiedMarkers({
       if (content !== original) fs.writeFileSync(file, content);
     } catch (error: any) {
       log(config, "warning", `Failed to update verified markers in ${file}: ${error?.message ?? error}`);
+    }
+  }
+}
+
+// Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01047.
+function applyBadgeAnchoredTests({ config, results }: { config: any; results: any }): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> [{ line, result }], one entry per badge-flagged test.
+  const badgeTestsByFile = new Map<string, Array<{ line: number; result: string }>>();
+  for (const spec of results.specs) {
+    for (const test of spec?.tests || []) {
+      if (test?.badge !== true) continue;
+      if (!test?.contentPath) continue;
+      if (!test?.location?.line) {
+        log(
+          config,
+          "warning",
+          `Test '${test.testId ?? "(unnamed)"}' in ${test.contentPath} has \`badge: true\` but no location — badges only apply to tests detected from an inline test statement, not JSON/YAML spec tests; skipping.`
+        );
+        continue;
+      }
+      const list = badgeTestsByFile.get(test.contentPath) || [];
+      list.push({ line: test.location.line, result: test.result });
+      badgeTestsByFile.set(test.contentPath, list);
+    }
+  }
+
+  const today = verifiedDate();
+  for (const [file, badgeTests] of badgeTestsByFile) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const eol = original.includes("\r\n") ? "\r\n" : "\n";
+      const lines = original.split(/\r?\n/);
+      const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
+      const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
+      let changed = false;
+
+      // Bottom-to-top so an insertion doesn't shift indices still to process.
+      for (const t of [...badgeTests].sort((a, b) => b.line - a.line)) {
+        if (t.result !== "PASS") continue; // non-pass: leave the existing badge to age
+        const li = t.line - 1; // 0-indexed into `lines`
+        if (li < 0 || li >= lines.length) continue; // stale location vs. current file
+
+        const indent = (lines[li].match(/^[ \t]*/) || [""])[0];
+        const img = shieldsBadge(format, today);
+        const prevLine = li > 0 ? lines[li - 1] : "";
+        const existing = prevLine.match(existingImgRe);
+        if (existing) {
+          if (lines[li - 1] !== `${existing[1]}${img}`) {
+            lines[li - 1] = `${existing[1]}${img}`;
+            changed = true;
+          }
+        } else {
+          lines.splice(li, 0, `${indent}${img}`);
+          changed = true;
+        }
+      }
+
+      if (changed) fs.writeFileSync(file, lines.join(eol));
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Failed to update badge-anchored tests in ${file}: ${error?.message ?? error}`
+      );
     }
   }
 }

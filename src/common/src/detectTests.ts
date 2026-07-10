@@ -563,6 +563,12 @@ export async function parseContent({
         if (!test.steps) {
           test.steps = [];
         }
+        // Mirrors step `location`; excluded from contentHash. See ADR 01047.
+        test.location = {
+          line: statement._line,
+          startIndex: statement._startIndex,
+          endIndex: statement._endIndex,
+        };
         tests.push(test);
         break;
       }

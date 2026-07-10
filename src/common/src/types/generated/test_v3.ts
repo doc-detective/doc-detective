@@ -27,6 +27,28 @@ export type Test = {
    */
   detectSteps?: boolean;
   /**
+   * If `true`, Doc Detective maintains a shields.io "Last verified" badge image on the line immediately before this test's inline `test` statement, updating it with today's date whenever the test PASSes and leaving the badge untouched (aging) on any other result. No `testId` is required to opt in — the test is anchored to its write-back by source location (`location`), not by name. Only applies to tests detected from an inline `test` statement (markdown/MDX, AsciiDoc, HTML, DITA); has no effect on tests authored directly in a JSON or YAML spec file, which have no comparable "line above" to anchor a badge to.
+   */
+  badge?: boolean;
+  /**
+   * Source location where this test's inline `test` statement was detected in the original file. System-populated metadata; should not be set manually. Setting it by hand on a JSON/YAML spec test is unsupported: if that test also sets `badge: true` and its `contentPath` resolves to a writable format, the write-back writer treats the hand-set location as genuine and may write into that line.
+   */
+  location?: {
+    /**
+     * 1-indexed line number in the source file where the `test` statement begins.
+     */
+    line: number;
+    /**
+     * 0-indexed character offset from the start of the source file where the `test` statement begins.
+     */
+    startIndex: number;
+    /**
+     * 0-indexed character offset from the start of the source file immediately after the `test` statement.
+     */
+    endIndex: number;
+    [k: string]: unknown;
+  };
+  /**
    * If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level.
    */
   autoScreenshot?: boolean;
