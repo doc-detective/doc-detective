@@ -96,7 +96,7 @@ Write word operators between the operands, with a space on each side.
 Two function operators are always available, including in a plain variable assignment:
 
 - **`jq(value, query)`**: Apply a [jq](https://jqlang.github.io/jq/) query to a value.
-- **`extract(value, pattern)`**: Return the first capture group of a regular expression match against a string, or the full match when the pattern has no capture group.
+- **`extract(value, pattern)`**: Return the first capture group of a regular expression match against a string, or the full match when the pattern has no capture group. Unlike `matches`, write `pattern` as a bare or quoted string (`"[0-9a-f]+"`), not a `/pattern/` literal—`pattern` is passed directly to `new RegExp()`, so wrapping it in slashes makes the slashes part of the literal text to match, which won't find what you expect.
 
 ## Regular expressions in `matches`
 

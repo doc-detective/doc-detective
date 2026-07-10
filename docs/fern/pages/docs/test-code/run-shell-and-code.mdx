@@ -100,6 +100,10 @@ When your docs embed a code sample instead of a shell command, use `runCode`. Se
 
 To reuse a command's output later in the test, capture it with the step-level `variables` object. Assign a runtime expression such as `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`, then reference the variable in a later step with `$NAME`.
 
+<Note>
+`$$stdio.stdout` includes the command's trailing newline. If you're substituting the captured value into another shell command, extract just the part you need with [`extract`](/reference/expressions#function-operators) (for example, `extract($$stdio.stdout, "[0-9a-f]+")` for a hex commit SHA) so the newline doesn't land in the middle of the next command. Unlike `matches`, `extract`'s pattern is a bare or quoted string, not a `/pattern/` literal.
+</Note>
+
 {/* test {"testId":"runcode-guide-carry-value","detectSteps":false} */}
 
 ```json
@@ -130,8 +134,8 @@ To reuse a command's output later in the test, capture it with the step-level `v
 }
 ```
 
-{/* step {"stepId":"runcode-guide-capture-sha","description":"Capture the current commit SHA (this repo is a git checkout, so this resolves for real)","runShell":{"command":"git rev-parse --short HEAD","stdio":"/.+/"},"variables":{"COMMIT":"$$stdio.stdout"}} */}
-{/* step {"stepId":"runcode-guide-use-sha","description":"Use the captured SHA in a later command","runShell":{"command":"echo Testing against $COMMIT","stdio":"Testing against"}} */}
+{/* step {"stepId":"runcode-guide-capture-sha","description":"Capture the current commit SHA (this repo is a git checkout, so this resolves for real), extracting just the hex characters so the trailing newline in $$stdio.stdout doesn't land inside the next command (the pattern is a bare string, not a /slash/ literal, since extract's second argument goes straight into `new RegExp()`)","runShell":{"command":"git rev-parse --short HEAD","stdio":"/.+/"},"variables":{"COMMIT":"extract($$stdio.stdout, \"[0-9a-f]+\")"}} */}
+{/* step {"stepId":"runcode-guide-use-sha","description":"Use the captured SHA and confirm it was genuinely substituted: a literal, un-substituted '$COMMIT' contains letters outside [0-9a-f] and wouldn't match this pattern","runShell":{"command":"echo Testing against $COMMIT","stdio":"/Testing against [0-9a-f]+/"}} */}
 {/* test end */}
 
 For more on expressions and where variables come from, see [Expressions](/reference/expressions) and the [`runShell`](/docs/actions/runshell) reference.
