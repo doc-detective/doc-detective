@@ -9,7 +9,7 @@ A **verified marker** lets a page show when its procedure last passed. You add a
 The feature is always on, and it acts only where a marker exists. There's no config object, no CLI flag, and no schema change—add a marker to a page, and Doc Detective keeps its date current from then on.
 
 <Note>
-This feature is in an [open pull request](https://github.com/doc-detective/doc-detective/pull/417) and isn't released yet. The syntax and behavior below track that PR and may change before it merges.
+This feature is in open pull requests—[#417](https://github.com/doc-detective/doc-detective/pull/417) for the marker and [#594](https://github.com/doc-detective/doc-detective/pull/594) for badging an inline test—and isn't released yet. The syntax and behavior below track those PRs and may change before they merge.
 </Note>
 
 ## Before you begin
@@ -128,6 +128,68 @@ doc-detective:
     date: 2026-06-26
 ---
 ```
+
+## Badge an inline test without an id
+
+If you keep an [inline test](/docs/test-docs/inline) next to the procedure it verifies, you can badge that test in place without authoring a marker or a `testId`. Set `badge: true` on the inline `test` statement, and on a passing run Doc Detective inserts or updates a shields.io "Last verified" badge on the line directly above the statement:
+
+```markdown
+<!-- test {"badge": true} -->
+<!-- step {"wait": 10} -->
+<!-- test end -->
+```
+
+After a passing run, the badge sits on the line directly above the `test` statement:
+
+```markdown
+![Last verified 2026-06-26](https://img.shields.io/badge/Last_verified-2026--06--26-brightgreen)
+<!-- test {"badge": true} -->
+<!-- step {"wait": 10} -->
+<!-- test end -->
+```
+
+Doc Detective anchors the badge to the statement's source location rather than to an `id`, so nothing in the file needs a name. The badge, the PASS-only date logic, and the idempotent in-place rewrite all behave like the marker `badge` flag described above, and a failed, skipped, or warning result leaves any existing badge to age.
+
+Set `badge` inside the `test` statement in the comment style that matches your file format. Doc Detective renders the badge with each format's native image syntax:
+
+**Markdown and MDX** (`.md`, `.markdown`, `.mdx`):
+
+```markdown
+<!-- test {"badge": true} -->
+```
+
+```mdx
+{/* test {"badge": true} */}
+```
+
+In MDX, use the `{/* */}` form so the statement is a valid JSX comment.
+
+**HTML** (`.html`, `.htm`):
+
+```html
+<!-- test {"badge": true} -->
+```
+
+**AsciiDoc** (`.adoc`, `.asciidoc`, `.asc`):
+
+```asciidoc
+// (test {"badge": true})
+```
+
+**DITA** (`.dita`, `.ditamap`, `.xml`):
+
+```xml
+<?doc-detective test {"badge": true} ?>
+```
+
+`badge: true` applies only to a test detected from an inline `test` statement, because the badge needs a line above the statement to anchor to. A test authored directly in a JSON or YAML spec file has no such line, so Doc Detective logs a warning and skips the badge for that test instead of failing the run. To badge a spec-authored test, use a [`verified` marker](#step-1-add-a-verified-marker) that references the test's `testId`.
+
+### Choose a marker or an inline `badge`
+
+Both approaches write the same badge with the same PASS-only gating. They differ in where the badge lands:
+
+- Use **`badge: true`** on an inline test to stamp the procedure right where you tested it, with no `id` to author or keep in sync.
+- Use a **`verified` marker** when the badge belongs somewhere else—an index page or a different file—or when you want to reference a test or spec by name on purpose.
 
 ## Surface the change in CI
 
