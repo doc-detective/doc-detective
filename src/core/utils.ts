@@ -42,6 +42,7 @@ export {
   isRelativeUrl,
   appendQueryParams,
   isDeviceWebContext,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
@@ -885,6 +886,16 @@ function isDeviceWebContext(driver: any): boolean {
   const isMobile = driver.isMobile === true;
   const browserName = driver.capabilities?.browserName;
   return isMobile && typeof browserName === "string" && browserName.length > 0;
+}
+
+// Ceiling (ms) for the device-web post-navigation settle in goTo: whatever of
+// the goTo timeout remains after the readiness gate, capped at 3s and floored
+// at 0. A non-positive result means "no budget left" — goTo's `> 0` guard then
+// skips the settle entirely. Pure so the guard's arithmetic is tested directly,
+// without racing wall-clock timing through the runner.
+const SETTLE_CEILING_MAX_MS = 3000;
+function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
+  return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));
 }
 
 function appendQueryParams(

@@ -3,6 +3,7 @@ import {
   isRelativeUrl,
   appendQueryParams,
   isDeviceWebContext,
+  computeSettleCeiling,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -364,8 +365,10 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       // own wait.
       if (isDeviceWebContext(driver)) {
         try {
-          const remaining = waitTimeout - (Date.now() - waitStartTime);
-          const settleCeiling = Math.max(0, Math.min(3000, remaining));
+          const settleCeiling = computeSettleCeiling(
+            waitTimeout,
+            Date.now() - waitStartTime
+          );
           if (settleCeiling > 0) {
             await driver.waitUntil(
               async () => {
