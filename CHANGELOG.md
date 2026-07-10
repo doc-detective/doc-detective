@@ -1,3 +1,10 @@
+## [4.26.2](https://github.com/doc-detective/doc-detective/compare/v4.26.1...v4.26.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* **platform:** surface /spec fetch failures in finalize instead of an uncaught crash ([#560](https://github.com/doc-detective/doc-detective/issues/560)) ([46c0235](https://github.com/doc-detective/doc-detective/commit/46c0235e45e917b8435df7bf52c91febea600312))
+
 ## [4.26.1](https://github.com/doc-detective/doc-detective/compare/v4.26.0...v4.26.1) (2026-07-08)
 
 
