@@ -1,3 +1,10 @@
+## [4.26.5](https://github.com/doc-detective/doc-detective/compare/v4.26.4...v4.26.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* **detect:** stop dropping legacy v2 inline steps ([#595](https://github.com/doc-detective/doc-detective/issues/595)) ([115985c](https://github.com/doc-detective/doc-detective/commit/115985ce6ca5c3321150fc717319f39a3f32bcd0))
+
 ## [4.26.4](https://github.com/doc-detective/doc-detective/compare/v4.26.3...v4.26.4) (2026-07-10)
 
 
