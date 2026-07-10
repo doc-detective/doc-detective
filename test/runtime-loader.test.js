@@ -249,15 +249,20 @@ describe("runtime/loader", function () {
       }
     });
 
-    it("autoInstall:true fails loudly and never spawns npm with an unsafe cacheDir", async function () {
-      // The default path delegates to ensureRuntimeInstalled. Note it does NOT
-      // surface the shell-metacharacter error for an *undeclared* name:
-      // `specs = toInstall.map(getDeclaredVersion)` runs before
-      // `getRuntimeDir(ctx)`, so getDeclaredVersion throws first. For a
-      // *declared* dep missing from the shim (the published-package layout),
-      // getRuntimeDir throws the cacheDir error instead — that ordering is
-      // pinned by the ensureRuntimeInstalled test below. Either way the
-      // invariant that matters holds: it throws, and npm is never spawned.
+    it("autoInstall:true with an undeclared dep throws and never spawns npm", async function () {
+      // Deliberately narrow: this asserts ONLY throws-and-never-spawns, which is
+      // all it can. With an *undeclared* name the throw comes from
+      // getDeclaredVersion, not from cacheDir validation — `specs =
+      // toInstall.map(getDeclaredVersion)` runs before `getRuntimeDir(ctx)` in
+      // ensureRuntimeInstalled. So this is NOT a guard on the unsafe-cacheDir
+      // path and must not be read as one: it would still pass if that
+      // protection regressed. The real cacheDir guard (declared dep →
+      // getRuntimeDir throws before any spawn) is the ensureRuntimeInstalled
+      // test below, which reaches validation via force:true.
+      //
+      // Forcing a declared dep to miss shim resolution isn't possible here:
+      // tryResolveFromShim binds `require` at module scope and every declared
+      // heavy dep is really installed in this checkout.
       let spawnCalled = false;
       const spawner = makeFakeSpawner({ onSpawn: () => { spawnCalled = true; } });
       let caught;

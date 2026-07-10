@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { inspect } from "node:util";
 import {
   getDeclaredVersion,
   managedDepNames,
@@ -143,9 +144,13 @@ function tryResolveFromCache(
   } catch (err) {
     // Keep the cause reachable for whoever is debugging the installer itself.
     // defaultLogger drops "debug" unless DOC_DETECTIVE_RUNTIME_DEBUG=1, so this
-    // stays silent on the normal path.
+    // stays silent on the normal path. Format defensively: a bare `${err}`
+    // renders a non-Error throwable as "[object Object]" and drops an Error's
+    // stack — both useless in the log this line exists to produce.
+    const detail =
+      err instanceof Error ? err.stack ?? `${err.name}: ${err.message}` : inspect(err);
     defaultLogger(
-      `tryResolveFromCache(${JSON.stringify(name)}) treated as a cache miss: ${err}`,
+      `tryResolveFromCache(${JSON.stringify(name)}) treated as a cache miss: ${detail}`,
       "debug"
     );
     return null;
