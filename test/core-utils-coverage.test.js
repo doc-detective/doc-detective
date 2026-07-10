@@ -22,6 +22,7 @@ import {
   matchesExpectedOutput,
   isRelativeUrl,
   appendQueryParams,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
@@ -869,6 +870,29 @@ describe("core/utils coverage", function () {
     it("is safe on empty / undefined messages", function () {
       assert.equal(isTransientProcessInitError("", "win32"), false);
       assert.equal(isTransientProcessInitError(undefined, "win32"), false);
+    });
+  });
+
+  // The device-web post-navigation settle's budget arithmetic (goTo). Pure, so
+  // the `settleCeiling > 0` guard is proven here deterministically instead of
+  // racing wall-clock timing through the runner.
+  describe("computeSettleCeiling", function () {
+    it("returns the remaining budget when under the 3s cap", function () {
+      assert.equal(computeSettleCeiling(2500, 1000), 1500);
+      assert.equal(computeSettleCeiling(500, 100), 400);
+      assert.equal(computeSettleCeiling(3000, 100), 2900);
+    });
+
+    it("caps at 3000ms no matter how much budget remains", function () {
+      assert.equal(computeSettleCeiling(30000, 0), 3000);
+      assert.equal(computeSettleCeiling(10000, 5000), 3000);
+      assert.equal(computeSettleCeiling(4000, 1000), 3000); // 3000 remaining == cap boundary
+    });
+
+    it("floors at 0 when the budget is spent (the guard then skips the settle)", function () {
+      assert.equal(computeSettleCeiling(50, 50), 0); // exactly spent
+      assert.equal(computeSettleCeiling(50, 120), 0); // overspent -> not negative
+      assert.equal(computeSettleCeiling(1, 1_000_000), 0);
     });
   });
 });

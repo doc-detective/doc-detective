@@ -218,36 +218,14 @@ describe("goTo post-navigation settle (device web only)", function () {
     );
   });
 
-  it("iOS web context with no settle budget left (remaining <= 0) skips the settle and PASSes", async function () {
-    installBrowserStub({ ready: "complete" });
-    const { driver, record } = makeSettleDriver({
-      mobile: true,
-      ios: true,
-      browserName: "Safari",
-    });
-    // timeout: 1 (ms): the pre-settle readiness phases run before the settle
-    // and spend the 1ms budget — in this harness the time comes from the
-    // schema-coerced network/DOM idle waits (the mock's pause() is a no-op) —
-    // so by the time the settle computes its ceiling, remaining <= 0 →
-    // settleCeiling = 0 → the `settleCeiling > 0` guard skips the settle with
-    // no tree poll. NOTE: `timeout: 0` does NOT work — the step is validated
-    // with schema defaults inbound and a 0 timeout is replaced by the goTo
-    // default (30000), leaving a full budget.
-    const step = {
-      goTo: {
-        url: "https://example.com",
-        timeout: 1,
-        waitUntil: { networkIdleTime: null, domIdleTime: null },
-      },
-    };
-    const result = await goTo({ config: {}, step, driver });
-    assert.equal(result.status, "PASS");
-    assert.equal(
-      record.dollarDollarCalls,
-      0,
-      "settle must not poll the tree when no time budget remains"
-    );
-  });
+  // The "no settle budget → skip" path (settleCeiling === 0) is covered
+  // deterministically by the computeSettleCeiling unit tests in
+  // test/core-utils-coverage.test.js. It is NOT asserted here: at the goTo
+  // integration level the settle shares one budget with goTo's own readiness
+  // waits, so the only way to force elapsed > timeout in the mock also trips
+  // goTo's timeout handling — which made a prior wall-clock-timing version of
+  // this test flake on slow CI. The extracted pure helper is the honest,
+  // race-free home for that assertion.
 
   it("iOS web context whose tree stays empty past the ceiling still PROCEEDS to PASS (settle never fails goTo)", async function () {
     installBrowserStub({ ready: "complete" });
