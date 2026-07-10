@@ -83,7 +83,10 @@ Write word operators between the operands, with a space on each side.
 
   ```text
   $$exitCode oneOf [0, 1]
+  $$response.body.role oneOf ["admin", "editor"]
   ```
+
+  Quote every string value in the array. Numbers can stay bare, but a bare word like `admin` reads as a reference to a value that doesn't exist, so the expression evaluates to `false` instead of raising an error.
 
 - **`matches`**: True when the left operand is a string that matches a regular expression.
 
