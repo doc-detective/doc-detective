@@ -693,17 +693,28 @@ export async function parseContent({
 
         let step = parsedStep;
 
-        // Attach sourceIntegration for Heretto on screenshot steps. This runs
-        // before validation because the helper also normalizes an array-shaped
-        // `screenshot` into a valid object. It keys off the v3 `screenshot`
-        // property, which a v2 step never has, so it can't interfere with the
-        // v2 -> v3 upgrade below.
-        if (step.screenshot && config._herettoPathMapping) {
+        // Attach Heretto sourceIntegration to a v3-shaped screenshot step.
+        // Called both before and after validation below:
+        //  - Before: so the helper's string/array/null normalization runs
+        //    ahead of the schema check — an array-shaped `screenshot` isn't
+        //    valid v3 on its own, and existing behavior relies on this call
+        //    resetting it to `{}` first so the step still validates.
+        //  - After: a legacy v2 `saveScreenshot` step (action-keyed, no
+        //    `screenshot` property yet) only becomes screenshot-shaped once
+        //    validate() upgrades it below, so it's invisible to the "before"
+        //    call and needs this second pass to get its sourceIntegration.
+        // The sourceIntegration guard makes the second call a no-op for a
+        // step the first call already handled.
+        const maybeAttachHeretto = (s: Record<string, any>) => {
+          if (!s.screenshot || s.screenshot.sourceIntegration || !config._herettoPathMapping) {
+            return;
+          }
           const herettoIntegration = findHerettoIntegration(config, filePath);
           if (herettoIntegration) {
-            attachHerettoScreenshotSourceIntegration(step, herettoIntegration, filePath);
+            attachHerettoScreenshotSourceIntegration(s, herettoIntegration, filePath);
           }
-        }
+        };
+        maybeAttachHeretto(step);
 
         // Validate before attaching `location`. A legacy v2 step (one that
         // names its action in an `action` property) is upgraded to the v3
@@ -722,6 +733,7 @@ export async function parseContent({
           return;
         }
         step = validation.object;
+        maybeAttachHeretto(step);
 
         // Attach source location to the validated (v3) step.
         if (typeof statement._startIndex === 'number') {

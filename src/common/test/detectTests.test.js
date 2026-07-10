@@ -733,6 +733,35 @@ function readFixture(filename) {
         expect(step.find.selector).to.equal("h2#fields");
         expect(step.find.elementText).to.equal("Fields");
         expect(step).to.not.have.property("action");
+        // Location preservation is the actual regression being guarded here
+        // (see the checkLink test above); assert it symmetrically.
+        expect(step.location).to.include({ line: 2 });
+      });
+
+      it("should attach Heretto sourceIntegration to a legacy v2 saveScreenshot inline step", async function () {
+        // Regression: the Heretto sourceIntegration check ran only BEFORE
+        // validation, keyed off the v3 `screenshot` property. A v2
+        // `saveScreenshot` step (action-keyed) doesn't have that property
+        // until validate() upgrades it, so it silently never got Heretto
+        // integration attached.
+        const content =
+          '<!-- test {"steps": []} -->\n' +
+          '<!-- step {"action": "saveScreenshot", "path": "shot.png"} -->';
+        const result = await parseContent({
+          config: { _herettoPathMapping: { "docs/": "my-integration" } },
+          content,
+          filePath: "docs/test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].steps).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step.screenshot.path).to.equal("shot.png");
+        expect(step.screenshot.sourceIntegration).to.deep.equal({
+          type: "heretto",
+          integrationName: "my-integration",
+          filePath: "shot.png",
+          contentPath: "docs/test.md",
+        });
       });
 
       it("should skip invalid step statements", async function () {
