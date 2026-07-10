@@ -9,7 +9,10 @@ before(async function () {
   global.expect = expect;
 });
 
-const TODAY = verifiedDate();
+// Recomputed before each test (see beforeEach) rather than captured once at
+// module load, so a suite that spans a UTC midnight boundary can't drift from
+// the date the writer actually stamps.
+let TODAY;
 let tmpDir;
 
 function write(name, content) {
@@ -45,6 +48,7 @@ const silent = { logLevel: "silent" };
 
 describe("Badge-anchored test verification — write-back", function () {
   beforeEach(function () {
+    TODAY = verifiedDate();
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-badge-anchor-"));
   });
   afterEach(function () {
