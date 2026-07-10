@@ -768,7 +768,7 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
   });
 });
 
-// ADR 01045: transient concurrent-spawn recovery. Under concurrentRunners > 1
+// ADR 01046: transient concurrent-spawn recovery. Under concurrentRunners > 1
 // on Windows, spawning many node/ConPTY children at once can starve a transient
 // Windows loader/console limit so one child dies during init before it can
 // signal ready (STATUS_DLL_INIT_FAILED 0xC0000142 / STATUS_CONTROL_C_EXIT
