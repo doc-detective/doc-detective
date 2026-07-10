@@ -694,6 +694,47 @@ function readFixture(filename) {
         expect(result[0].steps).to.have.lengthOf(1);
       });
 
+      it("should upgrade a legacy v2 step inline statement to v3", async function () {
+        // Regression: `location` used to be attached to the parsed step BEFORE
+        // validation. The v2 action schemas are `additionalProperties: false`,
+        // so the extra property defeated validate()'s v2 -> v3 fallback and the
+        // step was silently dropped ("isn't a valid step. Skipping.").
+        const content =
+          '<!-- test {"steps": []} -->\n' +
+          '<!-- step {"action": "checkLink", "url": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        // Transformed into the v3 action-as-key shape...
+        expect(step.checkLink.url).to.equal("https://example.com");
+        expect(step).to.not.have.property("action");
+        // ...and the source location still rides along.
+        expect(step.location).to.include({ line: 2 });
+      });
+
+      it("should upgrade a legacy v2 find step inline statement to v3", async function () {
+        const content =
+          '<!-- test {"steps": []} -->\n' +
+          '<!-- step {"action": "find", "selector": "h2#fields", "matchText": "Fields"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].steps).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step.find.selector).to.equal("h2#fields");
+        expect(step.find.elementText).to.equal("Fields");
+        expect(step).to.not.have.property("action");
+      });
+
       it("should skip invalid step statements", async function () {
         const content =
           '<!-- test {"steps": [{"goTo": {"url": "https://example.com"}}]} -->\n' +

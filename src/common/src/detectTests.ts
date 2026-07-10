@@ -693,7 +693,37 @@ export async function parseContent({
 
         let step = parsedStep;
 
-        // Attach source location
+        // Attach sourceIntegration for Heretto on screenshot steps. This runs
+        // before validation because the helper also normalizes an array-shaped
+        // `screenshot` into a valid object. It keys off the v3 `screenshot`
+        // property, which a v2 step never has, so it can't interfere with the
+        // v2 -> v3 upgrade below.
+        if (step.screenshot && config._herettoPathMapping) {
+          const herettoIntegration = findHerettoIntegration(config, filePath);
+          if (herettoIntegration) {
+            attachHerettoScreenshotSourceIntegration(step, herettoIntegration, filePath);
+          }
+        }
+
+        // Validate before attaching `location`. A legacy v2 step (one that
+        // names its action in an `action` property) is upgraded to the v3
+        // action-as-key form here, via validate()'s compatibleSchemas fallback.
+        // Attaching `location` up front would add a property the v2 action
+        // schemas reject (they set `additionalProperties: false`), so the
+        // fallback would never match and every v2 inline step would be dropped.
+        const validation = validate({
+          schemaKey: "step_v3" as SchemaKey,
+          object: step,
+          addDefaults: false,
+        });
+        /* c8 ignore next 3 - V8 phantom branch on if-else/switch-case */
+        if (!validation.valid) {
+          log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
+          return;
+        }
+        step = validation.object;
+
+        // Attach source location to the validated (v3) step.
         if (typeof statement._startIndex === 'number') {
           step.location = {
             line: statement._line,
@@ -702,28 +732,8 @@ export async function parseContent({
           };
         }
 
-        // Attach sourceIntegration for Heretto on screenshot steps
-        if (step.screenshot && config._herettoPathMapping) {
-          const herettoIntegration = findHerettoIntegration(config, filePath);
-          if (herettoIntegration) {
-            attachHerettoScreenshotSourceIntegration(step, herettoIntegration, filePath);
-          }
-        }
-
-        const validation = validate({
-          schemaKey: "step_v3" as SchemaKey,
-          object: step,
-          addDefaults: false,
-        });
-        /* c8 ignore start - V8 phantom branch on if-else/switch-case */
-        if (!validation.valid) {
-          log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
-          return;
-        }
-        step = validation.object;
         test.steps.push(step);
         break;
-        /* c8 ignore stop */
       }
 
       /* c8 ignore next 2 - all statement types are handled above */
