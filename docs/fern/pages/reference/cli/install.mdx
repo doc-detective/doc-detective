@@ -185,6 +185,18 @@ To set a persistent cache location:
 
 Priority: environment variable > config file > default temp directory.
 
+### Restricted characters
+
+The cache path can't contain shell metacharacters. Doc Detective rejects any path set through `DOC_DETECTIVE_CACHE_DIR`, `cacheDir`, or `--cache-dir` that includes one of these characters, because on Windows the runtime installer runs `npm.cmd` through a shell, where an unescaped metacharacter could break out of the command's argument boundary. Doc Detective enforces this check on every platform, not just Windows, so a cache path stays portable across your runners. When a path contains a rejected character, the install fails with an error naming both the character and the path. Set the cache to a path without those characters to resolve it.
+
+The rejected characters are:
+
+```
+; & | ` $ < > " ' % ^ !
+```
+
+Doc Detective also rejects newlines and carriage returns. Spaces, backslashes, parentheses, tildes, and dots are all allowed, so ordinary paths like `C:\Users\John Doe\cache` work fine.
+
 ## Examples
 
 Pre-warm a container image for offline test runs:
