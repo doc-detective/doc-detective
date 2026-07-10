@@ -12,7 +12,8 @@
 <body>
     <h1>Wait Delay Test Page</h1>
 
-    <!-- Reveals its message 2 seconds after load. A find step that runs
+    <!-- Reveals its message 2 seconds after this page's script runs (near the
+         end of parsing, just before the load event). A find step that runs
          before the delay elapses will not see it; a preceding wait of 2
          seconds or more proves the wait action's effect. -->
     <p id="auto-message"></p>

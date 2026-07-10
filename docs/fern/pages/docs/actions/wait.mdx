@@ -41,7 +41,7 @@ The value assigned to the `wait` key is the duration to pause in milliseconds. Y
 
 {/* step {"stepId":"goto-wait-seconds","description":"Open a page whose content appears 2 seconds after load","goTo":"http://localhost:8092/wait-delay.html"} */}
 {/* step {"stepId":"wait-seconds","description":"Wait for 3000 milliseconds (3 seconds), as documented","wait":3000} */}
-{/* step {"stepId":"verify-wait-seconds","description":"Use a short timeout so this only passes because the preceding wait already elapsed, not because find's own retry covers for a missing wait","find":{"elementText":"Loaded after 2 seconds","timeout":300}} */}
+{/* step {"stepId":"verify-wait-seconds","description":"Use a short timeout so this only passes because the preceding wait already elapsed, not because find's own retry compensates for a missing wait","find":{"elementText":"Loaded after 2 seconds","timeout":300}} */}
 {/* test end */}
 
 ### Wait for 500 milliseconds
@@ -77,7 +77,7 @@ The value assigned to the `wait` key is the duration to pause in milliseconds. Y
 {/* step {"stepId":"goto-wait-ms","description":"Open the wait delay test page","goTo":"http://localhost:8092/wait-delay.html"} */}
 {/* step {"stepId":"click-wait-trigger","description":"Click something","find":{"selector":"#click-trigger","click":true}} */}
 {/* step {"stepId":"wait-ms","description":"Wait for half a second","wait":500} */}
-{/* step {"stepId":"verify-wait-ms","description":"Use a short timeout so this only passes because the preceding wait already elapsed, not because find's own retry covers for a missing wait","find":{"elementText":"Action complete!","timeout":100}} */}
+{/* step {"stepId":"verify-wait-ms","description":"Use a short timeout so this only passes because the preceding wait already elapsed, not because find's own retry compensates for a missing wait","find":{"elementText":"Action complete!","timeout":100}} */}
 {/* test end */}
 
 
