@@ -831,7 +831,7 @@ function isRelativeUrl(url: string) {
 
 // Is this WebdriverIO session a DEVICE (iOS/Android) session running in a WEB
 // (browser) context? This is the tight gate for the post-navigation settle in
-// goTo (ADR 01044): the settle exists only to absorb the freshly-built-WDA
+// goTo (ADR 01047): the settle exists only to absorb the freshly-built-WDA
 // window where an iOS Safari (XCUITest web context) element tree is momentarily
 // empty right after navigation while readyState already reports complete.
 //

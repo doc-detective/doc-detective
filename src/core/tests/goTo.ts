@@ -346,7 +346,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         }
       }
 
-      // Device-web post-navigation settle (ADR 01044). goTo's readiness gate
+      // Device-web post-navigation settle (ADR 01047). goTo's readiness gate
       // above queries the JS bridge (document.readyState / network / DOM), a
       // SEPARATE path from the WebDriver element tree (the remote-debugger DOM
       // the next `find` walks). On a freshly-built WDA under macOS-runner load,
