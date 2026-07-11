@@ -27,8 +27,13 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `name`: (Optional) Name of the registered OpenAPI definition (if multiple are loaded).
     - `descriptionPath`: (Optional) Path or URL to the OpenAPI description file.
     - `operationId`: (Required) The ID of the operation to use.
-    - `useExample`: (Optional) Use example data from the OpenAPI spec (`request`, `response`, or `both`).
+    - `server`: (Optional) Base server URL for the request. If omitted, Doc Detective uses the first server defined in the OpenAPI description.
+    - `validateAgainstSchema`: (Optional) Which parts of the request and response to validate against the OpenAPI schema (`request`, `response`, `both`, or `none`). The step fails on a mismatch. Defaults to `both`.
+    - `mockResponse`: (Optional) When `true`, skips the HTTP request and uses the response example or schema from the OpenAPI description as the response data. Useful for testing an API that isn't fully implemented yet. If `statusCode` isn't set, Doc Detective uses the first response code defined for the operation.
+    - `statusCode`: (Optional) Response code to use for validation, examples, and status-code checking. Doc Detective adds this code to the step's accepted `statusCodes`.
+    - `useExample`: (Optional) Which parts of the request and response to populate with example data from the OpenAPI description (`request`, `response`, `both`, or `none`). Defaults to `none`.
     - `exampleKey`: (Optional) Key of the specific example to use if multiple exist.
+    - `headers`: (Optional) Request headers to add to every request built from the definition, such as an `Authorization` header. A step-level value overrides a matching header set in your configuration.
     *Note: Properties like `request.headers`, `request.parameters`, `request.body` can override values from the OpenAPI definition or example.*
   - *Output Saving:* You can also save the response body using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`httpRequest`](/reference/schemas/httprequest) reference for details.
 
