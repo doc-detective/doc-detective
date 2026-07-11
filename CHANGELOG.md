@@ -1,3 +1,10 @@
+## [4.26.6](https://github.com/doc-detective/doc-detective/compare/v4.26.5...v4.26.6) (2026-07-11)
+
+
+### Bug Fixes
+
+* **runtime:** return null instead of throwing on an unusable cacheDir ([#596](https://github.com/doc-detective/doc-detective/issues/596)) ([5df3400](https://github.com/doc-detective/doc-detective/commit/5df3400a787f8b768b3fdd42e75479dd32e693a7))
+
 ## [4.26.5](https://github.com/doc-detective/doc-detective/compare/v4.26.4...v4.26.5) (2026-07-10)
 
 
