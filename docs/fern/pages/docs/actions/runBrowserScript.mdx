@@ -119,7 +119,7 @@ The script reads values from `args` through the `arguments` object.
 
 ### Capture the return value into a variable
 
-The first step captures the return value into a `TOKEN` variable. The second step substitutes it into `args` and validates it round-trips through the page.
+After navigating to the page, this example runs three `runBrowserScript` steps. The first seeds a value into `localStorage`, purely as a test fixture, so this standalone example has something to read. In a real test you wouldn't seed the value yourself. Instead, you'd capture something the product under test had already written, such as an auth token the application stored in `localStorage`. The second step reads that value and stores it in a `TOKEN` variable, and the third passes the variable through `args` to assert that it round-trips through the page unchanged.
 
 {/* test {"testId":"runbrowserscript-variable-capture","detectSteps":false} */}
 
@@ -130,6 +130,10 @@ The first step captures the return value into a `TOKEN` variable. The second ste
       "steps": [
         { "goTo": "https://example.com" },
         {
+          "description": "Seed a value to capture.",
+          "runBrowserScript": "window.localStorage.setItem('token', 'abc123');"
+        },
+        {
           "description": "Read a value and store it in a variable.",
           "runBrowserScript": "return window.localStorage.getItem('token');",
           "variables": {
@@ -137,10 +141,11 @@ The first step captures the return value into a `TOKEN` variable. The second ste
           }
         },
         {
-          "description": "Reuse the captured value.",
+          "description": "Reuse the captured value and assert it round-trips.",
           "runBrowserScript": {
             "script": "return arguments[0];",
-            "args": ["$TOKEN"]
+            "args": ["$TOKEN"],
+            "output": "abc123"
           }
         }
       ]
