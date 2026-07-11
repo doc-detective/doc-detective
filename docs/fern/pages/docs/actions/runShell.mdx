@@ -8,7 +8,7 @@ The `runShell` action runs a shell command or script on the local machine and ev
 
 `runShell` runs the command in `bash` by default on every platform—including Windows—so the same command behaves the same everywhere. To use a Windows shell instead, set the `shell` property. See [Shell selection](#shell-selection).
 
-Because `runShell` runs your command through the native shell, complex quoting can behave differently across platforms. On Windows, commands run through `cmd.exe`, which can mangle nested quotes and parentheses and can truncate a one-liner like `node -e "console.log(process.env.FOO)"` mid-argument. To run a nontrivial code snippet, use [`runCode`](/docs/actions/runcode) instead. It writes the code to a temporary file and runs it directly, so there's no shell-quoting step to go wrong.
+Because `runShell` runs your command through the native shell, complex quoting can behave differently across platforms. On Windows, commands run through `cmd.exe`, which can mangle nested quotes and parentheses and can truncate a one-liner like `node -e "console.log(process.env.FOO)"` mid-argument. To run a nontrivial JavaScript, Python, or Bash snippet, use [`runCode`](/docs/actions/runcode) instead. It writes the code to a temporary file and runs it directly, so there's no shell-quoting step to go wrong.
 
 You can specify the command directly as a string or use an object for more options:
 
@@ -109,11 +109,6 @@ The Windows allocation probe waits up to 15 seconds by default. To change that b
 ## Examples
 
 Here are a few ways you might use the `runShell` action:
-
-A couple of the examples below rely on POSIX shell conventions that behave differently on Windows, where commands run through `cmd.exe`:
-
-- `cmd.exe` doesn't treat single quotes as special. The string-shorthand example runs `echo 'hello world'`, which prints `hello world` on macOS and Linux but prints the quotes literally (`'hello world'`) on Windows. For output that matches across platforms, drop the quotes and use `echo hello world`.
-- `false` isn't a `cmd.exe` command. The exit-codes example runs `false`, which exits with code `1` on POSIX shells. On Windows, `cmd.exe` reports it as an unrecognized command instead of exiting `1`. To fail with exit code `1` on every platform, use `exit 1` instead.
 
 ### Run a basic command (string shorthand)
 
