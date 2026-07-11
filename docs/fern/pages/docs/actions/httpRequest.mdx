@@ -160,7 +160,7 @@ Here are a few ways you might use the `httpRequest` action:
 }
 ```
 
-{/* step {"stepId":"httprequest-put","description":"Update a user via PUT request with headers and query parameters (the local echo API only supports a single path segment after /api/, so this uses /api/user-2 instead of /api/users/2)","httpRequest":{"url":"http://localhost:8092/api/user-2","method":"PUT","request":{"headers":{"Content-Type":"application/json"},"parameters":{"source":"test"},"body":{"name":"morpheus","job":"zion resident"}},"response":{"body":{"name":"morpheus","job":"zion resident"}}}} */}
+{/* step {"stepId":"httprequest-put","description":"Update a user via PUT request with headers and query parameters, against the exact /api/users/2 path shown above","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"PUT","request":{"headers":{"Content-Type":"application/json"},"parameters":{"source":"test"},"body":{"name":"morpheus","job":"zion resident"}},"response":{"body":{"name":"morpheus","job":"zion resident"}}}} */}
 {/* test end */}
 
 ### Send request headers as a string block
@@ -335,7 +335,7 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
 ```
 
 {/* step {"stepId":"httprequest-capture-var","description":"Create a user (including an id) and capture it into a variable","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"name":"neo","job":"the one","id":"neo-101"}}},"variables":{"USER_ID":"$$response.body.id"}} */}
-{/* step {"stepId":"httprequest-use-var","description":"Use the captured ID as a query parameter and assert the echoed response contains it, proving the variable was actually substituted","httpRequest":{"url":"http://localhost:8092/api/users?id=$USER_ID","method":"GET","response":{"body":{"id":"neo-101"}}}} */}
+{/* step {"stepId":"httprequest-use-var","description":"Use the captured ID as a path segment, matching the doc's own URL shape exactly. The echo server reflects the resolved request path in an x-echo-path response header (not the body, so it can't be confused with real response data), which proves $USER_ID was genuinely substituted rather than left as a literal string","httpRequest":{"url":"http://localhost:8092/api/users/$USER_ID","method":"GET","response":{"headers":{"x-echo-path":"/api/users/neo-101"}}}} */}
 {/* test end */}
 
 ### Save response body to a file
