@@ -68,6 +68,8 @@ Save a cookie with detailed configuration:
 
 ### Save to default location
 
+{/* test {"testId":"savecookie-string-shorthand","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -90,6 +92,12 @@ Save a cookie with detailed configuration:
 }
 ```
 
+{/* step {"stepId":"goto-savecookie-string","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"set-cookie-string","description":"Set a cookie in the browser to save","runBrowserScript":"document.cookie = 'session_token=abc123; path=/;';"} */}
+{/* step {"stepId":"savecookie-string","description":"Save the cookie to an environment variable (string shorthand)","saveCookie":"session_token"} */}
+{/* step {"stepId":"verify-savecookie-string","description":"Confirm the cookie value actually landed in the environment variable","runCode":{"language":"javascript","code":"console.log(process.env.session_token);","stdio":"/abc123/"}} */}
+{/* test end */}
+
 ### Save to specific file
 
 ```json
@@ -110,6 +118,8 @@ Save a cookie with detailed configuration:
 
 ### Save to environment variable
 
+{/* test {"testId":"savecookie-object-variable","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -124,7 +134,15 @@ Save a cookie with detailed configuration:
 }
 ```
 
+{/* step {"stepId":"goto-savecookie-object","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"set-cookie-object","description":"Set a cookie in the browser to save","runBrowserScript":"document.cookie = 'session_token=xyz789; path=/;';"} */}
+{/* step {"stepId":"savecookie-object","description":"Save the cookie to a named environment variable (object format)","saveCookie":{"name":"session_token","variable":"DD_DOCS_SESSION_TOKEN"}} */}
+{/* step {"stepId":"verify-savecookie-object","description":"Confirm the cookie value landed in the named environment variable","runCode":{"language":"javascript","code":"console.log(process.env.DD_DOCS_SESSION_TOKEN);","stdio":"/xyz789/"}} */}
+{/* test end */}
+
 ### Save with domain filtering
+
+{/* test {"testId":"savecookie-domain-filter","detectSteps":false} */}
 
 ```json
 {
@@ -140,6 +158,12 @@ Save a cookie with detailed configuration:
   ]
 }
 ```
+
+{/* step {"stepId":"goto-savecookie-domain","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"set-cookie-domain","description":"Set a cookie in the browser to save","runBrowserScript":"document.cookie = 'login_token=domain-filtered-456; path=/;';"} */}
+{/* step {"stepId":"savecookie-domain","description":"Save the cookie, filtering by the local server's domain","saveCookie":{"name":"login_token","variable":"DD_DOCS_LOGIN_TOKEN","domain":"localhost"}} */}
+{/* step {"stepId":"verify-savecookie-domain","description":"Confirm the domain-filtered cookie value landed in the environment variable","runCode":{"language":"javascript","code":"console.log(process.env.DD_DOCS_LOGIN_TOKEN);","stdio":"/domain-filtered-456/"}} */}
+{/* test end */}
 
 ## Related actions
 
