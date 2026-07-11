@@ -215,6 +215,88 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out.path[1], path.resolve(absDir, "p2.md"));
   });
 
+  it("resolvePaths resolves a step-level screenshot/record string shorthand relative to the spec file, not cwd", async function () {
+    const dir = mkTmp("dd-edge-files-");
+    const spec = {
+      specId: "s1",
+      tests: [
+        {
+          steps: [
+            { goTo: "https://x" },
+            { stepId: "shot", screenshot: "shot.png" },
+            { stepId: "vid", record: "clip.mp4" },
+          ],
+        },
+      ],
+    };
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(dir, "spec.json"),
+    });
+    const steps = out.tests[0].steps;
+    assert.equal(
+      steps[1].screenshot,
+      path.resolve(dir, "shot.png"),
+      "string-shorthand screenshot should resolve relative to the spec file's directory"
+    );
+    assert.equal(
+      steps[2].record,
+      path.resolve(dir, "clip.mp4"),
+      "string-shorthand record should resolve relative to the spec file's directory"
+    );
+  });
+
+  it("resolvePaths leaves a screenshot/record URL shorthand untouched (no path resolution)", async function () {
+    const dir = mkTmp("dd-edge-files-");
+    const spec = {
+      specId: "s1",
+      tests: [
+        {
+          steps: [
+            { stepId: "shot", screenshot: "https://example.com/ref.png" },
+          ],
+        },
+      ],
+    };
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(dir, "spec.json"),
+    });
+    assert.equal(out.tests[0].steps[0].screenshot, "https://example.com/ref.png");
+  });
+
+  it("resolvePaths doesn't resolve a non-step-level field that happens to be named screenshot/record", async function () {
+    const dir = mkTmp("dd-edge-files-");
+    const spec = {
+      specId: "s1",
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "req",
+              httpRequest: {
+                url: "https://x",
+                request: { body: { record: "not-a-path" } },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(dir, "spec.json"),
+    });
+    assert.equal(
+      out.tests[0].steps[0].httpRequest.request.body.record,
+      "not-a-path",
+      "a `record` field nested inside request body data isn't a recording step and must be left alone"
+    );
+  });
+
   it("readFile returns raw content for a non-json/yaml extension", async function () {
     const dir = mkTmp("dd-edge-files-");
     const p = path.join(dir, "note.txt");
