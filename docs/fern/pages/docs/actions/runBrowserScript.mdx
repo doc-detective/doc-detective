@@ -119,7 +119,7 @@ The script reads values from `args` through the `arguments` object.
 
 ### Capture the return value into a variable
 
-After navigating to the page, this example runs three `runBrowserScript` steps. The first seeds a value, because a freshly loaded page has nothing in `localStorage` to capture. The second reads that value and stores it in a `TOKEN` variable. The third passes the variable through `args` and asserts that it round-trips through the page unchanged.
+After navigating to the page, this example runs three `runBrowserScript` steps. The first seeds a value into `localStorage`, purely as a test fixture, so this standalone example has something to read. In a real test you wouldn't seed the value yourself. Instead, you'd capture something the product under test had already written, such as an auth token the application stored in `localStorage`. The second step reads that value and stores it in a `TOKEN` variable, and the third passes the variable through `args` to assert that it round-trips through the page unchanged.
 
 {/* test {"testId":"runbrowserscript-variable-capture","detectSteps":false} */}
 
