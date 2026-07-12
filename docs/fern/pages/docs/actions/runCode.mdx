@@ -8,7 +8,7 @@ The `runCode` action executes a code snippet in a specified language (like JavaS
 
 `runCode` executes the code using the appropriate interpreter available on the machine.
 
-Because `runCode` writes your snippet to a temporary file and runs it with the interpreter directly, you avoid the shell-quoting problems that come from embedding code in a [`runShell`](/docs/actions/runshell) command. The code never passes through a shell-quoting step, so nested quotes and parentheses stay intact. For a nontrivial JavaScript, Python, or Bash snippet, reach for `runCode` instead of a `runShell` one-liner like `node -e "..."`.
+Because `runCode` writes your snippet to a temporary file and runs it with the interpreter directly, you avoid the shell-quoting problems that come from embedding code in a [`runShell`](/docs/actions/runshell) command. Your snippet's contents never pass through a shell-quoting step, so nested quotes and parentheses stay intact. For a JavaScript, Python, or Bash snippet with nested quotes, parentheses, or multiple lines, reach for `runCode` instead of a `runShell` one-liner like `node -e "..."`.
 
 You must specify the `runCode` action using an object format with the following properties:
 

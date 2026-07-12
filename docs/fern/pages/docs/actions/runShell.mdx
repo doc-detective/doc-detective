@@ -8,7 +8,7 @@ The `runShell` action runs a shell command or script on the local machine and ev
 
 `runShell` runs the command in `bash` by default on every platform—including Windows—so the same command behaves the same everywhere. To use a Windows shell instead, set the `shell` property. See [Shell selection](#shell-selection).
 
-Because `runShell` runs your command through the native shell, complex quoting can behave differently across platforms. On Windows, commands run through `cmd.exe`, which can mangle nested quotes and parentheses and can truncate a one-liner like `node -e "console.log(process.env.FOO)"` mid-argument. To run a nontrivial JavaScript, Python, or Bash snippet, use [`runCode`](/docs/actions/runcode) instead. It writes the code to a temporary file and runs it directly, so there's no shell-quoting step to go wrong.
+Even with the consistent `bash` default, embedding a code snippet in a `runShell` command still sends it through the shell's quoting and escaping rules, where the nested quotes and parentheses in a one-liner like `node -e "..."` are a common source of errors. For a JavaScript, Python, or Bash snippet with nested quotes, parentheses, or multiple lines, use [`runCode`](/docs/actions/runcode) instead. It writes the code to a temporary file and runs it directly, so there's no shell-quoting step to trip over.
 
 You can specify the command directly as a string or use an object for more options:
 
