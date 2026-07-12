@@ -87,6 +87,10 @@ doc-detective install browsers chrome chromedriver
 
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 
+<Note>
+An asset with no installable build for the current platform/architecture (for example, Chrome and ChromeDriver on `linux/arm64`, which Google's Chrome for Testing doesn't publish natively) is skipped rather than failing the whole command—the report shows it as `skipped`. Run `doc-detective install status` to see what actually installed.
+</Note>
+
 ### `install android`
 
 Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run — both native Android app tests (native app phase A3) and mobile web tests in the device's Chrome (phase A5). The system images it installs are the `google_apis` kind, which include Chrome; an emulator created from an image without Chrome skips mobile web tests with a pointer back to this command.

@@ -21,6 +21,7 @@ import {
   ensureBrowserInstalled,
   type BrowserAssetName,
   type BrowserDeps,
+  type EnsureBrowserResult,
 } from "./browsers.js";
 
 export type InstallAction =
@@ -234,11 +235,32 @@ export async function installBrowsers(
 
   for (const name of targets) {
     const before = readInstalledRecord(ctx).browsers[name];
-    const result = await ensureBrowserInstalled(name, {
-      ctx,
-      deps: { ...deps.browserDeps, logger },
-      force,
-    });
+    let result: EnsureBrowserResult;
+    try {
+      result = await ensureBrowserInstalled(name, {
+        ctx,
+        deps: { ...deps.browserDeps, logger },
+        force,
+      });
+    } catch (err) {
+      // Best-effort, like BEST_EFFORT_NPM_DEPS on the npm side (ADR 01053):
+      // e.g. chromedriver has no native linux-arm64 build upstream, so a
+      // platform without an emulation layer can never install it. One
+      // asset's unavailability must not abort the rest of the batch — the
+      // corresponding feature degrades to a runtime fallback instead (ADR
+      // 01008 already validates drivers by execution and falls back
+      // across browsers when one is missing or broken).
+      const detail = err instanceof Error ? err.message : String(err);
+      const message = `failed to install and was skipped: ${detail}`;
+      logger(`${name} ${message}`, "warn");
+      reports.push({
+        assetId: name,
+        kind: "browser",
+        action: "skipped",
+        notes: [message],
+      });
+      continue;
+    }
     let action: InstallAction;
     if (force) action = "forced";
     else if (!before) action = "installed";
