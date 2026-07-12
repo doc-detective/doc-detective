@@ -22,7 +22,7 @@ export type FileTypeCustom =
  */
 export type RunShell = RunShellCommandSimple | RunShellCommandDetailed;
 /**
- * Command to perform in the machine's default shell.
+ * Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).
  */
 export type RunShellCommandSimple = string;
 /**
@@ -201,6 +201,10 @@ export interface Config {
    * If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only — local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.
    */
   autoUpdate?: boolean;
+  /**
+   * Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
+   */
+  shell?: "bash" | "cmd" | "powershell";
   /**
    * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., baked container images where temp gets cleared on reboot).
    */
@@ -405,9 +409,13 @@ export interface FileTypeExecutable {
 }
 export interface RunShellCommandDetailed {
   /**
-   * Command to perform in the machine's default shell.
+   * Command to perform in the selected shell (see `shell`; defaults to `bash` on every platform).
    */
   command: string;
+  /**
+   * Shell to run the command in. If unset, uses the config-level `shell` setting, which defaults to `bash`. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
+   */
+  shell?: "bash" | "cmd" | "powershell";
   /**
    * Arguments for the command.
    */

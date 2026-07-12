@@ -317,4 +317,79 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(needs.npmPackages.has("webdriverio")).to.equal(false);
     expect([...needs.browsers]).to.deep.equal([]);
   });
+
+  // --- windowsBash: whether the run's shell-based steps resolve to bash and
+  // therefore need Git Bash on Windows. The inference is platform-agnostic;
+  // the preflight caller gates on process.platform === "win32". ---
+
+  it("reports no windowsBash need when no shell-based steps exist", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ goTo: { url: "https://x.test" } }]),
+    ]);
+    expect(needs.windowsBash).to.equal(false);
+  });
+
+  it("a bare runShell step (string shorthand) needs bash by default", function () {
+    const needs = inferRuntimeNeeds([makeSpec([{ runShell: "echo hi" }])]);
+    expect(needs.windowsBash).to.equal(true);
+  });
+
+  it("a runShell step with a non-bash shell doesn't need bash", function () {
+    for (const shell of ["cmd", "powershell"]) {
+      const needs = inferRuntimeNeeds([
+        makeSpec([{ runShell: { command: "echo hi", shell } }]),
+      ]);
+      expect(needs.windowsBash, shell).to.equal(false);
+    }
+  });
+
+  it("a non-bash config default suppresses the need; a step-level bash restores it", function () {
+    const plain = inferRuntimeNeeds([makeSpec([{ runShell: "echo hi" }])], {
+      configShell: "cmd",
+    });
+    expect(plain.windowsBash).to.equal(false);
+
+    const stepOverride = inferRuntimeNeeds(
+      [makeSpec([{ runShell: { command: "echo hi", shell: "bash" } }])],
+      { configShell: "cmd" }
+    );
+    expect(stepOverride.windowsBash).to.equal(true);
+  });
+
+  it("a startSurface process descriptor follows the shell default", function () {
+    // startSurface process descriptors run through the same launcher and the
+    // same config-level shell default as runShell.background, so they create
+    // the same bash need (and none under a non-bash default).
+    const spec = makeSpec([
+      { startSurface: { process: "node server.js", name: "srv" } },
+    ]);
+    expect(inferRuntimeNeeds([spec]).windowsBash).to.equal(true);
+    expect(
+      inferRuntimeNeeds([spec], { configShell: "cmd" }).windowsBash
+    ).to.equal(false);
+  });
+
+  it("runCode with language bash needs bash regardless of the shell default", function () {
+    const needs = inferRuntimeNeeds(
+      [makeSpec([{ runCode: { language: "bash", code: "echo hi" } }])],
+      { configShell: "cmd" }
+    );
+    expect(needs.windowsBash).to.equal(true);
+  });
+
+  it("runCode with a non-bash language never needs bash (interpreter shell is pinned)", function () {
+    // runCode pins the interpreter's shell independently of the config
+    // default (platform-native on Windows), so a python/node-only spec must
+    // never force a Git Bash install.
+    const withBashDefault = inferRuntimeNeeds([
+      makeSpec([{ runCode: { language: "javascript", code: "1" } }]),
+    ]);
+    expect(withBashDefault.windowsBash).to.equal(false);
+
+    const withCmdDefault = inferRuntimeNeeds(
+      [makeSpec([{ runCode: { language: "javascript", code: "1" } }])],
+      { configShell: "cmd" }
+    );
+    expect(withCmdDefault.windowsBash).to.equal(false);
+  });
 });

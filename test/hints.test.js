@@ -716,6 +716,45 @@ describe("hints/context", function () {
       });
       expect(failedShell.failedTransientRequest).to.equal(false);
     });
+
+    it("failedRunShellWithoutShell is true only for a FAILed runShell step with no explicit shell", function () {
+      // FAILed object-form runShell without a shell field -> true.
+      const failedNoShell = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: { command: "dir" }, result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedNoShell.failedRunShellWithoutShell).to.equal(true);
+      // FAILed string-shorthand runShell (no shell possible) -> true.
+      const failedShorthand = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "dir", result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedShorthand.failedRunShellWithoutShell).to.equal(true);
+      // FAILed runShell WITH an explicit shell -> the author already chose;
+      // the hint has nothing to teach.
+      const failedWithShell = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: { command: "dir", shell: "cmd" }, result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedWithShell.failedRunShellWithoutShell).to.equal(false);
+      // PASSing runShell -> false.
+      const passed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "echo hi", result: "PASS" },
+        ] }] }] }],
+      });
+      expect(passed.failedRunShellWithoutShell).to.equal(false);
+      // FAILed non-runShell step -> false.
+      const other = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { find: "Submit", result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(other.failedRunShellWithoutShell).to.equal(false);
+    });
   });
 
   describe("readNpmScripts", function () {
@@ -1419,6 +1458,7 @@ function fakeCtx(partial = {}) {
     usedCustomAssertions: false,
     usedRetry: false,
     failedTransientRequest: false,
+    failedRunShellWithoutShell: false,
     ...partial,
   };
 }
@@ -1491,12 +1531,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 33 active hints. `useFileTypesForRst` is commented out in the
+    // 34 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(33);
+    expect(HINTS.length).to.equal(34);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1963,6 +2003,37 @@ describe("hints/hints (registry)", function () {
     // Negative: no transient request failure (e.g. a 404, or a non-request
     // failure) -> skip.
     expect(h.when(fakeCtx({ failedTransientRequest: false }))).to.equal(false);
+  });
+
+  it("setRunShellShell: fires on a FAILed runShell without an explicit shell on Windows", function () {
+    const h = findHint("setRunShellShell");
+    expect(h.priority).to.equal(20);
+    // Positive: a runShell step FAILed on Windows without choosing a shell —
+    // likely a cmd-flavored command now running under the bash default.
+    expect(
+      h.when(
+        fakeCtx({ platform: "win32", failedRunShellWithoutShell: true })
+      )
+    ).to.equal(true);
+    // Negative: not Windows -> POSIX ran bash before and after; skip.
+    expect(
+      h.when(
+        fakeCtx({ platform: "linux", failedRunShellWithoutShell: true })
+      )
+    ).to.equal(false);
+    // Negative: no shell-less runShell failure -> skip.
+    expect(h.when(fakeCtx({ platform: "win32" }))).to.equal(false);
+    // Negative: a config-level non-bash shell ran the command — the hint's
+    // "bash default" diagnosis would be wrong; skip.
+    expect(
+      h.when(
+        fakeCtx({
+          platform: "win32",
+          failedRunShellWithoutShell: true,
+          config: { shell: "cmd" },
+        })
+      )
+    ).to.equal(false);
   });
 
   it("useRunBrowserScriptStep: fires on browser + find when runBrowserScript isn't used", function () {

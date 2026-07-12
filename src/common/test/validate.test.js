@@ -227,6 +227,79 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      it("should validate a config_v3 object with each supported shell", function () {
+        for (const shell of ["bash", "cmd", "powershell"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { shell },
+          });
+
+          expect(result.valid, `expected valid: ${shell} — ${result.errors}`).to
+            .be.true;
+          expect(result.object.shell).to.equal(shell);
+        }
+      });
+
+      it("should default config_v3 shell to bash when unset", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.shell).to.equal("bash");
+      });
+
+      it("should reject a config_v3 object whose shell is not a supported shell", function () {
+        for (const bad of ["zsh", "sh", "", true]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { shell: bad },
+          });
+
+          expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
+            .false;
+          expect(result.errors).to.be.a("string");
+        }
+      });
+
+      it("should validate a runShell step with each supported shell", function () {
+        for (const shell of ["bash", "cmd", "powershell"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { runShell: { command: "echo hello", shell } },
+          });
+
+          expect(result.valid, `expected valid: ${shell} — ${result.errors}`).to
+            .be.true;
+          expect(result.object.runShell.shell).to.equal(shell);
+        }
+      });
+
+      it("should not default shell on a runShell step when unset", function () {
+        // No schema default at the step level — an absent value must stay
+        // absent so the runtime can defer to the config-level `shell` default.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { runShell: { command: "echo hello" } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.runShell.shell).to.equal(undefined);
+      });
+
+      it("should reject a runShell step whose shell is not a supported shell", function () {
+        for (const bad of ["zsh", "sh", "", 5]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { runShell: { command: "echo hello", shell: bad } },
+          });
+
+          expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
+            .false;
+        }
+      });
+
       it("should validate a record step with an engine string shorthand", function () {
         for (const engine of ["browser", "ffmpeg"]) {
           const result = validate({

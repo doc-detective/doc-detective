@@ -6,6 +6,7 @@ import {
   type AppSessionState,
 } from "./appSurface.js";
 import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } from "./processSurface.js";
+import { resolveShellName, resolveShellExecutable } from "../utils.js";
 import {
   openSession,
   activateSession,
@@ -205,14 +206,28 @@ async function startSurfaceStep({
     };
   };
 
-  const runProcessDescriptor = async (d: any): Promise<any> =>
-    startProcess({
+  const runProcessDescriptor = async (d: any): Promise<any> => {
+    // startSurface process descriptors go through the same launcher as
+    // runShell's `background`, so they honor the same shell contract: the
+    // config-level `shell` default (bash when unset). Process descriptors
+    // have no per-step `shell` field, so only the config level applies.
+    let shellExecutable: string;
+    try {
+      shellExecutable = await resolveShellExecutable(
+        resolveShellName({ config }),
+        { cacheDir: config?.cacheDir }
+      );
+    } catch (error: any) {
+      return { status: "FAIL", description: error.message };
+    }
+    return startProcess({
       config,
       descriptor: {
         command: d.process,
         name: d.name,
         args: d.args,
         workingDirectory: d.workingDirectory,
+        shell: shellExecutable,
         tty: d.tty,
         waitUntil: d.waitUntil,
         timeout: d.timeout,
@@ -220,6 +235,7 @@ async function startSurfaceStep({
       processRegistry,
       driver,
     });
+  };
 
   // --- Single-object form: dispatch directly; the app branch returns its
   // handler result verbatim (byte-compatible with pre-Phase 6 behavior). ---

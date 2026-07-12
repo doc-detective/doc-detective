@@ -943,12 +943,19 @@ describe("core/utils.ts — cleanTemp / waitForStdio / run output helpers", func
     sinon.stub(os, "tmpdir").returns(fakeTmp);
     const ddDir = path.join(fakeTmp, "doc-detective");
     fs.mkdirSync(path.join(ddDir, "runtime"), { recursive: true });
+    fs.mkdirSync(path.join(ddDir, "tools", "git-bash"), { recursive: true });
     fs.mkdirSync(path.join(ddDir, "scratch-dir"), { recursive: true });
     fs.writeFileSync(path.join(ddDir, "installed.json"), "{}");
     fs.writeFileSync(path.join(ddDir, "scratch.txt"), "x");
     cleanTemp();
     assert.ok(fs.existsSync(path.join(ddDir, "runtime")), "runtime preserved");
     assert.ok(fs.existsSync(path.join(ddDir, "installed.json")), "installed.json preserved");
+    // tools/ holds the lazily-installed Git Bash (MinGit); wiping it would
+    // force a ~40 MB re-download on every run that needs bash on Windows.
+    assert.ok(
+      fs.existsSync(path.join(ddDir, "tools", "git-bash")),
+      "tools preserved"
+    );
     assert.ok(!fs.existsSync(path.join(ddDir, "scratch-dir")), "scratch dir removed");
     assert.ok(!fs.existsSync(path.join(ddDir, "scratch.txt")), "scratch file removed");
   });

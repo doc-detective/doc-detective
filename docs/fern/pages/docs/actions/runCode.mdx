@@ -13,7 +13,7 @@ You must specify the `runCode` action using an object format with the following 
 - **Object Format:**
   - `language`: (Required) The programming language of the code snippet (`javascript`, `python`, `bash`).
 
-    > Note: `bash` isn't currently supported on Windows.
+    > Note: `bash` works on every platform, including Windows—Doc Detective uses Git Bash there, downloading a portable copy into its cache the first time a test needs it if Git for Windows isn't installed. See [Shell selection](/docs/actions/runshell#shell-selection).
 
   - `code`: (Required) The code snippet to execute as a string.
   - `workingDirectory`: (Optional) The directory in which to run the code.
@@ -134,7 +134,7 @@ This example runs a simple Node.js script and checks the output.
 
 This example runs a Bash command (`false`) via `runCode` and checks that the exit code is `1`. Because the command is expected to fail with exit code 1, the step passes.
 
-{/* test {"testId":"runcode-bash-exitcode","detectSteps":false,"runOn":[{"platforms":["mac","linux"]}]} */}
+{/* test {"testId":"runcode-bash-exitcode","detectSteps":false} */}
 
 ```json
 {
@@ -155,14 +155,14 @@ This example runs a Bash command (`false`) via `runCode` and checks that the exi
 }
 ```
 
-{/* step {"stepId":"runcode-bash-exit","description":"Run a failing Bash command and expect exit code 1 (bash isn't supported on Windows, so this test is gated to mac/linux)","runCode":{"language":"bash","code":"false","exitCodes":[1]}} */}
+{/* step {"stepId":"runcode-bash-exit","description":"Run a failing Bash command and expect exit code 1","runCode":{"language":"bash","code":"false","exitCodes":[1]}} */}
 {/* test end */}
 
 ### Set a variable based on code output (Python)
 
 The first step runs Python code to print "setup", validates the output using a regex, and captures the full stdout into a variable named `SETUP_VAL`. The second step uses Bash via `runCode` to echo the content of the `SETUP_VAL` variable and validates that the output is indeed "setup".
 
-{/* test {"testId":"runcode-variable-capture","detectSteps":false,"runOn":[{"platforms":["mac","linux"]}]} */}
+{/* test {"testId":"runcode-variable-capture","detectSteps":false} */}
 
 ```json
 {
@@ -195,7 +195,7 @@ The first step runs Python code to print "setup", validates the output using a r
 ```
 
 {/* step {"stepId":"runcode-set-var","description":"Set a variable based on Python output","runCode":{"language":"python","code":"import sys; sys.stdout.write('setup')","stdio":"/.+/"},"variables":{"SETUP_VAL":"$$stdio.stdout"}} */}
-{/* step {"stepId":"runcode-use-var","description":"Echo and validate the variable using Bash (gated to mac/linux, since bash isn't supported on Windows)","runCode":{"language":"bash","code":"echo $SETUP_VAL","stdio":"setup"}} */}
+{/* step {"stepId":"runcode-use-var","description":"Echo and validate the variable using Bash","runCode":{"language":"bash","code":"echo $SETUP_VAL","stdio":"setup"}} */}
 {/* test end */}
 
 ### Start a background server and stop it later

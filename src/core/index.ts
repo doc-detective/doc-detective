@@ -122,7 +122,9 @@ async function runTests(config: any, options: any = {}) {
   } else try {
     const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-    const needs = inferRuntimeNeeds(resolvedTests);
+    const needs = inferRuntimeNeeds(resolvedTests, {
+      configShell: config.shell,
+    });
     const ctx = { cacheDir: config.cacheDir };
     // Bridge the runtime modules' logger contract to core/utils.ts:log()
     // so config.logLevel filters npm install stdout/stderr (which the
@@ -194,6 +196,28 @@ async function runTests(config: any, options: any = {}) {
           config,
           "debug",
           `Browser pre-flight check skipped: ${browserErr?.message ?? browserErr}`
+        );
+      }
+    }
+    // Git Bash preflight: when shell-based steps resolve to `bash` on
+    // Windows, materialize Git Bash up front (existing Git for Windows, or a
+    // one-time MinGit download). Failure degrades to on-demand resolution —
+    // runShell retries the same resolver and FAILs the step with an
+    // actionable message if bash still can't be provisioned.
+    if (needs.windowsBash && process.platform === "win32") {
+      try {
+        const { resolveWindowsBash } = await import(
+          "../runtime/windowsBash.js"
+        );
+        await resolveWindowsBash({
+          cacheDir: config.cacheDir,
+          deps: { logger: preflightLogger },
+        });
+      } catch (bashErr: any) {
+        log(
+          config,
+          "warning",
+          `Git Bash pre-flight install hit an error: ${bashErr?.message ?? bashErr}. runShell steps using the bash shell will retry on demand.`
         );
       }
     }

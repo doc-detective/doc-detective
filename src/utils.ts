@@ -152,6 +152,11 @@ function buildYargs(args: any): any {
         "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
       type: "string",
     })
+    .option("shell", {
+      description:
+        "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
+      type: "string",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -427,6 +432,22 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     } else {
       log(
         `Ignoring invalid --browser-fallback value '${args.browserFallback}'. Expected one of: auto, explicit, off.`,
+        "warning",
+        config
+      );
+    }
+  }
+  if (typeof args.shell === "string" && args.shell.length > 0) {
+    // Same rationale as --browser-fallback: schema validation runs before
+    // this block, so a bad CLI value would reach the runner unvalidated —
+    // drop unknown shells and keep the validated config value (default
+    // "bash") instead.
+    const shell = args.shell.trim().toLowerCase();
+    if (shell === "bash" || shell === "cmd" || shell === "powershell") {
+      config.shell = shell;
+    } else {
+      log(
+        `Ignoring invalid --shell value '${args.shell}'. Expected one of: bash, cmd, powershell.`,
         "warning",
         config
       );

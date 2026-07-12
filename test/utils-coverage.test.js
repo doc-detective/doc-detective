@@ -734,6 +734,18 @@ describe("utils.ts coverage", function () {
       assert.ok(cap.log.includes("Ignoring invalid --browser-fallback"));
     });
 
+    it("overrides the config shell from --shell (normalized lower-case)", async function () {
+      const cfg = await setConfig({ args: { shell: "CMD" } });
+      assert.equal(cfg.shell, "cmd");
+    });
+
+    it("ignores an invalid --shell and keeps the default", async function () {
+      const cap = captureConsole(sandbox);
+      const cfg = await setConfig({ args: { shell: "zsh" } });
+      assert.equal(cfg.shell, "bash");
+      assert.ok(cap.log.includes("Ignoring invalid --shell"));
+    });
+
     it("ignores an invalid concurrentRunners and keeps the default", async function () {
       const cap = captureConsole(sandbox);
       const cfg = await setConfig({ args: { concurrentRunners: "xyz" } });

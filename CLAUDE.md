@@ -239,14 +239,19 @@ npx commitlint --from HEAD~1 --to HEAD --verbose
 
 ## Testing behavior
 
+**Keep transient files inside the worktree, never in system temp directories.** Scratch output
+files, throwaway `--cache-dir` targets, downloaded archives for inspection — put them all under
+`.tmp/` at the repo root (gitignored), so they're visible in the worktree, cleaned up with it, and
+never orphaned in `%TEMP%`/`/tmp`.
+
 Running tests is time-intensive. Instead of running a test multiple times to check for different behaviors (such as looking at tail for output verification), save output to a file and inspect that file:
 
 ```bash
 # Run a test and save both stdout and stderr to a file (mocha and node write
 # diagnostics, including failures, to stderr — `2>&1` captures both).
-npm test -- --test "my test name" > output.txt 2>&1
+mkdir -p .tmp && npm test -- --test "my test name" > .tmp/output.txt 2>&1
 # Inspect the output file
-cat output.txt
+cat .tmp/output.txt
 ```
 
 ## CLI flags ↔ config (required pattern)

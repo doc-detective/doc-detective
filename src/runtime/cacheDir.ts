@@ -29,11 +29,20 @@ export interface InstalledAndroid {
   installedAt: string;
 }
 
+// Non-npm, non-browser tool downloads (e.g. `git-bash` — the MinGit portable
+// that backs runShell's `bash` shell on Windows).
+export interface InstalledTool {
+  installedVersion: string;
+  installedAt: string;
+}
+
 export interface InstalledRecord {
   npmPackages: Record<string, InstalledNpmPackage>;
   browsers: Record<string, InstalledBrowser>;
   // Optional so pre-A3 records (and runs that never touched android) stay lean.
   android?: InstalledAndroid;
+  // Optional for the same reason: only present once a tool was installed.
+  tools?: Record<string, InstalledTool>;
 }
 
 export interface CacheDirContext {
@@ -209,6 +218,8 @@ export function readInstalledRecord(ctx: CacheDirContext = {}): InstalledRecord 
     // absent on pre-A3 records). A non-object value is dropped rather than
     // carried through, mirroring the coercion above.
     if (isPlainObject(parsed?.android)) record.android = parsed.android;
+    // Same treatment for the optional tools slot (git-bash etc.).
+    if (isPlainObject(parsed?.tools)) record.tools = parsed.tools;
     return record;
   } catch {
     return emptyRecord();

@@ -89,6 +89,141 @@ describe("Run tests successfully", function () {
     }
   });
 
+  describe("runShell shell selection", function () {
+    // Shell steps run through real spawns; give slow Windows JIT paths room.
+    this.timeout(300000);
+
+    async function runShellSpec(steps, configOverrides = {}) {
+      const spec = { tests: [{ testId: "shell-test", steps }] };
+      // Scratch specs live under the gitignored .tmp/ (see CLAUDE.md
+      // "Testing behavior") so a killed run can't orphan them into a commit.
+      fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+      const tempFilePath = path.resolve(
+        `./.tmp/temp-shell-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
+      );
+      fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+      try {
+        return await runTests({ input: tempFilePath, ...configOverrides });
+      } finally {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+    it("defaults to bash on every platform (bash-only syntax passes)", async function () {
+      // `[[ ]]` is a bashism: it errors under cmd.exe AND under dash (the
+      // /bin/sh of Debian/Ubuntu), so this passing proves the default shell
+      // is genuinely bash — not the old platform default.
+      const result = await runShellSpec([
+        {
+          runShell: {
+            command: '[[ "ok" == o* ]] && echo bash-default-works',
+            stdio: "bash-default-works",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("honors a config-level shell default and a step-level override (Windows)", async function () {
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec(
+        [
+          {
+            // Inherits config.shell = cmd: %VAR% expansion only happens in cmd.
+            runShell: {
+              command: "echo %PROCESSOR_ARCHITECTURE%",
+              stdio: "/^(?!.*%PROCESSOR_ARCHITECTURE%).+/",
+            },
+          },
+          {
+            // Step-level bash wins over the config-level cmd.
+            runShell: {
+              command: '[[ "ok" == o* ]] && echo step-override-works',
+              shell: "bash",
+              stdio: "step-override-works",
+            },
+          },
+        ],
+        { shell: "cmd" }
+      );
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("FAILs cmd and powershell steps off Windows with an actionable message", async function () {
+      if (process.platform === "win32") this.skip();
+      for (const shell of ["cmd", "powershell"]) {
+        const result = await runShellSpec([
+          { runShell: { command: "echo hi", shell } },
+        ]);
+        assert.equal(result.summary.specs.fail, 1);
+        const step = result.specs[0].tests[0].contexts[0].steps[0];
+        assert.equal(step.result, "FAIL");
+        assert.match(step.resultDescription, /only supported on Windows/);
+      }
+    });
+
+    it("runs the powershell shell on Windows", async function () {
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec([
+        {
+          runShell: {
+            command: "echo $PSEdition",
+            shell: "powershell",
+            stdio: "Desktop",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+    });
+
+    it("runCode pins its interpreter shell — a powershell config default can't break it (Windows)", async function () {
+      // Regression: runCode's quoted interpreter path is NOT a valid command
+      // under `powershell -c` (a leading quoted string is a string
+      // expression there), so runCode must pin the shell for the generated
+      // runShell step instead of inheriting the config default.
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec(
+        [
+          {
+            runCode: {
+              language: "bash",
+              code: "echo pinned-shell-ok",
+              stdio: "pinned-shell-ok",
+            },
+          },
+          {
+            runCode: {
+              language: "javascript",
+              code: "console.log('js-pinned-ok')",
+              stdio: "js-pinned-ok",
+            },
+          },
+        ],
+        { shell: "powershell" }
+      );
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("runCode language bash works on every platform, including Windows", async function () {
+      // The historical "runCode doesn't support bash on Windows" guard is
+      // lifted: the interpreter resolves the same lazily-installed Git Bash.
+      const result = await runShellSpec([
+        {
+          runCode: {
+            language: "bash",
+            code: 'echo "hello-from-bash-$((21 * 2))"',
+            stdio: "hello-from-bash-42",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+  });
+
   it("An app-driver test on an unsupported host SKIPs via the app preflight with gating guidance", async function () {
     // Covers runContext's app-surface preflight block (native app phases
     // A1/A2). Windows and macOS hosts would attempt a REAL driver install

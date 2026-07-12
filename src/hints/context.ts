@@ -145,6 +145,7 @@ export async function buildHintContext(
     usedCustomAssertions: walkData.usedCustomAssertions,
     usedRetry: walkData.usedRetry,
     failedTransientRequest: walkData.failedTransientRequest,
+    failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
     agentDetections,
     hasPackageJson,
     hasDocDetectiveNpmScript,
@@ -393,6 +394,7 @@ interface WalkData {
   usedCustomAssertions: boolean;
   usedRetry: boolean;
   failedTransientRequest: boolean;
+  failedRunShellWithoutShell: boolean;
 }
 
 function emptyWalkData(): WalkData {
@@ -409,6 +411,7 @@ function emptyWalkData(): WalkData {
     usedCustomAssertions: false,
     usedRetry: false,
     failedTransientRequest: false,
+    failedRunShellWithoutShell: false,
   };
 }
 
@@ -516,6 +519,18 @@ function inspectStep(step: any, data: WalkData): void {
   // URL strings on goTo / checkLink.
   inspectUrl(step.goTo, data);
   inspectUrl(step.checkLink, data);
+
+  // A runShell step that FAILed without the author choosing a shell — on
+  // Windows that's often a cmd-flavored command running under the
+  // cross-platform `bash` default. Powers `setRunShellShell`. An explicit
+  // `shell` means the author already made the choice; nothing to teach.
+  if (
+    step.result === "FAIL" &&
+    step.runShell !== undefined &&
+    typeof step.runShell?.shell !== "string"
+  ) {
+    data.failedRunShellWithoutShell = true;
+  }
 
   // runShell command sniffing.
   const runShell = step.runShell;

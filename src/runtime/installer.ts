@@ -9,6 +9,7 @@ import {
   readInstalledRecord,
   type CacheDirContext,
 } from "./cacheDir.js";
+import { MINGIT_VERSION } from "./windowsBash.js";
 import {
   ensureRuntimeInstalled,
   resolveHeavyDepSource,
@@ -34,7 +35,7 @@ export type InstallAction =
 
 export interface InstallReport {
   assetId: string;
-  kind: "npm" | "browser";
+  kind: "npm" | "browser" | "tool";
   action: InstallAction;
   installedVersion?: string;
   notes?: string[];
@@ -281,7 +282,7 @@ export async function installBrowsers(
 
 export interface StatusRow {
   assetId: string;
-  kind: "npm" | "browser";
+  kind: "npm" | "browser" | "tool";
   installed: boolean;
   installedVersion?: string;
   expectedVersion?: string;
@@ -368,6 +369,20 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
       latestKnownVersion: entry?.latestKnownVersion,
       outdated:
         Boolean(entry && entry.latestKnownVersion && entry.installedVersion !== entry.latestKnownVersion),
+    });
+  }
+  // Tool downloads (git-bash on Windows). Only rows for recorded installs —
+  // POSIX hosts and Windows hosts using a system Git Bash have no entry, and
+  // an unconditional `installed=—` row would read as a missing asset.
+  for (const [name, entry] of Object.entries(record.tools ?? {})) {
+    const expected = name === "git-bash" ? MINGIT_VERSION : undefined;
+    rows.push({
+      assetId: name,
+      kind: "tool",
+      installed: true,
+      installedVersion: entry.installedVersion,
+      expectedVersion: expected,
+      outdated: Boolean(expected && entry.installedVersion !== expected),
     });
   }
   return rows;

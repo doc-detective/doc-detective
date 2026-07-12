@@ -20,7 +20,7 @@ doc-detective install <subcommand> [options]
 
 ### `install all`
 
-Install the lazy-installed runtime assets: npm packages and browser binaries.
+Install the lazy-installed runtime assets: npm packages, browser binaries, and (on Windows) Git Bash.
 
 ```bash
 doc-detective install all [options]
@@ -90,6 +90,18 @@ Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 <Note>
 An asset with no installable build for the current platform/architecture (for example, Chrome and ChromeDriver on `linux/arm64`, which Google's Chrome for Testing doesn't publish natively) is skipped rather than failing the whole command—the report shows it as `skipped`. Run `doc-detective install status` to see what actually installed.
 </Note>
+
+### `install bash`
+
+Install Git Bash on Windows hosts. [`runShell`](/docs/actions/runshell) runs commands in `bash` by default on every platform (see [Shell selection](/docs/actions/runshell#shell-selection)), and this command provisions the bash that backs it on Windows.
+
+```bash
+doc-detective install bash [options]
+```
+
+If Git for Windows is already installed, the command reports it and downloads nothing. Otherwise it downloads a portable MinGit (about 40 MB, checksum-verified) into `<cacheDir>/tools/git-bash`. On macOS and Linux the command is a no-op—those platforms use the `bash` on your `PATH`.
+
+**Running this ahead of time is optional.** The first test run that needs bash on a Git-less Windows host installs it lazily, so this command just pre-warms the cache (ideal for CI images). Doc Detective verifies the install by running `bash --version` and repairs a corrupted copy automatically. Use `--force` to reinstall manually.
 
 ### `install android`
 
