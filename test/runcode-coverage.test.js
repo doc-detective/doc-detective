@@ -53,8 +53,10 @@ describe("runCode coverage", function () {
         runCode: {
           language: "javascript",
           code: "process.stdout.write('ok')",
+          // Under .tmp/ (gitignored — see CLAUDE.md "Testing behavior") so
+          // the saved-output artifact can't pollute the worktree or a commit.
           path: "out.txt",
-          directory: "sub",
+          directory: ".tmp/runcode-sub",
         },
       },
     });
@@ -174,7 +176,8 @@ describe("runCode coverage", function () {
         runCode: {
           language: "javascript",
           code: "process.stdout.write('ok')",
-          path: "out.txt",
+          // Gitignored scratch location (CLAUDE.md "Testing behavior").
+          path: ".tmp/runcode-bare-out.txt",
         },
       },
     });
