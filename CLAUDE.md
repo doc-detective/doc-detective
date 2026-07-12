@@ -249,7 +249,7 @@ Running tests is time-intensive. Instead of running a test multiple times to che
 ```bash
 # Run a test and save both stdout and stderr to a file (mocha and node write
 # diagnostics, including failures, to stderr — `2>&1` captures both).
-npm test -- --test "my test name" > .tmp/output.txt 2>&1
+mkdir -p .tmp && npm test -- --test "my test name" > .tmp/output.txt 2>&1
 # Inspect the output file
 cat .tmp/output.txt
 ```
