@@ -8,8 +8,8 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`installBrowsers` (`src/runtime/installer.ts`, driving `doc-detective install browsers` / `install
-all`) installs each requested browser asset (`chrome`, `firefox`, `chromedriver`, `geckodriver`) in
+`installBrowsers` (`src/runtime/installer.ts`, driving `doc-detective install browsers` / `doc-detective install all`)
+installs each requested browser asset (`chrome`, `firefox`, `chromedriver`, `geckodriver`) in
 a loop and lets any `ensureBrowserInstalled` failure propagate straight out, aborting the whole
 batch. `installRuntime`, right above it, already treats native npm deps with no prebuild guarantee
 across the platform matrix (`BEST_EFFORT_NPM_DEPS`, e.g. the PTY backend) as failure-tolerant: a
@@ -25,8 +25,8 @@ cannot execute: `execFile` gets `ENOEXEC` from the kernel, Node's child_process 
 re-invoking it via `/bin/sh -c <path>`, and `/bin/sh` fails trying to parse the binary's raw bytes as
 shell syntax (`Syntax error: Unterminated quoted string`). `verifyDriverBinary`
 (`src/runtime/browsers.ts`) correctly detects this as non-functional and throws — and because
-`installBrowsers` has no tolerance, that throw kills the entire `linux.Dockerfile` `RUN
-doc-detective install all --yes` layer, so the arm64 image never builds (see PR #579's follow-up
+`installBrowsers` has no tolerance, that throw kills the entire `linux.Dockerfile`
+`RUN doc-detective install all --yes` layer, so the arm64 image never builds (see PR #579's follow-up
 investigation: `build-linux (arm64)` failed on every release after the docker-build.yml CI-gating fix
 landed).
 

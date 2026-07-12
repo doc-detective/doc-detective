@@ -21,6 +21,7 @@ import {
   ensureBrowserInstalled,
   type BrowserAssetName,
   type BrowserDeps,
+  type EnsureBrowserResult,
 } from "./browsers.js";
 
 export type InstallAction =
@@ -234,7 +235,7 @@ export async function installBrowsers(
 
   for (const name of targets) {
     const before = readInstalledRecord(ctx).browsers[name];
-    let result;
+    let result: EnsureBrowserResult;
     try {
       result = await ensureBrowserInstalled(name, {
         ctx,
@@ -249,15 +250,13 @@ export async function installBrowsers(
       // corresponding feature degrades to a runtime fallback instead (ADR
       // 01008 already validates drivers by execution and falls back
       // across browsers when one is missing or broken).
-      logger(
-        `${name} failed to install and was skipped: ${String((err as Error)?.message ?? err)}`,
-        "warn"
-      );
+      const detail = err instanceof Error ? err.message : String(err);
+      logger(`${name} failed to install and was skipped: ${detail}`, "warn");
       reports.push({
         assetId: name,
         kind: "browser",
         action: "skipped",
-        notes: ["failed to install and was skipped"],
+        notes: [`failed to install and was skipped: ${detail}`],
       });
       continue;
     }
