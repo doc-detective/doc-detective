@@ -194,6 +194,13 @@ export interface HintContext {
    * checkLink).
    */
   failedTransientRequest: boolean;
+  /**
+   * True if any runShell step FAILed without an explicit `shell` field —
+   * on Windows that's often a cmd-flavored command now running under the
+   * cross-platform `bash` default. Powers `setRunShellShell`. Sourced from
+   * the `walkResults` step pass.
+   */
+  failedRunShellWithoutShell: boolean;
 }
 
 export interface Hint {

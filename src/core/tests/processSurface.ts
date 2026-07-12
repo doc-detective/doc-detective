@@ -53,6 +53,9 @@ interface ProcessSurfaceDescriptor {
   name: string;
   args?: string[];
   workingDirectory?: string;
+  // Resolved shell executable (from resolveShellExecutable) the command runs
+  // through — runShell's `shell` field. Absent = the platform default shell.
+  shell?: string;
   // Spawn under a pseudo-terminal (node-pty) so full-screen/interactive TUIs
   // render. node-pty is an optional heavy dep; only its ABSENCE is a SKIP.
   tty?: boolean;
@@ -115,6 +118,7 @@ async function startBackgroundProcessSurface({
 
   const bgOptions: any = {};
   if (descriptor.workingDirectory) bgOptions.cwd = descriptor.workingDirectory;
+  if (descriptor.shell) bgOptions.shell = descriptor.shell;
   const args = descriptor.args ?? [];
   const timeoutMs = descriptor.timeout ?? 60000;
 

@@ -377,7 +377,7 @@ export type Routing23 = {
  */
 export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
 /**
- * Command to perform in the machine's default shell.
+ * Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).
  */
 export type RunShellCommandSimple = string;
 /**
@@ -2422,9 +2422,13 @@ export interface RunShell {
 }
 export interface RunShellCommandDetailed {
   /**
-   * Command to perform in the machine's default shell.
+   * Command to perform in the selected shell (see `shell`; defaults to `bash` on every platform).
    */
   command: string;
+  /**
+   * Shell to run the command in. If unset, uses the config-level `shell` setting, which defaults to `bash`. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
+   */
+  shell?: "bash" | "cmd" | "powershell";
   /**
    * Arguments for the command.
    */

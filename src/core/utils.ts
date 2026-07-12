@@ -11,6 +11,7 @@ import {
   resolveHeavyDepPath,
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
+import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -28,6 +29,9 @@ export {
   spawnCommand,
   spawnBackgroundCommand,
   spawnPtyBackgroundCommand,
+  resolveShellName,
+  resolveShellExecutable,
+  shellSpawnEnv,
   waitForReady,
   waitForPort,
   waitForHttp,
@@ -297,9 +301,13 @@ function spawnBackgroundCommand(
   args: string[] = [],
   options: any = {}
 ): BackgroundProcess {
-  const spawnOptions: any = { shell: true };
+  // `options.shell` carries a resolved shell executable (runShell's `shell`
+  // field); absent, keep the historical platform default.
+  const spawnOptions: any = { shell: options.shell || true };
   if (process.platform === "win32") spawnOptions.windowsHide = true;
   if (options.cwd) spawnOptions.cwd = options.cwd;
+  const bgShellEnv = shellSpawnEnv(options.shell);
+  if (bgShellEnv) spawnOptions.env = bgShellEnv;
 
   // `shell: true` is intentional and by design. `runShell` (and `runCode`'s
   // shell backend) exist to execute the exact shell command an author writes in
@@ -363,17 +371,37 @@ function spawnBackgroundCommand(
   };
 }
 
-// Quote a single command-line argument so the platform shell treats it as one
+// Quote a single command-line argument so the target shell treats it as one
 // token (so the `args` field keeps working when we append it to the command
-// string for the shell). Wraps in double quotes and escapes embedded double
-// quotes; mirrors how `shell:true` would pass each arg.
-function quoteShellArg(arg: string): string {
-  if (process.platform === "win32") {
+// string for the shell). `style` selects the quoting dialect: `cmd` doubles
+// embedded double quotes; `powershell` single-quotes with `''` doubling
+// (PS interpolates `$` and backticks inside DOUBLE quotes, so the cmd
+// dialect would corrupt args there); `posix` single-quotes (bash/sh —
+// including Git Bash on Windows). Defaults to the platform shell for
+// callers that don't thread a resolved shell.
+function quoteShellArg(
+  arg: string,
+  style?: "cmd" | "powershell" | "posix"
+): string {
+  const resolvedStyle =
+    style ?? (process.platform === "win32" ? "cmd" : "posix");
+  if (resolvedStyle === "cmd") {
     // cmd.exe: escape embedded quotes by doubling them, then wrap.
     return `"${arg.replace(/"/g, '""')}"`;
   }
+  if (resolvedStyle === "powershell") {
+    // PowerShell: single quotes are literal; escape embedded ones by doubling.
+    return `'${arg.replace(/'/g, "''")}'`;
+  }
   // POSIX sh: single-quote and escape any embedded single quote.
   return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+// True when a resolved shell executable is cmd.exe (vs bash/powershell), which
+// decides both the PTY `-c` vs `/d /s /c` invocation and the arg-quoting
+// dialect. Mirrors Node's own cmd detection for `shell: <string>`.
+function isCmdShellExecutable(shellExecutable: string): boolean {
+  return /(^|[\\/])cmd(\.exe)?$/i.test(shellExecutable);
 }
 
 // PTY-backed sibling of spawnBackgroundCommand: starts a process under a real
@@ -453,15 +481,30 @@ async function spawnPtyBackgroundCommand(
   // to the direct spawn below, so the happy path can never regress.
   await assertConptyAllocatable({ ptyModulePath });
 
-  const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
-  const fullCommand = cmd + argstr;
   const isWin = process.platform === "win32";
-  // Match Node's `{ shell: true }` invocation exactly so a `tty` process behaves
-  // identically to the pipe path: cmd.exe with `/d /s /c` on Windows (disable
-  // AutoRun, treat the whole string as one quoted command), `/bin/sh -c` on POSIX
-  // (NOT $SHELL, which may be a non-POSIX shell).
-  const shell = isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh";
-  const shellArgs = isWin
+  // Match Node's `{ shell: ... }` invocation exactly so a `tty` process behaves
+  // identically to the pipe path. `options.shell` carries the resolved shell
+  // executable from runShell's `shell` field; absent, fall back to the
+  // platform default: cmd.exe with `/d /s /c` on Windows (disable AutoRun,
+  // treat the whole string as one quoted command), `/bin/sh -c` on POSIX (NOT
+  // $SHELL, which may be a non-POSIX shell).
+  const shell =
+    options.shell || (isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh");
+  const isCmdShell = isCmdShellExecutable(shell);
+  // Quote args in the dialect of the shell that will parse the command string:
+  // double-quote doubling for cmd.exe, literal single quotes for powershell
+  // (double quotes would interpolate `$`/backticks), POSIX single quotes for
+  // bash/sh (including Git Bash on Windows).
+  const quoteStyle: "cmd" | "powershell" | "posix" = isCmdShell
+    ? "cmd"
+    : /powershell(\.exe)?$/i.test(shell)
+    ? "powershell"
+    : "posix";
+  const argstr = args.length
+    ? " " + args.map((arg) => quoteShellArg(arg, quoteStyle)).join(" ")
+    : "";
+  const fullCommand = cmd + argstr;
+  const shellArgs = isCmdShell
     ? ["/d", "/s", "/c", fullCommand]
     : ["-c", fullCommand];
 
@@ -475,7 +518,7 @@ async function spawnPtyBackgroundCommand(
       cols: 120,
       rows: 30,
       cwd: options.cwd || process.cwd(),
-      env: process.env,
+      env: shellSpawnEnv(options.shell) ?? process.env,
     });
   } catch (error: any) {
     // node-pty loaded but couldn't create a PTY here (e.g. a prebuilt
@@ -1605,6 +1648,139 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   );
 }
 
+// Shells a runShell step can execute through. `cmd` and `powershell` are
+// Windows-only; `bash` is the default everywhere and resolves to Git Bash on
+// Windows (lazy-installed into the cache when absent).
+type ShellName = "bash" | "cmd" | "powershell";
+
+// Resolve which shell a runShell step runs in. Precedence mirrors
+// resolveAutoScreenshot / resolveAutoRecord: an unset level defers down the
+// chain (step > config > built-in `bash`). The config-level default is also
+// declared in config_v3 (`shell`, default `bash`); the step schema
+// deliberately has NO default so an unset step can defer here.
+function resolveShellName({
+  config,
+  step,
+}: { config?: any; step?: any } = {}): ShellName {
+  return step?.runShell?.shell ?? config?.shell ?? "bash";
+}
+
+// Injectable seams so unit tests can exercise every platform branch without
+// touching the real OS or triggering a real Git Bash install.
+interface ResolveShellDeps {
+  platform?: string;
+  env?: Record<string, string | undefined>;
+  cacheDir?: string;
+  resolveWindowsBash?: (options?: { cacheDir?: string }) => Promise<string>;
+  probePosixBash?: () => Promise<boolean>;
+}
+
+// Memoized "is bash runnable on this POSIX system" probe. POSIX only
+// guarantees /bin/sh; minimal images (Alpine/BusyBox, debian-slim) may lack
+// bash entirely, and without this check the spawn's ENOENT surfaces as a
+// meaningless "exit code null" step failure. One probe per process — the
+// answer can't change mid-run.
+let posixBashProbe: Promise<boolean> | undefined;
+function defaultProbePosixBash(): Promise<boolean> {
+  if (!posixBashProbe) {
+    posixBashProbe = new Promise<boolean>((resolve) => {
+      let child: ChildProcess;
+      try {
+        child = spawn("bash", ["--version"]);
+      } catch {
+        resolve(false);
+        return;
+      }
+      child.on("error", () => resolve(false));
+      child.on("close", (code) => resolve(code === 0));
+    });
+  }
+  return posixBashProbe;
+}
+
+// Map a shell name to the executable `spawn`'s `shell` option should use.
+// Throws (with an actionable message) for Windows-only shells off Windows and
+// when Git Bash can't be resolved or installed on Windows; runShell converts
+// the throw into a FAILed step.
+async function resolveShellExecutable(
+  shellName: string,
+  deps: ResolveShellDeps = {}
+): Promise<string> {
+  const platform = deps.platform ?? process.platform;
+  const env = deps.env ?? process.env;
+  switch (shellName) {
+    case "bash": {
+      if (platform === "win32") {
+        // Git Bash, never `System32\bash.exe` (the WSL launcher).
+        const resolveBash = deps.resolveWindowsBash ?? defaultResolveWindowsBash;
+        return await resolveBash({ cacheDir: deps.cacheDir });
+      }
+      // POSIX: let spawn's PATH lookup find bash (macOS ships it in /bin,
+      // Linux distros vary between /bin and /usr/bin) — but verify it exists
+      // first so a bash-less minimal image gets an actionable error instead
+      // of a swallowed ENOENT and a cryptic exit-code failure.
+      const probe = deps.probePosixBash ?? defaultProbePosixBash;
+      if (!(await probe())) {
+        throw new Error(
+          "The default `bash` shell isn't available on this system. Install bash (e.g. `apk add bash` on Alpine, `apt-get install bash` on Debian slim images) to run shell steps."
+        );
+      }
+      return "bash";
+    }
+    case "cmd": {
+      if (platform !== "win32") {
+        throw new Error(
+          "The `cmd` shell is only supported on Windows. Use `bash` (the default) or gate the step with `runOn`."
+        );
+      }
+      return env.ComSpec || "cmd.exe";
+    }
+    case "powershell": {
+      if (platform !== "win32") {
+        throw new Error(
+          "The `powershell` shell is only supported on Windows. Use `bash` (the default) or gate the step with `runOn`."
+        );
+      }
+      return "powershell.exe";
+    }
+    default:
+      // Schema-validated steps can't reach this; guards programmatic callers.
+      throw new Error(
+        `Unsupported shell: ${shellName}. Supported shells: bash, cmd, powershell.`
+      );
+  }
+}
+
+// On Windows, a bash resolved to an absolute path may be a bare MinGit
+// install from the cache, which (unlike full Git for Windows' `bin\bash.exe`
+// wrapper) does NOT put its own `usr/bin` on PATH — so `echo x | grep x`
+// would die with `grep: command not found`. Prepending the bash binary's own
+// directory to the child's PATH restores the expected toolbox (grep, sed,
+// awk, …) and is harmless for a full Git install. Returns undefined when no
+// adjustment is needed (non-Windows, non-bash shells, bare PATH lookups).
+function shellSpawnEnv(
+  shellExecutable: string | undefined,
+  deps: {
+    platform?: string;
+    env?: Record<string, string | undefined>;
+  } = {}
+): Record<string, string | undefined> | undefined {
+  const platform = deps.platform ?? process.platform;
+  const env = deps.env ?? process.env;
+  if (platform !== "win32" || !shellExecutable) return undefined;
+  if (!/bash(\.exe)?$/i.test(shellExecutable)) return undefined;
+  const dir = path.dirname(shellExecutable);
+  // A bare `bash` PATH lookup has nothing to prepend.
+  if (!path.isAbsolute(dir)) return undefined;
+  // Windows env vars are case-insensitive; preserve whichever casing exists.
+  const pathKey =
+    Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "Path";
+  return {
+    ...env,
+    [pathKey]: `${dir}${path.delimiter}${env[pathKey] ?? ""}`,
+  };
+}
+
 // Perform a native command in the current working directory.
 /**
  * Executes a command in a child process using the `spawn` function from the `child_process` module.
@@ -1616,9 +1792,12 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
  * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
-  // Set spawnOptions based on OS
+  // Set spawnOptions based on OS. `options.shell` (a resolved shell
+  // executable from resolveShellExecutable) overrides the platform default so
+  // runShell's `shell` field reaches the spawn; internal probes that don't
+  // pass it keep the historical `shell: true` behavior.
   const spawnOptions: any = {
-    shell: true,
+    shell: options.shell || true,
   };
   if (process.platform === "win32") {
     spawnOptions.windowsHide = true;
@@ -1626,6 +1805,8 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   if (options.cwd) {
     spawnOptions.cwd = options.cwd;
   }
+  const shellEnv = shellSpawnEnv(options.shell);
+  if (shellEnv) spawnOptions.env = shellEnv;
 
   // `shell: true` is intentional and by design (see spawnBackgroundCommand for
   // the full rationale). `spawnCommand` runs the exact shell command an author

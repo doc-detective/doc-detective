@@ -4,8 +4,14 @@
     {
       "contexts": [
         {
-          "app": { "name": "firefox" },
-          "platforms": ["linux", "mac", "windows"]
+          "app": {
+            "name": "firefox"
+          },
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ]
         }
       ],
       "steps": [
@@ -25,7 +31,16 @@
     },
     {
       "contexts": [
-        { "app": { "name": "firefox" }, "platforms": ["linux", "mac"] }
+        {
+          "app": {
+            "name": "firefox"
+          },
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ]
+        }
       ],
       "steps": [
         {

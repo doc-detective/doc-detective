@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { spawnCommand, log } from "../utils.js";
+import { spawnCommand, log, resolveShellExecutable } from "../utils.js";
 import { runShell } from "./runShell.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -117,20 +117,52 @@ async function runCode({
           break;
       }
     }
-    const command = step.runCode.command;
-    // Make sure the command is available
-    const commandExists = await spawnCommand(command, ["--version"]);
-    if (commandExists.exitCode !== 0) {
-      result.status = "FAIL";
-      result.description = `Command ${command} is unavailable. Make sure it's installed and in your PATH.`;
-      return result;
-    }
-
-    // if Windows and command is bash
+    let command = step.runCode.command;
+    // runCode's contract is "run this code with its interpreter" — the
+    // config-level `shell` default must not change how the interpreter is
+    // invoked, so the generated runShell step pins its shell explicitly:
+    //   - bash scripts run THROUGH the bash shell (on Windows that resolves
+    //     Git Bash and prepends its toolbox to PATH, so the script sees the
+    //     same environment runShell's default gives it);
+    //   - other interpreters (python/node) pin the platform-native shell on
+    //     Windows so a Git-less host never pays a bash install for a step
+    //     that doesn't need bash, and bash elsewhere (the runner default).
+    const wantsBash =
+      command === "bash" || step.runCode.language?.toLowerCase() === "bash";
+    const interpreterShell =
+      wantsBash ? "bash" : os.platform() === "win32" ? "cmd" : "bash";
+    // When the interpreter itself is bash on Windows, resolve the same Git
+    // Bash runShell's `bash` shell uses (never `System32\bash.exe` — the WSL
+    // launcher), lazily installing it when absent. The resolver verifies the
+    // binary by execution, so the generic `--version` probe below is
+    // redundant for this path.
+    let commandPreverified = false;
     if (os.platform() === "win32" && command === "bash") {
-      result.status = "FAIL";
-      result.description = `runCode currently doesn't support bash on Windows. Use a different command, a different language, or a runShell step.`;
-      return result;
+      try {
+        command = await resolveShellExecutable("bash", {
+          cacheDir: config?.cacheDir,
+        });
+        // Forward slashes survive every shell this can run through (bash
+        // strips unquoted backslashes; cmd/powershell accept `/` in quoted
+        // paths), and the quote keeps the spaces in `C:/Program Files/...`
+        // one token.
+        command = command.replace(/\\/g, "/");
+        if (/\s/.test(command)) command = `"${command}"`;
+        commandPreverified = true;
+      } catch (error: any) {
+        result.status = "FAIL";
+        result.description = `Couldn't resolve bash on Windows: ${error.message}`;
+        return result;
+      }
+    }
+    // Make sure the command is available
+    if (!commandPreverified) {
+      const commandExists = await spawnCommand(command, ["--version"]);
+      if (commandExists.exitCode !== 0) {
+        result.status = "FAIL";
+        result.description = `Command ${command} is unavailable. Make sure it's installed and in your PATH.`;
+        return result;
+      }
     }
 
     // Prepare shell command using the resolved command.
@@ -140,9 +172,17 @@ async function runCode({
     // no effect and the step FAILed on a non-zero exit). Forward every option
     // runShell honors so they actually take effect. `directory` (runCode-only)
     // is resolved into the single `path` runShell expects.
+    // The script path travels through a shell as part of the command string
+    // (runShell joins command + args with spaces): use the separator every
+    // shell accepts on Windows (bash strips unquoted backslashes), and quote
+    // it so a temp dir containing spaces stays one token.
+    let scriptArg = scriptPath;
+    if (os.platform() === "win32") scriptArg = scriptArg.replace(/\\/g, "/");
+    if (/\s/.test(scriptArg)) scriptArg = `"${scriptArg}"`;
     const runShellOptions: any = {
       command,
-      args: [scriptPath, ...step.runCode.args],
+      args: [scriptArg, ...step.runCode.args],
+      shell: interpreterShell,
       exitCodes: step.runCode.exitCodes,
       workingDirectory: step.runCode.workingDirectory,
       maxVariation: step.runCode.maxVariation,

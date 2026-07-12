@@ -27,18 +27,22 @@ describe("runCode coverage", function () {
     sinon.restore();
   });
 
-  it("FAILs bash on Windows (the win32 guard)", async function () {
-    this.timeout(15000);
+  it("runs bash through the shared shell resolution on Windows (the old guard is lifted)", async function () {
+    this.timeout(30000);
+    // The historical hard FAIL for bash-on-Windows is gone: runCode resolves
+    // the interpreter through resolveShellExecutable("bash"). With platform
+    // stubbed to win32, the win32 dispatch branch is exercised; the resolver
+    // itself sees the REAL platform (its deps default to process.platform),
+    // so this stays hermetic — real Windows resolves Git Bash, POSIX legs
+    // resolve the system bash — and the step succeeds everywhere bash exists.
     sinon.stub(os, "platform").returns("win32");
     const result = await runCode({
       config,
-      step: { runCode: { language: "bash", code: "echo hi" } },
+      step: {
+        runCode: { language: "bash", code: "echo guard-lifted", stdio: "guard-lifted" },
+      },
     });
-    // On Linux/macOS legs bash exists, so control reaches the win32+bash guard
-    // and FAILs there; where bash is absent it FAILs the availability check
-    // first. Either way the step FAILs — the guard line is covered on the legs
-    // that have bash.
-    assert.equal(result.status, "FAIL");
+    assert.equal(result.status, "PASS", result.description);
   });
 
   it("forwards a path joined with directory to runShell", async function () {

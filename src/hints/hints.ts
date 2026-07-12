@@ -384,6 +384,30 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // setRunShellShell (current-run problems)
+  // ------------------------------------------------------------------
+  {
+    id: "setRunShellShell",
+    priority: 20,
+    markdown: [
+      "A `runShell` step failed on Windows. `runShell` runs commands in `bash` by default (for cross-platform consistency); if the command was written for a Windows shell, pick it explicitly:",
+      "",
+      "```json",
+      '{ "runShell": { "command": "echo %CD%", "shell": "cmd" } }',
+      "```",
+      "",
+      '`shell` accepts `bash`, `cmd`, or `powershell` per step, or set a project-wide default with `"shell"` in `.doc-detective.json`.',
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.platform === "win32" &&
+      ctx.failedRunShellWithoutShell === true &&
+      // Only when the bash default actually applied — a config-level `shell`
+      // of cmd/powershell means the failed command already ran in the shell
+      // this hint would suggest.
+      (ctx.config?.shell ?? "bash") === "bash",
+  },
+
+  // ------------------------------------------------------------------
   // tryHtmlReporter (output & reporting) — shipped in v1
   // ------------------------------------------------------------------
   {

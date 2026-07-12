@@ -10,6 +10,17 @@ export type BrowserName = "chrome" | "firefox" | "safari";
 export interface RuntimeNeeds {
   browsers: Set<BrowserName>;
   npmPackages: Set<string>;
+  // True when any runShell/runCode step resolves to the `bash` shell (or
+  // runCode targets the bash language) — on Windows that means Git Bash must
+  // be available. The inference is platform-agnostic; the preflight caller
+  // gates on process.platform === "win32".
+  windowsBash: boolean;
+}
+
+export interface InferRuntimeNeedsOptions {
+  // The config-level `shell` default (config_v3 `shell`, default `bash`).
+  // Step-level `shell` fields win over it, mirroring the runtime resolver.
+  configShell?: string;
 }
 
 // Set view of the shared canonical list for O(1) membership checks below.
@@ -27,9 +38,13 @@ const RECORDING_STEP_KEYS = new Set(["record", "stopRecord"]);
  * survives ongoing v3-shape refinements. Missing/optional fields degrade
  * gracefully to "no need."
  */
-export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
+export function inferRuntimeNeeds(
+  resolvedSpecs: any,
+  options: InferRuntimeNeedsOptions = {}
+): RuntimeNeeds {
   const browsers = new Set<BrowserName>();
   const npmPackages = new Set<string>();
+  const configShell = options.configShell ?? "bash";
 
   const specs: any[] = Array.isArray(resolvedSpecs)
     ? resolvedSpecs
@@ -40,6 +55,7 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
   let sawBrowserStep = false;
   let sawScreenshotStep = false;
   let sawRecordingStep = false;
+  let sawBashShellStep = false;
 
   for (const spec of specs) {
     collectBrowserNamesFromRunOn(spec?.runOn, browsers);
@@ -55,6 +71,7 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
           if (flags.browser) sawBrowserStep = true;
           if (flags.screenshot) sawScreenshotStep = true;
           if (flags.recording) sawRecordingStep = true;
+          if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
           collectStartSurfaceEngines(step, browsers);
         }
       }
@@ -63,6 +80,7 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
         if (flags.browser) sawBrowserStep = true;
         if (flags.screenshot) sawScreenshotStep = true;
         if (flags.recording) sawRecordingStep = true;
+        if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
         collectStartSurfaceEngines(step, browsers);
       }
     }
@@ -93,7 +111,26 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
     npmPackages.add("@ffmpeg-installer/ffmpeg");
   }
 
-  return { browsers, npmPackages };
+  return { browsers, npmPackages, windowsBash: sawBashShellStep };
+}
+
+// Whether a step's shell-based execution resolves to bash. runShell honors
+// its own `shell` field over the config default. runCode pins its
+// interpreter shell independently of the config default (platform-native on
+// Windows for non-bash languages, exactly so a python/node step never forces
+// a bash install), so only `language: "bash"` — which needs the bash
+// interpreter itself — creates a bash need there.
+function stepNeedsBash(step: any, configShell: string): boolean {
+  if (!step || typeof step !== "object") return false;
+  if ("runShell" in step) {
+    const stepShell =
+      step.runShell && typeof step.runShell === "object"
+        ? step.runShell.shell
+        : undefined;
+    if ((stepShell ?? configShell) === "bash") return true;
+  }
+  if ("runCode" in step && step.runCode?.language === "bash") return true;
+  return false;
 }
 
 function arrayOrEmpty<T>(v: any): T[] {

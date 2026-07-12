@@ -1063,8 +1063,9 @@ async function realBootstrap(url: string, destSdkRoot: string): Promise<void> {
 }
 
 // Download a URL to a file, following redirects (dl.google.com redirects to a
-// CDN). Fails on any non-2xx final status.
-async function downloadFile(
+// CDN). Fails on any non-2xx final status. Exported for reuse by other
+// archive-download installers (windowsBash.ts).
+export async function downloadFile(
   url: string,
   dest: string,
   redirects = 0
@@ -1100,7 +1101,8 @@ async function downloadFile(
 
 // Extract a .zip cross-platform, trying the extractors likely to be present:
 // unzip / bsdtar on POSIX, bsdtar / PowerShell Expand-Archive on Windows.
-async function extractZip(zipPath: string, destDir: string): Promise<void> {
+// Exported for reuse by other archive-download installers (windowsBash.ts).
+export async function extractZip(zipPath: string, destDir: string): Promise<void> {
   const attempts: [string, string[]][] =
     process.platform === "win32"
       ? [
