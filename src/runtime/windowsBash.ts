@@ -159,8 +159,6 @@ async function spawnCapture(
       resolve(null);
       return;
     }
-    child.on("error", () => resolve(null));
-    child.stdout?.on("data", (d: any) => (stdout += d.toString()));
     const timer = setTimeout(() => {
       try {
         child.kill();
@@ -170,6 +168,13 @@ async function spawnCapture(
       resolve(null);
     }, 15000);
     timer.unref?.();
+    // spawn errors are emitted asynchronously, so `timer` exists by the time
+    // either handler runs; clear it on every settle path.
+    child.on("error", () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
+    child.stdout?.on("data", (d: any) => (stdout += d.toString()));
     child.on("close", (code) => {
       clearTimeout(timer);
       resolve({ code, stdout });
