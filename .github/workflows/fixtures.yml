@@ -2,7 +2,10 @@
 # no longer run inside the mocha suite (that combined pass timed out at 90 min
 # on Windows — see adrs/01022-*). Instead they live in per-feature subdirectories
 # under test/core-artifacts/<group>/ and run here, one small job per
-# (group x OS), fanned out so no single job is a monolith.
+# (bundle x OS): heavy or special-cased groups get a job to themselves, and
+# fast groups share a job via a comma-joined `input` (see ADR 01048, which
+# amends ADR 01022's one-job-per-group shape), so no single job is a monolith
+# and the job count stays off the runner-concurrency ceiling.
 #
 # Each job builds the PR's own code, `npm link`s it, and drives it through the
 # Doc Detective GitHub Action with an empty `version` so the action's
@@ -27,15 +30,16 @@ permissions:
 
 jobs:
   fixtures:
-    name: ${{ matrix.group }} (${{ matrix.os }})
+    name: ${{ matrix.bundle.name }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # The apps and iOS-flavored groups get headroom: the first Mac2/XCUITest
-    # session on a macOS runner builds WebDriverAgent(Mac) via xcodebuild
-    # (minutes on a cold runner). apps-ios and mobile-web-ios get the most:
-    # a cold WDA build precedes their first simulator session, and a session
-    # POST that aborts at the 15-minute startup ceiling is retried once
-    # (ADR 01033), so the worst case is two ceiling-length attempts.
-    timeout-minutes: ${{ (matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && 55 || (matrix.group == 'apps' && 30 || 20) }}
+    # Default headroom is 20 min; entries that need more carry their own
+    # `timeout` (apps: the first Mac2/XCUITest session on a macOS runner
+    # builds WebDriverAgent(Mac) via xcodebuild — minutes on a cold runner;
+    # apps-ios / mobile-web-ios: a cold WDA build precedes their first
+    # simulator session, and a session POST that aborts at the 15-minute
+    # startup ceiling is retried once (ADR 01033), so the worst case is two
+    # ceiling-length attempts).
+    timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
     strategy:
       fail-fast: false
       matrix:
@@ -43,19 +47,39 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
-        # One directory under test/core-artifacts/ per group. Keep this list in
-        # sync with the subdirectories there (a group with no specs fails its
-        # job via check-fixture-results.cjs, so a typo can't pass silently).
-        group:
-          - navigation
-          - interactions
-          - capture
-          - recording
-          - routing
-          - guards
-          - http
-          - process
-          - sessions
+        # One job per (bundle x OS). Every fixture GROUP directory must appear
+        # in exactly one bundle's `input` (comma-joined; the action passes the
+        # value verbatim to `--input`, which splits on commas). Not every
+        # test/core-artifacts/ subdirectory is a gate group: `ordering/` and
+        # `output/` hold specs/data consumed by the mocha suite, not this
+        # matrix. Fast groups share a job to cut per-job
+        # setup and runner-queue pressure (ADR 01048, amending ADR 01022's
+        # one-job-per-group shape); groups stay in their own directories and
+        # a heavy or special-cased group keeps a job to itself. Bundles are
+        # sized so the worst (Windows, cold-cache) leg stays well under the
+        # 20-min default timeout — re-check timings before growing one.
+        #
+        # CAUTION: the zero-spec guard in check-fixture-results.cjs only
+        # fails a FULLY empty run. In a multi-directory bundle a typo'd dir
+        # contributes zero specs while the others still produce results, so
+        # a typo can pass silently — double-check paths when editing inputs.
+        #
+        # iOS-flavored groups must stay solo: the action's `ios: auto`
+        # spec-scan resolves the input value as one literal path, and a
+        # comma-joined value resolves to a nonexistent path (scan returns
+        # false — harmless for bundles without ios specs, but it would skip
+        # the WDA cache for a bundle that had them).
+        bundle:
+          - name: nav-capture
+            input: test/core-artifacts/navigation,test/core-artifacts/capture
+          - name: interactions
+            input: test/core-artifacts/interactions
+          - name: web-plumbing
+            input: test/core-artifacts/routing,test/core-artifacts/http,test/core-artifacts/guards
+          - name: proc-sessions
+            input: test/core-artifacts/process,test/core-artifacts/sessions
+          - name: recording
+            input: test/core-artifacts/recording
           # Native app surfaces (phase A1). Its own job for job-size reasons
           # (driver install + UIA automation are the slowest fixtures). The
           # historical freeze that first motivated isolating it — the app
@@ -64,31 +88,37 @@ jobs:
           # fixed at the root (ADR 01025 non-destructive installs, ADR 01024
           # spawn guards), and the in-process app→tty pairing is exercised ON
           # PURPOSE by apps/app-then-tty.spec.json in this very group.
-          - apps
-          # Native app surfaces (phase A3b, Android). On the general matrix
-          # (Windows/macOS runners, and Linux without KVM) every android spec
-          # lands SKIPPED via the emulator-acceleration preflight — asserted
-          # gating, skip-tolerant here. The real PASS coverage runs in the two
-          # dedicated KVM jobs below (reuse + managed-boot).
-          - apps-android
+          - name: apps
+            input: test/core-artifacts/apps
+            timeout: 30
+          # Native app surfaces (phase A3b Android) + mobile web on Android
+          # (phase A5, Chrome). On the general matrix (Windows/macOS runners,
+          # and Linux without KVM) every android spec lands SKIPPED via the
+          # emulator-acceleration preflight — asserted gating, skip-tolerant
+          # here, so the two groups share a job. The SKIP-matrix permutations
+          # (firefox/webkit/safari on android, mixed app+web) land SKIPPED on
+          # every host by design; the four-targets spec's windows/mac contexts
+          # run desktop Chrome where the host matches. Real Android PASS
+          # coverage runs in the dedicated KVM jobs below (reuse +
+          # managed-boot). `android: true` routes the
+          # DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL env to this job.
+          - name: android-skip
+            input: test/core-artifacts/apps-android,test/core-artifacts/mobile-web-android
+            android: true
           # Native app surfaces (phase A4, iOS). iOS app contexts run end-to-end
           # on a managed simulator via XCUITest; the macOS leg gates on ≥1 PASS
           # (DD_FIXTURES_REQUIRE_PASS below, ADR 01028), while Windows/Linux legs
           # legitimately SKIP (iOS simulators are macOS-only).
-          - apps-ios
-          # Mobile web (phase A5, Chrome on Android). On the general matrix the
-          # android contexts land SKIPPED (no KVM / no SDK — same gating as
-          # apps-android); the SKIP-matrix permutations (firefox/webkit/safari
-          # on android, mixed app+web) land SKIPPED on every host by design.
-          # The four-targets spec's windows/mac contexts run desktop Chrome
-          # where the host matches. Real Android PASS coverage runs in the KVM
-          # jobs below (skip-tolerant here).
-          - mobile-web-android
+          - name: apps-ios
+            input: test/core-artifacts/apps-ios
+            timeout: 55
           # Mobile web (phase A5, Safari on iOS). Safari runs on the managed
           # simulator end-to-end on the macOS leg (gated on ≥1 PASS below);
           # Windows/Linux legs legitimately SKIP, and the SKIP-matrix
           # permutations land SKIPPED everywhere by design.
-          - mobile-web-ios
+          - name: mobile-web-ios
+            input: test/core-artifacts/mobile-web-ios
+            timeout: 55
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -177,7 +207,7 @@ jobs:
       # doc-detective/github-action#70). The action writes its results to
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
-      - name: Run ${{ matrix.group }} fixtures
+      - name: Run ${{ matrix.bundle.name }} fixtures
         uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
@@ -187,12 +217,12 @@ jobs:
         # leg (first cold WDA compile ~10 min; later runs restore it), which
         # replaces the workflow-level cache.
         env:
-          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ (matrix.group == 'apps-android' || matrix.group == 'mobile-web-android') && '1' || '' }}
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.bundle.android && '1' || '' }}
         with:
           version: ''
           working_directory: .
           config: test/core-artifacts/config.groups.json
-          input: test/core-artifacts/${{ matrix.group }}
+          input: ${{ matrix.bundle.input }}
           android: 'false'
           ios: auto
 
@@ -211,10 +241,10 @@ jobs:
       - name: Gate on results
         shell: bash
         env:
-          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.group == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.group == 'apps-ios' || matrix.group == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
+          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.bundle.name == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.bundle.name == 'apps-ios' || matrix.bundle.name == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
         run: |
-          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.group }}.json"
-          node scripts/check-fixture-results.cjs "dd-output-${{ matrix.group }}.json"
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.bundle.name }}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${{ matrix.bundle.name }}.json"
 
       # Preserve the run's JSON for debugging a failure.
       # continue-on-error: the diagnostic artifact upload runs AFTER the gate
@@ -226,8 +256,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: fixture-output-${{ matrix.group }}-${{ matrix.os }}
-          path: dd-output-${{ matrix.group }}.json
+          name: fixture-output-${{ matrix.bundle.name }}-${{ matrix.os }}
+          path: dd-output-${{ matrix.bundle.name }}.json
           retention-days: 3
           if-no-files-found: warn
 
