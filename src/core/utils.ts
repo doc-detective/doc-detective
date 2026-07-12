@@ -1772,9 +1772,17 @@ function shellSpawnEnv(
   const env = deps.env ?? process.env;
   if (platform !== "win32" || !shellExecutable) return undefined;
   if (!/bash(\.exe)?$/i.test(shellExecutable)) return undefined;
-  const dir = path.dirname(shellExecutable);
+  // shellExecutable is always a Windows-style path on this branch (only ever
+  // reached for the win32 platform), regardless of which OS actually runs
+  // this code (unit tests exercise it from any CI runner). Force
+  // `path.win32` rather than the ambient `path` module, which resolves
+  // POSIX semantics on non-Windows hosts and silently mis-parses backslash
+  // paths (`path.dirname` on a separator-less-under-POSIX string returns
+  // "."). On real Windows execution `path.win32 === path`, so production
+  // behavior is unchanged.
+  const dir = path.win32.dirname(shellExecutable);
   // A bare `bash` PATH lookup has nothing to prepend.
-  if (!path.isAbsolute(dir)) return undefined;
+  if (!path.win32.isAbsolute(dir)) return undefined;
   // Windows env vars are case-insensitive; preserve whichever casing exists.
   const pathKey =
     Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "Path";
@@ -1782,7 +1790,7 @@ function shellSpawnEnv(
   return {
     ...env,
     // No trailing delimiter (an empty PATH segment) when PATH was unset.
-    [pathKey]: existing ? `${dir}${path.delimiter}${existing}` : dir,
+    [pathKey]: existing ? `${dir}${path.win32.delimiter}${existing}` : dir,
   };
 }
 

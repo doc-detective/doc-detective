@@ -114,22 +114,29 @@ function isSystem32Path(p: string): boolean {
 // Candidate bash locations from an existing Git for Windows install: the
 // `where.exe git` hits (git.exe lives in `<root>\cmd` or `<root>\bin`) plus
 // the standard per-machine and per-user install locations.
+// Every input here (where.exe git output, Windows env-var install locations)
+// is a Windows-style path, regardless of which OS actually runs this code
+// (unit tests exercise it from any CI runner). Force `path.win32` rather than
+// the ambient `path` module, which resolves POSIX semantics on non-Windows
+// hosts and silently mis-parses backslash paths (`path.dirname` on a
+// separator-less-under-POSIX string returns "."). On real Windows execution
+// `path.win32 === path`, so production behavior is unchanged.
 function systemBashCandidates(
   gitPaths: string[],
   env: Record<string, string | undefined>
 ): string[] {
   const candidates: string[] = [];
   for (const gitPath of gitPaths) {
-    const root = path.dirname(path.dirname(gitPath));
-    candidates.push(path.join(root, "bin", "bash.exe"));
-    candidates.push(path.join(root, "usr", "bin", "bash.exe"));
+    const root = path.win32.dirname(path.win32.dirname(gitPath));
+    candidates.push(path.win32.join(root, "bin", "bash.exe"));
+    candidates.push(path.win32.join(root, "usr", "bin", "bash.exe"));
   }
   for (const base of [
     env.ProgramFiles ?? env.PROGRAMFILES,
     env["ProgramFiles(x86)"],
-    env.LOCALAPPDATA ? path.join(env.LOCALAPPDATA, "Programs") : undefined,
+    env.LOCALAPPDATA ? path.win32.join(env.LOCALAPPDATA, "Programs") : undefined,
   ]) {
-    if (base) candidates.push(path.join(base, "Git", "bin", "bash.exe"));
+    if (base) candidates.push(path.win32.join(base, "Git", "bin", "bash.exe"));
   }
   return candidates.filter((p) => !isSystem32Path(p));
 }
