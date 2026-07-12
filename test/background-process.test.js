@@ -656,6 +656,328 @@ describe("closeSurface", function () {
   });
 });
 
+describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () {
+  this.timeout(20000);
+
+  it("starts, registers, waits for readiness, and reports outputs", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const port = await findFreePort();
+    const tmp = path.join(os.tmpdir(), `dd-p6-srv-${process.pid}.js`);
+    fs.writeFileSync(
+      tmp,
+      `require('http').createServer((q,r)=>r.end('ok')).listen(+process.argv[2]);`
+    );
+    const registry = new Map();
+    try {
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: {
+          command: `"${process.execPath}" "${tmp}" ${port}`,
+          name: "web",
+          waitUntil: { port },
+          timeout: 10000,
+        },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "PASS");
+      assert.equal(result.outputs.name, "web");
+      assert.equal(result.outputs.ready, "true");
+      assert.ok(registry.has("web"));
+      await waitForPort(port, { deadline: Date.now() + 2000 });
+    } finally {
+      await closeSurface({
+        config: {},
+        step: { closeSurface: "web" },
+        processRegistry: registry,
+      });
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  it("fails fast without a process registry", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "echo hi", name: "web" },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no process registry/);
+  });
+
+  it("fails on a duplicate process name and on a browser-surface name collision", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const dup = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "echo hi", name: "web" },
+      processRegistry: new Map([["web", { name: "web", bg: {} }]]),
+    });
+    assert.equal(dup.status, "FAIL");
+    assert.match(dup.description, /already running/);
+
+    const cross = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "echo hi", name: "web" },
+      processRegistry: new Map(),
+      driver: {
+        state: { sessionRegistry: { sessions: new Map([["web", {}]]) } },
+      },
+    });
+    assert.equal(cross.status, "FAIL");
+    assert.match(cross.description, /browser surface named "web"/);
+  });
+
+  it("fails and deregisters when readiness times out", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const port = await findFreePort(); // nothing will ever listen here
+    const tmp = path.join(os.tmpdir(), `dd-p6-noready-${process.pid}.js`);
+    fs.writeFileSync(tmp, `setInterval(() => {}, 100000);`);
+    const registry = new Map();
+    try {
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: {
+          command: `"${process.execPath}" "${tmp}"`,
+          name: "stuck",
+          waitUntil: { port },
+          timeout: 600,
+        },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, /failed to become ready/);
+      assert.equal(registry.has("stuck"), false);
+    } finally {
+      // The launcher already killed + deregistered on the timeout, but if an
+      // assertion above regresses, sweep any surviving entry so it can't leak
+      // into later tests; always remove the temp script.
+      await closeSurface({
+        config: {},
+        step: { closeSurface: "stuck" },
+        processRegistry: registry,
+      });
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+});
+
+// ADR 01046: transient concurrent-spawn recovery. Under concurrentRunners > 1
+// on Windows, spawning many node/ConPTY children at once can starve a transient
+// Windows loader/console limit so one child dies during init before it can
+// signal ready (STATUS_DLL_INIT_FAILED 0xC0000142 / STATUS_CONTROL_C_EXIT
+// 0xC000013A). A fresh spawn on the next attempt recovers, mirroring the
+// driverStart transient-session retry. The launcher takes injectable `deps` so
+// this can be proven deterministically without racing real processes.
+describe("startBackgroundProcessSurface: transient init retry (Phase 6)", function () {
+  this.timeout(10000);
+
+  // A minimal BackgroundProcess-shaped stub whose readiness outcome the test
+  // controls via `exitCode` (early-exit) or `ready` (becomes ready).
+  function stubBg({ exitCode = null, ready = false } = {}) {
+    return {
+      pid: 4321,
+      kill: async () => {},
+      getStdout: () => "",
+      getStderr: () => "",
+      getCombined: () => "",
+      write: () => true,
+      onChunk: () => () => {},
+      // Only used by the real waitForReady, which we stub out here.
+      exited: ready ? new Promise(() => {}) : Promise.resolve(exitCode),
+      _exitCode: exitCode,
+      _ready: ready,
+    };
+  }
+
+  it("retries a transient win32 init early-exit with a fresh spawn, then succeeds", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    // Attempt 1 crashes during init (STATUS_CONTROL_C_EXIT, as seen in CI);
+    // attempt 2 becomes ready.
+    const outcomes = [
+      stubBg({ exitCode: -1073741510 }),
+      stubBg({ ready: true }),
+    ];
+    const registry = new Map();
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "flaky-under-load", name: "p6-tty" },
+      processRegistry: registry,
+      deps: {
+        platform: "win32",
+        // No-op the backoff so the retry loop completes instantly.
+        sleep: () => Promise.resolve(),
+        spawnBackgroundCommand: () => {
+          const bg = outcomes[spawns.length];
+          spawns.push(bg);
+          return bg;
+        },
+        waitForReady: async (bg) => {
+          if (bg._ready) return;
+          throw new Error(
+            `Process exited before becoming ready (exit code ${bg._exitCode}).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+    // Two spawns: the first crashed transiently, the second succeeded.
+    assert.equal(spawns.length, 2);
+    // The surviving (ready) process is the one registered.
+    assert.ok(registry.has("p6-tty"));
+    assert.equal(registry.get("p6-tty").bg, outcomes[1]);
+  });
+
+  it("does not retry a non-transient readiness failure — fails after one attempt", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    const registry = new Map();
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "genuinely-broken", name: "broken" },
+      processRegistry: registry,
+      deps: {
+        platform: "win32",
+        spawnBackgroundCommand: () => {
+          const bg = stubBg({ exitCode: 1 });
+          spawns.push(bg);
+          return bg;
+        },
+        // A normal non-zero exit (a broken command) is not a transient init crash.
+        waitForReady: async () => {
+          throw new Error(
+            `Process exited before becoming ready (exit code 1).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /failed to become ready/);
+    // Exactly one spawn — a genuine failure fails fast, no retry.
+    assert.equal(spawns.length, 1);
+    assert.equal(registry.has("broken"), false);
+  });
+
+  it("does not retry a transient-looking exit on a non-win32 platform", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "x", name: "linux-proc" },
+      processRegistry: new Map(),
+      deps: {
+        platform: "linux",
+        spawnBackgroundCommand: () => {
+          const bg = stubBg({ exitCode: -1073741510 });
+          spawns.push(bg);
+          return bg;
+        },
+        waitForReady: async () => {
+          throw new Error(
+            `Process exited before becoming ready (exit code -1073741510).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    // The transient codes are Windows NTSTATUS values; other platforms fail fast.
+    assert.equal(spawns.length, 1);
+  });
+
+  it("gives up after the retry bound when every attempt crashes transiently", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const spawns = [];
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "always-crashes", name: "doomed" },
+      processRegistry: new Map(),
+      deps: {
+        platform: "win32",
+        // No-op the backoff so the exhausted-retry path completes instantly.
+        sleep: () => Promise.resolve(),
+        spawnBackgroundCommand: () => {
+          const bg = stubBg({ exitCode: -1073741502 }); // STATUS_DLL_INIT_FAILED
+          spawns.push(bg);
+          return bg;
+        },
+        waitForReady: async () => {
+          throw new Error(
+            `Process exited before becoming ready (exit code -1073741502).`
+          );
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /failed to become ready/);
+    // Bounded to EXACTLY maxAttempts = 1 initial + PROCESS_INIT_RETRIES(2).
+    // An exact check (not a range) catches a bumped constant or an extra attempt.
+    assert.equal(
+      spawns.length,
+      3,
+      `expected 3 spawns (1 initial + 2 retries), got ${spawns.length}`
+    );
+  });
+
+  // teardown() is best-effort cleanup of an ALREADY-crashed child (that's why
+  // readiness failed). A kill() rejection must never (a) escape and turn a
+  // clean FAIL into a thrown step, (b) mask the real readiness error, or
+  // (c) strand a stale processRegistry entry that the next attempt's register
+  // would silently overwrite.
+  it("a teardown kill() rejection neither escapes, masks the readiness error, nor strands the registry entry", async function () {
+    const { startBackgroundProcessSurface } = await import(
+      "../dist/core/tests/processSurface.js"
+    );
+    const registry = new Map();
+    const result = await startBackgroundProcessSurface({
+      config: {},
+      descriptor: { command: "kill-explodes", name: "kill-rejects" },
+      processRegistry: registry,
+      deps: {
+        platform: "linux",
+        sleep: () => Promise.resolve(),
+        spawnBackgroundCommand: () => ({
+          pid: 4321,
+          // The crashed handle's kill() rejects (e.g. node-pty on a dead pid).
+          kill: async () => {
+            throw new Error("kill failed: process already gone");
+          },
+          getStdout: () => "",
+          getStderr: () => "",
+          getCombined: () => "",
+          write: () => true,
+          onChunk: () => () => {},
+          exited: Promise.resolve(1),
+        }),
+        waitForReady: async () => {
+          throw new Error(`Process exited before becoming ready (exit code 1).`);
+        },
+      },
+    });
+    // (a) it returned rather than threw, and (b) the readiness error survived.
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /failed to become ready/);
+    assert.match(result.description, /exit code 1/);
+    assert.doesNotMatch(result.description, /kill failed/);
+    // (c) no stale entry left behind.
+    assert.equal(registry.has("kill-rejects"), false);
+  });
+});
+
 describe("runShell/runCode background (integration)", function () {
   this.timeout(20000);
 

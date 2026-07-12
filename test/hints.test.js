@@ -145,6 +145,12 @@ describe("hints/render", function () {
 });
 
 describe("hints/context", function () {
+  // Several of these tests build isolated tmpdir filesystems and walk them; on
+  // the slowest CI cell (windows-latest, node 24) under a fully loaded test
+  // process that fs work can exceed mocha's 2s default. Give the group headroom
+  // — still bounded, so a real hang still fails — rather than flake.
+  this.timeout(15000);
+
   describe("parseOriginUrl", function () {
     it("returns the origin url from a typical .git/config", function () {
       const cfg = [
@@ -1788,7 +1794,7 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(true);
-    // Negative: no browser contexts in the run.
+    // Negative: no browser contexts and no app surfaces in the run.
     expect(
       h.when(
         fakeCtx({
@@ -1798,6 +1804,18 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+    // Positive: an app-only run (startSurface, no browser) — autoRecord
+    // covers app and device contexts too (phase A7).
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(),
+          usedStepTypes: new Set(["startSurface", "find"]),
+          producedRecordings: false,
+          config: {},
+        })
+      )
+    ).to.equal(true);
     // Negative: the run already produced a recording (incl. an autoRecord one,
     // which lands as a real record step → producedRecordings true).
     expect(

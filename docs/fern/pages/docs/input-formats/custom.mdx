@@ -189,6 +189,50 @@ Add patterns for RST-style directives in Markdown:
 }
 ```
 
+## Running files as shell commands
+
+Not every custom file type contains inline tests or markup patterns. Sometimes the file itself is the test: a script, a notebook, or any file you'd normally run from a shell. For these cases, define an executable file type that maps an extension to a `runShell` command. Doc Detective turns each matching file into a single test with one `runShell` step, so pointing it at the file runs the file and asserts that it exits cleanly.
+
+An executable file type needs only two properties:
+
+- `extensions`: The file extensions to run with this command.
+- `runShell`: The [`runShell`](/docs/actions/runshell) step to perform. Use `$1` as a placeholder for the path of the matched file.
+
+For example, this configuration runs every `.js` file with Node.js, every `.py` file with Python, and runs Jupyter notebooks through `jupyter nbconvert`:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "JavaScript",
+      "extensions": "js",
+      "runShell": {
+        "command": "node $1"
+      }
+    },
+    {
+      "name": "Python",
+      "extensions": "py",
+      "runShell": {
+        "command": "python $1"
+      }
+    },
+    {
+      "name": "Jupyter Notebooks",
+      "extensions": "ipynb",
+      "runShell": {
+        "command": "jupyter",
+        "args": ["nbconvert", "--to", "script", "--execute", "$1", "--stdout"]
+      }
+    }
+  ]
+}
+```
+
+The `runShell` value accepts the same fields as a [`runShell`](/docs/actions/runshell) step, so you can assert on exit codes with `exitCodes` and on output with `stdio`. A file whose command exits with a non-zero code, or whose output doesn't match, fails the test, just as it would in a standalone `runShell` step.
+
+A file type is either a markup file type or a `runShell` file type, not both. When a file type defines `runShell`, Doc Detective runs the file as a command and doesn't parse it for inline tests or markup.
+
 ## Example: Custom documentation format
 
 Here's a complete example for a hypothetical custom documentation format:

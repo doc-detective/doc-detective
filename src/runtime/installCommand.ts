@@ -202,6 +202,24 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
   },
 };
 
+const iosSubcommand: CommandModule<any, InstallArgv> = {
+  command: "ios",
+  describe:
+    "Prepare iOS simulator prerequisites on macOS hosts (Xcode command-line tools, simctl visibility, and guidance for WebDriverAgent/XCUITest).",
+  builder: (yargs) => sharedInstallOptions(yargs) as any,
+  handler: async (argv: any) => {
+    const logger = makeLogger(pickLogLevel(argv));
+    const { installIos } = await import("./iosInstaller.js");
+    const reports = await installIos({
+      yes: Boolean(argv.yes),
+      dryRun: Boolean(argv["dry-run"]),
+      ctx: ctxFromArgv(argv),
+      deps: { logger },
+    });
+    printReports(reports, logger);
+  },
+};
+
 const statusSubcommand: CommandModule<any, InstallArgv> = {
   command: "status",
   describe:
@@ -226,7 +244,7 @@ const statusSubcommand: CommandModule<any, InstallArgv> = {
 const allSubcommand: CommandModule<any, InstallArgv> = {
   command: "all",
   describe:
-    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools (`install agents`) and the Android toolchain (`install android`) are installed separately — agents need an interactive picker, and Android pulls multi-GB downloads that shouldn't be implicit.",
+    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools (`install agents`) and mobile toolchains (`install android`, `install ios`) are installed separately — agents need an interactive picker, Android pulls multi-GB downloads, and iOS preparation is macOS-only.",
   builder: (yargs) => sharedInstallOptions(yargs) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
@@ -255,7 +273,7 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
 };
 
 /**
- * The `doc-detective install` command group. Registers four subcommands and
+ * The `doc-detective install` command group. Registers subcommands and
  * a bare `install` form that prints help. The existing `install-agents`
  * command keeps its top-level registration as a permanent hidden alias
  * (configured in cli.ts).
@@ -263,16 +281,17 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
 export const installCommand: CommandModule<{}, InstallArgv> = {
   command: "install <subcommand>",
   describe:
-    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, android.",
+    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, android, ios.",
   builder: (yargs) =>
     yargs
       .command(agentsSubcommand as any)
       .command(runtimeSubcommand as any)
       .command(browsersSubcommand as any)
       .command(androidSubcommand as any)
+      .command(iosSubcommand as any)
       .command(statusSubcommand as any)
       .command(allSubcommand as any)
-      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | android | status | all.") as any,
+      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | android | ios | status | all.") as any,
   handler: () => {
     // Each subcommand registers its own handler; this top-level handler is
     // only reached when yargs falls through (demandCommand should prevent

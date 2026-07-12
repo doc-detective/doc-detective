@@ -84,6 +84,7 @@ FFmpeg
 Xvfb
 untargeted
 closeSurface
+startSurface
 waitUntil
 httpGet
 delayMs
@@ -120,3 +121,19 @@ ChromeDriver
 toolchain
 sdkmanager
 avdmanager
+toolchains
+Xcode
+widget
+Temurin
+XCUITest
+simctl
+xcrun
+WebDriverAgent
+loopback
+viewport
+chromedrivers
+dialog
+dialogs
+dialog's
+onboarding
+passthrough

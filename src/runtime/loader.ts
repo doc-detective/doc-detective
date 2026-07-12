@@ -3,7 +3,13 @@ import fs from "node:fs";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { getDeclaredVersion, satisfiesRange, withPeerCompanions } from "./heavyDeps.js";
+import { inspect } from "node:util";
+import {
+  getDeclaredVersion,
+  managedDepNames,
+  satisfiesRange,
+  withPeerCompanions,
+} from "./heavyDeps.js";
 import { isNpmNoiseLine } from "./installOutput.js";
 import {
   assertSafeRuntimePath,
@@ -112,14 +118,43 @@ function tryResolveFromCache(
   name: string,
   ctx: CacheDirContext = {}
 ): string | null {
-  const runtimeDir = getRuntimeDir(ctx);
-  // Probe directly with require.resolve anchored at the runtime dir; this
-  // honors package "exports" maps that a naive existsSync(node_modules/<name>)
-  // check would miss for scoped or sub-path entry points.
-  const pkgJsonAnchor = path.join(runtimeDir, "package.json");
-  if (!fs.existsSync(pkgJsonAnchor)) return null;
-  const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
-  return resolveEntry(requireFromCache, name);
+  // This is a READ-ONLY locator — it never spawns. Any failure to even
+  // construct the runtime dir means the cache cannot resolve the dep, so
+  // return null ("not in cache") instead of throwing. Two real triggers:
+  //   1. getRuntimeDir → getCacheDir → assertSafeRuntimePath rejects an
+  //      unsafe cacheDir (a shell-metacharacter in DOC_DETECTIVE_CACHE_DIR
+  //      / config.cacheDir), or getCacheDir's own mkdirSync fails.
+  //   2. The fs.existsSync probe below throws (permissions, a stubbed fs).
+  // Swallowing here does NOT weaken the security gate: the only path that
+  // actually shells out (ensureRuntimeInstalled) re-runs
+  // assertSafeRuntimePath on the runtime dir and throws before spawning, so
+  // an unsafe cacheDir still fails loudly at install time. What this
+  // prevents is a bad cacheDir crashing pure resolvers — the `doc-detective
+  // debug` probes (probeAppium, the Appium/Browsers collectors) that only
+  // want to LOCATE a dep and degrade gracefully when they can't.
+  try {
+    const runtimeDir = getRuntimeDir(ctx);
+    // Probe directly with require.resolve anchored at the runtime dir; this
+    // honors package "exports" maps that a naive existsSync(node_modules/<name>)
+    // check would miss for scoped or sub-path entry points.
+    const pkgJsonAnchor = path.join(runtimeDir, "package.json");
+    if (!fs.existsSync(pkgJsonAnchor)) return null;
+    const requireFromCache = createRequire(pathToFileURL(pkgJsonAnchor).href);
+    return resolveEntry(requireFromCache, name);
+  } catch (err) {
+    // Keep the cause reachable for whoever is debugging the installer itself.
+    // defaultLogger drops "debug" unless DOC_DETECTIVE_RUNTIME_DEBUG=1, so this
+    // stays silent on the normal path. Format defensively: a bare `${err}`
+    // renders a non-Error throwable as "[object Object]" and drops an Error's
+    // stack — both useless in the log this line exists to produce.
+    const detail =
+      err instanceof Error ? err.stack ?? `${err.name}: ${err.message}` : inspect(err);
+    defaultLogger(
+      `tryResolveFromCache(${JSON.stringify(name)}) treated as a cache miss: ${detail}`,
+      "debug"
+    );
+    return null;
+  }
 }
 
 /**
@@ -221,6 +256,18 @@ export async function loadHeavyDep<T = unknown>(
 
   if (!resolved) {
     if (!autoInstall) {
+      // tryResolveFromCache deliberately swallows an unusable cacheDir so pure
+      // locators can answer null (see it). Here we're about to tell the caller
+      // the dep "is not installed" and point them at `install runtime` — which
+      // would be actively misdirecting when the real fault is the cache dir
+      // itself (that command fails the same way). Re-derive it so an unsafe or
+      // unwritable cacheDir surfaces with its own diagnostic instead.
+      //
+      // Discards the result on purpose: this call is for its throw, not its
+      // value. It re-runs getCacheDir's mkdirSync, which tryResolveFromCache
+      // already attempted — idempotent under `{recursive: true}`, so the repeat
+      // is free when the cacheDir is valid and the dep is simply absent.
+      getRuntimeDir(ctx);
       throw new Error(
         `Heavy dep '${name}' is not installed in either the shim's node_modules or <cacheDir>/runtime. Run \`doc-detective install runtime\` to install it, or call loadHeavyDep with { autoInstall: true }.`
       );
@@ -270,6 +317,88 @@ function ensureRuntimePackageJson(runtimeDir: string): void {
   const pkgPath = path.join(runtimeDir, "package.json");
   if (!fs.existsSync(pkgPath)) {
     fs.writeFileSync(pkgPath, RUNTIME_PACKAGE_JSON_CONTENTS, "utf8");
+  }
+}
+
+// #501 root fix: record every managed package physically present in the
+// runtime cache as a `dependencies` entry in <runtimeDir>/package.json.
+//
+// npm computes its ideal tree from package.json plus the CLI-requested adds.
+// With a dependency-less manifest (`--no-save` keeps npm from ever writing
+// one), arborist treated every already-installed sibling as extraneous and
+// PRUNED it on each single-package JIT install. Mid-run, that deleted
+// node-pty's files out from under the already-loaded module (only the
+// OS-locked .node binary survives), and the next `pty.spawn` — served from the
+// stale module/resolution caches — froze the whole process inside a native
+// wait (the #501 ConPTY freeze). Recording presence makes installs additive.
+//
+// Called before each install (so this install's reify keeps existing
+// siblings) and again after a successful one (so the new arrivals are
+// protected from the NEXT install). Candidate names come from installed.json,
+// the manifest's current dependencies, AND the shim's full managed-dep
+// universe (managedDepNames) — all doc-detective-managed sets, so hoisted
+// transitives are never promoted to direct dependencies. The universe sweep
+// covers orphans: an interrupted install batch (npm child killed by the
+// install timeout — the postinstall bulk pre-warm on a slow CI runner — or a
+// cancelled job) leaves packages physically installed that installed.json
+// never recorded, and without the sweep the next JIT install pruned them all
+// ("removed 1064 packages"), gutting e.g. the appium tree right before the
+// runner tried to start it. Physical presence on disk then filters the
+// candidates: a package whose install failed (e.g. the best-effort PTY
+// backend on an exotic platform) is never resurrected into future installs'
+// ideal trees, where its permanent failure would fail every subsequent
+// install.
+function recordRuntimeDependencies(
+  runtimeDir: string,
+  ctx: CacheDirContext
+): void {
+  try {
+    const pkgPath = path.join(runtimeDir, "package.json");
+    let pkg: any;
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    } catch {
+      pkg = JSON.parse(RUNTIME_PACKAGE_JSON_CONTENTS);
+    }
+    const prior: Record<string, string> =
+      pkg.dependencies && typeof pkg.dependencies === "object"
+        ? pkg.dependencies
+        : {};
+    const record = readInstalledRecord(ctx);
+    const names = new Set<string>([
+      ...Object.keys(record.npmPackages),
+      ...Object.keys(prior),
+      ...managedDepNames(),
+    ]);
+    const deps: Record<string, string> = {};
+    for (const name of [...names].sort()) {
+      // Presence on disk is the only trigger — see the no-resurrection note
+      // above.
+      if (
+        !fs.existsSync(
+          path.join(runtimeDir, "node_modules", name, "package.json")
+        )
+      ) {
+        continue;
+      }
+      let range: string | null = null;
+      try {
+        // The shim's declared constraint, so an upgraded shim's reinstall
+        // logic and the recorded range stay in agreement.
+        range = getDeclaredVersion(name);
+      } catch {
+        // Not declared by this shim (a legacy cache entry): keep whatever was
+        // recorded before, else pin to the installed version.
+        const v = readInstalledVersionFromCache(name, ctx);
+        range = prior[name] ?? (v ? `^${v}` : null);
+      }
+      if (range) deps[name] = range;
+    }
+    pkg.dependencies = deps;
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), "utf8");
+  } catch {
+    // Best-effort: a failure to record must never break the install itself.
+    // The worst case is one more prune-y install — the pre-fix status quo.
   }
 }
 
@@ -354,6 +483,10 @@ export async function ensureRuntimeInstalled(
   );
   const runtimeDir = getRuntimeDir(ctx);
   ensureRuntimePackageJson(runtimeDir);
+  // Protect already-installed siblings from this install's reify (#501): with
+  // them recorded as dependencies, npm's ideal tree keeps them instead of
+  // pruning them as extraneous.
+  recordRuntimeDependencies(runtimeDir, ctx);
 
   // Keep the announcement calm — no dependency list or count. The resolved
   // versions are reported once the install completes (the install command's
@@ -531,4 +664,7 @@ export async function ensureRuntimeInstalled(
     record.npmPackages[name] = { installedVersion, installedAt: now };
   }
   writeInstalledRecord(record, ctx);
+  // Record the new arrivals (now in installed.json AND on disk) so the NEXT
+  // install's ideal tree keeps them too (#501).
+  recordRuntimeDependencies(runtimeDir, ctx);
 }

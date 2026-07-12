@@ -206,7 +206,7 @@ function generateSchemaMarkdown(schemaId, schema) {
 
   // Keep the human-readable description as the page intro when the schema has one.
   if (schema.description) {
-    heading.push(schema.description, "");
+    heading.push(escapeMdxBraces(schema.description), "");
   }
 
   // Add parent schemas section if this schema is referenced by others. Only link
@@ -372,13 +372,29 @@ function generateExampleFromSchema(schema) {
 }
 
 // Function to generate a property row for the fields table
+// Fern renders these pages as MDX, which parses `{...}` as a JS expression. A
+// literal brace in schema prose (e.g. a description mentioning `{ "app": … }`)
+// therefore breaks the build with "Could not parse expression with acorn".
+// Escape braces to HTML entities, but leave backtick code spans untouched so
+// inline code still renders verbatim.
+function escapeMdxBraces(text) {
+  return String(text)
+    .split(/(`[^`]*`)/)
+    .map((part) =>
+      part.startsWith("`")
+        ? part
+        : part.replace(/\{/g, "&#123;").replace(/\}/g, "&#125;")
+    )
+    .join("");
+}
+
 function generatePropertyRow(propName, propSchema, parentSchema) {
   // Get type information
   let type = getTypeString(propSchema);
 
   // Get description with status prefix. Collapse literal newlines to <br/> so
   // multi-line schema descriptions don't break the markdown table row.
-  let description = (propSchema.description || "No description provided.")
+  let description = escapeMdxBraces(propSchema.description || "No description provided.")
     .replace(/\r?\n/g, "<br/>")
     .trim();
 
@@ -410,8 +426,14 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   if (propSchema.minimum !== undefined) {
     constraints.push(`Minimum: ${propSchema.minimum}`);
   }
+  if (propSchema.exclusiveMinimum !== undefined) {
+    constraints.push(`Exclusive minimum: ${propSchema.exclusiveMinimum}`);
+  }
   if (propSchema.maximum !== undefined) {
     constraints.push(`Maximum: ${propSchema.maximum}`);
+  }
+  if (propSchema.exclusiveMaximum !== undefined) {
+    constraints.push(`Exclusive maximum: ${propSchema.exclusiveMaximum}`);
   }
   if (propSchema.minLength !== undefined) {
     constraints.push(`Minimum length: ${propSchema.minLength}`);
@@ -569,6 +591,7 @@ async function main() {
     "spec_v3",
     "step_v3",
     "stopRecord_v3",
+    "swipe_v3",
     "test_v3",
     "type_v3",
     "wait_v3",

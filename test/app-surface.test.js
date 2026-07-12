@@ -17,6 +17,7 @@ import {
   createAppSessionState,
   appSurfacePreflight,
   probeMacAccessibility,
+  probeIosToolchain,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -26,6 +27,9 @@ import {
   findAppElement,
   closeAppSurface,
   teardownAppSession,
+  snapshotAppServerDescendants,
+  reapConsoleOrphans,
+  listWindowsDescendantPids,
   invalidateStaleAppiumManifest,
 } from "../dist/core/tests/appSurface.js";
 
@@ -338,6 +342,49 @@ describe("isAppDriverRequired / stepTargetsAppSurface", function () {
     assert.equal(isAppDriverRequired({ test: {} }), false);
   });
 
+  it("ignores browser/process startSurface descriptors (Phase 6 narrowing)", function () {
+    // A browser- or process-only startSurface must not trigger the app
+    // preflight (Appium server + native driver install probe).
+    assert.equal(
+      isAppDriverRequired({
+        test: { steps: [{ startSurface: { browser: "chrome" } }] },
+      }),
+      false
+    );
+    assert.equal(
+      isAppDriverRequired({
+        test: { steps: [{ startSurface: { process: "node", name: "repl" } }] },
+      }),
+      false
+    );
+    // The parallel array form counts only when a descriptor is an app.
+    assert.equal(
+      isAppDriverRequired({
+        test: {
+          steps: [
+            { startSurface: [{ browser: "chrome" }, { app: "com.example.x" }] },
+          ],
+        },
+      }),
+      true
+    );
+    assert.equal(
+      isAppDriverRequired({
+        test: {
+          steps: [
+            {
+              startSurface: [
+                { browser: "chrome" },
+                { process: "node", name: "repl" },
+              ],
+            },
+          ],
+        },
+      }),
+      false
+    );
+  });
+
   it("does not count string surfaces or browser surfaces", function () {
     assert.equal(
       stepTargetsAppSurface({ find: { elementText: "a", surface: "chrome" } }),
@@ -439,6 +486,13 @@ describe("buildAppLocator", function () {
     });
   });
 
+  it("routes ios to the XCUITest column", function () {
+    assert.deepEqual(buildAppLocator({ elementText: "Save" }, "ios"), {
+      strategy: "xpath",
+      value: '//*[@title="Save" or @label="Save" or @value="Save"]',
+    });
+  });
+
   it("does NOT flag elementText/elementAria as conflicting on android", function () {
     // On Android the two map to distinct attributes (@text vs @content-desc),
     // so different values are a legal AND, not a conflict — the per-platform
@@ -520,7 +574,23 @@ describe("appSurfacePreflight", function () {
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows and macOS/);
+    assert.match(outcome.reason, /Windows/);
+    assert.match(outcome.reason, /iOS/);
+  });
+
+  it("skips ios on non-mac hosts with toolchain guidance", async function () {
+    const outcome = await appSurfacePreflight({
+      config: {},
+      platform: "ios",
+      deps: {
+        probeIosToolchain: () => ({
+          ok: false,
+          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+        }),
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
   });
 
   it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
@@ -678,6 +748,80 @@ describe("appSurfacePreflight", function () {
   });
 });
 
+describe("probeIosToolchain", function () {
+  it("skips on a non-mac host without probing commands", function () {
+    let probed = false;
+    const outcome = probeIosToolchain({
+      platform: "win32",
+      run: () => {
+        probed = true;
+        return { status: 0 };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /macOS/);
+    assert.equal(probed, false);
+  });
+
+  it("skips when xcode-select is not configured", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select" ? { status: 1 } : { status: 0 },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /Xcode command-line tools/);
+  });
+
+  it("skips with the developer dir + diagnostic when simctl fails", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command, args) => {
+        if (command === "xcode-select")
+          return { status: 0, stdout: "/Applications/Xcode.app/Contents/Developer\n" };
+        // xcrun simctl
+        return { status: 72, stderr: "xcrun: error: unable to find utility \"simctl\"" };
+      },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /simctl/);
+    assert.match(outcome.reason, /Xcode\.app\/Contents\/Developer/);
+    assert.match(outcome.reason, /unable to find utility/);
+  });
+
+  it("reports a timed-out simctl (null status) distinctly", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: (command) =>
+        command === "xcode-select"
+          ? { status: 0, stdout: "/dev" }
+          : { status: null, stderr: "" },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /timed out/);
+  });
+
+  it("passes when xcode-select and simctl both succeed", function () {
+    const outcome = probeIosToolchain({
+      platform: "darwin",
+      run: () => ({ status: 0, stdout: "/Applications/Xcode.app/Contents/Developer" }),
+    });
+    assert.deepEqual(outcome, { ok: true });
+  });
+
+  it("the real probe returns a definitive ok/not-ok shape on macOS", async function () {
+    // Exercise the real spawnSync path (default runner) so a broken invocation
+    // is visible; on non-mac hosts the early return already covers this.
+    if (process.platform !== "darwin") this.skip();
+    // probeIosToolchain is synchronous and the first cold `xcrun simctl` call on
+    // a fresh macOS runner can take much longer than mocha's 2s default before
+    // it returns — give it the same 2-minute ceiling the probe itself uses.
+    this.timeout(130000);
+    const outcome = probeIosToolchain();
+    assert.equal(typeof outcome.ok, "boolean");
+  });
+});
+
 describe("startAppSurface", function () {
   const fakeDriver = () => ({
     deleted: false,
@@ -740,7 +884,7 @@ describe("startAppSurface", function () {
       platform: "linux",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.match(unsupportedPlatform.description, /Windows and macOS/);
+    assert.match(unsupportedPlatform.description, /iOS/);
 
     appSession.surfaces.set("x", { name: "x", appId: "x", driver: {} });
     const collision = await startAppSurface({
@@ -766,6 +910,42 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Invalid step definition/);
   });
 
+  it("windows: snapshots the window baseline on open (main handle, pid, lazy baseline)", async function () {
+    const appSession = preflighted();
+    const driver = {
+      ...fakeDriver(),
+      async getWindowHandles() {
+        return ["0xA", "0xF"];
+      },
+      async getWindowHandle() {
+        return "0xA";
+      },
+      async $() {
+        return {
+          async getAttribute(name) {
+            return name === "ProcessId" ? "123" : null;
+          },
+        };
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "C:\\x\\app.exe" } },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("app");
+    assert.equal(entry.mainWindowHandle, "0xA");
+    assert.equal(entry.appPid, 123);
+    assert.deepEqual(entry.knownWindows, ["0xA"]);
+    // Other baseline windows are recorded, not pre-damned as foreign — the
+    // first selector use pid-probes them (the app may own some of them).
+    assert.equal(entry.foreignWindows.size, 0);
+    assert.ok(entry.baselineWindowHandles.has("0xF"));
+  });
+
   it("late-binds pending window crops from the first opened app surface", async function () {
     const appSession = preflighted();
     // A synthetic autoRecord capture started before any app window existed:
@@ -778,7 +958,9 @@ describe("startAppSurface", function () {
         return { x: 10, y: 20, width: 800, height: 600 };
       },
       async execute() {
-        // NovaWindows: execute is unimplemented -> dpr falls back to 1.
+        // NovaWindows: execute is unimplemented — which is exactly why the
+        // crop is stored unscaled with a pending-scale marker instead of
+        // being scaled through a DOM devicePixelRatio probe here.
         throw new Error("Method is not implemented");
       },
     };
@@ -790,8 +972,51 @@ describe("startAppSurface", function () {
       serverDeps: okServerDeps(driver),
     });
     assert.equal(result.status, "PASS");
-    assert.deepEqual(handle.crop, { x: 10, y: 20, w: 800, h: 600 });
+    // Unscaled driver units + pending-scale marker: stopRecording derives the
+    // physical-pixel scale from the capture frame size at stop time.
+    assert.deepEqual(handle.cropRect, { x: 10, y: 20, w: 800, h: 600 });
+    assert.equal(handle.cropPendingScale, true);
+    assert.equal(handle.crop, undefined);
     assert.equal(handle.pendingAppWindowCrop, false);
+  });
+
+  it("mac: late-binds the pending crop from the window ELEMENT rect", async function () {
+    // Mac2's getWindowRect() is the whole main screen — the late-bound
+    // autoRecord crop must come from the window element instead (ADR 01036).
+    const appSession = preflighted();
+    const handle = { type: "ffmpeg", pendingAppWindowCrop: true };
+    appSession.recordingHost.state.recordings.push(handle);
+    const windowEl = {
+      elementId: "w1",
+      async getAttribute(name) {
+        return name === "title" ? "Untitled" : null;
+      },
+      async isExisting() {
+        return true;
+      },
+    };
+    const driver = {
+      async deleteSession() {},
+      async getWindowRect() {
+        return { x: 0, y: 0, width: 3840, height: 2160 };
+      },
+      async $$() {
+        return [windowEl];
+      },
+      async getElementRect() {
+        return { x: 40, y: 50, width: 800, height: 600 };
+      },
+    };
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.TextEdit" } },
+      appSession,
+      platform: "mac",
+      serverDeps: okServerDeps(driver),
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(handle.cropRect, { x: 40, y: 50, w: 800, h: 600 });
+    assert.equal(handle.cropPendingScale, true);
   });
 
   it("waits for element readiness, and tears the session down when readiness never comes", async function () {
@@ -1004,7 +1229,7 @@ describe("startAppSurface", function () {
     assert.match(result.description, /Privacy & Security/);
   });
 
-  it("maps args and workingDirectory into driver capabilities", async function () {
+  it("maps args and driverOptions into driver capabilities", async function () {
     const appSession = preflighted();
     let caps;
     await startAppSurface({
@@ -1013,7 +1238,6 @@ describe("startAppSurface", function () {
         startSurface: {
           app: "C:\\x\\app.exe",
           args: ["--a", "--b"],
-          workingDirectory: "./sandbox",
           driverOptions: { "nova:smoothMouseMove": true },
         },
       },
@@ -1028,9 +1252,45 @@ describe("startAppSurface", function () {
       },
     });
     assert.equal(caps["appium:appArguments"], "--a --b");
-    assert.equal(caps["appium:appWorkingDir"], path.resolve("./sandbox"));
     assert.equal(caps["nova:smoothMouseMove"], true);
     assert.equal(caps["appium:automationName"], "NovaWindows");
+    // workingDirectory is NOT mapped to a capability — NovaWindows ignores
+    // appWorkingDir, so it's rejected up front (see the FAIL test below)
+    // rather than silently sent.
+    assert.equal(caps["appium:appWorkingDir"], undefined);
+  });
+
+  it("fails workingDirectory on Windows with guidance but tolerates the schema default", async function () {
+    // NovaWindows v1.4.1 silently ignores appWorkingDir (the launched app
+    // inherits the driver's cwd), so Doc Detective can't deliver a working
+    // directory on Windows — FAIL loudly with guidance rather than accept a
+    // silent no-op (matching the macOS LaunchServices precedent).
+    const appSession = preflighted();
+    const explicit = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "C:\\x\\app.exe", workingDirectory: "./sandbox" },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(explicit.status, "FAIL");
+    assert.match(explicit.description, /not supported by the Windows app driver/);
+    assert.match(explicit.description, /doesn't honor a launch working directory/);
+
+    // "." is the schema's injected default, not an author request — it must
+    // not trip the unsupported-field guard.
+    const defaulted = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "C:\\x\\other.exe", workingDirectory: "." },
+      },
+      appSession,
+      platform: "windows",
+      serverDeps: okServerDeps(fakeDriver()),
+    });
+    assert.equal(defaulted.status, "PASS");
   });
 
   // --- Android (phase A3b): shared device session + activateApp switching ---
@@ -1062,6 +1322,104 @@ describe("startAppSurface", function () {
     assert.equal(caps["appium:udid"], "emulator-5554");
     assert.equal(caps["appium:appPackage"], "com.android.settings");
     assert.equal(appSession.deviceSessions.get("pixel7").foregroundApp, "com.android.settings");
+  });
+
+  it("android: late-starts a pending device recording once the device session exists", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let recordingOpts = null;
+    driver.startRecordingScreen = async (opts) => {
+      recordingOpts = opts;
+    };
+    // An autoRecord step in a mobile app-only context ran before any device
+    // session existed, leaving a pending handle.
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(handle.type, "appium");
+    assert.equal(handle.driver, driver);
+    assert.equal(recordingOpts.timeLimit, 1800);
+    // Device recordings capture the device frame whole — no window crop.
+    assert.equal(handle.cropRect, undefined);
+  });
+
+  it("android: a late-start missing-host-ffmpeg error marks the handle as a skip", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.startRecordingScreen = async () => {
+      throw new Error("'ffmpeg' binary is not found in PATH.");
+    };
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    assert.match(handle.startError, /ffmpeg/);
+    assert.equal(handle.startSkip, true);
+  });
+
+  it("android: a failed late-start stashes the error on the pending handle", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.startRecordingScreen = async () => {
+      throw new Error("screenrecord unavailable");
+    };
+    const handle = {
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: "ctx.mp4",
+    };
+    appSession.recordingHost.state.recordings.push(handle);
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.example.chat" } },
+      appSession,
+      platform: "android",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => driver,
+        acquireDevice: async () => ({
+          entry: { name: "pixel7", udid: "emulator-5554" },
+        }),
+      },
+    });
+    // The surface still opens — the recording failure is a warning, and the
+    // stored error surfaces as a FAIL when stopRecording drains the handle.
+    assert.equal(result.status, "PASS");
+    assert.equal(handle.type, "appium-pending");
+    assert.match(handle.startError, /screenrecord unavailable/);
   });
 
   it("android: a second app on the same device reuses the session and activates it", async function () {
@@ -1166,6 +1524,158 @@ describe("startAppSurface", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /no image installed/);
   });
+
+  // --- iOS (phase A4): shared simulator session + activateApp switching ---
+
+  it("ios: first app creates a simulator session with XCUITest udid/bundleId capabilities", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    let caps;
+    const result = await startAppSurface({
+      config: {},
+      step: {
+        startSurface: { app: "com.apple.Preferences", name: "settings", timeout: 300000 },
+      },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return driver;
+        },
+        acquireDevice: async () => ({
+          entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+        }),
+      },
+    });
+    assert.equal(result.status, "PASS");
+    const entry = appSession.surfaces.get("settings");
+    assert.equal(entry.deviceName, "iPhone 15");
+    assert.equal(entry.platform, "ios");
+    assert.equal(caps.platformName, "iOS");
+    assert.equal(caps["appium:automationName"], "XCUITest");
+    assert.equal(caps["appium:udid"], "SIM-UDID-1");
+    assert.equal(caps["appium:bundleId"], "com.apple.Preferences");
+    // The descriptor timeout floors the WDA build/connect timeouts.
+    assert.equal(caps["appium:wdaLaunchTimeout"], 300000);
+    assert.equal(caps["appium:wdaConnectionTimeout"], 300000);
+    assert.equal(
+      appSession.deviceSessions.get("iPhone 15").foregroundApp,
+      "com.apple.Preferences"
+    );
+  });
+
+  it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {
+    const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    const launch = async () => {
+      let caps;
+      await startAppSurface({
+        config: {},
+        step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+        appSession: preflighted(),
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async (c) => {
+            caps = c;
+            return fakeDriver();
+          },
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        },
+      });
+      return caps;
+    };
+    try {
+      delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      assert.equal((await launch())["appium:derivedDataPath"], undefined);
+      process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = "/tmp/dd-wda";
+      assert.equal((await launch())["appium:derivedDataPath"], "/tmp/dd-wda");
+    } finally {
+      if (prev === undefined)
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
+    }
+  });
+
+  it("ios: a second app on the same simulator reuses the session and activates it", async function () {
+    const appSession = preflighted();
+    const driver = fakeDriver();
+    driver.activated = [];
+    driver.activateApp = async (id) => driver.activated.push(id);
+    let startDriverCalls = 0;
+    const serverDeps = {
+      startServer: async () => ({ port: 1, process: {} }),
+      startDriver: async () => {
+        startDriverCalls++;
+        return driver;
+      },
+      acquireDevice: async () => ({
+        entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
+      }),
+    };
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "a" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.mobilecal", name: "b" } },
+      appSession,
+      platform: "ios",
+      serverDeps,
+    });
+    // One XCUITest session for the simulator, shared by both apps.
+    assert.equal(startDriverCalls, 1);
+    assert.equal(appSession.deviceSessions.size, 1);
+    assert.deepEqual(driver.activated, ["com.apple.mobilecal"]);
+    assert.equal(appSession.surfaces.get("b").deviceName, "iPhone 15");
+  });
+
+  it("ios: rejects Android-only/desktop-only fields with iOS-specific guidance", async function () {
+    const appSession = preflighted();
+    const cases = [
+      [{ app: "com.apple.Preferences", activity: ".Main" }, /Android-only/],
+      [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
+      [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
+      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /not meaningful for iOS/],
+    ];
+    for (const [descriptor, pattern] of cases) {
+      const result = await startAppSurface({
+        config: {},
+        step: { startSurface: descriptor },
+        appSession,
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async () => fakeDriver(),
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "SIM-UDID-1" } }),
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, pattern);
+    }
+  });
+
+  it("ios: an acquire skip becomes a step FAIL naming the reason", async function () {
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences" } },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async () => fakeDriver(),
+        acquireDevice: async () => ({ skip: "no iOS runtime installed" }),
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /no iOS runtime installed/);
+  });
 });
 
 describe("findAppElement / closeAppSurface / teardownAppSession", function () {
@@ -1248,6 +1758,33 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
     assert.equal(appSession.surfaces.size, 0);
     assert.equal(appSession.activeApp, undefined);
     assert.equal(deleted, 1);
+  });
+
+  it("closeAppSurface re-roots to the app's main window before deleting the session", async function () {
+    // After window-switching (ADR 01036), the session may be rooted at a
+    // dialog; deleteSession closes whatever the current root is, so the
+    // close path must re-switch to the main window first.
+    const appSession = createAppSessionState();
+    const switches = [];
+    const entry = {
+      name: "a",
+      appId: "x",
+      platform: "windows",
+      mainWindowHandle: "0xA",
+      driver: {
+        deleted: false,
+        async switchToWindow(handle) {
+          switches.push({ handle, afterDelete: this.deleted });
+        },
+        async deleteSession() {
+          this.deleted = true;
+        },
+      },
+    };
+    appSession.surfaces.set("a", entry);
+    await closeAppSurface({ entry, appSession });
+    assert.deepEqual(switches, [{ handle: "0xA", afterDelete: false }]);
+    assert.equal(entry.driver.deleted, true);
   });
 
   it("teardownAppSession closes every surface and kills the server", async function () {
@@ -1363,5 +1900,106 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
       appSession
     );
     assert.match(error, /no active session for device "pixel7"/);
+  });
+});
+
+describe("Windows console-orphan sweep (issue #501)", function () {
+  it("listWindowsDescendantPids walks the whole descendant subtree", async function () {
+    // 42 -> 100 -> 101, plus a sibling tree (200) that must NOT be included.
+    const table = [
+      { pid: 100, ppid: 42 },
+      { pid: 101, ppid: 100 },
+      { pid: 200, ppid: 1 },
+      { pid: 201, ppid: 200 },
+    ];
+    const snap = await listWindowsDescendantPids(42, async () => table);
+    assert.deepEqual([...snap].sort((a, b) => a - b), [100, 101]);
+  });
+
+  it("listWindowsDescendantPids returns empty when the table query fails", async function () {
+    const snap = await listWindowsDescendantPids(42, async () => {
+      throw new Error("no powershell");
+    });
+    assert.equal(snap.size, 0);
+  });
+
+  it("reapConsoleOrphans force-kills only the snapshotted pids still alive", async function () {
+    const alive = new Set([1, 2, 3]);
+    const killed = [];
+    const reaped = await reapConsoleOrphans([1, 2, 4], {
+      isAlive: (p) => alive.has(p),
+      forceKill: (p) => killed.push(p),
+    });
+    // 4 was already dead -> not reaped; 3 wasn't in the snapshot -> untouched.
+    assert.deepEqual(reaped, [1, 2]);
+    assert.deepEqual(killed, [1, 2]);
+  });
+
+  it("snapshotAppServerDescendants only sweeps on Windows and skips a dead server", async function () {
+    const table = [{ pid: 100, ppid: 42 }];
+    const snap = await snapshotAppServerDescendants(42, {
+      isAlive: () => true,
+      runQuery: async () => table,
+    });
+    if (process.platform === "win32") {
+      assert.deepEqual([...snap], [100]);
+    } else {
+      assert.equal(snap.size, 0);
+    }
+    // A dead server pid never triggers the (subprocess) table query.
+    let queried = false;
+    const snap2 = await snapshotAppServerDescendants(42, {
+      isAlive: () => false,
+      runQuery: async () => {
+        queried = true;
+        return table;
+      },
+    });
+    assert.equal(snap2.size, 0);
+    assert.equal(queried, false);
+  });
+
+  it("uses a real liveness probe by default (a long-dead pid is neither swept nor reaped)", async function () {
+    // Exercises the default isAlive (process.kill(pid, 0) → ESRCH) without
+    // injected fakes. An astronomically high pid is guaranteed dead.
+    const deadPid = 2147483646;
+    const snap = await snapshotAppServerDescendants(deadPid);
+    assert.equal(snap.size, 0);
+    const reaped = await reapConsoleOrphans([deadPid]);
+    assert.deepEqual(reaped, []);
+  });
+
+  it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {
+    if (process.platform !== "win32") this.skip();
+    const appSession = createAppSessionState();
+    appSession.server = { port: 1, process: { pid: 42 } };
+    const events = [];
+    // 42 is the server; 500 -> 501 are descendants that detach and survive the
+    // tree-kill (still alive afterward), so they must be force-reaped.
+    const alive = new Set([42, 500, 501]);
+    await teardownAppSession(
+      appSession,
+      async (pid) => {
+        events.push(["kill", pid]);
+        alive.delete(42);
+      },
+      {
+        isAlive: (p) => alive.has(p),
+        runQuery: async () => [
+          { pid: 500, ppid: 42 },
+          { pid: 501, ppid: 500 },
+        ],
+        forceKill: (p) => {
+          events.push(["reap", p]);
+          alive.delete(p);
+        },
+      }
+    );
+    assert.deepEqual(events, [
+      ["kill", 42],
+      ["reap", 500],
+      ["reap", 501],
+    ]);
+    assert.equal(appSession.server, undefined);
   });
 });

@@ -85,7 +85,7 @@
                     "webkit",
                     "edge"
                   ],
-                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                 },
                 "name": {
                   "type": "string",
@@ -394,6 +394,11 @@
                         "middle"
                       ]
                     },
+                    "duration": {
+                      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                      "type": "integer",
+                      "minimum": 1
+                    },
                     "surface": {
                       "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
@@ -429,7 +434,7 @@
                                 "webkit",
                                 "edge"
                               ],
-                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
                             "name": {
                               "type": "string",
@@ -687,6 +692,11 @@
                       "middle"
                     ]
                   },
+                  "duration": {
+                    "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                    "type": "integer",
+                    "minimum": 1
+                  },
                   "object": {
                     "title": "Click element (detailed)",
                     "type": "object",
@@ -737,6 +747,11 @@
                           "middle"
                         ]
                       },
+                      "duration": {
+                        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                        "type": "integer",
+                        "minimum": 1
+                      },
                       "surface": {
                         "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
@@ -772,7 +787,7 @@
                                   "webkit",
                                   "edge"
                                 ],
-                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
                               "name": {
                                 "type": "string",
@@ -1037,6 +1052,11 @@
                     "right",
                     "middle"
                   ]
+                },
+                "duration": {
+                  "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                  "type": "integer",
+                  "minimum": 1
                 }
               },
               "title": "Find element and click"
@@ -1151,7 +1171,7 @@
                                     "webkit",
                                     "edge"
                                   ],
-                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                 },
                                 "name": {
                                   "type": "string",
@@ -1398,7 +1418,7 @@
                                       "webkit",
                                       "edge"
                                     ],
-                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
                                   "name": {
                                     "type": "string",
@@ -1714,6 +1734,10 @@
                               "window": {
                                 "title": "/Find/"
                               }
+                            },
+                            {
+                              "app": "notepad",
+                              "window": -1
                             }
                           ]
                         },
@@ -2644,7 +2668,7 @@
                                       "webkit",
                                       "edge"
                                     ],
-                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
                                   "name": {
                                     "type": "string",
@@ -2891,7 +2915,7 @@
                                         "webkit",
                                         "edge"
                                       ],
-                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                     },
                                     "name": {
                                       "type": "string",
@@ -3207,6 +3231,10 @@
                                 "window": {
                                   "title": "/Find/"
                                 }
+                              },
+                              {
+                                "app": "notepad",
+                                "window": -1
                               }
                             ]
                           },
@@ -4203,7 +4231,7 @@
                       "webkit",
                       "edge"
                     ],
-                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                   },
                   "name": {
                     "type": "string",
@@ -4512,6 +4540,11 @@
                           "middle"
                         ]
                       },
+                      "duration": {
+                        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                        "type": "integer",
+                        "minimum": 1
+                      },
                       "surface": {
                         "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
@@ -4547,7 +4580,7 @@
                                   "webkit",
                                   "edge"
                                 ],
-                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
                               "name": {
                                 "type": "string",
@@ -4805,6 +4838,11 @@
                         "middle"
                       ]
                     },
+                    "duration": {
+                      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                      "type": "integer",
+                      "minimum": 1
+                    },
                     "object": {
                       "title": "Click element (detailed)",
                       "type": "object",
@@ -4855,6 +4893,11 @@
                             "middle"
                           ]
                         },
+                        "duration": {
+                          "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                          "type": "integer",
+                          "minimum": 1
+                        },
                         "surface": {
                           "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
                           "anyOf": [
@@ -4890,7 +4933,7 @@
                                     "webkit",
                                     "edge"
                                   ],
-                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                 },
                                 "name": {
                                   "type": "string",
@@ -5155,6 +5198,11 @@
                       "right",
                       "middle"
                     ]
+                  },
+                  "duration": {
+                    "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+                    "type": "integer",
+                    "minimum": 1
                   }
                 },
                 "title": "Find element and click"
@@ -5269,7 +5317,7 @@
                                       "webkit",
                                       "edge"
                                     ],
-                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
                                   "name": {
                                     "type": "string",
@@ -5516,7 +5564,7 @@
                                         "webkit",
                                         "edge"
                                       ],
-                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                     },
                                     "name": {
                                       "type": "string",
@@ -5832,6 +5880,10 @@
                                 "window": {
                                   "title": "/Find/"
                                 }
+                              },
+                              {
+                                "app": "notepad",
+                                "window": -1
                               }
                             ]
                           },
@@ -6762,7 +6814,7 @@
                                         "webkit",
                                         "edge"
                                       ],
-                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                     },
                                     "name": {
                                       "type": "string",
@@ -7009,7 +7061,7 @@
                                           "webkit",
                                           "edge"
                                         ],
-                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet; other steps require it to already be open."
+                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                       },
                                       "name": {
                                         "type": "string",
@@ -7325,6 +7377,10 @@
                                   "window": {
                                     "title": "/Find/"
                                   }
+                                },
+                                {
+                                  "app": "notepad",
+                                  "window": -1
                                 }
                               ]
                             },

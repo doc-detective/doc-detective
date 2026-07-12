@@ -22,10 +22,13 @@ import {
   matchesExpectedOutput,
   isRelativeUrl,
   appendQueryParams,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
+  isRetryableSessionError,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -417,6 +420,17 @@ describe("core/utils coverage", function () {
       process.env.DD_TEST_VAL = "world";
       assert.equal(replaceEnvs("hello $DD_TEST_VAL!"), "hello world!");
     });
+    it("does NOT touch a $NAME$ sentinel even when NAME is a set env var", function () {
+      // The $KEY$ special-key/device-key vocabulary (dollar on both sides)
+      // must survive env substitution. Regression: on Unix $HOME is set, and
+      // `$HOME$` used to get rewritten to the home path, breaking the device
+      // key. A trailing `$` marks a sentinel, not an env reference.
+      // (The describe's afterEach restores DD_TEST_VAL, so no local dance.)
+      process.env.DD_TEST_VAL = "/home/runner";
+      assert.equal(replaceEnvs("$DD_TEST_VAL$"), "$DD_TEST_VAL$");
+      // A bare $NAME reference still substitutes.
+      assert.equal(replaceEnvs("$DD_TEST_VAL/x"), "/home/runner/x");
+    });
     it("parses a whole-string variable holding a JSON object into an object", function () {
       process.env.DD_TEST_OBJ = JSON.stringify({ k: "v" });
       assert.deepEqual(replaceEnvs("$DD_TEST_OBJ"), { k: "v" });
@@ -748,6 +762,137 @@ describe("core/utils coverage", function () {
         server.once("error", reject);
         server.listen(port, "127.0.0.1", () => server.close(() => resolve()));
       });
+    });
+  });
+
+  describe("isRetryableSessionError", function () {
+    // The abort message webdriverio's fetch produces when POST /session
+    // exceeds connectionRetryTimeout (observed verbatim in CI).
+    const TIMEOUT_ABORT =
+      'WebDriverError: The operation was aborted due to timeout when running "http://127.0.0.1:49216/session" with method "POST"';
+
+    it("keeps the existing transient patterns retryable at any ceiling", function () {
+      for (const message of [
+        "connect ECONNREFUSED 127.0.0.1:4723",
+        // The concurrent-chromedriver collision on the fixed default port
+        // (9515) that ADR 01039 fixes: the browser driver must retry this the
+        // same way the Appium path does.
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        'WebDriverError: Could not proxy command to the remote server. Original error: connect ECONNREFUSED 127.0.0.1:9515 when running "execute/sync" with method "POST"',
+        "read ECONNRESET",
+        "socket hang up",
+        "unknown error: could not proxy command to the remote browser",
+        "unknown error: Chrome failed to start: crashed during startup",
+        "unknown error: cannot connect to chrome at 127.0.0.1:9222",
+        "unknown error: DevToolsActivePort file doesn't exist",
+        "session not created: This version of ChromeDriver only supports...",
+        // The concurrent-geckodriver startup crash that ADR 01041 fixes: several
+        // Firefox sessions launching at once starve a 2-core runner and one
+        // geckodriver child dies right after POST /session, so the next command
+        // can't be proxied. This is the Gecko analog of Chrome's "crashed during
+        // startup" and must retry the same way (observed verbatim in CI).
+        "WebDriverError: 'GET /session/54907282-d714-43cf-971b-e387db5a3810/window' cannot be proxied to Gecko Driver server because its process is not running (probably crashed). Check the Appium log for more details when running \"window\" with method \"GET\"",
+        "cannot be proxied to Gecko Driver server because its process is not running (probably crashed)",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 0), true, message);
+        assert.equal(isRetryableSessionError(message, 120000), true, message);
+        assert.equal(isRetryableSessionError(message, 900000), true, message);
+      }
+    });
+
+    it("retries a session-creation timeout abort only when a slow-startup ceiling was declared", function () {
+      // Native sessions (XCUITest/Mac2) declare wdaLaunchTimeout etc., which
+      // raises the ceiling past the 2-minute default: the server-side WDA
+      // build keeps running after the client abort, so a retry binds quickly.
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 900000), true);
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 120001), true);
+    });
+
+    it("keeps the timeout abort fatal for default-ceiling (browser) sessions", function () {
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 120000), false);
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, 0), false);
+      assert.equal(isRetryableSessionError(TIMEOUT_ABORT, undefined), false);
+    });
+
+    it("treats anything else as a real session-creation failure", function () {
+      for (const message of [
+        "invalid argument: unrecognized capability: appium:nope",
+        "An unknown server-side error occurred while processing the command",
+        "",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 900000), false, message);
+      }
+      assert.equal(isRetryableSessionError(undefined, 900000), false);
+    });
+  });
+
+  describe("isTransientProcessInitError", function () {
+    // The two Windows NTSTATUS init/console crashes a fresh spawn recovers from,
+    // as they appear in waitForReady's early-exit rejection.
+    const DLL_INIT_FAILED =
+      "Process exited before becoming ready (exit code -1073741502)."; // 0xC0000142
+    const CONTROL_C_EXIT =
+      "Process exited before becoming ready (exit code -1073741510)."; // 0xC000013A (observed in CI)
+
+    it("flags the transient win32 init exit codes on win32", function () {
+      assert.equal(isTransientProcessInitError(DLL_INIT_FAILED, "win32"), true);
+      assert.equal(isTransientProcessInitError(CONTROL_C_EXIT, "win32"), true);
+    });
+
+    it("does not flag the same codes off win32 (NTSTATUS is Windows-only)", function () {
+      assert.equal(isTransientProcessInitError(DLL_INIT_FAILED, "linux"), false);
+      assert.equal(isTransientProcessInitError(CONTROL_C_EXIT, "darwin"), false);
+    });
+
+    it("does not flag ordinary exit codes or a readiness timeout", function () {
+      assert.equal(
+        isTransientProcessInitError(
+          "Process exited before becoming ready (exit code 1).",
+          "win32"
+        ),
+        false
+      );
+      assert.equal(
+        isTransientProcessInitError(
+          "Process exited before becoming ready (exit code 0).",
+          "win32"
+        ),
+        false
+      );
+      // A stuck process that never exits reports a probe timeout, not an exit
+      // code — not retryable (a fresh spawn would just hang again).
+      assert.equal(
+        isTransientProcessInitError("Port 8080 did not open in time.", "win32"),
+        false
+      );
+    });
+
+    it("is safe on empty / undefined messages", function () {
+      assert.equal(isTransientProcessInitError("", "win32"), false);
+      assert.equal(isTransientProcessInitError(undefined, "win32"), false);
+    });
+  });
+
+  // The device-web post-navigation settle's budget arithmetic (goTo). Pure, so
+  // the `settleCeiling > 0` guard is proven here deterministically instead of
+  // racing wall-clock timing through the runner.
+  describe("computeSettleCeiling", function () {
+    it("returns the remaining budget when under the 3s cap", function () {
+      assert.equal(computeSettleCeiling(2500, 1000), 1500);
+      assert.equal(computeSettleCeiling(500, 100), 400);
+      assert.equal(computeSettleCeiling(3000, 100), 2900);
+    });
+
+    it("caps at 3000ms no matter how much budget remains", function () {
+      assert.equal(computeSettleCeiling(30000, 0), 3000);
+      assert.equal(computeSettleCeiling(10000, 5000), 3000);
+      assert.equal(computeSettleCeiling(4000, 1000), 3000); // 3000 remaining == cap boundary
+    });
+
+    it("floors at 0 when the budget is spent (the guard then skips the settle)", function () {
+      assert.equal(computeSettleCeiling(50, 50), 0); // exactly spent
+      assert.equal(computeSettleCeiling(50, 120), 0); // overspent -> not negative
+      assert.equal(computeSettleCeiling(1, 1_000_000), 0);
     });
   });
 });

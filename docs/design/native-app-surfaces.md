@@ -1,6 +1,18 @@
 # Design: native app surfaces
 
-Status: **proposed (schema-first)** — this expands
+Status: **A1–A7 delivered to `main`; A8 pending** — A1 Windows/NovaWindows
+([#491](https://github.com/doc-detective/doc-detective/pull/491), ADRs 01020/01021),
+A2 macOS/Mac2 ([#502](https://github.com/doc-detective/doc-detective/pull/502), ADR 01023),
+A3 Android apps + managed emulators ([#505](https://github.com/doc-detective/doc-detective/pull/505),
+ADR 01026 portable JRE; github-action v1.6.1 auto-KVM), A4 iOS preflight/installer,
+A5 mobile browsers ([#516](https://github.com/doc-detective/doc-detective/pull/516), ADR 01029),
+A6 mobile interaction vocabulary ([#517](https://github.com/doc-detective/doc-detective/pull/517)),
+A7 app window + device recording ([#524](https://github.com/doc-detective/doc-detective/pull/524),
+ADR 01032 — the A2 Retina crop-scale gap was fixed here via frame-derived scale), plus app window
+selectors ([#536](https://github.com/doc-detective/doc-detective/pull/536), ADR 01036) and
+multi-surface Phase 6 generic/parallel `startSurface`
+([#539](https://github.com/doc-detective/doc-detective/pull/539), ADR 01039). Per-phase
+implementation detail lives in those PRs and ADRs. This document expands
 [multi-surface targeting](multi-surface-targeting.md) **Phase 5** ("native app
 surfaces") into a full phased roadmap: native **Windows** apps first, then native
 **macOS**, then **emulated Android**, then **emulated iOS** — including
@@ -43,8 +55,9 @@ surfaces, the **driver architecture**, and the **phasing**. That's this document
 - **`startSurface` ships with the first app phase** (A1), pulled forward from
   multi-surface Phase 6. Apps are its first *required* consumer — browsers have
   `goTo` auto-open and processes have `runShell.background`, but apps have no
-  inline sugar. The generic browser/process branches of `startSurface` still land
-  in multi-surface Phase 6; adding branches later is additive.
+  inline sugar. The generic browser/process branches of `startSurface` shipped
+  in multi-surface Phase 6 (✅ ADR 01039); adding the branches was additive as
+  designed.
 - **Provisioning stays in steps; `runOn` stays matrix + gating** — with one
   deliberate, additive extension: **the environment matrix learns mobile target
   platforms** (`platforms: "android" | "ios"`), because a device is
@@ -266,13 +279,23 @@ Same shared shape as every kind; apps have **windows, no tabs**:
   that an app opens on its own are addressable by `title`/index, mirroring the browser
   caveat about page-opened tabs. Mobile apps are effectively single-window;
   `window` is legal but rarely needed there.
-- Window addressing depends on per-driver window-handle support. The **schema
-  shape is fixed now**; each platform phase ships the selectors its driver can
-  honor and FAILs loudly ("window selectors for <driver> land in phase …")
-  otherwise — the same pattern Phase 3 used for cross-browser targeting.
+- **Shipped for desktop drivers (ADR 01036).** Two models behind one seam
+  (`appWindows.ts`): Windows/NovaWindows is *switch-then-act* (handle-only
+  probing — the driver's title-switch branch has a foregrounding bug —
+  pid-filtered adoption of desktop-global handles, `-1` = newest adopted,
+  `index ≥ 0` FAILs: no app-scoped creation order); macOS/Mac2 is
+  *window-as-element* (`XCUIElementTypeWindow` elements, scoped finds with
+  `//`→`.//` re-anchoring, element rect/screenshot, `-1` via (title, frame)
+  baseline diff, `index` = query order). Selection is **sticky** per the
+  shared surface contract. Recording crops, swipe math, and screenshots
+  resolve window-true rects — fixing the A7-era latent bug where Mac2's
+  `getWindowRect()` (the whole main screen) made mac "window" crops
+  full-display. Mobile (android/ios) FAILs with one shared single-window
+  message — including `record`, whose A7 mobile-window SKIP became a FAIL.
 - `closeSurface` composes as designed: `{ "app": "notepad", "window": -1 }`
-  closes one window; `"closeSurface": "notepad"` ends the app session (and
-  terminates the app if Doc Detective launched it).
+  closes one window (last-window refusal points at the bare form; absent
+  match is an idempotent no-op); `"closeSurface": "notepad"` ends the app
+  session (and terminates the app if Doc Detective launched it).
 
 ## Multiple apps, one device — and multiple devices
 
@@ -312,9 +335,12 @@ the process registry — devices are *not* surfaces and are never targeted by
 ```
 
 - Sequential `startSurface` steps boot devices **serially** from A3 onward; the
-  **parallel array form** (multi-surface Phase 6) overlaps boots — worth real
-  wall-clock on 30–60s emulator starts. Concurrent *actions* across devices
-  remain a dynamic-routing concern, not a surface concern.
+  **parallel array form** (multi-surface Phase 6, ✅ shipped — ADR 01039)
+  overlaps boots — one `startSurface: [ … ]` step pre-acquires every
+  descriptor's device concurrently, worth real wall-clock on 30–60s emulator
+  starts (the app sessions themselves still open in authored order).
+  Concurrent *actions* across devices remain a dynamic-routing concern, not a
+  surface concern.
 - **Matrix vs. multi-device, disambiguated in docs:** `platforms:
   ["android","ios"]` runs the *same* test once per target (fan-out);
   two `startSurface` devices put *both* devices in *one* test run. Same
@@ -397,7 +423,7 @@ find/click/dragAndDrop/screenshot/record/type/closeSurface. Refinements:
 | `type` | ✓ | element-targeted or focused-window; device `$KEY$`s; app `waitUntil` ⊆ `{ delayMs, find }` via the same `if/then` guard pattern as `process` |
 | `swipe` | ✓ (new) | app + browser surfaces (mobile web scrolls too); meaningless on `process` — branch simply absent |
 | `screenshot` | ✓ | driver-provided window/screen capture — ships **in each platform phase** (cheap via WebDriver `takeScreenshot`) |
-| `record` | ✓ (phase A7) | ffmpeg window/region capture of native windows; joins the existing recording "display" mutex |
+| `record` | ✓ (shipped, A7) | desktop apps: ffmpeg capture cropped to the app window (display mutex unchanged); android/ios: device-screen recording via the app driver (no host display, no mutex) |
 | `dragAndDrop` | per driver | schema allows it; each adapter ships or rejects it explicitly |
 | `goTo`, `runBrowserScript`, `checkLink` | browser only | includes **mobile** browser surfaces (chrome-on-android / safari-on-ios) |
 
@@ -471,8 +497,9 @@ preflight handles "driver missing / not installable" automatically.
   window selectors, no `tab`). Additive `oneOf` entry; steps that allow apps add
   the branch to their `$ref` list per phase.
 - **`startSurface_v3.schema.json`** (new in A1): object | array, kind-keyed
-  entries. A1 ships the **app branch only**; browser/process branches land in
-  multi-surface Phase 6 as designed.
+  entries. A1 shipped the **app branch only**; the browser/process branches
+  and the parallel array form landed in multi-surface Phase 6 (✅ ADR 01039)
+  as designed.
 - **`appDescriptor`** and **`deviceDescriptor`** components (shapes above) —
   `deviceDescriptor` carries `deviceType` (`phone`|`tablet`) plus the reserved
   `orientation`/`udid`/`provider` fields with full validation from day one, and
@@ -485,8 +512,14 @@ preflight handles "driver missing / not installable" automatically.
   deliberately not included — reserved as a possible future additive change.
 - **`waitUntilApp`** readiness shape (`{ delayMs, find }`), joining
   `waitUntilBrowser`/`waitUntilProcess` in the kind-shaped `if/then` guards.
-- **`swipe_v3.schema.json`** (new, phase A6): direction string |
-  `{ direction, distance?, from?, to?, surface? }`.
+- **`swipe_v3.schema.json`** (new, phase A6 — shipped): direction string |
+  `{ direction, distance?, duration?, surface? }` |
+  `{ from, to, duration?, surface? }` (points are literal pixels from the
+  surface's top-left, the existing window/viewport pixel convention;
+  `distance` stays a fraction; the two object forms are mutually exclusive
+  branches). Point-to-point shipped in A6 rather than being reserved — swipe
+  is the **movement subset of `dragAndDrop`** (ADR 01030), and every shipped
+  driver had a real point-movement primitive, so reserving bought nothing.
 - `click_v3` gains optional **`duration`**; the `$KEY$` vocabulary gains device
   keys (docs + adapter maps, not schema).
 - `context_v3` gains **`requires`** (progressive: string → array →
@@ -524,30 +557,80 @@ fixtures.
   `install` (.apk), `activity`, headless emulator, the UiAutomator2 mapping
   column, multi-app-per-device switching. Runs on any capable host OS; CI recipe
   (Linux runner + KVM) documented and exercised.
-- **Phase A4 — iOS apps + the `ios` platform (XCUITest).** simctl
-  boot/reuse/teardown, `install` (.app), WebDriverAgent build/caching preflight,
-  the XCUITest mapping column. macOS hosts only.
-- **Phase A5 — mobile browsers.** `browsers` on mobile platform entries: Chrome
-  on Android (on-device chromedriver management), Safari on iOS; the
-  unsupported-combination SKIP matrix; mobile-web fixtures (goTo/find/click/
-  screenshot on a device browser). Un-gates the "one page, four targets" story.
-- **Phase A6 — mobile interaction vocabulary.** `swipe`, `click.duration`,
-  device `$KEY$`s, `find` auto-scroll on app surfaces, the permission-dialog
-  docs pattern. Multi-device fixtures (the two-phone conversation) land here,
-  serial-boot; the parallel array form arrives with multi-surface Phase 6.
-- **Phase A7 — app window recording.** `record` on app surfaces via ffmpeg
-  native-window/region capture, joining the display mutex; subsumes the
-  standalone "recording for all apps" thread (doc-detective#220, #345
-  interactions documented). **Known scaling gap to fix here (found in A2):**
-  the autoRecord window-crop scaler probes `devicePixelRatio` via browser-JS
-  `execute`, which the native drivers (NovaWindows, Mac2) don't support, so it
-  falls back to 1. Correct on scale-1 displays (CI-verified on macOS: the
-  TextEdit autoRecord crop bound exactly to the window rect), but on a Retina /
-  scaled display the capture is in physical pixels while `getWindowRect`
-  returns points — the crop would land half-sized and misplaced. A7 should
-  derive the scale factor from capture-frame size ÷ display size in points
-  (per capture backend: avfoundation / gdigrab / x11grab) instead of a DOM
-  probe.
+- **Phase A4 — iOS apps + the `ios` platform (XCUITest).** Implemented for
+  macOS-capable hosts. iOS contexts route through app-surface preflight,
+  resolve/install the `appium-xcuitest-driver`, and gate with actionable
+  `xcode-select`/`simctl` guidance when host tooling is missing;
+  `doc-detective install ios` prepares/diagnoses the host. Full simulator
+  lifecycle parity with Android now landed (ADR 01028): a Doc-Detective-owned
+  `simctl` registry resolves the newest iPhone (or a named/created device),
+  boots/reuses/creates it, attaches XCUITest by `udid`, shares one session per
+  simulator with `activateApp` switching, and shuts down only simulators it
+  booted at run end. `install` (.app), `device` (name/deviceType/osVersion),
+  and the XCUITest mapping column are honored; `headless` is a no-op (simulators
+  boot without the Simulator UI). macOS hosts only; the `apps-ios` fixture leg
+  gates on ≥1 real PASS. Deeper refinements (parallel multi-simulator boots,
+  orientation, real devices/WebDriverAgent provisioning) stay later-phase scope.
+- **Phase A5 — mobile browsers.** Implemented (ADR 01029). `browsers` on a
+  mobile platform entry means the browser on the managed device, driven
+  through one webdriver session per device with `browserName` set (Chrome via
+  UiAutomator2 with server-managed chromedriver autodownload cached under the
+  DD cache; Safari via XCUITest with the generous WDA build ceiling) —
+  created through the A3/A4 device registry path and registered in the
+  browser session registry, so goTo/find/click/screenshot run the desktop
+  code unchanged. A pure pre-toolchain gate enforces the support matrix
+  (chrome+android, safari+ios; everything else SKIPs with the supported
+  browser named), fills the platform default browser, FAILs authored
+  device-fixed config (`headless: false`/`window`/`viewport` → pointer to the
+  device descriptor), and defers mixed native-app + web contexts with a
+  split-the-test SKIP (originally penciled for A6; still deferred — see the
+  A6 entry). `safari` → `webkit` aliasing became platform-aware
+  (desktop pairs only), so `safari` on ios means the device Safari. The "one
+  page, four targets" story is un-gated — `platforms:
+  ["windows","mac","android","ios"], browsers: "chrome"` — with the ios leg
+  landing on the matrix SKIP. Mobile-web fixtures run gated on the Android
+  KVM legs and the macOS leg (`mobile-web-android` / `mobile-web-ios`
+  groups); emulator tests reach the host via `10.0.2.2`.
+- **Phase A6 — mobile interaction vocabulary.** Shipped (ADR 01030): `swipe`
+  (all three forms — the movement subset of `dragAndDrop`, on the shared
+  coordinate-movement engine in `movement.ts`/`appGestures.ts`),
+  `click.duration` (long-press on mobile, press-and-hold on desktop apps and
+  browsers), device `$KEY$`s plus common editing keys on mobile app surfaces,
+  `find` auto-scroll (bounded, downward, mobile-only — UIA/AX expose
+  off-screen elements without it), the permission-dialog docs pattern, and
+  the two-phone multi-device fixture (serial boots,
+  `DD_FIXTURE_MULTIDEVICE`-gated to the managed KVM leg); the fixture moved
+  to the parallel array form when multi-surface Phase 6 shipped (ADR 01039). **Deviations found in
+  implementation:** XCUITest's `mobile: keys` is iPad-only (Xcode 15+), so
+  criteria-less *text* typing shipped on Android only (`mobile: type` into
+  the focused element) — iOS keeps requiring element criteria for text, and
+  device-key presses need no criteria on either platform. Mixed native-app +
+  web contexts (the A5 split-the-test SKIP) stayed deferred: NATIVE_APP/
+  WEBVIEW context switching is its own subsystem and was never in A6's scope
+  list — it now rides with a later phase.
+- **Phase A7 — app window and device recording.** Shipped (ADR 01032):
+  `record.surface` gains the app branch; a record targeting an app surface is
+  an ffmpeg capture **cropped to the app window by default** (`target:
+  "display"` opts out), joining the display mutex unchanged. Subsumes the
+  standalone "recording for all apps" thread (doc-detective#220 closed; #345
+  occlusion handling documented as a known limitation, still open). The
+  A2-found scaling gap is fixed as designed: app-window crop rects are stored
+  unscaled with a pending-scale marker, and the stop-side transcode scales
+  them by capture-frame size ÷ display size in points (frame size parsed
+  eagerly from the capture ffmpeg's stderr head; macOS points via a JXA
+  NSScreen probe; win32/linux scale 1 by construction — **empirically
+  verified on a 3840×2160 Windows display at 175 % scale**, where UIA rects
+  and gdigrab agree in physical pixels and the crop bound exactly to the
+  window). **Deviations found in implementation:** mobile contexts record the
+  **device screen** through the drivers' `startRecordingScreen` (adb
+  screenrecord / simctl) rather than host ffmpeg — an internal "device" plan
+  that never appears in the schema; device recordings hold no host display,
+  so they're exempt from the display mutex and run fully concurrent
+  (autoRecord on mobile drops its ffmpeg pin and late-starts when the first
+  device session opens). One device recording per device at a time
+  (screenrecord is single-instance) and a 30-minute cap; overlap/LIFO
+  permutations are desktop-only. `viewport`-on-app and desktop engines on
+  mobile resolve as guided SKIPs, not schema rejections.
 - **Phase A8 — Linux investigation + remote groundwork.** Time-boxed spike on
   `selenium-webdriver-at-spi` (maturity, Wayland, packaging) → ADR with a
   go/no-go; specify (still without implementing) the runtime semantics of the

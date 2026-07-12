@@ -15,11 +15,13 @@ description: "Reference for the `Find element and click` schema."
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 button | string | Optional. Kind of click to perform.<br/><br/>Accepted values: `left`, `right`, `middle` | 
+duration | integer | Optional. How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.<br/><br/>Minimum: 1 | 
 
 ## Examples
 
 ```json
 {
-  "button": "left"
+  "button": "left",
+  "duration": 42
 }
 ```

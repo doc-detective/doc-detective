@@ -13,8 +13,8 @@ You can specify the keys to type in several ways:
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
   - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
-  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to a browser reference (for example `{ "browser": "chrome", "tab": "cart" }`, or a named browser `{ "browser": "firefox", "name": "admin" }`) to type in a specific browser or tab, or to a process name to send keystrokes to a background process. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) and [Type to a background process](#type-to-a-background-process).
-  - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. Requires a `surface`, and the conditions depend on its kind: a process surface accepts `stdio`/`delayMs`, and a browser surface accepts `networkIdleTime`/`domIdleTime`/`find` (no condition applies by default). See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
+  - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active browser element; set it to a browser reference (for example `{ "browser": "chrome", "tab": "cart" }`, or a named browser `{ "browser": "firefox", "name": "admin" }`) to type in a specific browser or tab, to a process name to send keystrokes to a background process, or to an app reference (for example `{ "app": "notepad" }`) to type into an element on a [native app surface](/docs/actions/startsurface). See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Type to a background process](#type-to-a-background-process), and [Type into an app surface](#type-into-an-app-surface).
+  - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. Requires a `surface`, and the conditions depend on its kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, and an app surface accepts `delayMs`/`find` (no condition applies by default). See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
   - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
@@ -86,11 +86,42 @@ Here's a list of special keys you can use:
 | F11            | $F11$              |
 | F12            | $F12$              |
 
+## Device keys (mobile app surfaces)
+
+On an Android or iOS app surface, the `$KEY$` vocabulary grows the device's own keys. Device keys never need element criteria—pressing Back doesn't involve a text field:
+
+```json
+{ "type": { "keys": ["$BACK$"], "surface": { "app": "myapp" } } }
+```
+
+| Key | Code | Android | iOS |
+| --- | --- | --- | --- |
+| Back | $BACK$ | ✓ | ✗—iOS has no back button. Click the app's own back control instead. |
+| Home (device) | $HOME$ | ✓ | ✓ |
+| App switcher | $APP_SWITCH$ | ✓ | ✗ |
+| Volume up | $VOLUME_UP$ | ✓ | ✓ |
+| Volume down | $VOLUME_DOWN$ | ✓ | ✓ |
+
+<Warning>
+
+`$HOME$` means the **device home button** on mobile app surfaces—on browser surfaces it means cursor-to-line-start, as in the table above.
+
+</Warning>
+
+Common editing keys work on mobile app surfaces too. Android maps them to key codes (`$ENTER$`, `$TAB$`, arrows, `$BACKSPACE$`, …), and iOS folds the text-equivalent ones (`$ENTER$`, `$TAB$`, `$BACKSPACE$`) into the typed text.
+
+**Typing text on mobile app surfaces:**
+
+- With element criteria, `type` finds the element, focuses it, and types—same as everywhere else.
+- **Android** also types without criteria, into whatever element has focus—matching how browser typing works: `{ "type": { "keys": ["Hi Bob!", "$ENTER$"], "surface": { "app": "chat" } } }`.
+- **iOS** requires element criteria for text—the platform has no reliable focused-element typing. Device keys alone are fine without criteria.
+- Windows/macOS app surfaces don't support `$KEY$` tokens yet (the vocabulary is mobile-only in this phase) and require element criteria.
+
 ## Type to a background process
 
 By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/run-shell#full-screen-terminal-uis).
 
-A process surface is the only surface kind supported in this release. Browser and app surfaces aren't supported yet, and targeting one fails the step.
+To send keystrokes to a native desktop app instead, target an [app surface](#type-into-an-app-surface). `surface` can also name a browser (session, window, or tab) or an app surface—see [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules. On Windows and macOS app surfaces, add a `window` selector to type in a specific window of the app (`{ "app": "notepad", "window": { "title": "/Find/" } }`)—see [App windows](find#app-windows).
 
 Identify the process with `surface`, using either form:
 
@@ -130,9 +161,24 @@ After sending the keys, use `waitUntil` to wait for the process before the step 
 
 The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`.
 
+## Type into an app surface
+
+Set `surface` to an app reference, such as `{ "app": "notepad" }`, to type into a control on a [native app surface](/docs/actions/startsurface) that a `startSurface` step opened.
+
+Unlike browser typing, typing on an app surface requires element criteria to name the target control. Provide `elementText`, `elementId`, `elementAria`, or a native `selector` (an XPath or a `~`-prefixed accessibility ID). Typing into the active element isn't available on app surfaces. Doc Detective clicks the control to focus it, then types.
+
+Two limits apply in this phase:
+
+- `$KEY$` key tokens (listed under [Special keys](#special-keys)) aren't supported on app surfaces. The device key vocabulary lands in a later phase.
+- `waitUntil` on an app surface accepts only `delayMs` and `find`.
+
+App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to Windows.
+
 ## Examples
 
 ### Perform a search (array shorthand)
+
+{/* test {"testId":"type-array-shorthand","detectSteps":false} */}
 
 ```json
 {
@@ -159,6 +205,12 @@ The step records the process `name`, the captured `stdout` and `stderr`, and whe
   ]
 }
 ```
+
+{/* step {"stepId":"goto-type-array","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"focus-input-array","description":"Focus the input","find":{"selector":"#type-input","click":true}} */}
+{/* step {"stepId":"type-array","description":"Type text and a space as an array of keys","type":["Doc","$SPACE$","Detective"]} */}
+{/* step {"stepId":"verify-type-array","description":"The input echoes its value only when text is actually typed","find":"Doc Detective"} */}
+{/* test end */}
 
 ### Fill credentials from environment variables (string shorthand)
 
@@ -199,6 +251,8 @@ The step records the process `name`, the captured `stdout` and `stderr`, and whe
 
 ### Type with an increased delay (object format)
 
+{/* test {"testId":"type-object-format","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -236,9 +290,17 @@ The step records the process `name`, the captured `stdout` and `stderr`, and whe
 }
 ```
 
+{/* step {"stepId":"goto-type-object","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"focus-input-object","description":"Focus the input","find":{"selector":"#type-input","click":true}} */}
+{/* step {"stepId":"type-object","description":"Type using the object format with an increased delay","type":{"keys":"Typed with the object format","inputDelay":150}} */}
+{/* step {"stepId":"verify-type-object","description":"Confirm the typed text was entered","find":"Typed with the object format"} */}
+{/* test end */}
+
 ### Drive an interactive REPL (process surface)
 
-This example starts `node -i` in the background, waits until the prompt appears, types an expression, and waits until the REPL prints `42`. It then closes the process with a [`closeSurface`](/docs/actions/close-surface) step.
+{/* test {"testId":"type-repl-process-surface","detectSteps":false} */}
+
+This example starts `node -i` in the background, waits until the prompt appears, types an expression, and waits until the REPL prints `42`. It then closes the process with a [`closeSurface`](/docs/actions/closesurface) step.
 
 ```json
 {
@@ -278,6 +340,11 @@ This example starts `node -i` in the background, waits until the prompt appears,
 }
 ```
 
+{/* step {"stepId":"start-repl","description":"Start a Node REPL in the background","runShell":{"command":"node -i","background":{"name":"type-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} */}
+{/* step {"stepId":"eval-in-repl","description":"Evaluate an expression and wait for the result","type":{"keys":["6 * 7","$ENTER$"],"surface":"type-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} */}
+{/* step {"stepId":"stop-repl","description":"Close the REPL","closeSurface":"type-repl"} */}
+{/* test end */}
+
 ### Send Ctrl+C to a process
 
 This example sends `Ctrl+C` to a running background process. Without a `waitUntil`, the step finishes as soon as the keys are sent.
@@ -292,6 +359,34 @@ This example sends `Ctrl+C` to a running background process. Without a `waitUnti
           "type": {
             "keys": ["$CTRL$", "c"],
             "surface": { "process": "repl" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Type into an app surface
+
+This example types into a control on an app surface, naming the control with a native selector. See [`startSurface`](/docs/actions/startsurface) for the full launch-to-close flow.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Type into the copy box.",
+          "type": {
+            "keys": ["AB"],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
+            "surface": { "app": "charmap" }
           }
         }
       ]

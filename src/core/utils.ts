@@ -6,7 +6,15 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
-import { loadHeavyDep } from "../runtime/loader.js";
+import {
+  loadHeavyDep,
+  resolveHeavyDepPath,
+  ensureRuntimeInstalled,
+} from "../runtime/loader.js";
+import {
+  assertConptyAllocatable,
+  ensurePtyBackendOnDisk,
+} from "./ptyWatchdog.js";
 
 export {
   outputResults,
@@ -33,10 +41,14 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  isDeviceWebContext,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
+  isRetryableSessionError,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -413,6 +425,34 @@ async function spawnPtyBackgroundCommand(
     throw err;
   }
 
+  // #501 guard, part 1 — stale-module self-heal. loadHeavyDep succeeding is
+  // NOT proof the backend is usable: a mid-run JIT install of another heavy
+  // dep used to prune node-pty's files from the runtime cache while the
+  // module stayed importable from the stale resolution + ESM caches, and a
+  // spawn without its on-disk support files freezes the process inside a
+  // native wait. Verify the resolved path physically exists, force-reinstall
+  // when it doesn't (same paths → the loaded module's support files return),
+  // and SKIP (NODE_PTY_UNAVAILABLE) if the files can't be restored.
+  const ptyModulePath = await ensurePtyBackendOnDisk({
+    resolvePath: () =>
+      resolveHeavyDepPath(PTY_PACKAGE, { cacheDir: options.cacheDir }),
+    reinstall: () =>
+      ensureRuntimeInstalled([PTY_PACKAGE], {
+        ctx: { cacheDir: options.cacheDir },
+        force: true,
+      }),
+  });
+
+  // #501 guard, part 2 — Windows-only ConPTY watchdog, defense-in-depth for
+  // wedges the disk check can't see (upstream node-pty hangs at the native
+  // connect: microsoft/node-pty #640/#532/#512; environment-specific console
+  // states). The probe runs in a worker thread because the freeze is a
+  // synchronous native block — a same-thread timeout can never fire — and a
+  // worker shares this process's state where a child process wouldn't. Only a
+  // genuine wedge degrades to SKIP; a healthy/inconclusive probe falls through
+  // to the direct spawn below, so the happy path can never regress.
+  await assertConptyAllocatable({ ptyModulePath });
+
   const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
   const fullCommand = cmd + argstr;
   const isWin = process.platform === "win32";
@@ -702,6 +742,80 @@ async function waitForReady(
   await Promise.race([ready, earlyExit]);
 }
 
+// Two families of transient, retryable session-creation failures, both worse
+// under concurrency:
+//   1. POST /session races a just-spawned-or-still-dying Appium (Windows):
+//      /status returns 200 from the outgoing process while /session no longer
+//      accepts, or Appium's proxy to chromedriver drops the socket ->
+//      ECONNREFUSED / ECONNRESET / "socket hang up" / "could not proxy command".
+//   2. Several browsers launching at once briefly starve resources and a
+//      driver child dies during startup. For Chrome this reads as ChromeDriver
+//      "crashed during startup" / "cannot connect to" / "DevToolsActivePort" /
+//      "session not created"; for Firefox the just-created geckodriver child
+//      crashes right after POST /session, so the next command reports it
+//      "cannot be proxied to Gecko Driver server because its process is not
+//      running (probably crashed)" (ADR 01042). Both are the same transient
+//      concurrent-startup contention: a staggered retry lets it clear and
+//      recovers on the next attempt in practice.
+const TRANSIENT_SESSION_ERROR =
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server/i;
+
+// The wdio client aborts POST /session with "aborted due to timeout" when the
+// request exceeds connectionRetryTimeout. For native sessions that declared a
+// slow-startup ceiling (XCUITest's wdaLaunchTimeout / Mac2's
+// serverStartupTimeout raise it past the 2-minute default), the server-side
+// WebDriverAgent xcodebuild keeps running after the client gives up, so a
+// fresh POST typically binds quickly — retry it. Default-ceiling (browser /
+// Windows / Android) sessions keep today's fail-fast behavior: there a
+// 2-minute session POST means something is genuinely wrong.
+const SESSION_TIMEOUT_ABORT = /aborted due to timeout/i;
+
+function isRetryableSessionError(
+  message: string | undefined,
+  startupCeiling: number | undefined = 0
+): boolean {
+  if (typeof message !== "string" || !message) return false;
+  if (TRANSIENT_SESSION_ERROR.test(message)) return true;
+  return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+}
+
+// Windows NTSTATUS exit codes for a process that died *during initialization*
+// under concurrent-spawn contention — the process-surface analogue of the
+// driver-start transient session races above (ADR 01042). At
+// `concurrentRunners > 1` a startSurface that opens many process/PTY children
+// at once can transiently exhaust a Windows loader/console limit so one child
+// crashes before it can signal ready:
+//   • 0xC0000142 (-1073741502) STATUS_DLL_INIT_FAILED — the loader couldn't
+//     initialize a DLL for the child (classic heavy-concurrent-spawn failure).
+//   • 0xC000013A (-1073741510) STATUS_CONTROL_C_EXIT — a spurious console-control
+//     termination delivered to a just-spawned console/ConPTY child during
+//     startup; observed in CI on `p6-tty` at concurrentRunners 2.
+// Both clear on a fresh spawn in practice, so a bounded retry recovers.
+// Windows-only: these are NTSTATUS values, meaningless on POSIX (where the same
+// decimals would be ordinary signal/exit codes), so the guard never fires off
+// win32 and `concurrentRunners: 1` behavior is byte-identical.
+const TRANSIENT_PROCESS_INIT_EXIT_CODES = new Set([
+  -1073741502, // 0xC0000142 STATUS_DLL_INIT_FAILED
+  -1073741510, // 0xC000013A STATUS_CONTROL_C_EXIT
+]);
+
+function isTransientProcessInitError(
+  message: string | undefined,
+  platform: string = process.platform
+): boolean {
+  if (platform !== "win32") return false;
+  if (typeof message !== "string" || !message) return false;
+  // waitForReady's early-exit rejection is
+  // `Process exited before becoming ready (exit code <n>).` — pull the code and
+  // match it against the transient NTSTATUS set. Only the early-exit shape is
+  // retryable; a readiness *timeout* (a genuinely stuck process) is not.
+  const match = message.match(
+    /exited before becoming ready \(exit code (-?\d+)\)/
+  );
+  if (!match) return false;
+  return TRANSIENT_PROCESS_INIT_EXIT_CODES.has(Number(match[1]));
+}
+
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return [];
   // Trim each pattern before compiling so config / env / CLI inputs all
@@ -752,6 +866,40 @@ function isRelativeUrl(url: string) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+// Is this WebdriverIO session a DEVICE (iOS/Android) session running in a WEB
+// (browser) context? This is the tight gate for the post-navigation settle in
+// goTo (ADR 01047): the settle exists only to absorb the freshly-built-WDA
+// window where an iOS Safari (XCUITest web context) element tree is momentarily
+// empty right after navigation while readyState already reports complete.
+//
+// - `isMobile` is WebdriverIO's own device flag (true when platformName is
+//   iOS/Android or Appium caps are present) — desktop browser sessions have it
+//   falsy, so desktop keeps a byte-identical control path (no settle).
+// - `capabilities.browserName` distinguishes a mobile-WEB session (Safari on
+//   iOS, Chrome on Android) from a native-app session (no browserName). A
+//   native-app context never reaches goTo, but gating on browserName keeps the
+//   predicate honest and self-describing.
+function isDeviceWebContext(driver: any): boolean {
+  if (!driver) return false;
+  const isMobile = driver.isMobile === true;
+  const browserName = driver.capabilities?.browserName;
+  return isMobile && typeof browserName === "string" && browserName.length > 0;
+}
+
+// Ceiling (ms) for the device-web post-navigation settle in goTo: whatever of
+// the goTo timeout remains after the readiness gate, capped at 3s and floored
+// at 0. A non-positive result means "no budget left" — goTo's `> 0` guard then
+// skips the settle entirely. Pure so the guard's arithmetic is tested directly,
+// without racing wall-clock timing through the runner.
+const SETTLE_CEILING_MAX_MS = 3000;
+/**
+ * @internal Implementation detail of goTo's device-web settle, exported only so
+ * the unit tests can exercise it. Not a public API; do not rely on it externally.
+ */
+function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
+  return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));
 }
 
 function appendQueryParams(
@@ -1274,8 +1422,14 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+/, "g");
+    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
+    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
+    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
+    // treated as an env-var reference. Without it, `$HOME$` matched the
+    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
+    // got rewritten to the home path, corrupting the sentinel. A real env ref
+    // is `$NAME` NOT followed by another `$` (or word char).
+    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
     const matches = stringOrObject.match(variableRegex);
     // If no matches, return string
     if (!matches) return stringOrObject;

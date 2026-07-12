@@ -1,0 +1,40 @@
+{
+  "specId": "swipe-browser-a6",
+  "description": "Phase A6 swipe on browser surfaces (docs/design/native-app-surfaces.md): the bare string form acts on the active tab, the directional object form scrolls with finger-motion semantics (swiping up reveals content below via window.scrollBy), and the point-to-point form performs a real W3C pointer drag. The enhanced-elements page on the group's test server is the target; the exact scroll deltas are unit-tested (test/swipe.test.js), so this spec asserts the real driver accepts both mechanisms.",
+  "tests": [
+    {
+      "testId": "swipe-browser-forms",
+      "description": "Load a page, swipe with the string form (active tab), the directional object form, and the point-to-point form, then confirm the page is still responsive with a find.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "swipe": "up"
+        },
+        {
+          "swipe": {
+            "direction": "down",
+            "distance": 0.3
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 400,
+              "y": 400
+            },
+            "to": {
+              "x": 400,
+              "y": 250
+            },
+            "duration": 300
+          }
+        },
+        {
+          "find": "#submit-button"
+        }
+      ]
+    }
+  ]
+}

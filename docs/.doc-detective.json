@@ -1,5 +1,7 @@
 {
   "detectSteps": false,
+  "beforeAny": "./test-setup/start-server.spec.json",
+  "afterAll": "./test-setup/stop-server.spec.json",
   "telemetry": {
     "send": true
   }

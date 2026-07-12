@@ -6,6 +6,13 @@ import {
   ensureAppForeground,
 } from "./appSurface.js";
 import {
+  resolveAppWindow,
+  activeAppWindow,
+  scopedFindRoot,
+} from "./appWindows.js";
+import { APP_GESTURES } from "./appGestures.js";
+import { performElementPress } from "./movement.js";
+import {
   findElementByShorthand,
   findElementByCriteria,
   setElementOutputs,
@@ -77,11 +84,25 @@ async function findElement({ config, step, driver, click, appSession }: { config
         result.description = appRef.error;
         return result;
       }
+      // Window selectors (ADR 01036): resolve to a real window — Windows
+      // re-roots the session (sticky), macOS holds the window element and
+      // scopes the find under it. Without a selector, macOS steps keep
+      // acting on the sticky active window.
+      let windowTarget: any = null;
       if (appRef.window !== undefined) {
-        result.status = "FAIL";
-        result.description =
-          "Window selectors on app surfaces land in a later part of this phase; act on the app's active window for now (omit `window`).";
-        return result;
+        const resolved = await resolveAppWindow({
+          entry: appRef.entry!,
+          selector: appRef.window,
+          timeoutMs: step.find.timeout ?? 5000,
+        });
+        if (!resolved.ok) {
+          result.status = "FAIL";
+          result.description = resolved.message;
+          return result;
+        }
+        windowTarget = resolved.target;
+      } else {
+        windowTarget = await activeAppWindow(appRef.entry!);
       }
       // Activate this app on its shared Android device session (no-op on
       // desktop / when already foreground) before locating.
@@ -99,6 +120,7 @@ async function findElement({ config, step, driver, click, appSession }: { config
         // immediate check instead of being clobbered to the default.
         timeout: step.find.timeout ?? 5000,
         platform: appRef.entry!.platform,
+        root: scopedFindRoot(appRef.entry!, windowTarget),
       });
       if (found.error) {
         result.description = found.error;
@@ -119,12 +141,66 @@ async function findElement({ config, step, driver, click, appSession }: { config
         return result;
       }
       if (click || step.find.click) {
-        try {
-          await found.element.click();
-          result.description += " Clicked element.";
-        } catch (error: any) {
+        const clickSpec = step.find.click;
+        const button =
+          typeof clickSpec === "string" &&
+          ["left", "right", "middle"].includes(clickSpec)
+            ? clickSpec
+            : clickSpec?.button || "left";
+        const duration = step.find.click?.duration;
+        const gestures =
+          APP_GESTURES[appRef.entry!.platform ?? "windows"];
+        if (duration && button !== "left") {
+          // A long-press on an app surface is a primary-button press-and-hold;
+          // the adapters don't hold a non-left button. Reject the combination
+          // rather than silently long-pressing the left button.
           result.status = "FAIL";
-          result.description += ` Couldn't click element. Error: ${error.message}`;
+          result.description += ` A long-press on an app surface uses the primary button; drop \`button: "${button}"\` or the \`duration\`.`;
+          return result;
+        }
+        if (duration) {
+          // Long-press (phase A6): dispatch to the platform's gesture adapter
+          // (longClickGesture / touchAndHold / windows: click durationMs /
+          // Mac2 W3C mouse chain). Press-and-hold is the primary button.
+          try {
+            await gestures.longPress(appDriver, found.element, duration);
+            result.description += ` Long-pressed element (${duration}ms).`;
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't long-press element (duration ${duration}ms). Error: ${error.message}`;
+          }
+        } else if (button !== "left") {
+          // Non-left click: the drivers that can do it honor the button
+          // (NovaWindows windows: click, Mac2 macos: rightClick); touch
+          // surfaces and Mac2's absent middle-click return an actionable error.
+          try {
+            const clicked = await gestures.clickButton(
+              appDriver,
+              found.element,
+              button
+            );
+            if (clicked.error) {
+              result.status = "FAIL";
+              result.description += ` ${clicked.error}`;
+            } else {
+              result.description += ` ${button}-clicked element.`;
+            }
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't ${button}-click element. Error: ${error.message}`;
+          }
+        } else {
+          try {
+            if (gestures?.leftClick) {
+              await gestures.leftClick(appDriver, found.element);
+            } else {
+              await found.element.click();
+            }
+            result.description += " Clicked element.";
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't click element. Error: ${error.message}`;
+          }
         }
       }
       return result;
@@ -157,9 +233,12 @@ async function findElement({ config, step, driver, click, appSession }: { config
       result.outputs.found = true;
       await finalizeFound({ result });
       // Shorthand carries no sub-effect fields, so button defaults to left.
+      // Argument-less click() maps to the classic element-click endpoint;
+      // passing options makes wdio emit W3C pointer actions, which device
+      // browsers (XCUITest web context, phase A5) reject.
       if (click) {
         try {
-          await element.click({ button: "left" });
+          await element.click();
           result.description += " Clicked element.";
         } catch (error: any) {
           result.status = "FAIL";
@@ -252,16 +331,46 @@ async function findElement({ config, step, driver, click, appSession }: { config
     result.description = result.description + " Moved to element.";
   }
 
-  // Click element
+  // Click element. A left/default click is argument-less: with options wdio
+  // emits W3C pointer actions, which device browsers (XCUITest web context,
+  // phase A5) reject — the bare form maps to the classic element-click
+  // endpoint and works everywhere. Non-left buttons genuinely need the
+  // actions path, so they keep the options form (desktop-only).
   if (step.find.click || click) {
     try {
-      await element.click({
-        button: step.find.click?.button || "left",
-      });
-      result.description += " Clicked element.";
+      // The sub-effect's string shorthand names the button ("right"), per the
+      // docs; other strings (element identifiers in click_v3's string form)
+      // and `true` mean a default left click.
+      const clickSpec = step.find.click;
+      const button =
+        typeof clickSpec === "string" &&
+        ["left", "right", "middle"].includes(clickSpec)
+          ? clickSpec
+          : clickSpec?.button || "left";
+      const duration =
+        typeof clickSpec === "object" ? clickSpec?.duration : undefined;
+      if (duration) {
+        // Long-press (phase A6): a W3C press-pause-release chain. Like
+        // non-left buttons, this needs the actions path, so it's
+        // desktop-browser-only (device web contexts reject it).
+        await performElementPress({ driver, element, button, duration });
+        result.description += ` Long-pressed element (${duration}ms).`;
+      } else if (button === "left") {
+        await element.click();
+        result.description += " Clicked element.";
+      } else {
+        await element.click({ button });
+        result.description += " Clicked element.";
+      }
     } catch (error: any) {
       result.status = "FAIL";
-      result.description += ` Couldn't click element. Error: ${error.message}`;
+      // Name the operation that actually failed so a long-press failure
+      // doesn't masquerade as a plain click.
+      const failed =
+        typeof step.find.click === "object" && step.find.click?.duration
+          ? `long-press element (${step.find.click.duration}ms)`
+          : "click element";
+      result.description += ` Couldn't ${failed}. Error: ${error.message}`;
       return result;
     }
   }

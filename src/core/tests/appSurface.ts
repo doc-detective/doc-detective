@@ -10,7 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import {
   resolveHeavyDepPath,
   resolveHeavyDepPathInCache,
@@ -20,8 +20,18 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import { log } from "../utils.js";
-import { resolveCropGeometry } from "./ffmpegRecorder.js";
+import {
+  snapshotAppWindows,
+  rewriteXPathForScopedFind,
+  appWindowRect,
+} from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { APP_GESTURES } from "./appGestures.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
+import {
+  stepTargetsAppSurface,
+  stepOpensAppSurface,
+} from "../../runtime/browserStepKeys.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -31,6 +41,7 @@ export {
   buildUiaLocator,
   buildAxLocator,
   buildUiAutomator2Locator,
+  buildXCUITestLocator,
   createAppSessionState,
   appSurfacePreflight,
   // Exported as a test seam: the JXA probe must return a definitive boolean
@@ -46,9 +57,13 @@ export {
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
+  snapshotAppServerDescendants,
+  reapConsoleOrphans,
+  listWindowsDescendantPids,
   // Exported as a test seam: the manifest-staleness rules are load-bearing
   // (a stale manifest makes the lazily-installed driver invisible to Appium).
   invalidateStaleAppiumManifest,
+  probeIosToolchain,
 };
 export type { AppSessionState, AppSurfaceEntry };
 
@@ -362,6 +377,19 @@ function buildUiAutomator2Locator(criteria: {
   return { strategy: "xpath", value: `//${tag ?? "*"}${predicate}` };
 }
 
+// Build an iOS (XCUITest) locator from the shared semantic element fields.
+// XCUITest shares the XCUI role taxonomy with Mac2, so this column reuses the
+// AX/XCUI mapping semantics for role/name/text while running against iOS.
+function buildXCUITestLocator(criteria: {
+  elementText?: string;
+  elementId?: string;
+  elementTestId?: string;
+  elementAria?: { role?: string; name?: string } | string;
+  [key: string]: any;
+}): { strategy: string; value: string } | null {
+  return buildAxLocator(criteria);
+}
+
 // ---------------------------------------------------------------------------
 // Runtime: app sessions, preflight, and app-side step implementations.
 // ---------------------------------------------------------------------------
@@ -438,11 +466,11 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         // NovaWindows (like WinAppDriver) takes appArguments as one string.
         capabilities["appium:appArguments"] = descriptor.args.join(" ");
       }
-      if (descriptor.workingDirectory && descriptor.workingDirectory !== ".") {
-        capabilities["appium:appWorkingDir"] = path.resolve(
-          descriptor.workingDirectory
-        );
-      }
+      // `workingDirectory` is NOT mapped: NovaWindows v1.4.1 silently ignores
+      // the appWorkingDir capability (the launched process inherits the
+      // driver's PowerShell session cwd), so mapping it would be a no-op the
+      // author can't see. It's rejected in unsupportedFields below instead —
+      // see the upstream report referenced in ADR 01036.
       return capabilities;
     },
     unsupportedFields: [
@@ -452,6 +480,13 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.",
+      },
+      {
+        field: "workingDirectory",
+        // "." is the schema's injected default, not an author request.
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance:
+          "The Windows app driver (NovaWindows) doesn't honor a launch working directory — the app inherits the driver's own working directory — so Doc Detective can't set it; launch the app via runShell if the cwd matters.",
       },
     ],
   },
@@ -556,6 +591,73 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       },
     ],
   },
+  ios: {
+    driverPackage: "appium-xcuitest-driver",
+    driverLabel: "iOS app driver",
+    platformName: "iOS",
+    automationName: "XCUITest",
+    buildLocator: (criteria) => buildXCUITestLocator(criteria),
+    // iOS maps text/name through the same XCUI naming surface as macOS.
+    nameFieldsCollide: true,
+    buildCapabilities(descriptor, appId, extras) {
+      const capabilities: Record<string, any> = {
+        platformName: "iOS",
+        "appium:automationName": "XCUITest",
+        "appium:newCommandTimeout": 600,
+        "wdio:enforceWebDriverClassic": true,
+      };
+      if (classifyAppIdentifier(appId) === "id") {
+        capabilities["appium:bundleId"] = appId;
+      } else {
+        capabilities["appium:app"] = path.resolve(appId);
+      }
+      // Installable payload overrides app path for install-before-launch.
+      if (descriptor.install) {
+        capabilities["appium:app"] = path.resolve(descriptor.install);
+      }
+      if (extras?.udid) capabilities["appium:udid"] = extras.udid;
+      const timeout = descriptor.timeout ?? 60000;
+      capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
+      capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
+      // Persisting WebDriverAgent's Xcode build products across sessions/runs
+      // turns the cold ~10-minute WDA compile into a fast incremental build.
+      // Opt-in via env so a shared derivedDataPath is only used where the caller
+      // manages it (e.g. a CI cache keyed by driver + Xcode version); unset by
+      // default, appium uses a throwaway per-session temp dir. A caller sharing
+      // one path across concurrent iOS sessions owns serializing them.
+      const derivedDataPath =
+        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      if (derivedDataPath && derivedDataPath.trim()) {
+        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
+      }
+      return capabilities;
+    },
+    unsupportedFields: [
+      {
+        field: "activity",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "`activity` is Android-only; iOS launches by bundle identifier or installed app payload.",
+      },
+      {
+        field: "args",
+        isSet: (value) => Array.isArray(value) && value.length > 0,
+        guidance:
+          "The iOS driver does not honor desktop-style process arguments for AUT launch.",
+      },
+      {
+        field: "workingDirectory",
+        isSet: (value) => value !== undefined && value !== ".",
+        guidance: "A working directory is not meaningful for iOS app launches.",
+      },
+      {
+        field: "env",
+        isSet: (value) => value !== undefined,
+        guidance:
+          "Use driverOptions for iOS-specific launch controls; app environment overrides are not supported here.",
+      },
+    ],
+  },
 };
 
 // The System Settings walkthrough for macOS Accessibility (TCC) — used by
@@ -575,6 +677,20 @@ interface AppSurfaceEntry {
   // (multiple app surfaces on one device share one UiAutomator2 session).
   // Absent for desktop surfaces (one driver per app).
   deviceName?: string;
+  // --- Window-selector state (ADR 01036, desktop only; managed by
+  // appWindows.ts). Sticky active window; the Windows baseline (main handle,
+  // best-effort pid, adopted vs foreign desktop-global handles); the macOS
+  // (title, frame) baseline for `-1` newest-window diffs.
+  activeWindow?: { handle?: string; element?: any; title?: string };
+  mainWindowHandle?: string;
+  appPid?: number | null;
+  knownWindows?: string[];
+  foreignWindows?: Set<string>;
+  // Desktop windows that already existed at the surface snapshot (Windows).
+  // Unprobed until the first selector use; a same-pid one adopts as OLD
+  // (right after main) so it never shadows a genuinely new dialog under -1.
+  baselineWindowHandles?: Set<string>;
+  windowBaseline?: string[];
 }
 
 // Per-context app-session state, created by runContext and threaded through
@@ -607,6 +723,13 @@ interface AppSessionState {
   androidSdkRoot?: string;
   androidDeviceRegistry?: any;
   androidDeviceDeps?: any;
+  // iOS simulator-layer wiring (phase A4), the simctl analogue of the Android
+  // fields above: the run-level simulator registry and the injected simctl
+  // effect bundle acquireSimulator runs on. iOS shares one XCUITest session per
+  // simulator (keyed in deviceSessions like Android), so no SDK-root env is
+  // needed — simctl/xcrun are on PATH.
+  iosSimulatorRegistry?: any;
+  iosSimulatorDeps?: any;
 }
 
 function createAppSessionState(): AppSessionState {
@@ -619,28 +742,20 @@ function createAppSessionState(): AppSessionState {
 
 // Steps that provision or (by object form) target an app surface. Used by
 // runContext to decide whether the app preflight must run for this test.
+// Phase 6 narrowing: startSurface counts only when a descriptor actually
+// opens an APP — a browser/process-only startSurface must not boot the app
+// preflight (Appium server + native driver probe).
 function isAppDriverRequired({ test }: { test: any }): boolean {
   if (!Array.isArray(test?.steps)) return false;
   return test.steps.some(
-    (step: any) =>
-      typeof step?.startSurface !== "undefined" || stepTargetsAppSurface(step)
+    (step: any) => stepOpensAppSurface(step) || stepTargetsAppSurface(step)
   );
 }
 
-// True when any action payload in the step names an app surface with the
-// object form ({ app: … }). The bare-string form is identity-only and
-// resolves against the registries at runtime instead.
-function stepTargetsAppSurface(step: any): boolean {
-  if (!step || typeof step !== "object") return false;
-  return Object.values(step).some(
-    (payload: any) =>
-      payload &&
-      typeof payload === "object" &&
-      payload.surface &&
-      typeof payload.surface === "object" &&
-      typeof payload.surface.app === "string"
-  );
-}
+// `stepTargetsAppSurface` (imported from ../../runtime/browserStepKeys.js and
+// re-exported above) decides whether an action payload names an app surface
+// with the object form — shared with the runtime's browser-need inference so
+// the two never drift.
 
 // Resolve a step's `surface` reference to a registered app surface, or null
 // when the reference isn't an app reference (browser/process/engine) or names
@@ -726,6 +841,78 @@ async function probeMacAccessibility(): Promise<boolean | null> {
   });
 }
 
+// Probe the iOS simulator toolchain: a macOS host, a configured Xcode
+// (`xcode-select -p`), and a working `xcrun simctl`. Effects are injected
+// (platform + a command runner) so every branch is unit-testable on any host —
+// the same seam iosInstaller uses. The default runner gives `xcrun simctl` a
+// generous timeout: the FIRST cold `simctl` call on a runner with many Xcodes
+// and simulator runtimes launches CoreSimulatorService and can take far longer
+// than a warm call (a 20s ceiling spuriously reported it "unavailable" on
+// hosted macos-latest). A failure surfaces the selected developer dir and the
+// command's own diagnostic so the skip is actionable, not opaque.
+function probeIosToolchain(
+  deps: {
+    platform?: NodeJS.Platform;
+    run?: (
+      command: string,
+      args: string[]
+    ) => { status: number | null; stdout?: string; stderr?: string };
+  } = {}
+): { ok: true } | { ok: false; reason: string } {
+  const platform = deps.platform ?? process.platform;
+  const run =
+    deps.run ??
+    ((command: string, args: string[]) => {
+      const result = spawnSync(command, args, {
+        encoding: "utf8",
+        windowsHide: true,
+        // xcrun/simctl gets 2 minutes for the cold CoreSimulator warm-up;
+        // xcode-select is a cheap path lookup.
+        timeout: command === "xcrun" ? 120000 : 15000,
+        maxBuffer: 32 * 1024 * 1024,
+      });
+      return {
+        status: result.status,
+        stdout: typeof result.stdout === "string" ? result.stdout : "",
+        stderr: typeof result.stderr === "string" ? result.stderr : "",
+      };
+    });
+
+  if (platform !== "darwin") {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
+    };
+  }
+  const xcodeSelect = run("xcode-select", ["-p"]);
+  if (xcodeSelect.status !== 0) {
+    return {
+      ok: false,
+      reason:
+        "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
+    };
+  }
+  const developerDir = String(xcodeSelect.stdout ?? "").trim();
+  const simctl = run("xcrun", ["simctl", "list", "devices", "available"]);
+  if (simctl.status !== 0) {
+    const detail =
+      String(simctl.stderr ?? "")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .pop() ||
+      (simctl.status === null
+        ? "the command timed out"
+        : `exit ${simctl.status}`);
+    return {
+      ok: false,
+      reason: `Skipping context on 'ios': \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
+    };
+  }
+  return { ok: true };
+}
+
 // Preflight for app surfaces: platform support, driver availability, and (on
 // macOS) the Accessibility permission. Returns { ok: true } or a skip reason
 // — an unmet environment is a gating fact (SKIPPED), never a FAIL, matching
@@ -745,6 +932,7 @@ async function appSurfacePreflight({
     resolvePathInCache?: typeof resolveHeavyDepPathInCache;
     ensureInstalled?: typeof ensureRuntimeInstalled;
     probeAccessibility?: () => Promise<boolean | null>;
+    probeIosToolchain?: () => { ok: true } | { ok: false; reason: string };
   };
 }): Promise<
   | { ok: true; appiumEntry: string; appiumHome: string }
@@ -754,8 +942,18 @@ async function appSurfacePreflight({
   if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipping context on '${platform}': native app surfaces run on Windows and macOS in this phase. Gate the test with runOn platforms (["windows"] or ["mac"]) so this skip is intentional.`,
+      reason: `Skipping context on '${platform}': native app surfaces run on Windows, macOS, Android, and iOS in this phase. Gate the test with runOn platforms so this skip is intentional.`,
     };
+  }
+  if (platform === "ios") {
+    const probe = deps.probeIosToolchain ?? probeIosToolchain;
+    const ios = probe();
+    if (!ios.ok) {
+      return {
+        ok: false,
+        reason: ios.reason,
+      };
+    }
   }
   if (platform === "mac") {
     const probe = deps.probeAccessibility ?? probeMacAccessibility;
@@ -911,43 +1109,85 @@ function buildAppLocator(
 
 // Locate an element on an app surface's driver session. Waits up to `timeout`
 // for existence. Returns the wdio element or an error string.
+// Upper bound on find auto-scroll attempts per element (phase A6). Exported
+// (inline — the top-of-file export list predates this const) as a test seam
+// and so fixtures can reason about worst-case scroll depth.
+export const MAX_FIND_SCROLLS = 5;
+
 async function findAppElement({
   driver,
   criteria,
   timeout = 5000,
   platform,
+  root,
 }: {
   driver: any;
   criteria: any;
   timeout?: number;
   platform?: string;
+  // A window element to scope the find to (macOS window selectors, ADR
+  // 01036). Compiled `//…` locators are re-anchored to `.//` so they stay
+  // inside the window subtree.
+  root?: any;
 }): Promise<{ element?: any; error?: string }> {
   const locator = buildAppLocator(criteria, platform);
   if ("error" in locator) return { error: locator.error };
-  const selector =
+  let selector =
     locator.strategy === "accessibility id"
       ? `~${locator.value}`
       : locator.value;
+  if (root) selector = rewriteXPathForScopedFind(selector);
   // Locate and wait in separate try blocks: driver.$() normally returns a
   // lazy handle without touching the session, so a throw there means the
   // session itself is broken (app crash, dead server) — a driver error, not
   // a criteria miss. Only the waitForExist timeout is the not-found path.
   let element: any;
   try {
-    element = await driver.$(selector);
+    element = await (root ?? driver).$(selector);
   } catch (error: any) {
     return {
       error: `App driver error while locating an element (locator: ${selector}): ${error?.message ?? error}`,
     };
   }
+  // Auto-scroll (phase A6): on mobile app surfaces a miss scrolls toward
+  // content below and re-checks, matching web find's scroll-into-view
+  // behavior — so click and element-targeted type gain it too (they delegate
+  // here). Desktop surfaces don't scroll: UIA/AX expose off-screen elements
+  // in the accessibility tree, and blind wheel-scrolling risks disturbing
+  // state. The initial wait shortens only when scrolling is available.
+  const start = Date.now();
+  const gestures = APP_GESTURES[platform ?? "windows"];
+  const canAutoScroll = typeof gestures?.scrollStep === "function";
+  const initialTimeout = canAutoScroll ? Math.min(timeout, 1500) : timeout;
+  let scrolls = 0;
   try {
-    await element.waitForExist({ timeout });
+    await element.waitForExist({ timeout: initialTimeout });
     return { element };
   } catch {
-    return {
-      error: `No element matched ${JSON.stringify(criteria)} on the app surface within ${timeout}ms (locator: ${selector}).`,
-    };
+    // fall through to the scroll loop / final error below
   }
+  if (canAutoScroll) {
+    while (scrolls < MAX_FIND_SCROLLS && Date.now() - start < timeout) {
+      let canScrollMore: boolean;
+      try {
+        canScrollMore = await gestures!.scrollStep!(driver);
+      } catch (error: any) {
+        return {
+          error: `App driver error while scrolling to find an element (locator: ${selector}): ${error?.message ?? error}`,
+        };
+      }
+      scrolls += 1;
+      try {
+        if (await element.isExisting()) return { element };
+      } catch {
+        break;
+      }
+      if (!canScrollMore) break;
+    }
+  }
+  return {
+    error: `No element matched ${JSON.stringify(criteria)} on the app surface within ${timeout}ms (locator: ${selector}${scrolls ? `; scrolled ${scrolls} time(s) looking for it` : ""}).`,
+  };
 }
 
 // The startSurface step (app branch): launch the app through the native
@@ -997,7 +1237,7 @@ async function startAppSurface({
   const platformDriver = APP_DRIVER_PLATFORMS[platform];
   if (!platformDriver) {
     result.status = "FAIL";
-    result.description = `startSurface (app) runs on Windows and macOS desktops and Android emulators in this phase. Gate the test with runOn platforms (["windows"], ["mac"], or ["android"]).`;
+    result.description = `startSurface (app) runs on Windows and macOS desktops plus Android and iOS mobile targets in this phase. Gate the test with runOn platforms (["windows"], ["mac"], ["android"], or ["ios"]).`;
     return result;
   }
   // Per-platform unsupported fields (desktop rows reject the mobile-only
@@ -1044,11 +1284,13 @@ async function startAppSurface({
   let driver: any;
   let deviceName: string | undefined;
 
-  if (platform === "android") {
-    // Android: multiple app surfaces on one device share a single UiAutomator2
-    // session (switch by activateApp), so the driver is per-device, not
-    // per-app. Resolve the device (context default merged with the step
-    // override) and acquire it (boot/create as needed).
+  if (isMobileTargetPlatform(platform)) {
+    // Mobile (Android emulator / iOS simulator): multiple app surfaces on one
+    // device share a single driver session (switch by activateApp), so the
+    // driver is per-device, not per-app. Resolve the device (context default
+    // merged with the step override) and acquire it (boot/create as needed).
+    // `targetNoun` keeps guidance honest per platform.
+    const targetNoun = platform === "ios" ? "simulator" : "device";
     const desc = normalizeDeviceDescriptor({
       contextDevice: appSession.defaultDevice,
       stepDevice: descriptor.device,
@@ -1056,8 +1298,7 @@ async function startAppSurface({
     });
     if (!serverDeps.acquireDevice) {
       result.status = "FAIL";
-      result.description =
-        "Android app session is missing its device layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).";
+      result.description = `The ${platformDriver.driverLabel} session is missing its ${targetNoun} layer; this is a runner bug (runContext must wire serverDeps.acquireDevice).`;
       return result;
     }
     let acquired: any;
@@ -1065,14 +1306,14 @@ async function startAppSurface({
       acquired = await serverDeps.acquireDevice(desc);
     } catch (error: any) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${error?.message ?? error}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${error?.message ?? error}`;
       return result;
     }
     // The preflight already validated resolvability, so an acquire-time skip is
     // a real runtime failure (e.g. the device died between preflight and now).
     if ("skip" in acquired) {
       result.status = "FAIL";
-      result.description = `Couldn't acquire the Android device for "${appId}": ${acquired.skip}`;
+      result.description = `Couldn't acquire the ${targetNoun} for "${appId}": ${acquired.skip}`;
       return result;
     }
     deviceName = acquired.entry.name;
@@ -1093,7 +1334,7 @@ async function startAppSurface({
         );
       } catch (error: any) {
         result.status = "FAIL";
-        result.description = `Couldn't launch app "${appId}" on the Android device "${deviceName}": ${error?.message ?? error}.`;
+        result.description = `Couldn't launch app "${appId}" on the ${targetNoun} "${deviceName}": ${error?.message ?? error}.`;
         return result;
       }
       sessions.set(deviceName, {
@@ -1163,11 +1404,12 @@ async function startAppSurface({
       platform,
     });
     if (found.error) {
-      // On desktop the session is this app's alone, so end it. On Android the
-      // session is shared across the device's apps — deleting it would kill
-      // sibling surfaces — so leave it; the run-end device sweep handles the
-      // emulator, and no surface was registered for this failed app.
-      if (platform !== "android") {
+      // On desktop the session is this app's alone, so end it. On mobile
+      // (Android emulator / iOS simulator) the session is shared across the
+      // device's apps — deleting it would kill sibling surfaces — so leave it;
+      // the run-end device sweep handles the emulator/simulator, and no surface
+      // was registered for this failed app.
+      if (!isMobileTargetPlatform(platform)) {
         try {
           await driver.deleteSession();
         } catch {
@@ -1190,24 +1432,78 @@ async function startAppSurface({
   });
   appSession.activeApp = name;
 
-  // Late-bind window crops: an autoRecord capture in an app-only context
-  // starts before any app window exists, so it records the full display with
-  // a pending marker. The first app surface to open supplies its window rect
-  // as the crop — scoping the recording to the app under test — which the
-  // stop-side transcode then applies.
-  const pendingHandles = (
-    appSession.recordingHost?.state?.recordings ?? []
-  ).filter((handle: any) => handle?.pendingAppWindowCrop && !handle.crop);
-  for (const handle of pendingHandles) {
-    try {
-      handle.crop = await resolveCropGeometry({ driver, target: "window" });
-      handle.pendingAppWindowCrop = false;
-    } catch (error: any) {
-      log(
-        config,
-        "warning",
-        `Couldn't resolve the app window geometry for the active recording; it stays full-display. ${error?.message ?? error}`
-      );
+  // Window-selector baseline (ADR 01036, desktop): capture the main window
+  // handle / pid / known-vs-foreign handles (Windows) or the (title, frame)
+  // baseline (macOS) so `-1` "newest window" diffs and pid-filtered adoption
+  // have a reference point. Best-effort — a driver without the needed
+  // endpoints just degrades the -1 semantics (documented).
+  await snapshotAppWindows(appSession.surfaces.get(name));
+
+  if (!isMobileTargetPlatform(platform)) {
+    // Late-bind window crops (desktop): an autoRecord capture in an app-only
+    // context starts before any app window exists, so it records the full
+    // display with a pending marker. The first app surface to open supplies
+    // its window rect as the crop — scoping the recording to the app under
+    // test. The rect is stored UNSCALED with a pending-scale marker: native
+    // drivers can't answer a devicePixelRatio probe, so stopRecording derives
+    // the physical-pixel scale from the capture frame size instead (phase A7).
+    const pendingHandles = (
+      appSession.recordingHost?.state?.recordings ?? []
+    ).filter(
+      (handle: any) =>
+        handle?.pendingAppWindowCrop && !handle.crop && !handle.cropRect
+    );
+    for (const handle of pendingHandles) {
+      try {
+        // Platform-aware (ADR 01036): macOS uses the window ELEMENT rect —
+        // Mac2's getWindowRect is the whole main screen.
+        const rect = await appWindowRect(appSession.surfaces.get(name));
+        if (rect) {
+          handle.cropRect = rect;
+          handle.cropPendingScale = true;
+        } else {
+          log(
+            config,
+            "warning",
+            "Couldn't resolve the app window geometry for the active recording (malformed window rect); it stays full-display."
+          );
+        }
+        handle.pendingAppWindowCrop = false;
+      } catch (error: any) {
+        log(
+          config,
+          "warning",
+          `Couldn't resolve the app window geometry for the active recording; it stays full-display. ${error?.message ?? error}`
+        );
+      }
+    }
+  } else {
+    // Late-start pending device recordings (mobile): an autoRecord (or early
+    // record) step in a mobile app-only context ran before any device session
+    // existed. Now that one does, start the device recording on it. A handle
+    // that never gets a session is drained as SKIPPED by stopRecording.
+    const pendingDeviceHandles = (
+      appSession.recordingHost?.state?.recordings ?? []
+    ).filter((handle: any) => handle?.type === "appium-pending");
+    for (const handle of pendingDeviceHandles) {
+      const options =
+        platform === "ios"
+          ? { videoType: "h264", timeLimit: 1800 }
+          : { timeLimit: 1800 };
+      try {
+        await driver.startRecordingScreen(options);
+        handle.type = "appium";
+        handle.driver = driver;
+      } catch (error: any) {
+        // Stash the real error on the handle so stopRecording surfaces it as
+        // a FAIL instead of the misleading "never started" skip. A missing
+        // host ffmpeg (the XCUITest encoder dependency) is an environment
+        // gap, so it degrades to a SKIP instead.
+        const message = `Couldn't start the pending device recording: ${error?.message ?? error}`;
+        handle.startError = message;
+        if (/ffmpeg.*not found/i.test(message)) handle.startSkip = true;
+        log(config, "warning", message);
+      }
     }
   }
 
@@ -1262,6 +1558,16 @@ async function closeAppSurface({
 }): Promise<void> {
   appSession.surfaces.delete(entry.name);
   if (appSession.activeApp === entry.name) appSession.activeApp = undefined;
+  // Window selectors may have left the session rooted at a dialog (Windows
+  // switch-then-act); deleteSession closes whatever the current root is, so
+  // re-root to the app's main window first. Best-effort.
+  if (entry.mainWindowHandle && typeof entry.driver?.switchToWindow === "function") {
+    try {
+      await entry.driver.switchToWindow(entry.mainWindowHandle);
+    } catch {
+      // Main window already gone — teardown proceeds on the current root.
+    }
+  }
   if (entry.deviceName) {
     // Android: terminate just this app on the shared device session.
     const session = appSession.deviceSessions?.get(entry.deviceName);
@@ -1280,13 +1586,153 @@ async function closeAppSurface({
   }
 }
 
+// Injectable OS-process tools for the Windows console-orphan sweep. Real
+// implementations shell out / probe the OS; tests substitute fakes so the
+// hygiene logic is exercised without touching the machine.
+interface ConsoleOrphanTools {
+  /** Rows of the OS process table as {pid, ppid}. */
+  runQuery?: () => Promise<Array<{ pid: number; ppid: number }>>;
+  /** Descendant pids of `rootPid` (overrides runQuery-based walking). */
+  listDescendants?: (rootPid: number) => Promise<Set<number>>;
+  /** Whether a pid still refers to a live process. */
+  isAlive?: (pid: number) => boolean;
+  /** Force-terminate a single pid. */
+  forceKill?: (pid: number) => void;
+}
+
+// Whether `pid` is a live process. `process.kill(pid, 0)` sends no signal — it
+// throws ESRCH once the pid is gone; any other error (e.g. EPERM) means it
+// exists but is unsignalable, so treat only ESRCH as dead.
+function defaultIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error: any) {
+    return error?.code !== "ESRCH";
+  }
+}
+
+function defaultForceKill(pid: number): void {
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // already gone / unsignalable — best-effort
+  }
+}
+
+// Read the Windows process table as (pid, ppid) rows via a CIM query. CSV output
+// keeps parsing trivial and avoids wmic (removed on recent Windows). Best-effort:
+// rejects on failure, which the caller swallows into "no descendants".
+function queryWindowsProcessTable(): Promise<
+  Array<{ pid: number; ppid: number }>
+> {
+  return new Promise((resolve, reject) => {
+    const script =
+      'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId),$($_.ParentProcessId)" }';
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      { windowsHide: true, timeout: 10000, maxBuffer: 16 * 1024 * 1024 },
+      (error, stdout) => {
+        if (error) return reject(error);
+        const rows: Array<{ pid: number; ppid: number }> = [];
+        for (const line of String(stdout).split(/\r?\n/)) {
+          const m = line.trim().match(/^(\d+),(\d+)$/);
+          if (m) rows.push({ pid: Number(m[1]), ppid: Number(m[2]) });
+        }
+        resolve(rows);
+      }
+    );
+  });
+}
+
+// All descendant pids of `rootPid`, walked from a (pid, ppid) table. Pure and
+// unit-testable given an injected table.
+async function listWindowsDescendantPids(
+  rootPid: number,
+  runQuery: () => Promise<Array<{ pid: number; ppid: number }>>
+): Promise<Set<number>> {
+  const out = new Set<number>();
+  let table: Array<{ pid: number; ppid: number }>;
+  try {
+    table = await runQuery();
+  } catch {
+    return out;
+  }
+  const childrenByParent = new Map<number, number[]>();
+  for (const { pid, ppid } of table) {
+    const siblings = childrenByParent.get(ppid);
+    if (siblings) siblings.push(pid);
+    else childrenByParent.set(ppid, [pid]);
+  }
+  const stack = [rootPid];
+  while (stack.length) {
+    const parent = stack.pop()!;
+    for (const child of childrenByParent.get(parent) ?? []) {
+      if (!out.has(child)) {
+        out.add(child);
+        stack.push(child);
+      }
+    }
+  }
+  return out;
+}
+
+// #501 hygiene, phase 1: snapshot the app Appium server's descendant pids while
+// the server is still alive, so a descendant that DETACHES from the tree during
+// teardown (a reparented conhost/PowerShell the tree-kill then misses) is still
+// attributable to us and reapable afterward. Windows-only; a no-op (empty set)
+// elsewhere or when the server pid isn't live. Only ever records processes
+// descended from OUR server — never image-name matches across the box.
+async function snapshotAppServerDescendants(
+  serverPid: number | undefined,
+  tools: ConsoleOrphanTools = {}
+): Promise<Set<number>> {
+  if (process.platform !== "win32" || !serverPid) return new Set();
+  const isAlive = tools.isAlive ?? defaultIsAlive;
+  // Skip the (subprocess) table query when the server isn't even alive.
+  if (!isAlive(serverPid)) return new Set();
+  if (tools.listDescendants) return tools.listDescendants(serverPid);
+  return listWindowsDescendantPids(
+    serverPid,
+    tools.runQuery ?? queryWindowsProcessTable
+  );
+}
+
+// #501 hygiene, phase 2: force-terminate any snapshotted descendant still alive
+// after the server tree-kill (i.e. it detached and survived). Returns the pids
+// actually reaped. Safe: it only touches pids from a prior
+// snapshotAppServerDescendants call, never a broad image-name sweep.
+async function reapConsoleOrphans(
+  pids: Iterable<number>,
+  tools: ConsoleOrphanTools = {}
+): Promise<number[]> {
+  const isAlive = tools.isAlive ?? defaultIsAlive;
+  const forceKill = tools.forceKill ?? defaultForceKill;
+  const reaped: number[] = [];
+  for (const pid of pids) {
+    if (isAlive(pid)) {
+      forceKill(pid);
+      reaped.push(pid);
+    }
+  }
+  return reaped;
+}
+
 // Context teardown: close every remaining app surface, end each shared Android
 // device session, then stop the app session's Appium server. Killing only what
 // we launched is the driver's contract (deleteSession terminates driver-
 // launched apps; the run-level device registry sweeps the emulators).
+//
+// On Windows the server kill is bracketed by the #501 console-orphan sweep:
+// snapshot the server's descendants before the kill, then force-reap any that
+// detached and survived it. Hygiene for lingering conhost processes
+// (microsoft/terminal#4050), kept as defense-in-depth alongside the ConPTY
+// guards in src/core/ptyWatchdog (ADR 01024).
 async function teardownAppSession(
   appSession: AppSessionState | undefined,
-  killServer: (pid: number | undefined) => Promise<void>
+  killServer: (pid: number | undefined) => Promise<void>,
+  tools: ConsoleOrphanTools = {}
 ): Promise<void> {
   if (!appSession) return;
   for (const entry of [...appSession.surfaces.values()]) {
@@ -1303,7 +1749,12 @@ async function teardownAppSession(
   }
   appSession.deviceSessions?.clear();
   if (appSession.server) {
-    await killServer(appSession.server.process?.pid);
+    const serverPid = appSession.server.process?.pid;
+    const orphanSnapshot = await snapshotAppServerDescendants(serverPid, tools);
+    await killServer(serverPid);
     appSession.server = undefined;
+    if (orphanSnapshot.size) {
+      await reapConsoleOrphans(orphanSnapshot, tools);
+    }
   }
 }

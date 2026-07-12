@@ -48,7 +48,7 @@
       ]
     },
     "browsers": {
-      "description": "Browsers to run tests on.",
+      "description": "Browsers to run tests on. On a mobile (`android`/`ios`) platform entry, the browser runs on the managed device: `chrome` on Android, `safari` on iOS (other combinations skip the context), and it fills in automatically when omitted. Device browsers don't take desktop display config: authored `window`/`viewport` dimensions and `headless: false` are rejected on mobile entries (the device owns its display — control it via the device descriptor's `headless`/`deviceType`); `headless: true` matches this schema's default and is ignored.",
       "anyOf": [
         {
           "type": "string",
@@ -59,7 +59,7 @@
             "safari",
             "webkit"
           ],
-          "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+          "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
         },
         {
           "type": "object",
@@ -78,7 +78,7 @@
                 "safari",
                 "webkit"
               ],
-              "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+              "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
             },
             "explicit": {
               "type": "boolean",
@@ -138,7 +138,7 @@
                   "safari",
                   "webkit"
                 ],
-                "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+                "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
               },
               {
                 "type": "object",
@@ -157,7 +157,7 @@
                       "safari",
                       "webkit"
                     ],
-                    "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+                    "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
                   },
                   "explicit": {
                     "type": "boolean",
@@ -333,7 +333,7 @@
       ]
     },
     "device": {
-      "description": "Default device for a mobile (`android`/`ios`) context. A string references a device by name; an object refines it. The `platform` is implied by the context, so it is not required here. When the named device doesn't already exist, Doc Detective creates it with defaults (see `deviceType`/`osVersion`), provided the toolchain is installed (`doc-detective install android`). Same shape as `startSurface.device`.",
+      "description": "Default device for a mobile (`android`/`ios`) context. A string references a device by name; an object refines it. The `platform` is implied by the context, so it is not required here. When the named device doesn't already exist, Doc Detective creates it with defaults (see `deviceType`/`osVersion`), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`). Same shape as `startSurface.device`.",
       "examples": [
         "pixel7",
         {
@@ -372,7 +372,7 @@
               "transform": [
                 "trim"
               ],
-              "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain and a matching system image are installed (`doc-detective install android`)."
+              "description": "Device name and registry identity — the same name resolves to the same device. Reference form: names an existing AVD (Android) / simulator (iOS) to reuse. If no device by this name exists, Doc Detective creates one under this name using `deviceType`/`osVersion` (or their defaults), provided the toolchain is installed (`doc-detective install android` or `doc-detective install ios`)."
             },
             "deviceType": {
               "type": "string",
@@ -385,11 +385,11 @@
             "osVersion": {
               "type": "string",
               "minLength": 1,
-              "description": "Platform version used when creating a device; must match an installed system image (install more with `doc-detective install android`). Ignored when `name` already matches an existing device. Default: the newest installed version."
+              "description": "Platform version used when creating a device; must match an installed image/runtime for the target platform (install more with `doc-detective install android` or `doc-detective install ios`). Ignored when `name` already matches an existing device. Default: the newest installed version."
             },
             "headless": {
               "type": "boolean",
-              "description": "Run the Android emulator without a window. Ignored where not applicable."
+              "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
             },
             "orientation": {
               "type": "string",
@@ -443,7 +443,7 @@
           "safari",
           "webkit"
         ],
-        "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+        "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
       },
       "browser": {
         "type": "object",
@@ -462,7 +462,7 @@
               "safari",
               "webkit"
             ],
-            "$comment": "`safari` is just a shortcut for `webkit`. Included for visibility and to reduce questions."
+            "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
           },
           "explicit": {
             "type": "boolean",
@@ -602,6 +602,26 @@
           }
         }
       ]
+    },
+    {
+      "platforms": "android"
+    },
+    {
+      "platforms": [
+        "windows",
+        "mac",
+        "android",
+        "ios"
+      ],
+      "browsers": "chrome"
+    },
+    {
+      "platforms": "ios",
+      "browsers": "safari",
+      "device": {
+        "name": "test-iphone",
+        "deviceType": "phone"
+      }
     }
   ]
 }

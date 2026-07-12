@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "app-charmap-flow",
-      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, and close the surface explicitly. autoRecord proves app-context recording: the capture starts full-display (no window exists yet), and the first app surface to open late-binds its window rect as the crop, so the finished recording is scoped to the Character Map window.",
+      "description": "Launch Character Map by path with element readiness, click the Select button by name, type into the copy box, verify the Copy button exists, long-press Select (phase A6 click.duration → windows: click durationMs — a held click on a button is still a click, so it's harmless), swipe both object forms (phase A6 → windows: scroll wheel clicks and windows: clickAndDrag; the character grid tolerates both), and close the surface explicitly. autoRecord proves app-context recording: the capture starts full-display (no window exists yet), and the first app surface to open late-binds its window rect as the crop, so the finished recording is scoped to the Character Map window.",
       "autoRecord": true,
       "runOn": [
         {
@@ -57,6 +57,40 @@
               "app": "charmap"
             },
             "timeout": 15000
+          }
+        },
+        {
+          "click": {
+            "elementText": "Select",
+            "duration": 500,
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.3,
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 180,
+              "y": 230
+            },
+            "to": {
+              "x": 180,
+              "y": 190
+            },
+            "duration": 300,
+            "surface": {
+              "app": "charmap"
+            }
           }
         },
         {

@@ -28,6 +28,7 @@ import type { AgentDetection, HintContext } from "./types.js";
 const STEP_ACTION_KEYS = [
   "checkLink",
   "click",
+  "closeSurface",
   "dragAndDrop",
   "find",
   "goTo",
@@ -35,11 +36,14 @@ const STEP_ACTION_KEYS = [
   "loadCookie",
   "loadVariables",
   "record",
+  "runBrowserScript",
   "runCode",
   "runShell",
   "saveCookie",
   "screenshot",
+  "startSurface",
   "stopRecord",
+  "swipe",
   "type",
   "wait",
 ] as const;

@@ -29,6 +29,10 @@ on:
       - 'package-lock.json'
       - 'bin/**'
       - 'scripts/**'
+      # Mocha runner config governs how the whole suite executes (timeouts,
+      # hooks), so a change to it must re-run the matrix — otherwise a
+      # test-behavior change like the default-timeout bump ships unexercised.
+      - '.mocharc.yml'
       - '.github/workflows/npm-test.yaml'
       - '.github/workflows/test.yml'
   workflow_dispatch:
