@@ -178,6 +178,8 @@ App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurfac
 
 ### Perform a search (array shorthand)
 
+{/* test {"testId":"type-array-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -203,6 +205,12 @@ App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurfac
   ]
 }
 ```
+
+{/* step {"stepId":"goto-type-array","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"focus-input-array","description":"Focus the input","find":{"selector":"#type-input","click":true}} */}
+{/* step {"stepId":"type-array","description":"Type text and a space as an array of keys","type":["Doc","$SPACE$","Detective"]} */}
+{/* step {"stepId":"verify-type-array","description":"The input echoes its value only when text is actually typed","find":"Doc Detective"} */}
+{/* test end */}
 
 ### Fill credentials from environment variables (string shorthand)
 
@@ -243,6 +251,8 @@ App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurfac
 
 ### Type with an increased delay (object format)
 
+{/* test {"testId":"type-object-format","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -280,7 +290,15 @@ App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurfac
 }
 ```
 
+{/* step {"stepId":"goto-type-object","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"focus-input-object","description":"Focus the input","find":{"selector":"#type-input","click":true}} */}
+{/* step {"stepId":"type-object","description":"Type using the object format with an increased delay","type":{"keys":"Typed with the object format","inputDelay":150}} */}
+{/* step {"stepId":"verify-type-object","description":"Confirm the typed text was entered","find":"Typed with the object format"} */}
+{/* test end */}
+
 ### Drive an interactive REPL (process surface)
+
+{/* test {"testId":"type-repl-process-surface","detectSteps":false} */}
 
 This example starts `node -i` in the background, waits until the prompt appears, types an expression, and waits until the REPL prints `42`. It then closes the process with a [`closeSurface`](/docs/actions/closesurface) step.
 
@@ -321,6 +339,11 @@ This example starts `node -i` in the background, waits until the prompt appears,
   ]
 }
 ```
+
+{/* step {"stepId":"start-repl","description":"Start a Node REPL in the background","runShell":{"command":"node -i","background":{"name":"type-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} */}
+{/* step {"stepId":"eval-in-repl","description":"Evaluate an expression and wait for the result","type":{"keys":["6 * 7","$ENTER$"],"surface":"type-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} */}
+{/* step {"stepId":"stop-repl","description":"Close the REPL","closeSurface":"type-repl"} */}
+{/* test end */}
 
 ### Send Ctrl+C to a process
 

@@ -1,3 +1,41 @@
+## [4.26.7](https://github.com/doc-detective/doc-detective/compare/v4.26.6...v4.26.7) (2026-07-12)
+
+
+### Bug Fixes
+
+* **files:** resolve string-shorthand screenshot/record paths via relativePathBase ([#604](https://github.com/doc-detective/doc-detective/issues/604)) ([fa41a71](https://github.com/doc-detective/doc-detective/commit/fa41a711d5b80cf4b176d562af489fe50e1e9b1c))
+* **httpRequest:** stop implicitly asserting a JSON-object response body ([#607](https://github.com/doc-detective/doc-detective/issues/607)) ([eb99a88](https://github.com/doc-detective/doc-detective/commit/eb99a88b4e379782853dfcd9c8afc1305ed9ea4b)), closes [#576](https://github.com/doc-detective/doc-detective/issues/576)
+
+## [4.26.6](https://github.com/doc-detective/doc-detective/compare/v4.26.5...v4.26.6) (2026-07-11)
+
+
+### Bug Fixes
+
+* **runtime:** return null instead of throwing on an unusable cacheDir ([#596](https://github.com/doc-detective/doc-detective/issues/596)) ([5df3400](https://github.com/doc-detective/doc-detective/commit/5df3400a787f8b768b3fdd42e75479dd32e693a7))
+
+## [4.26.5](https://github.com/doc-detective/doc-detective/compare/v4.26.4...v4.26.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* **detect:** stop dropping legacy v2 inline steps ([#595](https://github.com/doc-detective/doc-detective/issues/595)) ([115985c](https://github.com/doc-detective/doc-detective/commit/115985ce6ca5c3321150fc717319f39a3f32bcd0))
+
+## [4.26.4](https://github.com/doc-detective/doc-detective/compare/v4.26.3...v4.26.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* **core:** process-surface teardown is best-effort and always deregisters ([#599](https://github.com/doc-detective/doc-detective/issues/599)) ([3b108c5](https://github.com/doc-detective/doc-detective/commit/3b108c5e614ad8a7d2fbd51b320b7cfe28aaaa1a))
+* **core:** retry process-surface init crash under concurrent startup ([#547](https://github.com/doc-detective/doc-detective/issues/547)) ([c65d8c3](https://github.com/doc-detective/doc-detective/commit/c65d8c396bb3424647bd1c972da0cfdd7e958ee1)), closes [#532](https://github.com/doc-detective/doc-detective/issues/532)
+* **core:** settle device web element tree after goTo before find ([#545](https://github.com/doc-detective/doc-detective/issues/545)) ([657daa3](https://github.com/doc-detective/doc-detective/commit/657daa31d710af05483f3c5284495820b9c81751)), closes [#547](https://github.com/doc-detective/doc-detective/issues/547)
+
+## [4.26.3](https://github.com/doc-detective/doc-detective/compare/v4.26.2...v4.26.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* **ci:** stop docker-build.yml app-image jobs from skipping on release chain ([#579](https://github.com/doc-detective/doc-detective/issues/579)) ([2996204](https://github.com/doc-detective/doc-detective/commit/2996204f147c0d53d5319af9e52c94305e2ed270))
+
 ## [4.26.2](https://github.com/doc-detective/doc-detective/compare/v4.26.1...v4.26.2) (2026-07-10)
 
 

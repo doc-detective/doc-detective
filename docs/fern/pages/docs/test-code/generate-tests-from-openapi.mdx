@@ -42,7 +42,7 @@ In a step, set `httpRequest.openApi` to the operation you want to call. There ar
 
 {/* test {"testId":"generate-tests-from-openapi","detectSteps":false,"openApi":[{"name":"reqres","descriptionPath":"./reqres.openapi.json","server":"http://localhost:8092/api","mockResponse":true}]} */}
 
-- **By `operationId` only (string shorthand).** Provide the operation ID as the value of `openApi`. Doc Detective searches every registered description for a matching operation.
+- **By `operationId` only (string shorthand).** Provide the operation ID as the value of `openApi`. Doc Detective searches every registered description and uses the first operation whose ID matches. Because it stops at the first match, the shorthand only targets the operation you mean when that ID is unique across your registered descriptions. If the same ID appears in more than one description, pin the lookup with a registered `name` and the object form instead (see below).
 
   ```json
   {

@@ -22,11 +22,13 @@ import {
   matchesExpectedOutput,
   isRelativeUrl,
   appendQueryParams,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -821,6 +823,76 @@ describe("core/utils coverage", function () {
         assert.equal(isRetryableSessionError(message, 900000), false, message);
       }
       assert.equal(isRetryableSessionError(undefined, 900000), false);
+    });
+  });
+
+  describe("isTransientProcessInitError", function () {
+    // The two Windows NTSTATUS init/console crashes a fresh spawn recovers from,
+    // as they appear in waitForReady's early-exit rejection.
+    const DLL_INIT_FAILED =
+      "Process exited before becoming ready (exit code -1073741502)."; // 0xC0000142
+    const CONTROL_C_EXIT =
+      "Process exited before becoming ready (exit code -1073741510)."; // 0xC000013A (observed in CI)
+
+    it("flags the transient win32 init exit codes on win32", function () {
+      assert.equal(isTransientProcessInitError(DLL_INIT_FAILED, "win32"), true);
+      assert.equal(isTransientProcessInitError(CONTROL_C_EXIT, "win32"), true);
+    });
+
+    it("does not flag the same codes off win32 (NTSTATUS is Windows-only)", function () {
+      assert.equal(isTransientProcessInitError(DLL_INIT_FAILED, "linux"), false);
+      assert.equal(isTransientProcessInitError(CONTROL_C_EXIT, "darwin"), false);
+    });
+
+    it("does not flag ordinary exit codes or a readiness timeout", function () {
+      assert.equal(
+        isTransientProcessInitError(
+          "Process exited before becoming ready (exit code 1).",
+          "win32"
+        ),
+        false
+      );
+      assert.equal(
+        isTransientProcessInitError(
+          "Process exited before becoming ready (exit code 0).",
+          "win32"
+        ),
+        false
+      );
+      // A stuck process that never exits reports a probe timeout, not an exit
+      // code — not retryable (a fresh spawn would just hang again).
+      assert.equal(
+        isTransientProcessInitError("Port 8080 did not open in time.", "win32"),
+        false
+      );
+    });
+
+    it("is safe on empty / undefined messages", function () {
+      assert.equal(isTransientProcessInitError("", "win32"), false);
+      assert.equal(isTransientProcessInitError(undefined, "win32"), false);
+    });
+  });
+
+  // The device-web post-navigation settle's budget arithmetic (goTo). Pure, so
+  // the `settleCeiling > 0` guard is proven here deterministically instead of
+  // racing wall-clock timing through the runner.
+  describe("computeSettleCeiling", function () {
+    it("returns the remaining budget when under the 3s cap", function () {
+      assert.equal(computeSettleCeiling(2500, 1000), 1500);
+      assert.equal(computeSettleCeiling(500, 100), 400);
+      assert.equal(computeSettleCeiling(3000, 100), 2900);
+    });
+
+    it("caps at 3000ms no matter how much budget remains", function () {
+      assert.equal(computeSettleCeiling(30000, 0), 3000);
+      assert.equal(computeSettleCeiling(10000, 5000), 3000);
+      assert.equal(computeSettleCeiling(4000, 1000), 3000); // 3000 remaining == cap boundary
+    });
+
+    it("floors at 0 when the budget is spent (the guard then skips the settle)", function () {
+      assert.equal(computeSettleCeiling(50, 50), 0); // exactly spent
+      assert.equal(computeSettleCeiling(50, 120), 0); // overspent -> not negative
+      assert.equal(computeSettleCeiling(1, 1_000_000), 0);
     });
   });
 });

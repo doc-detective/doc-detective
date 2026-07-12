@@ -41,11 +41,14 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  isDeviceWebContext,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -776,6 +779,43 @@ function isRetryableSessionError(
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
+// Windows NTSTATUS exit codes for a process that died *during initialization*
+// under concurrent-spawn contention — the process-surface analogue of the
+// driver-start transient session races above (ADR 01042). At
+// `concurrentRunners > 1` a startSurface that opens many process/PTY children
+// at once can transiently exhaust a Windows loader/console limit so one child
+// crashes before it can signal ready:
+//   • 0xC0000142 (-1073741502) STATUS_DLL_INIT_FAILED — the loader couldn't
+//     initialize a DLL for the child (classic heavy-concurrent-spawn failure).
+//   • 0xC000013A (-1073741510) STATUS_CONTROL_C_EXIT — a spurious console-control
+//     termination delivered to a just-spawned console/ConPTY child during
+//     startup; observed in CI on `p6-tty` at concurrentRunners 2.
+// Both clear on a fresh spawn in practice, so a bounded retry recovers.
+// Windows-only: these are NTSTATUS values, meaningless on POSIX (where the same
+// decimals would be ordinary signal/exit codes), so the guard never fires off
+// win32 and `concurrentRunners: 1` behavior is byte-identical.
+const TRANSIENT_PROCESS_INIT_EXIT_CODES = new Set([
+  -1073741502, // 0xC0000142 STATUS_DLL_INIT_FAILED
+  -1073741510, // 0xC000013A STATUS_CONTROL_C_EXIT
+]);
+
+function isTransientProcessInitError(
+  message: string | undefined,
+  platform: string = process.platform
+): boolean {
+  if (platform !== "win32") return false;
+  if (typeof message !== "string" || !message) return false;
+  // waitForReady's early-exit rejection is
+  // `Process exited before becoming ready (exit code <n>).` — pull the code and
+  // match it against the transient NTSTATUS set. Only the early-exit shape is
+  // retryable; a readiness *timeout* (a genuinely stuck process) is not.
+  const match = message.match(
+    /exited before becoming ready \(exit code (-?\d+)\)/
+  );
+  if (!match) return false;
+  return TRANSIENT_PROCESS_INIT_EXIT_CODES.has(Number(match[1]));
+}
+
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return [];
   // Trim each pattern before compiling so config / env / CLI inputs all
@@ -826,6 +866,40 @@ function isRelativeUrl(url: string) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+// Is this WebdriverIO session a DEVICE (iOS/Android) session running in a WEB
+// (browser) context? This is the tight gate for the post-navigation settle in
+// goTo (ADR 01047): the settle exists only to absorb the freshly-built-WDA
+// window where an iOS Safari (XCUITest web context) element tree is momentarily
+// empty right after navigation while readyState already reports complete.
+//
+// - `isMobile` is WebdriverIO's own device flag (true when platformName is
+//   iOS/Android or Appium caps are present) — desktop browser sessions have it
+//   falsy, so desktop keeps a byte-identical control path (no settle).
+// - `capabilities.browserName` distinguishes a mobile-WEB session (Safari on
+//   iOS, Chrome on Android) from a native-app session (no browserName). A
+//   native-app context never reaches goTo, but gating on browserName keeps the
+//   predicate honest and self-describing.
+function isDeviceWebContext(driver: any): boolean {
+  if (!driver) return false;
+  const isMobile = driver.isMobile === true;
+  const browserName = driver.capabilities?.browserName;
+  return isMobile && typeof browserName === "string" && browserName.length > 0;
+}
+
+// Ceiling (ms) for the device-web post-navigation settle in goTo: whatever of
+// the goTo timeout remains after the readiness gate, capped at 3s and floored
+// at 0. A non-positive result means "no budget left" — goTo's `> 0` guard then
+// skips the settle entirely. Pure so the guard's arithmetic is tested directly,
+// without racing wall-clock timing through the runner.
+const SETTLE_CEILING_MAX_MS = 3000;
+/**
+ * @internal Implementation detail of goTo's device-web settle, exported only so
+ * the unit tests can exercise it. Not a public API; do not rely on it externally.
+ */
+function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
+  return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));
 }
 
 function appendQueryParams(

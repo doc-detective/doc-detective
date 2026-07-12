@@ -457,6 +457,8 @@ This example targets the `ios` platform, launches the Settings app by its bundle
 
 ### Open a named browser session with launch options
 
+{/* test {"testId":"startsurface-browser-session","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -482,7 +484,14 @@ This example targets the `ios` platform, launches the Settings app by its bundle
 }
 ```
 
+{/* step {"stepId":"startsurface-open-browser","description":"Open a second, named Firefox session","startSurface":{"browser":"firefox","name":"startsurface-admin","headless":true,"viewport":{"width":800,"height":600}}} */}
+{/* step {"stepId":"startsurface-goto-browser","description":"Navigate the named session","goTo":{"url":"http://localhost:8092","surface":{"browser":"firefox","name":"startsurface-admin"}}} */}
+{/* step {"stepId":"startsurface-close-browser","description":"Close the named session","closeSurface":"startsurface-admin"} */}
+{/* test end */}
+
 ### Start a background server and call it
+
+{/* test {"testId":"startsurface-process-server","detectSteps":false} */}
 
 ```json
 {
@@ -510,6 +519,11 @@ This example targets the `ios` platform, launches the Settings app by its bundle
   ]
 }
 ```
+
+{/* step {"stepId":"startsurface-start-process","description":"Start a background server (a small JSON-serving script, to avoid a project-specific npm start). A .cjs extension keeps it CommonJS regardless of this repo's package.json \"type\": \"module\"; workingDirectory points at this mdx file's own directory so the script resolves next to it. An inline node -e one-liner was tried first but discarded: startSurface's process field runs with shell:true, and Node only concatenates args unescaped in that mode (confirmed by reproducing the failure locally) -- cmd.exe's parentheses-as-grouping-syntax mangled the script on Windows","startSurface":{"process":"node simple-json-server.cjs","name":"startsurface-web","workingDirectory":".","waitUntil":{"port":8087}}} */}
+{/* step {"stepId":"startsurface-call-process","description":"Call the server to confirm it's actually serving the expected response","httpRequest":{"url":"http://localhost:8087","statusCodes":[200],"response":{"body":{"status":"ok"}}}} */}
+{/* step {"stepId":"startsurface-close-process","description":"Close the server","closeSurface":"startsurface-web"} */}
+{/* test end */}
 
 ### Open several surfaces concurrently
 

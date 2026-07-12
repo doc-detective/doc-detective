@@ -15,9 +15,9 @@ You can specify the screenshot action in several ways:
   - `directory`: (Optional) The directory where the screenshot will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
   - `maxVariation`: (Optional) The maximum acceptable visual difference (0 to 1) when comparing against a reference image. If the variation exceeds this threshold, the step returns WARNING. If set, visual comparison is enabled.
   - `overwrite`: (Optional) Controls when to overwrite the reference image. Ignored when `path` is a URL (remote storage is never mutated). Options:
-    - `never`: Never overwrite the reference image (default).
-    - `always`: Always overwrite the reference image with the new capture.
-    - `aboveVariation`: Overwrite only if the visual difference exceeds `maxVariation`.
+    - `"false"`: Never overwrite the reference image.
+    - `"true"`: Always overwrite the reference image with the new capture.
+    - `"aboveVariation"`: Overwrite only if the visual difference exceeds `maxVariation` (default).
   - `crop`: (Optional) Crop the screenshot to a specific element. Provide a CSS/XPath selector string (for example, `"#myElement"`) or an object:
     - `selector`: (Required in object) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text to further specify the element if the selector isn't unique.
@@ -51,6 +51,8 @@ Here are a few ways you might use the `screenshot` action:
 
 Saves to a default path like `output/screenshot_1745032062266.png`.
 
+{/* test {"testId":"screenshot-boolean-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -66,7 +68,14 @@ Saves to a default path like `output/screenshot_1745032062266.png`.
 }
 ```
 
+{/* step {"stepId":"goto-screenshot-boolean","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"screenshot-boolean","description":"Take a basic screenshot, directed at a gitignored output folder instead of the default path","screenshot":{"path":"boolean_shorthand.png","directory":"./.dd-output"}} */}
+{/* step {"stepId":"verify-screenshot-boolean","description":"Confirm the capture actually wrote a PNG file to disk, not just that the step reported success","runCode":{"language":"javascript","code":"const fs = require('fs'); const path = require('path'); const file = path.join(process.cwd(), '.dd-output', 'boolean_shorthand.png'); if (!fs.existsSync(file)) process.exit(1); console.log('exists, size', fs.statSync(file).size);","workingDirectory":"."}} */}
+{/* test end */}
+
 ### Full viewport screenshot to specific path (string shorthand)
+
+{/* test {"testId":"screenshot-string-shorthand","detectSteps":false} */}
 
 ```json
 {
@@ -82,6 +91,10 @@ Saves to a default path like `output/screenshot_1745032062266.png`.
   ]
 }
 ```
+
+{/* step {"stepId":"goto-screenshot-string","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"screenshot-string","description":"Save screenshot to a specific file (string shorthand), directed at a gitignored output folder","screenshot":"./.dd-output/login_page.png"} */}
+{/* test end */}
 
 ### Full viewport screenshot with visual comparison (object format)
 
@@ -133,6 +146,8 @@ Compares against a reference image stored in S3 or other cloud storage. The new 
 
 Captures only the element matching the `#main-content` selector.
 
+{/* test {"testId":"screenshot-crop-selector","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -152,9 +167,15 @@ Captures only the element matching the `#main-content` selector.
 }
 ```
 
+{/* step {"stepId":"goto-screenshot-crop","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"screenshot-crop","description":"Screenshot only the buttons section, directed at a gitignored output folder (a selector that fits the viewport, unlike the full-page <main> element)","screenshot":{"path":"main_content_area.png","directory":"./.dd-output","crop":"#buttons"}} */}
+{/* test end */}
+
 ### Screenshot cropped to an element with padding and visual comparison
 
 Captures the element with text "Submit Button", adds 10px padding, and compares against a reference image.
+
+{/* test {"testId":"screenshot-crop-padding","detectSteps":false} */}
 
 ```json
 {
@@ -179,6 +200,10 @@ Captures the element with text "Submit Button", adds 10px padding, and compares 
   ]
 }
 ```
+
+{/* step {"stepId":"goto-screenshot-padding","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"screenshot-padding","description":"Screenshot a button with padding, directed at a gitignored output folder (visual comparison against a maintained reference image is skipped -- see PR notes)","screenshot":{"path":"standard_button_padded.png","directory":"./.dd-output","crop":{"elementText":"Standard Button","padding":10}}} */}
+{/* test end */}
 
 ## Automatic screenshots
 
