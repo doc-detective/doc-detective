@@ -79,7 +79,7 @@ Write word operators between the operands, with a space on each side.
   $$response.body.role contains "admin"
   ```
 
-- **`oneOf`**: True when the left operand equals one of the values in the array on the right. The array can hold numbers or strings; write string values bare unless one needs to contain a comma (the array's separator) or needs to look like a number, `true`, `false`, or `null`—quote those with the same [string literal](#string-literals) rules used elsewhere.
+- **`oneOf`**: True when the left operand equals one of the values in the array on the right. The array can hold numbers, `true`, `false`, `null`, or strings; write string values bare unless one needs to contain a comma (the array's separator) or needs to look like one of those non-string values—quote those with the same [string literal](#string-literals) rules used elsewhere.
 
   ```text
   $$exitCode oneOf [0, 1]
