@@ -213,7 +213,7 @@ Expressions support the comparison operators `==`, `!=`, `>`, `>=`, `<`, and `<=
 ```
 
 {/* test {"testId":"overview-oneof-assertions","detectSteps":false} */}
-{/* step {"stepId":"overview-oneof-step","description":"Exercise the oneOf word operator on both exitCode and platform (adapted from the doc's '!= windows', which would fail this assertion on a Windows runner, to a platform-agnostic oneOf check; the array values must be quoted strings, since bare words in a oneOf array resolve as unquoted identifiers and fail closed)","runShell":{"command":"node -e \"process.exit(0)\""},"assertions":["$$outputs.exitCode oneOf [0, 1]","$$platform oneOf [\"linux\", \"mac\", \"windows\"]"]} */}
+{/* step {"stepId":"overview-oneof-step","description":"Exercise the oneOf word operator on both exitCode and platform (adapted from the doc's '!= windows', which would fail this assertion on a Windows runner, to a platform-agnostic oneOf check; array values can be written bare, since Doc Detective treats each one as a string literal unless it needs to look like a number, true, false, or null)","runShell":{"command":"node -e \"process.exit(0)\""},"assertions":["$$outputs.exitCode oneOf [0, 1]","$$platform oneOf [linux, mac, windows]"]} */}
 {/* test end */}
 
 <Note>
