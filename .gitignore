@@ -151,3 +151,6 @@ src/common/node_modules/
 # cwd rather than the mdx file, so the directory can land at different depths
 # depending on how doc-detective was invoked.
 .dd-output/
+
+# Agent/dev scratch space (see CLAUDE.md "Testing behavior")
+.tmp/
