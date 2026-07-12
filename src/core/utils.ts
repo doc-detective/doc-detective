@@ -1007,6 +1007,9 @@ const PRESERVED_TEMP_ENTRIES = new Set([
   "browsers",
   "runtime",
   "installed.json",
+  // Tool downloads (git-bash — the MinGit backing runShell's Windows `bash`
+  // shell). Wiping it would force a ~40 MB re-download on every run.
+  "tools",
 ]);
 
 function cleanTemp() {

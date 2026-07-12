@@ -38,7 +38,6 @@ import type { Logger } from "./loader.js";
 import type { InstallReport } from "./installer.js";
 
 export {
-  MINGIT_VERSION,
   getGitBashDir,
   getCachedBashPath,
   resolveWindowsBash,
@@ -49,7 +48,7 @@ export type { WindowsBashDeps };
 // Pinned MinGit release (https://github.com/git-for-windows/git/releases).
 // Bump the version and BOTH digests together; the sha256 gate below fails
 // loudly on any mismatch, so a stale digest can't install silently.
-const MINGIT_VERSION = "2.55.0.2";
+export const MINGIT_VERSION = "2.55.0.2";
 const MINGIT_ASSETS: Record<string, { url: string; sha256: string }> = {
   x64: {
     url: `https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.2/MinGit-${MINGIT_VERSION}-64-bit.zip`,
@@ -138,6 +137,15 @@ function systemBashCandidates(
 // Bounded direct spawn (no shell — the path is executed directly, so spaces
 // are safe and there is no quoting surface). Returns null on spawn failure
 // or timeout; the timer is unref'd so a hung probe never pins the process.
+//
+// CodeQL "uncontrolled command line" here is acknowledged and by design
+// (mirroring the spawnCommand rationale in src/core/utils.ts): the executed
+// paths are candidate bash binaries derived from the local machine's own
+// configuration — `where.exe git` output and standard install locations
+// built from ProgramFiles/LOCALAPPDATA env vars — never remote or
+// test-content input. Executing local candidates (with `--version`, no
+// shell) to verify them IS the feature; each candidate is also
+// existence-checked and System32-filtered before it reaches this probe.
 async function spawnCapture(
   cmd: string,
   args: string[]

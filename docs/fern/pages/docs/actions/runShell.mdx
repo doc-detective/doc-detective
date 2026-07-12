@@ -6,7 +6,7 @@ description: Perform a native shell command.
 
 The `runShell` action runs a shell command or script on the local machine and evaluates the results, extending Doc Detective's testing capabilities to anything you can script.
 
-`runShell` runs the command in `bash` by default on every platform — including Windows — so the same command behaves the same everywhere. To use a Windows shell instead, set the `shell` property. See [Shell selection](#shell-selection).
+`runShell` runs the command in `bash` by default on every platform—including Windows—so the same command behaves the same everywhere. To use a Windows shell instead, set the `shell` property. See [Shell selection](#shell-selection).
 
 You can specify the command directly as a string or use an object for more options:
 
@@ -39,7 +39,7 @@ This lets tests continue executing while flagging output changes that exceed you
 
 ## Shell selection
 
-Commands run in `bash` on every platform by default, so POSIX syntax — quoting, pipes, `&&`, `$()` — works identically in your tests on Windows, macOS, and Linux.
+Commands run in `bash` on every platform by default, so POSIX syntax—quoting, pipes, `&&`, `$()`—works identically in your tests on Windows, macOS, and Linux.
 
 - **On macOS and Linux**, Doc Detective uses the `bash` on your `PATH`.
 - **On Windows**, Doc Detective uses Git Bash. If you have [Git for Windows](https://gitforwindows.org/) installed, it uses that; otherwise it downloads a portable copy (MinGit, about 40 MB) into its cache the first time a test needs it. You can pre-install it with [`doc-detective install bash`](/reference/cli/install). The bundled toolbox covers the common utilities (`grep`, `sed`, `awk`, `find`, and friends); if your commands need more, install the full Git for Windows.
@@ -63,9 +63,9 @@ To change the default for a whole project, set `shell` in your config file:
 }
 ```
 
-A step-level `shell` always wins over the config-level default. `cmd` and `powershell` steps fail on macOS and Linux — gate them to Windows with `runOn` if your spec runs on multiple platforms. Background processes started with [`startSurface`](/docs/actions/startsurface) process descriptors use the config-level default too.
+A step-level `shell` always wins over the config-level default. `cmd` and `powershell` steps fail on macOS and Linux—gate them to Windows with `runOn` if your spec runs on multiple platforms. Background processes started with [`startSurface`](/docs/actions/startsurface) process descriptors use the config-level default too.
 
-> **PowerShell notes:** Windows PowerShell doesn't support `&&` chaining — use `;` there, or use the default `bash`. PowerShell also doesn't propagate a native command's exit code unless the command ends with `exit $LASTEXITCODE`, so `exitCodes` assertions beyond `[0, 1]` are unreliable under `shell: "powershell"`; prefer `bash` or `cmd` when asserting specific exit codes.
+> **PowerShell notes:** Windows PowerShell doesn't support `&&` chaining—use `;` there, or use the default `bash`. PowerShell also doesn't propagate a native command's exit code unless the command ends with `exit $LASTEXITCODE`, so `exitCodes` assertions beyond `[0, 1]` are unreliable under `shell: "powershell"`; prefer `bash` or `cmd` when asserting specific exit codes.
 
 ## Background processes
 
@@ -129,7 +129,7 @@ This example prints "hello world" to the output.
 }
 ```
 
-Because `runShell` uses `bash` on every platform by default, POSIX quoting works the same everywhere — `echo 'hello world'` prints without the quotes on Windows too. Only steps that opt into `shell: "cmd"` or `shell: "powershell"` need Windows-specific syntax.
+Because `runShell` uses `bash` on every platform by default, POSIX quoting works the same everywhere—`echo 'hello world'` prints without the quotes on Windows too. Only steps that opt into `shell: "cmd"` or `shell: "powershell"` need Windows-specific syntax.
 
 {/* step {"stepId":"runshell-echo-string","description":"Run a basic command","runShell":{"command":"echo hello world","stdio":"hello world"}} */}
 {/* test end */}
@@ -183,7 +183,7 @@ This example runs a Docker container and checks the output for a specific string
 
 ### Test a failure condition using exit codes
 
-This example runs a command that exits with code `1` and checks for that exit code. Because the command is expected to fail with exit code 1, the step passes.
+This example runs a command that exits with code `1` and checks for that exit code. Because `exitCodes` lists code 1, the step passes.
 
 {/* test {"testId":"runshell-exitcode","detectSteps":false} */}
 
