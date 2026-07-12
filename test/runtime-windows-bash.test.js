@@ -14,9 +14,13 @@ import {
 } from "../dist/runtime/windowsBash.js";
 
 // A throwaway cache dir per test run; only path shapes are exercised, plus
-// installed-record writes from the injected-install path.
+// installed-record writes from the injected-install path. Lives under the
+// gitignored repo-root .tmp/ per CLAUDE.md ("Testing behavior") rather than
+// the system temp dir.
 function tmpCacheDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "dd-bash-test-"));
+  const scratchRoot = path.resolve("./.tmp");
+  fs.mkdirSync(scratchRoot, { recursive: true });
+  return fs.mkdtempSync(path.join(scratchRoot, "dd-bash-test-"));
 }
 
 // Build a deps object where only the named seams do anything.

@@ -84,7 +84,9 @@ export async function extractZip(
               "-NoProfile",
               "-NonInteractive",
               "-Command",
-              `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${destDir}' -Force`,
+              // Escape apostrophes for PS single-quoted literals (doubling)
+              // so a path containing `'` can't break the command parse.
+              `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`,
             ],
           ],
         ]
