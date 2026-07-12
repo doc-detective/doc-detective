@@ -520,7 +520,7 @@ This example targets the `ios` platform, launches the Settings app by its bundle
 }
 ```
 
-{/* step {"stepId":"startsurface-start-process","description":"Start a background server (a small JSON-serving script, to avoid a project-specific npm start)","startSurface":{"process":"node simple-json-server.js","name":"startsurface-web","workingDirectory":".","waitUntil":{"port":8087}}} */}
+{/* step {"stepId":"startsurface-start-process","description":"Start a background server with a self-contained inline command (to avoid a project-specific npm start)","startSurface":{"process":"node -e \"require('http').createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({status:'ok'}))}).listen(8087)\"","name":"startsurface-web","waitUntil":{"port":8087}}} */}
 {/* step {"stepId":"startsurface-call-process","description":"Call the server to confirm it's actually serving the expected response","httpRequest":{"url":"http://localhost:8087","statusCodes":[200],"response":{"body":{"status":"ok"}}}} */}
 {/* step {"stepId":"startsurface-close-process","description":"Close the server","closeSurface":"startsurface-web"} */}
 {/* test end */}
