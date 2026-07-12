@@ -575,7 +575,16 @@ function preprocessExpression(expression: string): string {
       }
     }
     items.push(current);
-    return `[${items.map((item) => quoteIfLiteral(item.trim())).join(", ")}]`;
+    // Drop empty segments (a trailing comma, e.g. "[0, 1,]", or a hole, e.g.
+    // "[a,,b]") instead of quoting them into a spurious "" element — real JS
+    // array-literal syntax elides a trailing comma entirely, and quoting a
+    // hole into "" would let an accidental extra comma silently make "" a
+    // valid oneOf match.
+    return `[${items
+      .map((item) => item.trim())
+      .filter((item) => item !== "")
+      .map((item) => quoteIfLiteral(item))
+      .join(", ")}]`;
   };
 
   // ReDoS hardening (CodeQL js/polynomial-redos). The infix-operator rewrites

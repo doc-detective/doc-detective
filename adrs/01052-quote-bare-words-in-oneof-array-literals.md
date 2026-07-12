@@ -13,7 +13,7 @@ The `oneOf` word operator (`src/core/expressions.ts`, `preprocessExpression`) re
 operand is passed through `quoteIfLiteral`, which wraps a bare identifier in quotes unless it's
 already a string/number/boolean/array/object literal. The right operand — the options array — was
 never processed at all; it was spliced into the generated function body verbatim
-(`` `oneOf(${quoteIfLiteral(left)}, ${right.trim()})` ``).
+(`oneOf(${quoteIfLiteral(left)}, ${right.trim()})`).
 
 That's fine when every array element is already quoted (`oneOf ["linux", "mac"]`) or numeric
 (`oneOf [0, 1]`). But a bare-word array like `oneOf [linux, mac, windows]` — the form a `contains`
@@ -65,7 +65,10 @@ aware, so a nested literal item isn't split mid-way) and runs each trimmed item 
 `quoteIfLiteral`, then rejoins. `quoteIfLiteral` already knows to leave numbers, booleans, `null`,
 already-quoted strings, and masked string-literal placeholders (`__DDSTRn__`, from the quote-masking
 pass earlier in `preprocessExpression`) alone, and to quote everything else — so the same rule now
-applies per-element inside the array as it already did for the LHS.
+applies per-element inside the array as it already did for the LHS. Segments that are empty after
+trimming — a trailing comma (`[0, 1,]`) or a hole (`[a,,b]`) — are dropped rather than quoted into a
+spurious `""` element, matching real JS array-literal elision instead of turning an accidental extra
+comma into a silent `""` match.
 
 ### Consequences
 

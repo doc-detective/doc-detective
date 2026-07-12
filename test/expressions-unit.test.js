@@ -169,6 +169,32 @@ describe("expressions: evaluateAssertion (condition path, allowOperators)", func
       true
     );
   });
+  it("oneOf with a trailing comma does not create a spurious '' match (Copilot #609)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.exitCode oneOf [0, 1,]", ctx),
+      true
+    );
+    assert.equal(
+      await evaluateAssertion('$$outputs.exitCode oneOf ["", 1,]', {
+        ...ctx,
+        outputs: { ...ctx.outputs, exitCode: "" },
+      }),
+      true
+    );
+  });
+  it("oneOf with a hole (double comma) drops the empty element instead of matching '' (Copilot #609)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$platform oneOf [windows,,linux]", ctx),
+      true
+    );
+    assert.equal(
+      await evaluateAssertion('$$outputs.exitCode oneOf [0,,1]', {
+        ...ctx,
+        outputs: { ...ctx.outputs, exitCode: "" },
+      }),
+      false
+    );
+  });
 
   // --- matches (regex with a dot) ---
   it("matches /a.c/ -> true", async function () {
