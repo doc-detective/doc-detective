@@ -171,6 +171,8 @@ Every step is already an implicit assertion: if its action fails, the step fails
 
 An assertion is a condition expression that resolves to true or false. Set `assertions` to a single expression or to an array of expressions. When you provide an array, every expression must pass (logical AND):
 
+{/* test {"testId":"overview-custom-assertions","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -192,6 +194,9 @@ An assertion is a condition expression that resolves to true or false. Set `asse
 }
 ```
 
+{/* step {"stepId":"overview-assertions-step","description":"Run the doc's exact example command and assertions","runShell":{"command":"node -e \"console.log('hello world')\""},"assertions":["$$outputs.exitCode == 0","$$outputs.stdio.stdout contains \"hello\""]} */}
+{/* test end */}
+
 ### Reference the step's outputs
 
 Custom assertions read the current step's outputs through the `$$outputs.*` namespace, plus `$$platform` for the current operating system (`linux`, `mac`, or `windows`). The available outputs depend on the action. For example, `runShell` and `runCode` expose `$$outputs.exitCode` and `$$outputs.stdio`, while `checkLink` exposes `$$outputs.statusCode`. To find out what an action produces, see its reference.
@@ -206,6 +211,10 @@ Expressions support the comparison operators `==`, `!=`, `>`, `>=`, `<`, and `<=
   ]
 }
 ```
+
+{/* test {"testId":"overview-oneof-assertions","detectSteps":false} */}
+{/* step {"stepId":"overview-oneof-step","description":"Exercise the oneOf word operator on both exitCode and platform (adapted from the doc's '!= windows', which would fail this assertion on a Windows runner, to a platform-agnostic oneOf check; array values can be written bare, since Doc Detective treats each one as a string literal unless it needs to look like a number, true, false, or null)","runShell":{"command":"node -e \"process.exit(0)\""},"assertions":["$$outputs.exitCode oneOf [0, 1]","$$platform oneOf [linux, mac, windows]"]} */}
+{/* test end */}
 
 <Note>
 Custom assertions use the `$$outputs.*` namespace, which is distinct from the bare `$$name` expressions you use to set the step-level `variables` and `outputs` objects.
@@ -231,6 +240,8 @@ An `if` condition uses the same condition expressions as [custom assertions](#cu
 
 The following step runs only on Linux and macOS. On Windows, Doc Detective skips it before its action runs:
 
+{/* test {"testId":"overview-conditional-execution","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -245,6 +256,10 @@ The following step runs only on Linux and macOS. On Windows, Doc Detective skips
 }
 ```
 
+{/* step {"stepId":"overview-if-false","description":"A step whose if condition is guaranteed false (adapted from the doc's platform-dependent './install.sh', which isn't available in this fixture, to a deterministic false condition), so it's marked SKIPPED and never runs its action","if":"$$platform == doesnotexist","runShell":"echo should not run"} */}
+{/* step {"stepId":"overview-if-continues","description":"Confirm the skipped step above didn't stop the test","runShell":{"command":"node -e \"console.log('reached after skip')\"","stdio":"reached after skip"}} */}
+{/* test end */}
+
 `if` decides whether a unit runs—it never changes a verdict. A skipped unit is SKIPPED, a reached-but-skipped status that's distinct from FAIL. A skipped step also doesn't stop the test, so the steps after it still run.
 
 ### Reference values in conditions
@@ -252,6 +267,8 @@ The following step runs only on Linux and macOS. On Windows, Doc Detective skips
 Spec- and test-level conditions can reference `$$platform` for the current operating system (`linux`, `mac`, or `windows`).
 
 Step-level conditions can also read earlier steps' outputs through the `$$steps.<stepId>.outputs.*` namespace, so you can gate a step on what a previous step produced. Give the earlier step a `stepId` to reference it:
+
+{/* test {"testId":"overview-steps-reference","detectSteps":false} */}
 
 ```json
 {
@@ -272,6 +289,10 @@ Step-level conditions can also read earlier steps' outputs through the `$$steps.
   ]
 }
 ```
+
+{/* step {"stepId":"overview-check","description":"A preflight step that succeeds (adapted from ./preflight.sh, which doesn't exist in this fixture)","runShell":"node -e \"process.exit(0)\""} */}
+{/* step {"stepId":"overview-deploy","description":"Run only because the preflight step above exited 0 (adapted from ./deploy.sh)","if":"$$steps.overview-check.outputs.exitCode == 0","runShell":{"command":"node -e \"console.log('deploy ran')\"","stdio":"deploy ran"}} */}
+{/* test end */}
 
 A step-level condition can't read its own step's `$$outputs.*`, because Doc Detective evaluates `if` before the step's action runs.
 
@@ -378,6 +399,8 @@ When the result matches, Doc Detective re-runs the whole step—including its as
 
 The following step retries a flaky command up to three times, waiting one second between attempts:
 
+{/* test {"testId":"overview-retry-until-success","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -398,6 +421,10 @@ The following step retries a flaky command up to three times, waiting one second
   ]
 }
 ```
+
+{/* step {"stepId":"overview-retry-reset","description":"Clear the marker file from any previous run so the flaky step below deterministically fails once, then succeeds on retry","runShell":"node -e \"try{require('fs').unlinkSync('.dd-output/retry-marker')}catch(e){}\""} */}
+{/* step {"stepId":"overview-retry-flaky","description":"A command that fails on its first attempt (creating a marker file) and succeeds on retry once the marker exists (adapted from ./flaky-check.sh into a deterministic, self-contained flaky command, since a real flaky script isn't available in this fixture)","runShell":{"command":"node -e \"const fs=require('fs');fs.mkdirSync('.dd-output',{recursive:true});const p='.dd-output/retry-marker';if(fs.existsSync(p)){process.exit(0)}else{fs.writeFileSync(p,'1');process.exit(1)}\""},"onFail":[{"retry":{"limit":3,"delay":1000}}]} */}
+{/* test end */}
 
 Once the retries are used up and the step still matches the handler, Doc Detective resolves routing again with `retry` entries skipped to find the terminal action. The step falls through to the next matching entry, or to the default for its result if no other entry matches. For example:
 
@@ -442,6 +469,8 @@ A forward jump skips every step between the current step and the target: the ski
 
 The following passing step jumps ahead to a cleanup step, skipping the steps in between:
 
+{/* test {"testId":"overview-goto-step","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -471,6 +500,11 @@ The following passing step jumps ahead to a cleanup step, skipping the steps in 
   ]
 }
 ```
+
+{/* step {"stepId":"overview-create-resource","description":"A passing step that jumps straight to cleanup (adapted from ./create-resource.sh)","runShell":"node -e \"process.exit(0)\"","onPass":[{"goToStep":"overview-cleanup"}]} */}
+{/* step {"stepId":"overview-extra-checks","description":"Deliberately fails if reached, to prove the jump above genuinely skips it rather than just passing coincidentally (adapted from ./extra-checks.sh)","runShell":"node -e \"process.exit(1)\""} */}
+{/* step {"stepId":"overview-cleanup","description":"The jump target (adapted from ./cleanup.sh)","runShell":{"command":"node -e \"console.log('cleanup ran')\"","stdio":"cleanup ran"}} */}
+{/* test end */}
 
 As with every routing action, `goToStep` controls flow only and never changes a step's result. A step that fails and routes `goToStep` stays FAIL, the jump still happens, and the test still rolls up to FAIL. An `onSkip` handler can use `goToStep` too, so a step that's reached but skipped can still jump.
 
