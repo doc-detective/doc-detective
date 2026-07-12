@@ -27,10 +27,10 @@ export async function downloadFile(
       const status = res.statusCode ?? 0;
       if (status >= 300 && status < 400 && res.headers.location) {
         res.resume();
-        downloadFile(res.headers.location, dest, redirects + 1).then(
-          resolve,
-          reject
-        );
+        // Location may be relative (some CDNs/reverse proxies) — resolve it
+        // against the current request URL before recursing.
+        const target = new URL(res.headers.location, url).toString();
+        downloadFile(target, dest, redirects + 1).then(resolve, reject);
         return;
       }
       if (status !== 200) {
