@@ -35,6 +35,9 @@ on:
       - '.mocharc.yml'
       - '.github/workflows/npm-test.yaml'
       - '.github/workflows/test.yml'
+      # The fixture matrix is half the PR gate; a change to it must run it.
+      # Without this entry a fixtures.yml-only PR merges unexercised.
+      - '.github/workflows/fixtures.yml'
   workflow_dispatch:
 
 concurrency:
