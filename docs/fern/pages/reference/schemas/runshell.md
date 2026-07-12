@@ -29,6 +29,25 @@ runShell | one of:<br/>- string<br/>- object([Run shell command (detailed)](/ref
 ```json
 {
   "runShell": {
+    "command": "echo %USERNAME%",
+    "shell": "cmd"
+  }
+}
+```
+
+```json
+{
+  "runShell": {
+    "command": "[[ \"ok\" == o* ]] && echo bashism",
+    "shell": "bash",
+    "stdio": "bashism"
+  }
+}
+```
+
+```json
+{
+  "runShell": {
     "command": "echo",
     "args": [
       "$USER"
