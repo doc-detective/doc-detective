@@ -721,8 +721,9 @@ $x("//button[contains(text(), 'Submit')]")[0].click()
 </Warning>
 
 <Info title="XPath treated as CSS">
-- Ensure your XPath starts with `//` or `/`
-- Doc Detective determines selector type automatically
+- Doc Detective detects the selector type automatically from the leading characters.
+- On browser surfaces, start your XPath with `//`, `/`, or `(`. Doc Detective treats anything else as CSS.
+- On [native app surfaces](/docs/actions/startsurface), only `//` and `(` count as XPath. A bare single `/` is treated as CSS.
 </Info>
 
 ## Related resources
