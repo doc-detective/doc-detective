@@ -18,7 +18,7 @@ Doc Detective publishes the Docker image as a multi-architecture manifest, so `d
 Existing tags (`latest`, `linux`, `windows`, version-scoped tags) work the same way—arm64 Linux hosts receive native images without any tag changes.
 
 <Note>
-Chrome and ChromeDriver aren't available on the `linux/arm64` image. Google's Chrome for Testing publishes only x64 binaries, with no native `linux/arm64` build, so they're skipped when the image warms its runtime assets rather than failing. Firefox works on both architectures. To run Chrome-driven tests on an arm64 host, run the `linux/amd64` image under emulation, or use Firefox instead.
+Chrome and ChromeDriver aren't available on the `linux/arm64` image. Google's Chrome for Testing publishes only x64 binaries, with no native `linux/arm64` build, so they're skipped rather than failing when the image warms its runtime assets. Firefox works on both architectures. To run Chrome-driven tests on an arm64 host, run the `linux/amd64` image under emulation, or use Firefox instead.
 </Note>
 
 ## What's included
