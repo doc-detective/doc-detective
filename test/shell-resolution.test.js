@@ -122,6 +122,14 @@ describe("shell resolution", function () {
       assert.ok(env.Path.includes("C:\\Windows\\System32"), env.Path);
     });
 
+    it("sets PATH to just the bash directory when no PATH exists (no trailing delimiter)", function () {
+      const env = shellSpawnEnv("C:\\cache\\usr\\bin\\bash.exe", {
+        platform: "win32",
+        env: {},
+      });
+      assert.equal(env.Path, "C:\\cache\\usr\\bin");
+    });
+
     it("returns undefined for non-bash shells, bare names, and POSIX", function () {
       assert.equal(
         shellSpawnEnv("C:\\Windows\\system32\\cmd.exe", {

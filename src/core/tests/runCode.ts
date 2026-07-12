@@ -142,17 +142,22 @@ async function runCode({
         command = await resolveShellExecutable("bash", {
           cacheDir: config?.cacheDir,
         });
-        // Forward slashes survive every shell this can run through (bash
-        // strips unquoted backslashes; cmd/powershell accept `/` in quoted
-        // paths), and the quote keeps the spaces in `C:/Program Files/...`
-        // one token.
-        command = command.replace(/\\/g, "/");
-        if (/\s/.test(command)) command = `"${command}"`;
         commandPreverified = true;
       } catch (error: any) {
         result.status = "FAIL";
         result.description = `Couldn't resolve bash on Windows: ${error.message}`;
         return result;
+      }
+    }
+    // The interpreter command travels through a bash command string on this
+    // branch (resolved above OR a user-supplied Windows path via
+    // `runCode.command`): bash strips unquoted backslashes, so hand it the
+    // separator every shell accepts, and quote paths containing spaces so
+    // `C:/Program Files/...` stays one token.
+    if (os.platform() === "win32" && interpreterShell === "bash") {
+      command = command.replace(/\\/g, "/");
+      if (/\s/.test(command) && !command.startsWith('"')) {
+        command = `"${command}"`;
       }
     }
     // Make sure the command is available

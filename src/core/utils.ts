@@ -1778,9 +1778,11 @@ function shellSpawnEnv(
   // Windows env vars are case-insensitive; preserve whichever casing exists.
   const pathKey =
     Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "Path";
+  const existing = env[pathKey];
   return {
     ...env,
-    [pathKey]: `${dir}${path.delimiter}${env[pathKey] ?? ""}`,
+    // No trailing delimiter (an empty PATH segment) when PATH was unset.
+    [pathKey]: existing ? `${dir}${path.delimiter}${existing}` : dir,
   };
 }
 

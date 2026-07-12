@@ -41,7 +41,12 @@ export async function downloadFile(
       const file = fs.createWriteStream(dest);
       res.pipe(file);
       file.on("finish", () => file.close(() => resolve()));
-      file.on("error", reject);
+      file.on("error", (error) => {
+        // Stop the server stream too (disk full / permission denied) so the
+        // socket doesn't keep draining a 40 MB download into a broken pipe.
+        res.destroy();
+        reject(error);
+      });
     });
     req.setTimeout(60000, () =>
       req.destroy(new Error(`download timed out: ${url}`))
