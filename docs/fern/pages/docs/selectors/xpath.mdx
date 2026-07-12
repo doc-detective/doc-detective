@@ -20,7 +20,7 @@ For most use cases, [CSS selectors](/docs/selectors/css) are simpler and more re
 
 ## XPath syntax basics
 
-XPath selectors in Doc Detective must start with `//` or `/` to be recognized as XPath (otherwise they're treated as CSS selectors).
+XPath selectors in Doc Detective must start with `//`, `/`, or `(` to be recognized as XPath (otherwise they're treated as CSS selectors). The `(` case covers grouped expressions like `(//button)[2]`, used to index or filter a node set—see [Position-based selection](#position-based-selection).
 
 ### Absolute vs. relative paths
 
