@@ -149,7 +149,7 @@ A browser reference with a `tab` selector closes that tab. A `window` selector c
 
 {/* step {"stepId":"closesurface-goto-main","description":"Open the local test server in the default tab","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"closesurface-open-tab","description":"Open a second, named tab","goTo":{"url":"http://localhost:8092/click-shorthand.html","newTab":"closesurface-cart"}} */}
-{/* step {"stepId":"closesurface-close-tab","description":"Close the cart tab","closeSurface":{"tab":"closesurface-cart"}} */}
+{/* step {"stepId":"closesurface-close-tab","description":"Close the cart tab (the browser field is required on the object form, matching the visible JSON example)","closeSurface":{"browser":"chrome","tab":"closesurface-cart"}} */}
 {/* test end */}
 
 One guardrail applies. Doc Detective refuses to close the **last open tab** of a browser, because closing a tab isn't how you end a session — closing the **whole browser** is.
