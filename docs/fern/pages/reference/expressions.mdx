@@ -79,10 +79,11 @@ Write word operators between the operands, with a space on each side.
   $$response.body.role contains "admin"
   ```
 
-- **`oneOf`**: True when the left operand equals one of the values in the array on the right.
+- **`oneOf`**: True when the left operand equals one of the values in the array on the right. The array can hold numbers or strings; the same [string literal](#string-literals) quoting rule applies to each value, so bare words work unless they contain spaces or operator characters.
 
   ```text
   $$exitCode oneOf [0, 1]
+  $$platform oneOf [linux, mac, windows]
   ```
 
 - **`matches`**: True when the left operand is a string that matches a regular expression.

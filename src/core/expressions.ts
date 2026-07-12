@@ -543,6 +543,41 @@ function preprocessExpression(expression: string): string {
     return `"${token}"`;
   };
 
+  // Helper: quote bare words inside a `oneOf` options array literal, e.g.
+  // `[linux, mac, windows]` -> `["linux", "mac", "windows"]`. Unlike
+  // `contains`'s single RHS operand, `oneOf`'s RHS is a whole array literal,
+  // so quoteIfLiteral alone (applied to the full "[...]" string) never fires:
+  // the string starts with "[" and is returned unchanged, leaving bare words
+  // inside as unquoted JS identifiers that throw a ReferenceError in the
+  // generated function — caught by evaluateExpression's try/catch and
+  // surfaced as `undefined`, i.e. the condition fails closed with no
+  // diagnostic (issue #585). Only rewrite an actual "[...]" literal; a bare
+  // variable reference (e.g. an unresolved "$$opts") is left untouched so it
+  // fails the same way it always has.
+  const quoteArrayItems = (arrayLiteral: string): string => {
+    const match = arrayLiteral.match(/^\[([\s\S]*)\]$/);
+    if (!match) return arrayLiteral;
+    const inner = match[1]!;
+    if (inner.trim() === "") return arrayLiteral;
+    // Split on top-level commas only, tracking bracket/brace/paren depth so a
+    // nested literal item (e.g. a nested array) isn't split mid-way.
+    const items: string[] = [];
+    let depth = 0;
+    let current = "";
+    for (const char of inner) {
+      if (char === "[" || char === "{" || char === "(") depth++;
+      if (char === "]" || char === "}" || char === ")") depth--;
+      if (char === "," && depth === 0) {
+        items.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    items.push(current);
+    return `[${items.map((item) => quoteIfLiteral(item.trim())).join(", ")}]`;
+  };
+
   // ReDoS hardening (CodeQL js/polynomial-redos). The infix-operator rewrites
   // below scan the WHOLE expression with a global `replace`. Their left operand
   // pattern (`LEFT`) and the bare RHS used an UNBOUNDED `\S+` (and the unrolled
@@ -586,7 +621,7 @@ function preprocessExpression(expression: string): string {
     expression = expression.replace(
       new RegExp(`${LEFT}\\s+oneOf\\s+(.+)$`),
       (_m: string, left: string, right: string) =>
-        `oneOf(${quoteIfLiteral(left)}, ${right.trim()})`
+        `oneOf(${quoteIfLiteral(left)}, ${quoteArrayItems(right.trim())})`
     );
   }
 

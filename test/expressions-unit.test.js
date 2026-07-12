@@ -145,6 +145,30 @@ describe("expressions: evaluateAssertion (condition path, allowOperators)", func
       false
     );
   });
+  it("oneOf with unquoted bare-word array -> true (#585)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$platform oneOf [windows, linux]", ctx),
+      true
+    );
+  });
+  it("oneOf with unquoted bare-word array -> false (#585)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$platform oneOf [linux, mac]", ctx),
+      false
+    );
+  });
+  it("oneOf with mixed quoted/bare-word array -> true (#585)", async function () {
+    assert.equal(
+      await evaluateAssertion('$$platform oneOf ["windows", linux]', ctx),
+      true
+    );
+  });
+  it("oneOf with unquoted numeric array is unaffected -> true", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.exitCode oneOf [0, 1]", ctx),
+      true
+    );
+  });
 
   // --- matches (regex with a dot) ---
   it("matches /a.c/ -> true", async function () {
