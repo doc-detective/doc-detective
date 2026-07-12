@@ -17,7 +17,7 @@ You can specify the recording action in several ways:
 - **Object Format:** Use an object for more control over the output file:
   - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
   - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
-  - `overwrite`: (Optional) Set to `true` to overwrite an existing file at the target path. Defaults to `false`.
+  - `overwrite`: (Optional) Set to the string `"true"` to overwrite an existing file at the target path. Defaults to `"false"`.
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
   - `surface`: (Optional) The surface to record. For browsers, a session, window, or tab reference, for example `{ "browser": "chrome", "tab": "demo" }`; omit to record the active tab. The recorder's own internal tab is never addressable by window/tab selectors. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows). For native apps, the object form `{ "app": "<surface name>" }` records that app, cropped to its window by default. See [Recording app surfaces](#recording-app-surfaces).
@@ -240,7 +240,7 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
           "record": {
             "path": "test_video.gif",
             "directory": "./output/gifs",
-            "overwrite": true
+            "overwrite": "true"
           }
         },
         {
