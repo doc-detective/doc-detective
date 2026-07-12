@@ -1,3 +1,11 @@
+## [4.26.7](https://github.com/doc-detective/doc-detective/compare/v4.26.6...v4.26.7) (2026-07-12)
+
+
+### Bug Fixes
+
+* **files:** resolve string-shorthand screenshot/record paths via relativePathBase ([#604](https://github.com/doc-detective/doc-detective/issues/604)) ([fa41a71](https://github.com/doc-detective/doc-detective/commit/fa41a711d5b80cf4b176d562af489fe50e1e9b1c))
+* **httpRequest:** stop implicitly asserting a JSON-object response body ([#607](https://github.com/doc-detective/doc-detective/issues/607)) ([eb99a88](https://github.com/doc-detective/doc-detective/commit/eb99a88b4e379782853dfcd9c8afc1305ed9ea4b)), closes [#576](https://github.com/doc-detective/doc-detective/issues/576)
+
 ## [4.26.6](https://github.com/doc-detective/doc-detective/compare/v4.26.5...v4.26.6) (2026-07-11)
 
 
