@@ -243,7 +243,7 @@ export async function installBrowsers(
         force,
       });
     } catch (err) {
-      // Best-effort, like BEST_EFFORT_NPM_DEPS on the npm side (ADR 01046):
+      // Best-effort, like BEST_EFFORT_NPM_DEPS on the npm side (ADR 01053):
       // e.g. chromedriver has no native linux-arm64 build upstream, so a
       // platform without an emulation layer can never install it. One
       // asset's unavailability must not abort the rest of the batch — the
@@ -251,12 +251,13 @@ export async function installBrowsers(
       // 01008 already validates drivers by execution and falls back
       // across browsers when one is missing or broken).
       const detail = err instanceof Error ? err.message : String(err);
-      logger(`${name} failed to install and was skipped: ${detail}`, "warn");
+      const message = `failed to install and was skipped: ${detail}`;
+      logger(`${name} ${message}`, "warn");
       reports.push({
         assetId: name,
         kind: "browser",
         action: "skipped",
-        notes: [`failed to install and was skipped: ${detail}`],
+        notes: [message],
       });
       continue;
     }

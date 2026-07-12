@@ -305,7 +305,7 @@ describe("runtime/installer", function () {
     });
 
     it("a browser asset failing to install does not abort the batch; it's reported skipped", async function () {
-      // Mirrors installRuntime's BEST_EFFORT_NPM_DEPS tolerance (ADR 01046):
+      // Mirrors installRuntime's BEST_EFFORT_NPM_DEPS tolerance (ADR 01053):
       // e.g. chromedriver has no native linux-arm64 build, so
       // ensureBrowserInstalled throws there. That must not prevent other
       // requested assets (e.g. firefox) from installing.

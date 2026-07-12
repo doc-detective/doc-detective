@@ -43,8 +43,9 @@ per-asset install failure?
   execution and falls back across browsers at runtime (`browserFallback` policy). A hard install
   failure duplicates a guarantee the runtime already provides, at a much higher cost (it kills the
   whole batch, including unrelated assets).
-* No change to `install all`'s exit-code contract — it has never failed the process on a per-asset
-  problem (npm side already swallows PTY failures); browsers should match.
+* Parity with the npm side's exit-code contract: `installRuntime` already never fails the process
+  over a `BEST_EFFORT_NPM_DEPS` problem (PTY backend); `installBrowsers` should match instead of
+  being the one asset-install path that still hard-fails the whole command.
 * Testability: must be provable without a real emulation gap (inject a fake `browsersModule` whose
   `install` throws for one asset).
 
@@ -78,12 +79,16 @@ same shape `installRuntime` already returns for a failed `BEST_EFFORT_NPM_DEPS` 
 * Good: the arm64 Docker image build (and any user's `install all` on an unsupported platform/arch)
   completes instead of aborting; the platform gap is visible in the printed report
   (`[browser] chromedriver — skipped`) instead of a fatal stack trace.
-* Good: no exit-code change — `install all` / `install browsers` have never failed the process on a
-  per-asset problem; this closes the one remaining asymmetry with the npm side.
-* Neutral: a genuinely transient failure (flaky download, disk full) is now also swallowed rather
-  than surfaced as a hard error. Accepted: `install all` already treats `BEST_EFFORT_NPM_DEPS`
-  failures this way, the warning-level log line still surfaces the failure, and `install status` /
-  a re-run remain the way to confirm and retry.
+* Bad (accepted): `install all` / `install browsers` previously exited non-zero on ANY browser asset
+  failure (no try/catch existed on this path at all) — that includes genuinely transient failures
+  (flaky download, disk full) on platforms with no availability problem, not just the platform-gap
+  case this ADR targets. Those now also degrade to a warn-level log + `"skipped"` report instead of
+  a hard, exit-1 failure. Accepted for the same reason the npm side already accepts it for
+  `BEST_EFFORT_NPM_DEPS`: `install status` and a re-run remain the way to confirm and retry, and a
+  best-effort install command that fails the whole process for one broken asset is worse than one
+  that finishes and reports what didn't make it.
+* Good: this closes the one remaining asymmetry with the npm side — `installRuntime` already has
+  this best-effort/non-fatal behavior for `BEST_EFFORT_NPM_DEPS`; `installBrowsers` did not.
 * Neutral: at runtime, a browser skipped at install time behaves exactly like a broken/missing
   driver already does — ADR 01008's cross-engine fallback and diagnostic skip reporting apply
   unchanged.
