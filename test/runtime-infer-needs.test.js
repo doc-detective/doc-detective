@@ -356,6 +356,19 @@ describe("runtime/inferRuntimeNeeds", function () {
     expect(stepOverride.windowsBash).to.equal(true);
   });
 
+  it("a startSurface process descriptor follows the shell default", function () {
+    // startSurface process descriptors run through the same launcher and the
+    // same config-level shell default as runShell.background, so they create
+    // the same bash need (and none under a non-bash default).
+    const spec = makeSpec([
+      { startSurface: { process: "node server.js", name: "srv" } },
+    ]);
+    expect(inferRuntimeNeeds([spec]).windowsBash).to.equal(true);
+    expect(
+      inferRuntimeNeeds([spec], { configShell: "cmd" }).windowsBash
+    ).to.equal(false);
+  });
+
   it("runCode with language bash needs bash regardless of the shell default", function () {
     const needs = inferRuntimeNeeds(
       [makeSpec([{ runCode: { language: "bash", code: "echo hi" } }])],

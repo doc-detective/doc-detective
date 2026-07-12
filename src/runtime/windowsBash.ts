@@ -33,7 +33,7 @@ import {
   writeInstalledRecord,
   type CacheDirContext,
 } from "./cacheDir.js";
-import { downloadFile, extractZip } from "./androidInstaller.js";
+import { downloadFile, extractZip } from "./archiveUtils.js";
 import type { Logger } from "./loader.js";
 import type { InstallReport } from "./installer.js";
 

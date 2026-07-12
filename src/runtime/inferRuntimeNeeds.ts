@@ -130,6 +130,16 @@ function stepNeedsBash(step: any, configShell: string): boolean {
     if ((stepShell ?? configShell) === "bash") return true;
   }
   if ("runCode" in step && step.runCode?.language === "bash") return true;
+  // startSurface process descriptors run through the same launcher and the
+  // same config-level shell default as runShell.background (they have no
+  // per-step shell field).
+  if ("startSurface" in step && configShell === "bash") {
+    for (const d of startSurfaceDescriptors(step)) {
+      if (d && typeof d === "object" && typeof d.process === "string") {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
