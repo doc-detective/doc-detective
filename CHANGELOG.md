@@ -1,3 +1,10 @@
+## [4.26.8](https://github.com/doc-detective/doc-detective/compare/v4.26.7...v4.26.8) (2026-07-12)
+
+
+### Bug Fixes
+
+* **expressions:** quote bare words inside a oneOf array literal ([#609](https://github.com/doc-detective/doc-detective/issues/609)) ([34ce367](https://github.com/doc-detective/doc-detective/commit/34ce3678662b0d481eb22eeeaaeb6a720c95b1c8)), closes [#585](https://github.com/doc-detective/doc-detective/issues/585)
+
 ## [4.26.7](https://github.com/doc-detective/doc-detective/compare/v4.26.6...v4.26.7) (2026-07-12)
 
 
