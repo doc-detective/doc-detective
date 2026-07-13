@@ -11,13 +11,17 @@ import path from "node:path";
 // npm run test:coverage`) the "does not run the suite" assertion fails;
 // against the decoupled script it passes.
 describe("doc-detective-common build contract (ADR 01057)", function () {
-  const pkg = JSON.parse(
-    fs.readFileSync(
-      path.join(process.cwd(), "src", "common", "package.json"),
-      "utf8"
-    )
-  );
-  const build = pkg.scripts.build;
+  let pkg, build;
+
+  before(function () {
+    pkg = JSON.parse(
+      fs.readFileSync(
+        path.join(process.cwd(), "src", "common", "package.json"),
+        "utf8"
+      )
+    );
+    build = pkg.scripts.build;
+  });
 
   it("builds artifacts without running the test suite", function () {
     assert.doesNotMatch(
