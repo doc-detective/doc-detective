@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Selects which fixture bundles the PR gate must run for a change set (see
-// .github/workflows/npm-test.yaml and ADR 01049). Deliberately conservative:
+// .github/workflows/npm-test.yaml and ADR 01055). Deliberately conservative:
 // the ONLY narrowing case is a change set confined entirely to fixture GROUP
 // directories — then only the bundles owning the touched groups run. Anything
 // else (product code, scripts, workflows, shared fixture infra like env /

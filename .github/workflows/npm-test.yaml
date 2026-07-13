@@ -47,7 +47,7 @@ concurrency:
 permissions:
   contents: read
   # The `changes` job lists the PR's changed files to narrow the fixture
-  # matrix (ADR 01049).
+  # matrix (ADR 01055).
   pull-requests: read
 
 jobs:
@@ -55,7 +55,12 @@ jobs:
   # construction (scripts/select-fixture-bundles.cjs): only a change set
   # confined entirely to fixture group directories narrows the matrix; any
   # product/script/workflow/shared-infra change — and any non-PR trigger —
-  # selects "all". A failure here fails the gate loudly (fixtures `needs` it).
+  # selects "all". FAIL-SAFE: every error path (API failure, script error,
+  # empty output) defaults to "all". A narrowed matrix must only ever be the
+  # result of a confidently fixture-confined change set — never of a failure —
+  # because an empty/mismatched `bundles` value would make every fixture leg's
+  # `if:` evaluate false, and a skipped required check counts as passing under
+  # branch protection (i.e. would merge a PR with zero fixtures run).
   changes:
     name: Select fixture bundles
     runs-on: ubuntu-latest
@@ -75,14 +80,24 @@ jobs:
         run: |
           if [ -z "$PR" ]; then
             echo "no PR context (manual dispatch) — running all bundles"
-            echo "bundles=all" >> "$GITHUB_OUTPUT"
-          else
-            files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename')
+            bundles=all
+          # `if files=$(...)` tolerates a non-zero gh api (transient 5xx / rate
+          # limit) without tripping `set -e`; a failed list falls back to all.
+          elif files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
             printf 'changed files:\n%s\n' "$files"
-            bundles=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs)
-            echo "selected bundles: $bundles"
-            echo "bundles=$bundles" >> "$GITHUB_OUTPUT"
+            # `|| echo all` keeps a selector crash fail-safe too.
+            bundles=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs || echo all)
+          else
+            echo "could not list PR files — defaulting to all bundles"
+            bundles=all
           fi
+          # Defense in depth: never emit an empty value (would skip every leg).
+          if [ -z "$bundles" ]; then
+            echo "empty selection — defaulting to all bundles"
+            bundles=all
+          fi
+          echo "selected bundles: $bundles"
+          echo "bundles=$bundles" >> "$GITHUB_OUTPUT"
 
   # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
   # of the *.spec.json fixtures no longer run here — see the `fixtures` job.
@@ -98,7 +113,7 @@ jobs:
 
   # Per-feature Doc Detective fixtures, fanned out one small job per (bundle x
   # OS) so no single job is a 90-minute monolith. Runs the PR's own build,
-  # narrowed to the bundles the change set can affect (ADR 01049).
+  # narrowed to the bundles the change set can affect (ADR 01055).
   fixtures:
     needs: changes
     uses: ./.github/workflows/fixtures.yml

@@ -56,18 +56,25 @@ Chosen option: **A**.
 
 * Good: fixture-authoring PRs run only their own bundles (e.g. one group → 3 jobs instead of 27),
   with the mocha matrix unchanged as a cross-cutting backstop.
-* Good: the failure directions are safe — selector bug returns `all` (waste, not risk); drift
-  between map and matrix breaks the unit suite; `changes` job failure fails the gate.
+* Good: every failure direction is safe — selector bug, API failure, or empty output all default
+  to `all` (waste, not lost coverage); drift between map and matrix breaks the unit suite. An
+  empty `bundles` value is the one dangerous state (it would skip every leg, and a skipped
+  required check counts as passing), so the `changes` job guards against emitting it.
 * Neutral: most PRs touch product code and still select `all` — by design. This ADR buys the
   narrow case cheaply; option B's larger savings remain available later if wanted, with this
   selector as its fallback layer.
 * Cost: one more always-on job (`changes`, seconds). Skipped bundle jobs still appear in the
   checks list (as skipped), which reviewers must read as "not applicable", not "passed".
+* Scope: the `bundles` input gates only the general `fixtures` matrix. The three heavy Android
+  KVM jobs (`fixtures-android-reuse`/`-managed`/`-action`) are NOT gated here and run on every
+  PR — the safe direction (Android coverage is never skipped), but they remain a cost this ADR
+  does not address. Gating those legs by Android relevance is a separate decision (ADR 01056).
 
 ### Confirmation
 
-* A PR touching only `test/core-artifacts/http/**` runs exactly the `web-plumbing` bundle jobs
-  (3) plus the mocha matrix; the other bundle jobs show as skipped.
+* A PR touching only `test/core-artifacts/http/**` runs the `web-plumbing` bundle jobs (3) plus
+  the mocha matrix and the three always-on Android KVM jobs; every other bundle job shows as
+  skipped.
 * A PR touching any `src/**` file runs all bundle jobs.
 * Renaming a bundle in fixtures.yml without updating the selector fails
   `test/select-fixture-bundles.test.js`.

@@ -27,7 +27,7 @@ on:
     inputs:
       # Comma-joined bundle names to run, or "all". The PR gate narrows this
       # via scripts/select-fixture-bundles.cjs ONLY for change sets confined
-      # to fixture group directories (ADR 01049); every other change — and
+      # to fixture group directories (ADR 01055); every other change — and
       # every caller that omits the input, like the release gate — runs "all".
       # Skipped bundles surface as skipped jobs in the run, never silently.
       bundles:
