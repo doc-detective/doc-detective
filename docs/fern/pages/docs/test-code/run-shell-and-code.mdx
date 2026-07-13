@@ -12,7 +12,7 @@ Use `runShell` for native shell commands, `runCode` for inline snippets in JavaS
 Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
-- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and a Bash shell for `bash`. (`bash` isn't supported on Windows.)
+- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and Bash for `bash`. On Windows, Doc Detective runs `bash` steps through Git Bash and downloads a portable copy the first time a test needs one, so you don't have to install Bash yourself.
 - A directory where you can create a `.spec.json` file.
 
 ## Step 1: Test a documented command
@@ -173,11 +173,11 @@ Some docs ask the reader to start a server or container and leave it running whi
 
 **Solution:** Reference values explicitly with environment variables and [`loadVariables`](/docs/actions/loadvariables), or set `workingDirectory` so the command runs where it expects to.
 
-### A `bash` `runCode` step is skipped on Windows
+### A `bash` step behaves differently on Windows
 
-**Cause:** `runCode` with `language: bash` isn't supported on Windows.
+**Cause:** `runShell` and `runCode` run in Bash on every platform, including Windows, where Doc Detective uses Git Bash. If Git for Windows isn't installed, the first `bash` step downloads a portable copy (MinGit, about 40 MB). This adds a one-time delay, and MinGit bundles only a subset of the usual command-line tools (for example, it omits `curl`, `seq`, and `sleep`).
 
-**Solution:** Use `runShell` with a Windows-native command, or gate the test to non-Windows platforms with [contexts](/docs/test-docs/platforms-and-browsers).
+**Solution:** To skip the download, pre-provision Bash (for example, in a CI image) with [`doc-detective install bash`](/reference/cli/install), or install the full [Git for Windows](https://gitforwindows.org/) if your commands need more tools. To run a command in a Windows shell instead, set `shell` to `cmd` or `powershell`. See [Shell selection](/docs/actions/runshell#shell-selection).
 
 ## What's next
 
