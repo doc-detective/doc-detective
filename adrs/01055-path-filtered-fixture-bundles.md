@@ -33,51 +33,60 @@ gate a change needed simply doesn't run, and green means nothing.
 
 ## Decision Outcome
 
-Chosen option: **A**.
+Chosen option: **A**, implemented as a **dynamic matrix** so only the selected bundles ever
+materialize as jobs.
 
 * [`scripts/select-fixture-bundles.cjs`](../scripts/select-fixture-bundles.cjs) (zero-dependency)
-  returns `all` unless every changed file lives under `test/core-artifacts/<group>/` for a known
-  bundle group; then it returns exactly the owning bundles. Shared fixture infrastructure inside
-  `core-artifacts` (`env`, `config.groups.json`, the mocha-owned `ordering/` and `output/` dirs)
-  and empty change sets also return `all`.
-* The PR gate ([`npm-test.yaml`](../.github/workflows/npm-test.yaml)) runs a `changes` job that
-  lists the PR's files (GitHub API; non-PR triggers select `all`) and feeds the selector; the
-  `fixtures` call passes the result as the new `bundles` input of
-  [`fixtures.yml`](../.github/workflows/fixtures.yml). Each bundle job carries a comma-guarded
-  `if:` (bundle names are not substring-safe: `apps` vs `apps-ios`), so deselected bundles appear
-  as **skipped jobs** — visible, auditable, never silent.
-* [`release.yml`](../.github/workflows/release.yml) omits the input and gets the default `all`:
-  the release gate is unchanged and re-verifies everything before publish.
-* Drift guards: a mocha test (`test/select-fixture-bundles.test.js`) asserts the script's bundle
-  map deep-equals the fixtures.yml matrix, so editing one without the other fails the unit suite;
-  a `changes`-job failure fails the whole gate (`fixtures` `needs` it).
+  is the **single source of truth** for the bundle definitions (name, group dirs, and the
+  per-bundle `timeout`/`android`/`prebootIos` CI attributes). Its `--matrix` mode emits the JSON
+  array of bundle objects to run: every bundle unless the change set is confined entirely to
+  fixture group directories, in which case only the owning bundles. Shared fixture infrastructure
+  inside `core-artifacts` (`env`, `config.groups.json`, the mocha-owned `ordering/`/`output/`
+  dirs) and empty change sets yield the full matrix.
+* [`fixtures.yml`](../.github/workflows/fixtures.yml) computes its own matrix: a `select` job
+  reads the PR's changed files (GitHub API; non-PR triggers and every error path fall back to the
+  full matrix) and runs the script's `--matrix`; the `fixtures` job's
+  `matrix.bundle: ${{ fromJSON(needs.select.outputs.matrix) }}` expands to exactly the selected
+  bundles. A **deselected bundle produces no job at all** — cleaner than a skipped one.
+* **Why a dynamic matrix, not a per-job `if:`.** The `matrix` context is not available in a
+  job-level `if:` (only `github`/`needs`/`vars`/`inputs` are), so a bundle can't gate itself on
+  its own matrix value — an `if:` referencing `matrix.bundle.name` is a workflow-compile
+  (startup) failure. Emitting only the selected bundles into the matrix sidesteps that entirely.
+* Self-contained in the reusable workflow, so both callers benefit with no plumbing:
+  [`npm-test.yaml`](../.github/workflows/npm-test.yaml) just calls `fixtures.yml` (and grants
+  `pull-requests: read`, which a reusable workflow can't hold unless the caller does), and
+  [`release.yml`](../.github/workflows/release.yml) is unchanged — its push context has no PR, so
+  the `select` job falls back to the full matrix and the release gate re-verifies everything.
+* Drift guards (`test/select-fixture-bundles.test.js`): the script's bundle dirs must match the
+  on-disk `test/core-artifacts/` group directories **exactly, one bundle each** (ties the source
+  of truth to the filesystem, not to a second copy), and fixtures.yml must consume
+  `fromJSON(needs.select.outputs.matrix)` from a `select` job that runs `--matrix`.
 
 ### Consequences
 
 * Good: fixture-authoring PRs run only their own bundles (e.g. one group → 3 jobs instead of 27),
   with the mocha matrix unchanged as a cross-cutting backstop.
-* Good: every failure direction is safe — selector bug, API failure, or empty output all default
-  to `all` (waste, not lost coverage); drift between map and matrix breaks the unit suite. An
-  empty `bundles` value is the one dangerous state (it would skip every leg, and a skipped
-  required check counts as passing), so the `changes` job guards against emitting it.
-* Neutral: most PRs touch product code and still select `all` — by design. This ADR buys the
-  narrow case cheaply; option B's larger savings remain available later if wanted, with this
-  selector as its fallback layer.
-* Cost: one more always-on job (`changes`, seconds). Skipped bundle jobs still appear in the
-  checks list (as skipped), which reviewers must read as "not applicable", not "passed".
-* Scope: the `bundles` input gates only the general `fixtures` matrix. The three heavy Android
-  KVM jobs (`fixtures-android-reuse`/`-managed`/`-action`) are NOT gated here and run on every
-  PR — the safe direction (Android coverage is never skipped), but they remain a cost this ADR
-  does not address. Gating those legs by Android relevance is a separate decision (ADR 01056).
+* Good: every failure direction is safe — selector bug, API failure, empty/degenerate output all
+  fall back to the **full** matrix (waste, not lost coverage). The one dangerous state, an empty
+  matrix (which would run zero fixtures), is impossible: the `select` job never emits `[]`.
+* Good: no second copy of the bundle list to drift — the workflow's matrix is generated from the
+  script, and the coverage guard is against the actual filesystem.
+* Neutral: most PRs touch product code and still run `all` — by design. This ADR buys the narrow
+  case cheaply; option B's larger savings remain available later, with this selector as the base.
+* Cost: one more always-on job (`select`, seconds).
+* Scope: the matrix narrowing gates only the general `fixtures` jobs. The three heavy Android KVM
+  jobs (`fixtures-android-reuse`/`-managed`/`-action`) are NOT gated here and run on every PR —
+  the safe direction (Android coverage is never skipped), but a cost this ADR does not address.
+  Gating those legs by Android relevance is a separate decision (ADR 01056).
 
 ### Confirmation
 
-* A PR touching only `test/core-artifacts/http/**` runs the `web-plumbing` bundle jobs (3) plus
-  the mocha matrix and the three always-on Android KVM jobs; every other bundle job shows as
-  skipped.
+* A PR touching only `test/core-artifacts/http/**` materializes only the `web-plumbing` bundle
+  jobs (3) — the other bundles produce no jobs — plus the mocha matrix and the three always-on
+  Android KVM jobs.
 * A PR touching any `src/**` file runs all bundle jobs.
-* Renaming a bundle in fixtures.yml without updating the selector fails
-  `test/select-fixture-bundles.test.js`.
+* Adding/renaming a `test/core-artifacts/<group>/` dir without updating the script, or unwiring
+  the fixtures matrix from the `select` job, fails `test/select-fixture-bundles.test.js`.
 * A release-branch push runs the full matrix (no `bundles` input in release.yml).
 
 ## Pros and Cons of the Options

@@ -46,59 +46,12 @@ concurrency:
 
 permissions:
   contents: read
-  # The `changes` job lists the PR's changed files to narrow the fixture
-  # matrix (ADR 01055).
+  # Granted so the reusable fixtures workflow's `select` job can read the PR's
+  # changed files to narrow its matrix (ADR 01055). A reusable workflow can't
+  # hold a permission the caller doesn't grant, so it lives here.
   pull-requests: read
 
 jobs:
-  # Select which fixture bundles this change set needs. Conservative by
-  # construction (scripts/select-fixture-bundles.cjs): only a change set
-  # confined entirely to fixture group directories narrows the matrix; any
-  # product/script/workflow/shared-infra change — and any non-PR trigger —
-  # selects "all". FAIL-SAFE: every error path (API failure, script error,
-  # empty output) defaults to "all". A narrowed matrix must only ever be the
-  # result of a confidently fixture-confined change set — never of a failure —
-  # because an empty/mismatched `bundles` value would make every fixture leg's
-  # `if:` evaluate false, and a skipped required check counts as passing under
-  # branch protection (i.e. would merge a PR with zero fixtures run).
-  changes:
-    name: Select fixture bundles
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      bundles: ${{ steps.select.outputs.bundles }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Select bundles for this change set
-        id: select
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-        run: |
-          if [ -z "$PR" ]; then
-            echo "no PR context (manual dispatch) — running all bundles"
-            bundles=all
-          # `if files=$(...)` tolerates a non-zero gh api (transient 5xx / rate
-          # limit) without tripping `set -e`; a failed list falls back to all.
-          elif files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
-            printf 'changed files:\n%s\n' "$files"
-            # `|| echo all` keeps a selector crash fail-safe too.
-            bundles=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs || echo all)
-          else
-            echo "could not list PR files — defaulting to all bundles"
-            bundles=all
-          fi
-          # Defense in depth: never emit an empty value (would skip every leg).
-          if [ -z "$bundles" ]; then
-            echo "empty selection — defaulting to all bundles"
-            bundles=all
-          fi
-          echo "selected bundles: $bundles"
-          echo "bundles=$bundles" >> "$GITHUB_OUTPUT"
-
   # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
   # of the *.spec.json fixtures no longer run here — see the `fixtures` job.
   test:
@@ -112,10 +65,8 @@ jobs:
       HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
 
   # Per-feature Doc Detective fixtures, fanned out one small job per (bundle x
-  # OS) so no single job is a 90-minute monolith. Runs the PR's own build,
-  # narrowed to the bundles the change set can affect (ADR 01055).
+  # OS) so no single job is a 90-minute monolith. Runs the PR's own build. The
+  # reusable workflow computes its own matrix (its `select` job), narrowed to
+  # the bundles the PR's change set can affect (ADR 01055).
   fixtures:
-    needs: changes
     uses: ./.github/workflows/fixtures.yml
-    with:
-      bundles: ${{ needs.changes.outputs.bundles }}
