@@ -1,22 +1,33 @@
 # Auto-rerun for runner-infrastructure losses. Hosted runners occasionally
 # vanish mid-run: GitHub assigns a VM that never reports a step (or reaps a
 # healthy sibling in the same sweep), the affected jobs land as `cancelled`,
-# and the run fails with nothing for a human to fix except clicking
-# "Re-run failed jobs". Observed on the macOS pool (two jobs clipped at the
-# same second, one with an EMPTY step list — the lost-runner signature).
+# and the run fails with nothing for a human to fix except clicking "Re-run
+# failed jobs". Observed on the macOS pool (PR #616 run 29219105593: two jobs
+# clipped in the same sweep — one had executed 18 steps, the other zero).
 #
-# This workflow re-runs the failed jobs of a Test run EXACTLY ONCE when — and
-# only when — the failure looks like lost infrastructure:
-#   - the run concluded `failure` (a manual run-cancel concludes `cancelled`
-#     and never qualifies),
-#   - it was the first attempt (no retry loops),
-#   - every red job is `cancelled` (a single real `failure`/`timed_out` job
-#     disqualifies the run — genuine test failures must stay red), and
-#   - at least one cancelled job executed ZERO steps (a runner that never
-#     reported; manually-cancelled jobs virtually always have steps).
+# Detection rests on GitHub's run-conclusion semantics, which make a small,
+# exact signature possible (see docs/maintenance/ci-rerun-lost-runners.md and
+# ADR 01054):
+#   - A user run-cancel or a concurrency `cancel-in-progress` supersede
+#     concludes the run as `cancelled`, so the job `if:` (conclusion ==
+#     'failure') never fires for those.
+#   - A genuine job failure or timeout concludes the run `failure` but leaves a
+#     `failure`/`timed_out` job, so the `real == 0` guard excludes it — real
+#     reds must stay red.
+#   - With fail-fast:false across the matrices (test.yml, fixtures.yml), a real
+#     failure never cancels siblings, so the ONLY way a run concludes `failure`
+#     with zero failed/timed-out jobs and >=1 `cancelled` job is lost
+#     infrastructure. That is the whole signature — no per-step heuristic
+#     needed (an earlier draft keyed on zero executed steps, which would have
+#     silently missed the 18-step clip above).
 #
-# workflow_run executes this file from the DEFAULT branch with a read/write
-# token scoped by the permissions block below — PR branches can't alter it.
+# Reruns exactly once: `rerun-failed-jobs` bumps run_attempt to 2, and the
+# re-triggered workflow_run event carries run_attempt == 2, which the guard
+# blocks — so a run that stays red after one rerun is left red for a human.
+# `rerun-failed-jobs` re-runs `cancelled` jobs too (verified on the run above).
+#
+# workflow_run executes this file from the DEFAULT branch with the token scoped
+# by the permissions block below; it cannot be exercised from a feature branch.
 
 name: Rerun Lost Runners
 
@@ -41,16 +52,42 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id }}
           REPO: ${{ github.repository }}
         run: |
-          jobs=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs?filter=latest&per_page=100" --paginate)
-          red=$(echo "$jobs" | jq '[.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "cancelled")]')
-          total=$(echo "$red" | jq 'length')
-          real=$(echo "$red" | jq '[.[] | select(.conclusion != "cancelled")] | length')
-          lost=$(echo "$red" | jq '[.[] | select(.conclusion == "cancelled" and (.steps | length) == 0)] | length')
-          echo "red=$total real-failures=$real lost-runners=$lost"
-          if [ "$total" -gt 0 ] && [ "$real" -eq 0 ] && [ "$lost" -gt 0 ]; then
+          set -euo pipefail
+
+          # `--paginate --jq '.jobs[]'` streams job objects across every page
+          # (gh applies the filter per page), then `jq -s` slurps them into one
+          # array — correct regardless of how far the matrix grows past the
+          # 100/page cap. A plain `--paginate` without `--jq` would concatenate
+          # raw page objects into invalid JSON and only the first page's jobs
+          # would be counted.
+          jobs=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs?filter=latest&per_page=100" \
+            --paginate --jq '.jobs[]' | jq -s '.')
+
+          counts=$(jq -r '
+            {
+              red:       [.[] | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "cancelled")] | length,
+              real:      [.[] | select(.conclusion == "failure" or .conclusion == "timed_out")] | length,
+              cancelled: [.[] | select(.conclusion == "cancelled")] | length
+            } | "\(.red) \(.real) \(.cancelled)"' <<<"$jobs")
+          read -r red real cancelled <<<"$counts"
+          echo "red=$red real-failures=$real cancelled=$cancelled"
+
+          # Infra-loss signature: the run concluded `failure` (job `if:`), no
+          # job actually failed or timed out, and >=1 job was cancelled.
+          if [ "$real" -eq 0 ] && [ "$cancelled" -gt 0 ]; then
             echo "Lost-runner signature confirmed — re-running failed jobs once."
-            echo "$red" | jq -r '.[] | "  clipped: \(.name)"'
+            clipped=$(jq -r '.[] | select(.conclusion == "cancelled") | "  - \(.name) (\(.steps | length) steps)"' <<<"$jobs")
+            echo "$clipped"
+            # Durable signal so a systemic pool problem (repeated reruns) is
+            # visible in the run summary, not just this ephemeral log line.
+            {
+              echo "### Auto-rerun: lost runners"
+              echo "Re-ran run \`$RUN_ID\` once — $cancelled cancelled job(s), no genuine failures:"
+              echo "$clipped"
+              echo ""
+              echo "_If this recurs on one OS pool, the pool may be degrading — investigate rather than leaning on the rerun._"
+            } >> "$GITHUB_STEP_SUMMARY"
             gh api -X POST "repos/$REPO/actions/runs/$RUN_ID/rerun-failed-jobs"
           else
-            echo "Not a lost-runner failure (real failures or no empty-step cancellations) — leaving the run red."
+            echo "Not a lost-runner failure (real failures present, or no cancellations) — leaving the run red."
           fi
