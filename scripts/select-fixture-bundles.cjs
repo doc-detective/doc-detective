@@ -86,8 +86,46 @@ function selectedNames(changedFiles) {
   return BUNDLES.filter((b) => touched.has(b.name)).map((b) => b.name);
 }
 
+// Groups whose fixtures exercise android surfaces; changes there always keep
+// the heavy KVM legs on.
+const ANDROID_GROUPS = new Set(["apps-android", "mobile-web-android"]);
+
+// A file is "android-safe" when it demonstrably cannot change what the KVM
+// legs (fixtures-android-reuse/-managed/-action) execute: fixture specs of
+// NON-android groups, files consumed only by the mocha suite (test/<name>.
+// test.js — the fixture jobs never load them), and prose (docs/, adrs/, *.md).
+// Everything else — product code, scripts, workflows, package manifests, the
+// test servers (hit from INSIDE the emulator via 10.0.2.2), shared fixture
+// infra — is android-relevant.
+function isAndroidSafe(file) {
+  const groupMatch = file.match(/^test\/core-artifacts\/([^/]+)\//);
+  if (groupMatch)
+    return GROUP_TO_BUNDLE.has(groupMatch[1]) && !ANDROID_GROUPS.has(groupMatch[1]);
+  if (/^test\/[^/]+\.test\.js$/.test(file)) return true;
+  if (/^(docs|adrs)\//.test(file)) return true;
+  if (/\.md$/i.test(file)) return true;
+  return false;
+}
+
+/**
+ * Whether the heavy android KVM legs must run for this change set. Fail-safe:
+ * empty/unknown sets are relevant (the legs run).
+ * @param {string[]} changedFiles
+ * @returns {boolean}
+ */
+function androidLegsRelevant(changedFiles) {
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) return true;
+  return !changedFiles.every((raw) =>
+    isAndroidSafe(String(raw).replace(/\\/g, "/"))
+  );
+}
+
 function main() {
-  const matrixMode = process.argv.includes("--matrix");
+  const mode = process.argv.includes("--matrix")
+    ? "matrix"
+    : process.argv.includes("--android-legs")
+    ? "android"
+    : "names";
   let input = "";
   process.stdin.setEncoding("utf8");
   process.stdin.on("data", (d) => (input += d));
@@ -96,11 +134,16 @@ function main() {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    // --matrix: single-line JSON array for a workflow matrix. Default: comma
-    // names, for humans and any name-only consumer.
-    process.stdout.write(
-      (matrixMode ? JSON.stringify(selectMatrix(files)) : selectBundles(files)) + "\n"
-    );
+    // --matrix: single-line JSON array for a workflow matrix.
+    // --android-legs: "true"/"false" for the KVM-leg `if:` guards.
+    // Default: comma names, for humans and any name-only consumer.
+    const out =
+      mode === "matrix"
+        ? JSON.stringify(selectMatrix(files))
+        : mode === "android"
+        ? String(androidLegsRelevant(files))
+        : selectBundles(files);
+    process.stdout.write(out + "\n");
   });
 }
 
@@ -108,4 +151,10 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { selectBundles, selectMatrix, toMatrixEntry, BUNDLES };
+module.exports = {
+  selectBundles,
+  selectMatrix,
+  androidLegsRelevant,
+  toMatrixEntry,
+  BUNDLES,
+};
