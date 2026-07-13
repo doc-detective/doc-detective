@@ -112,6 +112,7 @@ jobs:
           - name: apps-ios
             input: test/core-artifacts/apps-ios
             timeout: 55
+            prebootIos: true
           # Mobile web (phase A5, Safari on iOS). Safari runs on the managed
           # simulator end-to-end on the macOS leg (gated on ≥1 PASS below);
           # Windows/Linux legs legitimately SKIP, and the SKIP-matrix
@@ -119,6 +120,7 @@ jobs:
           - name: mobile-web-ios
             input: test/core-artifacts/mobile-web-ios
             timeout: 55
+            prebootIos: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -132,6 +134,39 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
+
+      # Kick off the iOS simulator boot NOW so it overlaps npm ci/build/link/
+      # servers (~4 min): the iOS legs' dominant cost is the first XCUITest
+      # session (~14 min observed), which starts with a cold simulator boot.
+      # `simctl boot` returns immediately and boots in the background, and Doc
+      # Detective's default-device plan reuses ANY booted iPhone before booting
+      # its own (src/core/tests/iosSimulator.ts: reuse-booted precedes
+      # boot/create), so the device booted here is picked up directly. An
+      # imperfect pick is harmless — Doc Detective just boots its own device
+      # and the pre-booted one idles.
+      - name: Pre-boot iOS simulator (overlaps setup)
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        shell: bash
+        run: |
+          udid=$(xcrun simctl list devices available -j | node -e "
+            let s = '';
+            process.stdin.on('data', (d) => (s += d)).on('end', () => {
+              const { devices } = JSON.parse(s);
+              const c = [];
+              for (const [rt, list] of Object.entries(devices))
+                for (const d of list)
+                  if (d.isAvailable && /^iPhone/.test(d.name)) c.push({ rt, udid: d.udid, name: d.name });
+              c.sort((a, b) => b.rt.localeCompare(a.rt, undefined, { numeric: true }) || b.name.localeCompare(a.name, undefined, { numeric: true }));
+              if (c[0]) console.log(c[0].udid);
+            });
+          ")
+          if [ -n "$udid" ]; then
+            echo "pre-booting simulator $udid"
+            xcrun simctl boot "$udid" || true
+            echo "PREBOOT_UDID=$udid" >> "$GITHUB_ENV"
+          else
+            echo "no available iPhone simulator found; skipping pre-boot"
+          fi
 
       # Restore/save the Doc Detective install cache (browsers, drivers, heavy
       # runtime deps, git-bash) via the shared composite action — the single
@@ -174,6 +209,16 @@ jobs:
           echo "local package version: $(node -p 'require("./package.json").version')"
           npm ls -g doc-detective || true
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+
+      # Diagnostic: surface how much simulator boot time setup did NOT hide —
+      # this step's duration in the job log is the residual boot wait. Waiting
+      # here (instead of inside the first startSurface) costs nothing extra and
+      # gives the boot cost a step of its own for timing analysis. Bounded so a
+      # wedged boot can't eat the job budget; Doc Detective copes either way.
+      - name: Wait for simulator boot (diagnostic)
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
+        shell: bash
+        run: timeout 600 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 10 min (non-fatal)"
 
       # Run the group through the Doc Detective GitHub Action, against the linked
       # local build (version: "" → bare `npx doc-detective`, see
