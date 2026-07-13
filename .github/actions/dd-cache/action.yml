@@ -1,0 +1,93 @@
+# Single source of truth for the Doc Detective install-cache mechanics: the
+# junction from the default cache location to a persistent dir, the weekly
+# ISO-week key, and the actions/cache restore/save. test.yml, fixtures.yml,
+# and cache-warmer.yml all call this action, so the key can no longer drift
+# between producers and consumers (a drifted key silently warms nothing).
+# Design rationale and repair recipes: docs/maintenance/ci-cache-warming.md.
+
+name: Doc Detective install cache
+description: >-
+  Junction the default Doc Detective cache location (<os.tmpdir()>/doc-detective)
+  to a persistent per-user dir and restore/save it under the shared weekly key.
+
+inputs:
+  node:
+    description: Node major line for the key's node component (e.g. "24").
+    required: true
+  weekOffsetHours:
+    description: >-
+      Hours added to "now" before computing the key's ISO week. The cache
+      warmer passes a positive offset on its Sunday-night run so it computes
+      and saves NEXT week's entry before the key rolls over at Monday 00:00
+      UTC; consumers leave the default 0.
+    required: false
+    default: '0'
+
+outputs:
+  cache-hit:
+    description: >-
+      "true" when the primary key hit exactly (the entry already exists;
+      actions/cache will not save, and installs would be pure check-and-skip).
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    # Doc Detective's install cache (browsers, drivers, heavy runtime npm
+    # deps, git-bash) lives at <os.tmpdir()>/doc-detective by default, which
+    # hosted runners discard. Junction/symlink that default location to a
+    # stable per-user dir so actions/cache can persist it. Deliberately NOT
+    # via DOC_DETECTIVE_CACHE_DIR: a job-level env var outranks the
+    # config.cacheDir isolation many unit tests rely on, and some suites
+    # delete the var mid-run. node's fs.symlinkSync(..., 'junction') needs no
+    # admin on Windows and degrades to a plain symlink on POSIX.
+    - name: Persist the default Doc Detective cache dir
+      shell: bash
+      run: |
+        node -e "
+          const fs = require('fs'), os = require('os'), path = require('path');
+          const persist = path.join(os.homedir(), '.dd-cache');
+          const link = path.join(os.tmpdir(), 'doc-detective');
+          fs.mkdirSync(persist, { recursive: true });
+          fs.rmSync(link, { recursive: true, force: true });
+          fs.symlinkSync(persist, link, 'junction');
+          console.log(link, '->', persist);
+        "
+
+    # ISO week ("GGGG-WW") in pure node so every OS computes it identically
+    # (BSD date can't offset, and the warmer needs a future-instant week).
+    # The algorithm is validated against GNU `date -u +%G-%V` across year-
+    # boundary and week-53 edge dates in the PR that introduced it (#617).
+    - name: Compute cache week
+      id: week
+      shell: bash
+      run: |
+        node -e "
+          const offset = Number('${{ inputs.weekOffsetHours }}') * 3600e3;
+          const date = new Date(Date.now() + offset);
+          const dayNum = date.getUTCDay() || 7;
+          date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+          const isoYear = date.getUTCFullYear();
+          const week = Math.ceil(((date.getTime() - Date.UTC(isoYear, 0, 1)) / 86400000 + 1) / 7);
+          const out = isoYear + '-' + String(week).padStart(2, '0');
+          require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'week=' + out + '\n');
+          console.log('cache week:', out);
+        "
+
+    # The whole cache dir is cached as one unit: runtime/node_modules MUST
+    # travel with runtime/package.json and installed.json, or the next JIT
+    # install treats the restored packages as extraneous and npm prunes them
+    # mid-run (see src/runtime/AGENTS.md). The key rotates weekly because
+    # browser channels float and a present-but-outdated browser is warn-only
+    # (never re-downloads) — a cache restored across weeks would pin old
+    # browsers forever. The node component keeps the runtime npm tree isolated
+    # per node line; the second restore-key still accepts any same-week entry
+    # (the installers verify and top up whatever they find).
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: cache
+      with:
+        path: ~/.dd-cache
+        key: dd-cache-${{ runner.os }}-${{ steps.week.outputs.week }}-node${{ inputs.node }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          dd-cache-${{ runner.os }}-${{ steps.week.outputs.week }}-node${{ inputs.node }}-
+          dd-cache-${{ runner.os }}-${{ steps.week.outputs.week }}-
