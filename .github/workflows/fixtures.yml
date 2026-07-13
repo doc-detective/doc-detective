@@ -138,12 +138,18 @@ jobs:
       # Kick off the iOS simulator boot NOW so it overlaps npm ci/build/link/
       # servers (~4 min): the iOS legs' dominant cost is the first XCUITest
       # session (~14 min observed), which starts with a cold simulator boot.
-      # `simctl boot` returns immediately and boots in the background, and Doc
+      # `simctl boot` returns immediately and boots in the background.
+      #
+      # IMPORTANT — this changes the DEVICE, not just the timing. Doc
       # Detective's default-device plan reuses ANY booted iPhone before booting
-      # its own (src/core/tests/iosSimulator.ts: reuse-booted precedes
-      # boot/create), so the device booted here is picked up directly. An
-      # imperfect pick is harmless — Doc Detective just boots its own device
-      # and the pre-booted one idles.
+      # its own (src/core/tests/iosSimulator.ts: `reuse-booted` precedes
+      # boot/create), so whatever we boot here becomes the device the fixtures
+      # run on. We therefore pick the newest iPhone Doc Detective would itself
+      # pick — newest runtime, then highest model number, Pro/Max ahead of
+      # plain (SE, which has no model number, sorts last). This must track
+      # iosSimulator.ts's newest-device intent, and the iOS fixtures must stay
+      # device-model-robust (stock apps + version-robust selectors). See
+      # docs/maintenance/ci-ios-preboot.md.
       - name: Pre-boot iOS simulator (overlaps setup)
         if: runner.os == 'macOS' && matrix.bundle.prebootIos
         shell: bash
@@ -152,20 +158,31 @@ jobs:
             let s = '';
             process.stdin.on('data', (d) => (s += d)).on('end', () => {
               const { devices } = JSON.parse(s);
+              const modelNum = (name) => { const m = name.match(/iPhone (\d+)/); return m ? Number(m[1]) : 0; };
               const c = [];
               for (const [rt, list] of Object.entries(devices))
                 for (const d of list)
                   if (d.isAvailable && /^iPhone/.test(d.name)) c.push({ rt, udid: d.udid, name: d.name });
-              c.sort((a, b) => b.rt.localeCompare(a.rt, undefined, { numeric: true }) || b.name.localeCompare(a.name, undefined, { numeric: true }));
+              c.sort((a, b) =>
+                b.rt.localeCompare(a.rt, undefined, { numeric: true }) ||  // newest runtime
+                modelNum(b.name) - modelNum(a.name) ||                     // highest model (SE -> 0, last)
+                b.name.length - a.name.length);                           // Pro Max > Pro > plain (proxy)
               if (c[0]) console.log(c[0].udid);
             });
           ")
-          if [ -n "$udid" ]; then
-            echo "pre-booting simulator $udid"
-            xcrun simctl boot "$udid" || true
+          if [ -z "$udid" ]; then
+            echo "no available iPhone simulator found; skipping pre-boot"
+            exit 0
+          fi
+          # Only export PREBOOT_UDID when the boot command actually succeeds, so
+          # a failed boot doesn't make the wait step below block on a device
+          # that never started. `simctl boot` accepting the request (exit 0) is
+          # the signal; the async boot itself is what the wait step confirms.
+          echo "pre-booting simulator $udid"
+          if xcrun simctl boot "$udid"; then
             echo "PREBOOT_UDID=$udid" >> "$GITHUB_ENV"
           else
-            echo "no available iPhone simulator found; skipping pre-boot"
+            echo "simctl boot failed; skipping pre-boot (Doc Detective will boot its own)"
           fi
 
       # Restore/save the Doc Detective install cache (browsers, drivers, heavy
@@ -210,15 +227,18 @@ jobs:
           npm ls -g doc-detective || true
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 
-      # Diagnostic: surface how much simulator boot time setup did NOT hide —
-      # this step's duration in the job log is the residual boot wait. Waiting
-      # here (instead of inside the first startSurface) costs nothing extra and
-      # gives the boot cost a step of its own for timing analysis. Bounded so a
-      # wedged boot can't eat the job budget; Doc Detective copes either way.
-      - name: Wait for simulator boot (diagnostic)
+      # Block on the pre-booted simulator reaching `Booted`. This wait is NOT
+      # additive on the happy path — Doc Detective's first startSurface would
+      # wait for the same boot anyway; doing it here just gives the boot cost
+      # its own step in the timing breakdown AND fails faster than DD's
+      # generous per-session timeout would if a sim wedges in `Booting`. Only
+      # runs when the pre-boot succeeded (PREBOOT_UDID set). Bounded at 5 min
+      # (a healthy simulator boots in ~1-3); on timeout it's non-fatal — DD
+      # still reuses whatever state the sim reached, or boots its own.
+      - name: Wait for pre-booted simulator
         if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
         shell: bash
-        run: timeout 600 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 10 min (non-fatal)"
+        run: timeout 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
 
       # Run the group through the Doc Detective GitHub Action, against the linked
       # local build (version: "" → bare `npx doc-detective`, see
