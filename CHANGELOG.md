@@ -1,3 +1,15 @@
+# [4.27.0](https://github.com/doc-detective/doc-detective/compare/v4.26.8...v4.27.0) (2026-07-13)
+
+
+### Bug Fixes
+
+* **runtime:** make browser/driver install best-effort like BEST_EFFORT_NPM_DEPS ([#611](https://github.com/doc-detective/doc-detective/issues/611)) ([f2a0ea8](https://github.com/doc-detective/doc-detective/commit/f2a0ea833967173d09cb106254332bf5937a6f28))
+
+
+### Features
+
+* **runShell:** add shell parameter with cross-platform bash default ([#610](https://github.com/doc-detective/doc-detective/issues/610)) ([7aad08d](https://github.com/doc-detective/doc-detective/commit/7aad08d822999cafc009f363f14846d1a36476a4))
+
 ## [4.26.8](https://github.com/doc-detective/doc-detective/compare/v4.26.7...v4.26.8) (2026-07-12)
 
 
