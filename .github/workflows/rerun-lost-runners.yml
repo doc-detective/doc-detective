@@ -33,6 +33,9 @@ name: Rerun Lost Runners
 
 on:
   workflow_run:
+    # Matches by the target workflow's `name:` field, NOT its filename — this
+    # must stay equal to npm-test.yaml's `name: Test`. Renaming that workflow
+    # silently breaks this trigger with no error, so rename both together.
     workflows: [Test]
     types: [completed]
 
@@ -65,19 +68,22 @@ jobs:
 
           counts=$(jq -r '
             {
-              red:       [.[] | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "cancelled")] | length,
               real:      [.[] | select(.conclusion == "failure" or .conclusion == "timed_out")] | length,
               cancelled: [.[] | select(.conclusion == "cancelled")] | length
-            } | "\(.red) \(.real) \(.cancelled)"' <<<"$jobs")
-          read -r red real cancelled <<<"$counts"
-          echo "red=$red real-failures=$real cancelled=$cancelled"
+            } | "\(.real) \(.cancelled)"' <<<"$jobs")
+          read -r real cancelled <<<"$counts"
+          echo "real-failures=$real cancelled=$cancelled"
 
           # Infra-loss signature: the run concluded `failure` (job `if:`), no
           # job actually failed or timed out, and >=1 job was cancelled.
           if [ "$real" -eq 0 ] && [ "$cancelled" -gt 0 ]; then
             echo "Lost-runner signature confirmed — re-running failed jobs once."
-            clipped=$(jq -r '.[] | select(.conclusion == "cancelled") | "  - \(.name) (\(.steps | length) steps)"' <<<"$jobs")
+            clipped=$(jq -r '.[] | select(.conclusion == "cancelled") | "- \(.name) (\(.steps | length) steps)"' <<<"$jobs")
             echo "$clipped"
+            # Do the rerun first, then record it — so a failed POST (set -e
+            # exits the step) never leaves a summary claiming a rerun that
+            # didn't happen.
+            gh api -X POST "repos/$REPO/actions/runs/$RUN_ID/rerun-failed-jobs"
             # Durable signal so a systemic pool problem (repeated reruns) is
             # visible in the run summary, not just this ephemeral log line.
             {
@@ -87,7 +93,6 @@ jobs:
               echo ""
               echo "_If this recurs on one OS pool, the pool may be degrading — investigate rather than leaning on the rerun._"
             } >> "$GITHUB_STEP_SUMMARY"
-            gh api -X POST "repos/$REPO/actions/runs/$RUN_ID/rerun-failed-jobs"
           else
             echo "Not a lost-runner failure (real failures present, or no cancellations) — leaving the run red."
           fi
