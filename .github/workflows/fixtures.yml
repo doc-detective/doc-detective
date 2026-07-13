@@ -51,6 +51,8 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
+      # "true"/"false": whether the heavy Android KVM legs run (ADR 01056).
+      androidLegs: ${{ steps.pick.outputs.androidLegs }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -63,13 +65,15 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           matrix=''
+          androidLegs=true
           # Only a PR context can narrow. `if files=$(...)` tolerates a non-zero
           # gh api (transient 5xx / rate limit) without tripping `set -e`, and
           # `timeout 120` makes a HANG fail-safe too (exit 124 → the full
-          # matrix) instead of silently eating the job's 5-min budget.
+          # matrix + legs on) instead of silently eating the job's 5-min budget.
           if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
             printf 'changed files:\n%s\n' "$files"
             matrix=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --matrix || echo '')
+            androidLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --android-legs || echo true)
           fi
           # Fail-safe: no PR, API/selector failure, or an empty/degenerate value
           # → the full matrix (never zero fixtures). Empty stdin selects all.
@@ -77,8 +81,13 @@ jobs:
             echo "defaulting to the full fixture matrix"
             matrix=$(printf '' | node scripts/select-fixture-bundles.cjs --matrix)
           fi
+          # androidLegs must be exactly false to skip the legs; anything else
+          # (crash, empty, unexpected) coerces to true so the legs stay on.
+          [ "$androidLegs" = "false" ] || androidLegs=true
           echo "selected matrix: $matrix"
+          echo "android KVM legs: $androidLegs"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "androidLegs=$androidLegs" >> "$GITHUB_OUTPUT"
 
   fixtures:
     needs: select
@@ -294,11 +303,18 @@ jobs:
   #
   # reactivecircus/android-emulator-runner is pinned to a commit SHA (v2.37.0)
   # to match this repo's action-pinning policy.
+  #
+  # All three KVM legs (reuse, managed-boot, action) are gated on the `select`
+  # job's `androidLegs` output (ADR 01056): they run unless every changed file
+  # is provably android-inert. Fail-safe — any uncertainty keeps them on — and
+  # non-PR triggers (the release gate) always run them.
 
   # Reuse leg: the emulator-runner boots an emulator, and Doc Detective detects
   # and REUSES it (bootedByUs=false, left running) — the default-device path.
   fixtures-android-reuse:
     name: apps-android + mobile-web (ubuntu KVM, reuse)
+    needs: select
+    if: needs.select.outputs.androidLegs != 'false'
     runs-on: ubuntu-latest
     # Headroom for the second (mobile-web, phase A5) gated run on the same
     # emulator — chromedriver download + Chrome session.
@@ -431,6 +447,8 @@ jobs:
   # creations + serial boots — too heavy for the other legs).
   fixtures-android-managed:
     name: apps-android + mobile-web (ubuntu KVM, managed-boot)
+    needs: select
+    if: needs.select.outputs.androidLegs != 'false'
     runs-on: ubuntu-latest
     # Headroom for the second (mobile-web, phase A5) gated run, which boots the
     # managed AVD again after the first run's sweep, plus the two serial
@@ -523,6 +541,8 @@ jobs:
   # `reactivecircus`-free, install-free counterpart to the two jobs above.)
   fixtures-android-action:
     name: apps-android (action auto-KVM, lazy)
+    needs: select
+    if: needs.select.outputs.androidLegs != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
