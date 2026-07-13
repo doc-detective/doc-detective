@@ -1,25 +1,36 @@
 # Weekly Doc Detective cache warmer. The dd-cache key rotates on ISO week BY
 # DESIGN (browser channels float and a present-but-outdated browser is
 # warn-only — it never re-downloads — so a cache restored across weeks would
-# pin old browsers forever; see test.yml). The cost of that design is that the
-# first run of each week pays the full cold install on every OS — and without
-# this workflow, that run is some human's PR. This cron populates the new
-# week's cache entries early Monday UTC so PR runs restore warm all week.
+# pin old browsers forever; see .github/actions/dd-cache/action.yml). The cost
+# of that design is that the first run of each week pays the full cold install
+# on every OS — and without this workflow, that run is some human's PR.
 #
-# The key/junction/step layout MUST stay in lockstep with test.yml and
-# fixtures.yml — a drifted key silently warms nothing (the run still succeeds,
-# PRs just go back to paying cold installs).
+# This cron runs SUNDAY 23:47 UTC and computes the key for NOW+2h (the
+# dd-cache action's weekOffsetHours input), so it installs into — and saves —
+# NEXT week's entry BEFORE the key rolls over at Monday 00:00 UTC: there is no
+# cold window at all, and the odd minute dodges GitHub's delay-prone
+# top-of-hour scheduling slots. The key/junction mechanics live in the shared
+# .github/actions/dd-cache composite action (same one test.yml and
+# fixtures.yml consume), so producer/consumer key drift is structurally
+# impossible.
 #
-# Failure mode is benign: if this workflow fails or is skipped, the first PR
-# of the week simply pays the cold install, exactly as before this existed.
+# Operational notes (full detail: docs/maintenance/ci-cache-warming.md):
+# - Cache entries are IMMUTABLE. Re-dispatching cannot repair a bad entry —
+#   delete it first (`gh cache delete <key>`), then dispatch.
+# - Dispatch FROM THE DEFAULT BRANCH: cache entries are branch-scoped, and an
+#   entry saved from a feature branch is invisible to other branches' PRs.
+# - `install all` is best-effort for browsers (a flaky download is logged and
+#   skipped, the job stays green), so a saved entry can be missing an asset;
+#   consumers JIT-install what's missing per job. Partial beats absent.
+# - GitHub disables cron schedules after 60 days without repo activity.
+# - Failure mode is benign: a missed warm just means the first PR of the week
+#   pays the cold install, exactly as before this workflow existed.
 
 name: Cache Warmer
 
 on:
   schedule:
-    # Mondays 00:30 UTC — just after the ISO week (and its cache key) rolls
-    # over at Monday 00:00 UTC.
-    - cron: '30 0 * * 1'
+    - cron: '47 23 * * 0'
   workflow_dispatch:
 
 permissions:
@@ -29,7 +40,11 @@ jobs:
   warm:
     name: Warm dd-cache (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # Generous: the cold path is npm ci + build + the runtime bulk npm install
+    # (which alone carries a 9-minute inner budget, see src/runtime) + three
+    # browser downloads; 30 min was tight on a slow Windows runner, and a
+    # timed-out job forfeits the cache save entirely.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -48,53 +63,33 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      # Same junction mapping as test.yml/fixtures.yml: the default cache
-      # location (<os.tmpdir()>/doc-detective) points at the persistent dir
-      # that actions/cache saves.
-      - name: Persist the default Doc Detective cache dir
-        shell: bash
-        run: |
-          node -e "
-            const fs = require('fs'), os = require('os'), path = require('path');
-            const persist = path.join(os.homedir(), '.dd-cache');
-            const link = path.join(os.tmpdir(), 'doc-detective');
-            fs.mkdirSync(persist, { recursive: true });
-            fs.rmSync(link, { recursive: true, force: true });
-            fs.symlinkSync(persist, link, 'junction');
-            console.log(link, '->', persist);
-          "
-
-      - name: Compute cache week
-        id: cache-week
-        shell: bash
-        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
-      # Key must equal the node-24 key that test.yml and fixtures.yml use, or
-      # the warmed entry is never restored by them.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # weekOffsetHours 2: 23:47 Sunday + 2h lands in Monday's ISO week, so
+      # the scheduled run claims next week's key. A manual dispatch mid-week
+      # computes the same (current) week either way.
+      - uses: ./.github/actions/dd-cache
+        id: dd-cache
         with:
-          path: ~/.dd-cache
-          key: dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-node24-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-node24-
+          node: '24'
+          weekOffsetHours: '2'
 
-      - run: npm ci
-      - run: npm run build
+      # On an exact primary-key hit the post-job save is skipped by
+      # actions/cache, so installing would be pure check-and-skip waste
+      # (~10 min × 3 OSes on a redundant dispatch). Skip the work instead.
+      - if: steps.dd-cache.outputs.cache-hit != 'true'
+        run: npm ci
+      - if: steps.dd-cache.outputs.cache-hit != 'true'
+        run: npm run build
 
       # The complete install set — the same pre-warm the test matrix runs.
-      - run: node ./bin/doc-detective.js install all --yes
-        env:
-          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
-
-      # `install all` covers runtime + browsers only; git-bash (runShell's
-      # Windows bash backend) is otherwise JIT-downloaded by the first
-      # process-group job of the week, so warm it here too. No-op off Windows.
-      - if: runner.os == 'Windows'
-        run: node ./bin/doc-detective.js install bash --yes
+      # This includes git-bash on Windows (the `all` subcommand runs the bash
+      # installer on win32 itself; see src/runtime/installCommand.ts).
+      - if: steps.dd-cache.outputs.cache-hit != 'true'
+        run: node ./bin/doc-detective.js install all --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
 
       # Show what got installed so a warmer run is auditable from its log.
       - name: Report cache contents
+        if: steps.dd-cache.outputs.cache-hit != 'true'
         shell: bash
         run: node ./bin/doc-detective.js debug || true
