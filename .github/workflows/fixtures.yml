@@ -27,9 +27,61 @@ on:
 
 permissions:
   contents: read
+  # The `select` job reads the PR's changed files to narrow the matrix.
+  pull-requests: read
 
 jobs:
+  # Compute the fixture matrix for this run (ADR 01055). scripts/
+  # select-fixture-bundles.cjs is the SINGLE SOURCE OF TRUTH for the bundle
+  # definitions; `--matrix` emits the JSON the matrix below consumes via
+  # fromJSON. Narrowing happens ONLY when a PR's change set is confined to
+  # fixture group directories; product/script/workflow/shared-infra changes,
+  # non-PR triggers (the release gate calls this on push — no PR), and every
+  # error path all fall back to the FULL matrix. Fail-safe by construction: an
+  # empty matrix would run zero fixtures, so the job never emits one.
+  #
+  # Why a dynamic matrix and not a per-job `if:`: the `matrix` context is not
+  # available in a job-level `if:` (only github/needs/vars/inputs are), so a
+  # bundle can't gate itself on its own matrix value. Emitting only the
+  # selected bundles into the matrix sidesteps that entirely — and a deselected
+  # bundle produces no job at all (cleaner than a skipped one).
+  select:
+    name: Select fixture bundles
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Pick the matrix for this change set
+        id: pick
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          matrix=''
+          # Only a PR context can narrow. `if files=$(...)` tolerates a non-zero
+          # gh api (transient 5xx / rate limit) without tripping `set -e`, and
+          # `timeout 120` makes a HANG fail-safe too (exit 124 → the full
+          # matrix) instead of silently eating the job's 5-min budget.
+          if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
+            printf 'changed files:\n%s\n' "$files"
+            matrix=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --matrix || echo '')
+          fi
+          # Fail-safe: no PR, API/selector failure, or an empty/degenerate value
+          # → the full matrix (never zero fixtures). Empty stdin selects all.
+          if [ -z "$matrix" ] || [ "$matrix" = "[]" ]; then
+            echo "defaulting to the full fixture matrix"
+            matrix=$(printf '' | node scripts/select-fixture-bundles.cjs --matrix)
+          fi
+          echo "selected matrix: $matrix"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   fixtures:
+    needs: select
     name: ${{ matrix.bundle.name }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     # Default headroom is 20 min; entries that need more carry their own
@@ -47,80 +99,14 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
-        # One job per (bundle x OS). Every fixture GROUP directory must appear
-        # in exactly one bundle's `input` (comma-joined; the action passes the
-        # value verbatim to `--input`, which splits on commas). Not every
-        # test/core-artifacts/ subdirectory is a gate group: `ordering/` and
-        # `output/` hold specs/data consumed by the mocha suite, not this
-        # matrix. Fast groups share a job to cut per-job
-        # setup and runner-queue pressure (ADR 01048, amending ADR 01022's
-        # one-job-per-group shape); groups stay in their own directories and
-        # a heavy or special-cased group keeps a job to itself. Bundles are
-        # sized so the worst (Windows, cold-cache) leg stays well under the
-        # 20-min default timeout — re-check timings before growing one.
-        #
-        # CAUTION: the zero-spec guard in check-fixture-results.cjs only
-        # fails a FULLY empty run. In a multi-directory bundle a typo'd dir
-        # contributes zero specs while the others still produce results, so
-        # a typo can pass silently — double-check paths when editing inputs.
-        #
-        # iOS-flavored groups must stay solo: the action's `ios: auto`
-        # spec-scan resolves the input value as one literal path, and a
-        # comma-joined value resolves to a nonexistent path (scan returns
-        # false — harmless for bundles without ios specs, but it would skip
-        # the WDA cache for a bundle that had them).
-        bundle:
-          - name: nav-capture
-            input: test/core-artifacts/navigation,test/core-artifacts/capture
-          - name: interactions
-            input: test/core-artifacts/interactions
-          - name: web-plumbing
-            input: test/core-artifacts/routing,test/core-artifacts/http,test/core-artifacts/guards
-          - name: proc-sessions
-            input: test/core-artifacts/process,test/core-artifacts/sessions
-          - name: recording
-            input: test/core-artifacts/recording
-          # Native app surfaces (phase A1). Its own job for job-size reasons
-          # (driver install + UIA automation are the slowest fixtures). The
-          # historical freeze that first motivated isolating it — the app
-          # preflight's mid-run driver install pruned node-pty from the runtime
-          # cache and the next ConPTY spawn froze the process (issue #501) — is
-          # fixed at the root (ADR 01025 non-destructive installs, ADR 01024
-          # spawn guards), and the in-process app→tty pairing is exercised ON
-          # PURPOSE by apps/app-then-tty.spec.json in this very group.
-          - name: apps
-            input: test/core-artifacts/apps
-            timeout: 30
-          # Native app surfaces (phase A3b Android) + mobile web on Android
-          # (phase A5, Chrome). On the general matrix (Windows/macOS runners,
-          # and Linux without KVM) every android spec lands SKIPPED via the
-          # emulator-acceleration preflight — asserted gating, skip-tolerant
-          # here, so the two groups share a job. The SKIP-matrix permutations
-          # (firefox/webkit/safari on android, mixed app+web) land SKIPPED on
-          # every host by design; the four-targets spec's windows/mac contexts
-          # run desktop Chrome where the host matches. Real Android PASS
-          # coverage runs in the dedicated KVM jobs below (reuse +
-          # managed-boot). `android: true` routes the
-          # DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL env to this job.
-          - name: android-skip
-            input: test/core-artifacts/apps-android,test/core-artifacts/mobile-web-android
-            android: true
-          # Native app surfaces (phase A4, iOS). iOS app contexts run end-to-end
-          # on a managed simulator via XCUITest; the macOS leg gates on ≥1 PASS
-          # (DD_FIXTURES_REQUIRE_PASS below, ADR 01028), while Windows/Linux legs
-          # legitimately SKIP (iOS simulators are macOS-only).
-          - name: apps-ios
-            input: test/core-artifacts/apps-ios
-            timeout: 55
-            prebootIos: true
-          # Mobile web (phase A5, Safari on iOS). Safari runs on the managed
-          # simulator end-to-end on the macOS leg (gated on ≥1 PASS below);
-          # Windows/Linux legs legitimately SKIP, and the SKIP-matrix
-          # permutations land SKIPPED everywhere by design.
-          - name: mobile-web-ios
-            input: test/core-artifacts/mobile-web-ios
-            timeout: 55
-            prebootIos: true
+        # One (bundle x OS) job. The bundle list comes from select-fixture-
+        # bundles.cjs (`--matrix`) via the `select` job — the single source of
+        # truth for names, `input` (comma-joined group dirs; the action passes
+        # it verbatim to `--input`, which splits on commas), and the per-bundle
+        # timeout / android / prebootIos attributes. Bundle composition, the
+        # zero-spec-typo caution, and the iOS-solo rule are documented in that
+        # script and ADR 01048 / 01055.
+        bundle: ${{ fromJSON(needs.select.outputs.matrix) }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
