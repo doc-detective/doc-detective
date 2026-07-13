@@ -15,7 +15,10 @@ const require = createRequire(import.meta.url);
 
   describe("Module Integration Tests", function () {
     // Increase timeout for spawning node processes
-    this.timeout(10000);
+    // Module-load + build-artifact assertions do real fs/require work; on a
+    // loaded CI runner the default 10s tripped intermittently (this suite runs
+    // in every job that builds). 60s is ample headroom, still catches a hang.
+    this.timeout(60000);
 
     describe("CommonJS (require)", function () {
       it("should export validate function via require", function () {

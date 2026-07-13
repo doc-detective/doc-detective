@@ -165,9 +165,13 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - run: npm ci
-      # build:common compiles dist and runs `c8 mocha`, writing
-      # src/common/coverage/coverage-summary.json that the ratchet reads.
       - run: npm run build:common
+      # build:common no longer runs the suite (it builds artifacts only, so the
+      # ~40 fixture/shard jobs that just need dist do not pay for — or flake on —
+      # the src/common tests; see ADR 01057). This job runs them explicitly to
+      # produce src/common/coverage/coverage-summary.json for the ratchet.
+      - run: npm run test:coverage
+        working-directory: src/common
       - run: npm run test:coverage:ratchet
         working-directory: src/common
 
