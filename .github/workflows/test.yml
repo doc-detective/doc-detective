@@ -43,10 +43,16 @@ jobs:
         # node 20 reached EOL 2026-04-30 and is unsupported by this repo's
         # release tooling (semantic-release@25 requires ^22.14 || >=24.10) and
         # by @puppeteer/browsers@3 (engines >=22.12, needed for node 24
-        # browser installs). Test the supported lines only.
+        # browser installs). Node-line behavior is OS-independent (the fixture
+        # jobs pin node 24 for the same reason — see fixtures.yml), so the full
+        # OS grid runs on node 24 only, plus a single ubuntu node-22 cell to
+        # keep the older supported line exercised. This halves the two slowest
+        # cells' worth of matrix time (Windows/macOS node 22).
         node:
-          - 22
           - 24
+        include:
+          - os: ubuntu-latest
+            node: 22
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -57,6 +63,55 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
           cache-dependency-path: package-lock.json
+
+      # Doc Detective's install cache (browsers, drivers, heavy runtime npm
+      # deps, git-bash) lives at <os.tmpdir()>/doc-detective by default, which
+      # hosted runners discard. Junction/symlink that default location to a
+      # stable per-user dir so actions/cache can persist it across runs.
+      # Deliberately NOT via DOC_DETECTIVE_CACHE_DIR: a job-level env var
+      # outranks the config.cacheDir isolation many unit tests rely on, and
+      # several suites delete the var mid-run (e.g. config-coverage's
+      # afterEach), which broke 17 tests and would silently un-warm the cache
+      # for later files. Mapping the default path keeps runtime and test
+      # resolution untouched.
+      - name: Persist the default Doc Detective cache dir
+        shell: bash
+        run: |
+          node -e "
+            const fs = require('fs'), os = require('os'), path = require('path');
+            const persist = path.join(os.homedir(), '.dd-cache');
+            const link = path.join(os.tmpdir(), 'doc-detective');
+            fs.mkdirSync(persist, { recursive: true });
+            fs.rmSync(link, { recursive: true, force: true });
+            fs.symlinkSync(persist, link, 'junction');
+            console.log(link, '->', persist);
+          "
+
+      # Browser versions float (stable/latest channels, resolved at install
+      # time — see src/runtime/browsers.ts) and a present-but-outdated browser
+      # is warn-only: it never re-downloads. A cache restored across weeks
+      # would therefore pin old browsers forever. The ISO-week key component
+      # forces one cold install per OS per week; restore-keys stay within the
+      # week on purpose.
+      - name: Compute cache week
+        id: cache-week
+        shell: bash
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      # The whole cache dir is cached as one unit: runtime/node_modules MUST
+      # travel with runtime/package.json and installed.json, or the next JIT
+      # install treats the restored packages as extraneous and npm prunes them
+      # mid-run (see src/runtime/AGENTS.md). The node component keeps the
+      # runtime npm tree isolated per node line (native prebuilds could in
+      # principle differ across majors); the second restore-key still accepts
+      # any same-week entry — the installers verify and top up what they find.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache
+          key: dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-node${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-node${{ matrix.node }}-
+            dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-
 
       - run: npm ci
       - run: npm run build

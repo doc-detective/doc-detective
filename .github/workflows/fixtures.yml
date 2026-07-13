@@ -103,6 +103,46 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
+      # Persist Doc Detective's install cache (browsers, drivers, heavy runtime
+      # npm deps, git-bash) across runs so the per-job JIT installs become
+      # check-and-skip. Same design as test.yml: junction/symlink the DEFAULT
+      # cache location (<os.tmpdir()>/doc-detective) to a stable per-user dir —
+      # deliberately not via DOC_DETECTIVE_CACHE_DIR, which would leak into the
+      # runtime under test — rotate the key weekly because browser channels
+      # float and present-but-outdated is warn-only (never re-downloads), and
+      # cache the whole dir as one unit so runtime/node_modules travels with
+      # runtime/package.json + installed.json (npm-prune hazard,
+      # src/runtime/AGENTS.md). Fixture jobs pin node 24, so the key carries
+      # node24 and thereby SHARES entries with test.yml's node-24 cells (whose
+      # `install all` populates the complete set). The android KVM/lazy jobs
+      # below deliberately do NOT get this cache — they exist to prove the cold
+      # install/bootstrap paths.
+      - name: Persist the default Doc Detective cache dir
+        shell: bash
+        run: |
+          node -e "
+            const fs = require('fs'), os = require('os'), path = require('path');
+            const persist = path.join(os.homedir(), '.dd-cache');
+            const link = path.join(os.tmpdir(), 'doc-detective');
+            fs.mkdirSync(persist, { recursive: true });
+            fs.rmSync(link, { recursive: true, force: true });
+            fs.symlinkSync(persist, link, 'junction');
+            console.log(link, '->', persist);
+          "
+
+      - name: Compute cache week
+        id: cache-week
+        shell: bash
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache
+          key: dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-node24-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-node24-
+            dd-cache-${{ runner.os }}-${{ steps.cache-week.outputs.week }}-
+
       - run: npm ci
       - run: npm run build
 
