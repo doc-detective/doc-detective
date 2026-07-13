@@ -14,10 +14,11 @@ const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
   describe("Module Integration Tests", function () {
-    // Increase timeout for spawning node processes
     // Module-load + build-artifact assertions do real fs/require work; on a
-    // loaded CI runner the default 10s tripped intermittently (this suite runs
-    // in every job that builds). 60s is ample headroom, still catches a hang.
+    // loaded CI runner the default 10s tripped intermittently. 60s is ample
+    // headroom and still catches a genuine hang. (Since ADR 01057 this suite
+    // runs only in the coverage-ratchet job and the mocha matrix, not in every
+    // job that builds — but the wider bound is cheap insurance either way.)
     this.timeout(60000);
 
     describe("CommonJS (require)", function () {
