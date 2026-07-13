@@ -64,8 +64,10 @@ jobs:
         run: |
           matrix=''
           # Only a PR context can narrow. `if files=$(...)` tolerates a non-zero
-          # gh api (transient 5xx / rate limit) without tripping `set -e`.
-          if [ -n "$PR" ] && files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
+          # gh api (transient 5xx / rate limit) without tripping `set -e`, and
+          # `timeout 120` makes a HANG fail-safe too (exit 124 → the full
+          # matrix) instead of silently eating the job's 5-min budget.
+          if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
             printf 'changed files:\n%s\n' "$files"
             matrix=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --matrix || echo '')
           fi
