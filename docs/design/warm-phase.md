@@ -70,23 +70,51 @@ derivation unit-testable without drivers. Task kinds, deduplicated across jobs:
 |---|---|---|
 | `driver-install` | app/mobile contexts per platform | `ensureRuntimeInstalled([driverPackage])` — the body of `appSurfacePreflight`'s install half |
 | `browser-install` | browser contexts | `ensureContextBrowserInstalled` (already memoized via `installAttempts`, [tests.ts:5036-5101](../../src/core/tests.ts)) |
-| `device-boot` | ios/android contexts + explicit `device` descriptors | `acquireSimulator` / `acquireDevice` into the run registries |
+| `device-boot` | ios/android contexts + explicit `device` descriptors, normalized via the same `normalizeDeviceDescriptor` path `runContext` uses ([tests.ts:3567](../../src/core/tests.ts)) | `acquireSimulator` / `acquireDevice` into the run registries |
 | `wda-check` | ios contexts | managed-products locator from [ios-wda-prebuild.md](ios-wda-prebuild.md) Phase 3 (memoized probe; never builds — building stays with `install ios`) |
 | `chromedriver-prefetch` | mobile-web-android contexts | the autodownload the first session pays today |
 | `session-probe` | what `selectWarmUpTargets` picks today ([tests.ts:2460](../../src/core/tests.ts)) | folded-in existing `warmUpContexts` probes — **kept `limit > 1`-gated**: a throwaway probe session is only worth paying when it prevents concurrent first-session races |
+
+**Device selection is not the planner's job.** `planWarmTasks` normalizes descriptors exactly as
+`runContext` would and hands them to `acquireSimulator`/`acquireDevice`; the selection heuristics
+(newest-iPhone plan, default AVD) stay solely in
+[iosSimulator.ts](../../src/core/tests/iosSimulator.ts) /
+[androidEmulator.ts](../../src/core/tests/androidEmulator.ts) — the single source of truth whose
+duplication in the fixtures.yml pre-boot step is precisely the hazard this phase exists to retire.
+Deduplication is the registries' existing behavior: entries are keyed by device name, so N
+contexts needing the same device produce one boot and N `ready` awaiters, and warm's acquire and a
+context's later acquire meet on the same entry.
 
 **Executor.** Run tasks through the existing primitives — `runResourceAware` with the run's
 `ResourceRegistry` ([utils.ts:121-212](../../src/core/utils.ts)) and the same exclusivity tags
 jobs use (`jobDisplayResources`, [tests.ts:466-568](../../src/core/tests.ts)): device boots for the
 same device serialize, `native-app-driver`-bound tasks respect ADR 01038, independent tasks
-overlap. Warm concurrency limit: a small constant (e.g. 4) independent of `concurrentRunners`,
-since tasks are I/O-heavy, not display-heavy.
+overlap. **Cache-mutating tasks get a dedicated `runtime-install` exclusivity tag** —
+`driver-install`, `browser-install`, and `chromedriver-prefetch` all write the shared runtime/app
+cache, which is exactly why today's `warmUpContexts` runs its combinations serially
+([tests.ts:2505-2512](../../src/core/tests.ts)) and why the npm-prune hazard exists
+([src/runtime/AGENTS.md](../../src/runtime/AGENTS.md)); they serialize among themselves while
+overlapping device boots. Warm concurrency limit: a small constant (e.g. 4) independent of
+`concurrentRunners`, since tasks are I/O-heavy, not display-heavy. The two constraints compose:
+the pool is the **outer ceiling**, and tag exclusivity further serializes within it (two tasks
+sharing a tag queue even when fewer than 4 tasks are running — the pool never bypasses the
+registry).
 
 **Failure semantics.** Each task resolves to `{name, kind, outcome: warmed|skipped|failed,
-durationMs, note?}`. `failed` → `logger warn` + proceed. The planner and executor share the run's
-`installAttempts`/`warmUpResults` memo maps ([tests.ts:1373-1377](../../src/core/tests.ts)) so
-per-context paths never redo warm's work — and warm's failures don't poison them (a failed warm
-install records nothing, letting the per-context retry happen exactly as today).
+durationMs, note?}`. `failed` → `logger warn` + proceed. Memo-map effects follow
+`warmUpContexts`' existing **mirror contract** ([tests.ts:2510-2512](../../src/core/tests.ts)):
+warm leaves `installAttempts`/`warmUpResults` in *exactly the state a serial first-consuming
+context would have produced* — no more, no less. Concretely: install tasks record their outcome in
+`installAttempts` just as the first context's on-demand install would (so N contexts don't retry
+a failed install in parallel — that recorded-once semantics is today's behavior, not a new
+suppression), and the folded-in `session-probe` keeps its existing recorded-skip semantics
+([tests.ts:2621, 3753](../../src/core/tests.ts) — a combination that can't start a driver is
+skipped by later contexts; that's the established fast-fail, which would have happened per-context
+anyway, just slower). The **"never gates"** contract is therefore precise: the *new* task kinds
+(`device-boot`, `wda-check`, `chromedriver-prefetch`) record nothing any gate reads — their
+failures are warm-report entries only — and warm introduces **no gating that doesn't already
+exist** for installs/probes. Keeping `session-probe` behind `limit > 1` also preserves the
+documented byte-identical serial-run behavior ([tests.ts:1845-1847](../../src/core/tests.ts)).
 
 **Device-boot ownership detail.** `acquireSimulator`/`acquireDevice` already return registry
 entries with correct `bootedByUs` (`reuse-booted` → `false`, boot/create → `true`,
@@ -118,9 +146,14 @@ per the CLAUDE.md schema workflow.
 Sketch only; own ADR when picked up. `doc-detective warm --input <specs>` runs resolve + B1's
 planner/executor and **exits with devices left up**, writing an ownership handoff manifest
 (`<cacheDir>/warm-manifest.json`: UDIDs, AVD names, PIDs, timestamp). The next `runTests`
-atomically claims it (rename — exactly one of N concurrent runners adopts), merges the resources
-into its registries as `bootedByUs: true`, and sweeps them at run end as if it booted them.
-Staleness guard: manifest older than TTL or with dead PIDs/UDIDs is cleaned, not adopted.
+atomically claims it — rename to `warm-manifest.claimed-<runId>.json` **in the same directory**,
+so exactly one of N concurrent runners adopts *and* the claimed state stays durable and
+discoverable (a rename-to-nowhere would leave a crash window: adopter dies post-claim,
+pre-adoption, and the devices are up with no record). The adopter merges the resources into its
+registries as `bootedByUs: true`, deletes the claimed file only after its run-end sweep, and
+cleanup (`--down`, or the next warm/run) scans for `claimed-*` files whose owning run is dead and
+sweeps their resources. Staleness guard: any manifest older than TTL or with dead PIDs/UDIDs is
+cleaned, not adopted.
 `doc-detective warm --down` for manual teardown. This is what finally deletes the
 [fixtures.yml](../../.github/workflows/fixtures.yml) pre-boot step and its device-selection
 coupling. Hosted-runner VM disposal remains the backstop; the manifest matters most on self-hosted
@@ -144,10 +177,10 @@ runners and dev machines.
 - **After** [ios-wda-prebuild.md](ios-wda-prebuild.md) Phases 1–3 land: warm's `wda-check` task
   consumes that locator. (B1 can land first with `wda-check` absent — the plans are independent
   except for that one task.)
-- The Android image question from the same investigation was settled as **keep `google_apis`**
-  (full image; device Chrome required for mobile-web) — recorded here so the ATD option isn't
-  re-litigated without new evidence: ATD images strip preinstalled apps, putting the
-  `mobile-web-android` Chrome dependency at risk.
+- The Android image question from the same investigation was settled as **keep `google_apis`** —
+  now recorded as its own decision in
+  [ADR 01057](../../adrs/01057-keep-google-apis-emulator-images.md) (device Chrome required for
+  mobile-web; ATD images strip preinstalled apps).
 
 ## Non-goals
 

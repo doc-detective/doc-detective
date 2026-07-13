@@ -44,10 +44,11 @@ Every Doc Detective user running iOS tests in CI pays the cold compile or hand-r
 
 ## Cache layout and key
 
-```
+```text
 <cacheDir>/ios/wda/<key>/           # e.g. ios/wda/xcode-16.4-16F6-driver-7.28.3/
   DerivedData/                      # xcodebuild -derivedDataPath target
   products.json                     # completeness marker — written LAST, after validation
+  last-used                         # sidecar stamp touched by the session-time locator
 <cacheDir>/ios/wda/.lock/           # advisory lock dir (writer only)
 ```
 
@@ -58,24 +59,39 @@ Every Doc Detective user running iOS tests in CI pays the cold compile or hand-r
   Xcode can build WDA).
 - **`products.json` marker.** Records key inputs, the validated
   `Build/Products/Debug-iphonesimulator/WebDriverAgentRunner-Runner.app` path, and a timestamp.
-  Readers require the marker; a crashed half-built dir has no marker and is invisible. This is the
-  lock-free correctness story for readers.
-- **Pruning.** On a successful build, delete sibling key dirs not touched within 30 days (mtime).
-  Not "keep current only": CI macOS runner pools mix Xcode images
-  ([test/AGENTS.md:86](../../test/AGENTS.md)), and a shared weekly cache legitimately accumulates
-  one entry per image. Keyed subdirs make mixed images coexist instead of thrash.
+  **Published atomically** — written to a temp file in the same dir, then renamed (the
+  `writeInstalledRecord` pattern, [cacheDir.ts:238-271](../../src/runtime/cacheDir.ts)) — so a
+  lock-free reader never observes partial JSON. Readers require the marker; a crashed half-built
+  dir has no marker and is invisible. This is the lock-free correctness story for readers.
+- **Pruning.** Keyed by the `last-used` sidecar stamp, **not** directory mtime (reads inside a
+  subtree don't bump a dir's mtime on APFS, so an actively-used key would look untouched). The
+  session-time locator touches `last-used` on every valid hit; the installer, under the lock,
+  deletes sibling key dirs whose stamp is >30 days old and updates the `installed.json` `ios` slot
+  in the same pass so it never references a deleted key. Active-use safety follows: any key a live
+  session consumes was stamped at that session's start, so a pruned key is provably 30 days unused
+  (the residual cross-process race — a session that resolved a path and then idled 30 days before
+  reading it — is not a real execution shape). Not "keep current only": CI macOS runner pools mix
+  Xcode images ([test/AGENTS.md:86](../../test/AGENTS.md)), and a shared weekly cache legitimately
+  accumulates one entry per image. Keyed subdirs make mixed images coexist instead of thrashing.
 - **installed.json.** Add an optional `ios?` slot mirroring the `android?` pattern
   ([cacheDir.ts:39-46, 220-222](../../src/runtime/cacheDir.ts)) recording the built key(s).
 
 ## Phase 1 — advisory lock primitive (`src/runtime/lock.ts`)
 
 A small cross-process lock: `mkdir`-as-lock with a metadata file (`pid`, `hostname`, ISO
-timestamp), bounded wait with polling, and staleness takeover (metadata older than a TTL, or a
-dead same-host pid). Injected fs/clock/sleep effects so it's hermetically unit-testable per the
-installer-test house pattern (no real spawns/fs in unit tests).
+timestamp), bounded wait with polling. **Staleness is a heartbeat lease, not age-since-acquire** —
+lock age alone must never permit takeover, because a legitimate xcodebuild can hold the lock for
+~20 minutes and a TTL long enough to cover it would make a crashed holder block the next build for
+that whole window. Instead: the holder refreshes the metadata timestamp on a short interval
+(~30 s); a contender may take over only when the **heartbeat** is stale (e.g. >5 min — many missed
+refreshes) or, on the same host, the recorded pid is dead. A live slow build heartbeats and is
+never stolen; a crashed holder is recovered within minutes. Injected fs/clock/sleep effects so
+it's hermetically unit-testable per the installer-test house pattern (no real spawns/fs in unit
+tests).
 
-TDD sequence: acquire-when-free → contend-and-wait → stale-takeover → release-on-throw. Pure unit
-tests only; no ADR needed alone (it ships with Phase 2's ADR as an implementation detail).
+TDD sequence: acquire-when-free → contend-and-wait → heartbeat-keeps-lease (old lock, fresh
+heartbeat, no takeover) → stale-heartbeat takeover → dead-pid takeover → release-on-throw. Pure
+unit tests only; no ADR needed alone (it ships with Phase 2's ADR as an implementation detail).
 
 ## Phase 2 — the prebuild in `install ios`
 
@@ -86,33 +102,44 @@ what it was reserved for. Pipeline, each step a report-visible outcome:
 1. Existing probes unchanged (darwin, `--yes`, `xcode-select -p`, `simctl`). Dry-run gains a note
    that a WDA build would be verified/performed.
 2. **New probe:** `xcodebuild -version` via the injected `run` dep. Failure ⇒ CLT-only host ⇒
-   `skipped` row with "full Xcode required to prebuild WebDriverAgent" guidance. **Best-effort:
-   never a non-zero exit.**
+   `skipped` row with "full Xcode required to prebuild WebDriverAgent" guidance. The probe also
+   enforces a **minimum Xcode version floor**: `build-for-testing` against the generic
+   `platform=iOS Simulator` destination requires a modern Xcode (pin the exact floor during
+   red→green — verify empirically, likely 14+); below it, `skipped` with upgrade guidance rather
+   than a doomed build. **Best-effort: never a non-zero exit.**
 3. **Ensure the driver** via `ensureRuntimeInstalled(["appium-xcuitest-driver"])` — routed through
    the loader, never a raw `npm install`, so the npm-prune defenses stay engaged
    ([src/runtime/AGENTS.md](../../src/runtime/AGENTS.md), issue #501). This makes `install ios`
    heavier than today (driver download on a bare host) — acceptable and reportable.
 4. **Resolve WDA source** from `resolveHeavyDepPathInCache("appium-xcuitest-driver", ctx)` →
    bundled `appium-webdriveragent/` package root (walk, don't hardcode nesting — hoisting varies).
-5. **Check-and-skip:** valid `products.json` for the current key ⇒ `already-up-to-date`.
-6. **Build under lock:** acquire `ios/wda/.lock` (bounded wait; on timeout report `skipped`,
-   "another install is building"), then
+5. **Check-and-skip (pre-lock fast path):** valid `products.json` for the current key ⇒
+   `already-up-to-date`, no lock overhead.
+6. **Acquire the lock** (`ios/wda/.lock`, bounded wait; on timeout report `skipped`, "another
+   install is building"), then **re-check the marker before building**: a contender that waited
+   out a concurrent build finds the now-valid `products.json`, releases, and reports
+   `already-up-to-date` — closing the TOCTOU window between steps 5 and 6 that would otherwise
+   double-build on a cold host with parallel CI jobs.
+7. **Build:**
    `xcodebuild build-for-testing -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner
    -destination "generic/platform=iOS Simulator" -derivedDataPath <keyed>/DerivedData`
    with a generous timeout (~20 min; the android installer's transient-retry shape,
    [androidInstaller.ts:454-479](../../src/runtime/androidInstaller.ts), applies with
    xcodebuild-specific transient signatures). No `-destination` device dependency: no simulator
    needs to exist or be booted.
-7. **Validate** the Runner .app exists → write `products.json` → record in `installed.json` →
-   prune stale siblings → release lock. Report `installed` (or `updated` when replacing a
-   different key).
+8. **Validate** the Runner .app exists → write `products.json` (atomic temp+rename) → record in
+   `installed.json` → prune stale siblings → release lock. Report `installed` when no key existed
+   before, `updated` when a **new** key was built while a different key was previously recorded —
+   keys are additive subdirs, never replaced in place, so "updated" means "the current toolchain
+   moved", not "rebuilt in place".
 
 Structure it as the android installer does: a **pure plan builder** (inputs: probe results,
 existing marker, key) driving both `--dry-run` and execution, with the full effect surface
 injected (`run`, `fs`, lock, `ensureRuntimeInstalled`, clock). Every branch above gets a red→green
 unit test in `test/ios-installer.test.js` (stub `resolvePathInCache`/`ensureInstalled` per
-[src/runtime/AGENTS.md](../../src/runtime/AGENTS.md) testing note); `test/cli-install.test.js`
-covers the dry-run wiring cross-platform.
+[src/runtime/AGENTS.md](../../src/runtime/AGENTS.md) testing note), including the
+**contend-and-lose** case (second contender acquires the lock, finds the completed marker, skips
+the build); `test/cli-install.test.js` covers the dry-run wiring cross-platform.
 
 Expect the new `xcodebuild` spawn from a cache-derived path to trip CodeQL's
 `js/command-line-injection` false-positive class ([test/AGENTS.md:108-124](../../test/AGENTS.md));
@@ -128,16 +155,21 @@ apps) and [mobileBrowser.ts:173-197](../../src/core/tests/mobileBrowser.ts) (mob
    exactly as today (`derivedDataPath` only, caller owns semantics). Existing users see zero change.
 2. Otherwise, **pure managed-products locator**: compute the current key (driver version via
    `resolveHeavyDepVersion`, Xcode version via a shared probe helper extracted from Phase 2), read
-   `products.json`, and on a valid hit set **both** `appium:derivedDataPath` (the keyed
-   DerivedData) **and** `appium:usePrebuiltWDA: true`. On any miss/unusable-cache condition return
-   null and change nothing — ADR 01049 degradation semantics. A keyed miss after a driver or Xcode
-   bump is exactly today's behavior (session builds WDA itself), never an error.
-3. `usePrebuiltWDA` makes sessions **read-only** consumers — the concurrency answer. If a
-   prebuilt-WDA session creation fails, the existing ADR 01033 retry
-   ([tests.ts:4868-4915](../../src/core/tests.ts)) applies; a persistent failure surfaces normally.
-   (Implementation checkpoint: verify on a real macOS CI session that the resolved driver version
-   honors `usePrebuiltWDA` + `derivedDataPath` as expected; newer drivers also offer
-   `appium:prebuiltWDAPath` as an alternative — pick during red→green against the live leg.)
+   `products.json`, and on a valid hit touch the `last-used` stamp and set **both**
+   `appium:derivedDataPath` (the keyed DerivedData) **and** `appium:usePrebuiltWDA: true`. On any
+   miss/unusable-cache condition — including a driver version outside the locator's **supported
+   floor** (see below) — return null and change nothing: ADR 01049 degradation semantics. A keyed
+   miss after a driver or Xcode bump is exactly today's behavior (session builds WDA itself),
+   never an error.
+3. `usePrebuiltWDA` makes sessions **read-only** consumers (except the sidecar stamp) — the
+   concurrency answer. If a prebuilt-WDA session creation fails, the existing ADR 01033 retry
+   ([tests.ts:4868-4915](../../src/core/tests.ts)) applies; a persistent failure surfaces
+   normally. **Compatibility gate (implementation checkpoint):** prebuilt-WDA handling is
+   driver-version-sensitive (`usePrebuiltWDA`+`derivedDataPath` vs the newer
+   `appium:prebuiltWDAPath` / `useXctestrunFile` paths, and `.xctestrun` handling differs across
+   versions). Pin a minimum supported `appium-xcuitest-driver` version during red→green against
+   the live macOS leg, record it as the locator's floor, and pick the capability pair there —
+   unsupported combinations get null (plain fallback), never a guess.
 4. The Xcode-version probe result is memoized per run (one `xcodebuild -version` spawn max).
 
 Unit tests: locator hit/miss/stale-key/marker-absent; env-override precedence; capability-shape
