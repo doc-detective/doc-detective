@@ -46,8 +46,44 @@ concurrency:
 
 permissions:
   contents: read
+  # The `changes` job lists the PR's changed files to narrow the fixture
+  # matrix (ADR 01049).
+  pull-requests: read
 
 jobs:
+  # Select which fixture bundles this change set needs. Conservative by
+  # construction (scripts/select-fixture-bundles.cjs): only a change set
+  # confined entirely to fixture group directories narrows the matrix; any
+  # product/script/workflow/shared-infra change — and any non-PR trigger —
+  # selects "all". A failure here fails the gate loudly (fixtures `needs` it).
+  changes:
+    name: Select fixture bundles
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      bundles: ${{ steps.select.outputs.bundles }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Select bundles for this change set
+        id: select
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "no PR context (manual dispatch) — running all bundles"
+            echo "bundles=all" >> "$GITHUB_OUTPUT"
+          else
+            files=$(gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename')
+            printf 'changed files:\n%s\n' "$files"
+            bundles=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs)
+            echo "selected bundles: $bundles"
+            echo "bundles=$bundles" >> "$GITHUB_OUTPUT"
+          fi
+
   # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
   # of the *.spec.json fixtures no longer run here — see the `fixtures` job.
   test:
@@ -60,7 +96,11 @@ jobs:
       HERETTO_USERNAME: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_USERNAME || '' }}
       HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
 
-  # Per-feature Doc Detective fixtures, fanned out one small job per (group x OS)
-  # so no single job is a 90-minute monolith. Runs the PR's own build.
+  # Per-feature Doc Detective fixtures, fanned out one small job per (bundle x
+  # OS) so no single job is a 90-minute monolith. Runs the PR's own build,
+  # narrowed to the bundles the change set can affect (ADR 01049).
   fixtures:
+    needs: changes
     uses: ./.github/workflows/fixtures.yml
+    with:
+      bundles: ${{ needs.changes.outputs.bundles }}
