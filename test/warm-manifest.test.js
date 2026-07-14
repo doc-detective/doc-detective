@@ -251,6 +251,107 @@ describe("warm manifest: write / claim / release / sweep", function () {
     assert.deepEqual(orphans, []);
   });
 
+  it("falls back to remove-then-rename when the atomic write's rename is refused", function () {
+    // Windows can refuse an overwrite-rename with EEXIST/EPERM.
+    const fs = memFs({ [manifestPath]: manifestContent() });
+    let refused = false;
+    const realRename = fs.renameSync;
+    fs.renameSync = (from, to) => {
+      if (!refused && to === manifestPath) {
+        refused = true;
+        throw Object.assign(new Error("EEXIST"), { code: "EEXIST" });
+      }
+      realRename(from, to);
+    };
+    const written = writeWarmManifest({
+      cacheDir: CACHE,
+      devices: [iosDevice],
+      deps: deps({ fs }),
+    });
+    assert.equal(written, manifestPath);
+    assert.deepEqual(JSON.parse(fs.files.get(manifestPath)).devices, [iosDevice]);
+  });
+
+  it("returns null when the manifest exists but can't be read", function () {
+    const fs = memFs({ [manifestPath]: manifestContent() });
+    fs.readFileSync = () => {
+      throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+    };
+    assert.equal(
+      claimWarmManifest({ cacheDir: CACHE, runId: "run-1", deps: deps({ fs }) }),
+      null
+    );
+  });
+
+  it("still adopts when the claimed-file stamp write fails", function () {
+    // The rename IS the claim; a failed claimedBy stamp only degrades the
+    // orphan scan to its TTL fallback.
+    const fs = memFs({ [manifestPath]: manifestContent() });
+    const realWrite = fs.writeFileSync;
+    fs.writeFileSync = (p, data) => {
+      if (String(p).includes("claimed-")) {
+        throw Object.assign(new Error("ENOSPC"), { code: "ENOSPC" });
+      }
+      realWrite(p, data);
+    };
+    const claim = claimWarmManifest({
+      cacheDir: CACHE,
+      runId: "run-1",
+      deps: deps({ fs }),
+    });
+    assert.ok(claim);
+    assert.equal(claim.adopt.length, 2);
+  });
+
+  it("treats an unstamped claim (crash between rename and stamp) as orphaned only past the TTL", function () {
+    const fs = memFs({ [manifestPath]: manifestContent() });
+    // Simulate the crash window: rename succeeded, stamp never written.
+    fs.renameSync(manifestPath, claimedPath("crashed"));
+    const fresh = listOrphanedClaims({
+      cacheDir: CACHE,
+      deps: deps({ fs, nowMs: T0 + 60_000 }),
+    });
+    assert.deepEqual(fresh, []);
+    const old = listOrphanedClaims({
+      cacheDir: CACHE,
+      deps: deps({ fs, nowMs: T0 + DEFAULT_WARM_MANIFEST_TTL_MS + 1 }),
+    });
+    assert.equal(old.length, 1);
+    assert.equal(old[0].path, claimedPath("crashed"));
+  });
+
+  it("skips an unreadable claimed file in the orphan scan but --down still lists a corrupt manifest", function () {
+    const fs = memFs({
+      [manifestPath]: "corrupt{{",
+      [claimedPath("x")]: manifestContent(),
+    });
+    const realRead = fs.readFileSync;
+    fs.readFileSync = (p) => {
+      if (String(p).includes("claimed-")) {
+        throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+      }
+      return realRead(p);
+    };
+    assert.deepEqual(listOrphanedClaims({ cacheDir: CACHE, deps: deps({ fs }) }), []);
+    const leftovers = collectWarmLeftovers({ cacheDir: CACHE, deps: deps({ fs }) });
+    // The corrupt manifest is still a file --down must delete; it just
+    // contributes no devices.
+    assert.deepEqual(leftovers.files, [manifestPath]);
+    assert.deepEqual(leftovers.devices, []);
+  });
+
+  it("ignores non-manifest files in the cache root", function () {
+    const fs = memFs({
+      [path.join(CACHE, "installed.json")]: "{}",
+      [path.join(CACHE, "warm-manifest.claimed-x.txt")]: "not json suffix",
+    });
+    assert.deepEqual(listOrphanedClaims({ cacheDir: CACHE, deps: deps({ fs }) }), []);
+    assert.deepEqual(
+      collectWarmLeftovers({ cacheDir: CACHE, deps: deps({ fs }) }).files,
+      []
+    );
+  });
+
   it("collectWarmLeftovers gathers the unclaimed manifest and every claimed file for --down", function () {
     const fs = memFs({ [manifestPath]: manifestContent() });
     claimWarmManifest({

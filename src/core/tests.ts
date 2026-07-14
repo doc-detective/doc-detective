@@ -3521,6 +3521,9 @@ async function sweepHandoffDevices(
  * every claimed file (a live adopter's run-end sweep tolerates the loss:
  * its kills/shutdowns are already best-effort), then delete the files.
  */
+/* c8 ignore start — thin effect wrapper (real fs + device kills); the
+   selection logic lives in warmManifest.ts's hermetic suite, and the CLI
+   path is exercised end-to-end (out of process) by test/warm-cli.test.js. */
 async function warmDown({
   config,
 }: {
@@ -3551,6 +3554,7 @@ async function warmDown({
   );
   return { files: files.length, devices: devices.length };
 }
+/* c8 ignore stop */
 
 /**
  * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
