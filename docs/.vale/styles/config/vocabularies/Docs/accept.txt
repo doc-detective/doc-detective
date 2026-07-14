@@ -232,6 +232,10 @@ SSRF
 WebDriverAgent
 WDA
 xcodebuild
+prebuild
+prebuilds
+prebuilding
+prebuilt
 dialog
 dialogs
 dialog's

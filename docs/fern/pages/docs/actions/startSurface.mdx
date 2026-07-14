@@ -17,7 +17,7 @@ Doc Detective drives native apps through a platform-specific Appium driver—`ap
 
 Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
 
-iOS app surfaces run only on a macOS host and drive an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; verify it ahead of time with [`doc-detective install ios`](/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
+iOS app surfaces run only on a macOS host and drive an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios`](/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
 </Note>
 
 ## App descriptors
@@ -219,9 +219,9 @@ The simulator tooling ships with Xcode rather than as a separate download, so th
 doc-detective install ios --yes
 ```
 
-See [`install ios`](/reference/cli/install#install-ios) for what the command verifies and the guidance it prints when a prerequisite is missing. When the host can't run an iOS simulator (a non-macOS host, or a macOS host without Xcode or an installed runtime), the context skips with a pointer back to that command instead of failing. The `appium-xcuitest-driver` installs on demand the first time an `ios` surface starts.
+See [`install ios`](/reference/cli/install#install-ios) for everything the command does—verifying the prerequisites, installing the `appium-xcuitest-driver`, and prebuilding WebDriverAgent—along with the guidance it prints when a step can't run. When the host can't run an iOS simulator (a non-macOS host, or a macOS host without Xcode or an installed runtime), the context skips with a pointer back to that command instead of failing. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
 
-The first `ios` surface of a run builds WebDriverAgent for the simulator, which can take several minutes on a cold machine, so give it a generous `timeout` as you would on macOS or Android.
+On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator, which can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache—and sessions consume it automatically—so that build cost disappears from the run. This is especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
 
 ### Choose the simulator
 
