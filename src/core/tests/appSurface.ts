@@ -456,7 +456,9 @@ const DESKTOP_UNSUPPORTED_MOBILE_FIELDS = ["device", "install", "activity"].map(
   })
 );
 
-const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
+// Exported for the warm-phase planner (buildWarmPlanDeps in tests.ts): the
+// platform → driver-package mapping is this table's single source of truth.
+export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
   windows: {
     driverPackage: "appium-novawindows-driver",
     driverLabel: "Windows app driver",

@@ -50,6 +50,22 @@ The `json` reporter writes the full results to a file:
 
 The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail)).
 
+### Read the warm-phase timings
+
+The results also carry a `warm` object that records what the run provisioned before executing tests. At the start of every run, Doc Detective front-loads the setup its tests would otherwise pay one at a time—browser and driver installs, simulator and emulator boots, and related downloads—and runs those tasks concurrently. Each entry lists the task, its outcome, and how long it took:
+
+```json
+"warm": {
+  "durationMs": 4211,
+  "tasks": [
+    { "name": "browser-install:chrome", "kind": "browser-install", "outcome": "skipped", "durationMs": 2, "note": "'chrome' is already available" },
+    { "name": "session-probe", "kind": "session-probe", "outcome": "warmed", "durationMs": 4205, "note": "1 combination ok" }
+  ]
+}
+```
+
+Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to do, or the environment handles it later), and `failed`. The warm phase is best-effort: a `failed` task logs a warning and never fails the run—the affected test context retries or skips with its normal behavior and reason. Use the timings to spot provisioning costs in slow CI runs: a long `warmed` task on every run usually means the [runtime cache](/docs/ci/docker-and-headless#step-3-warm-runtime-assets) isn't persisted between runs.
+
 ## Step 4: Find the HTML report
 
 The `html` reporter writes a self-contained HTML report you can open in a browser:

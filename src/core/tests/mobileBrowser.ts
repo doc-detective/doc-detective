@@ -84,6 +84,15 @@ function mobileBrowserConfigError(
   return null;
 }
 
+// Appium server args that enable the UiAutomator2 chromedriver autodownload
+// (an insecure feature, scoped to the driver). Shared by runContext's
+// mobile-web branch and the warm phase's chromedriver prefetch so the two
+// session shapes cannot drift.
+export const CHROMEDRIVER_AUTODOWNLOAD_ARGS = [
+  "--allow-insecure",
+  "uiautomator2:chromedriver_autodownload",
+];
+
 // The one decision point the mobile preflights consult before any toolchain
 // work: does this context get a device-browser session, a SKIP, or a FAIL?
 // Order matters — the mixed guard first (a scope limit, so SKIP, and config

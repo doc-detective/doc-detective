@@ -65,7 +65,7 @@ export {
   evaluateContextRequirements,
 };
 
-export type { BackgroundProcess };
+export type { BackgroundProcess, ResourceRegistry };
 
 // A fixed set of Appium server ports shared by concurrent runners. `acquire()`
 // hands out a free port, waiting if every port is checked out; `release()`

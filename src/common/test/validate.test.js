@@ -1176,6 +1176,110 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(original).to.deep.equal(originalCopy);
       });
     });
+
+    describe("report_v3 warm block", function () {
+      const minimalSpecs = [
+        { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
+      ];
+      const warmTask = {
+        name: "browser-install:chrome",
+        kind: "browser-install",
+        outcome: "warmed",
+        durationMs: 900,
+      };
+
+      it("should validate a report_v3 object with a warm block", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warm: {
+              durationMs: 1234,
+              tasks: [
+                warmTask,
+                {
+                  name: "wda-check",
+                  kind: "wda-check",
+                  outcome: "skipped",
+                  durationMs: 3,
+                  note: "no prebuilt WebDriverAgent",
+                },
+              ],
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.warm.tasks[0].kind).to.equal("browser-install");
+      });
+
+      it("should validate a report_v3 object without a warm block (back-compat)", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: { specs: minimalSpecs },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.warm).to.equal(undefined);
+      });
+
+      it("should reject a warm task with an unknown outcome", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warm: {
+              durationMs: 1,
+              tasks: [{ ...warmTask, outcome: "exploded" }],
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("outcome");
+      });
+
+      it("should reject a warm task with an unknown kind", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warm: {
+              durationMs: 1,
+              tasks: [{ ...warmTask, kind: "coffee" }],
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("kind");
+      });
+
+      it("should reject a warm task missing required fields", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warm: {
+              durationMs: 1,
+              tasks: [{ name: "x", outcome: "warmed", durationMs: 1 }],
+            },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("kind");
+      });
+
+      it("should reject unknown properties inside the warm block", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warm: { durationMs: 1, tasks: [], extra: true },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
   });
 
   describe("transformToSchemaKey", function () {

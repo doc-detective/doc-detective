@@ -41,7 +41,46 @@ describe("Run tests successfully", function () {
         0,
         `${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
       );
+      // The inline warm phase ran before Phase 2 and reported its tasks: a
+      // browser run at concurrentRunners 2 always plans the browser install
+      // (skipped when already available) and the session probe. Enum
+      // membership (kind/outcome values) is the report_v3 schema's contract,
+      // policed by src/common/test/validate.test.js — this smoke asserts the
+      // shape and the browser tasks only.
+      assert.ok(result.warm, "report.warm missing");
+      assert.equal(typeof result.warm.durationMs, "number");
+      assert.ok(Array.isArray(result.warm.tasks));
+      for (const task of result.warm.tasks) {
+        assert.equal(typeof task.name, "string");
+        assert.equal(typeof task.kind, "string");
+        assert.equal(typeof task.outcome, "string");
+        assert.equal(typeof task.durationMs, "number");
+      }
+      assert.ok(
+        result.warm.tasks.some(
+          (t) => t.kind === "browser-install" || t.kind === "session-probe"
+        ),
+        `expected browser warm tasks, got: ${JSON.stringify(result.warm.tasks)}`
+      );
     });
+  });
+
+  it("A run with no provisioning needs reports an empty warm phase", async () => {
+    // Shell-only spec: the warm planner derives nothing, so the phase is a
+    // no-op by construction — baseline latency unchanged. Hermetic on every OS.
+    const shellOnly = {
+      tests: [{ testId: "warm-noop", steps: [{ runShell: "echo warm" }] }],
+    };
+    fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+    const tempFilePath = path.resolve("./.tmp/temp-warm-noop-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(shellOnly, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath });
+      assert.equal(result.summary.specs.fail, 0);
+      assert.deepEqual(result.warm, { durationMs: 0, tasks: [] });
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
   });
 
   it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
