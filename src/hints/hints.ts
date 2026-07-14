@@ -798,5 +798,34 @@ export const HINTS: Hint[] = [
     ].join("\n"),
     when: (ctx) => ctx.failedCount > 0 && ctx.usedSelectorOnlyFinds,
   },
+
+  // ------------------------------------------------------------------
+  // useWarmCommandForDeviceBoots (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "useWarmCommandForDeviceBoots",
+    priority: 50,
+    markdown: [
+      "This run spent noticeable time provisioning devices before any test executed (see `warm` in the JSON results). Move that cost out of the run entirely — for example, boot devices while your project builds — with the standalone warm command; the run that follows adopts the ready devices:",
+      "",
+      "```bash",
+      "doc-detective warm --input docs/ &   # then run tests as usual",
+      "```",
+      "",
+      "More: [doc-detective.com/reference/cli/warm](https://doc-detective.com/reference/cli/warm)",
+    ].join("\n"),
+    // Fires when the run's own warm phase demonstrably paid for device
+    // work (a boot or on-device prefetch) and took long enough that
+    // fronting it would matter. A run that adopted a prior warm's devices
+    // has a fast warm phase, so the hint self-gates when the feature is
+    // already in use.
+    when: (ctx) =>
+      (ctx.results?.warm?.tasks ?? []).some(
+        (task: any) =>
+          (task.kind === "device-boot" ||
+            task.kind === "chromedriver-prefetch") &&
+          task.outcome === "warmed"
+      ) && (ctx.results?.warm?.durationMs ?? 0) > 20000,
+  },
 ];
 
