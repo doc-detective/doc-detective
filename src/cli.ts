@@ -17,6 +17,7 @@ import { installCommand } from "./runtime/installCommand.js";
 import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
 import { debugCommand } from "./debug/command.js";
+import { warmCommand } from "./warm/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
@@ -60,6 +61,7 @@ async function main(argv: string[]) {
     .command(installCommand as any)
     .command(lspCommand as any)
     .command(debugCommand)
+    .command(warmCommand as any)
     .strict()
     .demandCommand(0)
     // Suppress yargs' default help-dump on failure; surface the concrete error
