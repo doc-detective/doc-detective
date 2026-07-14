@@ -45,6 +45,7 @@ function memFs(initial = {}) {
       files.delete(norm(p));
     },
     readdirSync: () => [...files.keys()].map((p) => path.basename(p)),
+    mkdirSync: () => {},
   };
 }
 
@@ -94,6 +95,34 @@ describe("warm manifest: write / claim / release / sweep", function () {
     assert.equal(typeof parsed.createdAt, "string");
     assert.deepEqual(parsed.devices, [androidDevice, iosDevice]);
     assert.equal(fs.files.size, 1, `stray files: ${[...fs.files.keys()]}`);
+  });
+
+  it("creates the cache root before writing (pristine-host warm)", function () {
+    const fs = memFs();
+    const made = [];
+    fs.mkdirSync = (p, opts) => {
+      made.push({ p, recursive: opts?.recursive });
+    };
+    writeWarmManifest({
+      cacheDir: CACHE,
+      devices: [iosDevice],
+      deps: deps({ fs }),
+    });
+    assert.deepEqual(made, [{ p: CACHE, recursive: true }]);
+  });
+
+  it("treats an uncertain pid probe as alive — sweeping requires proof of death", function () {
+    // isPidAlive contract: only a definite "no such process" may route a
+    // device to sweep. The default probe reads EPERM/unknown as alive; the
+    // injected fake here mimics that by only reporting 4242 dead when told.
+    const fs = memFs({ [manifestPath]: manifestContent() });
+    const claim = claimWarmManifest({
+      cacheDir: CACHE,
+      runId: "run-1",
+      deps: { ...deps({ fs }), isPidAlive: () => true },
+    });
+    assert.deepEqual(claim.sweep, []);
+    assert.equal(claim.adopt.length, 2);
   });
 
   it("writes nothing when there are no devices to hand off", function () {
