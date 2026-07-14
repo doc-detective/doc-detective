@@ -80,6 +80,7 @@ import {
   isAppDriverRequired,
   stepTargetsAppSurface,
   teardownAppSession,
+  APP_DRIVER_PLATFORMS,
   type AppSessionState,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
@@ -88,6 +89,7 @@ import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
 } from "./tests/mobileBrowser.js";
+import { type WarmPlanDeps } from "./warmPhase.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
@@ -179,6 +181,7 @@ export {
   specIsRouted,
   killTree,
   jobDisplayResources,
+  buildWarmPlanDeps,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -277,6 +280,29 @@ function combinationKey(context: any): string {
  */
 function warmUpDecision(prev: "ok" | "failed" | undefined): "attempt" | "skip" {
   return prev === "failed" ? "skip" : "attempt";
+}
+
+/**
+ * Bind the real selection predicates for the warm-phase planner
+ * (planWarmTasks in warmPhase.ts). The planner takes these as an injected
+ * bag because most of them live in this module — importing them from
+ * warmPhase.ts would create a tests.ts ⇄ warmPhase.ts cycle — and because
+ * the bag keeps the planner hermetically unit-testable. Exported so planner
+ * tests exercise production selection logic, not stand-ins.
+ */
+function buildWarmPlanDeps(): WarmPlanDeps {
+  return {
+    isBrowserRequired,
+    isAppDriverRequired,
+    isMobileTargetPlatform,
+    getDefaultBrowser,
+    combinationKey,
+    requiredBrowserAssets,
+    collectDeviceDescriptors,
+    normalizeDeviceDescriptor,
+    mobileBrowserGate,
+    appDriverPlatforms: APP_DRIVER_PLATFORMS,
+  };
 }
 
 // Get Appium driver capabilities and apply options.

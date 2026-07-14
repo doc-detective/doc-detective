@@ -69,6 +69,9 @@ export {
   // (a stale manifest makes the lazily-installed driver invisible to Appium).
   invalidateStaleAppiumManifest,
   probeIosToolchain,
+  // Exported for the warm-phase planner (buildWarmPlanDeps in tests.ts): the
+  // platform → driver-package mapping is this table's single source of truth.
+  APP_DRIVER_PLATFORMS,
 };
 export type { AppSessionState, AppSurfaceEntry };
 
