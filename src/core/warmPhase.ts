@@ -110,8 +110,11 @@ export function wrapInitiationEffects<T extends Record<string, any>>(
     const original = deps[key];
     if (typeof original !== "function") continue;
     wrapped[key as string] = (...args: any[]) => {
+      // Invoke the effect FIRST: a synchronous throw must reach the acquire
+      // path (→ failed) rather than racing the task to "boot initiated".
+      const result = original(...args);
       signal();
-      return original(...args);
+      return result;
     };
   }
   return wrapped as T;
@@ -294,15 +297,12 @@ export function planWarmTasks({
     if (deps.isBrowserRequired({ test: context })) {
       const effBrowser = context.browser ?? getDefaultBrowser();
       const browserName = effBrowser?.name;
-      if (browserName) {
+      // Only host-platform contexts can actually be probed or installed
+      // for; a context pinned to another platform is skipped per-context
+      // and must trigger neither.
+      if (browserName && effPlatform === hostPlatform) {
         probeEligible = true;
-        // Install work only applies to the host's own platform (a context
-        // pinned to another platform is skipped per-context, never
-        // installed for) and to engines with downloadable assets.
-        if (
-          effPlatform === hostPlatform &&
-          deps.requiredBrowserAssets(browserName).length > 0
-        ) {
+        if (deps.requiredBrowserAssets(browserName).length > 0) {
           addTask({
             name: `browser-install:${browserName.toLowerCase()}`,
             kind: "browser-install",

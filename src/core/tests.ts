@@ -2814,6 +2814,52 @@ async function resolveAndroidWarmEnv(
 /* c8 ignore stop */
 
 /**
+ * Async twin of probeIosToolchain for the warm executor: the sync probe's
+ * spawnSync (up to 120s on a cold CoreSimulator service) would block the
+ * event loop and stall every "concurrent" warm task. Pre-run both probe
+ * commands with async spawns (in parallel), then hand the collected results
+ * to the real probe via its injected runner — the decision logic and every
+ * skip message stay in ONE place.
+ */
+/* c8 ignore start — real xcode-select/xcrun spawns; the decision logic is
+   probeIosToolchain's and is unit-tested there. */
+async function probeIosToolchainWarm(): Promise<
+  ReturnType<typeof probeIosToolchain>
+> {
+  if (process.platform !== "darwin") return probeIosToolchain();
+  const runAsync = (
+    command: string,
+    args: string[],
+    timeout: number
+  ): Promise<{ status: number | null; stdout: string; stderr: string }> =>
+    new Promise((resolve) => {
+      let stdout = "";
+      let stderr = "";
+      try {
+        const child = spawn(command, args, { windowsHide: true, timeout });
+        child.stdout?.on("data", (d: any) => (stdout += String(d)));
+        child.stderr?.on("data", (d: any) => (stderr += String(d)));
+        child.on("error", () => resolve({ status: null, stdout, stderr }));
+        child.on("close", (status: number | null) =>
+          resolve({ status, stdout, stderr })
+        );
+      } catch {
+        resolve({ status: null, stdout, stderr });
+      }
+    });
+  const [xcodeSelect, simctl] = await Promise.all([
+    runAsync("xcode-select", ["-p"], 15000),
+    // Same generous ceiling as the sync probe's xcrun spawn: the first cold
+    // simctl call launches CoreSimulatorService.
+    runAsync("xcrun", ["simctl", "list", "devices", "available"], 120000),
+  ]);
+  return probeIosToolchain({
+    run: (command: string) => (command === "xcrun" ? simctl : xcodeSelect),
+  });
+}
+/* c8 ignore stop */
+
+/**
  * Bind the effectful per-kind warm task bodies to the run's state. Every
  * body upholds the warm contract: best-effort (a throw is caught by the
  * executor and recorded as failed), and memo effects identical to what the
@@ -2852,11 +2898,11 @@ function buildWarmTaskRunner({
     | Promise<{ sdkRoot: string; deviceDeps: any } | null>
     | undefined;
   const getAndroidEnv = () => (androidEnv ??= resolveAndroidWarmEnv(config));
-  // One iOS toolchain probe per run: it's a synchronous xcrun spawn (slow on
-  // a cold CoreSimulator service), so device boots and the driver install
-  // share a single result instead of each blocking the executor on it.
-  let iosToolchain: ReturnType<typeof probeIosToolchain> | undefined;
-  const getIosToolchain = () => (iosToolchain ??= probeIosToolchain());
+  // One iOS toolchain probe per run, async so the (potentially slow) xcrun
+  // spawn never blocks the executor's event loop; device boots and the
+  // driver install share the single result.
+  let iosToolchain: Promise<ReturnType<typeof probeIosToolchain>> | undefined;
+  const getIosToolchain = () => (iosToolchain ??= probeIosToolchainWarm());
   // Manual leases on the run's resource registry, for work that must
   // serialize on a named mutex but can't express its hold window as a task
   // tag (runResourceAware releases tags at task RESOLUTION, and warm tasks
@@ -2916,7 +2962,7 @@ function buildWarmTaskRunner({
           }
         }
         if (task.payload.platform === "ios") {
-          const toolchain = getIosToolchain();
+          const toolchain = await getIosToolchain();
           if (!toolchain.ok) {
             return { outcome: "skipped", note: toolchain.reason };
           }
@@ -2984,7 +3030,7 @@ function buildWarmTaskRunner({
             },
           });
         }
-        const toolchain = getIosToolchain();
+        const toolchain = await getIosToolchain();
         if (!toolchain.ok) {
           return { outcome: "skipped", note: toolchain.reason };
         }

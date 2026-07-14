@@ -72,8 +72,12 @@ describe("warm phase: executeWarmTasks", function () {
   });
 
   it("never runs two runtime-install tasks concurrently", async function () {
+    // Deterministic: each task blocks on its own gate, and the first task
+    // signals when it has ENTERED runTask — so the assertion that the second
+    // task hasn't started can't race the pool's scheduling.
     let inFlight = 0;
     let maxInFlight = 0;
+    const firstStarted = deferred();
     const gates = [deferred(), deferred()];
     let started = 0;
     const run = executeWarmTasks({
@@ -83,19 +87,21 @@ describe("warm phase: executeWarmTasks", function () {
       ],
       registry: createResourceRegistry(),
       runTask: async () => {
+        const mine = started++;
+        if (mine === 0) firstStarted.resolve();
         inFlight++;
         maxInFlight = Math.max(maxInFlight, inFlight);
-        await gates[started++].promise;
+        await gates[mine].promise;
         inFlight--;
         return { outcome: "warmed" };
       },
       log: () => {},
     });
-    // Let the pool spin up, then release the tasks one at a time.
-    await new Promise((r) => setTimeout(r, 20));
+    await firstStarted.promise;
+    // The first holder is parked on its gate; the shared tag must keep the
+    // second task out until the first releases.
     assert.equal(maxInFlight, 1);
     gates[0].resolve();
-    await new Promise((r) => setTimeout(r, 20));
     gates[1].resolve();
     const report = await run;
     assert.equal(maxInFlight, 1);
@@ -106,20 +112,26 @@ describe("warm phase: executeWarmTasks", function () {
     const total = WARM_POOL_LIMIT + 2;
     let inFlight = 0;
     let maxInFlight = 0;
+    let started = 0;
+    const poolFull = deferred();
     const gate = deferred();
     const run = executeWarmTasks({
       tasks: Array.from({ length: total }, (_, i) => task(`t${i}`, "device-boot")),
       registry: createResourceRegistry(),
       runTask: async () => {
+        started++;
         inFlight++;
         maxInFlight = Math.max(maxInFlight, inFlight);
+        if (started === WARM_POOL_LIMIT) poolFull.resolve();
         await gate.promise;
         inFlight--;
         return { outcome: "warmed" };
       },
       log: () => {},
     });
-    await new Promise((r) => setTimeout(r, 20));
+    // Wait until the pool provably has WARM_POOL_LIMIT tasks in flight (all
+    // parked on the shared gate), then release everything at once.
+    await poolFull.promise;
     assert.equal(maxInFlight, WARM_POOL_LIMIT);
     gate.resolve();
     const report = await run;
