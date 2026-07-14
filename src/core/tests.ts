@@ -5454,6 +5454,11 @@ async function startAppiumServer(
   return server;
 }
 
+// Per-probe HTTP timeout for the Appium `/status` check. Bounds a single
+// hung request so the overall readiness timeout can still fire; a healthy
+// server answers in milliseconds.
+const STATUS_PROBE_TIMEOUT_MS = 10000;
+
 // Delay execution until Appium server is available. Probe `/status`
 // IMMEDIATELY, then poll on a short 250ms interval until ready or the overall
 // timeout — a server that is already up returns in ~one round-trip instead of
@@ -5472,7 +5477,12 @@ async function appiumIsReady(
     deps.probe ??
     (async (p: number) => {
       try {
-        const resp = await axios.get(`http://127.0.0.1:${p}/status`);
+        // Bound each probe: without a per-request timeout a hung /status
+        // response would block this await indefinitely, and the overall
+        // `timeoutMs` guard (checked only between probes) could never fire.
+        const resp = await axios.get(`http://127.0.0.1:${p}/status`, {
+          timeout: STATUS_PROBE_TIMEOUT_MS,
+        });
         return resp.status === 200;
       } catch {
         return false;
