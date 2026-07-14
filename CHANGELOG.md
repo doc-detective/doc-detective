@@ -1,3 +1,15 @@
+# [4.28.0](https://github.com/doc-detective/doc-detective/compare/v4.27.0...v4.28.0) (2026-07-14)
+
+
+### Bug Fixes
+
+* **container:** align smoke-test fixture with runShell's bash default ([#624](https://github.com/doc-detective/doc-detective/issues/624)) ([e7aaf1c](https://github.com/doc-detective/doc-detective/commit/e7aaf1c35ef750b27abe51e8ecca50ef4c72ccd9)), closes [#610](https://github.com/doc-detective/doc-detective/issues/610)
+
+
+### Features
+
+* **ios:** managed WebDriverAgent prebuild in install ios, auto-consumed by sessions ([#626](https://github.com/doc-detective/doc-detective/issues/626)) ([52a96a3](https://github.com/doc-detective/doc-detective/commit/52a96a32949fd4fd4f2cdb3733eacc8b32ecf8fd))
+
 # [4.27.0](https://github.com/doc-detective/doc-detective/compare/v4.26.8...v4.27.0) (2026-07-13)
 
 
