@@ -291,7 +291,7 @@ When using the object format, you can configure:
   - `domIdleTime`: (Optional) Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes rather than waiting for a quiet period (default: 1000).
 - `find`: (Optional) Wait for a specific element to be present in the DOM. At least one of `selector` or `elementText` must be specified.
   - `selector`: (Optional) CSS selector for the element to wait for.
-  - `elementText`: (Optional) Text content the element must contain.
+  - `elementText`: (Optional) Display text of the element to wait for. Doc Detective matches this against the element's full visible text with whitespace normalized, so text that a framework splits across several nodes still matches. To match a substring with a regular expression instead of the whole text, wrap the value in slashes (`/pattern/`). See [How text matching works](/docs/actions/find#how-text-matching-works).
 
 ### Wait for network idle
 
@@ -345,7 +345,7 @@ Navigate to a dashboard and wait for a specific element to appear.
 
 ### Wait for element with text
 
-Wait for an element containing specific text to appear.
+Wait for an element with specific text to appear.
 
 ```json
 {
