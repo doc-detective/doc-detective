@@ -1635,12 +1635,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 35 active hints. `useFileTypesForRst` is commented out in the
+    // 36 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(35);
+    expect(HINTS.length).to.equal(36);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1680,6 +1680,41 @@ describe("hints/hints (registry)", function () {
     expect(
       h.when(fakeCtx({ ranIosContexts: false, hasManagedWdaProducts: false })),
       "no iOS contexts this run — no nudge"
+    ).to.equal(false);
+  });
+
+  it("useWarmCommandForDeviceBoots: fires when the warm phase paid for device work and took long", function () {
+    const h = findHint("useWarmCommandForDeviceBoots");
+    expect(h.priority).to.equal(50);
+    const warmResults = (tasks, durationMs) =>
+      fakeCtx({ results: { warm: { durationMs, tasks } } });
+    const boot = { kind: "device-boot", outcome: "warmed", durationMs: 90 };
+    const prefetch = {
+      kind: "chromedriver-prefetch",
+      outcome: "warmed",
+      durationMs: 120000,
+    };
+    expect(h.when(warmResults([boot], 125000))).to.equal(true);
+    expect(h.when(warmResults([prefetch], 125000))).to.equal(true);
+    expect(
+      h.when(warmResults([boot], 1500)),
+      "fast warm (e.g. devices adopted from a prior `doc-detective warm`) — no nudge"
+    ).to.equal(false);
+    expect(
+      h.when(
+        warmResults([{ kind: "device-boot", outcome: "skipped" }], 125000)
+      ),
+      "no device was actually warmed — no nudge"
+    ).to.equal(false);
+    expect(
+      h.when(
+        warmResults([{ kind: "browser-install", outcome: "warmed" }], 125000)
+      ),
+      "browser-only warm — a persisted cache already covers it"
+    ).to.equal(false);
+    expect(
+      h.when(fakeCtx({ results: {} })),
+      "no warm block (older results shape) — no nudge, no throw"
     ).to.equal(false);
   });
 
