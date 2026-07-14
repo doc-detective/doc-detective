@@ -1,12 +1,14 @@
 # Design: inline warm phase (resolve → warm → run → sweep)
 
-Status: **B1 + B2 shipped** ([ADR 01060](../../adrs/01060-inline-warm-phase.md)) — the always-on
+Status: **B1 + B2 + B3 shipped** ([ADR 01060](../../adrs/01060-inline-warm-phase.md),
+[ADR 01061](../../adrs/01061-standalone-warm-command-ownership-handoff.md)) — the always-on
 inline phase (planner + executor, `src/core/warmPhase.ts`) and the `report.warm` timing block are
 live, including `wda-check` (enabled by the ADR 01059 managed WDA prebuild landing first) and
 `chromedriver-prefetch` (implemented as a chained throwaway session — the one task that awaits
 device readiness, scoped to runs with android mobile-web contexts). The standalone
-`doc-detective warm` CLI (**B3**, CI overlap with build steps + ownership handoff) remains
-**deferred**; until it lands, the fixtures.yml iOS pre-boot step stays. This document is the
+`doc-detective warm` CLI (**B3**) is live with the manifest ownership handoff
+(`src/core/warmManifest.ts`); retiring the fixtures.yml iOS pre-boot step in favor of it is
+tracked as a follow-up CI change. This document is the
 implementation plan for an always-on provisioning phase that runs between test resolution and test
 execution: it concurrently resolves, repairs, and warms everything the run will need — driver
 installs, browser installs, device boots, WDA availability, chromedriver prefetch — and only then
@@ -146,7 +148,7 @@ Schema note: `report_v3` gains an optional `warm` block — schema-first in
 `src/common/src/schemas/src_schemas/`, positive+negative validation tests, `npm run build:common`,
 per the CLAUDE.md schema workflow.
 
-## Phase B3 (deferred) — standalone `doc-detective warm` + ownership handoff
+## Phase B3 (shipped — ADR 01061) — standalone `doc-detective warm` + ownership handoff
 
 Sketch only; own ADR when picked up. `doc-detective warm --input <specs>` runs resolve + B1's
 planner/executor and **exits with devices left up**, writing an ownership handoff manifest

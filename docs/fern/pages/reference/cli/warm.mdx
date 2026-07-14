@@ -1,0 +1,46 @@
+---
+title: warm
+---
+
+The `warm` command provisions everything a set of tests needs—browser and driver installs, simulator and emulator boots, and related downloads—then exits with the booted devices **left up**, handed off to the next run. Run it early in a CI job (for example, while your project builds) so the test run that follows starts on ready devices instead of paying the boots itself.
+
+Every run already performs this provisioning inline as its [warm phase](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings). The standalone command exists to move that cost even earlier: out of the test run entirely.
+
+## Synopsis
+
+```bash
+doc-detective warm [--input <path>] [options]
+doc-detective warm --down
+```
+
+`warm` accepts the same `--input`, `--config`, and logging options as a normal run: it resolves the same tests a run would and provisions exactly what they need. A test set that needs no devices (for example, shell or API tests) provisions its browsers and drivers and hands nothing off.
+
+## The handoff
+
+Booted devices are recorded in a manifest at `<cacheDir>/warm-manifest.json`. The next Doc Detective run claims the manifest atomically—when several runs start at once, exactly one adopts the devices—and takes over their ownership: the devices serve its tests and its normal end-of-run cleanup shuts them down.
+
+The handoff is guarded, never trusted blindly:
+
+- A manifest older than an hour, or a device whose recorded process has exited, is cleaned up rather than adopted.
+- If the adopting run dies before its cleanup, the next run (or `warm --down`) detects the dead claim and sweeps the devices.
+- A crashed `warm` leaves no manifest, so there is nothing stale to adopt—but the devices it booted may still be up; `warm --down` clears them.
+
+## `warm --down`
+
+Tears down every device recorded in warm handoff manifests—including claims left behind by dead runs—and deletes the manifests. Use it on self-hosted runners and dev machines when you want nothing left running; on hosted CI runners, VM disposal is the backstop.
+
+```bash
+doc-detective warm --down
+```
+
+## Example: overlap provisioning with a CI build
+
+```yaml
+steps:
+  - run: doc-detective warm --input docs/ &   # boots devices while the build runs
+  - run: npm run build
+  - run: wait                                  # warm finished during the build
+  - run: doc-detective --input docs/          # adopts the warmed devices
+```
+
+The run's JSON results record what it adopted and what its own warm phase still had to do—see [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
