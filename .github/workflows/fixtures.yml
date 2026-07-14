@@ -202,6 +202,18 @@ jobs:
       - name: Link local build
         run: npm link
 
+      # iOS legs: prebuild WebDriverAgent into the dd-cache
+      # (docs/design/ios-wda-prebuild.md). Seconds on a warm week (check-and-
+      # skip on the keyed products the Sunday warmer built); one ~10-minute
+      # build on a cold one. Sessions then consume the products read-only via
+      # usePrebuiltWDA instead of compiling WDA inside the first XCUITest
+      # session — which is also why the action's `ios` WDA cache is off below.
+      - name: Prebuild WebDriverAgent
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        run: node ./bin/doc-detective.js install ios --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
       # a dependency-free poll. Groups that don't touch the servers just ignore
@@ -245,10 +257,14 @@ jobs:
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
-        # real install/boot coverage lives in the KVM jobs below. `ios: auto`
-        # lets the action cache the WebDriverAgent build for the apps-ios macOS
-        # leg (first cold WDA compile ~10 min; later runs restore it), which
-        # replaces the workflow-level cache.
+        # real install/boot coverage lives in the KVM jobs below. `ios: 'false'`
+        # turns off the action's WDA build cache: the managed prebuild above
+        # (install ios + dd-cache) owns WDA now, keyed by driver AND Xcode
+        # version — leaving `ios: auto` on would set the derived-data env var,
+        # which overrides the managed products and double-builds WDA on cold
+        # weeks (and its driver-blind key is the ADR 01033 stale-cache mode).
+        # Retiring the action-side cache entirely is tracked in
+        # doc-detective/github-action.
         env:
           DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.bundle.android && '1' || '' }}
         with:
@@ -257,7 +273,7 @@ jobs:
           config: test/core-artifacts/config.groups.json
           input: ${{ matrix.bundle.input }}
           android: 'false'
-          ios: auto
+          ios: 'false'
 
       # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
       # job. PASS and SKIPPED both pass the gate. Two legs additionally require
