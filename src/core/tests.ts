@@ -91,6 +91,8 @@ import {
   buildMobileBrowserCapabilities,
 } from "./tests/mobileBrowser.js";
 import {
+  planWarmTasks,
+  executeWarmTasks,
   raceBootInitiation,
   type WarmPlanDeps,
   type WarmTask,
@@ -1812,6 +1814,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // shut down (launch-ownership).
   const simulatorRegistry: SimulatorRegistry = createSimulatorRegistry();
 
+  // One resource registry per run, shared by the warm phase, every phase's
+  // flat pool, AND the routed sequencer — so warm's cache-mutating tasks,
+  // flat-pool recordings, and routed-spec recordings all contend on the same
+  // named mutexes. Warm is awaited before Phase 2 dispatch and
+  // runResourceAware releases every tag in a `finally`, so the pools always
+  // start with an empty registry. Only consulted where items carry tags
+  // (warm tasks always do; jobs only at limit>1 — at limit===1 the pools
+  // stay on the byte-identical runConcurrent path).
+  const resourceRegistry = createResourceRegistry();
+
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
   // actually gone before the run returns. Idempotent: closeSurface already
@@ -1870,25 +1882,50 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // warmUpContexts (e.g. getAvailableApps failing during the re-detect) would
   // leak the started servers, leaving orphaned processes bound to their ports.
   try {
-    // For concurrent runs, resolve missing browser dependencies and warm up
-    // each unique driver combination serially *before* the pool. Two contexts
-    // can't then race on an on-demand install (which mutates the shared app
-    // cache), and a combination that can't start a driver is recorded once here
-    // so every parallel context sharing it skips instantly instead of re-paying
-    // driverStart's backoff. This pre-populates installAttempts /
-    // warmUpResults / runnerDetails.availableApps, so runContext's own gates
-    // below collapse to fast cache hits. Sequential runs (limit 1) keep #338's
-    // natural first-context-warms-up behavior in runContext — no pre-pass, no
-    // extra driver start, byte-identical to before.
-    if (limit > 1 && appiumPool) {
-      await warmUpContexts({
-        jobs: sizingJobs,
-        config,
-        runnerDetails,
-        appiumPool,
-        installAttempts,
-        warmUpResults,
+    // Inline warm phase (docs/design/warm-phase.md): always-on, best-effort
+    // provisioning between resolution and execution. The planner derives
+    // every task the run's contexts would JIT-provision anyway (browser and
+    // app-driver installs, device boots, the WDA availability check, the
+    // mobile chromedriver prefetch, the folded-in session probe) and the
+    // executor overlaps them under the run's resource registry — so boot ∥
+    // npm install ∥ browser download overlap each other even for a serial
+    // test run. A failed task is a warning; the per-context paths retry or
+    // skip with exactly the semantics they have today. The historical
+    // `limit > 1 && appiumPool` gate now guards only the session-probe TASK
+    // (inside planWarmTasks), preserving #338's natural
+    // first-context-warms-up behavior for serial runs, whose memo state is
+    // byte-identical by the warmBrowserInstall mirror contract. Device
+    // boots resolve at initiation; only the chromedriver prefetch awaits
+    // readiness (and only runs with android mobile-web contexts pay it —
+    // they'd pay the same boot + session at their first mobile context).
+    const warmTasks = planWarmTasks({
+      sizingJobs,
+      runnerDetails,
+      config,
+      limit,
+      hasAppiumPool: !!appiumPool,
+      hostPlatform: platform,
+      deps: buildWarmPlanDeps(),
+    });
+    if (warmTasks.length > 0) {
+      log(config, "debug", `Warm phase: ${warmTasks.length} task(s).`);
+      report.warm = await executeWarmTasks({
+        tasks: warmTasks,
+        registry: resourceRegistry,
+        runTask: buildWarmTaskRunner({
+          config,
+          runnerDetails,
+          sizingJobs,
+          appiumPool,
+          installAttempts,
+          warmUpResults,
+          deviceRegistry,
+          simulatorRegistry,
+        }),
+        log: (level, message) => log(config, level, message),
       });
+    } else {
+      report.warm = { durationMs: 0, tasks: [] };
     }
 
     // Phase 2: run context jobs through the worker pool, gated into three
@@ -1979,12 +2016,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         : "main";
       routedByPhase[phase].push(entry);
     }
-    // One resource registry per run, shared by every phase's flat pool AND the
-    // routed sequencer, so a flat-pool recording and a routed-spec recording
-    // never hold the shared "display" at the same time. Only consulted at
-    // limit>1 (where jobs were tagged); at limit===1 the pools stay on the
-    // byte-identical runConcurrent path.
-    const resourceRegistry = createResourceRegistry();
     for (const phase of PHASES) {
       if (limit > 1) {
         await runResourceAware(
