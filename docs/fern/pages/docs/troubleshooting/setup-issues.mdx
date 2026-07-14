@@ -98,19 +98,17 @@ Fix the issue indicated in the error message, then run `debug` again to verify.
 
 ### Browser detection times out
 
-If the Browsers section shows a timeout:
+If the Browsers section shows a timeout, browser detection didn't finish within five seconds:
 
 ```
 -- Browsers ---------------------------------------------------------
-  <browser detection timed out after 5000ms — most often means Appium 
-  isn't installed locally, since detection shells out to `npx appium 
-  driver list`>
+  <browser detection timed out after 5000ms>
 ```
 
-Install the required browser driver:
+Reinstall the browsers and their drivers, then run `debug` again:
 
 ```bash
-npm install appium appium-chromium-driver
+doc-detective install browsers
 ```
 
 ### A browser is present but its driver won't run
