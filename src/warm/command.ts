@@ -1,6 +1,4 @@
 import type { CommandModule } from "yargs";
-import path from "node:path";
-import fs from "node:fs";
 
 export interface WarmArgv {
   config?: string;
@@ -29,25 +27,8 @@ export const warmCommand: CommandModule<{}, WarmArgv> = {
     }) as unknown as import("yargs").Argv<WarmArgv>,
   handler: async (args) => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
-    const { setConfig, log } = await import("../utils.js");
-
-    // Same config discovery as the default command: an explicit --config is
-    // authoritative; otherwise auto-discover the .doc-detective file.
-    const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
-    const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
-    const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-    const hasExplicitConfig =
-      typeof args.config === "string" && args.config.trim().length > 0;
-    const configPath = hasExplicitConfig
-      ? path.resolve((args.config as string).trim())
-      : fs.existsSync(configPathJSON)
-      ? configPathJSON
-      : fs.existsSync(configPathYAML)
-      ? configPathYAML
-      : fs.existsSync(configPathYML)
-      ? configPathYML
-      : null;
-
+    const { setConfig, log, discoverConfigPath } = await import("../utils.js");
+    const configPath = discoverConfigPath(args);
     const config: any = await setConfig({ configPath, args });
 
     if (args.down) {

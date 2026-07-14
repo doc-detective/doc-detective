@@ -29,27 +29,14 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
     }) as unknown as import("yargs").Argv<DebugArgv>,
   handler: async (args) => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
-    const { setConfig } = await import("../utils.js");
+    const { setConfig, discoverConfigPath } = await import("../utils.js");
     const { printDebug, defaultDebugDir } = await import("./index.js");
     const outDir = defaultDebugDir();
 
-    const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
-    const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
-    const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-    // Treat any non-empty `--config` as authoritative (resolved to an
-    // absolute path) — a mistyped path must surface as a CONFIG INVALID
-    // dump for that path, not silently fall back to auto-discovery.
-    const hasExplicitConfig =
-      typeof args.config === "string" && args.config.trim().length > 0;
-    const configPath = hasExplicitConfig
-      ? path.resolve((args.config as string).trim())
-      : fs.existsSync(configPathJSON)
-      ? configPathJSON
-      : fs.existsSync(configPathYAML)
-      ? configPathYAML
-      : fs.existsSync(configPathYML)
-      ? configPathYML
-      : null;
+    // Shared discovery (utils.ts): an explicit --config is authoritative —
+    // a mistyped path must surface as a CONFIG INVALID dump for that path,
+    // not silently fall back to auto-discovery.
+    const configPath = discoverConfigPath(args);
 
     // `--include-env` lands on argv as both kebab and camel; tolerate either.
     const includeEnv = Boolean(args["include-env"] ?? args.includeEnv);

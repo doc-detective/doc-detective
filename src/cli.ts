@@ -10,6 +10,7 @@ import {
   getResolvedTestsFromEnv,
   reportResults,
   isDebugRequested,
+  discoverConfigPath,
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
@@ -75,24 +76,10 @@ async function main(argv: string[]) {
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
 async function runTestsHandler(args: any) {
-  // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
-  const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
-  const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
-  const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  // Treat any non-empty `--config` as authoritative (resolved to an
-  // absolute path). A mistyped path then fails deterministically via
-  // setConfig rather than silently falling back to auto-discovery.
-  const hasExplicitConfig =
-    typeof args.config === "string" && args.config.trim().length > 0;
-  const configPath = hasExplicitConfig
-    ? path.resolve(args.config.trim())
-    : fs.existsSync(configPathJSON)
-    ? configPathJSON
-    : fs.existsSync(configPathYAML)
-    ? configPathYAML
-    : fs.existsSync(configPathYML)
-    ? configPathYML
-    : null;
+  // Get .doc-detective JSON or YAML config, if it exists, preferring a
+  // config arg if provided (see discoverConfigPath in utils.ts — shared with
+  // the debug and warm commands).
+  const configPath = discoverConfigPath(args);
 
   // Detect env-var debug intent before setConfig so we can still emit
   // the diagnostic dump when validation fails. `isDebugRequested`
