@@ -190,6 +190,7 @@ export {
   jobDisplayResources,
   buildWarmPlanDeps,
   warmBrowserInstall,
+  prefetchMobileChromedriver,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -2932,14 +2933,120 @@ function buildWarmTaskRunner({
       }
 
       case "chromedriver-prefetch":
-        return {
-          outcome: "skipped",
-          note: "chromedriver prefetch not implemented yet",
-        };
+        return prefetchMobileChromedriver({
+          config,
+          desc: task.payload.desc,
+          deviceRegistry,
+          getAndroidEnv,
+        });
     }
   };
 }
 /* c8 ignore stop */
+
+/**
+ * Pre-pay the on-device chromedriver download for android mobile-web: the
+ * UiAutomator2 server only fetches a chromedriver matching the device's
+ * Chrome at SESSION creation, so this task awaits the device (the one warm
+ * task that blocks on readiness), opens a disposable mobile-web session on a
+ * dedicated short-lived Appium server with the scoped autodownload feature —
+ * the exact shape runContext's mobile-web branch uses — and tears both down.
+ * The downloaded chromedriver lands in the shared cache, so the first real
+ * session skips the download. Because the warm phase is awaited before
+ * Phase 2 dispatch, this throwaway session can never overlap the first real
+ * session on the same device. A throw is the executor's problem (recorded
+ * as failed, run proceeds). Effects are injected for hermetic tests.
+ */
+async function prefetchMobileChromedriver({
+  config,
+  desc,
+  deviceRegistry,
+  getAndroidEnv,
+  deps = {},
+}: {
+  config: any;
+  desc: any;
+  deviceRegistry: DeviceRegistry;
+  getAndroidEnv: () => Promise<{ sdkRoot: string; deviceDeps: any } | null>;
+  deps?: {
+    appSurfacePreflight?: typeof appSurfacePreflight;
+    acquireDevice?: typeof acquireDevice;
+    startAppiumServer?: typeof startAppiumServer;
+    driverStart?: typeof driverStart;
+    killTree?: typeof killTree;
+  };
+}): Promise<{ outcome: WarmOutcome; note?: string }> {
+  const preflight = deps.appSurfacePreflight ?? appSurfacePreflight;
+  const acquire = deps.acquireDevice ?? acquireDevice;
+  const startServer = deps.startAppiumServer ?? startAppiumServer;
+  const startDriver = deps.driverStart ?? driverStart;
+  const kill = deps.killTree ?? killTree;
+
+  const env = await getAndroidEnv();
+  if (!env) {
+    return {
+      outcome: "skipped",
+      note: "Android toolchain not ready; the first mobile-web session downloads chromedriver as needed",
+    };
+  }
+  // Driver install + Appium co-homing, idempotent: usually a no-op after
+  // the driver-install task (the shared runtime-install exclusivity tag
+  // keeps the two from ever mutating the cache concurrently), and android
+  // has no platform probes, so this is exactly the install half.
+  const pre = await preflight({ config, platform: "android" });
+  if (!pre.ok) return { outcome: "skipped", note: pre.reason };
+  // Await the device. If the device-boot task already initiated this boot,
+  // this acquire converges on the same registry entry and awaits its
+  // in-flight `ready`; otherwise it performs the full acquire itself.
+  const acquired = await acquire({
+    desc,
+    registry: deviceRegistry,
+    sdkRoot: env.sdkRoot,
+    deps: env.deviceDeps,
+  });
+  if ("skip" in acquired) return { outcome: "skipped", note: acquired.skip };
+
+  let server: any;
+  let driver: any;
+  try {
+    server = await startServer(
+      pre.appiumEntry,
+      config,
+      undefined,
+      {
+        APPIUM_HOME: pre.appiumHome,
+        ANDROID_HOME: env.sdkRoot,
+        ANDROID_SDK_ROOT: env.sdkRoot,
+      },
+      ["--allow-insecure", "uiautomator2:chromedriver_autodownload"]
+    );
+    driver = await startDriver(
+      buildMobileBrowserCapabilities({
+        platform: "android",
+        udid: acquired.entry.udid,
+        cacheDir: getCacheDir({ cacheDir: config?.cacheDir }),
+      }),
+      server.port,
+      2,
+      { cacheDir: config?.cacheDir }
+    );
+    return {
+      outcome: "warmed",
+      note: `chromedriver ready for device '${acquired.entry.name}'`,
+    };
+  } finally {
+    if (driver) {
+      try {
+        await driver.deleteSession();
+      } catch {
+        // best-effort teardown of the throwaway session
+      }
+    }
+    if (server) {
+      await kill(server.process?.pid);
+    }
+  }
+}
 
 /**
  * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
