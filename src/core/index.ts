@@ -242,14 +242,30 @@ async function runTests(config: any, options: any = {}) {
 
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
   if (willRunViaApi) {
+    // Warming provisions the LOCAL host; an API-dispatched run executes
+    // remotely, so there is nothing here to warm for it.
+    if (options.warmOnly) {
+      log(
+        config,
+        "warning",
+        "Nothing to warm: this configuration dispatches runs via the Doc Detective Orchestration API, which executes tests remotely."
+      );
+      return null;
+    }
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,
       apiKey: config.integrations.docDetectiveApi.apiKey,
     });
   } else {
-    // Run test specs locally
-    results = await runSpecs({ resolvedTests });
+    // Run test specs locally. warmOnly (the `doc-detective warm` command,
+    // design phase B3) shares the exact resolve + JIT-preflight path above,
+    // then provisions and exits with devices handed off instead of running
+    // tests.
+    results = await runSpecs({
+      resolvedTests,
+      warmOnly: options.warmOnly === true,
+    });
   }
   log(config, "info", "RESULTS:");
   log(config, "info", results);
@@ -259,8 +275,8 @@ async function runTests(config: any, options: any = {}) {
   cleanTemp();
 
   // Send telemetry
-  sendTelemetry(config, "runTests", results);
-  log(config, "info", supportMessage);
+  sendTelemetry(config, options.warmOnly ? "warm" : "runTests", results);
+  if (!options.warmOnly) log(config, "info", supportMessage);
 
   return results;
 }

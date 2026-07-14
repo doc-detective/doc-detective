@@ -102,6 +102,13 @@ import {
   type WarmOutcome,
 } from "./warmPhase.js";
 import { locateManagedWda } from "../runtime/wdaProducts.js";
+import {
+  writeWarmManifest,
+  claimWarmManifest,
+  releaseWarmClaim,
+  listOrphanedClaims,
+  type WarmDeviceHandoff,
+} from "./warmManifest.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
@@ -196,6 +203,8 @@ export {
   buildWarmPlanDeps,
   warmBrowserInstall,
   prefetchMobileChromedriver,
+  seedRegistriesFromHandoff,
+  collectHandoffDevices,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -1360,7 +1369,16 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  *    specs: [ { specId, description, contentPath, result, tests: [ { testId, description, contentPath, result, contexts: [ { platform, browser, result, steps: [...] } ] } ] } ]
  *  }
  */
-async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
+async function runSpecs({
+  resolvedTests,
+  warmOnly = false,
+}: {
+  resolvedTests: any;
+  // `doc-detective warm` (design phase B3): resolve + warm, then exit with
+  // devices left up and an ownership-handoff manifest instead of running
+  // tests.
+  warmOnly?: boolean;
+}) {
   const config: any = resolvedTests.config;
   // Narrow the spec set to what specFilter / testFilter allow before running.
   // Filtered-out specs / tests do not appear in the report (true filter, not
@@ -1885,11 +1903,74 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   process.on("SIGINT", onSignal);
   process.on("SIGTERM", onSignal);
 
+  // Warm ownership handoff (design phase B3). Both directions share the
+  // cache-rooted manifest: a normal run CLAIMS a prior `doc-detective warm`'s
+  // devices (adopting them as bootedByUs so the run-end sweep reclaims
+  // them), and a warm-only run WRITES the manifest and exits with its
+  // devices left up. `keepDevicesUp` gates the finally's device sweeps for
+  // the warm-only path only.
+  const warmCacheRoot = getCacheDir({ cacheDir: config?.cacheDir });
+  let warmClaimActive = false;
+  let keepDevicesUp = false;
+
   // Everything that uses the Appium servers runs inside this try so the
   // shutdown in `finally` always reaches them — otherwise a throw in
   // warmUpContexts (e.g. getAvailableApps failing during the re-detect) would
   // leak the started servers, leaving orphaned processes bound to their ports.
   try {
+    // Adopt (or clean up after) prior warm runs — best-effort, never gates.
+    /* c8 ignore start — effectful manifest/device sweeps; the claim/adopt/
+       staleness logic is hermetically unit-tested in warm-manifest.test.js
+       and warm-handoff.test.js. */
+    try {
+      for (const orphan of listOrphanedClaims({ cacheDir: warmCacheRoot })) {
+        log(
+          config,
+          "warning",
+          `Sweeping ${orphan.devices.length} device(s) left by a dead warm adopter (${orphan.path}).`
+        );
+        await sweepHandoffDevices(orphan.devices, { config });
+        try {
+          fs.unlinkSync(orphan.path);
+        } catch {
+          // best-effort
+        }
+      }
+      const claim = claimWarmManifest({ cacheDir: warmCacheRoot, runId });
+      if (claim) {
+        warmClaimActive = true;
+        if (claim.sweep.length) {
+          log(
+            config,
+            "warning",
+            `Sweeping ${claim.sweep.length} stale warm device(s) instead of adopting them.`
+          );
+          await sweepHandoffDevices(claim.sweep, { config });
+        }
+        if (claim.adopt.length) {
+          seedRegistriesFromHandoff({
+            devices: claim.adopt,
+            deviceRegistry,
+            simulatorRegistry,
+          });
+          log(
+            config,
+            "info",
+            `Adopted ${claim.adopt.length} pre-warmed device(s): ${claim.adopt
+              .map((d) => `${d.name} (${d.platform})`)
+              .join(", ")}.`
+          );
+        }
+      }
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Warm handoff adoption skipped: ${error?.message ?? error}`
+      );
+    }
+    /* c8 ignore stop */
+
     // Inline warm phase (docs/design/warm-phase.md): always-on, best-effort
     // provisioning between resolution and execution. The planner derives
     // every task the run's contexts would JIT-provision anyway (browser and
@@ -1944,6 +2025,64 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         `Warm phase skipped (planning failed; the run proceeds with on-demand provisioning): ${error?.message ?? error}`
       );
     }
+
+    // `doc-detective warm` stops here: hand the owned devices off through
+    // the manifest and exit with them left up (the finally below still
+    // sweeps Appium servers, Xvfb, and background processes — only the
+    // device registries survive).
+    /* c8 ignore start — device-bearing path is CI/dev-box territory; the
+       shell-only path is exercised end-to-end by the warm CLI test, and the
+       manifest/collection pieces carry hermetic unit suites. */
+    if (warmOnly) {
+      // Boots resolve at initiation; the handoff must record READY devices
+      // (a consuming run adopts them without awaiting anything).
+      for (const entry of [
+        ...deviceRegistry.values(),
+        ...simulatorRegistry.values(),
+      ]) {
+        if (entry.bootedByUs && entry.ready) {
+          try {
+            await entry.ready;
+          } catch {
+            // A failed boot deleted its placeholder; nothing to hand off.
+          }
+        }
+      }
+      const devices = collectHandoffDevices({
+        deviceRegistry,
+        simulatorRegistry,
+      });
+      const manifestFile = writeWarmManifest({
+        cacheDir: warmCacheRoot,
+        devices,
+      });
+      if (manifestFile) {
+        keepDevicesUp = true;
+        report.warmManifest = manifestFile;
+        log(
+          config,
+          "info",
+          `Warm complete: ${devices.length} device(s) left up and handed off via ${manifestFile}. The next run adopts them; \`doc-detective warm --down\` tears them down manually.`
+        );
+      } else {
+        log(
+          config,
+          "info",
+          "Warm complete: nothing to hand off (no devices were booted)."
+        );
+      }
+      // Any manifest this warm itself claimed has been superseded by the
+      // fresh one (its adopted devices are re-listed there).
+      if (warmClaimActive) {
+        releaseWarmClaim({ cacheDir: warmCacheRoot, runId });
+        warmClaimActive = false;
+      }
+      // No tests ran: return the skeleton (zero summary) plus the warm
+      // block — not half-initialized spec reports.
+      report.specs = [];
+      return report;
+    }
+    /* c8 ignore stop */
 
     // Phase 2: run context jobs through the worker pool, gated into three
     // sequential phases. Config-level `beforeAny` specs all finish before any
@@ -2118,21 +2257,31 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // pre-existing ones (bootedByUs=false, no process) running. tree-kill the
     // emulator process the same way Appium servers are swept above.
     /* c8 ignore start */
-    if (deviceRegistry.size > 0) {
-      await teardownDeviceRegistry(deviceRegistry, async (entry) => {
-        log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
-        await killTree(entry.process?.pid);
-      });
-    }
-    // Sweep the iOS simulator registry (native app phase A4): shut down only the
-    // simulators Doc Detective booted (bootedByUs), leaving pre-existing booted
-    // ones running. `simctl shutdown` via the injected effect bundle.
-    if (simulatorRegistry.size > 0) {
-      const simDeps = buildAcquireSimulatorDeps();
-      await teardownSimulatorRegistry(simulatorRegistry, async (entry) => {
-        log(config, "debug", `Shutting down simulator "${entry.name}" (${entry.udid}).`);
-        await simDeps.shutdown(entry);
-      });
+    // A warm-only run's whole purpose is to leave its devices up for the
+    // next run to adopt (via the manifest written above) — everything else
+    // in this finally still tears down.
+    if (!keepDevicesUp) {
+      if (deviceRegistry.size > 0) {
+        await teardownDeviceRegistry(deviceRegistry, async (entry) => {
+          log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
+          await killTree(entry.process?.pid);
+        });
+      }
+      // Sweep the iOS simulator registry (native app phase A4): shut down only the
+      // simulators Doc Detective booted (bootedByUs), leaving pre-existing booted
+      // ones running. `simctl shutdown` via the injected effect bundle.
+      if (simulatorRegistry.size > 0) {
+        const simDeps = buildAcquireSimulatorDeps();
+        await teardownSimulatorRegistry(simulatorRegistry, async (entry) => {
+          log(config, "debug", `Shutting down simulator "${entry.name}" (${entry.udid}).`);
+          await simDeps.shutdown(entry);
+        });
+      }
+      // The claim record must outlive the resources it describes: delete it
+      // only after the sweeps above reclaimed the adopted devices.
+      if (warmClaimActive) {
+        releaseWarmClaim({ cacheDir: warmCacheRoot, runId });
+      }
     }
     /* c8 ignore stop */
     process.off("SIGINT", onSignal);
@@ -3228,6 +3377,126 @@ async function prefetchMobileChromedriver({
     }
   }
 }
+
+/**
+ * Merge an adopted warm handoff into the run registries. Entries land with
+ * `bootedByUs: true` — the ownership transferred WITH the devices — so the
+ * existing run-end sweeps reclaim them with no new lifecycle code, and warm
+ * device-boot tasks / consuming contexts registry-hit them instantly.
+ * Malformed entries are dropped: seeding a nameless or udid-less entry would
+ * wedge later acquires of that key. Pure (Map writes only); exported for
+ * unit tests.
+ */
+function seedRegistriesFromHandoff({
+  devices,
+  deviceRegistry,
+  simulatorRegistry,
+}: {
+  devices: WarmDeviceHandoff[];
+  deviceRegistry: DeviceRegistry;
+  simulatorRegistry: SimulatorRegistry;
+}): void {
+  for (const device of devices ?? []) {
+    if (!device?.name || !device?.udid) continue;
+    if (device.platform === "android") {
+      deviceRegistry.set(device.name, {
+        name: device.name,
+        udid: device.udid,
+        bootedByUs: true,
+        // A plain { pid } is all the sweep's killTree needs — the spawning
+        // process belonged to the warm run and is gone.
+        ...(typeof device.pid === "number"
+          ? { process: { pid: device.pid } }
+          : {}),
+        sdkRoot: device.sdkRoot ?? "",
+        ...(device.headless !== undefined ? { headless: device.headless } : {}),
+      } as any);
+    } else if (device.platform === "ios") {
+      simulatorRegistry.set(device.name, {
+        name: device.name,
+        udid: device.udid,
+        bootedByUs: true,
+      });
+    }
+  }
+}
+
+/**
+ * The inverse: collect this run's owned, booted devices into handoff shape
+ * for the warm manifest. Only `bootedByUs` entries transfer (a reused
+ * pre-existing device was never ours to hand off), and only entries with a
+ * resolved udid (a mid-create placeholder has nothing adoptable — warm-only
+ * awaits `ready` before collecting, so this is the failed-boot leftover
+ * guard). Exported for unit tests.
+ */
+function collectHandoffDevices({
+  deviceRegistry,
+  simulatorRegistry,
+}: {
+  deviceRegistry: DeviceRegistry;
+  simulatorRegistry: SimulatorRegistry;
+}): WarmDeviceHandoff[] {
+  const devices: WarmDeviceHandoff[] = [];
+  for (const entry of deviceRegistry.values()) {
+    if (!entry.bootedByUs || !entry.udid) continue;
+    devices.push({
+      platform: "android",
+      name: entry.name,
+      udid: entry.udid,
+      ...(typeof entry.process?.pid === "number"
+        ? { pid: entry.process.pid }
+        : {}),
+      ...(entry.sdkRoot ? { sdkRoot: entry.sdkRoot } : {}),
+      ...(entry.headless !== undefined ? { headless: entry.headless } : {}),
+    });
+  }
+  for (const entry of simulatorRegistry.values()) {
+    if (!entry.bootedByUs || !entry.udid) continue;
+    devices.push({ platform: "ios", name: entry.name, udid: entry.udid });
+  }
+  return devices;
+}
+
+/**
+ * Best-effort teardown of handoff devices that must not be adopted (stale
+ * manifests, dead adopters, `warm --down`): kill android emulators by
+ * recorded pid tree, shut down iOS simulators by udid.
+ */
+/* c8 ignore start — real killTree/simctl effects; the selection logic lives
+   in warmManifest.ts and is hermetically unit-tested there. */
+async function sweepHandoffDevices(
+  devices: WarmDeviceHandoff[],
+  { config }: { config: any }
+): Promise<void> {
+  for (const device of devices ?? []) {
+    try {
+      if (device.platform === "android" && typeof device.pid === "number") {
+        await killTree(device.pid);
+      } else if (device.platform === "ios" && device.udid) {
+        const simDeps = buildAcquireSimulatorDeps((m: string) =>
+          log(config, "debug", m)
+        );
+        await simDeps.shutdown({
+          name: device.name,
+          udid: device.udid,
+          bootedByUs: true,
+        });
+      }
+      log(
+        config,
+        "debug",
+        `Swept stale warm device '${device.name}' (${device.udid}).`
+      );
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Couldn't sweep stale warm device '${device.name}' (${device.udid}): ${error?.message ?? error}`
+      );
+    }
+  }
+}
+/* c8 ignore stop */
 
 /**
  * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
