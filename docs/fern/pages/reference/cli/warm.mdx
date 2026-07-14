@@ -1,5 +1,6 @@
 ---
 title: warm
+description: Provision runtime assets ahead of a run and hand booted devices off to the test run that follows.
 ---
 
 The `warm` command provisions everything a set of tests needs—browser and driver installs, simulator and emulator boots, and related downloads—then exits with the booted devices **left up**, handed off to the next run. Run it early in a CI job (for example, while your project builds) so the test run that follows starts on ready devices instead of paying the boots itself.
@@ -13,21 +14,21 @@ doc-detective warm [--input <path>] [options]
 doc-detective warm --down
 ```
 
-`warm` accepts the same `--input`, `--config`, and logging options as a normal run: it resolves the same tests a run would and provisions exactly what they need. A test set that needs no devices (for example, shell or API tests) provisions its browsers and drivers and hands nothing off.
+`warm` accepts the same `--input`, `--config`, and logging options as a normal run: it resolves the same tests a run would and provisions exactly what they need. A test set that needs no devices (such as shell or API tests) provisions its browsers and drivers and hands nothing off.
 
 ## The handoff
 
-Booted devices are recorded in a manifest at `<cacheDir>/warm-manifest.json`. The next Doc Detective run claims the manifest atomically—when several runs start at once, exactly one adopts the devices—and takes over their ownership: the devices serve its tests and its normal end-of-run cleanup shuts them down.
+`warm` records the booted devices in a manifest at `<cacheDir>/warm-manifest.json`. The next Doc Detective run claims the manifest atomically—when several runs start at once, exactly one adopts the devices—and takes over their ownership: the devices serve its tests and its normal end-of-run cleanup shuts them down.
 
-The handoff is guarded, never trusted blindly:
+The run guards the handoff rather than trusting it blindly:
 
-- A manifest older than an hour, or a device whose recorded process has exited, is cleaned up rather than adopted.
+- A manifest older than an hour, or a device whose recorded process has exited, gets cleaned up rather than adopted.
 - If the adopting run dies before its cleanup, the next run (or `warm --down`) detects the dead claim and sweeps the devices.
-- A crashed `warm` leaves no manifest, so there is nothing stale to adopt—but the devices it booted may still be up; `warm --down` clears them.
+- A `warm` that crashes before writing the manifest leaves no record of its devices—`warm --down` can only tear down recorded devices, so clear that window with your platform's process cleanup (on hosted CI runners, VM disposal covers it).
 
 ## `warm --down`
 
-Tears down every device recorded in warm handoff manifests—including claims left behind by dead runs—and deletes the manifests. Use it on self-hosted runners and dev machines when you want nothing left running; on hosted CI runners, VM disposal is the backstop.
+Tears down every device recorded in warm handoff manifests—including claims left behind by dead runs—and deletes the manifests. If any device refuses to shut down, the manifests stay in place so a rerun can retry. Use it on self-hosted runners and dev machines when you want nothing left running.
 
 ```bash
 doc-detective warm --down
@@ -35,12 +36,15 @@ doc-detective warm --down
 
 ## Example: overlap provisioning with a CI build
 
+Keep the background `warm` and the `wait` in the same step—CI steps run in separate shells, so a `wait` in a later step can't see the earlier step's background process:
+
 ```yaml
 steps:
-  - run: doc-detective warm --input docs/ &   # boots devices while the build runs
-  - run: npm run build
-  - run: wait                                  # warm finished during the build
-  - run: doc-detective --input docs/          # adopts the warmed devices
+  - run: |
+      doc-detective warm --input docs/ &   # boots devices while the build runs
+      npm run build
+      wait                                  # warm finished during the build
+  - run: doc-detective --input docs/       # adopts the warmed devices
 ```
 
 The run's JSON results record what it adopted and what its own warm phase still had to do—see [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
