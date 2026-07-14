@@ -1413,6 +1413,21 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.warm.tasks[0].kind).to.equal("browser-install");
       });
 
+      it("should validate a report_v3 object with a warmManifest path", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warm: { durationMs: 1, tasks: [] },
+            warmManifest: "C:\\cache\\warm-manifest.json",
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.warmManifest).to.equal(
+          "C:\\cache\\warm-manifest.json"
+        );
+      });
+
       it("should validate a report_v3 object without a warm block (back-compat)", function () {
         const result = validate({
           schemaKey: "report_v3",
