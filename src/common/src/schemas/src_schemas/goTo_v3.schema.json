@@ -223,7 +223,7 @@
                       },
                       "elementText": {
                         "type": "string",
-                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                        "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
                       },
                       "elementId": {
                         "type": "string",
