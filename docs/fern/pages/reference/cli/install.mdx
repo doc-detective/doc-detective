@@ -142,11 +142,11 @@ Prepare a macOS host for tests that target the `ios` platform: verify the simula
 doc-detective install ios --yes
 ```
 
-The command runs these steps, each reported individually and none of them failing the command (a step that can't run is reported `skipped` with guidance):
+The command runs these steps and reports each individually; none of them fail the command (a step that can't run reports `skipped` with guidance):
 
-1. **Prerequisite checks**—the Xcode command-line tools are configured (`xcode-select -p`) and the iOS Simulator control tool is available (`xcrun simctl`), with actionable guidance when either is missing.
-2. **Driver install**—`appium-xcuitest-driver` is installed into the Doc Detective cache if it isn't already (the same install a first test run would perform lazily).
-3. **WebDriverAgent prebuild**—when full Xcode 14+ is present, the WebDriverAgent that ships inside the driver is compiled once for the iOS Simulator and stored in the cache, keyed by your Xcode version and driver version (`<cacheDir>/ios/wda/…`). If a build for the current key already exists, the step is a fast check-and-skip. Test sessions then use these build products automatically and read-only—concurrent runs can safely share one cache—and any session that finds no matching products just builds WebDriverAgent itself, exactly as before.
+1. **Prerequisite checks**—verifies that the Xcode command-line tools resolve (`xcode-select -p`) and that the iOS Simulator control tool responds (`xcrun simctl`), with actionable guidance when either is missing.
+2. **Driver install**—installs `appium-xcuitest-driver` into the Doc Detective cache if it isn't already present (the same install a first test run performs lazily).
+3. **WebDriverAgent prebuild**—when full Xcode 14+ is present, compiles the WebDriverAgent that ships inside the driver once for the iOS Simulator and stores it in the cache, keyed by your Xcode version and driver version (`<cacheDir>/ios/wda/…`). If a build for the current key already exists, the step is a fast check-and-skip. Test sessions then use these build products automatically and read-only—concurrent runs can safely share one cache—and any session that finds no matching products just builds WebDriverAgent itself, exactly as before.
 
 Preview the plan on any host (including Windows/Linux, where it reports that iOS is macOS-only) with `--dry-run`:
 

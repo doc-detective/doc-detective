@@ -84,7 +84,13 @@ export const WDA_BUILD_TIMEOUT_MS = 20 * 60_000;
 /** Total attempts for a transient xcodebuild failure (20-min ops — retry once). */
 export const WDA_BUILD_MAX_ATTEMPTS = 2;
 
-/** How long a second `install ios` waits for a concurrent build before skipping. */
+/**
+ * How long a second `install ios` waits for a concurrent build before
+ * skipping. Sized to cover one full build attempt (WDA_BUILD_TIMEOUT_MS,
+ * 20 min — ceiling kills are never retried) plus setup slack; a transient
+ * retry that pushes the holder past this window just means the contender
+ * reports `skipped` and the products land for the NEXT run — best-effort.
+ */
 export const WDA_LOCK_WAIT_MS = 25 * 60_000;
 
 /** Keyed build dirs whose last-used stamp is older than this get pruned. */

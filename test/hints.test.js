@@ -915,23 +915,50 @@ describe("hints/context", function () {
   });
 
   describe("detectManagedWdaProducts", function () {
-    it("true only when a wda key dir holds a products.json marker", function () {
+    it("true only when a wda key dir holds a VALID products marker", function () {
       // A real dir (under the gitignored .tmp) because resolving the cache
       // root mkdirs it; the wda-level reads themselves are faked.
       const cacheRoot = path.join(process.cwd(), ".tmp", "hints-wda-cache");
       const wdaRoot = path.join(cacheRoot, "ios", "wda");
+      const key = "xcode-16.4-16F6-driver-10.8.1";
+      const keyDir = path.join(wdaRoot, key);
+      const err = () => Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+
       const withMarker = {
-        readdirSync: () => ["xcode-16.4-16F6-driver-10.8.1", ".lock"],
-        existsSync: (p) =>
-          p ===
-          path.join(wdaRoot, "xcode-16.4-16F6-driver-10.8.1", "products.json"),
+        readdirSync: () => [key, ".lock"],
+        readFileSync: (p) => {
+          if (p === path.join(keyDir, "products.json")) {
+            return JSON.stringify({ key, driverVersion: "10.8.1" });
+          }
+          throw err();
+        },
+        // The layout-relative Runner app exists (marker validity requires it).
+        existsSync: (p) => p.startsWith(keyDir + path.sep),
       };
       expect(
         detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: withMarker })
       ).to.equal(true);
 
+      // Marker present but corrupt: must NOT suppress the hint — same
+      // validity rule as the session locator (readProductsMarker).
+      const corruptMarker = {
+        readdirSync: () => [key, ".lock"],
+        readFileSync: (p) => {
+          if (p === path.join(keyDir, "products.json")) return "{not json";
+          throw err();
+        },
+        existsSync: (p) => p.startsWith(keyDir + path.sep),
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: corruptMarker }),
+        "a corrupt marker doesn't count as a completed prebuild"
+      ).to.equal(false);
+
       const noMarker = {
         readdirSync: () => ["xcode-junk", ".lock"],
+        readFileSync: () => {
+          throw err();
+        },
         existsSync: () => false,
       };
       expect(
@@ -940,7 +967,10 @@ describe("hints/context", function () {
 
       const noDir = {
         readdirSync: () => {
-          throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+          throw err();
+        },
+        readFileSync: () => {
+          throw err();
         },
         existsSync: () => false,
       };

@@ -251,6 +251,7 @@ function readOwnerMeta(fs: LockFs, ownerPath: string): OwnerMeta | null {
     if (
       typeof parsed?.pid !== "number" ||
       typeof parsed?.hostname !== "string" ||
+      typeof parsed?.acquiredAt !== "number" ||
       typeof parsed?.heartbeatAt !== "number"
     ) {
       return null;

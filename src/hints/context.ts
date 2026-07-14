@@ -19,7 +19,7 @@ import YAML from "yaml";
 
 import type { AgentAdapter } from "../agents/types.js";
 import { listAdapters } from "../agents/registry.js";
-import { getWdaRoot } from "../runtime/wdaProducts.js";
+import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
 
 // Action keys recognized by the v3 `step` schema. Kept in sync with
@@ -724,22 +724,30 @@ export function readNpmScripts(cwd: string): boolean {
 // ---------------------------------------------------------------------
 
 /**
- * True when the managed WebDriverAgent cache holds at least one completed
- * prebuild — i.e. the user already runs `install ios`, so the
- * `prebuildWebDriverAgent` hint has nothing to teach. One bounded readdir
- * of `<cacheDir>/ios/wda` plus an existsSync per entry; false on any error
- * (missing dir, unreadable cache, unsafe cache path).
+ * True when the managed WebDriverAgent cache holds at least one completed,
+ * VALID prebuild — i.e. the user already runs `install ios`, so the
+ * `prebuildWebDriverAgent` hint has nothing to teach. Validity uses the same
+ * `readProductsMarker` the session locator uses (marker shape + Runner app
+ * present), so a corrupt or gutted key dir doesn't suppress the hint. One
+ * bounded readdir of `<cacheDir>/ios/wda` plus a marker read per entry;
+ * false on any error (missing dir, unreadable cache, unsafe cache path).
  */
 export function detectManagedWdaProducts(
   config: any,
-  deps: { fs?: Pick<typeof fs, "readdirSync" | "existsSync"> } = {}
+  deps: {
+    fs?: Pick<typeof fs, "readdirSync" | "existsSync" | "readFileSync">;
+  } = {}
 ): boolean {
   const fsDep = deps.fs ?? fs;
   try {
     const wdaRoot = getWdaRoot({ cacheDir: config?.cacheDir });
     const entries = fsDep.readdirSync(wdaRoot);
-    return entries.some((entry) =>
-      fsDep.existsSync(path.join(wdaRoot, String(entry), "products.json"))
+    return entries.some(
+      (entry) =>
+        readProductsMarker(
+          path.join(wdaRoot, String(entry)),
+          fsDep as any
+        ) !== null
     );
   } catch {
     return false;
