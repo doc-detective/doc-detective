@@ -81,6 +81,7 @@ import {
   stepTargetsAppSurface,
   teardownAppSession,
   APP_DRIVER_PLATFORMS,
+  probeIosToolchain,
   type AppSessionState,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
@@ -89,7 +90,13 @@ import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
 } from "./tests/mobileBrowser.js";
-import { type WarmPlanDeps } from "./warmPhase.js";
+import {
+  raceBootInitiation,
+  type WarmPlanDeps,
+  type WarmTask,
+  type WarmOutcome,
+} from "./warmPhase.js";
+import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
@@ -182,6 +189,7 @@ export {
   killTree,
   jobDisplayResources,
   buildWarmPlanDeps,
+  warmBrowserInstall,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -2571,30 +2579,20 @@ async function warmUpContexts({
       Array.isArray(context?.steps) &&
       requiredBrowserAssets(context.browser?.name).length > 0
     ) {
-      const firstAttempt = !installAttempts.has(
-        (context.browser?.name ?? "<none>").toLowerCase()
-      );
-      const outcome = await ensureContextBrowserInstalled({
+      // Extracted install + first-attempt re-detect (shared with the warm
+      // phase's browser-install task) — the memo state it leaves is exactly
+      // what this loop produced inline before.
+      await warmBrowserInstall({
         browserName: context.browser?.name,
         config,
+        runnerDetails,
         installAttempts,
-        deps: {
-          ensureBrowser: (asset, options) =>
-            ensureBrowserInstalled(asset, options),
-          log,
-        },
-        // Repair a present-but-broken driver, not just install-if-missing.
-        repair: true,
       });
-      if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
-        clearAppCache(config);
-        runnerDetails.availableApps = await getAvailableApps({ config });
-        supported = isSupportedContext({
-          context,
-          apps: runnerDetails.availableApps,
-          platform,
-        });
-      }
+      supported = isSupportedContext({
+        context,
+        apps: runnerDetails.availableApps,
+        platform,
+      });
     }
     // Unsupported combinations are left unmarked; runContext skips each with the
     // appropriate per-context reason (install-but-undetected vs unsupported).
@@ -2662,6 +2660,286 @@ async function warmUpContexts({
     }
   }
 }
+
+/**
+ * On-demand browser install + first-attempt re-detect — the install half of
+ * warmUpContexts, extracted so the warm phase's browser-install task and the
+ * session-probe loop share ONE implementation of the mirror contract: the
+ * `installAttempts` / `runnerDetails.availableApps` state left behind is
+ * exactly what the first same-browser consuming context would have produced
+ * serially (no more, no less), so every later gate collapses to a cache hit.
+ * Deps are injected for hermetic tests; production callers use the defaults.
+ */
+async function warmBrowserInstall({
+  browserName,
+  config,
+  runnerDetails,
+  installAttempts,
+  deps = {},
+}: {
+  browserName: string | undefined;
+  config: any;
+  runnerDetails: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  deps?: {
+    ensureBrowser?: (asset: any, options: any) => Promise<any>;
+    clearAppCache?: (config: any) => void;
+    getAvailableApps?: (args: { config: any }) => Promise<any[]>;
+  };
+}): Promise<{ outcome: WarmOutcome; note?: string }> {
+  // Already-detected engines need no install — and, mirroring the serial
+  // path (which only reaches the install when the support gate failed),
+  // no memo entry either.
+  const appName = normalizeBrowserName(browserName);
+  if (
+    runnerDetails.availableApps?.find((app: any) => app.name === appName)
+  ) {
+    return {
+      outcome: "skipped",
+      note: `'${browserName}' is already available`,
+    };
+  }
+  const firstAttempt = !installAttempts.has(
+    (browserName ?? "<none>").toLowerCase()
+  );
+  const outcome = await ensureContextBrowserInstalled({
+    browserName,
+    config,
+    installAttempts,
+    deps: {
+      ensureBrowser:
+        deps.ensureBrowser ??
+        ((asset, options) => ensureBrowserInstalled(asset, options)),
+      log,
+    },
+    // Repair a present-but-broken driver, not just install-if-missing.
+    repair: true,
+  });
+  // Re-detect only after a FIRST install attempt (installed or failed):
+  // the app cache is stale either way, and later gates must read the
+  // refreshed list or they'd misread the memo as installed-but-undetected.
+  if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+    (deps.clearAppCache ?? clearAppCache)(config);
+    runnerDetails.availableApps = await (deps.getAvailableApps ??
+      getAvailableApps)({ config });
+  }
+  if (outcome === "installed") return { outcome: "warmed" };
+  if (outcome === "failed") {
+    return { outcome: "failed", note: `couldn't install '${browserName}'` };
+  }
+  return {
+    outcome: "skipped",
+    note: `'${browserName}' has no installable assets`,
+  };
+}
+
+/**
+ * Light per-run Android environment probe for warm tasks: SDK + emulator
+ * binary + acceleration (or a running emulator). Null means "not ready" —
+ * the warm task reports skipped and the consuming context performs the full
+ * androidContextPreflight (including the loud lazy toolchain install, which
+ * warm deliberately never triggers — that decision and its warning belong on
+ * the context report).
+ */
+/* c8 ignore start — real SDK/emulator probes; exercised on the CI emulator
+   legs and dev boxes. Unit coverage targets the pure planner/executor. */
+async function resolveAndroidWarmEnv(
+  config: any
+): Promise<{ sdkRoot: string; deviceDeps: any } | null> {
+  try {
+    const abi = hostAbi();
+    const sdk = detectAndroidSdk({ cacheDir: config?.cacheDir });
+    if (!sdk?.emulator) return null;
+    const deviceDeps = buildAcquireDeviceDeps(sdk, abi, (m: string) =>
+      log(config, "debug", m)
+    );
+    const running = await deviceDeps.listRunning();
+    const capable =
+      running.length > 0 || (await checkEmulatorAcceleration(sdk.emulator));
+    if (!capable) return null;
+    return { sdkRoot: sdk.sdkRoot, deviceDeps };
+  } catch {
+    return null;
+  }
+}
+/* c8 ignore stop */
+
+/**
+ * Bind the effectful per-kind warm task bodies to the run's state. Every
+ * body upholds the warm contract: best-effort (a throw is caught by the
+ * executor and recorded as failed), and memo effects identical to what the
+ * first consuming context would have produced serially. Device boots resolve
+ * at boot initiation (raceBootInitiation); the chromedriver prefetch is the
+ * one task that awaits device readiness (it needs a live session).
+ */
+/* c8 ignore start — thin dispatch over injected/imported effects; the pure
+   pieces (planner, executor, raceBootInitiation, warmBrowserInstall) carry
+   the unit coverage, and the wiring is exercised end-to-end by the fixture
+   matrix + core-core.test.js. */
+function buildWarmTaskRunner({
+  config,
+  runnerDetails,
+  sizingJobs,
+  appiumPool,
+  installAttempts,
+  warmUpResults,
+  deviceRegistry,
+  simulatorRegistry,
+}: {
+  config: any;
+  runnerDetails: any;
+  sizingJobs: any[];
+  appiumPool?: { acquire(): Promise<number>; release(port: number): void };
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+  deviceRegistry: DeviceRegistry;
+  simulatorRegistry: SimulatorRegistry;
+}): (task: WarmTask) => Promise<{ outcome: WarmOutcome; note?: string }> {
+  // One Android env probe per run, shared by device boots and the
+  // chromedriver prefetch.
+  let androidEnv:
+    | Promise<{ sdkRoot: string; deviceDeps: any } | null>
+    | undefined;
+  const getAndroidEnv = () => (androidEnv ??= resolveAndroidWarmEnv(config));
+
+  return async (task: WarmTask) => {
+    switch (task.kind) {
+      case "browser-install":
+        return warmBrowserInstall({
+          browserName: task.payload.browserName,
+          config,
+          runnerDetails,
+          installAttempts,
+        });
+
+      case "driver-install": {
+        // Same lazy-loaded install path appSurfacePreflight uses; it skips
+        // packages already resolvable, so the later per-context preflight
+        // finds the driver present and pays only Appium co-homing.
+        const { ensureRuntimeInstalled } = await import(
+          "../runtime/loader.js"
+        );
+        await ensureRuntimeInstalled([task.payload.driverPackage], {
+          ctx: { cacheDir: config?.cacheDir },
+          deps: { logger: (m: string) => log(config, "debug", m) },
+        });
+        return { outcome: "warmed" };
+      }
+
+      case "device-boot": {
+        const desc = task.payload.desc;
+        const onError = (error: unknown) =>
+          log(
+            config,
+            "warning",
+            `Warm boot of '${task.name}' failed (a consuming context will retry): ${
+              (error as any)?.message ?? String(error)
+            }`
+          );
+        if (task.payload.platform === "android") {
+          const env = await getAndroidEnv();
+          if (!env) {
+            return {
+              outcome: "skipped",
+              note: "Android toolchain not ready; device setup stays with the consuming context",
+            };
+          }
+          return raceBootInitiation({
+            onError,
+            startAcquire: (signalInitiated) =>
+              acquireDevice({
+                desc,
+                registry: deviceRegistry,
+                sdkRoot: env.sdkRoot,
+                deps: {
+                  ...env.deviceDeps,
+                  createAvd: (args: any) => {
+                    signalInitiated();
+                    return env.deviceDeps.createAvd(args);
+                  },
+                  boot: (d: any, port: number) => {
+                    signalInitiated();
+                    return env.deviceDeps.boot(d, port);
+                  },
+                },
+              }),
+          });
+        }
+        const toolchain = probeIosToolchain();
+        if (!toolchain.ok) {
+          return { outcome: "skipped", note: toolchain.reason };
+        }
+        const simDeps = buildAcquireSimulatorDeps((m: string) =>
+          log(config, "debug", m)
+        );
+        return raceBootInitiation({
+          onError,
+          startAcquire: (signalInitiated) =>
+            acquireSimulator({
+              desc,
+              registry: simulatorRegistry,
+              deps: {
+                ...simDeps,
+                create: (args: any) => {
+                  signalInitiated();
+                  return simDeps.create(args);
+                },
+                boot: (udid: string) => {
+                  signalInitiated();
+                  return simDeps.boot(udid);
+                },
+              },
+            }),
+        });
+      }
+
+      case "wda-check": {
+        const hit = locateManagedWda({ ctx: { cacheDir: config?.cacheDir } });
+        if (hit) {
+          return {
+            outcome: "warmed",
+            note: `prebuilt WebDriverAgent available (${hit.key})`,
+          };
+        }
+        return {
+          outcome: "skipped",
+          note: "no prebuilt WebDriverAgent for the current toolchain — `doc-detective install ios` prebuilds it",
+        };
+      }
+
+      case "session-probe": {
+        if (!appiumPool) {
+          return { outcome: "skipped", note: "no browser Appium pool" };
+        }
+        await warmUpContexts({
+          jobs: sizingJobs,
+          config,
+          runnerDetails,
+          appiumPool,
+          installAttempts,
+          warmUpResults,
+        });
+        const ok = [...warmUpResults.values()].filter(
+          (v) => v === "ok"
+        ).length;
+        const failed = warmUpResults.size - ok;
+        // Failed combinations are a warm-level note, not a task failure:
+        // they already have per-context recorded-skip semantics downstream.
+        return {
+          outcome: "warmed",
+          note: `${ok} combination(s) ok${failed ? `, ${failed} failed` : ""}`,
+        };
+      }
+
+      case "chromedriver-prefetch":
+        return {
+          outcome: "skipped",
+          note: "chromedriver prefetch not implemented yet",
+        };
+    }
+  };
+}
+/* c8 ignore stop */
 
 /**
  * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
