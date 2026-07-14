@@ -1,3 +1,15 @@
+# [4.29.0](https://github.com/doc-detective/doc-detective/compare/v4.28.0...v4.29.0) (2026-07-14)
+
+
+### Features
+
+* **core:** inline always-on warm phase (resolve → warm → run → sweep) ([#628](https://github.com/doc-detective/doc-detective/issues/628)) ([e5a9449](https://github.com/doc-detective/doc-detective/commit/e5a94498d54482507e0b0505a088d0f112630db2))
+
+
+### Performance Improvements
+
+* **core:** eliminate per-run/step/file waste (phase 1) ([#632](https://github.com/doc-detective/doc-detective/issues/632)) ([12a2312](https://github.com/doc-detective/doc-detective/commit/12a2312e8264b299b7cbe180c03b0a7c696cd5be))
+
 # [4.28.0](https://github.com/doc-detective/doc-detective/compare/v4.27.0...v4.28.0) (2026-07-14)
 
 
