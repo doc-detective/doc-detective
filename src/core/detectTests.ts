@@ -74,12 +74,26 @@ function generateSpecId(filePath: string) {
  * @param {string} options.source - File path to check
  * @returns {Promise<boolean>}
  */
-async function isValidSourceFile({ config, files, source }: { config: any; files: any[]; source: string }) {
-  log(config, "debug", `validation: ${source}`);
-  let allowedExtensions = ["json", "yaml", "yml"];
-  config.fileTypes.forEach((fileType: any) => {
-    allowedExtensions = allowedExtensions.concat(fileType.extensions);
+// Build the set of allowed source-file extensions from config.fileTypes.
+// Computed ONCE per run by the caller (detectTests) and threaded into every
+// isValidSourceFile call, rather than rebuilt on each call. Mirrors the
+// original concat-based construction (same inputs, same assumptions), just
+// into a Set for O(1) membership.
+function buildAllowedExtensions(config: any): Set<string> {
+  const allowed = new Set<string>(["json", "yaml", "yml"]);
+  // `|| []` because this now runs ONCE up front, before any source is known to
+  // be a real file — a config with no fileTypes (e.g. inputs that are all URLs
+  // or ditamaps) must not throw. The original built this lazily inside
+  // isValidSourceFile, so it was only reached once a file needed validating.
+  (config.fileTypes || []).forEach((fileType: any) => {
+    fileType.extensions.forEach((ext: string) => allowed.add(ext));
   });
+  return allowed;
+}
+
+async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: any[]; source: string; allowedExtensions: Set<string> }) {
+  log(config, "debug", `validation: ${source}`);
+  const allowed = allowedExtensions;
   // Already in files array
   if (files.indexOf(source) >= 0) return false;
   // Is JSON or YAML but isn't a valid spec-formatted object
@@ -148,7 +162,7 @@ async function isValidSourceFile({ config, files, source }: { config: any; files
   }
   // Extension not in allowed list
   const extension = path.extname(source).substring(1);
-  if (!allowedExtensions.includes(extension)) {
+  if (!allowed.has(extension)) {
     log(
       config,
       "debug",
@@ -249,6 +263,11 @@ async function qualifyFiles({ config }: { config: any }) {
 
   const ignoredDitaMaps: string[] = [];
 
+  // Set of allowed source-file extensions, computed ONCE per run rather than
+  // rebuilt (concat over every fileType) on every isValidSourceFile call. A
+  // Set gives O(1) membership at the check site.
+  const allowedExtensions = buildAllowedExtensions(config);
+
   // Track Heretto output paths for sourceIntegration metadata
   if (!config._herettoPathMapping) {
     config._herettoPathMapping = {};
@@ -338,12 +357,15 @@ async function qualifyFiles({ config }: { config: any }) {
       /* c8 ignore next */
       source = fetch.path;
     }
-    // Check if source is a file or directory
+    // Check if source is a file or directory. One statSync, reused for both
+    // predicates (the value is the same for a given path — no reason to pay two
+    // syscalls).
     let isFile = false;
     let isDir = false;
     try {
-      isFile = fs.statSync(source).isFile();
-      isDir = fs.statSync(source).isDirectory();
+      const stat = fs.statSync(source);
+      isFile = stat.isFile();
+      isDir = stat.isDirectory();
     } catch {
       log(config, "warning", `Cannot access path: ${source}. Skipping.`);
       continue;
@@ -376,7 +398,7 @@ async function qualifyFiles({ config }: { config: any }) {
     // referenced once relative and once absolute could slip through twice with a
     // mismatched phase.
     const resolved = path.resolve(source);
-    if (isFile && (await isValidSourceFile({ config, files, source: resolved }))) {
+    if (isFile && (await isValidSourceFile({ config, files, allowedExtensions, source: resolved }))) {
       files.push(resolved);
       if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
     } else if (isDir) {
@@ -387,11 +409,15 @@ async function qualifyFiles({ config }: { config: any }) {
         for (const object of objects) {
           const content = path.resolve(dir + "/" + object);
           if (content.includes("node_modules")) continue;
-          const isFile = fs.statSync(content).isFile();
-          const isDir = fs.statSync(content).isDirectory();
+          // One statSync, reused for both predicates (same value per path).
+          // statSync (not the Dirent from readdirSync withFileTypes) is kept
+          // deliberately so symlink following is unchanged from before.
+          const stat = fs.statSync(content);
+          const isFile = stat.isFile();
+          const isDir = stat.isDirectory();
           if (
             isFile &&
-            (await isValidSourceFile({ config, files, source: content }))
+            (await isValidSourceFile({ config, files, allowedExtensions, source: content }))
           ) {
             const resolved = path.resolve(content);
             files.push(resolved);

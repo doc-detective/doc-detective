@@ -21,6 +21,7 @@ export {
   outputResults,
   loadEnvs,
   log,
+  logLevelEnabled,
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
@@ -1288,34 +1289,42 @@ async function loadEnvs(envsFile: string) {
   }
 }
 
+// Pure predicate: would `log(config, level, ...)` actually print at this
+// config.logLevel? Exported so hot call sites can GUARD expensive message
+// construction (e.g. `JSON.stringify(bigObject, null, 2)`) behind a cheap
+// check — the stringify then only runs when the message would be printed.
+// `log` itself delegates to this so the level policy has a single source of
+// truth and can never drift from the guard.
+function logLevelEnabled(config: any, level: string): boolean {
+  if (config.logLevel === "error" && level === "error") return true;
+  if (
+    config.logLevel === "warning" &&
+    (level === "error" || level === "warning")
+  )
+    return true;
+  if (
+    config.logLevel === "info" &&
+    (level === "error" || level === "warning" || level === "info")
+  )
+    return true;
+  if (
+    config.logLevel === "debug" &&
+    (level === "error" ||
+      level === "warning" ||
+      level === "info" ||
+      level === "debug")
+  )
+    return true;
+  return false;
+}
+
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)
     message = config;
     config = {};
   }
-  let logLevelMatch = false;
-  if (config.logLevel === "error" && level === "error") {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "warning" &&
-    (level === "error" || level === "warning")
-  ) {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "info" &&
-    (level === "error" || level === "warning" || level === "info")
-  ) {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "debug" &&
-    (level === "error" ||
-      level === "warning" ||
-      level === "info" ||
-      level === "debug")
-  ) {
-    logLevelMatch = true;
-  }
+  const logLevelMatch = logLevelEnabled(config, level);
 
   if (logLevelMatch) {
     if (typeof message === "string") {
@@ -1458,6 +1467,18 @@ function evaluateContextRequirements({
   return { met: missing.length === 0, missing };
 }
 
+// Env-var reference matcher for replaceEnvs, hoisted to module scope so it is
+// compiled ONCE rather than per string node on every recursive walk. The
+// trailing `(?![a-zA-Z0-9_$])` guard means a `$NAME$` token (a dollar on BOTH
+// sides — the `$KEY$` special-key / device-key sentinel vocabulary, e.g.
+// `$HOME$`, `$ENTER$`) is never treated as an env-var reference. Without it,
+// `$HOME$` matched the `$HOME` prefix and — on any host where $HOME is set
+// (every Unix box) — got rewritten to the home path, corrupting the sentinel.
+// A real env ref is `$NAME` NOT followed by another `$` (or word char).
+// Safe to share: used only via `String.prototype.match`, which does not rely
+// on or leave mutated `lastIndex` state.
+const ENV_VAR_REGEX = /\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/g;
+
 function replaceEnvs(stringOrObject: any): any {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
@@ -1468,15 +1489,7 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
-    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
-    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
-    // treated as an env-var reference. Without it, `$HOME$` matched the
-    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
-    // got rewritten to the home path, corrupting the sentinel. A real env ref
-    // is `$NAME` NOT followed by another `$` (or word char).
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
-    const matches = stringOrObject.match(variableRegex);
+    const matches = stringOrObject.match(ENV_VAR_REGEX);
     // If no matches, return string
     if (!matches) return stringOrObject;
     // Iterate matches
