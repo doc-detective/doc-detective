@@ -192,10 +192,16 @@ jobs:
       DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.dd-cache
     steps:
       - uses: actions/checkout@v4
+      # Rotating key + restore-keys: an exact cache hit never re-uploads, so
+      # a static key would strand WDA products built for a new Xcode or
+      # driver toolchain. The run-scoped key always saves; restore-keys pulls
+      # the newest previous entry.
       - uses: actions/cache@v4
         with:
           path: .dd-cache
-          key: dd-cache-${{ runner.os }}
+          key: dd-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            dd-cache-${{ runner.os }}-
       - run: npx doc-detective install ios --yes
       - uses: doc-detective/github-action@v1
 ```
