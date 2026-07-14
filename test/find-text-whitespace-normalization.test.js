@@ -152,8 +152,15 @@ describe("find text whitespace normalization (ADR 01061)", function () {
 // Here the fake driver answers the whole-element XPath but NOT the
 // first-text-node XPath, reproducing that DOM shape (ADR 01061).
 describe("find text — framework-fragmented text nodes (ADR 01061)", function () {
-  const wholeTextOnly = (element) => (query) =>
-    String(query).includes("normalize-space(.)") ? [element] : [];
+  // The element is answered only by the whole-element (plain-string exact) or
+  // direct-text-node (regex) candidate queries — NOT the old first-text-node
+  // predicate `normalize-space(text())`, reproducing a fragmented element.
+  const wholeTextOnly = (element) => (query) => {
+    const s = String(query);
+    const usesNewForm =
+      s.includes("normalize-space(.)") || s.includes("text()[normalize-space()]");
+    return usesNewForm && !s.includes("normalize-space(text())") ? [element] : [];
+  };
 
   describe("findElementByCriteria", function () {
     it("finds a plain-string elementText whose text is fragmented across nodes (no selector)", async function () {
@@ -213,6 +220,23 @@ describe("find text — framework-fragmented text nodes (ADR 01061)", function (
       });
       assert.equal(res.element, leaf);
       assert.equal(res.foundBy, "elementText");
+    });
+
+    it("regex text search targets elements with direct text, not pure containers like <body>", async function () {
+      // A substring regex against whole-subtree text would match <body> (first
+      // in document order) and click the page. The candidate query must select
+      // only elements that contribute their own text node.
+      const button = makeElement({ text: "Reveal via regex match" });
+      const driver = makeDriver({
+        $$: (query) =>
+          String(query).includes("text()[normalize-space()]") ? [button] : [],
+      });
+      const res = await findElementByShorthand({
+        string: "/Reveal via regex/",
+        timeout: 200,
+        driver,
+      });
+      assert.equal(res.element, button);
     });
   });
 

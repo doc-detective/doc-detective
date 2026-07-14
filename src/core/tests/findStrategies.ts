@@ -53,12 +53,15 @@ async function setElementOutputs({ element }: { element: any }) {
 
 async function findElementByRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
   await driver.pause(timeout);
-  // Find an element based on a regex pattern in text. Match on the element's
-  // FULL text (`normalize-space(.)`), not just its first text node
-  // (`normalize-space(text())`): frameworks that fragment text across multiple
-  // nodes — often with an empty leading node — would otherwise exclude the
-  // target from the candidate set entirely (ADR 01061).
-  const elements = await driver.$$("//*[normalize-space(.)]");
+  // Find an element based on a regex pattern in text. Candidates are elements
+  // with a non-empty DIRECT text node (`text()[normalize-space()]`), i.e. that
+  // contribute their own text. This includes framework-fragmented elements
+  // whose content lives in a non-first text node (`["", "Title", ""]`), which
+  // the old first-text-node predicate `normalize-space(text())` missed, while
+  // still excluding pure containers like `<body>` — matching on `.`/whole
+  // subtree text would make the substring regex match `<body>` (the first
+  // element in document order) instead of the real target (ADR 01061).
+  const elements = await driver.$$("//*[text()[normalize-space()]]");
   for (const element of elements) {
     const text = await element.getText();
     if (text.match(pattern)) {
@@ -530,7 +533,11 @@ async function findElementByCriteria({
             `(normalize-space(.)=${lit} and not(.//*[normalize-space(.)=${lit}]))`
           );
         } else if (elementText) {
-          xpathConditions.push(`normalize-space(.)`);
+          // Regex can't be expressed in XPath: collect elements with a non-empty
+          // DIRECT text node (includes framework-fragmented elements, excludes
+          // pure containers like `<body>` so the JS substring regex below can't
+          // match the whole page) and filter in JS.
+          xpathConditions.push(`text()[normalize-space()]`);
         }
 
         // Build final XPath
