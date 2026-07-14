@@ -522,15 +522,23 @@ describe("core/utils coverage", function () {
       // leave mutated lastIndex, so multiple matches in one string and repeated
       // calls must all resolve correctly (a shared stateful regex would drop
       // matches on alternate calls).
+      const prev = process.env.DD_TEST_VAL;
       process.env.DD_TEST_VAL = "X";
-      // Two references in one string → both replaced in a single call.
-      assert.equal(
-        replaceEnvs("$DD_TEST_VAL-$DD_TEST_VAL"),
-        "X-X"
-      );
-      // Repeated invocations stay correct (no lastIndex carry-over).
-      for (let i = 0; i < 3; i++) {
-        assert.equal(replaceEnvs("a $DD_TEST_VAL b"), "a X b");
+      try {
+        // Two references in one string → both replaced in a single call.
+        assert.equal(
+          replaceEnvs("$DD_TEST_VAL-$DD_TEST_VAL"),
+          "X-X"
+        );
+        // Repeated invocations stay correct (no lastIndex carry-over).
+        for (let i = 0; i < 3; i++) {
+          assert.equal(replaceEnvs("a $DD_TEST_VAL b"), "a X b");
+        }
+      } finally {
+        // Restore so this mutation can't make later env-sensitive tests
+        // order-dependent.
+        if (prev === undefined) delete process.env.DD_TEST_VAL;
+        else process.env.DD_TEST_VAL = prev;
       }
     });
   });
