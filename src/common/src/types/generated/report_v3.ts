@@ -50,6 +50,10 @@ export interface Report {
    */
   specs: [Specification, ...Specification[]];
   /**
+   * Absolute path of the device ownership-handoff manifest a `doc-detective warm` run wrote (`<cacheDir>/warm-manifest.json`). Present only on warm-only runs that left devices up for the next run to adopt. System-populated.
+   */
+  warmManifest?: string;
+  /**
    * Results of the run's inline warm phase — the always-on, best-effort provisioning pass (dependency installs, device boots, session probes) performed between test resolution and test execution. A failed task never gates the run; the per-context paths retry or skip with their normal semantics. Absent when the run ended before the phase (for example, when no specs matched). System-populated.
    */
   warm?: {
