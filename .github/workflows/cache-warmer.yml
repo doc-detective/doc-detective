@@ -43,8 +43,10 @@ jobs:
     # Generous: the cold path is npm ci + build + the runtime bulk npm install
     # (which alone carries a 9-minute inner budget, see src/runtime) + three
     # browser downloads; 30 min was tight on a slow Windows runner, and a
-    # timed-out job forfeits the cache save entirely.
-    timeout-minutes: 45
+    # timed-out job forfeits the cache save entirely. The macOS leg
+    # additionally prebuilds WebDriverAgent (~10 min cold, its own 20-minute
+    # inner ceiling), hence the extra headroom.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -85,6 +87,17 @@ jobs:
       # installer on win32 itself; see src/runtime/installCommand.ts).
       - if: steps.dd-cache.outputs.cache-hit != 'true'
         run: node ./bin/doc-detective.js install all --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      # macOS only: prebuild WebDriverAgent into the cache
+      # (<cacheDir>/ios/wda/<Xcode x driver key>, docs/design/ios-wda-prebuild.md).
+      # Check-and-skip on the keyed products, best-effort (a failed build
+      # leaves a skipped report row and the job green). Riding the weekly
+      # dd-cache entry means the iOS fixture legs and node-24 test cells skip
+      # the ~10-minute in-session WDA compile all week.
+      - if: runner.os == 'macOS' && steps.dd-cache.outputs.cache-hit != 'true'
+        run: node ./bin/doc-detective.js install ios --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
 

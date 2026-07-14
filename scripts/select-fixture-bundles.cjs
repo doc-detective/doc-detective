@@ -25,6 +25,13 @@ const BUNDLES = [
   { name: "recording", dirs: ["recording"] },
   { name: "apps", dirs: ["apps"], timeout: 30 },
   { name: "android-skip", dirs: ["apps-android", "mobile-web-android"], android: true },
+  // prebootIos is load-bearing beyond the simulator pre-boot: fixtures.yml
+  // gates its "Prebuild WebDriverAgent" (install ios) step on it, AND the
+  // workflow runs the doc-detective action with `ios: 'false'` (the action's
+  // own WDA cache is retired in favor of the managed prebuild). A new
+  // iOS-flavored bundle added WITHOUT prebootIos gets neither — every run
+  // would pay the ~10-minute in-session WDA compile and likely blow the
+  // default 20-minute timeout.
   { name: "apps-ios", dirs: ["apps-ios"], timeout: 55, prebootIos: true },
   { name: "mobile-web-ios", dirs: ["mobile-web-ios"], timeout: 55, prebootIos: true },
 ];

@@ -50,11 +50,16 @@ repaired when something goes wrong.
   a flaky download yields a green warm with a missing asset; consumer jobs
   JIT-install what's missing. Do not "harden" the warmer to fail on partial
   installs — a failed job saves nothing at all.
-- **App-surface Appium drivers are not warmed.** `install all` covers
-  `HEAVY_NPM_DEPS` + browsers (+ git-bash on Windows); the platform app
-  drivers (mac2/novawindows/uiautomator2) are JIT-installed by platform
-  preflights only. That JIT path is deliberately exercised (non-destructive
-  installs, ADR 01025).
+- **App-surface Appium drivers are not warmed — with one exception.**
+  `install all` covers `HEAVY_NPM_DEPS` + browsers (+ git-bash on Windows);
+  the platform app drivers (mac2/novawindows/uiautomator2) are JIT-installed
+  by platform preflights only. That JIT path is deliberately exercised
+  (non-destructive installs, ADR 01025). The exception: the warmer's macOS
+  leg also runs `install ios --yes`, which installs `appium-xcuitest-driver`
+  (through the loader) and prebuilds WebDriverAgent into
+  `ios/wda/<Xcode × driver key>/` — the WDA prebuild is keyed on the driver
+  version, so warming the driver and the build together is what keeps the
+  key honest (docs/design/ios-wda-prebuild.md).
 - **Cross-node-line restores are assumed ABI-safe.** The key carries a
   `node<major>` component with a same-week any-node fallback restore-key; the
   heavy native deps are Node-API/prebuilt (chosen for exactly this), so a

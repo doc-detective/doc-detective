@@ -19,6 +19,7 @@ import YAML from "yaml";
 
 import type { AgentAdapter } from "../agents/types.js";
 import { listAdapters } from "../agents/registry.js";
+import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
 
 // Action keys recognized by the v3 `step` schema. Kept in sync with
@@ -146,6 +147,8 @@ export async function buildHintContext(
     usedRetry: walkData.usedRetry,
     failedTransientRequest: walkData.failedTransientRequest,
     failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
+    ranIosContexts: walkData.ranIosContexts,
+    hasManagedWdaProducts: detectManagedWdaProducts(config),
     agentDetections,
     hasPackageJson,
     hasDocDetectiveNpmScript,
@@ -395,6 +398,7 @@ interface WalkData {
   usedRetry: boolean;
   failedTransientRequest: boolean;
   failedRunShellWithoutShell: boolean;
+  ranIosContexts: boolean;
 }
 
 function emptyWalkData(): WalkData {
@@ -412,6 +416,7 @@ function emptyWalkData(): WalkData {
     usedRetry: false,
     failedTransientRequest: false,
     failedRunShellWithoutShell: false,
+    ranIosContexts: false,
   };
 }
 
@@ -431,6 +436,11 @@ export function walkResults(results: any): WalkData {
           const browserName = context?.browser?.name;
           if (typeof browserName === "string" && browserName.length > 0) {
             data.usedBrowserContexts.add(browserName);
+          }
+          // Mobile contexts record the resolved device on the context
+          // report. Powers `prebuildWebDriverAgent`.
+          if (context?.device?.platform === "ios") {
+            data.ranIosContexts = true;
           }
           const steps = Array.isArray(context?.steps) ? context.steps : [];
           for (const step of steps) {
@@ -707,6 +717,43 @@ export function hasDocDetectiveScriptInPackageJson(
  */
 export function readNpmScripts(cwd: string): boolean {
   return hasDocDetectiveScriptInPackageJson(findPackageJsonUpward(cwd));
+}
+
+// ---------------------------------------------------------------------
+// managed WDA products probe
+// ---------------------------------------------------------------------
+
+/**
+ * True when the managed WebDriverAgent cache holds at least one completed,
+ * VALID prebuild — i.e. the user already runs `install ios`, so the
+ * `prebuildWebDriverAgent` hint has nothing to teach. Validity uses the same
+ * `readProductsMarker` the session locator uses (marker shape + Runner app
+ * present), so a corrupt or gutted key dir doesn't suppress the hint. One
+ * bounded readdir of `<cacheDir>/ios/wda` plus a marker read per entry,
+ * capped at 100 entries (the walk-budget rule; a real wda root holds a
+ * handful of keys); false on any error (missing dir, unreadable cache,
+ * unsafe cache path).
+ */
+export function detectManagedWdaProducts(
+  config: any,
+  deps: {
+    fs?: Pick<typeof fs, "readdirSync" | "existsSync" | "readFileSync">;
+  } = {}
+): boolean {
+  const fsDep = deps.fs ?? fs;
+  try {
+    const wdaRoot = getWdaRoot({ cacheDir: config?.cacheDir });
+    const entries = fsDep.readdirSync(wdaRoot).slice(0, 100);
+    return entries.some(
+      (entry) =>
+        readProductsMarker(
+          path.join(wdaRoot, String(entry)),
+          fsDep as any
+        ) !== null
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------

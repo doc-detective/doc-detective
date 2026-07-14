@@ -16,6 +16,7 @@ import {
   gitignoreCovers,
   parseNodeMajor,
   detectRstFiles,
+  detectManagedWdaProducts,
   runInvokesDocDetective,
 } from "../dist/hints/context.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
@@ -419,6 +420,40 @@ describe("hints/context", function () {
   });
 
   describe("walkResults", function () {
+    it("detects iOS device contexts (powers prebuildWebDriverAgent)", function () {
+      const ios = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { device: { platform: "ios", name: "iPhone 16" }, steps: [] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(ios.ranIosContexts).to.equal(true);
+
+      const android = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { device: { platform: "android", name: "Pixel" }, steps: [] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(android.ranIosContexts).to.equal(false);
+
+      expect(walkResults({ specs: [] }).ranIosContexts).to.equal(false);
+    });
+
     it("collects step types, browsers, screenshot/recording flags from a typical results shape", function () {
       const data = walkResults({
         specs: [
@@ -876,6 +911,73 @@ describe("hints/context", function () {
         rmTmpDir(root);
         rmTmpDir(elsewhere);
       }
+    });
+  });
+
+  describe("detectManagedWdaProducts", function () {
+    it("true only when a wda key dir holds a VALID products marker", function () {
+      // A real dir (under the gitignored .tmp) because resolving the cache
+      // root mkdirs it; the wda-level reads themselves are faked.
+      const cacheRoot = path.join(process.cwd(), ".tmp", "hints-wda-cache");
+      const wdaRoot = path.join(cacheRoot, "ios", "wda");
+      const key = "xcode-16.4-16F6-driver-10.8.1";
+      const keyDir = path.join(wdaRoot, key);
+      const err = () => Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+
+      const withMarker = {
+        readdirSync: () => [key, ".lock"],
+        readFileSync: (p) => {
+          if (p === path.join(keyDir, "products.json")) {
+            return JSON.stringify({ key, driverVersion: "10.8.1" });
+          }
+          throw err();
+        },
+        // The layout-relative Runner app exists (marker validity requires it).
+        existsSync: (p) => p.startsWith(keyDir + path.sep),
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: withMarker })
+      ).to.equal(true);
+
+      // Marker present but corrupt: must NOT suppress the hint — same
+      // validity rule as the session locator (readProductsMarker).
+      const corruptMarker = {
+        readdirSync: () => [key, ".lock"],
+        readFileSync: (p) => {
+          if (p === path.join(keyDir, "products.json")) return "{not json";
+          throw err();
+        },
+        existsSync: (p) => p.startsWith(keyDir + path.sep),
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: corruptMarker }),
+        "a corrupt marker doesn't count as a completed prebuild"
+      ).to.equal(false);
+
+      const noMarker = {
+        readdirSync: () => ["xcode-junk", ".lock"],
+        readFileSync: () => {
+          throw err();
+        },
+        existsSync: () => false,
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: noMarker })
+      ).to.equal(false);
+
+      const noDir = {
+        readdirSync: () => {
+          throw err();
+        },
+        readFileSync: () => {
+          throw err();
+        },
+        existsSync: () => false,
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: noDir }),
+        "missing cache dir degrades to false"
+      ).to.equal(false);
     });
   });
 
@@ -1459,6 +1561,8 @@ function fakeCtx(partial = {}) {
     usedRetry: false,
     failedTransientRequest: false,
     failedRunShellWithoutShell: false,
+    ranIosContexts: false,
+    hasManagedWdaProducts: false,
     ...partial,
   };
 }
@@ -1531,12 +1635,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 34 active hints. `useFileTypesForRst` is commented out in the
+    // 35 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(34);
+    expect(HINTS.length).to.equal(35);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1559,6 +1663,24 @@ describe("hints/hints (registry)", function () {
     const ids = HINTS.map((h) => h.id);
     const sorted = [...ids].sort();
     expect(ids).to.deep.equal(sorted);
+  });
+
+  // ----- optimization & advanced (priority 50) -----
+
+  it("prebuildWebDriverAgent: fires when an iOS context ran without managed WDA products", function () {
+    const h = findHint("prebuildWebDriverAgent");
+    expect(h.priority).to.equal(50);
+    expect(
+      h.when(fakeCtx({ ranIosContexts: true, hasManagedWdaProducts: false }))
+    ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ ranIosContexts: true, hasManagedWdaProducts: true })),
+      "already prebuilt — no nudge"
+    ).to.equal(false);
+    expect(
+      h.when(fakeCtx({ ranIosContexts: false, hasManagedWdaProducts: false })),
+      "no iOS contexts this run — no nudge"
+    ).to.equal(false);
   });
 
   // ----- onboarding (priority 10) -----

@@ -1,6 +1,9 @@
 # Design: managed WebDriverAgent prebuild
 
-Status: **planned — no phase started.** This document is the implementation plan for building
+Status: **implemented (phases 1–4, ADR 01059).** The empirical checkpoints — the Xcode floor
+(pinned at 14) and the locator's driver floor (pinned at major 10) — await confirmation from the
+live macOS fixture legs; adjust the pins if the legs disagree. This document is the implementation
+plan for building
 WebDriverAgent (WDA) as part of `doc-detective install ios` and auto-consuming the build products in
 iOS sessions. It was produced from the CI wall-clock investigation (2026-07-13); the companion plan
 is [warm-phase.md](warm-phase.md), which front-loads provisioning (including this feature's

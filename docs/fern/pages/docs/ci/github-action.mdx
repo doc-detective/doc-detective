@@ -206,6 +206,28 @@ Caching only affects build speed—Doc Detective still bootstraps the XCUITest d
 iOS simulators run only on macOS, so this input has no effect on Linux or Windows runners.
 </Note>
 
+### Alternative: prebuild WebDriverAgent into a persisted cache
+
+If your workflow already persists Doc Detective's [cache directory](/reference/cli/install#cache-directory) between runs (for example with `actions/cache`), you can skip the action's WDA cache and let Doc Detective manage the build itself: run [`doc-detective install ios --yes`](/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions, and test sessions consume the products automatically and read-only—safe to share across parallel jobs. Set `ios: 'false'` on the action in that case: the two mechanisms overlap, and the action's cache takes precedence when both are active, so you'd pay for both.
+
+```yaml
+jobs:
+  runTests:
+    runs-on: macos-latest
+    env:
+      DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.dd-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .dd-cache
+          key: dd-cache-${{ runner.os }}
+      - run: npx doc-detective install ios --yes
+      - uses: doc-detective/github-action@v1
+        with:
+          ios: 'false'
+```
+
 ## Runtime caching
 
 Doc Detective installs heavy runtime assets—browsers, drivers, and npm packages—on first use. To speed up CI, cache them between runs.

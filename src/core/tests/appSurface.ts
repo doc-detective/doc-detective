@@ -19,6 +19,11 @@ import {
 } from "../../runtime/loader.js";
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
+import {
+  applyManagedWdaCapabilities,
+  locateManagedWda,
+  type ManagedWdaHit,
+} from "../../runtime/wdaProducts.js";
 import { log } from "../utils.js";
 import {
   snapshotAppWindows,
@@ -416,7 +421,12 @@ interface AppDriverPlatform {
   buildCapabilities(
     descriptor: any,
     appId: string,
-    extras?: { udid?: string }
+    extras?: {
+      udid?: string;
+      // iOS only: locate managed prebuilt WDA products (injected by the
+      // caller so config-resolved cache context and test stubs both flow).
+      locateWda?: () => ManagedWdaHit | null;
+    }
   ): Record<string, any>;
   // Whether elementText and elementAria's accessible name map to the SAME
   // underlying attribute (Windows @Name, macOS title/label) — so two different
@@ -619,17 +629,14 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       const timeout = descriptor.timeout ?? 60000;
       capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
       capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
-      // Persisting WebDriverAgent's Xcode build products across sessions/runs
-      // turns the cold ~10-minute WDA compile into a fast incremental build.
-      // Opt-in via env so a shared derivedDataPath is only used where the caller
-      // manages it (e.g. a CI cache keyed by driver + Xcode version); unset by
-      // default, appium uses a throwaway per-session temp dir. A caller sharing
-      // one path across concurrent iOS sessions owns serializing them.
-      const derivedDataPath =
-        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-      if (derivedDataPath && derivedDataPath.trim()) {
-        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
-      }
+      // WDA derived-data: env override wins (historical contract), else the
+      // managed products `install ios` prebuilt for this exact toolchain are
+      // consumed read-only (docs/design/ios-wda-prebuild.md). The precedence
+      // and capability pair live in applyManagedWdaCapabilities so this
+      // builder and the mobile-web one cannot drift. No bare locator default
+      // here: the caller threads a config-aware locator via extras, and its
+      // absence means "no managed consumption", never "guess a cache root".
+      applyManagedWdaCapabilities(capabilities, extras?.locateWda);
       return capabilities;
     },
     unsupportedFields: [
@@ -1219,6 +1226,9 @@ async function startAppSurface({
     acquireDevice?: (
       desc: any
     ) => Promise<{ entry: { name: string; udid: string } } | { skip: string }>;
+    // iOS only: locate managed prebuilt WDA products. Injected by tests for
+    // hermeticity; the default reads the cache under config.cacheDir.
+    locateWda?: () => ManagedWdaHit | null;
   };
 }): Promise<any> {
   const result: any = { status: "PASS", description: "", outputs: {} };
@@ -1325,6 +1335,9 @@ async function startAppSurface({
       // (and installs, when `install` is set) the app.
       const capabilities = platformDriver.buildCapabilities(descriptor, appId, {
         udid: acquired.entry.udid,
+        locateWda:
+          serverDeps.locateWda ??
+          (() => locateManagedWda({ ctx: { cacheDir: config?.cacheDir } })),
       });
       Object.assign(capabilities, descriptor.driverOptions ?? {});
       try {
