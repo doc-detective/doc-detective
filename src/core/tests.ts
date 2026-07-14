@@ -107,6 +107,7 @@ import {
   claimWarmManifest,
   releaseWarmClaim,
   listOrphanedClaims,
+  collectWarmLeftovers,
   type WarmDeviceHandoff,
 } from "./warmManifest.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
@@ -205,6 +206,7 @@ export {
   prefetchMobileChromedriver,
   seedRegistriesFromHandoff,
   collectHandoffDevices,
+  warmDown,
 };
 // exports.appiumStart = appiumStart;
 // exports.appiumIsReady = appiumIsReady;
@@ -3497,6 +3499,43 @@ async function sweepHandoffDevices(
   }
 }
 /* c8 ignore stop */
+
+/**
+ * `doc-detective warm --down` — the operator's "leave nothing running"
+ * switch: tear down every device recorded in the unclaimed manifest AND
+ * every claimed file (a live adopter's run-end sweep tolerates the loss:
+ * its kills/shutdowns are already best-effort), then delete the files.
+ */
+async function warmDown({
+  config,
+}: {
+  config: any;
+}): Promise<{ files: number; devices: number }> {
+  const cacheRoot = getCacheDir({ cacheDir: config?.cacheDir });
+  const { files, devices } = collectWarmLeftovers({ cacheDir: cacheRoot });
+  if (!files.length) {
+    log(
+      config,
+      "info",
+      "No warm handoff manifests found; nothing to tear down."
+    );
+    return { files: 0, devices: 0 };
+  }
+  await sweepHandoffDevices(devices, { config });
+  for (const file of files) {
+    try {
+      fs.unlinkSync(file);
+    } catch {
+      // best-effort
+    }
+  }
+  log(
+    config,
+    "info",
+    `Warm teardown complete: ${devices.length} device(s) swept, ${files.length} manifest file(s) removed.`
+  );
+  return { files: files.length, devices: devices.length };
+}
 
 /**
  * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
