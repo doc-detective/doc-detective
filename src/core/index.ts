@@ -3,10 +3,10 @@ import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
-import { telemetryNotice, sendTelemetry } from "./telem.js";
+import { telemetryNotice, sendTelemetry, awaitTelemetryFlush } from "./telem.js";
 import { readFile, resolvePaths } from "./files.js";
 
-export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths };
+export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
 const supportMessage = `
 ##########################################################################

@@ -21,6 +21,7 @@ export {
   setMeta,
   getVersionData,
   log,
+  logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
   reporters,
@@ -43,14 +44,22 @@ function isDebugRequested(): boolean {
 }
 
 // Log function that respects logLevel
-function log(message: any, level: string = "info", config: any = {}) {
+// Pure predicate: would `log(message, level, config)` actually print at this
+// config.logLevel? Exported so CLI call sites can GUARD expensive message
+// construction (e.g. `JSON.stringify(config, null, 2)`) behind a cheap check —
+// the stringify then only runs when the message would be printed. `log`
+// delegates to this so the level policy has a single source of truth.
+function logLevelEnabled(level: string, config: any = {}): boolean {
   const logLevels = ["silent", "error", "warning", "info", "debug"];
   const currentLevel = config.logLevel || "info";
   const currentLevelIndex = logLevels.indexOf(currentLevel);
   const messageLevelIndex = logLevels.indexOf(level);
+  return currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0;
+}
 
+function log(message: any, level: string = "info", config: any = {}) {
   // Only log if the message level is at or above the current log level
-  if (currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0) {
+  if (logLevelEnabled(level, config)) {
     if (level === "error") {
       console.error(message);
     } else {

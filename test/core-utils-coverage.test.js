@@ -13,6 +13,7 @@ import sinon from "sinon";
 import dnsPromises from "node:dns/promises";
 import {
   log,
+  logLevelEnabled,
   outputResults,
   replaceEnvs,
   timestamp,
@@ -371,6 +372,59 @@ describe("core/utils coverage", function () {
     });
   });
 
+  describe("logLevelEnabled (lazy-log gate, mirrors log's level policy)", function () {
+    let logged;
+    beforeEach(function () {
+      sandbox = sinon.createSandbox();
+      logged = [];
+      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+    });
+    afterEach(function () {
+      sandbox.restore();
+      sandbox = undefined;
+    });
+    it("error level: only error is enabled", function () {
+      const c = { logLevel: "error" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), false);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("warning level: error + warning enabled", function () {
+      const c = { logLevel: "warning" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("info level: error/warning/info enabled, debug not", function () {
+      const c = { logLevel: "info" };
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("debug level: everything enabled", function () {
+      const c = { logLevel: "debug" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), true);
+    });
+    it("undefined/silent logLevel: nothing enabled (matches log's no-match behavior)", function () {
+      assert.equal(logLevelEnabled({}, "error"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "error"), false);
+    });
+    it("agrees with log(): guarding a debug dump prints iff enabled", async function () {
+      // At info level the guard is false, so the expensive message is never
+      // built or printed; at debug it prints exactly once.
+      const infoCfg = { logLevel: "info" };
+      if (logLevelEnabled(infoCfg, "debug")) await log(infoCfg, "debug", "X");
+      assert.equal(logged.length, 0);
+      const dbgCfg = { logLevel: "debug" };
+      if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
+      assert.deepEqual(logged, ["(DEBUG) X"]);
+    });
+  });
+
   describe("outputResults", function () {
     let tmpDir;
     beforeEach(function () {
@@ -461,6 +515,23 @@ describe("core/utils coverage", function () {
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
+    });
+    it("module-hoisted regex is safe across multiple matches and repeated calls (1.5)", function () {
+      // The matcher is now a single module-scoped /g RegExp reused on every
+      // string node. `String.prototype.match` with /g does not depend on or
+      // leave mutated lastIndex, so multiple matches in one string and repeated
+      // calls must all resolve correctly (a shared stateful regex would drop
+      // matches on alternate calls).
+      process.env.DD_TEST_VAL = "X";
+      // Two references in one string → both replaced in a single call.
+      assert.equal(
+        replaceEnvs("$DD_TEST_VAL-$DD_TEST_VAL"),
+        "X-X"
+      );
+      // Repeated invocations stay correct (no lastIndex carry-over).
+      for (let i = 0; i < 3; i++) {
+        assert.equal(replaceEnvs("a $DD_TEST_VAL b"), "a X b");
+      }
     });
   });
 

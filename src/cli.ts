@@ -1,4 +1,4 @@
-import { runTests } from "./core/index.js";
+import { runTests, awaitTelemetryFlush } from "./core/index.js";
 import {
   buildYargs,
   setConfig,
@@ -6,6 +6,7 @@ import {
   setMeta,
   getVersionData,
   log,
+  logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
   isDebugRequested,
@@ -142,12 +143,16 @@ async function runTestsHandler(args: any) {
     return;
   }
 
-  log(
-    `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
-    "debug",
-    config
-  );
-  log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+  // Guard the pretty-print dumps behind a cheap level check so the (large)
+  // JSON.stringify only runs when the debug message would actually print.
+  if (logLevelEnabled("debug", config)) {
+    log(
+      `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
+      "debug",
+      config
+    );
+    log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+  }
 
   // Self-update on startup. Honors config.autoUpdate (schema default true),
   // DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 (set by the re-execed child to prevent
@@ -238,4 +243,10 @@ async function runTestsHandler(args: any) {
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
+
+  // Join the telemetry flush started inside runTests. Awaited only NOW — after
+  // reporters + hint — so the PostHog round-trip overlaps that I/O instead of
+  // hanging off the tail of the process. Bounded + non-throwing; a no-op when
+  // telemetry is disabled or already flushed.
+  await awaitTelemetryFlush();
 }

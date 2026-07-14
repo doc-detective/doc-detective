@@ -5,7 +5,7 @@
  */
 
 import crypto from "node:crypto";
-import { log } from "./utils.js";
+import { log, logLevelEnabled } from "./utils.js";
 import { generateSpecId } from "./detectTests.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
@@ -145,12 +145,12 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     resolvedContexts.push({});
   }
 
-  log(config, "debug", `Resolved contexts for test ${test.testId}:\n${JSON.stringify(resolvedContexts, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `Resolved contexts for test ${test.testId}:\n${JSON.stringify(resolvedContexts, null, 2)}`);
   return resolvedContexts;
 }
 
 async function fetchOpenApiDocuments({ config, documentArray }: { config: any; documentArray: any[] }) {
-  log(config, "debug", `Fetching OpenAPI documents:\n${JSON.stringify(documentArray, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `Fetching OpenAPI documents:\n${JSON.stringify(documentArray, null, 2)}`);
   const openApiDocuments: any[] = [];
   if (config?.integrations?.openApi?.length > 0)
     openApiDocuments.push(...config.integrations.openApi);
@@ -178,7 +178,7 @@ async function fetchOpenApiDocuments({ config, documentArray }: { config: any; d
       openApiDocuments.push(definition);
     }
   }
-  log(config, "debug", `Fetched OpenAPI documents:\n${JSON.stringify(openApiDocuments, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `Fetched OpenAPI documents:\n${JSON.stringify(openApiDocuments, null, 2)}`);
   return openApiDocuments;
 }
 
@@ -217,7 +217,7 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
     : deriveContextId({ context, usedIds: usedContextIds });
   const contextId = context.contextId;
   usedContextIds.add(contextId);
-  log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
   const resolvedContext = {
     ...context,
     unsafe: test.unsafe || false,
@@ -229,7 +229,7 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
     steps: [...test.steps],
     contextId: contextId,
   };
-  log(config, "debug", `RESOLVED CONTEXT ${contextId}:\n${JSON.stringify(resolvedContext, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED CONTEXT ${contextId}:\n${JSON.stringify(resolvedContext, null, 2)}`);
   return resolvedContext;
 }
 
@@ -238,7 +238,7 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
   // `<specId>~<hash>` IDs for both inline and JSON/YAML tests); covers
   // programmatic callers that hand resolveTests raw specs.
   const testId = test.testId || `${spec.specId}~${contentHash(test)}`;
-  log(config, "debug", `RESOLVING TEST ID ${testId}:\n${JSON.stringify(test, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING TEST ID ${testId}:\n${JSON.stringify(test, null, 2)}`);
   const resolvedTest = {
     ...test,
     testId: testId,
@@ -269,7 +269,7 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
     });
     resolvedTest.contexts.push(resolvedContext);
   }
-  log(config, "debug", `RESOLVED TEST ${testId}:\n${JSON.stringify(resolvedTest, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED TEST ${testId}:\n${JSON.stringify(resolvedTest, null, 2)}`);
   return resolvedTest;
 }
 
@@ -280,7 +280,7 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
   const specId =
     spec.specId ||
     (spec.contentPath ? generateSpecId(spec.contentPath) : crypto.randomUUID());
-  log(config, "debug", `RESOLVING SPEC ID ${specId}:\n${JSON.stringify(spec, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING SPEC ID ${specId}:\n${JSON.stringify(spec, null, 2)}`);
   const resolvedSpec = {
     ...spec,
     specId: specId,
@@ -299,7 +299,7 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
     });
     resolvedSpec.tests.push(resolvedTest);
   }
-  log(config, "debug", `RESOLVED SPEC ${specId}:\n${JSON.stringify(resolvedSpec, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED SPEC ${specId}:\n${JSON.stringify(resolvedSpec, null, 2)}`);
   return resolvedSpec;
 }
 
@@ -312,7 +312,7 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
  * @returns {Promise<Object>} Resolved tests object with config and specs
  */
 async function resolveTests({ config, detectedTests }: { config: any; detectedTests: any[] }) {
-  log(config, "debug", `RESOLVING DETECTED TEST SPECS:\n${JSON.stringify(detectedTests, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING DETECTED TEST SPECS:\n${JSON.stringify(detectedTests, null, 2)}`);
 
   const resolvedTests = {
     resolvedTestsId: crypto.randomUUID(),
@@ -326,7 +326,7 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
     resolvedTests.specs.push(resolvedSpec);
   }
 
-  log(config, "debug", `RESOLVED TEST SPECS:\n${JSON.stringify(resolvedTests, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED TEST SPECS:\n${JSON.stringify(resolvedTests, null, 2)}`);
   return resolvedTests;
 }
 

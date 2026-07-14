@@ -20,6 +20,7 @@ import sinon from "sinon";
 import axios from "axios";
 import {
   log,
+  logLevelEnabled,
   setConfig,
   outputResults,
   reporters,
@@ -156,6 +157,33 @@ describe("utils.ts coverage", function () {
       const cap = captureConsole(sandbox);
       log("detail", "debug", { logLevel: "debug" });
       assert.ok(cap.log.includes("detail"));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // logLevelEnabled (lazy-log gate for CLI dumps) — signature is
+  // logLevelEnabled(level, config), mirroring log(message, level, config)
+  // ---------------------------------------------------------------------------
+  describe("logLevelEnabled", function () {
+    it("defaults to 'info' when config.logLevel is absent", function () {
+      assert.equal(logLevelEnabled("info"), true);
+      assert.equal(logLevelEnabled("debug"), false);
+    });
+    it("gates debug output on logLevel === 'debug'", function () {
+      assert.equal(logLevelEnabled("debug", { logLevel: "info" }), false);
+      assert.equal(logLevelEnabled("debug", { logLevel: "debug" }), true);
+    });
+    it("never enables the 'silent' level (index must be > 0)", function () {
+      assert.equal(logLevelEnabled("silent", { logLevel: "debug" }), false);
+    });
+    it("agrees with log(): guarding a dump prints iff enabled", function () {
+      const cap = captureConsole(sandbox);
+      const cfg = { logLevel: "info" };
+      if (logLevelEnabled("debug", cfg)) log("DUMP", "debug", cfg);
+      assert.equal(cap.log, "");
+      const dbg = { logLevel: "debug" };
+      if (logLevelEnabled("debug", dbg)) log("DUMP", "debug", dbg);
+      assert.ok(cap.log.includes("DUMP"));
     });
   });
 
