@@ -365,9 +365,25 @@ describe("core/utils coverage", function () {
       assert.equal(logged[0], "(INFO)");
       assert.equal(logged[1], JSON.stringify({ a: 1 }, null, 2));
     });
-    it("supports the 2-arg form log(message, level) with empty config (no match)", async function () {
-      // config defaults to {} so logLevel is undefined → no match → nothing logged
+    it("2-arg form log(message, level) defaults an undefined logLevel to info and emits", async function () {
+      // config defaults to {} so logLevel is undefined → treated as "info" (parity
+      // with src/utils.ts#log). error/warning/info messages must surface rather
+      // than being silently dropped (regression: 2-arg expressions.ts log sites).
       await log("just a message", "info");
+      await log("an error", "error");
+      await log("a warning", "warning");
+      assert.deepEqual(logged, ["(INFO) just a message", "(ERROR) an error", "(WARNING) a warning"]);
+    });
+    it("2-arg form still suppresses debug under the info default", async function () {
+      // The info default surfaces error/warning/info but NOT debug — matching the
+      // configured-info semantics, so 2-arg calls don't force debug spam.
+      await log("a debug line", "debug");
+      assert.equal(logged.length, 0);
+    });
+    it("3-arg form with explicit logLevel is unaffected by the default", async function () {
+      // A caller that DOES supply logLevel keeps exact configured semantics: an
+      // explicit "error" level still suppresses info.
+      await log({ logLevel: "error" }, "info", "quiet");
       assert.equal(logged.length, 0);
     });
   });
@@ -409,9 +425,22 @@ describe("core/utils coverage", function () {
       assert.equal(logLevelEnabled(c, "info"), true);
       assert.equal(logLevelEnabled(c, "debug"), true);
     });
-    it("undefined/silent logLevel: nothing enabled (matches log's no-match behavior)", function () {
-      assert.equal(logLevelEnabled({}, "error"), false);
+    it("undefined/empty logLevel defaults to info (parity with log's 2-arg default)", function () {
+      // Undefined/empty logLevel is treated as "info": error/warning/info enabled,
+      // debug not. This mirrors log()'s default so the guard never drifts from the
+      // emit — the fix that stopped 2-arg calls being silently dropped.
+      assert.equal(logLevelEnabled({}, "error"), true);
+      assert.equal(logLevelEnabled({}, "warning"), true);
+      assert.equal(logLevelEnabled({}, "info"), true);
+      assert.equal(logLevelEnabled({}, "debug"), false);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "error"), true);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "debug"), false);
+    });
+    it("explicit silent logLevel suppresses everything", function () {
       assert.equal(logLevelEnabled({ logLevel: "silent" }, "error"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "warning"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "info"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "debug"), false);
     });
     it("agrees with log(): guarding a debug dump prints iff enabled", async function () {
       // At info level the guard is false, so the expensive message is never
