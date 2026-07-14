@@ -26,7 +26,31 @@ export {
   reporters,
   registerReporter,
   isDebugRequested,
+  discoverConfigPath,
 };
+
+/**
+ * Resolve which config file a CLI command should load: any non-empty
+ * `--config` is authoritative (resolved to an absolute path, so a mistyped
+ * path fails deterministically in setConfig rather than silently falling
+ * back), otherwise auto-discover the `.doc-detective.(json|yaml|yml)` file
+ * in the cwd. Shared by the runTests, debug, and warm command handlers so
+ * the discovery order can't drift between commands.
+ */
+function discoverConfigPath(args: { config?: unknown }): string | null {
+  const hasExplicitConfig =
+    typeof args.config === "string" && args.config.trim().length > 0;
+  if (hasExplicitConfig) return path.resolve((args.config as string).trim());
+  for (const name of [
+    ".doc-detective.json",
+    ".doc-detective.yaml",
+    ".doc-detective.yml",
+  ]) {
+    const candidate = path.resolve(process.cwd(), name);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
 
 // True when `DOC_DETECTIVE_DEBUG` env var is set to a truthy value.
 // Used by `runTestsHandler` in cli.ts to decide whether to catch
