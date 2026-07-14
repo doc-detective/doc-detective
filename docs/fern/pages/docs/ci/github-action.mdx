@@ -47,7 +47,7 @@ By default, the action runs from the repository root and uses the config file Do
 |---|---|---|
 | `version` | `latest` | Doc Detective version to run—a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
-| `ios` | `auto` | Cache the WebDriverAgent build on macOS runners so `ios`-platform tests skip the slow cold compile. `auto` caches only when your specs use an `ios` platform, `true` always caches, and `false` never does. No effect off macOS. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos). |
+| `ios` | `auto` | Deprecated and ignored. It no longer caches the WebDriverAgent build—Doc Detective v4.28 and later prebuilds and manages that build itself. Existing workflows that set it keep working. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos). |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
 
@@ -180,35 +180,7 @@ See [Docker and headless](/docs/ci/docker-and-headless) for how headless environ
 
 ## Speed up iOS tests on macOS
 
-Tests against the `ios` platform run on macOS runners, where the first XCUITest session compiles the WebDriverAgent (WDA) with `xcodebuild`. On a cold, ephemeral runner that compile takes around 10 minutes and dominates the run. To avoid paying that cost every time, the action caches the WDA build products and restores them on later runs, so the build becomes near-instant.
-
-```yaml
-jobs:
-  runTests:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
-        # ios: auto is the default—nothing else is needed on macOS.
-```
-
-The `ios` input controls this behavior:
-
-| Input | Default | Description |
-|---|---|---|
-| `ios` | `auto` | Cache the WebDriverAgent build on macOS runners. `auto` scans your resolved specs and config and caches only when it finds an `ios` platform, `true` always caches, and `false` never does. |
-
-The first run compiles WDA cold and saves the build to the cache. Later runs restore it and finish with a quick incremental build. The cache key covers the runner OS, the Xcode version, and the XCUITest driver version. A change to the runner OS or Xcode starts a fresh, cold build. A driver-version bump is gentler: the exact key misses, but the action falls back to the most recent build for the same OS and Xcode, warms an incremental rebuild from it, and re-caches the result under the new driver version. That way a driver upgrade repairs the cache on the next run instead of leaving it stale.
-
-Caching only affects build speed—Doc Detective still bootstraps the XCUITest driver and simulator it needs at test time. Leave `ios` at `auto` for most workflows. Set it to `true` when your `ios` platform lives outside the scanned specs and config, or `false` to turn caching off.
-
-<Note>
-iOS simulators run only on macOS, so this input has no effect on Linux or Windows runners.
-</Note>
-
-### Alternative: prebuild WebDriverAgent into a persisted cache
-
-If your workflow already persists Doc Detective's [cache directory](/reference/cli/install#cache-directory) between runs (for example with `actions/cache`), you can skip the action's WDA cache and let Doc Detective manage the build itself: run [`doc-detective install ios --yes`](/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions, and test sessions consume the products automatically and read-only—safe to share across parallel jobs. Set `ios: 'false'` on the action in that case: the two mechanisms overlap, and the action's cache takes precedence when both are active, so you'd pay for both.
+Tests against the `ios` platform run on macOS runners, where the first XCUITest session compiles the WebDriverAgent (WDA) with `xcodebuild`. On a cold, ephemeral runner that compile takes around 10 minutes and dominates the run. iOS tests still work without any extra setup—the first session just pays that cost. To skip it on later runs, have Doc Detective prebuild WDA once and persist it across runs.
 
 ```yaml
 jobs:
@@ -221,12 +193,22 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .dd-cache
-          key: dd-cache-${{ runner.os }}
+          key: dd-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            dd-cache-${{ runner.os }}-
       - run: npx doc-detective install ios --yes
       - uses: doc-detective/github-action@v1
-        with:
-          ios: 'false'
 ```
+
+The [`doc-detective install ios --yes`](/reference/cli/install#install-ios) step compiles WebDriverAgent once into Doc Detective's [cache directory](/reference/cli/install#cache-directory), keyed by your Xcode and XCUITest driver versions. Test sessions then read those build products automatically and read-only, so they're safe to share across parallel jobs. Persisting `DOC_DETECTIVE_CACHE_DIR` with `actions/cache` carries the build between runs, so only the first run pays the cold compile.
+
+Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. An exact cache hit never re-uploads, so a static key would strand the build products the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` pulls the newest previous entry to build from.
+
+This recipe requires Doc Detective v4.28 or later.
+
+<Note>
+The `ios` input is deprecated and does nothing. Earlier versions of the action cached the WebDriverAgent build through this input, but Doc Detective v4.28 and later prebuilds and manages that build, so the action-side cache was retired. Existing workflows that set `ios` keep working—the input is ignored—and a run that would have used the old cache prints a one-time notice pointing here. You can safely remove the input from your workflow.
+</Note>
 
 ## Runtime caching
 
