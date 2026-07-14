@@ -251,6 +251,38 @@ describe("warm manifest: write / claim / release / sweep", function () {
     assert.deepEqual(orphans, []);
   });
 
+  it("merges into an existing unclaimed manifest instead of clobbering it", function () {
+    // Two warms racing: the loser's ownership records must survive the
+    // winner's write, or its devices become undiscoverable orphans.
+    const fs = memFs({
+      [manifestPath]: manifestContent({ devices: [androidDevice] }),
+    });
+    writeWarmManifest({
+      cacheDir: CACHE,
+      devices: [iosDevice],
+      deps: deps({ fs }),
+    });
+    const merged = JSON.parse(fs.files.get(manifestPath));
+    assert.deepEqual(
+      merged.devices.map((d) => d.udid).sort(),
+      ["UDID-1", "emulator-5554"]
+    );
+  });
+
+  it("the newer entry wins a udid collision during the merge", function () {
+    const fs = memFs({
+      [manifestPath]: manifestContent({ devices: [iosDevice] }),
+    });
+    const renamed = { ...iosDevice, name: "renamed-same-sim" };
+    writeWarmManifest({
+      cacheDir: CACHE,
+      devices: [renamed],
+      deps: deps({ fs }),
+    });
+    const merged = JSON.parse(fs.files.get(manifestPath));
+    assert.deepEqual(merged.devices, [renamed]);
+  });
+
   it("falls back to remove-then-rename when the atomic write's rename is refused", function () {
     // Windows can refuse an overwrite-rename with EEXIST/EPERM.
     const fs = memFs({ [manifestPath]: manifestContent() });
@@ -269,7 +301,12 @@ describe("warm manifest: write / claim / release / sweep", function () {
       deps: deps({ fs }),
     });
     assert.equal(written, manifestPath);
-    assert.deepEqual(JSON.parse(fs.files.get(manifestPath)).devices, [iosDevice]);
+    // Merge-on-write: the pre-existing manifest's devices survive alongside
+    // the new entry.
+    assert.deepEqual(
+      JSON.parse(fs.files.get(manifestPath)).devices.map((d) => d.udid).sort(),
+      ["UDID-1", "emulator-5554"]
+    );
   });
 
   it("returns null when the manifest exists but can't be read", function () {

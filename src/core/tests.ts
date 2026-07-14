@@ -3483,8 +3483,9 @@ function collectHandoffDevices({
 async function sweepHandoffDevices(
   devices: WarmDeviceHandoff[],
   { config }: { config: any }
-): Promise<void> {
+): Promise<{ failed: WarmDeviceHandoff[] }> {
   let simDeps: ReturnType<typeof buildAcquireSimulatorDeps> | undefined;
+  const failed: WarmDeviceHandoff[] = [];
   for (const device of devices ?? []) {
     try {
       if (device.platform === "android" && typeof device.pid === "number") {
@@ -3505,6 +3506,7 @@ async function sweepHandoffDevices(
         `Swept stale warm device '${device.name}' (${device.udid}).`
       );
     } catch (error: any) {
+      failed.push(device);
       log(
         config,
         "warning",
@@ -3512,6 +3514,7 @@ async function sweepHandoffDevices(
       );
     }
   }
+  return { failed };
 }
 /* c8 ignore stop */
 
@@ -3539,7 +3542,18 @@ async function warmDown({
     );
     return { files: 0, devices: 0 };
   }
-  await sweepHandoffDevices(devices, { config });
+  const { failed } = await sweepHandoffDevices(devices, { config });
+  if (failed.length) {
+    // Ownership records must outlive the resources they describe: a device
+    // whose teardown failed stays recorded, so a rerun (or the next run's
+    // orphan sweep) can retry instead of forgetting it exists.
+    log(
+      config,
+      "warning",
+      `Warm teardown incomplete: ${failed.length} of ${devices.length} device(s) couldn't be swept — keeping the manifest file(s); rerun \`doc-detective warm --down\` to retry.`
+    );
+    return { files: 0, devices: devices.length - failed.length };
+  }
   for (const file of files) {
     try {
       fs.unlinkSync(file);

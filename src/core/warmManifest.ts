@@ -119,12 +119,43 @@ function parseManifest(text: string | Buffer): WarmManifestFile | null {
   }
 }
 
+// Atomic temp+rename publish (the installed.json pattern) so a concurrent
+// reader never observes a half-written file.
+function publishAtomically(
+  cacheDir: string,
+  target: string,
+  content: string,
+  fs: WarmManifestFs,
+  pid: number,
+  nowMs: number
+): void {
+  const tmp = path.join(
+    cacheDir,
+    `${path.basename(target)}.${pid}.${nowMs}.tmp`
+  );
+  fs.writeFileSync(tmp, content);
+  try {
+    fs.renameSync(tmp, target);
+  } catch {
+    // Windows can refuse an overwrite-rename; remove-then-rename, same
+    // degradation as writeInstalledRecord.
+    try {
+      fs.unlinkSync(target);
+    } catch {
+      // best-effort
+    }
+    fs.renameSync(tmp, target);
+  }
+}
+
 /**
- * Atomically publish the handoff manifest (write-to-tmp + rename, the
- * installed.json pattern) so a concurrent claimer never observes a
- * half-written file. Returns the manifest path, or null when there are no
- * devices to hand off (an empty manifest would only make the next run pay a
- * claim/release round-trip for nothing).
+ * Atomically publish the handoff manifest. An existing UNCLAIMED manifest is
+ * merged, not replaced: two warms racing (neither saw the other's write at
+ * claim time) must not orphan the loser's devices by clobbering its only
+ * ownership record — the union, deduped by udid with the newer entry
+ * winning, keeps every booted device discoverable. Returns the manifest
+ * path, or null when there are no devices to hand off (an empty manifest
+ * would only make the next run pay a claim/release round-trip for nothing).
  */
 export function writeWarmManifest({
   cacheDir,
@@ -141,25 +172,31 @@ export function writeWarmManifest({
   // the cache root (getCacheDir only resolves the path).
   fs.mkdirSync(cacheDir, { recursive: true });
   const target = manifestPath(cacheDir);
+  const byUdid = new Map<string, WarmDeviceHandoff>();
+  if (fs.existsSync(target)) {
+    try {
+      const existing = parseManifest(fs.readFileSync(target));
+      for (const device of existing?.devices ?? []) {
+        byUdid.set(device.udid, device);
+      }
+    } catch {
+      // Unreadable prior manifest: nothing recoverable to merge.
+    }
+  }
+  for (const device of devices) byUdid.set(device.udid, device);
   const record: WarmManifestFile = {
     version: 1,
     createdAt: new Date(now()).toISOString(),
-    devices,
+    devices: [...byUdid.values()],
   };
-  const tmp = path.join(cacheDir, `${WARM_MANIFEST_NAME}.${pid}.${now()}.tmp`);
-  fs.writeFileSync(tmp, JSON.stringify(record, null, 2));
-  try {
-    fs.renameSync(tmp, target);
-  } catch {
-    // Windows can refuse an overwrite-rename; remove-then-rename, same
-    // degradation as writeInstalledRecord.
-    try {
-      fs.unlinkSync(target);
-    } catch {
-      // best-effort
-    }
-    fs.renameSync(tmp, target);
-  }
+  publishAtomically(
+    cacheDir,
+    target,
+    JSON.stringify(record, null, 2),
+    fs,
+    pid,
+    now()
+  );
   return target;
 }
 
@@ -189,37 +226,51 @@ export function claimWarmManifest({
   const { fs, now, isPidAlive, pid } = resolveDeps(deps);
   const source = manifestPath(cacheDir);
   if (!fs.existsSync(source)) return null;
-  let manifest: WarmManifestFile | null;
+  // Rename FIRST, read after: the rename is the atomic claim, and reading
+  // the claimed file guarantees we adopt exactly what we claimed — reading
+  // `source` before renaming would let a concurrent warm swap the file in
+  // between, leaving us stamped over one manifest while holding another's
+  // devices.
+  const target = claimedPath(cacheDir, runId);
   try {
-    manifest = parseManifest(fs.readFileSync(source));
+    fs.renameSync(source, target);
   } catch {
+    // Another runner claimed between our existence check and rename.
     return null;
   }
+  let manifest: WarmManifestFile | null;
+  try {
+    manifest = parseManifest(fs.readFileSync(target));
+  } catch {
+    manifest = null;
+  }
   if (!manifest) {
-    // Corrupt: a half-written or foreign file. Remove it so it stops
-    // shadowing future handoffs; there is nothing safe to adopt.
+    // Corrupt: a half-written or foreign file. We claimed it, so we clean
+    // it up; there is nothing safe to adopt.
     try {
-      fs.unlinkSync(source);
+      fs.unlinkSync(target);
     } catch {
       // best-effort
     }
     return null;
   }
-  const target = claimedPath(cacheDir, runId);
-  try {
-    fs.renameSync(source, target);
-  } catch {
-    // Another runner claimed between our read and rename.
-    return null;
-  }
   // Durable claim record: a later scan can tell whether the adopter is
   // still alive (releaseWarmClaim deletes this after the run-end sweep).
+  // Stamped atomically (temp + rename) — a truncate-then-fail writeFileSync
+  // would corrupt the only durable ownership record.
   const claimed: WarmManifestFile = {
     ...manifest,
     claimedBy: { runId, pid, claimedAt: new Date(now()).toISOString() },
   };
   try {
-    fs.writeFileSync(target, JSON.stringify(claimed, null, 2));
+    publishAtomically(
+      cacheDir,
+      target,
+      JSON.stringify(claimed, null, 2),
+      fs,
+      pid,
+      now()
+    );
   } catch {
     // The rename already succeeded; a failed stamp only degrades the
     // orphan scan (the file falls back to the TTL heuristic).
