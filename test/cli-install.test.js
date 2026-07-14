@@ -47,6 +47,9 @@ describe("CLI install commands", function () {
     expect(r.status).to.equal(0);
     expect(r.stderr + r.stdout).to.not.include("Unknown argument");
     expect(r.stdout).to.match(/ios-toolchain|simctl|XCUITest/i);
+    // The WDA prebuild (docs/design/ios-wda-prebuild.md) is part of the
+    // preview: dry-run must disclose that a real run would build/verify WDA.
+    expect(r.stdout).to.match(/prebuild/i);
   });
 
   it("`install android --dry-run` previews a plan without java/network (native app phase A3)", function () {
