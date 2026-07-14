@@ -1,5 +1,6 @@
 import path from "node:path";
 import { installIos } from "../dist/runtime/iosInstaller.js";
+import { locateManagedWda } from "../dist/runtime/wdaProducts.js";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -315,6 +316,122 @@ describe("install ios: WebDriverAgent prebuild", function () {
       "no completeness marker for a productless build"
     ).to.equal(false);
     expect(env.lock.released).to.equal(true);
+  });
+});
+
+// --- session-time managed-products locator (design phase 3) ---
+
+describe("managed WDA locator (session consumption)", function () {
+  const NOW = 1_752_000_000_000;
+
+  function makeLocatorEnv() {
+    const env = makeWdaEnv();
+    return {
+      ...env,
+      options: {
+        wdaRootDir: env.wdaRootDir,
+        fs: env.fs,
+        platform: "darwin",
+        probeXcode: () => ({ version: "16.4", build: "16F6" }),
+        resolveDriverVersion: () => "10.8.1",
+        now: () => NOW,
+      },
+      // The seeded marker must match the locator's driver version.
+      seedMarker() {
+        env.seedMarker.call(env);
+        const markerPath = path.join(env.keyDir, "products.json");
+        const marker = JSON.parse(env.fs.files.get(markerPath));
+        env.fs.files.set(
+          markerPath,
+          JSON.stringify({ ...marker, key: env.key, driverVersion: "10.8.1" })
+        );
+      },
+    };
+  }
+
+  // The seeded env key encodes driver 7.28.3; the locator env uses 10.8.1,
+  // so recompute the expected key for hits.
+  const HIT_KEY = "xcode-16.4-16F6-driver-10.8.1";
+
+  it("returns the keyed DerivedData path on a valid marker hit and touches last-used", function () {
+    const env = makeLocatorEnv();
+    const keyDir = path.join(env.wdaRootDir, HIT_KEY);
+    const runnerApp = path.join(
+      keyDir,
+      "DerivedData",
+      "Build",
+      "Products",
+      "Debug-iphonesimulator",
+      "WebDriverAgentRunner-Runner.app"
+    );
+    env.fs.files.set(runnerApp, "<app>");
+    env.fs.files.set(
+      path.join(keyDir, "products.json"),
+      JSON.stringify({
+        key: HIT_KEY,
+        driverVersion: "10.8.1",
+        xcode: { version: "16.4", build: "16F6" },
+        runnerApp,
+        builtAt: "2026-07-01T00:00:00.000Z",
+      })
+    );
+
+    const hit = locateManagedWda(env.options);
+    expect(hit).to.not.equal(null);
+    expect(hit.derivedDataPath).to.equal(path.join(keyDir, "DerivedData"));
+    expect(hit.key).to.equal(HIT_KEY);
+    expect(
+      env.fs.files.get(path.join(keyDir, "last-used")),
+      "reader touches the last-used stamp"
+    ).to.equal(String(NOW));
+  });
+
+  it("returns null when no marker exists for the current key", function () {
+    const env = makeLocatorEnv();
+    expect(locateManagedWda(env.options)).to.equal(null);
+  });
+
+  it("returns null when the marker's Runner app is gone (stale marker)", function () {
+    const env = makeLocatorEnv();
+    const keyDir = path.join(env.wdaRootDir, HIT_KEY);
+    env.fs.files.set(
+      path.join(keyDir, "products.json"),
+      JSON.stringify({
+        key: HIT_KEY,
+        driverVersion: "10.8.1",
+        xcode: { version: "16.4", build: "16F6" },
+        runnerApp: path.join(keyDir, "gone.app"),
+        builtAt: "2026-07-01T00:00:00.000Z",
+      })
+    );
+    expect(locateManagedWda(env.options)).to.equal(null);
+  });
+
+  it("returns null below the supported driver floor (no guessing on old drivers)", function () {
+    const env = makeLocatorEnv();
+    env.options.resolveDriverVersion = () => "9.9.9";
+    expect(locateManagedWda(env.options)).to.equal(null);
+  });
+
+  it("returns null when the driver version is unresolvable", function () {
+    const env = makeLocatorEnv();
+    env.options.resolveDriverVersion = () => null;
+    expect(locateManagedWda(env.options)).to.equal(null);
+  });
+
+  it("returns null when Xcode is not probeable", function () {
+    const env = makeLocatorEnv();
+    env.options.probeXcode = () => null;
+    expect(locateManagedWda(env.options)).to.equal(null);
+  });
+
+  it("returns null off macOS without touching any effect", function () {
+    const env = makeLocatorEnv();
+    env.options.platform = "win32";
+    env.options.probeXcode = () => {
+      throw new Error("must not probe off darwin");
+    };
+    expect(locateManagedWda(env.options)).to.equal(null);
   });
 });
 

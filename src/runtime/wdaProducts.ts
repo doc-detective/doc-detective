@@ -8,8 +8,11 @@
 //   <cacheDir>/ios/wda/<key>/last-used       sidecar stamp touched by readers
 //   <cacheDir>/ios/wda/.lock/                writer's advisory lock
 
+import { spawnSync } from "node:child_process";
+import fsDefault from "node:fs";
 import path from "node:path";
 import { getCacheDir, type CacheDirContext } from "./cacheDir.js";
+import { resolveHeavyDepVersion } from "./loader.js";
 
 export interface XcodeVersion {
   /** e.g. "16.4" */
@@ -135,6 +138,124 @@ export function readProductsMarker(
     if (!fs.existsSync(parsed.runnerApp)) return null;
     return parsed as WdaProductsMarker;
   } catch {
+    return null;
+  }
+}
+
+// --- session-time locator (design phase 3) ---
+
+/**
+ * Minimum appium-xcuitest-driver MAJOR whose prebuilt-WDA consumption
+ * (`appium:usePrebuiltWDA` + `appium:derivedDataPath`) this locator has been
+ * validated against (the live macOS fixture legs run the 10.x line that
+ * doc-detective's declared range installs). Prebuilt handling is
+ * driver-version-sensitive across older majors (`prebuiltWDAPath` /
+ * `useXctestrunFile` variants, differing .xctestrun handling), so anything
+ * below the floor gets a plain fallback — today's build-in-session behavior —
+ * never a guess.
+ */
+export const MIN_PREBUILT_WDA_DRIVER_MAJOR = 10;
+
+// One `xcodebuild -version` spawn max per process: sessions can be created
+// many times per run, and the Xcode version cannot change mid-run.
+let cachedXcodeProbe: XcodeVersion | null | undefined;
+
+/* c8 ignore start — real spawn; unit tests inject probeXcode. */
+function probeXcodeVersionCached(): XcodeVersion | null {
+  if (cachedXcodeProbe === undefined) {
+    try {
+      const result = spawnSync("xcodebuild", ["-version"], {
+        encoding: "utf8",
+        windowsHide: true,
+        timeout: 15000,
+      });
+      cachedXcodeProbe =
+        result.status === 0 ? parseXcodebuildVersion(result.stdout) : null;
+    } catch {
+      cachedXcodeProbe = null;
+    }
+  }
+  return cachedXcodeProbe;
+}
+/* c8 ignore stop */
+
+export interface LocateManagedWdaOptions {
+  ctx?: CacheDirContext;
+  fs?: WdaFs;
+  platform?: NodeJS.Platform;
+  probeXcode?: () => XcodeVersion | null;
+  resolveDriverVersion?: (
+    name: string,
+    ctx: CacheDirContext
+  ) => string | null;
+  /** Test override for the managed WDA root (default: <cacheDir>/ios/wda). */
+  wdaRootDir?: string;
+  now?: () => number;
+}
+
+export interface ManagedWdaHit {
+  key: string;
+  /** Value for appium:derivedDataPath — the keyed DerivedData dir. */
+  derivedDataPath: string;
+}
+
+/**
+ * Pure managed-products locator for iOS session capability builders: find
+ * the prebuilt WDA products matching the CURRENT toolchain (installed
+ * driver version × host Xcode). On a valid hit, touch the last-used stamp
+ * (the prune signal) and return the derivedDataPath to consume read-only
+ * with `appium:usePrebuiltWDA`. Any miss — wrong platform, unresolvable
+ * driver, driver below the supported floor, no full Xcode, absent/stale
+ * marker — returns null and the session builds WDA itself, exactly today's
+ * behavior. Never throws.
+ */
+export function locateManagedWda(
+  options: LocateManagedWdaOptions = {}
+): ManagedWdaHit | null {
+  const {
+    ctx = {},
+    fs = fsDefault as unknown as WdaFs,
+    platform = process.platform,
+    probeXcode = probeXcodeVersionCached,
+    resolveDriverVersion = resolveHeavyDepVersion,
+    now = Date.now,
+  } = options;
+
+  try {
+    if (platform !== "darwin") return null;
+
+    const driverVersion = resolveDriverVersion("appium-xcuitest-driver", ctx);
+    if (!driverVersion) return null;
+    const driverMajor = Number.parseInt(driverVersion, 10);
+    if (
+      !Number.isFinite(driverMajor) ||
+      driverMajor < MIN_PREBUILT_WDA_DRIVER_MAJOR
+    ) {
+      return null;
+    }
+
+    const xcode = probeXcode();
+    if (!xcode) return null;
+
+    const wdaRoot = path.normalize(options.wdaRootDir ?? getWdaRoot(ctx));
+    const key = computeWdaKey(xcode, driverVersion);
+    const keyDir = path.join(wdaRoot, key);
+    const marker = readProductsMarker(keyDir, fs);
+    if (!marker || marker.key !== key || marker.driverVersion !== driverVersion) {
+      return null;
+    }
+
+    // Readers are read-only consumers of the DerivedData — the stamp is the
+    // one exception (it's the prune-freshness signal). Best-effort.
+    try {
+      fs.writeFileSync(path.join(keyDir, LAST_USED_STAMP), String(now()));
+    } catch {
+      /* a failed stamp only risks an early prune much later */
+    }
+
+    return { key, derivedDataPath: path.join(keyDir, "DerivedData") };
+  } catch {
+    // ADR 01049 degradation semantics: an unusable cache is a plain miss.
     return null;
   }
 }

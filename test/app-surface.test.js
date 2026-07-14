@@ -1568,7 +1568,7 @@ describe("startAppSurface", function () {
 
   it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {
     const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-    const launch = async () => {
+    const launch = async (locateWda) => {
       let caps;
       await startAppSurface({
         config: {},
@@ -1582,15 +1582,59 @@ describe("startAppSurface", function () {
             return fakeDriver();
           },
           acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+          locateWda,
         },
       });
       return caps;
     };
     try {
       delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-      assert.equal((await launch())["appium:derivedDataPath"], undefined);
+      const bare = await launch(() => null);
+      assert.equal(bare["appium:derivedDataPath"], undefined);
+      assert.equal(bare["appium:usePrebuiltWDA"], undefined);
+      // Env override wins, unchanged — the managed locator is not consulted.
       process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = "/tmp/dd-wda";
-      assert.equal((await launch())["appium:derivedDataPath"], "/tmp/dd-wda");
+      const env = await launch(() => {
+        throw new Error("managed locator must not be consulted under the env override");
+      });
+      assert.equal(env["appium:derivedDataPath"], "/tmp/dd-wda");
+      assert.equal(env["appium:usePrebuiltWDA"], undefined);
+    } finally {
+      if (prev === undefined)
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
+    }
+  });
+
+  it("ios: consumes managed prebuilt WDA products when the locator hits (no env override)", async function () {
+    const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    try {
+      delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      let caps;
+      await startAppSurface({
+        config: {},
+        step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+        appSession: preflighted(),
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async (c) => {
+            caps = c;
+            return fakeDriver();
+          },
+          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+          locateWda: () => ({
+            key: "xcode-16.4-16F6-driver-10.8.1",
+            derivedDataPath: "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",
+          }),
+        },
+      });
+      assert.equal(
+        caps["appium:derivedDataPath"],
+        "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData"
+      );
+      // Read-only consumption: the session must not rebuild into the shared dir.
+      assert.equal(caps["appium:usePrebuiltWDA"], true);
     } finally {
       if (prev === undefined)
         delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;

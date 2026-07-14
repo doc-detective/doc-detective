@@ -7,6 +7,10 @@
 // preflights stay unit-testable without a device.
 
 import path from "node:path";
+import {
+  locateManagedWda,
+  type ManagedWdaHit,
+} from "../../runtime/wdaProducts.js";
 
 type MobileTarget = "android" | "ios";
 
@@ -141,11 +145,15 @@ function buildMobileBrowserCapabilities({
   udid,
   cacheDir,
   timeout,
+  locateWda = () => locateManagedWda({ ctx: { cacheDir } }),
 }: {
   platform: MobileTarget;
   udid: string;
   cacheDir: string;
   timeout?: number;
+  // Injected in tests; the default reads the managed WDA products under the
+  // resolved cache root.
+  locateWda?: () => ManagedWdaHit | null;
 }): Record<string, any> {
   if (platform === "android") {
     return {
@@ -189,10 +197,18 @@ function buildMobileBrowserCapabilities({
     120000
   );
   // Same opt-in derived-data sharing as iOS app sessions (see appSurface.ts
-  // for the caching contract).
+  // for the caching contract). The env override wins unchanged; otherwise
+  // the managed prebuilt products (docs/design/ios-wda-prebuild.md) are
+  // consumed read-only when `install ios` built them for this toolchain.
   const derivedDataPath = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
   if (derivedDataPath && derivedDataPath.trim()) {
     capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
+  } else {
+    const managed = locateWda();
+    if (managed) {
+      capabilities["appium:derivedDataPath"] = managed.derivedDataPath;
+      capabilities["appium:usePrebuiltWDA"] = true;
+    }
   }
   return capabilities;
 }
