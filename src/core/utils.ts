@@ -1296,19 +1296,28 @@ async function loadEnvs(envsFile: string) {
 // `log` itself delegates to this so the level policy has a single source of
 // truth and can never drift from the guard.
 function logLevelEnabled(config: any, level: string): boolean {
-  if (config.logLevel === "error" && level === "error") return true;
+  // Default an undefined/empty logLevel to "info" (parity with src/utils.ts#log,
+  // which already defaults to info). Without this fallback none of the branches
+  // below match an undefined logLevel, so the 2-arg `log(message, level)` form —
+  // which resets config to {} — silently dropped EVERY message, swallowing the
+  // error/warning logs emitted at 2-arg call sites in expressions.ts. An explicit
+  // level such as "silent" is preserved, so intentional silencing still
+  // suppresses all output. Defaulting here (rather than in `log`) keeps the guard
+  // predicate and `log` as a single source of truth for the level policy.
+  const currentLevel = config.logLevel || "info";
+  if (currentLevel === "error" && level === "error") return true;
   if (
-    config.logLevel === "warning" &&
+    currentLevel === "warning" &&
     (level === "error" || level === "warning")
   )
     return true;
   if (
-    config.logLevel === "info" &&
+    currentLevel === "info" &&
     (level === "error" || level === "warning" || level === "info")
   )
     return true;
   if (
-    config.logLevel === "debug" &&
+    currentLevel === "debug" &&
     (level === "error" ||
       level === "warning" ||
       level === "info" ||
