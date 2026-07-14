@@ -1,11 +1,16 @@
 # Design: inline warm phase (resolve → warm → run → sweep)
 
-Status: **planned — no phase started; inline-first.** This document is the implementation plan for
-an always-on provisioning phase that runs between test resolution and test execution: it
-concurrently resolves, repairs, and warms everything the run will need — driver installs, browser
-installs, device boots, WDA availability, chromedriver prefetch — and only then runs tests. The
-standalone `doc-detective warm` CLI (CI overlap with build steps) is **deferred** to a later phase.
-Produced from the CI wall-clock investigation (2026-07-13); companion plan:
+Status: **B1 + B2 shipped** ([ADR 01060](../../adrs/01060-inline-warm-phase.md)) — the always-on
+inline phase (planner + executor, `src/core/warmPhase.ts`) and the `report.warm` timing block are
+live, including `wda-check` (enabled by the ADR 01059 managed WDA prebuild landing first) and
+`chromedriver-prefetch` (implemented as a chained throwaway session — the one task that awaits
+device readiness, scoped to runs with android mobile-web contexts). The standalone
+`doc-detective warm` CLI (**B3**, CI overlap with build steps + ownership handoff) remains
+**deferred**; until it lands, the fixtures.yml iOS pre-boot step stays. This document is the
+implementation plan for an always-on provisioning phase that runs between test resolution and test
+execution: it concurrently resolves, repairs, and warms everything the run will need — driver
+installs, browser installs, device boots, WDA availability, chromedriver prefetch — and only then
+runs tests. Produced from the CI wall-clock investigation (2026-07-13); companion plan:
 [ios-wda-prebuild.md](ios-wda-prebuild.md).
 
 ## Problem
