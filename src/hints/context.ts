@@ -729,8 +729,10 @@ export function readNpmScripts(cwd: string): boolean {
  * `prebuildWebDriverAgent` hint has nothing to teach. Validity uses the same
  * `readProductsMarker` the session locator uses (marker shape + Runner app
  * present), so a corrupt or gutted key dir doesn't suppress the hint. One
- * bounded readdir of `<cacheDir>/ios/wda` plus a marker read per entry;
- * false on any error (missing dir, unreadable cache, unsafe cache path).
+ * bounded readdir of `<cacheDir>/ios/wda` plus a marker read per entry,
+ * capped at 100 entries (the walk-budget rule; a real wda root holds a
+ * handful of keys); false on any error (missing dir, unreadable cache,
+ * unsafe cache path).
  */
 export function detectManagedWdaProducts(
   config: any,
@@ -741,7 +743,7 @@ export function detectManagedWdaProducts(
   const fsDep = deps.fs ?? fs;
   try {
     const wdaRoot = getWdaRoot({ cacheDir: config?.cacheDir });
-    const entries = fsDep.readdirSync(wdaRoot);
+    const entries = fsDep.readdirSync(wdaRoot).slice(0, 100);
     return entries.some(
       (entry) =>
         readProductsMarker(
