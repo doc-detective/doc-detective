@@ -24,9 +24,9 @@ You can specify the target element directly using a string (for basic text or se
 ## How text matching works
 
 `elementText` (and the string shorthand's text form) matches an element's
-**full visible text** with whitespace normalized: Doc Detective trims leading and
+**full visible text** with whitespace normalized. Doc Detective trims leading and
 trailing whitespace and collapses internal runs of spaces, tabs, and newlines to a
-single space. Two things follow from this:
+single space. Two consequences follow from this:
 
 - **Framework-rendered text just works.** Frameworks like React and Svelte often
   split an element's text across several DOM text nodes (sometimes with an empty
@@ -35,9 +35,9 @@ single space. Two things follow from this:
   the result stays the same on Chrome and Firefox no matter how each browser's
   driver reports whitespace.
 - **It's a whole-element match, not a substring.** `elementText` matches an element
-  whose *entire* normalized text equals your string, so a broad container such as
-  `{ "selector": "body", "elementText": "Garden companion API" }` won't match (the
-  body's text is the whole page). Target a tighter element, or match a substring with
+  whose *entire* normalized text equals your string, so a broad `selector` like
+  `body` combined with `elementText` won't match (the body's text is the whole
+  page). Target a tighter element, or match a substring with
   a regular expression by wrapping the value in slashes: `"elementText": "/Garden companion API/"`.
 
 ## App windows
