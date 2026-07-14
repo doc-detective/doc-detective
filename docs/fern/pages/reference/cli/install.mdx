@@ -142,7 +142,7 @@ Prepare a macOS host for tests that target the `ios` platform: verify the simula
 doc-detective install ios --yes
 ```
 
-The command runs these steps and reports each individually; none of them fail the command (a step that can't run reports `skipped` with guidance):
+The command runs these steps and reports each individually. None of them fail the command—a step that can't run reports `skipped` with guidance:
 
 1. **Prerequisite checks**—verifies that the Xcode command-line tools resolve (`xcode-select -p`) and that the iOS Simulator control tool responds (`xcrun simctl`), with actionable guidance when either is missing.
 2. **Driver install**—installs `appium-xcuitest-driver` into the Doc Detective cache if it isn't already present (the same install a first test run performs lazily).
