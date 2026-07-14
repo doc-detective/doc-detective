@@ -310,6 +310,9 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
       platform: "ios",
       udid: "SIM-UDID-1234",
       cacheDir: "/tmp/dd-cache",
+      // Hermeticity: never let a unit test fall through to the real
+      // managed-WDA locator (test/AGENTS.md stubbing rule).
+      locateWda: () => null,
     });
     expect(capabilities.platformName).to.equal("iOS");
     expect(capabilities["appium:automationName"]).to.equal("XCUITest");
@@ -330,6 +333,7 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
       udid: "SIM-UDID-1234",
       cacheDir: "/tmp/dd-cache",
       timeout: 30000,
+      locateWda: () => null,
     });
     expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(120000);
     expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(120000);

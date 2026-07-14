@@ -1547,6 +1547,9 @@ describe("startAppSurface", function () {
         acquireDevice: async () => ({
           entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
         }),
+        // Hermeticity: never let a unit test fall through to the real
+        // managed-WDA locator (test/AGENTS.md stubbing rule).
+        locateWda: () => null,
       },
     });
     assert.equal(result.status, "PASS");
@@ -1657,6 +1660,9 @@ describe("startAppSurface", function () {
       acquireDevice: async () => ({
         entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
       }),
+      // Hermeticity: never let a unit test fall through to the real
+      // managed-WDA locator (test/AGENTS.md stubbing rule).
+      locateWda: () => null,
     };
     await startAppSurface({
       config: {},

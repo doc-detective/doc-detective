@@ -23,6 +23,7 @@ export interface LockFs {
   writeFileSync(p: string, data: string): void;
   readFileSync(p: string): string | Buffer;
   rmSync(p: string, opts?: { recursive?: boolean; force?: boolean }): void;
+  renameSync(from: string, to: string): void;
 }
 
 export interface LockDeps {
@@ -68,8 +69,12 @@ function defaultIsPidAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (err: any) {
-    // EPERM means the pid exists but belongs to another user — alive.
-    return err?.code === "EPERM";
+    // Dead ONLY on ESRCH (no such process). Any other error — EPERM
+    // (exists, different user) or something unexpected — reads as alive:
+    // this check licenses stealing a lock and deleting a live xcodebuild's
+    // output, so uncertainty must never count as dead. Matches the
+    // repo's other liveness probes (src/core/tests.ts).
+    return err?.code !== "ESRCH";
   }
 }
 
@@ -100,7 +105,12 @@ export async function acquireLock(
   const fs = deps.fs ?? (fsDefault as LockFs);
   const now = deps.now ?? Date.now;
   const sleep =
-    deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+    deps.sleep ??
+    ((ms: number) =>
+      new Promise<void>((r) => {
+        const timer = setTimeout(r, ms);
+        (timer as any).unref?.();
+      }));
   const pid = deps.pid ?? process.pid;
   const hostname = deps.hostname ?? os.hostname();
   const isPidAlive = deps.isPidAlive ?? defaultIsPidAlive;
@@ -108,6 +118,9 @@ export async function acquireLock(
 
   const ownerPath = `${dir}/${OWNER_FILE}`;
   const deadline = now() + waitMs;
+  // The parent provably exists after this; the loop body only runs the
+  // exclusive-mkdir arbiter plus the staleness read.
+  fs.mkdirSync(path.dirname(dir), { recursive: true });
   // Missing/corrupt owner metadata gets one poll-cycle of grace before it is
   // treated as stealable: a healthy acquirer writes owner.json microseconds
   // after its mkdir wins, so metadata that is STILL absent a poll later marks
@@ -115,23 +128,20 @@ export async function acquireLock(
   let metaMissingSince: number | null = null;
 
   for (;;) {
-    // Ensure the parent exists, then attempt the exclusive mkdir that IS the
-    // lock. EEXIST means contention; anything else propagates.
+    // Attempt the exclusive mkdir that IS the lock. EEXIST means contention;
+    // anything else propagates.
     try {
-      fs.mkdirSync(path.dirname(dir), { recursive: true });
       fs.mkdirSync(dir);
       return takeOwnership();
     } catch (err: any) {
       if (err?.code !== "EEXIST") throw err;
     }
 
-    // Held by someone. Decide whether the holder is recoverable.
-    let meta: OwnerMeta | null = null;
-    try {
-      meta = JSON.parse(String(fs.readFileSync(ownerPath)));
-    } catch {
-      meta = null;
-    }
+    // Held by someone. Decide whether the holder is recoverable. Metadata
+    // that parses but has the wrong shape (non-numeric heartbeatAt would make
+    // the staleness comparison NaN — permanently false) is treated exactly
+    // like missing metadata: grace, then stealable.
+    const meta = readOwnerMeta(fs, ownerPath);
 
     let stealable = false;
     if (meta) {
@@ -146,15 +156,29 @@ export async function acquireLock(
     }
 
     if (stealable) {
-      // Remove the dead holder's dir and loop straight back to mkdir. If a
-      // concurrent contender removed it first (ENOENT), the retry settles who
-      // wins — mkdir is the arbiter either way.
+      // Takeover is arbitrated by RENAME, not rm: exactly one of N
+      // simultaneous stealers wins the rename of the dead holder's dir to a
+      // unique trash name, so a loser can never delete a lock a winner just
+      // re-acquired (the classic rm-based double-steal race). The loser's
+      // rename throws (ENOENT) and it loops back to find the winner's fresh
+      // lock. Trash dirs are cleaned best-effort here and are also
+      // markerless siblings to the WDA prune pass.
+      const trash = `${dir}.stale-${pid}-${now()}`;
       try {
-        fs.rmSync(dir, { recursive: true, force: true });
+        fs.renameSync(dir, trash);
+        try {
+          fs.rmSync(trash, { recursive: true, force: true });
+        } catch {
+          /* best-effort trash cleanup */
+        }
+        // Won the takeover — retry the mkdir immediately (guaranteed
+        // progress, no busy-spin risk: the dir is gone).
+        continue;
       } catch {
-        // force:true makes ENOENT quiet on real fs; fakes may still throw.
+        // Lost the takeover race, or the dir is un-removable (EACCES from a
+        // different-user run). Fall through to the deadline check and sleep
+        // so an un-stealable stale lock still times out instead of spinning.
       }
-      continue;
     }
 
     if (now() >= deadline) return null;
@@ -173,12 +197,27 @@ export async function acquireLock(
       };
       fs.writeFileSync(ownerPath, JSON.stringify(meta));
     };
+    // Still-ours check: after a lease takeover (this process was suspended
+    // past staleMs and a contender legitimately stole the lock), the old
+    // holder must neither overwrite the new owner's metadata nor remove the
+    // new owner's lock dir on release.
+    const isStillOwner = () => {
+      const meta = readOwnerMeta(fs, ownerPath);
+      return meta !== null && meta.pid === pid && meta.hostname === hostname;
+    };
     writeMeta();
+
+    let lost = false;
     const stopHeartbeat = startInterval(() => {
-      // Refresh the lease. Never throw from a timer: if the dir vanished
-      // (external cleanup), the next refresh attempt just fails again and
-      // release() stays safe.
+      // Refresh the lease — but never resurrect a stolen lock. Never throw
+      // from a timer: if the dir vanished (external cleanup), the refresh
+      // just fails and release() stays safe.
       try {
+        if (!isStillOwner()) {
+          lost = true;
+          stopHeartbeat();
+          return;
+        }
         writeMeta();
       } catch {
         /* best-effort */
@@ -191,13 +230,34 @@ export async function acquireLock(
         if (released) return;
         released = true;
         stopHeartbeat();
+        if (lost) return;
         try {
+          // Same guard on the release path: only remove the dir while the
+          // metadata is still ours.
+          if (!isStillOwner()) return;
           fs.rmSync(dir, { recursive: true, force: true });
         } catch {
           /* already gone */
         }
       },
     };
+  }
+}
+
+/** Parse and shape-validate owner metadata; null for missing/corrupt/wrong-shape. */
+function readOwnerMeta(fs: LockFs, ownerPath: string): OwnerMeta | null {
+  try {
+    const parsed = JSON.parse(String(fs.readFileSync(ownerPath)));
+    if (
+      typeof parsed?.pid !== "number" ||
+      typeof parsed?.hostname !== "string" ||
+      typeof parsed?.heartbeatAt !== "number"
+    ) {
+      return null;
+    }
+    return parsed as OwnerMeta;
+  } catch {
+    return null;
   }
 }
 

@@ -287,6 +287,24 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // prebuildWebDriverAgent (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "prebuildWebDriverAgent",
+    priority: 50,
+    markdown: [
+      "This run drove an iOS simulator. The first iOS session on a cold environment compiles WebDriverAgent with `xcodebuild` — around 10 minutes. Prebuild it once and every later run (and every parallel job sharing the cache) skips that cost:",
+      "",
+      "```bash",
+      "doc-detective install ios --yes",
+      "```",
+      "",
+      "More: [doc-detective.com/reference/cli/install](https://doc-detective.com/reference/cli/install#install-ios)",
+    ].join("\n"),
+    when: (ctx) => ctx.ranIosContexts && !ctx.hasManagedWdaProducts,
+  },
+
+  // ------------------------------------------------------------------
   // recordConcurrently (optimization & advanced)
   // ------------------------------------------------------------------
   {

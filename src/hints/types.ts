@@ -201,6 +201,19 @@ export interface HintContext {
    * the `walkResults` step pass.
    */
   failedRunShellWithoutShell: boolean;
+  /**
+   * True if any context in this run resolved to an iOS device
+   * (`context.device.platform === "ios"`). Powers `prebuildWebDriverAgent`.
+   * Sourced from the `walkResults` context pass.
+   */
+  ranIosContexts: boolean;
+  /**
+   * True when the managed WebDriverAgent cache (`<cacheDir>/ios/wda/`)
+   * contains at least one completed prebuild (a `products.json` marker) —
+   * i.e. the user already runs `install ios`. Single bounded readdir +
+   * per-entry existsSync under the resolved cache root; false on any error.
+   */
+  hasManagedWdaProducts: boolean;
 }
 
 export interface Hint {

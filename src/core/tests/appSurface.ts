@@ -20,6 +20,7 @@ import {
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import {
+  applyManagedWdaCapabilities,
   locateManagedWda,
   type ManagedWdaHit,
 } from "../../runtime/wdaProducts.js";
@@ -628,27 +629,14 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       const timeout = descriptor.timeout ?? 60000;
       capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
       capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
-      // Persisting WebDriverAgent's Xcode build products across sessions/runs
-      // turns the cold ~10-minute WDA compile into a fast incremental build.
-      // Opt-in via env so a shared derivedDataPath is only used where the caller
-      // manages it (e.g. a CI cache keyed by driver + Xcode version); the env
-      // override wins unchanged and the caller owns its semantics. Otherwise
-      // the managed products `install ios` prebuilt for this exact toolchain
-      // (docs/design/ios-wda-prebuild.md) are consumed READ-ONLY via
-      // usePrebuiltWDA — which is what makes N concurrent sessions sharing
-      // one keyed path safe. A locator miss changes nothing: the session
-      // builds WDA itself in a throwaway per-session temp dir, as today.
-      const derivedDataPath =
-        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-      if (derivedDataPath && derivedDataPath.trim()) {
-        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
-      } else {
-        const managed = (extras?.locateWda ?? locateManagedWda)();
-        if (managed) {
-          capabilities["appium:derivedDataPath"] = managed.derivedDataPath;
-          capabilities["appium:usePrebuiltWDA"] = true;
-        }
-      }
+      // WDA derived-data: env override wins (historical contract), else the
+      // managed products `install ios` prebuilt for this exact toolchain are
+      // consumed read-only (docs/design/ios-wda-prebuild.md). The precedence
+      // and capability pair live in applyManagedWdaCapabilities so this
+      // builder and the mobile-web one cannot drift. No bare locator default
+      // here: the caller threads a config-aware locator via extras, and its
+      // absence means "no managed consumption", never "guess a cache root".
+      applyManagedWdaCapabilities(capabilities, extras?.locateWda);
       return capabilities;
     },
     unsupportedFields: [

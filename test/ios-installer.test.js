@@ -149,7 +149,7 @@ describe("install ios: WebDriverAgent prebuild", function () {
 
     const marker = JSON.parse(env.fs.files.get(path.join(env.keyDir, "products.json")));
     expect(marker.key).to.equal(env.key);
-    expect(marker.driverVersion).to.equal("7.28.3");
+    expect(marker.driverVersion).to.equal("10.8.1");
     expect(marker.xcode).to.deep.equal({ version: "16.4", build: "16F6" });
     expect(env.fs.files.has(path.join(env.keyDir, "last-used")), "last-used stamp written").to.equal(true);
 
@@ -242,6 +242,53 @@ describe("install ios: WebDriverAgent prebuild", function () {
     expect(env.builds, "a real failure gets exactly one attempt").to.have.length(1);
     expect((row.notes || []).join(" ")).to.match(/no such module/);
     expect(env.lock.released).to.equal(true);
+  });
+
+  it("skips without building when the driver is below the consumption floor", async function () {
+    const env = makeWdaEnv();
+    env.deps.resolveDriverVersion = () => "9.9.9";
+
+    const reports = await installIos({ yes: true, deps: env.deps });
+    const row = wdaRow(reports);
+    expect(row.action).to.equal("skipped");
+    expect((row.notes || []).join(" ")).to.match(/9\.9\.9/);
+    expect(env.builds, "products no session would consume are never built").to.have.length(0);
+  });
+
+  it("never retries a build killed at the timeout ceiling", async function () {
+    const env = makeWdaEnv();
+    env.deps.runBuild = async (command, args) => {
+      env.builds.push([command, args]);
+      // Ceiling kill: even though the text contains a transient-looking
+      // signature, the timedOut flag must veto the retry.
+      return {
+        status: null,
+        stdout: "",
+        stderr: "Build service lost; xcodebuild killed at the 1200000 ms ceiling",
+        timedOut: true,
+      };
+    };
+
+    const reports = await installIos({ yes: true, deps: env.deps });
+    const row = wdaRow(reports);
+    expect(row.action).to.equal("skipped");
+    expect((row.notes || []).join(" ")).to.match(/ceiling/i);
+    expect(env.builds, "a ceiling kill gets exactly one attempt").to.have.length(1);
+    expect(env.lock.released).to.equal(true);
+  });
+
+  it("degrades an unexpected pipeline throw to a skipped row (best-effort to the last)", async function () {
+    const env = makeWdaEnv();
+    env.deps.writeRecord = () => {
+      throw new Error("installed.json is unwritable");
+    };
+
+    const reports = await installIos({ yes: true, deps: env.deps });
+    expect(reports[0].action, "the toolchain row is unaffected").to.equal("already-up-to-date");
+    const row = wdaRow(reports);
+    expect(row.action).to.equal("skipped");
+    expect((row.notes || []).join(" ")).to.match(/installed\.json is unwritable/);
+    expect(env.lock.released, "the lock is released despite the throw").to.equal(true);
   });
 
   it("skips with guidance when the driver install fails", async function () {
@@ -386,6 +433,35 @@ describe("managed WDA locator (session consumption)", function () {
     ).to.equal(String(NOW));
   });
 
+  it("hits on a relocated cache: marker's stale absolute path is ignored, layout wins", function () {
+    const env = makeLocatorEnv();
+    const keyDir = path.join(env.wdaRootDir, HIT_KEY);
+    const layoutRunnerApp = path.join(
+      keyDir,
+      "DerivedData",
+      "Build",
+      "Products",
+      "Debug-iphonesimulator",
+      "WebDriverAgentRunner-Runner.app"
+    );
+    env.fs.files.set(layoutRunnerApp, "<app>");
+    env.fs.files.set(
+      path.join(keyDir, "products.json"),
+      JSON.stringify({
+        key: HIT_KEY,
+        driverVersion: "10.8.1",
+        // Recorded on a host whose cache root no longer exists — must not
+        // invalidate products that are intact at the layout-relative path.
+        runnerApp: "/old-machine/dd-cache/ios/wda/x/DerivedData/.../Runner.app",
+        builtAt: "2026-07-01T00:00:00.000Z",
+      })
+    );
+
+    const hit = locateManagedWda(env.options);
+    expect(hit, "relocated caches keep their valid products").to.not.equal(null);
+    expect(hit.derivedDataPath).to.equal(path.join(keyDir, "DerivedData"));
+  });
+
   it("returns null when no marker exists for the current key", function () {
     const env = makeLocatorEnv();
     expect(locateManagedWda(env.options)).to.equal(null);
@@ -447,7 +523,7 @@ function makeWdaEnv({ buildCreatesRunner = true } = {}) {
     "/rt/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent";
   fs.files.set(path.join(wdaSource, "WebDriverAgent.xcodeproj"), "<proj>");
 
-  const key = "xcode-16.4-16F6-driver-7.28.3";
+  const key = "xcode-16.4-16F6-driver-10.8.1";
   const keyDir = path.join(wdaRootDir, key);
   const runnerApp = path.join(
     keyDir,
@@ -482,7 +558,7 @@ function makeWdaEnv({ buildCreatesRunner = true } = {}) {
         path.join(keyDir, "products.json"),
         JSON.stringify({
           key,
-          driverVersion: "7.28.3",
+          driverVersion: "10.8.1",
           xcode: { version: "16.4", build: "16F6" },
           runnerApp,
           builtAt: "2026-07-01T00:00:00.000Z",
@@ -526,7 +602,7 @@ function makeWdaEnv({ buildCreatesRunner = true } = {}) {
         ensured.push(packages);
       },
       resolveDriverPath: () => driverEntry,
-      resolveDriverVersion: () => "7.28.3",
+      resolveDriverVersion: () => "10.8.1",
       fs,
       wdaRootDir,
       acquire: async () => ({

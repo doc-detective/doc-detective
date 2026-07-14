@@ -46,6 +46,29 @@ function makeFsFake() {
       }
       if (!removed && !opts.force) throw err("ENOENT");
     },
+    renameSync(from, to) {
+      let moved = false;
+      if (dirs.delete(from)) {
+        dirs.add(to);
+        moved = true;
+      }
+      for (const d of [...dirs]) {
+        if (d.startsWith(from + "/")) {
+          dirs.delete(d);
+          dirs.add(to + d.slice(from.length));
+          moved = true;
+        }
+      }
+      for (const f of [...files.keys()]) {
+        if (f === from || f.startsWith(from + "/")) {
+          const value = files.get(f);
+          files.delete(f);
+          files.set(to + f.slice(from.length), value);
+          moved = true;
+        }
+      }
+      if (!moved) throw err("ENOENT");
+    },
   };
 }
 
@@ -284,6 +307,102 @@ describe("runtime advisory lock", function () {
     expect(lock, "cross-host pid liveness is never consulted").to.equal(null);
     const meta = JSON.parse(fs.readFileSync(`${LOCK_DIR}/owner.json`));
     expect(meta.pid).to.equal(111);
+  });
+
+  it("respects the wait bound when a stale lock cannot be removed (no busy spin)", async function () {
+    const fs = makeFsFake();
+    const clock = makeClock();
+    // Stale holder from a different-user run: takeover is justified, but the
+    // rename fails with EACCES every time.
+    fs.dirs.add(LOCK_DIR);
+    fs.files.set(
+      `${LOCK_DIR}/owner.json`,
+      JSON.stringify({ pid: 999, hostname: "host-x", acquiredAt: 0, heartbeatAt: 0 })
+    );
+    fs.renameSync = () => {
+      throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+    };
+    const contender = makeDeps({ fs, clock, pid: 222, alivePids: new Set([222]) });
+
+    const lock = await acquireLock({
+      dir: LOCK_DIR,
+      waitMs: 10_000,
+      pollMs: 1_000,
+      staleMs: 1,
+      deps: contender.deps,
+    });
+    expect(lock, "an un-stealable stale lock still times out").to.equal(null);
+  });
+
+  it("treats shape-invalid owner metadata as missing (stealable after grace)", async function () {
+    const fs = makeFsFake();
+    const clock = makeClock();
+    // Valid JSON, wrong shape: heartbeatAt is a string, so the staleness
+    // comparison would be NaN — must not make the lock permanently unstealable.
+    fs.dirs.add(LOCK_DIR);
+    fs.files.set(
+      `${LOCK_DIR}/owner.json`,
+      JSON.stringify({ pid: "not-a-pid", hostname: 7, heartbeatAt: "later" })
+    );
+    const contender = makeDeps({
+      fs,
+      clock,
+      pid: 222,
+      hostname: "host-b",
+      alivePids: new Set([222]),
+    });
+
+    const lock = await acquireLock({
+      dir: LOCK_DIR,
+      waitMs: 30_000,
+      pollMs: 1_000,
+      deps: contender.deps,
+    });
+    expect(lock, "shape-invalid metadata is recoverable").to.not.equal(null);
+    const meta = JSON.parse(fs.readFileSync(`${LOCK_DIR}/owner.json`));
+    expect(meta.pid).to.equal(222);
+    lock.release();
+  });
+
+  it("a stolen-from holder neither re-heartbeats nor releases the new owner's lock", async function () {
+    const fs = makeFsFake();
+    const clock = makeClock();
+    const holderA = makeDeps({ fs, clock, pid: 111, alivePids: new Set([111, 222]) });
+    const holderB = makeDeps({
+      fs,
+      clock,
+      pid: 222,
+      hostname: "host-b",
+      alivePids: new Set([111, 222]),
+    });
+
+    const lockA = await acquireLock({ dir: LOCK_DIR, deps: holderA.deps });
+    // A is suspended: no heartbeats. Walk past the stale threshold and let B
+    // legitimately take over.
+    await clock.sleep(6 * 60_000);
+    const lockB = await acquireLock({
+      dir: LOCK_DIR,
+      waitMs: 10_000,
+      pollMs: 1_000,
+      staleMs: 5 * 60_000,
+      deps: holderB.deps,
+    });
+    expect(lockB).to.not.equal(null);
+
+    // A resumes: its heartbeat timer fires — it must see B's ownership and
+    // stand down rather than overwrite B's metadata.
+    holderA.intervals[0].fn();
+    let meta = JSON.parse(fs.readFileSync(`${LOCK_DIR}/owner.json`));
+    expect(meta.pid, "the resumed old holder must not resurrect its lease").to.equal(222);
+
+    // A's release must not destroy B's lock either.
+    lockA.release();
+    expect(fs.dirs.has(LOCK_DIR), "B's lock survives A's release").to.equal(true);
+    meta = JSON.parse(fs.readFileSync(`${LOCK_DIR}/owner.json`));
+    expect(meta.pid).to.equal(222);
+
+    lockB.release();
+    expect(fs.dirs.has(LOCK_DIR)).to.equal(false);
   });
 
   it("withLock releases on throw and propagates the error", async function () {

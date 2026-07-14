@@ -19,11 +19,14 @@ import {
   findWdaSource,
   getWdaRoot,
   LAST_USED_STAMP,
+  MIN_PREBUILT_WDA_DRIVER_MAJOR,
   MIN_XCODE_MAJOR,
   parseXcodebuildVersion,
   PRODUCTS_MARKER,
   readProductsMarker,
   RUNNER_APP_RELATIVE,
+  touchLastUsed,
+  WDA_LOCK_DIRNAME,
   xcodeMajor,
   type WdaFs,
   type WdaProductsMarker,
@@ -50,7 +53,13 @@ export interface IOSInstallerDeps {
     command: string,
     args: string[],
     opts?: { timeoutMs?: number }
-  ) => Promise<{ status: number | null; stdout?: string; stderr?: string }>;
+  ) => Promise<{
+    status: number | null;
+    stdout?: string;
+    stderr?: string;
+    /** True when the runner killed the build at the timeout ceiling — never retried. */
+    timedOut?: boolean;
+  }>;
   /** Driver install, routed through the loader (npm-prune defenses stay engaged). */
   ensureInstalled?: (
     packages: string[],
@@ -83,12 +92,13 @@ export const WDA_PRUNE_AFTER_MS = 30 * 24 * 60 * 60_000;
 
 // Transient xcodebuild failure signatures — deliberately tight (the android
 // installer's pattern): infrastructure blips that a fresh attempt genuinely
-// heals. Anything else (compile error, bad project, signing) rethrows as a
-// real failure immediately.
+// heals. Anything else (compile error, bad project, signing) is a real
+// failure immediately. Deliberately ABSENT: "timed out" — a build that hit
+// the 20-minute ceiling must not earn a second ceiling-length attempt (a
+// 40-minute worst case would blow the CI jobs' budgets); ceiling kills are
+// excluded structurally via the runner's `timedOut` flag as well.
 const TRANSIENT_XCODEBUILD_SIGNATURES = [
-  "timed out",
   "econnreset",
-  "etimedout",
   "connection reset",
   "build service",
   "unexpectedly quit",
@@ -106,9 +116,12 @@ function defaultRun(command: string, args: string[]) {
     windowsHide: true,
     // `xcrun simctl` gets the same generous ceiling probeIosToolchain uses: the
     // first cold simctl call on a hosted macOS image launches CoreSimulator and
-    // can take far longer than a warm call. `xcode-select` is a cheap lookup,
-    // and `xcodebuild -version` is a version read, not a build.
-    timeout: command === "xcrun" ? 120000 : 15000,
+    // can take far longer than a warm call. The FIRST `xcodebuild -version` on
+    // a fresh image pays the same first-launch initialization, and a probe
+    // timeout here silently skips the whole prebuild with misleading
+    // "full Xcode required" guidance — so it shares the generous bucket.
+    // `xcode-select` stays a cheap lookup.
+    timeout: command === "xcrun" || command === "xcodebuild" ? 120000 : 15000,
   });
   return {
     status: result.status,
@@ -218,27 +231,66 @@ export async function installIos({
     ],
   };
 
-  const wdaReport = await prebuildWda({ ctx, deps, run, logger });
+  // Best-effort to the last: even an unexpected throw (ENOSPC on a mkdir,
+  // a spawn ENOMEM, an unwritable installed.json) must degrade to a skipped
+  // row — `install ios` never exits non-zero because a prebuild couldn't
+  // happen, and a plain `run:` step in CI must not fail the job over it.
+  let wdaReport: InstallReport;
+  try {
+    wdaReport = await prebuildWda({ ctx, deps, run, logger });
+  } catch (error) {
+    wdaReport = {
+      kind: "ios",
+      assetId: "ios-wda",
+      action: "skipped",
+      notes: [
+        "the WebDriverAgent prebuild failed unexpectedly; the first iOS session will build WDA itself",
+        String((error as Error)?.message ?? error),
+      ],
+    };
+  }
   return [toolchainReport, wdaReport];
 }
 
 /* c8 ignore start — real spawn; unit tests inject runBuild. */
+// Keep only the tail of each output stream: the transient-signature scan and
+// the reported failure tail both live at the end, and a cold WDA build can
+// emit tens of MB that would otherwise sit in memory for ~20 minutes.
+const BUILD_OUTPUT_TAIL_BYTES = 64 * 1024;
+
 function defaultRunBuild(
   command: string,
   args: string[],
   opts: { timeoutMs?: number } = {}
-): Promise<{ status: number | null; stdout: string; stderr: string }> {
+): Promise<{
+  status: number | null;
+  stdout: string;
+  stderr: string;
+  timedOut: boolean;
+}> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { windowsHide: true });
+    // detached: give xcodebuild its own process group so a ceiling kill can
+    // take down XCBBuildService/clang children too — an orphaned build
+    // service holding the DerivedData would poison the keyed dir.
+    const child = spawn(command, args, { windowsHide: true, detached: true });
     let stdout = "";
     let stderr = "";
-    child.stdout?.on("data", (d) => (stdout += d));
-    child.stderr?.on("data", (d) => (stderr += d));
+    let timedOut = false;
+    const append = (buf: string, d: unknown) =>
+      (buf + d).slice(-BUILD_OUTPUT_TAIL_BYTES);
+    child.stdout?.on("data", (d) => (stdout = append(stdout, d)));
+    child.stderr?.on("data", (d) => (stderr = append(stderr, d)));
     let timer: NodeJS.Timeout | undefined;
     if (opts.timeoutMs) {
       timer = setTimeout(() => {
-        child.kill("SIGKILL");
-        stderr += `\nxcodebuild timed out after ${opts.timeoutMs} ms`;
+        timedOut = true;
+        stderr += `\nxcodebuild killed at the ${opts.timeoutMs} ms ceiling`;
+        try {
+          if (child.pid) process.kill(-child.pid, "SIGKILL");
+          else child.kill("SIGKILL");
+        } catch {
+          child.kill("SIGKILL");
+        }
       }, opts.timeoutMs);
       timer.unref?.();
     }
@@ -248,7 +300,7 @@ function defaultRunBuild(
     });
     child.on("close", (status) => {
       if (timer) clearTimeout(timer);
-      resolve({ status, stdout, stderr });
+      resolve({ status, stdout, stderr, timedOut });
     });
   });
 }
@@ -343,6 +395,21 @@ async function prebuildWda({
     ]);
   }
 
+  // Mirror the session locator's floor: products built for a driver below it
+  // would never be consumed (the locator returns null there), so a build
+  // would be up to 20 minutes and ~1 GB of pure waste. Happens only with a
+  // user-pinned old driver in the shim's node_modules.
+  const driverMajor = Number.parseInt(driverVersion, 10);
+  if (
+    !Number.isFinite(driverMajor) ||
+    driverMajor < MIN_PREBUILT_WDA_DRIVER_MAJOR
+  ) {
+    return skipped([
+      `appium-xcuitest-driver ${driverVersion} is below the minimum (${MIN_PREBUILT_WDA_DRIVER_MAJOR}.x) supported for prebuilt-WDA consumption — sessions would ignore the products`,
+      "upgrade the pinned driver (or remove the pin so doc-detective installs its declared version), then rerun: doc-detective install ios --yes",
+    ]);
+  }
+
   const wdaSource = findWdaSource(driverEntry, fs);
   if (!wdaSource) {
     return skipped([
@@ -365,7 +432,10 @@ async function prebuildWda({
     ]);
   }
 
-  const lock = await acquire({ dir: path.join(wdaRoot, ".lock"), waitMs: WDA_LOCK_WAIT_MS });
+  const lock = await acquire({
+    dir: path.join(wdaRoot, WDA_LOCK_DIRNAME),
+    waitMs: WDA_LOCK_WAIT_MS,
+  });
   if (!lock) {
     return skipped([
       "another install is currently building WebDriverAgent (lock wait elapsed); rerun later or let the concurrent build finish",
@@ -402,14 +472,21 @@ async function prebuildWda({
       derivedDataPath,
     ];
 
-    let build: { status: number | null; stdout?: string; stderr?: string } | null =
-      null;
     for (let attempt = 1; attempt <= WDA_BUILD_MAX_ATTEMPTS; attempt++) {
-      build = await runBuild("xcodebuild", buildArgs, {
+      const build = await runBuild("xcodebuild", buildArgs, {
         timeoutMs: WDA_BUILD_TIMEOUT_MS,
       });
       if (build.status === 0) break;
       const failureText = `${build.stderr ?? ""}\n${build.stdout ?? ""}`;
+      // A ceiling kill is never retried: a second ceiling-length attempt
+      // would double the worst case to ~40 minutes and blow the CI jobs'
+      // budgets — and a build that needs >20 minutes isn't transient.
+      if (build.timedOut) {
+        return skipped([
+          `the WebDriverAgent build was killed at the ${WDA_BUILD_TIMEOUT_MS} ms ceiling; the first iOS session will build WDA itself`,
+          tail(failureText),
+        ]);
+      }
       if (
         attempt < WDA_BUILD_MAX_ATTEMPTS &&
         isTransientXcodebuildError(failureText)
@@ -445,7 +522,10 @@ async function prebuildWda({
       builtAt: new Date(now()).toISOString(),
     };
     const markerPath = path.join(keyDir, PRODUCTS_MARKER);
-    const tmpPath = `${markerPath}.tmp`;
+    // Unique tmp name (the writeInstalledRecord pattern) — belt over the
+    // writer lock's suspenders, so even an out-of-band writer can't clobber
+    // a half-written tmp.
+    const tmpPath = `${markerPath}.${now()}.tmp`;
     fs.writeFileSync(tmpPath, JSON.stringify(marker, null, 2));
     fs.renameSync(tmpPath, markerPath);
     touchLastUsed(keyDir, fs, now);
@@ -476,18 +556,6 @@ async function prebuildWda({
   }
 }
 
-function touchLastUsed(
-  keyDir: string,
-  fs: WdaFs,
-  now: () => number
-): void {
-  try {
-    fs.writeFileSync(path.join(keyDir, LAST_USED_STAMP), String(now()));
-  } catch {
-    // Best-effort: a failed stamp only risks an early prune much later.
-  }
-}
-
 /**
  * Under the writer lock: delete sibling key dirs that are provably stale —
  * no completeness marker (a crashed half-build; invisible to readers and
@@ -513,7 +581,9 @@ function pruneStaleKeys({
     return survivors;
   }
   for (const entry of entries) {
-    if (entry === keepKey || entry === ".lock") continue;
+    // Skip the live lock dir itself; its `.lock.stale-*` takeover-trash
+    // siblings are markerless and get cleaned like any crashed half-build.
+    if (entry === keepKey || entry === WDA_LOCK_DIRNAME) continue;
     const dir = path.join(wdaRoot, entry);
     let stale = false;
     if (!readProductsMarker(dir, fs)) {

@@ -106,19 +106,27 @@ export const RUNNER_APP_RELATIVE = path.join(
 export const PRODUCTS_MARKER = "products.json";
 export const LAST_USED_STAMP = "last-used";
 
+/** The writer's advisory-lock dir name under the WDA root — one name shared
+ * by the acquire call and the prune pass's skip check so they can't drift. */
+export const WDA_LOCK_DIRNAME = ".lock";
+
 export interface WdaProductsMarker {
   key: string;
   driverVersion: string;
-  xcode: XcodeVersion;
-  runnerApp: string;
-  builtAt: string;
+  /** Diagnostic metadata — validated shape only, never consumed by readers. */
+  xcode?: XcodeVersion;
+  runnerApp?: string;
+  builtAt?: string;
 }
 
 /**
  * Read and validate a key dir's completeness marker. Null on any miss:
  * absent/corrupt marker (a crashed half-built dir never wrote one — that is
- * the lock-free correctness story for readers) or a marker whose recorded
- * Runner app no longer exists on disk.
+ * the lock-free correctness story for readers) or a key dir whose Runner app
+ * is gone. The Runner check uses the layout-relative path, NOT the absolute
+ * path recorded in the marker, so a relocated cache root (moved home dir,
+ * container bind-mount, CI cache restored under a different path) keeps its
+ * valid products instead of misreading them all as stale.
  */
 export function readProductsMarker(
   keyDir: string,
@@ -130,15 +138,32 @@ export function readProductsMarker(
     );
     if (
       typeof parsed?.key !== "string" ||
-      typeof parsed?.driverVersion !== "string" ||
-      typeof parsed?.runnerApp !== "string"
+      typeof parsed?.driverVersion !== "string"
     ) {
       return null;
     }
-    if (!fs.existsSync(parsed.runnerApp)) return null;
+    if (!fs.existsSync(path.join(keyDir, RUNNER_APP_RELATIVE))) return null;
     return parsed as WdaProductsMarker;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Touch a key dir's last-used stamp — the prune-freshness signal shared by
+ * the installer (writes it at build time, stats it when pruning) and the
+ * session locator (touches it on every valid hit). Best-effort: a failed
+ * stamp only risks an early prune much later.
+ */
+export function touchLastUsed(
+  keyDir: string,
+  fs: WdaFs,
+  now: () => number
+): void {
+  try {
+    fs.writeFileSync(path.join(keyDir, LAST_USED_STAMP), String(now()));
+  } catch {
+    /* best-effort */
   }
 }
 
@@ -241,22 +266,49 @@ export function locateManagedWda(
     const key = computeWdaKey(xcode, driverVersion);
     const keyDir = path.join(wdaRoot, key);
     const marker = readProductsMarker(keyDir, fs);
-    if (!marker || marker.key !== key || marker.driverVersion !== driverVersion) {
-      return null;
-    }
+    // The key is the single identity: it already encodes the driver version,
+    // so `marker.key === key` is the whole match.
+    if (!marker || marker.key !== key) return null;
 
     // Readers are read-only consumers of the DerivedData — the stamp is the
-    // one exception (it's the prune-freshness signal). Best-effort.
-    try {
-      fs.writeFileSync(path.join(keyDir, LAST_USED_STAMP), String(now()));
-    } catch {
-      /* a failed stamp only risks an early prune much later */
-    }
+    // one exception (it's the prune-freshness signal).
+    touchLastUsed(keyDir, fs, now);
 
     return { key, derivedDataPath: path.join(keyDir, "DerivedData") };
   } catch {
     // ADR 01049 degradation semantics: an unusable cache is a plain miss.
     return null;
+  }
+}
+
+/**
+ * Apply the WDA derived-data capabilities for an iOS XCUITest session — the
+ * ONE place the env-override-vs-managed-products precedence and the exact
+ * capability pair live, shared by the app-surface and mobile-web builders so
+ * the two cannot drift (the pair is driver-version-sensitive; see
+ * MIN_PREBUILT_WDA_DRIVER_MAJOR).
+ *
+ * Precedence: DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH set → exactly the
+ * historical behavior (`derivedDataPath` only, caller owns semantics; the
+ * managed locator is not consulted). Otherwise a managed-products hit sets
+ * both `appium:derivedDataPath` (the keyed DerivedData) and
+ * `appium:usePrebuiltWDA` (read-only consumption — the concurrency answer).
+ * No locator or a miss → no capabilities change (today's behavior: the
+ * session builds WDA itself in a throwaway per-session temp dir).
+ */
+export function applyManagedWdaCapabilities(
+  capabilities: Record<string, any>,
+  locateWda?: () => ManagedWdaHit | null
+): void {
+  const derivedDataPath = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+  if (derivedDataPath && derivedDataPath.trim()) {
+    capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
+    return;
+  }
+  const managed = locateWda?.();
+  if (managed) {
+    capabilities["appium:derivedDataPath"] = managed.derivedDataPath;
+    capabilities["appium:usePrebuiltWDA"] = true;
   }
 }
 
