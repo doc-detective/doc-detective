@@ -13,13 +13,32 @@ You can specify the target element directly using a string (for basic text or se
 - **String Shorthand:** Provide the display text or CSS/XPath selector directly as the value for the `find` key. If elements are found by both text and selector, the element found by matching text is used.
   - Example: `"find": "Login"` or `"find": "#username"`.
 - **Object Format:** Use an object with the following properties:
-  - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both.
+  - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
   - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
   - `moveTo`: (Optional) Move the cursor to the element. If the element isn't visible, it's scrolled into view (default: `true`).
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).
   - `type`: (Optional) Type keys after finding the element. Requires the element to be made active first (for example, by using `click: true`). Accepts a string or an object like `{ "keys": "my text", "inputDelay": 100 }`. See [`type`](type) for details.
   - `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`, or the [native app surface](/docs/actions/startsurface) it lives in, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit to act on the active browser tab or app window. The targeted surface stays focused afterward. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls, and `selector` accepts a native locator (XPath or a `~`-prefixed accessibility ID) instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](#app-windows) below.
+
+## How text matching works
+
+`elementText` (and the string shorthand's text form) matches against an element's
+**full visible text**, with whitespace normalized — leading and trailing whitespace
+is trimmed and internal runs of spaces, tabs, and newlines collapse to a single
+space. Two consequences worth knowing:
+
+- **Framework-rendered text just works.** Tools like React, Vue, and Svelte often
+  split an element's text across several DOM text nodes (sometimes with an empty
+  leading node). Matching on the whole element's text means a heading like
+  `Garden companion API` is found even when it isn't a single, tidy text node — and
+  the result is the same on Chrome and Firefox regardless of how each browser's
+  driver reports whitespace.
+- **It's a whole-element match, not a substring.** `elementText` matches an element
+  whose *entire* normalized text equals your string, so a broad container such as
+  `{ "selector": "body", "elementText": "Garden companion API" }` won't match (the
+  body's text is the whole page). Target a tighter element, or match a substring with
+  a regular expression by wrapping the value in slashes: `"elementText": "/Garden companion API/"`.
 
 ## App windows
 
