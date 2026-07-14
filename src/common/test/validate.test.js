@@ -1413,6 +1413,17 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.warm.tasks[0].kind).to.equal("browser-install");
       });
 
+      it("should validate a warm-only report shape (no specs executed)", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: [],
+            warm: { durationMs: 0, tasks: [] },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
       it("should validate a report_v3 object with a warmManifest path", function () {
         const result = validate({
           schemaKey: "report_v3",

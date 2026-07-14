@@ -21,9 +21,8 @@
       "readOnly": true
     },
     "specs": {
-      "description": "Test specifications that were performed.",
+      "description": "Test specifications that were performed. Empty when the run executed no specs — a fully filtered run, or a warm-only run (`doc-detective warm`), which provisions and exits without running tests.",
       "type": "array",
-      "minItems": 1,
       "items": {
         "anyOf": [
           {
