@@ -23,16 +23,16 @@ You can specify the target element directly using a string (for basic text or se
 
 ## How text matching works
 
-`elementText` (and the string shorthand's text form) matches against an element's
-**full visible text**, with whitespace normalized — leading and trailing whitespace
-is trimmed and internal runs of spaces, tabs, and newlines collapse to a single
-space. Two consequences worth knowing:
+`elementText` (and the string shorthand's text form) matches an element's
+**full visible text** with whitespace normalized: Doc Detective trims leading and
+trailing whitespace and collapses internal runs of spaces, tabs, and newlines to a
+single space. Two things follow from this:
 
-- **Framework-rendered text just works.** Tools like React, Vue, and Svelte often
+- **Framework-rendered text just works.** Frameworks like React and Svelte often
   split an element's text across several DOM text nodes (sometimes with an empty
-  leading node). Matching on the whole element's text means a heading like
-  `Garden companion API` is found even when it isn't a single, tidy text node — and
-  the result is the same on Chrome and Firefox regardless of how each browser's
+  leading node). Because the match uses the element's whole text, a heading like
+  `Garden companion API` matches even when it isn't a single, tidy text node, and
+  the result stays the same on Chrome and Firefox no matter how each browser's
   driver reports whitespace.
 - **It's a whole-element match, not a substring.** `elementText` matches an element
   whose *entire* normalized text equals your string, so a broad container such as
