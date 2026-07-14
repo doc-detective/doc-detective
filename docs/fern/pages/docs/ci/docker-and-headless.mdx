@@ -48,6 +48,8 @@ On a fresh `npm install`, Doc Detective also pre-warms these assets automaticall
 
 Whatever the cache is missing, each run front-loads for itself: before executing tests, Doc Detective plans the installs, device boots, and downloads its tests need and runs them concurrently as a warm phase. With a persisted cache the phase completes in milliseconds. On a cold cache it overlaps the downloads instead of paying them one test at a time. The per-task timings land in the JSON results—see [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
 
+To move that cost out of the test run entirely—for example, to boot a mobile emulator while your project builds—run the standalone [`doc-detective warm`](/reference/cli/warm) command earlier in the job. It provisions the same set and exits with devices left up, handed off to the run that follows.
+
 <Note>
 `docdetective/docdetective:linux` is a multi-arch image (`linux/amd64` and `linux/arm64`), but Chrome and ChromeDriver have no native `linux/arm64` build upstream—Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome/ChromeDriver pre-warming is skipped rather than failing the image; if you need Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead.
 </Note>

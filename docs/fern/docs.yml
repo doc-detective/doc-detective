@@ -303,6 +303,9 @@ navigation:
               - page: install
                 path: pages/reference/cli/install.mdx
                 slug: install
+              - page: warm
+                path: pages/reference/cli/warm.mdx
+                slug: warm
       - folder: pages/reference/schemas
         title: Schemas
 
