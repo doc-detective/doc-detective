@@ -2959,7 +2959,9 @@ function buildWarmTaskRunner({
         // they already have per-context recorded-skip semantics downstream.
         return {
           outcome: "warmed",
-          note: `${ok} combination(s) ok${failed ? `, ${failed} failed` : ""}`,
+          note: `${ok} combination${ok === 1 ? "" : "s"} ok${
+            failed ? `, ${failed} failed` : ""
+          }`,
         };
       }
 
