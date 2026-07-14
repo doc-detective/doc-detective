@@ -49,6 +49,46 @@ export interface Report {
    * @minItems 1
    */
   specs: [Specification, ...Specification[]];
+  /**
+   * Results of the run's inline warm phase — the always-on, best-effort provisioning pass (dependency installs, device boots, session probes) performed between test resolution and test execution. A failed task never gates the run; the per-context paths retry or skip with their normal semantics. Absent when the run ended before the phase (for example, when no specs matched). System-populated.
+   */
+  warm?: {
+    /**
+     * Wall-clock duration of the warm phase in milliseconds. Tasks overlap, so this is less than the sum of the per-task durations.
+     */
+    durationMs: number;
+    /**
+     * One entry per executed warm task.
+     */
+    tasks: {
+      /**
+       * Task identity, e.g. `browser-install:chrome` or `device-boot:android:<default>:<latest>`.
+       */
+      name: string;
+      /**
+       * What the task pre-pays: a native app driver install, a browser install, a simulator/emulator boot, the managed WebDriverAgent availability check, the concurrent-run driver session probe, or the android mobile-web chromedriver download.
+       */
+      kind:
+        | "driver-install"
+        | "browser-install"
+        | "device-boot"
+        | "wda-check"
+        | "session-probe"
+        | "chromedriver-prefetch";
+      /**
+       * `warmed` — the work was performed (for device boots, the boot was initiated); `skipped` — nothing to do or the environment isn't ready (the consuming context handles it as usual); `failed` — the attempt failed (logged as a warning; never fails the run).
+       */
+      outcome: "warmed" | "skipped" | "failed";
+      /**
+       * Wall-clock duration of this task in milliseconds.
+       */
+      durationMs: number;
+      /**
+       * Human-readable detail about the outcome.
+       */
+      note?: string;
+    }[];
+  };
   [k: string]: unknown;
 }
 export interface Specification {
