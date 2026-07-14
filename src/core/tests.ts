@@ -2053,19 +2053,17 @@ async function runSpecs({
        manifest/collection pieces carry hermetic unit suites. */
     if (warmOnly) {
       // Boots resolve at initiation; the handoff must record READY devices
-      // (a consuming run adopts them without awaiting anything).
-      for (const entry of [
-        ...deviceRegistry.values(),
-        ...simulatorRegistry.values(),
-      ]) {
-        if (entry.bootedByUs && entry.ready) {
-          try {
-            await entry.ready;
-          } catch {
-            // A failed boot deleted its placeholder; nothing to hand off.
-          }
-        }
-      }
+      // (a consuming run adopts them without awaiting anything). In-flight
+      // boots are independent — await them together.
+      await Promise.all(
+        [...deviceRegistry.values(), ...simulatorRegistry.values()]
+          .filter((entry: any) => entry.bootedByUs && entry.ready)
+          .map((entry: any) =>
+            entry.ready.catch(() => {
+              // A failed boot deleted its placeholder; nothing to hand off.
+            })
+          )
+      );
       const devices = collectHandoffDevices({
         deviceRegistry,
         simulatorRegistry,
@@ -3486,12 +3484,13 @@ async function sweepHandoffDevices(
   devices: WarmDeviceHandoff[],
   { config }: { config: any }
 ): Promise<void> {
+  let simDeps: ReturnType<typeof buildAcquireSimulatorDeps> | undefined;
   for (const device of devices ?? []) {
     try {
       if (device.platform === "android" && typeof device.pid === "number") {
         await killTree(device.pid);
       } else if (device.platform === "ios" && device.udid) {
-        const simDeps = buildAcquireSimulatorDeps((m: string) =>
+        simDeps ??= buildAcquireSimulatorDeps((m: string) =>
           log(config, "debug", m)
         );
         await simDeps.shutdown({

@@ -56,6 +56,7 @@ export interface WarmManifestFs {
   renameSync(from: string, to: string): void;
   unlinkSync(p: string): void;
   readdirSync(p: string): string[];
+  mkdirSync(p: string, opts?: { recursive?: boolean }): unknown;
 }
 
 export type WarmManifestDeps = {
@@ -82,8 +83,12 @@ function defaultIsPidAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error: any) {
-    // EPERM means the process exists but isn't ours — alive.
-    return error?.code === "EPERM";
+    // Dead ONLY on ESRCH (no such process). Any other error — EPERM
+    // (exists, different user) or something unexpected — reads as alive:
+    // this check licenses SWEEPING (killing) a recorded device, so
+    // uncertainty must never count as dead. Matches the lock lease's
+    // liveness probe (src/runtime/lock.ts).
+    return error?.code !== "ESRCH";
   }
 }
 /* c8 ignore stop */
@@ -132,6 +137,9 @@ export function writeWarmManifest({
 }): string | null {
   const { fs, now, pid } = resolveDeps(deps);
   if (!devices.length) return null;
+  // A warm on a pristine host can reach here before anything else created
+  // the cache root (getCacheDir only resolves the path).
+  fs.mkdirSync(cacheDir, { recursive: true });
   const target = manifestPath(cacheDir);
   const record: WarmManifestFile = {
     version: 1,
