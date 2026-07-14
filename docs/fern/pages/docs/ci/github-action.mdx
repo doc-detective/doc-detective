@@ -202,9 +202,9 @@ jobs:
 
 The [`doc-detective install ios --yes`](/reference/cli/install#install-ios) step compiles WebDriverAgent once into Doc Detective's [cache directory](/reference/cli/install#cache-directory), keyed by your Xcode and XCUITest driver versions. Test sessions then read those build products automatically and read-only, so they're safe to share across parallel jobs. Persisting `DOC_DETECTIVE_CACHE_DIR` with `actions/cache` carries the build between runs, so only the first run pays the cold compile.
 
-Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. An exact cache hit never re-uploads, so a static key would strand the build products the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` pulls the newest previous entry to build from.
+Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. Doc Detective already keys the build by Xcode and driver version inside the cache directory, so the `actions/cache` key doesn't need those versions—it only has to keep the stored copy fresh. An exact cache hit never re-uploads, so a static key would strand the build products the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` pulls the newest previous entry to build from.
 
-This recipe requires Doc Detective v4.28 or later.
+This recipe requires Doc Detective v4.28 or later. Both the `npx doc-detective install ios` step and the action resolve `doc-detective` from the registry: `npx` runs the latest published version unless you pin one, and the action installs whatever its `version` input names (default `latest`). Make sure both resolve to v4.28 or newer.
 
 <Note>
 The `ios` input is deprecated and does nothing. Earlier versions of the action cached the WebDriverAgent build through this input, but Doc Detective v4.28 and later prebuilds and manages that build, so the action-side cache was retired. Existing workflows that set `ios` keep working—the input is ignored—and a run that would have used the old cache prints a one-time notice pointing here. You can safely remove the input from your workflow.
