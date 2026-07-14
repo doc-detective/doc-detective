@@ -156,6 +156,48 @@ describe("warm phase: device-boot initiation and ownership", function () {
     assert.equal(registry.size, 0);
   });
 
+  it("awaits an in-flight warm boot at teardown so the device is never orphaned", async function () {
+    // The warm task resolves at boot INITIATION, so a run can end while the
+    // boot is still in flight (the consuming context skipped, the other
+    // tests were fast). The sweep must await readiness before shutting the
+    // device down — otherwise it would sweep a placeholder with no udid yet
+    // and orphan the real device.
+    const registry = createSimulatorRegistry();
+    let resolveBoot;
+    const deps = fakeDeps({
+      boot: () => new Promise((r) => (resolveBoot = r)),
+    });
+    const result = await warmAcquire({ registry, deps });
+    assert.equal(result.outcome, "warmed");
+    const swept = [];
+    const teardown = teardownSimulatorRegistry(registry, async (e) => {
+      swept.push(e.udid);
+    });
+    // Boot completes only after teardown already started.
+    resolveBoot();
+    await teardown;
+    assert.deepEqual(swept, ["UDID-1"]);
+    assert.equal(registry.size, 0);
+  });
+
+  it("skips a warm boot that fails while teardown is waiting on it", async function () {
+    const registry = createSimulatorRegistry();
+    let rejectBoot;
+    const deps = fakeDeps({
+      boot: () => new Promise((_, r) => (rejectBoot = r)),
+    });
+    await warmAcquire({ registry, deps, onError: () => {} });
+    const swept = [];
+    const teardown = teardownSimulatorRegistry(registry, async (e) => {
+      swept.push(e.udid);
+    });
+    rejectBoot(new Error("boot exploded"));
+    await teardown;
+    // Nothing booted, so nothing to shut down — and no throw from teardown.
+    assert.deepEqual(swept, []);
+    assert.equal(registry.size, 0);
+  });
+
   it("leaves reused (not-owned) devices alone at teardown", async function () {
     const registry = createSimulatorRegistry();
     const deps = fakeDeps({

@@ -36,15 +36,12 @@ function plan({
   apps = [{ name: "chrome" }],
   limit = 1,
   hasAppiumPool = false,
-  config = {},
 }) {
   return planWarmTasks({
     sizingJobs: jobs,
     runnerDetails: runnerDetails(platform, apps),
-    config,
     limit,
     hasAppiumPool,
-    hostPlatform: platform,
     deps,
   });
 }
@@ -169,11 +166,11 @@ describe("warm phase: planWarmTasks", function () {
     const boot = tasks.find((t) => t.kind === "device-boot");
     const tag = deviceResourceTag("android", {});
     assert.deepEqual(boot.exclusiveResources, [tag, "android-emulator"]);
+    // The prefetch holds ONLY its device tag: its cache-mutating preflight
+    // half runs under a manual runtime-install lease inside the task body,
+    // so the long device-ready await never blocks the install tasks.
     const prefetch = tasks.find((t) => t.kind === "chromedriver-prefetch");
-    assert.deepEqual(prefetch.exclusiveResources, [
-      tag,
-      RUNTIME_INSTALL_RESOURCE,
-    ]);
+    assert.deepEqual(prefetch.exclusiveResources, [tag]);
   });
 
   it("dedupes device boots by normalized descriptor and splits distinct devices", function () {
@@ -189,6 +186,83 @@ describe("warm phase: planWarmTasks", function () {
     const boots = tasks.filter((t) => t.kind === "device-boot").map((t) => t.name);
     assert.equal(boots.length, 2);
     assert.ok(boots.some((n) => n.includes("pixel")));
+  });
+
+  it("dedupes same-named devices even when osVersions differ (the registry keys by name)", function () {
+    // A named device resolves to one registry entry regardless of osVersion;
+    // a second boot task would just registry-hit and block a warm worker on
+    // the FULL boot, defeating resolve-at-initiation.
+    const tasks = plan({
+      jobs: [
+        job({
+          platform: "android",
+          device: { name: "pixel", osVersion: "35" },
+          steps: [browserStep],
+        }),
+        job({
+          platform: "android",
+          device: { name: "pixel", osVersion: "36" },
+          steps: [browserStep],
+        }),
+      ],
+      platform: "linux",
+    });
+    assert.equal(tasks.filter((t) => t.kind === "device-boot").length, 1);
+  });
+
+  it("splits unnamed devices that differ only in deviceType", function () {
+    // Default (unnamed) descriptors resolve by deviceType + osVersion —
+    // an iPhone and an iPad are two simulators and both need warming.
+    const tasks = plan({
+      jobs: [
+        job({
+          platform: "ios",
+          device: { deviceType: "phone" },
+          steps: [appStep],
+        }),
+        job({
+          platform: "ios",
+          device: { deviceType: "tablet" },
+          steps: [appStep],
+        }),
+      ],
+      platform: "mac",
+      apps: [{ name: "safari" }],
+    });
+    assert.equal(tasks.filter((t) => t.kind === "device-boot").length, 2);
+  });
+
+  it("warms nothing for a context whose `requires` gate is unmet", function () {
+    // runContext skips an unmet-requirements context BEFORE any provisioning
+    // — warm must not download a browser (or boot a device) for it.
+    const tasks = plan({
+      jobs: [
+        job({
+          requires: "doc-detective-no-such-binary-xyz",
+          steps: [browserStep],
+        }),
+        job({
+          platform: "android",
+          requires: "doc-detective-no-such-binary-xyz",
+          steps: [browserStep],
+        }),
+      ],
+      platform: "linux",
+      apps: [{ name: "chrome" }],
+    });
+    assert.deepEqual(tasks, []);
+  });
+
+  it("warms normally when the `requires` gate is met", function () {
+    const tasks = plan({
+      jobs: [job({ requires: "node", steps: [browserStep] })],
+      platform: "linux",
+      apps: [{ name: "chrome" }],
+    });
+    assert.equal(
+      tasks.filter((t) => t.kind === "browser-install").length,
+      1
+    );
   });
 
   it("android native-app context boots a device but plans no chromedriver-prefetch", function () {

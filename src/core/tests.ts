@@ -89,11 +89,14 @@ import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
+  CHROMEDRIVER_AUTODOWNLOAD_ARGS,
 } from "./tests/mobileBrowser.js";
 import {
   planWarmTasks,
   executeWarmTasks,
   raceBootInitiation,
+  wrapInitiationEffects,
+  RUNTIME_INSTALL_RESOURCE,
   type WarmPlanDeps,
   type WarmTask,
   type WarmOutcome,
@@ -307,11 +310,11 @@ function buildWarmPlanDeps(): WarmPlanDeps {
     isAppDriverRequired,
     isMobileTargetPlatform,
     getDefaultBrowser,
-    combinationKey,
     requiredBrowserAssets,
     collectDeviceDescriptors,
     normalizeDeviceDescriptor,
     mobileBrowserGate,
+    contextRequirementsSkipMessage,
     appDriverPlatforms: APP_DRIVER_PLATFORMS,
   };
 }
@@ -1458,6 +1461,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       },
     },
     specs: [],
+    // Inline warm phase results (docs/design/warm-phase.md). Present on the
+    // skeleton so a run that plans nothing (or whose planning fails —
+    // best-effort) still reports the structural empty block; the phase
+    // overwrites it with real task results below.
+    warm: { durationMs: 0, tasks: [] },
   };
 
   // Resolve concurrency up front (defensive re-resolve: API callers can hand
@@ -1898,34 +1906,43 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // boots resolve at initiation; only the chromedriver prefetch awaits
     // readiness (and only runs with android mobile-web contexts pay it —
     // they'd pay the same boot + session at their first mobile context).
-    const warmTasks = planWarmTasks({
-      sizingJobs,
-      runnerDetails,
-      config,
-      limit,
-      hasAppiumPool: !!appiumPool,
-      hostPlatform: platform,
-      deps: buildWarmPlanDeps(),
-    });
-    if (warmTasks.length > 0) {
-      log(config, "debug", `Warm phase: ${warmTasks.length} task(s).`);
-      report.warm = await executeWarmTasks({
-        tasks: warmTasks,
-        registry: resourceRegistry,
-        runTask: buildWarmTaskRunner({
-          config,
-          runnerDetails,
-          sizingJobs,
-          appiumPool,
-          installAttempts,
-          warmUpResults,
-          deviceRegistry,
-          simulatorRegistry,
-        }),
-        log: (level, message) => log(config, level, message),
+    // The never-gates contract covers the whole phase, planning included: a
+    // throw from the planner or its bound predicates must degrade to a
+    // warning + the skeleton's empty warm block, never abort the run
+    // (executeWarmTasks already isolates per-task failures internally).
+    try {
+      const warmTasks = planWarmTasks({
+        sizingJobs,
+        runnerDetails,
+        limit,
+        hasAppiumPool: !!appiumPool,
+        deps: buildWarmPlanDeps(),
       });
-    } else {
-      report.warm = { durationMs: 0, tasks: [] };
+      if (warmTasks.length > 0) {
+        log(config, "debug", `Warm phase: ${warmTasks.length} task(s).`);
+        report.warm = await executeWarmTasks({
+          tasks: warmTasks,
+          registry: resourceRegistry,
+          runTask: buildWarmTaskRunner({
+            config,
+            runnerDetails,
+            sizingJobs,
+            appiumPool,
+            installAttempts,
+            warmUpResults,
+            deviceRegistry,
+            simulatorRegistry,
+            resourceRegistry,
+          }),
+          log: (level, message) => log(config, level, message),
+        });
+      }
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Warm phase skipped (planning failed; the run proceeds with on-demand provisioning): ${error?.message ?? error}`
+      );
     }
 
     // Phase 2: run context jobs through the worker pool, gated into three
@@ -2817,6 +2834,7 @@ function buildWarmTaskRunner({
   warmUpResults,
   deviceRegistry,
   simulatorRegistry,
+  resourceRegistry,
 }: {
   config: any;
   runnerDetails: any;
@@ -2826,6 +2844,7 @@ function buildWarmTaskRunner({
   warmUpResults: Map<string, "ok" | "failed">;
   deviceRegistry: DeviceRegistry;
   simulatorRegistry: SimulatorRegistry;
+  resourceRegistry: ReturnType<typeof createResourceRegistry>;
 }): (task: WarmTask) => Promise<{ outcome: WarmOutcome; note?: string }> {
   // One Android env probe per run, shared by device boots and the
   // chromedriver prefetch.
@@ -2833,6 +2852,34 @@ function buildWarmTaskRunner({
     | Promise<{ sdkRoot: string; deviceDeps: any } | null>
     | undefined;
   const getAndroidEnv = () => (androidEnv ??= resolveAndroidWarmEnv(config));
+  // One iOS toolchain probe per run: it's a synchronous xcrun spawn (slow on
+  // a cold CoreSimulator service), so device boots and the driver install
+  // share a single result instead of each blocking the executor on it.
+  let iosToolchain: ReturnType<typeof probeIosToolchain> | undefined;
+  const getIosToolchain = () => (iosToolchain ??= probeIosToolchain());
+  // Manual lease on the shared install mutex, for work that must serialize
+  // with the runtime-install-tagged tasks but runs inside a task that
+  // deliberately does NOT hold that tag for its whole duration (the
+  // chromedriver prefetch, whose device-ready await must not block installs).
+  const withRuntimeInstallLock = async <T>(fn: () => Promise<T>): Promise<T> => {
+    while (!resourceRegistry.tryAcquire([RUNTIME_INSTALL_RESOURCE])) {
+      await resourceRegistry.waitForFree();
+    }
+    try {
+      return await fn();
+    } finally {
+      resourceRegistry.release([RUNTIME_INSTALL_RESOURCE]);
+    }
+  };
+  // One android app preflight (driver install + Appium co-homing) per run,
+  // always performed under the install lease.
+  let androidPreflight:
+    | ReturnType<typeof appSurfacePreflight>
+    | undefined;
+  const getAndroidPreflight = () =>
+    (androidPreflight ??= withRuntimeInstallLock(() =>
+      appSurfacePreflight({ config, platform: "android" })
+    ));
 
   return async (task: WarmTask) => {
     switch (task.kind) {
@@ -2845,6 +2892,25 @@ function buildWarmTaskRunner({
         });
 
       case "driver-install": {
+        // Mirror the per-context preflights' host-capability gates BEFORE
+        // installing: they probe the environment first and skip without
+        // installing on hosts that can never run the platform, and warm
+        // must not install what those gates would refuse.
+        if (task.payload.platform === "android") {
+          const env = await getAndroidEnv();
+          if (!env) {
+            return {
+              outcome: "skipped",
+              note: "Android toolchain not ready; the driver install stays with the consuming context",
+            };
+          }
+        }
+        if (task.payload.platform === "ios") {
+          const toolchain = getIosToolchain();
+          if (!toolchain.ok) {
+            return { outcome: "skipped", note: toolchain.reason };
+          }
+        }
         // Same lazy-loaded install path appSurfacePreflight uses; it skips
         // packages already resolvable, so the later per-context preflight
         // finds the driver present and pays only Appium co-homing.
@@ -2883,21 +2949,15 @@ function buildWarmTaskRunner({
                 desc,
                 registry: deviceRegistry,
                 sdkRoot: env.sdkRoot,
-                deps: {
-                  ...env.deviceDeps,
-                  createAvd: (args: any) => {
-                    signalInitiated();
-                    return env.deviceDeps.createAvd(args);
-                  },
-                  boot: (d: any, port: number) => {
-                    signalInitiated();
-                    return env.deviceDeps.boot(d, port);
-                  },
-                },
+                deps: wrapInitiationEffects(
+                  env.deviceDeps,
+                  ["createAvd", "boot"],
+                  signalInitiated
+                ),
               }),
           });
         }
-        const toolchain = probeIosToolchain();
+        const toolchain = getIosToolchain();
         if (!toolchain.ok) {
           return { outcome: "skipped", note: toolchain.reason };
         }
@@ -2910,17 +2970,11 @@ function buildWarmTaskRunner({
             acquireSimulator({
               desc,
               registry: simulatorRegistry,
-              deps: {
-                ...simDeps,
-                create: (args: any) => {
-                  signalInitiated();
-                  return simDeps.create(args);
-                },
-                boot: (udid: string) => {
-                  signalInitiated();
-                  return simDeps.boot(udid);
-                },
-              },
+              deps: wrapInitiationEffects(
+                simDeps,
+                ["create", "boot"],
+                signalInitiated
+              ),
             }),
         });
       }
@@ -2971,6 +3025,13 @@ function buildWarmTaskRunner({
           desc: task.payload.desc,
           deviceRegistry,
           getAndroidEnv,
+          deps: {
+            // The cache-mutating half (driver install + Appium co-homing)
+            // runs once per run under the manual runtime-install lease, so
+            // the prefetch task itself only holds its device tag while it
+            // awaits readiness and runs the throwaway session.
+            appSurfacePreflight: () => getAndroidPreflight(),
+          },
         });
     }
   };
@@ -3051,7 +3112,7 @@ async function prefetchMobileChromedriver({
         ANDROID_HOME: env.sdkRoot,
         ANDROID_SDK_ROOT: env.sdkRoot,
       },
-      ["--allow-insecure", "uiautomator2:chromedriver_autodownload"]
+      CHROMEDRIVER_AUTODOWNLOAD_ARGS
     );
     driver = await startDriver(
       buildMobileBrowserCapabilities({
@@ -3991,9 +4052,7 @@ async function runContext({
       // scoped to the uiautomator2 driver on this run-owned server so it can
       // fetch the chromedriver matching the device's Chrome.
       const extraArgs =
-        mobileTarget === "android"
-          ? ["--allow-insecure", "uiautomator2:chromedriver_autodownload"]
-          : [];
+        mobileTarget === "android" ? CHROMEDRIVER_AUTODOWNLOAD_ARGS : [];
       // Server start + device boot are environment work: any failure there
       // (port pressure, an emulator that can't finish booting on this host,
       // simctl trouble) is a gating SKIP with the reason named — never a

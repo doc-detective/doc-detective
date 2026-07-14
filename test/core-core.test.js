@@ -43,24 +43,17 @@ describe("Run tests successfully", function () {
       );
       // The inline warm phase ran before Phase 2 and reported its tasks: a
       // browser run at concurrentRunners 2 always plans the browser install
-      // (skipped when already available) and the session probe.
+      // (skipped when already available) and the session probe. Enum
+      // membership (kind/outcome values) is the report_v3 schema's contract,
+      // policed by src/common/test/validate.test.js — this smoke asserts the
+      // shape and the browser tasks only.
       assert.ok(result.warm, "report.warm missing");
       assert.equal(typeof result.warm.durationMs, "number");
       assert.ok(Array.isArray(result.warm.tasks));
-      const validKinds = [
-        "driver-install",
-        "browser-install",
-        "device-boot",
-        "wda-check",
-        "session-probe",
-        "chromedriver-prefetch",
-      ];
       for (const task of result.warm.tasks) {
-        assert.ok(validKinds.includes(task.kind), `unknown kind ${task.kind}`);
-        assert.ok(
-          ["warmed", "skipped", "failed"].includes(task.outcome),
-          `unknown outcome ${task.outcome}`
-        );
+        assert.equal(typeof task.name, "string");
+        assert.equal(typeof task.kind, "string");
+        assert.equal(typeof task.outcome, "string");
         assert.equal(typeof task.durationMs, "number");
       }
       assert.ok(

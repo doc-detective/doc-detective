@@ -74,7 +74,17 @@ Specifics settled here:
   placeholder carries `bootedByUs: true` and the in-flight `ready` promise, so the existing
   run-end sweeps reclaim a warm-booted device **whether or not any test used it**. Boot tasks
   resolve at boot *initiation* (`raceBootInitiation`, with the failure path routed to a warning,
-  never an unhandled rejection); consumers await `ready` exactly where they do today.
+  never an unhandled rejection); consumers await `ready` exactly where they do today. Because a
+  boot can now still be in flight at run end, the teardown sweeps await an owned entry's `ready`
+  before shutting it down (a mid-boot placeholder has no process/udid to kill yet — sweeping it
+  blind would orphan the device).
+- **Warm plans only what the run's own gates would provision.** The planner applies the
+  per-context `requires` capability gate (an unmet gate provisions nothing, exactly like
+  runContext), and the mobile driver-install bodies re-check the host-capability probes
+  (android SDK/acceleration, iOS toolchain) before installing — warm never installs a driver the
+  per-context preflight would have refused to install. Desktop driver installs don't re-run the
+  macOS TCC probe (an inconclusive probe never blocks installs in the preflight either); the
+  worst case is a one-time cached install on a host whose contexts later skip.
 - **The session probe keeps its gate.** The folded-in `warmUpContexts` probe still runs only at
   `limit > 1` with a browser Appium pool — a throwaway driver session is only worth paying when it
   prevents concurrent first-session races — preserving the documented byte-identical serial-run
@@ -85,8 +95,11 @@ Specifics settled here:
   executor dependency graph. Trade-off, stated plainly: the warm barrier now waits for a device
   boot plus one throwaway session — but **only** for runs containing android mobile-web contexts,
   which would pay exactly that cost at their first mobile context anyway; warm overlaps it with
-  the other tasks. Because the phase is awaited before Phase 2, the throwaway session can never
-  overlap the first real session on the device.
+  the other tasks. The task holds only its device tag: its cache-mutating half (the android
+  preflight, one per run) executes under a manually-acquired `runtime-install` lease inside the
+  body, so the minutes-long device-ready await never blocks the install tasks queued on that
+  mutex. Because the phase is awaited before Phase 2, the throwaway session can never overlap the
+  first real session on the device.
 - **Warm never lazy-installs the android toolchain.** The light env probe skips instead — the loud
   multi-GB lazy install (and its report-visible warning) stays with the consuming context.
 - **`wda-check` probes, never builds.** It consults the managed WDA locator (ADR 01059) for
@@ -104,7 +117,15 @@ Specifics settled here:
 - Bad: runs with android mobile-web contexts block on boot + one throwaway session before Phase 2
   (cost moved earlier, overlapped, and scoped to runs that already pay it).
 - Bad: at `concurrentRunners: 1`, install log lines now appear during warm rather than inside the
-  first consuming context — the memo end-state is identical.
+  first consuming context — the memo end-state is identical, but two serial-run edges shift to
+  match today's concurrent-run behavior: a failed install's skip description uses the generic
+  memo-hit wording (not the first-consumer "on-demand install failed" wording), and a browserless
+  context ordered before a pinned-browser context can now resolve the warm-installed engine as its
+  default and run where it previously skipped.
+- Bad: the `android-emulator` exclusivity bound no longer spans a warm boot's background window —
+  warm releases the tag at initiation, so one background warm boot can overlap one Phase-2 boot of
+  a *different* device (same-device work still converges on the registry entry). Accepted: the
+  overlap is capped at one background boot, and multi-device android runs are rare.
 - Neutral: `doc-detective warm` (standalone CLI + cross-run ownership handoff, design phase B3)
   stays deferred; the fixtures.yml iOS pre-boot step is only fully retired by B3.
 

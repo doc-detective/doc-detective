@@ -59,17 +59,62 @@ export const WARM_POOL_LIMIT = 4;
 // browser installs raced before warmUpContexts serialized them.
 export const RUNTIME_INSTALL_RESOURCE = "runtime-install";
 
-// One exclusivity tag per (platform, device): boots for the same device
+/**
+ * The single identity a warm device task is deduped, named, and
+ * tag-serialized by. It mirrors how the acquisition planners converge on a
+ * device: a NAMED descriptor always resolves to that registry name (whatever
+ * its other fields say), so two same-named descriptors are one device even
+ * when their osVersions differ — a second boot task would just registry-hit
+ * and block a warm worker on the full boot. Unnamed (default) descriptors
+ * resolve by deviceType + osVersion, so those fields distinguish devices.
+ */
+export function deviceIdentity(
+  platform: string,
+  desc:
+    | { name?: string; deviceType?: string; osVersion?: string }
+    | undefined
+): string {
+  if (desc?.name) return `${platform}:name:${desc.name}`;
+  return `${platform}:default:${desc?.deviceType ?? "<any>"}:${
+    desc?.osVersion ?? "<latest>"
+  }`;
+}
+
+// One exclusivity tag per device identity: boots for the same device
 // serialize (the registries would converge them anyway — the tag just avoids
 // two acquires racing to plan), and the chromedriver prefetch queues behind
 // its device's boot task, which releases at boot *initiation*.
 export function deviceResourceTag(
   platform: string,
-  desc: { name?: string; osVersion?: string } | undefined
+  desc:
+    | { name?: string; deviceType?: string; osVersion?: string }
+    | undefined
 ): string {
-  return `warm-device:${platform}:${desc?.name ?? "<default>"}:${
-    desc?.osVersion ?? "<latest>"
-  }`;
+  return `warm-device:${deviceIdentity(platform, desc)}`;
+}
+
+/**
+ * Re-wrap the named effect functions on an acquire-deps object so the first
+ * invocation of any of them fires `signal` — the boot-initiation hook
+ * raceBootInitiation races against. Shared by the android (createAvd/boot)
+ * and ios (create/boot) device-boot bodies so the initiation contract lives
+ * in one place.
+ */
+export function wrapInitiationEffects<T extends Record<string, any>>(
+  deps: T,
+  keys: (keyof T)[],
+  signal: () => void
+): T {
+  const wrapped: Record<string, any> = { ...deps };
+  for (const key of keys) {
+    const original = deps[key];
+    if (typeof original !== "function") continue;
+    wrapped[key as string] = (...args: any[]) => {
+      signal();
+      return original(...args);
+    };
+  }
+  return wrapped as T;
 }
 
 // The predicates and helpers the planner borrows from tests.ts (bound by
@@ -80,7 +125,6 @@ export type WarmPlanDeps = {
   isAppDriverRequired(args: { test: any }): boolean;
   isMobileTargetPlatform(platform: unknown): "android" | "ios" | null;
   getDefaultBrowser(args: { runnerDetails: any }): any;
-  combinationKey(context: any): string;
   requiredBrowserAssets(name: string | undefined): unknown[];
   collectDeviceDescriptors(context: any): any[];
   normalizeDeviceDescriptor(args: {
@@ -97,55 +141,65 @@ export type WarmPlanDeps = {
     | { action: "proceed"; browserName: string | null }
     | { action: "skip"; level: "warning"; reason: string }
     | { action: "fail"; reason: string };
+  // Null when the context's `requires` gate is absent or met; a skip message
+  // when unmet — the same gate runContext applies BEFORE any provisioning.
+  contextRequirementsSkipMessage(args: { context: any }): string | null;
   // platform → { driverPackage } (the APP_DRIVER_PLATFORMS projection).
   appDriverPlatforms: Record<string, { driverPackage: string }>;
 };
 
 /**
  * Derive the warm tasks a run needs from its sizing jobs (flat + routed).
- * Pure: no I/O, and — unlike selectWarmUpTargets — it never writes defaults
- * onto the job contexts; effective platform/browser are computed locally so
- * planning leaves the jobs byte-identical for the execution paths that own
- * those mutations.
+ * Pure: no I/O of its own, and — unlike selectWarmUpTargets — it never
+ * writes defaults onto the job contexts; effective platform/browser are
+ * computed locally so planning leaves the jobs byte-identical for the
+ * execution paths that own those mutations.
  *
  * Derivation is strictly "what the run's own paths would JIT-provision":
  * a pure-web run plans only the browser installs (and, at limit > 1 with a
  * pool, the session probe) that today's pre-pass already performs; mobile
  * and app contexts add their driver installs, device boots, WDA check, and
- * chromedriver prefetch. Anything the host can't use (an ios context off
- * darwin, a windows app context off windows) is not planned — mirroring the
- * per-context gates that would skip it.
+ * chromedriver prefetch. Anything the run's own gates would refuse before
+ * provisioning — an unmet `requires` gate, an ios context off darwin, a
+ * windows app context off windows, a mobile context the browser gate
+ * skips/fails — is not planned, mirroring the per-context gates.
  */
 export function planWarmTasks({
   sizingJobs,
   runnerDetails,
-  config,
   limit,
   hasAppiumPool,
-  hostPlatform,
   deps,
 }: {
   sizingJobs: any[];
   runnerDetails: any;
-  config: any;
   limit: number;
   hasAppiumPool: boolean;
-  // The runner's platform in runOn vocabulary ("windows" | "mac" | "linux").
-  hostPlatform: string;
   deps: WarmPlanDeps;
 }): WarmTask[] {
+  // The runner's platform in runOn vocabulary ("windows" | "mac" | "linux") —
+  // the same source every peer (selectWarmUpTargets, runContext) reads.
+  const hostPlatform = runnerDetails?.environment?.platform;
   const tasks: WarmTask[] = [];
-  const driverInstalls = new Set<string>();
-  const browserInstalls = new Set<string>();
-  const deviceBoots = new Set<string>();
-  const prefetches = new Set<string>();
-  let wdaCheckPlanned = false;
+  const seen = new Set<string>();
+  const addTask = (task: WarmTask) => {
+    if (seen.has(task.name)) return;
+    seen.add(task.name);
+    tasks.push(task);
+  };
   let probeEligible = false;
-  const probeCombos = new Set<string>();
+  // The run-constant default browser, resolved at most once.
+  let defaultBrowser: any;
+  const getDefaultBrowser = () =>
+    (defaultBrowser ??= deps.getDefaultBrowser({ runnerDetails }));
 
   for (const job of sizingJobs ?? []) {
     const context = job?.context;
     if (!context) continue;
+    // runContext evaluates the `requires` capability gate before ANY
+    // provisioning (install, preflight, boot) — a context it would skip
+    // must warm nothing.
+    if (deps.contextRequirementsSkipMessage({ context })) continue;
     const effPlatform = context.platform || hostPlatform;
     const mobileTarget = deps.isMobileTargetPlatform(effPlatform);
 
@@ -154,25 +208,23 @@ export function planWarmTasks({
       // android emulators run anywhere the SDK does.
       if (mobileTarget === "ios" && hostPlatform !== "mac") continue;
 
+      const hasAppStep = deps.isAppDriverRequired({ test: context });
       const gate = deps.mobileBrowserGate({
         platform: mobileTarget,
         browser: context.browser,
         hasBrowserStep: deps.isBrowserRequired({ test: context }),
-        hasAppStep: deps.isAppDriverRequired({ test: context }),
+        hasAppStep,
       });
       // A context the gate would SKIP/FAIL never reaches device work in
       // runContext — warm nothing for it.
       if (gate.action !== "proceed") continue;
       const isMobileWeb = typeof gate.browserName === "string";
-      const needsDevice =
-        isMobileWeb || deps.isAppDriverRequired({ test: context });
-      if (!needsDevice) continue;
+      if (!isMobileWeb && !hasAppStep) continue;
 
       const driverPackage =
         deps.appDriverPlatforms[mobileTarget]?.driverPackage;
-      if (driverPackage && !driverInstalls.has(driverPackage)) {
-        driverInstalls.add(driverPackage);
-        tasks.push({
+      if (driverPackage) {
+        addTask({
           name: `driver-install:${driverPackage}`,
           kind: "driver-install",
           exclusiveResources: [RUNTIME_INSTALL_RESOURCE],
@@ -186,45 +238,33 @@ export function planWarmTasks({
           stepDevice,
           platform: mobileTarget,
         });
-        const deviceKey = `${mobileTarget}::${desc?.name ?? "<default>"}::${
-          desc?.osVersion ?? "<latest>"
-        }`;
-        if (!deviceBoots.has(deviceKey)) {
-          deviceBoots.add(deviceKey);
-          const tag = deviceResourceTag(mobileTarget, desc);
-          tasks.push({
-            name: `device-boot:${deviceKey.replaceAll("::", ":")}`,
-            kind: "device-boot",
-            exclusiveResources:
-              mobileTarget === "android" ? [tag, "android-emulator"] : [tag],
+        const identity = deviceIdentity(mobileTarget, desc);
+        const tag = deviceResourceTag(mobileTarget, desc);
+        addTask({
+          name: `device-boot:${identity}`,
+          kind: "device-boot",
+          exclusiveResources:
+            mobileTarget === "android" ? [tag, "android-emulator"] : [tag],
+          payload: { platform: mobileTarget, desc },
+        });
+        // The chromedriver autodownload is a mobile-WEB-android cost: the
+        // UiAutomator2 server fetches a chromedriver matching the device's
+        // Chrome at session creation. One prefetch per device. Only the
+        // device tag: its cache-mutating preflight half runs under a
+        // manually-acquired runtime-install lease inside the task body, so
+        // the long device-ready await never holds the install mutex.
+        if (mobileTarget === "android" && isMobileWeb) {
+          addTask({
+            name: `chromedriver-prefetch:${identity}`,
+            kind: "chromedriver-prefetch",
+            exclusiveResources: [tag],
             payload: { platform: mobileTarget, desc },
           });
         }
-        // The chromedriver autodownload is a mobile-WEB-android cost: the
-        // UiAutomator2 server fetches a chromedriver matching the device's
-        // Chrome at session creation. One prefetch per device.
-        if (mobileTarget === "android" && isMobileWeb) {
-          if (!prefetches.has(deviceKey)) {
-            prefetches.add(deviceKey);
-            tasks.push({
-              name: `chromedriver-prefetch:${deviceKey.replaceAll("::", ":")}`,
-              kind: "chromedriver-prefetch",
-              // The device tag queues the prefetch behind its device's boot
-              // task; runtime-install covers its (idempotent) driver/appium
-              // preflight, which may install into the shared cache.
-              exclusiveResources: [
-                deviceResourceTag(mobileTarget, desc),
-                RUNTIME_INSTALL_RESOURCE,
-              ],
-              payload: { platform: mobileTarget, desc },
-            });
-          }
-        }
       }
 
-      if (mobileTarget === "ios" && !wdaCheckPlanned) {
-        wdaCheckPlanned = true;
-        tasks.push({
+      if (mobileTarget === "ios") {
+        addTask({
           name: "wda-check",
           kind: "wda-check",
           // Read-only (plus the last-used stamp) — contends with nothing.
@@ -237,17 +277,10 @@ export function planWarmTasks({
 
     // Desktop contexts.
     if (deps.isBrowserRequired({ test: context })) {
-      const effBrowser =
-        context.browser ?? deps.getDefaultBrowser({ runnerDetails });
+      const effBrowser = context.browser ?? getDefaultBrowser();
       const browserName = effBrowser?.name;
       if (browserName) {
         probeEligible = true;
-        probeCombos.add(
-          deps.combinationKey({
-            platform: effPlatform,
-            browser: { name: browserName },
-          })
-        );
         // Install work only applies to the host's own platform (a context
         // pinned to another platform is skipped per-context, never
         // installed for) and to engines with downloadable assets.
@@ -255,16 +288,12 @@ export function planWarmTasks({
           effPlatform === hostPlatform &&
           deps.requiredBrowserAssets(browserName).length > 0
         ) {
-          const installKey = browserName.toLowerCase();
-          if (!browserInstalls.has(installKey)) {
-            browserInstalls.add(installKey);
-            tasks.push({
-              name: `browser-install:${installKey}`,
-              kind: "browser-install",
-              exclusiveResources: [RUNTIME_INSTALL_RESOURCE],
-              payload: { browserName },
-            });
-          }
+          addTask({
+            name: `browser-install:${browserName.toLowerCase()}`,
+            kind: "browser-install",
+            exclusiveResources: [RUNTIME_INSTALL_RESOURCE],
+            payload: { browserName },
+          });
         }
       }
     }
@@ -275,9 +304,8 @@ export function planWarmTasks({
       deps.isAppDriverRequired({ test: context })
     ) {
       const driverPackage = deps.appDriverPlatforms[effPlatform]?.driverPackage;
-      if (driverPackage && !driverInstalls.has(driverPackage)) {
-        driverInstalls.add(driverPackage);
-        tasks.push({
+      if (driverPackage) {
+        addTask({
           name: `driver-install:${driverPackage}`,
           kind: "driver-install",
           exclusiveResources: [RUNTIME_INSTALL_RESOURCE],
@@ -293,13 +321,13 @@ export function planWarmTasks({
   // The warm PHASE always runs; only this task kind stays gated — preserving
   // the documented byte-identical serial-run behavior.
   if (limit > 1 && hasAppiumPool && probeEligible) {
-    tasks.push({
+    addTask({
       name: "session-probe",
       kind: "session-probe",
       // Its install half mutates the shared caches, exactly like the
       // dedicated install tasks (usually a memo hit by the time it runs).
       exclusiveResources: [RUNTIME_INSTALL_RESOURCE],
-      payload: { combos: [...probeCombos].sort() },
+      payload: {},
     });
   }
 
@@ -327,42 +355,40 @@ export async function executeWarmTasks({
 }): Promise<WarmReport> {
   const results: WarmTaskResult[] = [];
   const start = now();
-  await runResourceAware(
-    tasks,
-    Math.min(WARM_POOL_LIMIT, tasks.length),
-    registry,
-    async (task) => {
-      const taskStart = now();
-      try {
-        const { outcome, note } = await runTask(task);
-        results.push({
-          name: task.name,
-          kind: task.kind,
-          outcome,
-          durationMs: now() - taskStart,
-          ...(note ? { note } : {}),
-        });
-        if (outcome === "failed") {
-          log(
-            "warning",
-            `Warm task '${task.name}' failed (continuing)${note ? `: ${note}` : "."}`
-          );
-        } else {
-          log("debug", `Warm task '${task.name}': ${outcome}${note ? ` (${note})` : ""}.`);
-        }
-      } catch (error: any) {
-        const note = error?.message ?? String(error);
-        results.push({
-          name: task.name,
-          kind: task.kind,
-          outcome: "failed",
-          durationMs: now() - taskStart,
-          note,
-        });
-        log("warning", `Warm task '${task.name}' failed (continuing): ${note}`);
+  await runResourceAware(tasks, WARM_POOL_LIMIT, registry, async (task) => {
+    const taskStart = now();
+    try {
+      const { outcome, note } = await runTask(task);
+      results.push({
+        name: task.name,
+        kind: task.kind,
+        outcome,
+        durationMs: now() - taskStart,
+        ...(note ? { note } : {}),
+      });
+      if (outcome === "failed") {
+        log(
+          "warning",
+          `Warm task '${task.name}' failed (continuing)${note ? `: ${note}` : "."}`
+        );
+      } else {
+        log(
+          "debug",
+          `Warm task '${task.name}': ${outcome}${note ? ` (${note})` : ""}.`
+        );
       }
+    } catch (error: any) {
+      const note = error?.message ?? String(error);
+      results.push({
+        name: task.name,
+        kind: task.kind,
+        outcome: "failed",
+        durationMs: now() - taskStart,
+        note,
+      });
+      log("warning", `Warm task '${task.name}' failed (continuing): ${note}`);
     }
-  );
+  });
   return { durationMs: now() - start, tasks: results };
 }
 
@@ -373,13 +399,14 @@ export async function executeWarmTasks({
  * where it does today.
  *
  * `startAcquire` receives a `signalInitiated` callback the caller wires into
- * the acquire deps' create/boot effects. acquireDevice/acquireSimulator
- * invoke those effects synchronously inside the ready-promise body and then
- * synchronously register the `bootedByUs: true` placeholder before any
- * microtask runs — so by the time the race resolves on the signal, the
- * registry entry (with its in-flight `ready`) is already visible to
- * consumers. Fast paths (registry hit, reuse-running, plan skip) never
- * signal and settle through the acquire promise itself.
+ * the acquire deps' create/boot effects (wrapInitiationEffects).
+ * acquireDevice/acquireSimulator invoke those effects synchronously inside
+ * the ready-promise body and then synchronously register the
+ * `bootedByUs: true` placeholder before any microtask runs — so by the time
+ * the race resolves on the signal, the registry entry (with its in-flight
+ * `ready`) is already visible to consumers. Fast paths (registry hit,
+ * reuse-running, plan skip) never signal and settle through the acquire
+ * promise itself.
  *
  * The catch is chained onto the acquire promise BEFORE the race, so a boot
  * that fails after the task already resolved can never surface as an
@@ -399,30 +426,27 @@ export function raceBootInitiation({
   const initiated = new Promise<void>((resolve) => {
     initiatedResolve = resolve;
   });
-  let settled = false;
-  const acquired: Promise<{ outcome: WarmOutcome; note?: string }> = (async () => {
-    try {
-      const result = await startAcquire(() => initiatedResolve());
-      settled = true;
-      if (result && typeof (result as any).skip === "string") {
-        return { outcome: "skipped" as const, note: (result as any).skip };
+  const acquired: Promise<{ outcome: WarmOutcome; note?: string }> =
+    (async () => {
+      try {
+        const result = await startAcquire(() => initiatedResolve());
+        if (result && typeof result === "object" && "skip" in result) {
+          return { outcome: "skipped" as const, note: result.skip };
+        }
+        return { outcome: "warmed" as const, note: "device ready" };
+      } catch (error) {
+        onError(error);
+        return {
+          outcome: "failed" as const,
+          note: (error as any)?.message ?? String(error),
+        };
       }
-      return { outcome: "warmed" as const, note: "device ready" };
-    } catch (error) {
-      settled = true;
-      onError(error);
-      return {
-        outcome: "failed" as const,
-        note: (error as any)?.message ?? String(error),
-      };
-    }
-  })();
+    })();
   return Promise.race([
-    initiated.then(() =>
-      settled
-        ? acquired
-        : { outcome: "warmed" as const, note: "boot initiated" }
-    ),
+    initiated.then(() => ({
+      outcome: "warmed" as const,
+      note: "boot initiated",
+    })),
     acquired,
   ]);
 }
