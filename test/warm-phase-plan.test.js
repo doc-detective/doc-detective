@@ -165,7 +165,11 @@ describe("warm phase: planWarmTasks", function () {
     assert.deepEqual(install.exclusiveResources, [RUNTIME_INSTALL_RESOURCE]);
     const boot = tasks.find((t) => t.kind === "device-boot");
     const tag = deviceResourceTag("android", {});
-    assert.deepEqual(boot.exclusiveResources, [tag, "android-emulator"]);
+    // No "android-emulator" task tag: the runner holds a manual lease on
+    // that name from initiation until the boot settles instead (a task tag
+    // would be released at task resolution — boot initiation — and CI
+    // proved concurrent boots starve small runners).
+    assert.deepEqual(boot.exclusiveResources, [tag]);
     // The prefetch holds ONLY its device tag: its cache-mutating preflight
     // half runs under a manual runtime-install lease inside the task body,
     // so the long device-ready await never blocks the install tasks.
@@ -173,63 +177,43 @@ describe("warm phase: planWarmTasks", function () {
     assert.deepEqual(prefetch.exclusiveResources, [tag]);
   });
 
-  it("dedupes device boots by normalized descriptor and splits distinct devices", function () {
+  it("boots at most one device per mobile platform, deduped across contexts", function () {
+    // Emulator/simulator boots are the heaviest thing a CI host runs —
+    // overlapping them starves everything (proven on the 2-core KVM leg).
+    // Warm pre-pays the FIRST device's boot; every additional device boots
+    // inside its consuming context, serialized as today.
     const device = { name: "pixel", osVersion: "14" };
     const tasks = plan({
       jobs: [
         job({ platform: "android", device, steps: [browserStep] }),
         job({ platform: "android", device, steps: [browserStep] }),
         job({ platform: "android", steps: [browserStep] }),
+        job({ platform: "android", device: { name: "other" }, steps: [appStep] }),
       ],
       platform: "linux",
     });
     const boots = tasks.filter((t) => t.kind === "device-boot").map((t) => t.name);
-    assert.equal(boots.length, 2);
-    assert.ok(boots.some((n) => n.includes("pixel")));
+    assert.equal(boots.length, 1);
+    assert.ok(boots[0].includes("pixel"));
+    // The prefetch stays per-device (it serializes on the emulator lease at
+    // run time), still deduped by identity.
+    const prefetches = tasks.filter((t) => t.kind === "chromedriver-prefetch");
+    assert.equal(prefetches.length, 2);
   });
 
-  it("dedupes same-named devices even when osVersions differ (the registry keys by name)", function () {
-    // A named device resolves to one registry entry regardless of osVersion;
-    // a second boot task would just registry-hit and block a warm worker on
-    // the FULL boot, defeating resolve-at-initiation.
+  it("plans one boot per platform in a mixed android + ios run", function () {
     const tasks = plan({
       jobs: [
-        job({
-          platform: "android",
-          device: { name: "pixel", osVersion: "35" },
-          steps: [browserStep],
-        }),
-        job({
-          platform: "android",
-          device: { name: "pixel", osVersion: "36" },
-          steps: [browserStep],
-        }),
-      ],
-      platform: "linux",
-    });
-    assert.equal(tasks.filter((t) => t.kind === "device-boot").length, 1);
-  });
-
-  it("splits unnamed devices that differ only in deviceType", function () {
-    // Default (unnamed) descriptors resolve by deviceType + osVersion —
-    // an iPhone and an iPad are two simulators and both need warming.
-    const tasks = plan({
-      jobs: [
-        job({
-          platform: "ios",
-          device: { deviceType: "phone" },
-          steps: [appStep],
-        }),
-        job({
-          platform: "ios",
-          device: { deviceType: "tablet" },
-          steps: [appStep],
-        }),
+        job({ platform: "android", steps: [browserStep] }),
+        job({ platform: "ios", steps: [appStep] }),
       ],
       platform: "mac",
       apps: [{ name: "safari" }],
     });
-    assert.equal(tasks.filter((t) => t.kind === "device-boot").length, 2);
+    const boots = tasks.filter((t) => t.kind === "device-boot").map((t) => t.name);
+    assert.equal(boots.length, 2);
+    assert.ok(boots.some((n) => n.includes("android")));
+    assert.ok(boots.some((n) => n.includes("ios")));
   });
 
   it("warms nothing for a context whose `requires` gate is unmet", function () {

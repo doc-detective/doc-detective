@@ -2857,18 +2857,28 @@ function buildWarmTaskRunner({
   // share a single result instead of each blocking the executor on it.
   let iosToolchain: ReturnType<typeof probeIosToolchain> | undefined;
   const getIosToolchain = () => (iosToolchain ??= probeIosToolchain());
-  // Manual lease on the shared install mutex, for work that must serialize
-  // with the runtime-install-tagged tasks but runs inside a task that
-  // deliberately does NOT hold that tag for its whole duration (the
-  // chromedriver prefetch, whose device-ready await must not block installs).
-  const withRuntimeInstallLock = async <T>(fn: () => Promise<T>): Promise<T> => {
-    while (!resourceRegistry.tryAcquire([RUNTIME_INSTALL_RESOURCE])) {
+  // Manual leases on the run's resource registry, for work that must
+  // serialize on a named mutex but can't express its hold window as a task
+  // tag (runResourceAware releases tags at task RESOLUTION, and warm tasks
+  // deliberately resolve before their background work finishes). The
+  // returned release is idempotent.
+  const acquireLease = async (names: string[]): Promise<() => void> => {
+    while (!resourceRegistry.tryAcquire(names)) {
       await resourceRegistry.waitForFree();
     }
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      resourceRegistry.release(names);
+    };
+  };
+  const withRuntimeInstallLock = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const release = await acquireLease([RUNTIME_INSTALL_RESOURCE]);
     try {
       return await fn();
     } finally {
-      resourceRegistry.release([RUNTIME_INSTALL_RESOURCE]);
+      release();
     }
   };
   // One android app preflight (driver install + Appium co-homing) per run,
@@ -2942,10 +2952,21 @@ function buildWarmTaskRunner({
               note: "Android toolchain not ready; device setup stays with the consuming context",
             };
           }
+          // Hold the run's "android-emulator" mutex from before initiation
+          // until the boot settles — in the BACKGROUND, past this task's
+          // resolution — so warm's boot and any Phase-2 job's boot (which
+          // tag the same name) can never run two emulators at once: on a
+          // small CI runner concurrent boots starve each other and the
+          // sessions that follow. Released via the acquire promise's settle
+          // chain (both branches handled — no unhandled rejection), not a
+          // finally, precisely because the task resolves first.
+          const releaseEmulatorLease = await acquireLease([
+            "android-emulator",
+          ]);
           return raceBootInitiation({
             onError,
-            startAcquire: (signalInitiated) =>
-              acquireDevice({
+            startAcquire: (signalInitiated) => {
+              const acquiring = acquireDevice({
                 desc,
                 registry: deviceRegistry,
                 sdkRoot: env.sdkRoot,
@@ -2954,7 +2975,13 @@ function buildWarmTaskRunner({
                   ["createAvd", "boot"],
                   signalInitiated
                 ),
-              }),
+              });
+              acquiring.then(
+                () => releaseEmulatorLease(),
+                () => releaseEmulatorLease()
+              );
+              return acquiring;
+            },
           });
         }
         const toolchain = getIosToolchain();
@@ -3031,6 +3058,7 @@ function buildWarmTaskRunner({
             // the prefetch task itself only holds its device tag while it
             // awaits readiness and runs the throwaway session.
             appSurfacePreflight: () => getAndroidPreflight(),
+            acquireEmulatorLease: () => acquireLease(["android-emulator"]),
           },
         });
     }
@@ -3068,6 +3096,9 @@ async function prefetchMobileChromedriver({
     startAppiumServer?: typeof startAppiumServer;
     driverStart?: typeof driverStart;
     killTree?: typeof killTree;
+    // Serializes any boot this task's acquire performs with every other
+    // emulator boot in the run (warm's and Phase 2's).
+    acquireEmulatorLease?: () => Promise<() => void>;
   };
 }): Promise<{ outcome: WarmOutcome; note?: string }> {
   const preflight = deps.appSurfacePreflight ?? appSurfacePreflight;
@@ -3091,13 +3122,23 @@ async function prefetchMobileChromedriver({
   if (!pre.ok) return { outcome: "skipped", note: pre.reason };
   // Await the device. If the device-boot task already initiated this boot,
   // this acquire converges on the same registry entry and awaits its
-  // in-flight `ready`; otherwise it performs the full acquire itself.
-  const acquired = await acquire({
-    desc,
-    registry: deviceRegistry,
-    sdkRoot: env.sdkRoot,
-    deps: env.deviceDeps,
-  });
+  // in-flight `ready`; otherwise it performs the full acquire itself —
+  // under the shared emulator lease, so a boot this task performs never
+  // overlaps another emulator boot in the run.
+  const releaseLease = deps.acquireEmulatorLease
+    ? await deps.acquireEmulatorLease()
+    : undefined;
+  let acquired;
+  try {
+    acquired = await acquire({
+      desc,
+      registry: deviceRegistry,
+      sdkRoot: env.sdkRoot,
+      deps: env.deviceDeps,
+    });
+  } finally {
+    releaseLease?.();
+  }
   if ("skip" in acquired) return { outcome: "skipped", note: acquired.skip };
 
   let server: any;

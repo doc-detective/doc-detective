@@ -192,6 +192,14 @@ export function planWarmTasks({
   let defaultBrowser: any;
   const getDefaultBrowser = () =>
     (defaultBrowser ??= deps.getDefaultBrowser({ runnerDetails }));
+  // Warm boots at most ONE device per mobile platform: emulator/simulator
+  // boots are the heaviest thing a CI host runs, and overlapping them
+  // starves everything (four concurrent emulator boots on a 2-core KVM
+  // runner starve the very sessions the tests need). The first device's
+  // boot overlaps the install tasks — the win the phase exists for — and
+  // every additional device boots exactly where it does today: inside its
+  // consuming context, serialized on the Phase-2 exclusivity tags.
+  const bootPlannedFor = new Set<string>();
 
   for (const job of sizingJobs ?? []) {
     const context = job?.context;
@@ -240,13 +248,20 @@ export function planWarmTasks({
         });
         const identity = deviceIdentity(mobileTarget, desc);
         const tag = deviceResourceTag(mobileTarget, desc);
-        addTask({
-          name: `device-boot:${identity}`,
-          kind: "device-boot",
-          exclusiveResources:
-            mobileTarget === "android" ? [tag, "android-emulator"] : [tag],
-          payload: { platform: mobileTarget, desc },
-        });
+        if (!bootPlannedFor.has(mobileTarget)) {
+          bootPlannedFor.add(mobileTarget);
+          // No "android-emulator" tag here: runResourceAware would release
+          // it at task resolution (boot initiation), before the boot
+          // finishes. The runner instead holds a manual lease on that name
+          // from initiation until the boot settles, so Phase-2 jobs (which
+          // tag it) still see one-emulator-at-a-time across phases.
+          addTask({
+            name: `device-boot:${identity}`,
+            kind: "device-boot",
+            exclusiveResources: [tag],
+            payload: { platform: mobileTarget, desc },
+          });
+        }
         // The chromedriver autodownload is a mobile-WEB-android cost: the
         // UiAutomator2 server fetches a chromedriver matching the device's
         // Chrome at session creation. One prefetch per device. Only the

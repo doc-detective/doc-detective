@@ -122,10 +122,12 @@ Specifics settled here:
   memo-hit wording (not the first-consumer "on-demand install failed" wording), and a browserless
   context ordered before a pinned-browser context can now resolve the warm-installed engine as its
   default and run where it previously skipped.
-- Bad: the `android-emulator` exclusivity bound no longer spans a warm boot's background window —
-  warm releases the tag at initiation, so one background warm boot can overlap one Phase-2 boot of
-  a *different* device (same-device work still converges on the registry entry). Accepted: the
-  overlap is capped at one background boot, and multi-device android runs are rare.
+- Neutral: warm boots at most **one device per mobile platform** (the first), and the android boot
+  holds a manual `android-emulator` lease from initiation until the boot settles (released in the
+  background, past the task's resolution), so the one-emulator-at-a-time bound holds across warm
+  and Phase 2. Additional devices boot inside their consuming contexts exactly as before — the
+  first CI run of this branch proved that overlapping emulator boots starve a small KVM runner
+  (four concurrent boots timed out the very sessions the tests needed).
 - Neutral: `doc-detective warm` (standalone CLI + cross-run ownership handoff, design phase B3)
   stays deferred; the fixtures.yml iOS pre-boot step is only fully retired by B3.
 

@@ -115,6 +115,41 @@ describe("warm phase: chromedriver prefetch via throwaway session", function () 
     assert.ok(!calls.includes("server"));
   });
 
+  it("holds the emulator lease around the acquire and releases it either way", async function () {
+    const { calls, deps } = harness();
+    let released = 0;
+    deps.acquireEmulatorLease = async () => {
+      calls.push("lease");
+      return () => {
+        released++;
+        calls.push("release");
+      };
+    };
+    const result = await run(deps);
+    assert.equal(result.outcome, "warmed");
+    assert.equal(released, 1);
+    // The lease brackets exactly the acquire (the boot window), not the
+    // throwaway session.
+    assert.deepEqual(calls.slice(calls.indexOf("lease"), calls.indexOf("release") + 1), [
+      "lease",
+      "acquire",
+      "release",
+    ]);
+  });
+
+  it("releases the emulator lease when the device plan skips", async function () {
+    let released = 0;
+    const { deps } = harness({
+      acquireDevice: async () => ({ skip: "no AVD resolvable" }),
+    });
+    deps.acquireEmulatorLease = async () => () => {
+      released++;
+    };
+    const result = await run(deps);
+    assert.equal(result.outcome, "skipped");
+    assert.equal(released, 1);
+  });
+
   it("still kills the server when the throwaway session fails", async function () {
     const { calls, deps } = harness({
       driverStart: async () => {
