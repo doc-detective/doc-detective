@@ -4,15 +4,10 @@ import {
   Range,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import { getNodeValue, printParseErrorCode } from "jsonc-parser";
 import { validate } from "../common/src/validate.js";
-import { classifyDocument, basenameFromUri, DocClass } from "./gate.js";
-import {
-  parseJsonTree,
-  rangeForInstancePath,
-  findActionKeyedSteps,
-  OffsetRange,
-} from "./json/positions.js";
+import { classifyDocument, DocClass } from "./gate.js";
+import type { OffsetRange } from "./json/positions.js";
+import { buildModel } from "./model.js";
 
 /** Diagnostic `source` label shown in the editor gutter/problems panel. */
 export const DIAGNOSTIC_SOURCE = "doc-detective";
@@ -20,11 +15,21 @@ export const DIAGNOSTIC_SOURCE = "doc-detective";
 /**
  * The flagship message: the single most common Doc Detective authoring mistake
  * gets one clear diagnostic instead of the wall of `anyOf` failures the raw
- * schema produces. Mirrors the plugin's write-blocking hook.
+ * schema produces. Mirrors the plugin's write-blocking hook. Fires only on
+ * an INVALID document — a valid legacy v2 spec gets the softer deprecation
+ * warning below instead.
  */
 export const ACTION_KEYED_MESSAGE =
   'The action name is the key: write `{"goTo": …}`, not an object with an "action" property. ' +
   'Each step is `{"<action>": <value>}`.';
+
+/**
+ * The version-mixing nudge: a document that is *valid* but uses the legacy v2
+ * `action`-keyed step form gets a non-blocking warning steering it to the
+ * compact v3 form.
+ */
+export const V2_DEPRECATION_MESSAGE =
+  'Legacy v2 step form. Prefer the compact v3 form — the action name is the key, e.g. `{"goTo": …}`.';
 
 const SCHEMA_FOR_CLASS: Record<Exclude<DocClass, null>, string> = {
   spec: "spec_v3",
@@ -36,11 +41,6 @@ function offsetRangeToLspRange(doc: TextDocument, range: OffsetRange): Range {
     start: doc.positionAt(range.start),
     end: doc.positionAt(range.end),
   };
-}
-
-/** Phase 1 handles JSON only; YAML specs are classified but validated later. */
-function isJsonDocument(uri: string): boolean {
-  return basenameFromUri(uri).endsWith(".json");
 }
 
 /**
@@ -100,36 +100,39 @@ export function schemaMessage(error: {
 
 /**
  * Compute all diagnostics for a document. Pure over (uri, text): no filesystem,
- * no network. Returns `[]` for anything the detection gate doesn't recognize,
- * for non-JSON in Phase 1, and for empty/unparseable buffers (beyond the JSON
- * syntax errors themselves).
+ * no network. Handles JSON and YAML specs/configs. Returns `[]` for anything the
+ * detection gate doesn't recognize and for empty/unparseable buffers (beyond
+ * the syntax errors themselves).
  */
 export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
   const text = doc.getText();
   const cls = classifyDocument({ uri: doc.uri, text });
   if (!cls) return [];
-  if (!isJsonDocument(doc.uri)) return [];
 
-  const { root, errors: syntaxErrors } = parseJsonTree(text);
+  const model = buildModel(doc.uri, text);
+  /* c8 ignore next - classify only returns non-null for .json/.yaml/.yml, which buildModel handles */
+  if (!model) return [];
 
-  // Surface JSON syntax errors ourselves: because the plugin maps specs to a
-  // dedicated language id, the editor's built-in JSON service may not run.
-  const diagnostics: Diagnostic[] = syntaxErrors.map((e) => ({
+  // Surface syntax errors ourselves: because the plugin maps specs to a
+  // dedicated language id, the editor's built-in JSON/YAML service may not run.
+  const diagnostics: Diagnostic[] = model.syntaxErrors.map((e) => ({
     severity: DiagnosticSeverity.Error,
-    range: offsetRangeToLspRange(doc, { start: e.offset, end: e.offset + e.length }),
-    message: `JSON syntax: ${printParseErrorCode(e.error)}`,
+    range: offsetRangeToLspRange(doc, e.range),
+    message: e.message,
     source: DIAGNOSTIC_SOURCE,
   }));
 
-  if (!root) return diagnostics;
+  // A syntactically broken buffer can't be meaningfully schema-checked — the
+  // partial value produces misleading "must be object" noise. Show the syntax
+  // errors; schema diagnostics reappear once the document parses cleanly.
+  if (diagnostics.length > 0) return diagnostics;
 
-  // Reuse the value from the CST we already parsed instead of parsing again.
-  const value = getNodeValue(root);
+  const value = model.value;
   if (!value || typeof value !== "object") return diagnostics;
 
   // Flag action-keyed steps up front and collect their pointers so we can
   // suppress the schema's raw anyOf noise for those same steps.
-  const actionKeyed = findActionKeyedSteps(root);
+  const actionKeyed = model.actionKeyedSteps();
   const suppressedPointers = actionKeyed.map((a) => a.pointer);
 
   const result = validate({
@@ -139,10 +142,21 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
     structuredErrors: true,
   });
 
-  // A valid document has nothing to report — crucially, a legacy v2 spec whose
-  // steps are legitimately `action`-keyed transforms to a valid spec_v3, so we
-  // must NOT nag about it. The action-keyed hint fires only on invalid docs.
-  if (result.valid) return diagnostics;
+  // A valid document: no errors. A legacy v2 spec whose steps are `action`-keyed
+  // transforms to a valid spec_v3 — don't error on it, but nudge toward v3 with
+  // a non-blocking deprecation warning.
+  if (result.valid) {
+    for (const step of actionKeyed) {
+      diagnostics.push({
+        severity: DiagnosticSeverity.Warning,
+        range: offsetRangeToLspRange(doc, step.keyRange),
+        message: V2_DEPRECATION_MESSAGE,
+        source: DIAGNOSTIC_SOURCE,
+        code: "legacy-v2-step",
+      });
+    }
+    return diagnostics;
+  }
 
   if (result.errorObjects) {
     for (const error of result.errorObjects) {
@@ -150,8 +164,8 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
       if (isSuppressedByActionKeyed(instancePath, error.keyword, suppressedPointers)) {
         continue;
       }
-      const offsetRange = rangeForInstancePath(root, instancePath);
-      /* c8 ignore next - rangeForInstancePath always resolves to at least the root for a parsed tree */
+      const offsetRange = model.rangeForPath(instancePath);
+      /* c8 ignore next - rangeForPath always resolves to at least the root for a parsed tree */
       if (!offsetRange) continue;
       diagnostics.push({
         severity: DiagnosticSeverity.Error,
@@ -162,6 +176,7 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
     }
   }
 
+  // Invalid document: the offending action-keyed steps get the flagship error.
   for (const step of actionKeyed) {
     diagnostics.push({
       severity: DiagnosticSeverity.Error,

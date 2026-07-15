@@ -1,4 +1,5 @@
 import { parse as parseJsonc } from "jsonc-parser";
+import YAML from "yaml";
 
 /**
  * What kind of Doc Detective document a buffer is, or `null` when the buffer is
@@ -41,16 +42,16 @@ export function classifyDocument({ uri, text }: ClassifyInput): DocClass {
   if (CONFIG_NAME.test(name)) return "config";
 
   // For anything else we only engage on an explicit signal in the content.
-  // Parse leniently: jsonc-parser returns `undefined` on unparseable input
-  // rather than throwing, and tolerates trailing commas / comments.
+  // Parse leniently by extension: YAML files through the YAML parser, everything
+  // else through jsonc (tolerant of trailing commas / comments). Both are
+  // wrapped so a malformed buffer classifies as `null` rather than throwing.
+  const isYaml = name.endsWith(".yaml") || name.endsWith(".yml");
   let parsed: any;
-  /* c8 ignore start - parseJsonc is non-throwing; the try/catch is purely defensive */
   try {
-    parsed = parseJsonc(text);
+    parsed = isYaml ? YAML.parse(text) : parseJsonc(text);
   } catch {
     return null;
   }
-  /* c8 ignore stop */
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return null;
   }

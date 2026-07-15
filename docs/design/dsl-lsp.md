@@ -1,9 +1,10 @@
 # Design: a language server for the Doc Detective test DSL
 
-Status: **in progress** — Phases 0–2 landed (schema-association contract,
+Status: **in progress** — Phases 0–3 landed (schema-association contract,
 `doc-detective lsp` server + JSON diagnostics, action-registry completion +
-hover); Phases 3–5 (YAML + semantic checks, inline tests across all fileTypes,
-packaging) remain. This document is the roadmap and the package-boundary
+hover, YAML diagnostics parity + v2-deprecation warning); Phases 4–5 (inline
+tests across all fileTypes, packaging) remain, plus the Phase 3 follow-ups noted
+below (YAML completion/hover, fs/cross-file semantic checks, quick-fixes). This document is the roadmap and the package-boundary
 reference. Each shipped phase carries its own ADR + fixtures + docs assessment
 per [CLAUDE.md](../../CLAUDE.md); this doc is the shared context they all
 reference. Foundational decision:
@@ -165,16 +166,35 @@ compact form.
 - Hover docs sourced from schema `description`s — one source of truth, no
   hand-written copies.
 
-### Phase 3 — semantic checks beyond schema shape
+### Phase 3 — YAML parity + semantic checks
 
-The checks a plain schema association can never express:
+**Delivered:**
 
-- **Version mixing**: a v2-shaped step inside a v3 spec → diagnostic + (later) a
-  quick-fix upgrade.
-- **Reference resolution**: `loadVariables` paths that don't resolve; variable
-  uses with no `setVariables`/`loadVariables`/env origin (needs a cross-file
-  index); `openApi` operation references.
-- **`runOn` sanity**: contexts that can never run anywhere.
+- **YAML diagnostics parity.** A format-agnostic `SpecModel` (`src/lsp/model.ts`)
+  backs both JSON (jsonc CST) and YAML (`yaml` `parseDocument` AST) with the same
+  interface — value, syntax-error spans, `instancePath`→range, action-keyed step
+  detection — so the schema/diagnostic logic is written once. YAML specs and
+  configs now get live validation, source-mapped errors, and the action-keyed
+  flagship. The detection gate parses `.yaml`/`.yml` through the YAML parser too,
+  so `$schema`/shape-sniff opt-in works for YAML.
+- **Version-mixing / v2-deprecation warning.** A document that is *valid* but
+  uses the legacy `action`-keyed step form (which transforms to a valid
+  `spec_v3`) gets a non-blocking **Warning** steering it to the compact v3 form —
+  the right home for the nudge that Phase 1's flagship error must not make (a
+  false positive on valid input). The flagship **Error** now fires only on
+  invalid action-keyed steps.
+- **Syntax-first UX.** A syntactically broken buffer shows only its syntax
+  errors (schema noise from the partial value is suppressed until it parses).
+
+**Deferred to a follow-up (need surface the pure diagnostics layer doesn't):**
+
+- YAML **completion + hover** — need YAML cursor-context resolution (there is no
+  `getLocation` equivalent); JSON has them today.
+- **Reference resolution** (`loadVariables` path existence, variable-use-without-
+  origin, `openApi` refs) and deep **`runOn` sanity** — need a workspace
+  filesystem seam and a cross-file index, a larger design than the pure,
+  hermetically-testable in-process modules shipped so far.
+- **Quick-fix code actions** (v2→v3 upgrade, insert-required-field).
 
 ### Phase 4 — inline tests in every supported fileType
 

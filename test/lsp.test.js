@@ -20,8 +20,16 @@ import {
   schemaMessage,
   isSuppressedByActionKeyed,
   ACTION_KEYED_MESSAGE,
+  V2_DEPRECATION_MESSAGE,
   DIAGNOSTIC_SOURCE,
 } from "../dist/lsp/diagnostics.js";
+import { buildModel, isJsonUri, isYamlUri } from "../dist/lsp/model.js";
+import {
+  parseYamlTree,
+  rangeForInstancePathYaml,
+  findActionKeyedStepsYaml,
+  yamlSyntaxErrors,
+} from "../dist/lsp/yaml/positions.js";
 import { registerHandlers } from "../dist/lsp/server.js";
 import { lspCommand } from "../dist/lsp/command.js";
 import {
@@ -109,6 +117,18 @@ describe("lsp — detection gate", function () {
 
   it("sniffs a top-level tests array as a spec", function () {
     expect(classifyDocument({ uri: "file:///a/thing.json", text: '{"tests":[]}' })).to.equal("spec");
+  });
+
+  it("sniffs a YAML file by shape and $schema (non-conventional name)", function () {
+    expect(classifyDocument({ uri: "file:///a/thing.yaml", text: "tests: []" })).to.equal("spec");
+    expect(
+      classifyDocument({ uri: "file:///a/thing.yml", text: "$schema: x/config_v3.schema.json" }),
+    ).to.equal("config");
+  });
+
+  it("stays silent on malformed YAML with a non-conventional name", function () {
+    // Reaches the YAML parse catch branch.
+    expect(classifyDocument({ uri: "file:///a/thing.yaml", text: "a:\n  - b: [\n : :" })).to.equal(null);
   });
 
   it("stays silent (null) on unrelated JSON", function () {
@@ -208,11 +228,16 @@ describe("lsp — diagnostics", function () {
     expect(text.slice(start)).to.contain('"action"');
   });
 
-  it("does NOT nag about a valid legacy v2 spec", function () {
+  it("warns (not errors) on a valid legacy v2 spec", function () {
     // Action-keyed steps that transform to a valid spec_v3 are legitimately
-    // valid — the flagship diagnostic must not fire (no false positives).
+    // valid — no ERROR, but a soft deprecation WARNING steering to v3.
     const d = computeDiagnostics(doc("file:///a/legacy.spec.json", VALID_V2_SPEC));
-    expect(d).to.deep.equal([]);
+    expect(d).to.have.length(1);
+    expect(d[0].severity).to.equal(2); // Warning
+    expect(d[0].message).to.equal(V2_DEPRECATION_MESSAGE);
+    expect(d[0].code).to.equal("legacy-v2-step");
+    // Not the blocking error.
+    expect(d.some((x) => x.message === ACTION_KEYED_MESSAGE)).to.equal(false);
   });
 
   it("names the offending property on additionalProperties errors", function () {
@@ -225,10 +250,6 @@ describe("lsp — diagnostics", function () {
   it("surfaces JSON syntax errors itself", function () {
     const d = computeDiagnostics(doc("file:///a/foo.spec.json", '{"tests": ['));
     expect(d.some((x) => /JSON syntax/.test(x.message))).to.equal(true);
-  });
-
-  it("stays silent for non-JSON documents in Phase 1", function () {
-    expect(computeDiagnostics(doc("file:///a/foo.spec.yaml", "tests: [ bad"))).to.deep.equal([]);
   });
 
   it("stays silent for unrelated documents", function () {
@@ -492,6 +513,134 @@ describe("lsp — hover", function () {
     expect(computeHover(doc("file:///a/package.json", '{"find":1}'), { line: 0, character: 2 })).to.equal(null);
     expect(computeHover(doc("file:///a/foo.spec.yaml", "find: {}"), { line: 0, character: 0 })).to.equal(null);
     expect(computeHover(doc("file:///a/foo.spec.json", "   "), { line: 0, character: 0 })).to.equal(null);
+  });
+});
+
+describe("lsp — YAML diagnostics", function () {
+  const VALID_V3_YAML = "tests:\n  - steps:\n      - goTo: https://example.com\n";
+  const VALID_V2_YAML =
+    "tests:\n  - steps:\n      - action: goTo\n        url: https://example.com\n";
+
+  it("returns no diagnostics for a valid v3 YAML spec", function () {
+    expect(computeDiagnostics(doc("file:///a/x.spec.yaml", VALID_V3_YAML))).to.deep.equal([]);
+  });
+
+  it("warns on a valid legacy v2 YAML spec", function () {
+    const d = computeDiagnostics(doc("file:///a/x.spec.yaml", VALID_V2_YAML));
+    expect(d).to.have.length(1);
+    expect(d[0].severity).to.equal(2); // Warning
+    expect(d[0].code).to.equal("legacy-v2-step");
+  });
+
+  it("reports schema errors in a YAML spec with source ranges", function () {
+    const d = computeDiagnostics(doc("file:///a/x.spec.yaml", "notTests: 1\n"));
+    expect(d.length).to.be.greaterThan(0);
+    expect(d[0].source).to.equal(DIAGNOSTIC_SOURCE);
+    expect(d.some((x) => /required|tests/i.test(x.message))).to.equal(true);
+  });
+
+  it("surfaces YAML syntax errors and suppresses schema noise", function () {
+    const d = computeDiagnostics(doc("file:///a/x.spec.yaml", "tests:\n  - steps: [ unclosed\n"));
+    expect(d.some((x) => /YAML syntax/.test(x.message))).to.equal(true);
+    // No schema "must be object" noise while the buffer is syntactically broken.
+    expect(d.every((x) => /YAML syntax/.test(x.message))).to.equal(true);
+  });
+
+  it("fires the flagship error on an invalid action-keyed YAML step", function () {
+    const d = computeDiagnostics(
+      doc("file:///a/x.spec.yaml", "tests:\n  - steps:\n      - action: madeUpAction\n"),
+    );
+    expect(d.some((x) => x.message === ACTION_KEYED_MESSAGE)).to.equal(true);
+  });
+
+  it("also validates YAML config files", function () {
+    const d = computeDiagnostics(doc("file:///a/.doc-detective.yaml", "logLevel: nonsense\n"));
+    expect(d.length).to.be.greaterThan(0);
+  });
+});
+
+describe("lsp — yaml positions", function () {
+  it("parses to a value and locates instance paths", function () {
+    const text = "tests:\n  - steps:\n      - goTo: https://example.com\n";
+    const { doc: yDoc, value } = parseYamlTree(text);
+    expect(value.tests[0].steps[0].goTo).to.equal("https://example.com");
+    const range = rangeForInstancePathYaml(yDoc, "/tests/0/steps/0/goTo");
+    expect(range).to.not.equal(null);
+    expect(text.slice(range.start, range.end)).to.contain("example.com");
+  });
+
+  it("falls back to the nearest ancestor for an absent path", function () {
+    const { doc: yDoc } = parseYamlTree("tests:\n  - steps: []\n");
+    const range = rangeForInstancePathYaml(yDoc, "/tests/0/steps/0");
+    expect(range).to.not.equal(null);
+  });
+
+  it("falls all the way back to document contents for a fully-absent path", function () {
+    const { doc: yDoc } = parseYamlTree("tests: []\n");
+    const range = rangeForInstancePathYaml(yDoc, "/totally/absent/path");
+    expect(range).to.not.equal(null);
+  });
+
+  it("returns null for any path in an empty document", function () {
+    const { doc: yDoc } = parseYamlTree("");
+    expect(rangeForInstancePathYaml(yDoc, "/tests")).to.equal(null);
+  });
+
+  it("finds action-keyed steps in YAML with the step pointer", function () {
+    const text = "tests:\n  - steps:\n      - action: goTo\n        url: x\n";
+    const { doc: yDoc } = parseYamlTree(text);
+    const found = findActionKeyedStepsYaml(yDoc);
+    expect(found).to.have.length(1);
+    expect(found[0].pointer).to.equal("/tests/0/steps/0");
+    expect(text.slice(found[0].keyRange.start, found[0].keyRange.end)).to.equal("action");
+  });
+
+  it("reports YAML syntax errors as offset spans", function () {
+    const { doc: yDoc } = parseYamlTree("tests:\n  - steps: [ unclosed\n");
+    const errors = yamlSyntaxErrors(yDoc);
+    expect(errors.length).to.be.greaterThan(0);
+    expect(errors[0].range).to.have.keys(["start", "end"]);
+  });
+
+  it("returns no action-keyed steps for a compact-form YAML spec", function () {
+    const { doc: yDoc } = parseYamlTree("tests:\n  - steps:\n      - goTo: x\n");
+    expect(findActionKeyedStepsYaml(yDoc)).to.have.length(0);
+  });
+
+  it("ignores non-map elements inside a YAML steps sequence", function () {
+    const { doc: yDoc } = parseYamlTree("tests:\n  - steps:\n      - just-a-scalar\n");
+    expect(findActionKeyedStepsYaml(yDoc)).to.have.length(0);
+  });
+});
+
+describe("lsp — document model", function () {
+  it("classifies URIs by extension", function () {
+    expect(isJsonUri("file:///a/x.spec.json")).to.equal(true);
+    expect(isJsonUri("file:///a/x.spec.yaml")).to.equal(false);
+    expect(isYamlUri("file:///a/x.spec.yaml")).to.equal(true);
+    expect(isYamlUri("file:///a/x.spec.yml")).to.equal(true);
+    expect(isYamlUri("file:///a/x.spec.json")).to.equal(false);
+  });
+
+  it("builds a JSON or YAML model, or null for unsupported extensions", function () {
+    expect(buildModel("file:///a/x.spec.json", "{}")).to.be.an("object");
+    expect(buildModel("file:///a/x.spec.yaml", "tests: []")).to.be.an("object");
+    expect(buildModel("file:///a/x.spec.txt", "whatever")).to.equal(null);
+  });
+
+  it("exposes value, syntax errors, ranges, and action-keyed steps uniformly", function () {
+    const jsonModel = buildModel("file:///a/x.spec.json", '{"tests":[]}');
+    expect(jsonModel.value).to.deep.equal({ tests: [] });
+    expect(jsonModel.syntaxErrors).to.deep.equal([]);
+    const yamlModel = buildModel("file:///a/x.spec.yaml", "tests: []");
+    expect(yamlModel.value).to.deep.equal({ tests: [] });
+  });
+
+  it("handles an empty JSON buffer (no parse tree)", function () {
+    const model = buildModel("file:///a/x.spec.json", "   ");
+    expect(model.value).to.equal(undefined);
+    expect(model.actionKeyedSteps()).to.deep.equal([]);
+    expect(model.rangeForPath("/tests")).to.equal(null);
   });
 });
 
