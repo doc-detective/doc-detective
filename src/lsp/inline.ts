@@ -1,6 +1,7 @@
 import {
   Diagnostic,
   DiagnosticSeverity,
+  type Range,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { validate } from "../common/src/validate.js";
@@ -132,7 +133,7 @@ function isStepsOrContextsRequirement(error: {
   return false;
 }
 
-function toLspRange(doc: TextDocument, range: OffsetRange) {
+function toLspRange(doc: TextDocument, range: OffsetRange): Range {
   return { start: doc.positionAt(range.start), end: doc.positionAt(range.end) };
 }
 
@@ -202,10 +203,10 @@ function diagnoseTestOpen(doc: TextDocument, stmt: InlineStatement): Diagnostic[
     .map((e) => error(range, schemaMessage(e)));
 }
 
-function error(range: any, message: string, code?: string): Diagnostic {
+function error(range: Range, message: string, code?: string): Diagnostic {
   return { severity: DiagnosticSeverity.Error, range, message, source: DIAGNOSTIC_SOURCE, code };
 }
-function warn(range: any, message: string, code?: string): Diagnostic {
+function warn(range: Range, message: string, code?: string): Diagnostic {
   return { severity: DiagnosticSeverity.Warning, range, message, source: DIAGNOSTIC_SOURCE, code };
 }
 

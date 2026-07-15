@@ -224,52 +224,95 @@ statement offsets to flag e.g. a region that never gains steps).
 
 ### Phase 5 — surface packaging
 
-- **Claude plugin** (see below) — can land as early as Phase 1; each subsequent
-  phase upgrades it for free.
-- **VS Code extension**: a thin client (~50 lines) that launches the server and
-  contributes file associations. Other editors get a documented one-liner.
+**This repo (delivered):** the server is a shipped `doc-detective lsp`
+subcommand, so nothing else is needed here to make it runnable — the Claude
+adapter (`src/agents/adapters/claude-code.ts`) fetches whatever the `agent-tools`
+repo contains, so a plugin `.lsp.json` requires **no adapter change**. The
+finalized launcher config + shim (below) is the copy-paste for the `agent-tools`
+PR.
+
+**`agent-tools` repo (separate PR):** add the `.lsp.json` + `scripts/lsp-shim.cjs`
+below and a CI smoke test (launch via the shipped config, `didOpen` a fixture
+spec, assert diagnostics).
+
+**Deferred:** a **VS Code extension** (a thin client that launches the server and
+contributes file associations without claiming the markdown language) and a
+user-facing docs page — both should land *with* the published plugin, not ahead
+of it (the repo's "don't pre-announce" norm). The design doc + ADRs are the
+record until then.
 
 ## Plugin bundling
 
-`agent-tools` adds an `.lsp.json` (or `lspServers` in
-`.claude-plugin/plugin.json`):
+`agent-tools` adds an `.lsp.json` at the plugin root plus a resolution shim:
 
 ```json
 {
   "doc-detective": {
-    "command": "npx",
-    "args": ["--yes", "doc-detective", "lsp", "--stdio"],
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/lsp-shim.cjs"],
     "extensionToLanguage": {
       ".spec.json": "doc-detective-spec",
-      ".spec.yaml": "doc-detective-spec"
+      ".spec.yaml": "doc-detective-spec",
+      ".spec.yml": "doc-detective-spec",
+      ".md": "doc-detective-markup",
+      ".mdx": "doc-detective-markup",
+      ".adoc": "doc-detective-markup",
+      ".html": "doc-detective-markup",
+      ".dita": "doc-detective-markup"
     },
     "restartOnCrash": true
   }
 }
 ```
 
-Design considerations, to be settled when the phase ships (with its ADR):
+```js
+// scripts/lsp-shim.cjs — resolve doc-detective (project-local → npx) and proxy
+// its stdio LSP server. Keeps the version matched to the project when possible,
+// still works on a cold machine.
+const { spawnSync } = require("node:child_process");
+const path = require("node:path");
 
-- **Launcher resolution.** `npx --yes doc-detective` has a cold-start download
-  cost on machines without a local install. Prefer a launcher order of: local
-  project install → global install → `npx` fallback — possibly a tiny shim
-  script shipped in the plugin. The runtime package's JIT-install machinery
-  (`src/runtime/`) is prior art for "resolve locally, fetch if missing."
-- **Extension scoping.** The manifest maps `.spec.json`/`.spec.yaml` only;
-  Markdown attachment (Phase 4) and generic `.json` specs rely on the server's
-  detection gate rather than greedy extension mapping, for the reasons above.
+function localBin() {
+  try {
+    const pkg = require.resolve("doc-detective/package.json", { paths: [process.cwd()] });
+    return path.join(path.dirname(pkg), "bin", "doc-detective.js");
+  } catch {
+    return null; // fall through to npx (which also finds a global install)
+  }
+}
+
+const bin = localBin();
+const run = bin
+  ? spawnSync(process.execPath, [bin, "lsp", "--stdio"], { stdio: "inherit" })
+  : spawnSync("npx", ["--yes", "doc-detective", "lsp", "--stdio"], {
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+process.exit(run.status ?? 1);
+```
+
+Notes:
+
+- **Launcher resolution** is local-project → `npx` (which itself resolves a
+  global install before fetching). Local-first keeps the LSP's schemas matched to
+  the project's pinned `doc-detective`.
+- **Extension scoping.** Markup extensions (`.md`/`.mdx`/`.adoc`/`.html`/`.dita`)
+  are mapped because Phase 4 serves inline tests there; the server is silent on
+  files without Doc Detective statements, so a broad mapping stays quiet. Specs
+  map by their `.spec.*` compound extension; the detection gate is the backstop
+  if a host matches only the final extension. **Open item for the PR:** confirm
+  Claude Code's `extensionToLanguage` matches compound extensions (`.spec.json`)
+  vs. only the last (`.json`) — if the latter, map `.json`/`.yaml` and lean
+  entirely on the gate.
 - **Diagnostics for agents are the point.** Claude Code injects LSP diagnostics
-  into the model's context after each edit. Combined with Phase 1 this closes
-  the loop the plugin's skills currently close with prose warnings and its
-  pre-edit hook closes by rejecting writes: an agent that writes an invalid
-  step sees the error before it ever runs the spec. The existing skill guidance
-  and hook stay (belt), the LSP makes the whole schema enforceable (braces) —
-  and covers the hundreds of mistakes the single-pattern hook can't.
+  into the model's context after each edit: an agent that writes an invalid step
+  sees the error before it ever runs the spec. The existing plugin skills and the
+  pre-edit hook stay (belt); the LSP makes the whole schema enforceable (braces)
+  and covers the mistakes the single-pattern hook can't.
 - **Fallback for non-LSP surfaces.** Agents installed via adapters that lack LSP
-  support (see `src/agents/adapters/`) can approximate Phase 1 with a
-  post-edit hook running `doc-detective validate` on edited spec files. Same
-  knowledge, worse latency; acceptable as a degraded mode, not the design
-  center.
+  support (see `src/agents/adapters/`) can approximate this with a post-edit hook
+  running `doc-detective validate` on edited spec files — same knowledge, worse
+  latency; a degraded mode, not the design center.
 
 ## Testing strategy
 
@@ -291,14 +334,17 @@ Per repo rules (red→green TDD; feature fixtures for user-facing features):
 
 ## Open questions
 
-- **Language ID naming**: `doc-detective-spec` vs reusing `json`/`yaml` with the
-  server self-gating. Affects how editors pick highlighting grammars.
-- **YAML priority**: JSON-first is assumed above; confirm how much real-world
-  spec authoring is YAML before sequencing YAML CST work into Phase 1 vs 3.
+- **Compound extension matching** in Claude Code's `extensionToLanguage` (see the
+  plugin-bundling note) — the one item that gates the `agent-tools` PR.
 - **Where the VS Code extension lives** (this repo, `agent-tools`, or its own
   repo) and who publishes to the marketplace.
-- **SchemaStore registration** (Phase 0) needs stable public schema URLs —
-  confirm the canonical host (docs site vs raw GitHub vs unpkg).
+- **SchemaStore registration** (Phase 0): the public schema URLs already exist at
+  `raw.githubusercontent.com/doc-detective/common/.../dist/schemas/`; confirm that
+  is the URL to register (vs. an eventual docs-site alias).
+
+*Resolved during implementation:* language IDs are `doc-detective-spec` (JSON/
+YAML specs) and `doc-detective-markup` (inline). YAML landed in Phase 3 alongside
+JSON via the shared `SpecModel`, not deferred further.
 
 ## Related
 
