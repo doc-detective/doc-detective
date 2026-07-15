@@ -1,9 +1,26 @@
 import { replaceEnvs } from "./utils.js";
-import { createGenerator } from "json-schema-faker";
 import { readFile } from "./files.js";
-import parser from "@apidevtools/json-schema-ref-parser";
 
-const jsf = createGenerator({ optionalsProbability: 0 });
+// `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
+// were previously imported at module load — and `createGenerator` even ran at
+// load — so every run paid for them via the config.ts -> openapi.ts static
+// import chain, whether or not it used an OpenAPI integration. They are now
+// dynamically imported inside the only functions that need them (getExample /
+// loadDescription), so only OpenAPI-using runs pay the cost. Keep the generator
+// as a lazily-created singleton so a run that hits getExample many times still
+// builds it once.
+// Cache the in-flight Promise (not just the resolved value) so two concurrent
+// first callers share one import + one createGenerator, rather than both racing
+// past a `!jsf` check and building the generator twice.
+let jsfPromise: Promise<any> | undefined;
+function getGenerator() {
+  if (!jsfPromise) {
+    jsfPromise = import("json-schema-faker").then(({ createGenerator }) =>
+      createGenerator({ optionalsProbability: 0 })
+    );
+  }
+  return jsfPromise;
+}
 
 /**
  * Dereferences an OpenAPI or Arazzo description
@@ -20,7 +37,8 @@ async function loadDescription(descriptionPath: string = "") {
   // Load the definition from the URL or local file path
   const definition = await readFile({ fileURLOrPath: descriptionPath });
 
-  // Dereference the definition
+  // Dereference the definition (ref parser imported lazily — see top of file)
+  const parser = (await import("@apidevtools/json-schema-ref-parser")).default;
   const dereferencedDefinition = await parser.dereference(definition as any);
 
   return dereferencedDefinition;
@@ -261,7 +279,8 @@ async function getExample(
 
   if (generateFromSchema && definition.type) {
     try {
-      example = await jsf.generate(definition);
+      const generator = await getGenerator();
+      example = await generator.generate(definition);
       if (example) return example;
     } catch (error) {
       console.warn(`Error generating example: ${error}`);
