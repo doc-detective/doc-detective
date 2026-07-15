@@ -1848,6 +1848,49 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("context_v3 browser.freshSession", function () {
+      it("should validate a browser with freshSession true or false", function () {
+        for (const freshSession of [true, false]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: {
+              platforms: ["linux"],
+              browsers: [{ name: "chrome", freshSession }],
+            },
+          });
+          expect(result.valid, `freshSession: ${freshSession}`).to.be.true;
+          expect(result.object.browsers[0].freshSession).to.equal(freshSession);
+        }
+      });
+
+      it("is optional (omitting it is valid; runtime treats absent as reuse)", function () {
+        // Note: AJV's useDefaults does not inject the schema `default` for a
+        // property reached through an `anyOf` branch (the `browser` object is
+        // referenced via anyOf), so an omitted freshSession stays undefined —
+        // exactly like the sibling `headless` default. The runtime reads it as
+        // falsy (reuse); the schema default documents intent.
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"], browsers: [{ name: "chrome" }] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.browsers[0]).to.not.have.property("freshSession");
+      });
+
+      it("should reject a non-boolean freshSession", function () {
+        const result = validate({
+          schemaKey: "context_v3",
+          object: {
+            platforms: ["linux"],
+            browsers: [{ name: "chrome", freshSession: "yes" }],
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("freshSession");
+      });
+    });
+
     describe("context_v3 requires", function () {
       it("should validate a context_v3 object with a string requirement", function () {
         const result = validate({

@@ -246,6 +246,28 @@ Things that work differently on a device browser:
 
 Host requirements are the same as for native mobile app testing and are checked automatically: any capable host with the Android SDK and hardware acceleration for `android` (run `doc-detective install android` to prepare one), a macOS host with Xcode for `ios` (`doc-detective install ios`). Incapable hosts skip with actionable guidance. On Android, Chrome ships with `google_apis` system images — the kind `doc-detective install android` installs; images without Chrome skip with a pointer.
 
+## Session reuse
+
+To run faster, Doc Detective reuses a single browser session across contexts that share the same browser configuration, instead of launching and quitting a browser for every test. Reuse is on by default and needs no configuration.
+
+**Which browsers reuse.** Only the Chromium family (`chrome`, and Chromium-based `edge`) reuses sessions. Between contexts, Doc Detective resets the reused browser to a clean state (clearing cookies, local and session storage, IndexedDB, cache storage, service workers, granted permissions, and any extra windows) so a reused session behaves exactly like a fresh one. Firefox, WebKit/Safari, and native app surfaces always start a fresh session per context, because they have no equally complete programmatic reset.
+
+**It never changes test outcomes.** If the reset can't complete for any reason, Doc Detective discards that session and starts a fresh one automatically. Reuse only ever makes a run faster, and it can't make a passing test fail. Recording contexts also always get a fresh session.
+
+**Opting out (`freshSession`).** Set [`freshSession: true`](/reference/schemas/browser) on a browser to force a brand-new session for every context, opting that browser out of reuse. Use it when you want to rule out any possibility of cross-context state carryover:
+
+```json
+{
+  "platforms": ["windows", "mac", "linux"],
+  "browsers": {
+    "name": "chrome",
+    "freshSession": true
+  }
+}
+```
+
+`freshSession` is `false` by default (reuse). It has no effect on Firefox, WebKit/Safari, or native app surfaces, which never reuse regardless.
+
 ## Platforms
 
 Doc Detective can run tests targeting the following platforms:

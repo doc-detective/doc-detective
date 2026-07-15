@@ -1,0 +1,62 @@
+{
+  "specId": "reuse-fresh-session",
+  "description": "Phase 5 (ADR 01066) escape-hatch companion to reuse-leakage: `browser.freshSession: true` forces a cold session per context even for the Chromium family, opting out of the reuse pool. Test A plants localStorage; test B, whose context sets freshSession:true, starts a brand-new session and therefore sees no planted state. This confirms the escape hatch runs and yields a clean session. Headed Chrome only (Windows/macOS); every other leg SKIPs.",
+  "tests": [
+    {
+      "testId": "fresh-session-plant",
+      "description": "Plant localStorage on a freshSession:true context.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false,
+            "freshSession": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "localStorage.setItem('dd_fresh','PLANTED_FRESH_4451'); return 'PLANTED';",
+            "output": "PLANTED"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "fresh-session-is-cold",
+      "description": "A freshSession:true context never reuses, so the planted state is absent.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false,
+            "freshSession": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_fresh')===null ? 'CLEAN' : ('DIRTY:'+localStorage.getItem('dd_fresh'));",
+            "output": "CLEAN"
+          }
+        }
+      ]
+    }
+  ]
+}
