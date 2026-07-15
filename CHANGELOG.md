@@ -1,3 +1,15 @@
+# [4.30.0](https://github.com/doc-detective/doc-detective/compare/v4.29.1...v4.30.0) (2026-07-15)
+
+
+### Features
+
+* **lsp:** Doc Detective language server (DSL/LSP) ([#641](https://github.com/doc-detective/doc-detective/issues/641)) ([346f3be](https://github.com/doc-detective/doc-detective/commit/346f3bef2cda75fd22726027aaf156f85bdf5918))
+
+
+### Performance Improvements
+
+* **core:** in-memory screenshot pipeline (phase 4) ([#639](https://github.com/doc-detective/doc-detective/issues/639)) ([dee71b2](https://github.com/doc-detective/doc-detective/commit/dee71b29256e226ad89bad0279ed4ad32a00e522))
+
 ## [4.29.1](https://github.com/doc-detective/doc-detective/compare/v4.29.0...v4.29.1) (2026-07-15)
 
 
