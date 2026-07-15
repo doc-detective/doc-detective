@@ -14,6 +14,7 @@ import {
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
 import { installCommand } from "./runtime/installCommand.js";
+import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
 import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
@@ -57,6 +58,7 @@ async function main(argv: string[]) {
     // to the same implementation as `doc-detective install agents`.
     .command({ ...installAgentsCommand, describe: false } as any)
     .command(installCommand as any)
+    .command(lspCommand as any)
     .command(debugCommand)
     .strict()
     .demandCommand(0)

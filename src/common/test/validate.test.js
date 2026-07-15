@@ -1075,6 +1075,73 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("structuredErrors option", function () {
+      it("omits errorObjects by default", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { invalidProperty: "value" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errorObjects).to.be.undefined;
+      });
+
+      it("returns raw AJV error objects when requested", function () {
+        const result = validate({
+          schemaKey: "goTo_v3",
+          object: {},
+          structuredErrors: true,
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errorObjects).to.be.an("array");
+        expect(result.errorObjects.length).to.be.greaterThan(0);
+        // Each entry is a real AJV error object with the fields the LSP maps to ranges.
+        const err = result.errorObjects[0];
+        expect(err).to.have.property("instancePath");
+        expect(err).to.have.property("keyword");
+        expect(err).to.have.property("params");
+        // The string form is still produced alongside the structured form.
+        expect(result.errors).to.be.a("string").with.length.greaterThan(0);
+      });
+
+      it("returns an empty errorObjects array for a valid object when requested", function () {
+        const result = validate({
+          schemaKey: "goTo_v3",
+          object: { url: "https://example.com" },
+          structuredErrors: true,
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errorObjects).to.be.an("array").that.is.empty;
+      });
+
+      it("surfaces errorObjects on the no-compatible-match path", function () {
+        // step_v3 has compatible v2 schemas; an object matching none of them
+        // exercises the compatible-schema no-match branch.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { notAnAction: true },
+          structuredErrors: true,
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errorObjects).to.be.an("array");
+        expect(result.errorObjects.length).to.be.greaterThan(0);
+      });
+
+      it("returns errorObjects when the schema key is not found", function () {
+        const result = validate({
+          schemaKey: "nonexistent_schema",
+          object: { test: "value" },
+          structuredErrors: true,
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errorObjects).to.be.an("array").that.is.empty;
+      });
+    });
+
     describe("backward compatibility (v2 to v3 transformation)", function () {
       it("should transform and validate goTo_v2 as step_v3", function () {
         const result = validate({
