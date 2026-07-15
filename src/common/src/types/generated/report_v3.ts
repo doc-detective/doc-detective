@@ -187,7 +187,7 @@ export interface Browser {
    */
   headless?: boolean;
   /**
-   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
+   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities, resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts, which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
    */
   freshSession?: boolean;
   window?: BrowserWindow;
@@ -236,7 +236,7 @@ export interface Browser1 {
    */
   headless?: boolean;
   /**
-   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
+   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities, resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts, which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
    */
   freshSession?: boolean;
   window?: BrowserWindow1;

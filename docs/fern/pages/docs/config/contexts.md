@@ -250,9 +250,9 @@ Host requirements are the same as for native mobile app testing and are checked 
 
 To run faster, Doc Detective reuses a single browser session across contexts that share the same browser configuration, instead of launching and quitting a browser for every test. Reuse is on by default and needs no configuration.
 
-**Which browsers reuse.** Only the Chromium family (`chrome`, and Chromium-based `edge`) reuses sessions. Between contexts, Doc Detective resets the reused browser to a clean state — clearing cookies, local and session storage, IndexedDB, cache storage, service workers, granted permissions, and any extra windows — so a reused session behaves exactly like a fresh one. Firefox, WebKit/Safari, and native app surfaces always start a fresh session per context, because they have no equally complete programmatic reset.
+**Which browsers reuse.** Only the Chromium family (`chrome`, and Chromium-based `edge`) reuses sessions. Between contexts, Doc Detective resets the reused browser to a clean state (clearing cookies, local and session storage, IndexedDB, cache storage, service workers, granted permissions, and any extra windows) so a reused session behaves exactly like a fresh one. Firefox, WebKit/Safari, and native app surfaces always start a fresh session per context, because they have no equally complete programmatic reset.
 
-**It never changes test outcomes.** If the reset can't complete for any reason, Doc Detective discards that session and starts a fresh one automatically. Reuse only ever makes a run faster; it can't make a passing test fail. Recording contexts also always get a fresh session.
+**It never changes test outcomes.** If the reset can't complete for any reason, Doc Detective discards that session and starts a fresh one automatically. Reuse only ever makes a run faster, and it can't make a passing test fail. Recording contexts also always get a fresh session.
 
 **Opting out (`freshSession`).** Set [`freshSession: true`](/reference/schemas/browser) on a browser to force a brand-new session for every context, opting that browser out of reuse. Use it when you want to rule out any possibility of cross-context state carryover:
 
