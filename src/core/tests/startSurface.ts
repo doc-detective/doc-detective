@@ -6,7 +6,11 @@ import {
   type AppSessionState,
 } from "./appSurface.js";
 import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } from "./processSurface.js";
-import { resolveShellName, resolveShellExecutable } from "../utils.js";
+import {
+  resolveShellName,
+  resolveShellExecutable,
+  realizeViewport,
+} from "../utils.js";
 import {
   openSession,
   activateSession,
@@ -189,20 +193,39 @@ async function startSurfaceStep({
     // window to a degenerate content area) rather than trusting truthiness.
     const vw = Number(d.viewport?.width);
     const vh = Number(d.viewport?.height);
+    let viewportOutput: any;
     if (vw > 0 || vh > 0) {
+      // Realize the viewport via emulation (exact size, no window floor) with a
+      // window-resize fallback that warns if the size is floored. Ground truth
+      // (the size the page actually rendered) rides in outputs.viewport.
+      const requested = {
+        ...(vw > 0 ? { width: vw } : {}),
+        ...(vh > 0 ? { height: vh } : {}),
+      };
+      let rendered: { width: number; height: number };
       try {
-        await applyViewport(opened.driver, d.viewport);
+        rendered = await realizeViewport(
+          opened.driver,
+          requested,
+          config,
+          `startSurface "${opened.name}"`
+        );
       } catch (error: any) {
         return {
           status: "FAIL",
           description: `Opened browser surface "${opened.name}" but couldn't apply the viewport: ${error?.message ?? error}`,
         };
       }
+      viewportOutput = { requested, actual: rendered };
     }
     return {
       status: "PASS",
       description: `Opened browser surface "${opened.name}" (${engine}).`,
-      outputs: { name: opened.name, engine },
+      outputs: {
+        name: opened.name,
+        engine,
+        ...(viewportOutput ? { viewport: viewportOutput } : {}),
+      },
     };
   };
 
@@ -369,22 +392,3 @@ async function startSurfaceStep({
   };
 }
 
-// Grow/shrink the window so the page viewport hits the requested dimensions —
-// the same delta math the context-level viewport sizing uses.
-async function applyViewport(
-  driver: any,
-  viewport: { width?: number; height?: number }
-): Promise<void> {
-  const viewportSize = await driver.execute(
-    "return { width: window.innerWidth, height: window.innerHeight }",
-    []
-  );
-  const windowSize = await driver.getWindowSize();
-  const deltaWidth = (viewport.width || viewportSize.width) - viewportSize.width;
-  const deltaHeight =
-    (viewport.height || viewportSize.height) - viewportSize.height;
-  await driver.setWindowSize(
-    windowSize.width + deltaWidth,
-    windowSize.height + deltaHeight
-  );
-}

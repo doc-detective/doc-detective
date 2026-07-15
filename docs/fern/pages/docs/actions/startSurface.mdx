@@ -47,7 +47,7 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 - `name`: (Optional) Surface-registry name. Default: the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name` (an unnamed duplicate fails with guidance).
 - `headless`: (Optional) Overrides the context's headless setting for this session.
 - `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
-- `viewport`: (Optional) Page-content dimensions, which win over `size`.
+- `viewport`: (Optional) Page-content dimensions, which win over `size`. The viewport is sized by resizing the window, which is subject to the ~500px minimum window width (in headless mode too): a smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`—the rendered size is ground truth. To capture true sub-500px widths, emulate a mobile device rather than resizing the window.
 - `driverOptions`: (Optional) Escape-hatch capability passthrough.
 
 There's deliberately no `url` on the browser descriptor—[`goTo`](goTo) stays the navigation step—and no `waitUntil`: a browser session is ready the moment it opens.

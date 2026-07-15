@@ -38,6 +38,7 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
+  realizeViewport,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -422,6 +423,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
+          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
+          // viewport emulation (driver.setViewport) crashed headed recording
+          // contexts with a stack overflow and can't be gated off recording
+          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
           "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
@@ -1160,30 +1165,33 @@ function driverSkipDiagnostic({
   return msg;
 }
 
-// Set window size to match target viewport size
-async function setViewportSize(context: any, driver: any) {
+// Realize a context's target viewport and return the size the page actually
+// rendered. Prefers viewport emulation (exact size, no window floor) and falls
+// back to window resizing, warning if the browser/OS floored the request. The
+// `// Confirm viewport size` intent is now realized by realizeViewport's
+// read-back.
+async function setViewportSize(
+  context: any,
+  driver: any,
+  config: any = {}
+): Promise<{ width: number; height: number } | undefined> {
   if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
-    // Get viewport size, not window size
-    const viewportSize = await driver.execute(
-      "return { width: window.innerWidth, height: window.innerHeight }",
-      []
-    );
-    // Get window size
-    const windowSize = await driver.getWindowSize();
-    // Get viewport size delta
-    const deltaWidth =
-      (context.browser?.viewport?.width || viewportSize.width) -
-      viewportSize.width;
-    const deltaHeight =
-      (context.browser?.viewport?.height || viewportSize.height) -
-      viewportSize.height;
-    // Resize window if necessary
-    await driver.setWindowSize(
-      windowSize.width + deltaWidth,
-      windowSize.height + deltaHeight
-    );
-    // Confirm viewport size
+    const requested = {
+      ...(context.browser?.viewport?.width
+        ? { width: Number(context.browser.viewport.width) }
+        : {}),
+      ...(context.browser?.viewport?.height
+        ? { height: Number(context.browser.viewport.height) }
+        : {}),
+    };
+    // Attribute the warning so a multi-context run can tell which context's
+    // viewport was floored.
+    const label = `viewport for ${context.browser?.name ?? "browser"} on ${
+      context.platform ?? "host"
+    }`;
+    return realizeViewport(driver, requested, config, label);
   }
+  return undefined;
 }
 
 async function allowUnsafeSteps({ config }: { config: any }) {
@@ -4477,7 +4485,7 @@ async function runContext({
         context.browser?.viewport?.height
       ) {
         // Set driver viewport size
-        await setViewportSize(context, driver);
+        await setViewportSize(context, driver, config);
       } else if (
         context.browser?.window?.width ||
         context.browser?.window?.height
