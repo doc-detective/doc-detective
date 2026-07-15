@@ -25,6 +25,7 @@ import {
 } from "../dist/lsp/diagnostics.js";
 import { buildModel } from "../dist/lsp/model.js";
 import { isJsonUri, isYamlUri } from "../dist/lsp/gate.js";
+import { fileTypeForUri, computeInlineDiagnostics } from "../dist/lsp/inline.js";
 import {
   parseYamlTree,
   rangeForInstancePathYaml,
@@ -642,6 +643,124 @@ describe("lsp — document model", function () {
     expect(model.value).to.equal(undefined);
     expect(model.actionKeyedSteps()).to.deep.equal([]);
     expect(model.rangeForPath("/tests")).to.equal(null);
+  });
+});
+
+describe("lsp — inline tests (markup fileTypes)", function () {
+  const md = (text) => computeDiagnostics(doc("file:///a/doc.md", text));
+
+  it("routes markup files by extension to the inline pipeline", function () {
+    expect(fileTypeForUri("file:///a/doc.md")).to.be.an("object");
+    expect(fileTypeForUri("file:///a/doc.adoc")).to.be.an("object");
+    expect(fileTypeForUri("file:///a/doc.html")).to.be.an("object");
+    expect(fileTypeForUri("file:///a/doc.dita")).to.be.an("object");
+    expect(fileTypeForUri("file:///a/doc.txt")).to.equal(null);
+    expect(fileTypeForUri("file:///a/x.spec.json")).to.equal(null);
+  });
+
+  it("stays silent on markup with no Doc Detective statements", function () {
+    expect(md("# Just docs\n\nNothing to see.\n")).to.deep.equal([]);
+  });
+
+  it("returns no diagnostics for a valid inline test + step", function () {
+    expect(
+      md('<!-- test {"testId":"t1"} -->\n<!-- step {"goTo":"https://example.com"} -->\n<!-- test end -->\n'),
+    ).to.deep.equal([]);
+  });
+
+  it("collapses an invalid step to one concise, action-scoped error", function () {
+    const d = md('<!-- step {"goTo":123} -->\n');
+    expect(d).to.have.length(1);
+    expect(d[0].severity).to.equal(1);
+    expect(d[0].message).to.match(/^goTo:/);
+  });
+
+  it("flags a step whose key is not a known action", function () {
+    const d = md('<!-- step {"notAnAction":1} -->\n');
+    expect(d).to.have.length(1);
+    expect(d[0].message).to.match(/Not a recognized Doc Detective step/);
+  });
+
+  it("fires the flagship error on an invalid action-keyed inline step", function () {
+    const d = md('<!-- step {"action":"madeUpAction"} -->\n');
+    expect(d.some((x) => x.message === ACTION_KEYED_MESSAGE)).to.equal(true);
+  });
+
+  it("warns (not errors) on a valid legacy v2 inline step", function () {
+    const d = md('<!-- step {"action":"goTo","url":"https://example.com"} -->\n');
+    expect(d).to.have.length(1);
+    expect(d[0].severity).to.equal(2);
+    expect(d[0].code).to.equal("legacy-v2-step");
+  });
+
+  it("does not require steps/contexts on a test-open statement (relaxed)", function () {
+    expect(md('<!-- test {"testId":"ok"} -->\n')).to.deep.equal([]);
+  });
+
+  it("accepts a fully valid test-open statement carrying inline steps", function () {
+    expect(
+      md('<!-- test {"testId":"ok","steps":[{"goTo":"https://example.com"}]} -->\n'),
+    ).to.deep.equal([]);
+  });
+
+  it("still validates real fields in a test-open statement", function () {
+    const d = md('<!-- test {"runOn":"notarray"} -->\n');
+    expect(d.length).to.be.greaterThan(0);
+    expect(d[0].message).to.match(/must be array/);
+  });
+
+  it("flags an unknown property in a test-open statement (steps/contexts still relaxed)", function () {
+    const d = md('<!-- test {"testId":"ok","bogusField":1} -->\n');
+    expect(d.some((x) => /bogusField|additional/i.test(x.message))).to.equal(true);
+  });
+
+  it("falls back to a generic step message when no attributable error exists", function () {
+    // goTo's value is valid, but a bad sibling meta field (`variables`) makes
+    // the step invalid with errors that aren't under `/goTo`.
+    const d = md('<!-- step {"goTo":"https://example.com","variables":"notobj"} -->\n');
+    expect(d).to.have.length(1);
+    expect(d[0].message).to.match(/Invalid "goTo" step/);
+  });
+
+  it("skips statements inside an ignore block", function () {
+    expect(
+      md('<!-- test ignore start -->\n<!-- step {"goTo":123} -->\n<!-- test ignore end -->\n'),
+    ).to.deep.equal([]);
+  });
+
+  it("ignores to end of document when an ignore block is never closed", function () {
+    expect(md('<!-- test ignore start -->\n<!-- step {"goTo":123} -->\n')).to.deep.equal([]);
+  });
+
+  it("skips an inline statement whose payload does not parse to an object", function () {
+    // `{bad json` can't be parsed → no crash, no diagnostic for that fragment.
+    expect(md('<!-- step {bad json -->\n')).to.deep.equal([]);
+    expect(md('<!-- test {bad json -->\n')).to.deep.equal([]);
+  });
+
+  it("tolerates a fileType missing inlineStatements/patterns (malformed config)", function () {
+    // Defensive: a custom fileType with no inline statements yields nothing,
+    // never throws. Exercises the `|| {}` / `|| []` / optional-chaining guards.
+    const d = computeInlineDiagnostics(doc("file:///a/x.md", '<!-- step {"goTo":123} -->'), {});
+    expect(d).to.deep.equal([]);
+    const d2 = computeInlineDiagnostics(
+      doc("file:///a/x.md", "x"),
+      { inlineStatements: {} },
+    );
+    expect(d2).to.deep.equal([]);
+  });
+
+  it("works across asciidoc, html, and dita fileTypes", function () {
+    const bad = '{"goTo":123}';
+    expect(
+      computeDiagnostics(doc("file:///a/d.adoc", `// (step ${bad})\n`)).length,
+    ).to.be.greaterThan(0);
+    expect(
+      computeDiagnostics(doc("file:///a/d.html", `<!-- step ${bad} -->\n`)).length,
+    ).to.be.greaterThan(0);
+    expect(
+      computeDiagnostics(doc("file:///a/d.dita", `<!-- step ${bad} -->\n`)).length,
+    ).to.be.greaterThan(0);
   });
 });
 

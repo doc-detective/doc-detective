@@ -8,28 +8,21 @@ import { validate } from "../common/src/validate.js";
 import { classifyDocument, DocClass } from "./gate.js";
 import type { OffsetRange } from "./json/positions.js";
 import { buildModel } from "./model.js";
+import { fileTypeForUri, computeInlineDiagnostics } from "./inline.js";
+import {
+  DIAGNOSTIC_SOURCE,
+  ACTION_KEYED_MESSAGE,
+  V2_DEPRECATION_MESSAGE,
+  schemaMessage,
+} from "./messages.js";
 
-/** Diagnostic `source` label shown in the editor gutter/problems panel. */
-export const DIAGNOSTIC_SOURCE = "doc-detective";
-
-/**
- * The flagship message: the single most common Doc Detective authoring mistake
- * gets one clear diagnostic instead of the wall of `anyOf` failures the raw
- * schema produces. Mirrors the plugin's write-blocking hook. Fires only on
- * an INVALID document — a valid legacy v2 spec gets the softer deprecation
- * warning below instead.
- */
-export const ACTION_KEYED_MESSAGE =
-  'The action name is the key: write `{"goTo": …}`, not an object with an "action" property. ' +
-  'Each step is `{"<action>": <value>}`.';
-
-/**
- * The version-mixing nudge: a document that is *valid* but uses the legacy v2
- * `action`-keyed step form gets a non-blocking warning steering it to the
- * compact v3 form.
- */
-export const V2_DEPRECATION_MESSAGE =
-  'Legacy v2 step form. Prefer the compact v3 form — the action name is the key, e.g. `{"goTo": …}`.';
+// Re-exported so existing importers (and tests) keep a single entry point.
+export {
+  DIAGNOSTIC_SOURCE,
+  ACTION_KEYED_MESSAGE,
+  V2_DEPRECATION_MESSAGE,
+  schemaMessage,
+};
 
 const SCHEMA_FOR_CLASS: Record<Exclude<DocClass, null>, string> = {
   spec: "spec_v3",
@@ -82,21 +75,6 @@ export function isSuppressedByActionKeyed(
   });
 }
 
-export function schemaMessage(error: {
-  message?: string;
-  keyword?: string;
-  params?: Record<string, any>;
-}): string {
-  const base = error.message || "does not match the schema";
-  const params = error.params || {};
-  if (error.keyword === "additionalProperties" && params.additionalProperty) {
-    return `${base}: "${params.additionalProperty}"`;
-  }
-  if (error.keyword === "required" && params.missingProperty) {
-    return `${base}`;
-  }
-  return base;
-}
 
 /**
  * Compute all diagnostics for a document. Pure over (uri, text): no filesystem,
@@ -106,6 +84,13 @@ export function schemaMessage(error: {
  */
 export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
   const text = doc.getText();
+
+  // Markup files (markdown/asciidoc/html/dita) carry tests inline, not as a
+  // whole-file spec — route them to the inline pipeline. Naturally silent on
+  // files without any Doc Detective statements.
+  const markupFileType = fileTypeForUri(doc.uri);
+  if (markupFileType) return computeInlineDiagnostics(doc, markupFileType);
+
   const cls = classifyDocument({ uri: doc.uri, text });
   if (!cls) return [];
 

@@ -1,10 +1,11 @@
 # Design: a language server for the Doc Detective test DSL
 
-Status: **in progress** — Phases 0–3 landed (schema-association contract,
+Status: **in progress** — Phases 0–4 landed (schema-association contract,
 `doc-detective lsp` server + JSON diagnostics, action-registry completion +
-hover, YAML diagnostics parity + v2-deprecation warning); Phases 4–5 (inline
-tests across all fileTypes, packaging) remain, plus the Phase 3 follow-ups noted
-below (YAML completion/hover, fs/cross-file semantic checks, quick-fixes). This document is the roadmap and the package-boundary
+hover, YAML diagnostics parity + v2-deprecation warning, inline-test diagnostics
+across all fileTypes); Phase 5 (packaging) remains, plus the follow-ups noted per
+phase (YAML/inline completion+hover, fs/cross-file semantic checks, quick-fixes,
+assembled-region check). This document is the roadmap and the package-boundary
 reference. Each shipped phase carries its own ADR + fixtures + docs assessment
 per [CLAUDE.md](../../CLAUDE.md); this doc is the shared context they all
 reference. Foundational decision:
@@ -198,29 +199,28 @@ compact form.
 
 ### Phase 4 — inline tests in every supported fileType
 
-The differentiating feature: recognize Doc Detective inline-test regions inside
-**every fileType the runner supports** — markdown, asciidoc, html, dita
-(`defaultFileTypes`) plus workspace-config custom fileTypes — and provide
-diagnostics + completion *there*. This reuses common's `detectTests`/`parseContent`
-(pure, already returns per-region `location: {line, startIndex, endIndex}`); it
-does not re-implement detection. This is what no generic JSON tooling can do, and
-it targets Doc Detective's most distinctive authoring surface — tests embedded in
-the docs they verify.
+**Delivered.** The differentiating feature: `src/lsp/inline.ts` recognizes Doc
+Detective inline-test statements inside **every fileType the runner supports** —
+markdown, asciidoc, html, dita (`defaultFileTypes`) — using the runner's own
+`inlineStatements` regex patterns (reused, not re-invented), respecting
+`ignoreStart`/`ignoreEnd` blocks, and staying silent on prose with no statements.
+`computeDiagnostics` routes any markup file (by extension) to this pipeline.
 
-**Fragment-aware validation.** Inline test-open statements almost never carry the
-`steps`/`contexts` that `test_v3`'s `anyOf.required` demands — the runner parses
-them leniently and assembles `steps` from later statements. The LSP mirrors that
-in two layers so it never false-errors on a valid open statement:
+**Fragment-aware validation**, so a valid open statement is never false-flagged:
 
-1. *Open-statement fragment check* — validate the open statement against a
-   `test_v3`-derived schema with the `steps`/`contexts` requirement relaxed
-   (derived programmatically from `schemas["test_v3"]`, never hand-written).
-   Inline `step` statements validate against `step_v3` directly (they are
-   complete fragments).
-2. *Assembled-region check* — validate the fully assembled test (open + collected
-   steps, as `detectTests` returns it) against real `test_v3`, anchoring any
-   region-level diagnostic (e.g. a test that never gains steps or contexts) on the
-   open statement — matching what the runner rejects at run time.
+- *`step` statements* validate against `step_v3`. A single invalid step matches
+  no `anyOf` branch, so AJV emits a failure for *every* action — that wall is
+  **collapsed** to one concise, action-scoped message (the author's intended
+  action inferred from the top-level key). Action-keyed steps get the flagship
+  **error** (invalid) or the v2-deprecation **warning** (valid), mirroring specs.
+- *`test` open statements* validate against `test_v3` with the top-level
+  `steps`/`contexts` requirement **filtered out** (the runner assembles steps from
+  later statements, so an open statement legitimately carries neither) — while
+  every other field (bad `runOn`, unknown property, wrong type) is still flagged.
+
+**Deferred to a follow-up:** inline **completion/hover**, and the cross-statement
+*assembled-region* check (correlating `detectTests`' assembled output back to
+statement offsets to flag e.g. a region that never gains steps).
 
 ### Phase 5 — surface packaging
 
