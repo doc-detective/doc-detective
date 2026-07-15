@@ -1,5 +1,5 @@
 import { getNodeValue, printParseErrorCode } from "jsonc-parser";
-import { basenameFromUri } from "./gate.js";
+import { isJsonUri, isYamlUri } from "./gate.js";
 import {
   parseJsonTree,
   rangeForInstancePath,
@@ -15,7 +15,7 @@ import {
 } from "./yaml/positions.js";
 
 /** A syntax error reduced to an offset span + message, format-agnostic. */
-export interface SyntaxError {
+export interface SyntaxErrorSpan {
   range: OffsetRange;
   message: string;
 }
@@ -29,7 +29,7 @@ export interface SpecModel {
   /** The plain JS value (undefined for empty/unparseable buffers). */
   value: any;
   /** Syntax-error spans + messages (empty when the buffer parses cleanly). */
-  syntaxErrors: SyntaxError[];
+  syntaxErrors: SyntaxErrorSpan[];
   /** Source span for an AJV instancePath, or null if unlocatable. */
   rangeForPath(instancePath: string): OffsetRange | null;
   /** Steps written in the legacy `action`-keyed form. */
@@ -60,17 +60,6 @@ function buildYamlModel(text: string): SpecModel {
     rangeForPath: (path) => rangeForInstancePathYaml(doc, path),
     actionKeyedSteps: () => findActionKeyedStepsYaml(doc),
   };
-}
-
-/** Is this URI a JSON document (by extension)? */
-export function isJsonUri(uri: string): boolean {
-  return basenameFromUri(uri).endsWith(".json");
-}
-
-/** Is this URI a YAML document (by extension)? */
-export function isYamlUri(uri: string): boolean {
-  const name = basenameFromUri(uri);
-  return name.endsWith(".yaml") || name.endsWith(".yml");
 }
 
 /**

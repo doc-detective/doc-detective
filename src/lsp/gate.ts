@@ -76,3 +76,14 @@ export function classifyDocument({ uri, text }: ClassifyInput): DocClass {
 export function shouldHandleDocument(input: ClassifyInput): boolean {
   return classifyDocument(input) !== null;
 }
+
+/** Is this URI a JSON document (by extension)? */
+export function isJsonUri(uri: string): boolean {
+  return basenameFromUri(uri).endsWith(".json");
+}
+
+/** Is this URI a YAML document (by extension)? */
+export function isYamlUri(uri: string): boolean {
+  const name = basenameFromUri(uri);
+  return name.endsWith(".yaml") || name.endsWith(".yml");
+}

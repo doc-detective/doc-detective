@@ -23,7 +23,8 @@ import {
   V2_DEPRECATION_MESSAGE,
   DIAGNOSTIC_SOURCE,
 } from "../dist/lsp/diagnostics.js";
-import { buildModel, isJsonUri, isYamlUri } from "../dist/lsp/model.js";
+import { buildModel } from "../dist/lsp/model.js";
+import { isJsonUri, isYamlUri } from "../dist/lsp/gate.js";
 import {
   parseYamlTree,
   rangeForInstancePathYaml,

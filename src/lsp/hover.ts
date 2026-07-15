@@ -1,7 +1,7 @@
 import { MarkupKind, type Hover, type Position } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { findNodeAtOffset, parseTree, type Node } from "jsonc-parser";
-import { classifyDocument, basenameFromUri } from "./gate.js";
+import { classifyDocument, isJsonUri } from "./gate.js";
 import { getRegistry } from "./registry.js";
 
 /**
@@ -36,7 +36,7 @@ function isStepPropertyKey(keyNode: Node): boolean {
 export function computeHover(doc: TextDocument, position: Position): Hover | null {
   const text = doc.getText();
   if (classifyDocument({ uri: doc.uri, text }) !== "spec") return null;
-  if (!basenameFromUri(doc.uri).endsWith(".json")) return null;
+  if (!isJsonUri(doc.uri)) return null;
 
   const root = parseTree(text);
   if (!root) return null;

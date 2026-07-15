@@ -8,7 +8,7 @@ import {
 import type { Position } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { getLocation, type Node } from "jsonc-parser";
-import { classifyDocument, basenameFromUri } from "./gate.js";
+import { classifyDocument, isJsonUri } from "./gate.js";
 import { getRegistry, ActionInfo, ActionField, PrimitiveKind } from "./registry.js";
 
 type JsonPath = Array<string | number>;
@@ -127,7 +127,7 @@ export function computeCompletions(
 ): CompletionItem[] {
   const text = doc.getText();
   if (classifyDocument({ uri: doc.uri, text }) !== "spec") return [];
-  if (!basenameFromUri(doc.uri).endsWith(".json")) return [];
+  if (!isJsonUri(doc.uri)) return [];
 
   const offset = doc.offsetAt(position);
   const location = getLocation(text, offset);

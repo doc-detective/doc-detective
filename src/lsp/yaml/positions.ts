@@ -1,6 +1,6 @@
 import YAML from "yaml";
 import type { OffsetRange, ActionKeyedStep } from "../json/positions.js";
-import { instancePathToSegments } from "../json/positions.js";
+import { instancePathToSegments, pointerFromPath } from "../json/positions.js";
 
 /** Result of parsing YAML: the document (for node lookups) plus its value. */
 export interface YamlParse {
@@ -56,15 +56,6 @@ export function rangeForInstancePathYaml(
   return null;
 }
 
-function pointerFromSegments(segments: Array<string | number>): string {
-  return (
-    "/" +
-    segments
-      .map((s) => String(s).replace(/~/g, "~0").replace(/\//g, "~1"))
-      .join("/")
-  );
-}
-
 /**
  * Find every step written as a map carrying an `action` key inside a `steps`
  * sequence — the YAML twin of the JSON detector. Returns the offending `action`
@@ -100,7 +91,7 @@ export function findActionKeyedStepsYaml(
         if (range) {
           found.push({
             keyRange: range,
-            pointer: pointerFromSegments([...seqPath, index]),
+            pointer: pointerFromPath([...seqPath, index]),
           });
         }
       }

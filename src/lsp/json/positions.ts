@@ -85,7 +85,11 @@ function visit(node: Node, cb: (node: Node) => void): void {
   }
 }
 
-function pointerFromPath(segments: Array<string | number>): string {
+/**
+ * Build a JSON-Pointer from path segments, escaping `~`→`~0` and `/`→`~1` per
+ * RFC 6901. Shared by the JSON and YAML action-keyed detectors.
+ */
+export function pointerFromPath(segments: Array<string | number>): string {
   /* c8 ignore next - defensive: callers pass a nested node's path, never the empty root path */
   if (segments.length === 0) return "";
   return (
