@@ -266,6 +266,10 @@ export interface Browser {
    * If `true`, runs the browser in headless mode.
    */
   headless?: boolean;
+  /**
+   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
+   */
+  freshSession?: boolean;
   window?: BrowserWindow;
   viewport?: BrowserViewport;
 }
@@ -311,6 +315,10 @@ export interface Browser1 {
    * If `true`, runs the browser in headless mode.
    */
   headless?: boolean;
+  /**
+   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
+   */
+  freshSession?: boolean;
   window?: BrowserWindow1;
   viewport?: BrowserViewport1;
 }
@@ -712,6 +720,10 @@ export interface Browser2 {
    * If `true`, runs the browser in headless mode.
    */
   headless?: boolean;
+  /**
+   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
+   */
+  freshSession?: boolean;
   window?: BrowserWindow2;
   viewport?: BrowserViewport2;
 }
@@ -757,6 +769,10 @@ export interface Browser3 {
    * If `true`, runs the browser in headless mode.
    */
   headless?: boolean;
+  /**
+   * If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting.
+   */
+  freshSession?: boolean;
   window?: BrowserWindow3;
   viewport?: BrowserViewport3;
 }

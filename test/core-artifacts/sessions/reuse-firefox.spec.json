@@ -1,0 +1,62 @@
+{
+  "specId": "reuse-firefox",
+  "description": "Phase 5 (ADR 01066) tiering companion: Firefox (gecko) has no CDP-equivalent global state clear, so it is NOT in the reuse tier and keeps a fresh session per context. Test A plants localStorage; test B, on a new fresh Firefox session, sees none of it. This confirms the non-Chromium path is unchanged (always cold). Runs headless on every platform (Firefox is the default engine in config.groups.json).",
+  "tests": [
+    {
+      "testId": "firefox-plant",
+      "description": "Plant localStorage on a Firefox context.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "localStorage.setItem('dd_ff','PLANTED_FF_7788'); return 'PLANTED';",
+            "output": "PLANTED"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-no-reuse",
+      "description": "Firefox never reuses, so a new session shows no planted state.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_ff')===null ? 'CLEAN' : ('DIRTY:'+localStorage.getItem('dd_ff'));",
+            "output": "CLEAN"
+          }
+        }
+      ]
+    }
+  ]
+}

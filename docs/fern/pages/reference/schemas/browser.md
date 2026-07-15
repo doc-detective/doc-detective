@@ -20,6 +20,7 @@ Field | Type | Description | Default
 name | string | Required. Name of the browser.<br/><br/>Accepted values: `chrome`, `firefox`, `safari`, `webkit` | 
 explicit | boolean | ReadOnly. Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned). | 
 headless | boolean | Optional. If `true`, runs the browser in headless mode. | `true`
+freshSession | boolean | Optional. If `true`, this browser always starts a brand-new driver session for each context and never reuses a pooled one. By default, Chromium-family browsers (Chrome/Edge) reuse a session across contexts with the same capabilities — resetting all browser state (cookies, storage, cache, service workers, permissions, extra windows) between contexts — which is faster than a fresh launch each time. Set this to `true` to opt out and force a cold session, for example when you need to rule out any possibility of cross-context state carryover. Firefox, WebKit/Safari, and native app surfaces always use a fresh session regardless of this setting. | `false`
 window | object([Browser Window](/reference/schemas/browser-window)) | Optional. Browser dimensions. | 
 viewport | object([Browser Viewport](/reference/schemas/browser-viewport)) | Optional. Viewport dimensions. | 
 
@@ -29,6 +30,7 @@ viewport | object([Browser Viewport](/reference/schemas/browser-viewport)) | Opt
 {
   "name": "chrome",
   "headless": true,
+  "freshSession": false,
   "window": {
     "width": 42,
     "height": 42

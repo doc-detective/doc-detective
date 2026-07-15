@@ -2827,3 +2827,39 @@ describe("getRunner() function", function () {
     }
   });
 });
+
+// Phase 5 session-reuse decision matrix. This is the precise assertion the
+// leakage-fixture gate CAN'T express: a fixture running on a reused session
+// observes absence of leaked state, but it can't prove that `freshSession: true`
+// actually bypassed the pool (a fresh session also shows no leaked state), nor
+// that a non-Chromium engine was excluded from reuse. Those are pure decisions,
+// asserted here. The exhaustive unit coverage lives in
+// test/core-session-reuse.test.js; this pins the intent alongside the runner.
+describe("Phase 5 session-reuse: tiering + freshSession gate", function () {
+  it("reuses Chromium by default, and only Chromium", async function () {
+    const { shouldReuseSession } = await import("../dist/core/sessionReuse.js");
+    // Default-on for the Chromium family (freshSession absent → reuse).
+    assert.equal(shouldReuseSession({ engineName: "chrome" }), true);
+    assert.equal(shouldReuseSession({ engineName: "edge" }), true);
+    assert.equal(shouldReuseSession({ engineName: "chromium" }), true);
+    // Non-Chromium engines and app surfaces never reuse.
+    assert.equal(shouldReuseSession({ engineName: "firefox" }), false);
+    assert.equal(shouldReuseSession({ engineName: "webkit" }), false);
+    assert.equal(shouldReuseSession({ engineName: "safari" }), false);
+  });
+
+  it("honors freshSession:true as an escape hatch even for Chromium", async function () {
+    const { shouldReuseSession } = await import("../dist/core/sessionReuse.js");
+    assert.equal(
+      shouldReuseSession({ engineName: "chrome", freshSession: true }),
+      false
+    );
+    // Absent/false read as "reuse" (AJV does not inject the default under the
+    // context_v3 anyOf, so absence must be treated as falsy → reuse).
+    assert.equal(
+      shouldReuseSession({ engineName: "chrome", freshSession: false }),
+      true
+    );
+    assert.equal(shouldReuseSession({ engineName: "chrome" }), true);
+  });
+});

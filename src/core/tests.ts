@@ -39,6 +39,15 @@ import {
   evaluateContextRequirements,
   isRetryableSessionError,
 } from "./utils.js";
+import {
+  createSessionPool,
+  deriveSessionPoolKey,
+  shouldReuseSession,
+  contextUsesRecording,
+  resetChromiumSession,
+  type SessionPool,
+  type CdpExecutor,
+} from "./sessionReuse.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -1186,6 +1195,55 @@ async function setViewportSize(context: any, driver: any) {
   }
 }
 
+// Apply the incoming context's viewport OR window dimensions to a driver.
+// Extracted so the same logic runs after a fresh start AND inside the Phase 5
+// reset protocol (a reused session must land on the new context's viewport).
+// Idempotent — running it twice resizes to the same target.
+async function applyContextViewport(context: any, driver: any): Promise<void> {
+  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
+    await setViewportSize(context, driver);
+  } else if (context.browser?.window?.width || context.browser?.window?.height) {
+    const windowSize = await driver.getWindowSize();
+    await driver.setWindowSize(
+      context.browser?.window?.width || windowSize.width,
+      context.browser?.window?.height || windowSize.height
+    );
+  }
+}
+
+// A CDP command executor for a Chromium (chromedriver-backed) session started
+// through Appium. chromedriver exposes the vendor endpoint
+// `POST /session/:id/goog/cdp/execute` (body `{ cmd, params }`); Appium's
+// chromium driver proxies unknown session routes to chromedriver, so the call
+// targets the acquired Appium server port. UNVERIFIED across every
+// Appium/chromedriver combination — deliberately so: the Phase 5 reset is
+// fail-closed, so if this route is absent or errors, the reset throws and the
+// caller discards the session and starts fresh. The headed-Chromium leakage
+// fixtures (test/core-artifacts/sessions/) are the gate that confirms it works.
+function makeChromiumCdpExecutor(driver: any, appiumPort: number): CdpExecutor {
+  return async (method: string, params?: any) => {
+    const sessionId = driver?.sessionId;
+    if (!sessionId) throw new Error("Cannot issue CDP command: no active sessionId.");
+    const response = await fetch(
+      `http://127.0.0.1:${appiumPort}/session/${sessionId}/goog/cdp/execute`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ cmd: method, params: params ?? {} }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`CDP '${method}' failed: HTTP ${response.status}`);
+    }
+    const body: any = await response.json().catch(() => null);
+    // WebDriver vendor errors come back as `{ value: { error, message } }`.
+    if (body?.value?.error) {
+      throw new Error(`CDP '${method}' error: ${body.value.error}`);
+    }
+    return body?.value;
+  };
+}
+
 async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to true, return true
   if (config.allowUnsafeSteps === true) return true;
@@ -1730,6 +1788,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  // Phase 5: run-scoped browser session reuse pool (declared here so the finally
+  // can drain it). Assigned once the Appium servers are up.
+  let sessionPool: SessionPool | undefined;
   // Per-server virtual displays (Linux Xvfb) for concurrent ffmpeg recording,
   // and the port→display map so a context that acquires a server records the
   // same display its browser renders on.
@@ -1811,6 +1872,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       throw error;
     }
     appiumPool = createAppiumPool(appiumServers.map((s) => s.port));
+    // Phase 5: run-scoped reuse pool. Chromium sessions are parked here (keyed
+    // per Appium port) at context end instead of being deleted, so the next
+    // context on that port reuses them via the reset protocol. Owned by the run
+    // and drained in the finally below (before the Appium servers are killed).
+    sessionPool = createSessionPool();
     if (useXvfbDisplays) {
       portToDisplay = new Map(
         appiumServers
@@ -1978,6 +2044,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           context: job.context,
           runnerDetails,
           appiumPool,
+          sessionPool,
           portToDisplay,
           metaValues,
           installAttempts,
@@ -2068,6 +2135,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           config,
           runnerDetails,
           appiumPool,
+          sessionPool,
           portToDisplay,
           metaValues,
           installAttempts,
@@ -2109,6 +2177,25 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // stop (via closeSurface) so they don't leak. Awaited so the trees are gone
     // before runSpecs returns.
     await killAllRegistered();
+    // Phase 5: sweep any Chromium sessions still parked in the reuse pool. Done
+    // BEFORE the Appium servers are killed (deleteSession needs the server
+    // alive) and best-effort (a stuck session must not block run teardown — the
+    // killTree of its Appium server below terminates the browser regardless).
+    if (sessionPool) {
+      await Promise.all(
+        sessionPool.drain().map(async (parkedDriver) => {
+          try {
+            await parkedDriver.deleteSession();
+          } catch (error: any) {
+            log(
+              config,
+              "debug",
+              `Failed to delete a pooled browser session during run teardown: ${error?.message ?? error}`
+            );
+          }
+        })
+      );
+    }
     // Close every Appium server we started. Awaited (via killTree) so each
     // server's chromedriver/geckodriver child — and the browser it in turn
     // owns — is actually gone before runSpecs returns. tree-kill is async
@@ -2225,6 +2312,7 @@ async function runRoutedSpec({
   config,
   runnerDetails,
   appiumPool,
+  sessionPool,
   portToDisplay,
   metaValues,
   installAttempts,
@@ -2246,6 +2334,7 @@ async function runRoutedSpec({
   appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  sessionPool?: SessionPool;
   portToDisplay?: Map<number, string>;
   metaValues: any;
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
@@ -2433,6 +2522,7 @@ async function runRoutedSpec({
           context: job.context,
           runnerDetails,
           appiumPool,
+          sessionPool,
           portToDisplay,
           metaValues,
           installAttempts,
@@ -3751,6 +3841,7 @@ async function runContext({
   context,
   runnerDetails,
   appiumPool,
+  sessionPool,
   portToDisplay,
   metaValues,
   installAttempts,
@@ -3768,6 +3859,7 @@ async function runContext({
   appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
+  sessionPool?: SessionPool;
   portToDisplay?: Map<number, string>;
   metaValues: any;
   installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
@@ -4124,6 +4216,13 @@ async function runContext({
   // WARNING when an explicitly pinned engine was substituted.
   let fellBackNote = "";
   let fellBackPinned = false;
+  // Phase 5 session-reuse bookkeeping. `willRecord` gates a context out of the
+  // pool entirely (its per-context capture-source/download-dir launch args can't
+  // be reset). `reuseEligible` is the tier+freshSession decision. These are set
+  // in the desktop-driver branch and read in the finally to decide park vs.
+  // delete.
+  let willRecord = false;
+  let reuseEligible = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
@@ -4351,7 +4450,98 @@ async function runContext({
       let startedName: string | undefined;
       let startedHeadless = false;
       let lastError = "";
-      for (const candidateName of candidateEngines) {
+
+      // Phase 5: before paying a fresh driverStart, try to reuse a Chromium
+      // session parked on this Appium port. Eligibility = Chromium tier +
+      // !freshSession + this context does no recording (recording bakes a
+      // per-context capture-source/download-dir into launch args a reset can't
+      // reconcile). Fail-closed: a reset that throws/times out discards the
+      // pooled session and falls through to the normal (possibly-fallback)
+      // start path — reuse is only ever an accelerator.
+      const requestedEngineForReuse = candidateEngines[0];
+      const wantHeadlessForReuse = context.browser?.headless !== false;
+      willRecord = contextUsesRecording(
+        context,
+        resolveAutoRecord({ config, spec, test })
+      );
+      reuseEligible =
+        !!sessionPool &&
+        !willRecord &&
+        shouldReuseSession({
+          engineName: requestedEngineForReuse,
+          freshSession: context.browser?.freshSession,
+        });
+      let reusedFromPool = false;
+      if (reuseEligible && appiumPort !== undefined) {
+        let poolKey: string | undefined;
+        try {
+          poolKey = deriveSessionPoolKey(
+            getDriverCapabilities({
+              runnerDetails,
+              name: requestedEngineForReuse,
+              options: {
+                width: context.browser?.window?.width || 1200,
+                height: context.browser?.window?.height || 800,
+                headless: wantHeadlessForReuse,
+                ...recordOptions,
+              },
+            })
+          );
+        } catch {
+          // Can't build caps for a key (e.g. engine not available) → just start
+          // fresh; the loop below handles availability/fallback.
+          poolKey = undefined;
+        }
+        // Evict any session parked on this port whose signature does NOT match
+        // (a previous different-signature context): we won't reuse it, and
+        // leaving it parked would strand a live session until run-end. Delete it
+        // best-effort. A matching session is taken (removed) by `take`.
+        const pooled = poolKey
+          ? sessionPool!.take(appiumPort, poolKey)
+          : undefined;
+        if (pooled) {
+          try {
+            await resetChromiumSession({
+              driver: pooled,
+              cdp: makeChromiumCdpExecutor(pooled, appiumPort),
+              reapplyViewport: () => applyContextViewport(context, pooled),
+              timeoutMs: 5000,
+            });
+            driver = pooled;
+            startedName = requestedEngineForReuse;
+            startedHeadless = wantHeadlessForReuse;
+            reusedFromPool = true;
+            clog(
+              "debug",
+              `Reused a pooled ${requestedEngineForReuse} session on Appium port ${appiumPort}.`
+            );
+          } catch (error: any) {
+            clog(
+              "debug",
+              `Pooled session reset failed (${error?.message ?? error}); starting a fresh session.`
+            );
+            try {
+              await pooled.deleteSession();
+            } catch {
+              // best-effort
+            }
+            driver = undefined;
+          }
+        } else {
+          // No matching pooled session; discard any stale one on this port so a
+          // fresh start doesn't leave two live sessions on the same server.
+          const stale = sessionPool!.evict(appiumPort);
+          if (stale) {
+            try {
+              await stale.deleteSession();
+            } catch {
+              // best-effort
+            }
+          }
+        }
+      }
+
+      for (const candidateName of reusedFromPool ? [] : candidateEngines) {
         const candidateCombo = combinationKey({
           platform: context.platform,
           browser: { name: candidateName },
@@ -4472,24 +4662,10 @@ async function runContext({
         });
       }
 
-      if (
-        context.browser?.viewport?.width ||
-        context.browser?.viewport?.height
-      ) {
-        // Set driver viewport size
-        await setViewportSize(context, driver);
-      } else if (
-        context.browser?.window?.width ||
-        context.browser?.window?.height
-      ) {
-        // Get driver window size
-        const windowSize = await driver.getWindowSize();
-        // Resize window if necessary
-        await driver.setWindowSize(
-          context.browser?.window?.width || windowSize.width,
-          context.browser?.window?.height || windowSize.height
-        );
-      }
+      // Apply the context's viewport/window dimensions. For a reused session the
+      // reset already reapplied them, but this is idempotent (resizes to the same
+      // target) and keeps a single authority for a fresh start.
+      await applyContextViewport(context, driver);
     }
 
     // Effective autoScreenshot for this context (test > spec > config).
@@ -4931,11 +5107,56 @@ async function runContext({
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
     }
+    // Phase 5: park a reusable Chromium session for the next context instead of
+    // deleting it. Only when the context is reuse-eligible (Chromium tier,
+    // !freshSession, no recording), exactly one (default) session is open — no
+    // extra surfaces from goTo — a driver is alive, and the FINAL engine is
+    // still Chromium (a cross-tier fallback such as chrome→firefox must NOT
+    // park). The park key is derived from the session's actual final
+    // capabilities, so a future identical context matches it. The run-end sweep
+    // in runSpecs deletes anything still parked.
+    let parkedForReuse = false;
+    if (
+      reuseEligible &&
+      sessionPool &&
+      appiumPort !== undefined &&
+      driver &&
+      browserSessions &&
+      browserSessions.sessions.size === 1 &&
+      shouldReuseSession({
+        engineName: context.browser?.name,
+        freshSession: context.browser?.freshSession,
+      })
+    ) {
+      try {
+        const parkKey = deriveSessionPoolKey(
+          getDriverCapabilities({
+            runnerDetails,
+            name: context.browser?.name,
+            options: {
+              width: context.browser?.window?.width || 1200,
+              height: context.browser?.window?.height || 800,
+              headless: context.browser?.headless !== false,
+            },
+          })
+        );
+        sessionPool.park(appiumPort, parkKey, driver);
+        parkedForReuse = true;
+      } catch (error: any) {
+        clog(
+          "debug",
+          `Could not park session for reuse (${error?.message ?? error}); deleting it.`
+        );
+      }
+    }
     // Close every session still registered (the default driver registers at
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
-    // can't leak sessions while sibling contexts keep running.
-    if (browserSessions) {
+    // can't leak sessions while sibling contexts keep running. A parked session
+    // is kept alive in the pool, so it is skipped here.
+    if (parkedForReuse) {
+      // Kept alive in the reuse pool; the run-end sweep owns its teardown.
+    } else if (browserSessions) {
       await sweepSessions(browserSessions);
     } else if (driver) {
       // Registry creation is unconditional after a driver starts, so this

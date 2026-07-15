@@ -1,0 +1,83 @@
+{
+  "specId": "reuse-leakage",
+  "description": "Phase 5 (ADR 01066) browser session-reuse leakage gate for the Chromium family. Test A plants browser state (localStorage, sessionStorage, cookie) on an origin; test B runs on the REUSED, reset session (same context signature → drawn from the per-Appium-port reuse pool and reset via the CDP protocol) and asserts none of that state carried over. Because reuse is fail-closed, B falls back to a fresh session if the reset can't complete — in which case B is still clean and PASSes. So this spec never FAILs the gate spuriously; it only FAILs if a REUSED session leaks state (a broken reset). Chromium reuse needs a real GPU/display, so it runs only on headed Chrome (Windows/macOS); every other leg SKIPs. Concurrency note: with concurrentRunners>1 the two tests may land on different pool ports and not reuse — both are clean and PASS — so the leakage assertion has teeth only when B actually reuses A's session, which is the common single-runner / freed-port case on the headed legs.",
+  "tests": [
+    {
+      "testId": "reuse-leakage-plant",
+      "description": "Plant localStorage, sessionStorage, and a cookie on the origin, then confirm they are set (so the assert test is meaningful).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "description": "Plant state across the storage classes an origin persists.",
+          "runBrowserScript": {
+            "script": "localStorage.setItem('dd_leak','LEAKED_LS_9137'); sessionStorage.setItem('dd_leak','LEAKED_SS_9137'); document.cookie='dd_leak=LEAKED_CK_9137;path=/'; return 'PLANTED';",
+            "output": "PLANTED"
+          }
+        },
+        {
+          "description": "Confirm the plant took effect within this session.",
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_leak')===null ? 'MISSING' : 'PRESENT';",
+            "output": "PRESENT"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reuse-leakage-assert-clean",
+      "description": "On the reused+reset session, every planted state class must be gone.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "description": "localStorage must be cleared (Storage.clearDataForOrigin).",
+          "runBrowserScript": {
+            "script": "return localStorage.getItem('dd_leak')===null ? 'CLEAN' : ('DIRTY:'+localStorage.getItem('dd_leak'));",
+            "output": "CLEAN"
+          }
+        },
+        {
+          "description": "sessionStorage must be empty (fresh window + storage clear).",
+          "runBrowserScript": {
+            "script": "return sessionStorage.getItem('dd_leak')===null ? 'CLEAN' : ('DIRTY:'+sessionStorage.getItem('dd_leak'));",
+            "output": "CLEAN"
+          }
+        },
+        {
+          "description": "Cookies must be cleared (Network.clearBrowserCookies).",
+          "runBrowserScript": {
+            "script": "return document.cookie.indexOf('dd_leak=')===-1 ? 'CLEAN' : ('DIRTY:'+document.cookie);",
+            "output": "CLEAN"
+          }
+        }
+      ]
+    }
+  ]
+}
