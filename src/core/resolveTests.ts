@@ -174,7 +174,14 @@ async function fetchOpenApiDocuments({ config, documentArray }: { config: any; d
           const key = definition.descriptionPath;
           let pending = descriptionCache.get(key);
           if (!pending) {
-            pending = loadDescription(key);
+            // Evict on failure so one failed load (especially a transient remote
+            // fetch error) doesn't poison every later test for this path — the
+            // next caller re-attempts, matching the old per-call behavior. The
+            // success case stays memoized (read + dereferenced once per run).
+            pending = loadDescription(key).catch((err) => {
+              descriptionCache.delete(key);
+              throw err;
+            });
             descriptionCache.set(key, pending);
           }
           definition.definition = await pending;

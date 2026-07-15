@@ -176,6 +176,34 @@ describe("resolveTests coverage: fetchOpenApiDocuments", function () {
     assert.deepEqual(d2.definition, d1.definition);
   });
 
+  it("evicts a failed description load from the per-run cache so a later caller retries (item 3.3)", async function () {
+    // A rejected loadDescription must NOT stay cached — otherwise one failure
+    // (e.g. a transient remote error) would poison every later test for the same
+    // path. After a failing resolve the run cache must not hold the key, so the
+    // next test/run re-attempts (matching the old per-call behavior).
+    const missing = path.join(tmp, "transient-missing.json");
+    const spec = {
+      specId: "docs/x.json",
+      contentPath: path.join(process.cwd(), "docs", "x.json"),
+      openApi: [],
+      runOn: [],
+      tests: [
+        {
+          testId: "t1",
+          steps: [{ runShell: { command: "echo hi" } }],
+          openApi: [{ name: "api", descriptionPath: missing }],
+        },
+      ],
+    };
+    await resolveTests({ config, detectedTests: [spec] });
+    assert.ok(config._openApiDescriptionCache, "run seeded the description cache");
+    assert.equal(
+      config._openApiDescriptionCache.has(missing),
+      false,
+      "the failed load was evicted, not left as a sticky rejected promise"
+    );
+  });
+
   it("assigns a random-UUID specId when neither specId nor contentPath is present", async function () {
     const spec = {
       openApi: [],

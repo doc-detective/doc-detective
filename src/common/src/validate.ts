@@ -40,6 +40,14 @@ const ajv = new Ajv({
 // re-run through the mutating `ajv` on a single clone to reproduce the exact
 // defaults/coercions the old code produced. Schemas compile lazily on first
 // use, so this instance only pays for the candidates actually probed.
+//
+// It deliberately omits the `dynamicDefaultsDef`/`useDefaults` machinery below.
+// A consequence: any compatible schema whose VALIDITY depends on a default —
+// whether a static `useDefaults` scalar (e.g. config_v2's required
+// `telemetry.send`) OR a dynamic default (e.g. a required uuid field) — will not
+// match this probe and instead falls to the mutating-probe fallback in
+// `validate()`. That fallback replays the exact old behavior, so this is a
+// correctness-preserving performance split, not a gap.
 // @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
 const ajvCheck = new Ajv({
   strictSchema: false,
@@ -222,8 +230,11 @@ export function validate({
     // is always a mutating match too, so this fast path is exact for any
     // candidate whose validity doesn't depend on a default/coercion.
     let matchedSchemaKey = compatibleSchemasList.find((key) => {
-      const probe = ajvCheck.getSchema(key);
-      return probe ? probe(object) : false;
+      // Every compatible key is registered on ajvCheck (see the addSchema loop
+      // above), so getSchema is always defined — assert it, matching the
+      // `matchedCheck!` non-null assertion below.
+      const probe = ajvCheck.getSchema(key)!;
+      return probe(object) as boolean;
     });
     if (!matchedSchemaKey) {
       // Fallback for the candidates the fast probe can miss: a schema whose
@@ -233,8 +244,8 @@ export function validate({
       // that validated under the old code is newly rejected. Runs only on the
       // rare no-fast-match path, so the common case keeps its single-clone win.
       matchedSchemaKey = compatibleSchemasList.find((key) => {
-        const mutatingCheck = ajv.getSchema(key);
-        return mutatingCheck ? mutatingCheck(cloneForValidation(object)) : false;
+        const mutatingCheck = ajv.getSchema(key)!;
+        return mutatingCheck(cloneForValidation(object)) as boolean;
       });
     }
     if (!matchedSchemaKey) {

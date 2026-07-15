@@ -13,6 +13,7 @@ import { validate } from "../common/src/validate.js";
 import { detectTests as parseContent, getLineNumber, getLineStarts, contentHash } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
+import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 
 // Bounded fan-out for the per-file parse pass. Detection is I/O-bound (reading
 // text/markdown files and remote before/after specs); overlapping those reads
@@ -21,7 +22,6 @@ import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
 // once. Independent of `config.concurrentRunners` (a test-execution knob) —
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
-import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 
 export { detectTests, parseTests, generateSpecId };
 
