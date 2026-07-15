@@ -167,6 +167,31 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): 
   });
 }
 
+/**
+ * Delete a driver session best-effort AND time-boxed. Every pooled-session
+ * teardown (a failed reset, evicting a stale entry, the run-end drain) must
+ * never block: a hung `deleteSession()` would otherwise stall the fail-closed
+ * fallback to a fresh session, or stall run teardown before the Appium servers
+ * are killed. Swallows errors and bounds the wait; the Appium-server killTree
+ * is the ultimate backstop that reclaims the browser regardless.
+ */
+export async function bestEffortDeleteSession(
+  driver: any,
+  timeoutMs = 5000
+): Promise<void> {
+  if (!driver || typeof driver.deleteSession !== "function") return;
+  try {
+    await withTimeout(
+      Promise.resolve().then(() => driver.deleteSession()),
+      timeoutMs,
+      "deleteSession"
+    );
+  } catch {
+    // best-effort: a hung or failing deleteSession must not block fallback or
+    // run teardown.
+  }
+}
+
 export interface SessionPoolEntry {
   key: string;
   driver: any;

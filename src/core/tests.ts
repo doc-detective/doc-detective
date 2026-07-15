@@ -45,6 +45,7 @@ import {
   shouldReuseSession,
   contextUsesRecording,
   resetChromiumSession,
+  bestEffortDeleteSession,
   type SessionPool,
   type CdpExecutor,
 } from "./sessionReuse.js";
@@ -2182,18 +2183,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // alive) and best-effort (a stuck session must not block run teardown — the
     // killTree of its Appium server below terminates the browser regardless).
     if (sessionPool) {
+      // Time-boxed per driver so one stuck deleteSession can't stall run
+      // teardown before the Appium servers are killed below.
       await Promise.all(
-        sessionPool.drain().map(async (parkedDriver) => {
-          try {
-            await parkedDriver.deleteSession();
-          } catch (error: any) {
-            log(
-              config,
-              "debug",
-              `Failed to delete a pooled browser session during run teardown: ${error?.message ?? error}`
-            );
-          }
-        })
+        sessionPool.drain().map((parkedDriver) =>
+          bestEffortDeleteSession(parkedDriver)
+        )
       );
     }
     // Close every Appium server we started. Awaited (via killTree) so each
@@ -4520,11 +4515,9 @@ async function runContext({
               "debug",
               `Pooled session reset failed (${error?.message ?? error}); starting a fresh session.`
             );
-            try {
-              await pooled.deleteSession();
-            } catch {
-              // best-effort
-            }
+            // Time-boxed so a hung deleteSession can't stall the fail-closed
+            // fallback to a fresh session.
+            await bestEffortDeleteSession(pooled);
             driver = undefined;
           }
         } else {
@@ -4532,11 +4525,7 @@ async function runContext({
           // fresh start doesn't leave two live sessions on the same server.
           const stale = sessionPool!.evict(appiumPort);
           if (stale) {
-            try {
-              await stale.deleteSession();
-            } catch {
-              // best-effort
-            }
+            await bestEffortDeleteSession(stale);
           }
         }
       }

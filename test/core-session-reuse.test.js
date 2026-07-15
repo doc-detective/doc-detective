@@ -15,6 +15,7 @@ import {
   deriveSessionPoolKey,
   createSessionPool,
   resetChromiumSession,
+  bestEffortDeleteSession,
 } from "../dist/core/sessionReuse.js";
 
 describe("session-reuse tiering", function () {
@@ -155,6 +156,41 @@ describe("deriveSessionPoolKey", function () {
     const edge = JSON.parse(JSON.stringify(capsA));
     edge.browserName = "edge";
     assert.notEqual(deriveSessionPoolKey(capsA), deriveSessionPoolKey(edge));
+  });
+});
+
+describe("bestEffortDeleteSession (bounded, swallowing)", function () {
+  it("deletes a live driver session", async function () {
+    let called = false;
+    await bestEffortDeleteSession({
+      deleteSession: async () => {
+        called = true;
+      },
+    });
+    assert.equal(called, true);
+  });
+
+  it("swallows a throwing deleteSession (never propagates)", async function () {
+    await bestEffortDeleteSession({
+      deleteSession: async () => {
+        throw new Error("device lost");
+      },
+    });
+  });
+
+  it("is a no-op for null/undefined or a driver without deleteSession", async function () {
+    await bestEffortDeleteSession(undefined);
+    await bestEffortDeleteSession(null);
+    await bestEffortDeleteSession({});
+  });
+
+  it("times out (and resolves) when deleteSession hangs — never blocks", async function () {
+    const start = Date.now();
+    await bestEffortDeleteSession({ deleteSession: () => new Promise(() => {}) }, 20);
+    assert.ok(
+      Date.now() - start < 1000,
+      "a hung deleteSession must be time-boxed, not awaited forever"
+    );
   });
 });
 
