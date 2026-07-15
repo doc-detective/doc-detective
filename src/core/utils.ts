@@ -1431,9 +1431,20 @@ export async function realizeViewport(
   const target = resolveViewportTarget(requested, current);
 
   const windowSize = await driver.getWindowSize();
+  // If the viewport read-back failed (non-finite current/target), keep the
+  // window as-is for that axis rather than passing NaN to setWindowSize (which
+  // some drivers reject). Round to integers — drivers expect whole pixels.
+  const deltaWidth =
+    Number.isFinite(current.width) && Number.isFinite(target.width)
+      ? target.width - current.width
+      : 0;
+  const deltaHeight =
+    Number.isFinite(current.height) && Number.isFinite(target.height)
+      ? target.height - current.height
+      : 0;
   await driver.setWindowSize(
-    windowSize.width + (target.width - current.width),
-    windowSize.height + (target.height - current.height)
+    Math.round(windowSize.width + deltaWidth),
+    Math.round(windowSize.height + deltaHeight)
   );
 
   const actual = await readViewport(driver);

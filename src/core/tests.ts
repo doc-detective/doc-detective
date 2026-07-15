@@ -1175,14 +1175,15 @@ async function setViewportSize(
   driver: any,
   config: any = {}
 ): Promise<{ width: number; height: number } | undefined> {
-  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
+  // Guard on POSITIVE dimensions (not truthiness): the schema doesn't floor
+  // these, so a 0/negative/NaN value must not enter the resize path — matching
+  // the startSurface browser descriptor's guard.
+  const vw = Number(context.browser?.viewport?.width);
+  const vh = Number(context.browser?.viewport?.height);
+  if (vw > 0 || vh > 0) {
     const requested = {
-      ...(context.browser?.viewport?.width
-        ? { width: Number(context.browser.viewport.width) }
-        : {}),
-      ...(context.browser?.viewport?.height
-        ? { height: Number(context.browser.viewport.height) }
-        : {}),
+      ...(vw > 0 ? { width: vw } : {}),
+      ...(vh > 0 ? { height: vh } : {}),
     };
     // Attribute the warning so a multi-context run can tell which context's
     // viewport was floored.
@@ -4480,10 +4481,12 @@ async function runContext({
         });
       }
 
-      if (
-        context.browser?.viewport?.width ||
-        context.browser?.viewport?.height
-      ) {
+      // Positive-dimension guard (not truthiness): a 0/negative/NaN viewport
+      // must fall through to the window-size branch rather than entering the
+      // (no-op) viewport path.
+      const viewportW = Number(context.browser?.viewport?.width);
+      const viewportH = Number(context.browser?.viewport?.height);
+      if (viewportW > 0 || viewportH > 0) {
         // Set driver viewport size
         await setViewportSize(context, driver, config);
       } else if (
