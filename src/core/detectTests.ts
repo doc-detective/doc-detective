@@ -517,6 +517,14 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       content = await readFile({ fileURLOrPath: file });
     }
 
+    // A file that reads as null is not a spec: `readFile` returns null on a read
+    // failure, and a JSON file containing the literal `null` parses to null.
+    // Since `typeof null === "object"`, without this guard it would fall into
+    // the spec branch below and crash on the first property access. qualifyFiles
+    // already rejects these via spec validation; this also protects programmatic
+    // parseTests callers that bypass qualification.
+    if (content === null) return null;
+
     if (typeof content === "object") {
       // Stable IDs for JSON/YAML specs, assigned before any path resolution
       // or before/after-spec merging so the IDs hash the spec as authored:
