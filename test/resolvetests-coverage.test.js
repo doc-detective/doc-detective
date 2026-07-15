@@ -172,8 +172,11 @@ describe("resolveTests coverage: fetchOpenApiDocuments", function () {
     const d2 = t2.openApi.find((d) => d.name === "shared");
     assert.ok(d1?.definition, "first test attached the dereferenced definition");
     assert.ok(d2?.definition, "second test attached the dereferenced definition");
-    // Identical resolution: the memoized load yields the same dereferenced doc.
-    assert.deepEqual(d2.definition, d1.definition);
+    // Reference identity proves memoization: both tests `await` the SAME cached
+    // promise, so they must receive the exact same dereferenced object — not two
+    // independently-loaded but structurally-equal ones (which deepEqual would
+    // also accept, missing a memoization regression).
+    assert.strictEqual(d2.definition, d1.definition);
   });
 
   it("evicts a failed description load from the per-run cache so a later caller retries (item 3.3)", async function () {
