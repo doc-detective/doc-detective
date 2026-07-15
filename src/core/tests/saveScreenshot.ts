@@ -383,9 +383,10 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
         result.assertions = [];
         return result;
       } else {
-        // Set temp file path
+        // Compare against (and possibly overwrite) the existing file in place.
+        // No temp capture file is created — the capture stays in memory until
+        // the single final write, so `filePath` remains the real target.
         existFilePath = filePath;
-        filePath = path.join(dir, `${step.stepId}_${Date.now()}.png`);
       }
     }
   }
@@ -503,6 +504,18 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   // which isn't in a native window's pixels (and `driver` may not even exist
   // in an app-only context).
   const recordingActive = !isAppCapture && isRecordingActive(driver);
+  // Capture straight into an in-memory PNG buffer instead of round-tripping
+  // through disk. Browser captures use WebDriver's `takeScreenshot()` (base64
+  // PNG) — the exact command `saveScreenshot(path)` runs internally before it
+  // writes the file, so the decoded bytes are IDENTICAL to what the old
+  // `saveScreenshot(filePath)` would have persisted (byte-equivalence for the
+  // no-crop path). App captures keep the file-based window-strategy capture
+  // (its driver API is file-based here): we stage it in a short-lived scratch
+  // file, read it back, and delete it so the rest of the pipeline is uniformly
+  // buffer-based. Nothing is written to `filePath`/`existFilePath` yet — the
+  // final PNG lands on disk exactly once, at the end.
+  let captureBuffer: Buffer;
+  let appScratchPath: string | undefined;
   try {
     if (recordingActive) {
       await driver.execute(() => {
@@ -510,24 +523,36 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
         if (pointer) pointer.style.display = "none";
       });
     }
-    // Save screenshot: app captures go through the window strategy (window
-    // element on macOS, current-root driver capture on Windows); browser
-    // captures use the session driver.
+    // Capture: app captures go through the window strategy (window element on
+    // macOS, current-root driver capture on Windows) into a scratch file we
+    // immediately read into the buffer flow; browser captures use the session
+    // driver's in-memory `takeScreenshot()`.
     if (isAppCapture) {
-      await appWindowScreenshot(appEntry, appWindowTarget, filePath);
+      appScratchPath = path.join(
+        dir,
+        `.appcapture_${step.stepId || "screenshot"}_${Date.now()}.png`
+      );
+      await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
+      captureBuffer = fs.readFileSync(appScratchPath);
     } else {
-      await captureDriver.saveScreenshot(filePath);
+      const base64 = await captureDriver.takeScreenshot();
+      captureBuffer = Buffer.from(base64, "base64");
     }
   } catch (error) {
-    // Couldn't save screenshot
+    // Couldn't capture screenshot
     result.status = "FAIL";
     result.description = `Couldn't save screenshot. ${error}`;
-    // Clean up temp file if it exists
-    if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
     return result;
   } finally {
+    // Best-effort scratch cleanup (app captures only); a throw here must not
+    // mask the result.
+    if (appScratchPath && fs.existsSync(appScratchPath)) {
+      try {
+        fs.unlinkSync(appScratchPath);
+      } catch {
+        /* scratch cleanup is non-essential */
+      }
+    }
     if (recordingActive) {
       // Best-effort: a throw here (e.g. an unstable session) must not override a
       // successful screenshot result or mask the caught error above — exceptions
@@ -543,7 +568,10 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     }
   }
 
-  // If crop is set, found bounds of element and crop image
+  // If crop is set, compute element bounds and crop the captured buffer in
+  // memory (no temp file, no re-read, no rename). `finalBuffer` carries the
+  // bytes we ultimately write.
+  let finalBuffer: Buffer = captureBuffer;
   if (step.screenshot.crop) {
     let padding = { top: 0, right: 0, bottom: 0, left: 0 };
     if (typeof step.screenshot.crop.padding === "number") {
@@ -588,8 +616,8 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     rect.width = Math.round(rect.width);
     rect.height = Math.round(rect.height);
 
-    // Clamp values to stay within image bounds
-    const imgMeta = await sharp(filePath).metadata();
+    // Clamp values to stay within image bounds (metadata read from the buffer)
+    const imgMeta = await sharp(captureBuffer).metadata();
     const clamped = clampCropRect(rect, imgMeta.width!, imgMeta.height!);
     rect.x = clamped.x;
     rect.y = clamped.y;
@@ -598,41 +626,61 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
 
     log(config, "debug", { padded_rect: rect });
 
-    // Create a new PNG object with the dimensions of the cropped area
-    const croppedPath = path.join(dir, `cropped_${step.stepId || Date.now()}.png`);
+    // Extract the cropped region straight to a PNG buffer. This matches the
+    // prior sharp(...).extract(...).toFile("….png") encoding (PNG output),
+    // just without the temp file + rename.
     try {
-      await sharp(filePath)
+      finalBuffer = await sharp(captureBuffer)
         .extract({
           left: rect.x,
           top: rect.y,
           width: rect.width,
           height: rect.height,
         })
-        .toFile(croppedPath);
-
-      // Replace the original file with the cropped file
-      fs.renameSync(croppedPath, filePath);
+        .png()
+        .toBuffer();
     } catch (error) {
       result.status = "FAIL";
       result.description = `Couldn't crop image. ${error}`;
-      if (existFilePath && filePath !== existFilePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
       return result;
     }
   }
 
-  // If file already exists
-  // If overwrite is true, replace old file with new file
-  // If overwrite is aboveVariation, compare files and replace if variance is greater than threshold
+  // Write the final (captured or cropped) PNG buffer to disk exactly once. On
+  // failure, stamp a step-level FAIL (mirrors the prior capture-write failure)
+  // and signal the caller to return.
+  const writeFinalPng = (destination: string): boolean => {
+    try {
+      fs.writeFileSync(destination, finalBuffer);
+      return true;
+    } catch (error) {
+      result.status = "FAIL";
+      result.description = `Couldn't save screenshot. ${error}`;
+      return false;
+    }
+  };
+
+  // URL references always keep the local capture in the run folder for
+  // inspection — even on a comparison FAIL — matching the prior behavior where
+  // the capture was written before comparison and never deleted on the URL
+  // path. Persist it now, before the read-only comparison against the fetched
+  // reference. This is the single write of the final PNG on the URL path.
+  if (isUrlPath) {
+    if (!writeFinalPng(filePath)) return result;
+  }
+
+  // If a reference already exists (local target or fetched URL temp):
+  // - overwrite "true": replace it with the new capture.
+  // - overwrite "aboveVariation": compare, replace only if variance exceeds
+  //   the threshold.
   if (existFilePath) {
     // URL paths never take the "overwrite=true" fast path: existFilePath is a
     // temp download, not a user-owned reference, and the local capture is
     // kept in the run folder for inspection.
     if (step.screenshot.overwrite == "true" && !isUrlPath) {
-      // Replace old file with new file
+      // Replace old file with the new capture (single write to the target).
+      if (!writeFinalPng(existFilePath)) return result;
       result.description += ` Overwrote existing file.`;
-      fs.renameSync(filePath, existFilePath);
       result.outputs.screenshotPath = existFilePath;
       result.outputs.changed = true;
       // Preserve sourceIntegration metadata
@@ -651,20 +699,16 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
       let img1: any;
       let img2: any;
       try {
+        // Decode the existing reference from disk and the freshly captured
+        // (optionally cropped) buffer directly — no read-back of a file we
+        // just wrote.
         img1 = PNG.sync.read(fs.readFileSync(existFilePath));
-        img2 = PNG.sync.read(fs.readFileSync(filePath));
+        img2 = PNG.sync.read(finalBuffer);
       } catch (error) {
         result.status = "FAIL";
         result.description = isUrlPath
           ? `Couldn't decode PNG for comparison. The URL reference (${redactedUrl}) may not be a valid PNG. ${error}`
           : `Couldn't decode PNG for comparison. ${error}`;
-        if (
-          !isUrlPath &&
-          filePath !== existFilePath &&
-          fs.existsSync(filePath)
-        ) {
-          fs.unlinkSync(filePath);
-        }
         return result;
       }
 
@@ -681,17 +725,13 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
       });
       if (!aspectRatioMatch) {
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
-        if (
-          !isUrlPath &&
-          filePath !== existFilePath &&
-          fs.existsSync(filePath)
-        ) {
-          fs.unlinkSync(filePath);
-        }
         return await evaluateApplicable();
       }
 
-      // Resize images to same size
+      // Resize images to a common size. Stay in sharp's raw pipeline (RGBA in →
+      // RGBA out) instead of round-tripping PNG→buffer→PNG: PNG is lossless, so
+      // the resized pixels are identical to the prior encode/decode path, and
+      // pixelmatch consumes raw RGBA directly.
       if (img1.width !== img2.width || img1.height !== img2.height) {
         const width = Math.min(img1.width, img2.width);
         const height = Math.min(img1.height, img2.height);
@@ -700,20 +740,17 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
           raw: { width: img1.width, height: img1.height, channels: 4 },
         })
           .resize(width, height)
-          .png()
+          .raw()
           .toBuffer();
         const img2ResizedBuffer = await sharp(img2.data, {
           raw: { width: img2.width, height: img2.height, channels: 4 },
         })
           .resize(width, height)
-          .png()
+          .raw()
           .toBuffer();
 
-        // Convert resized buffers to PNG objects
-        const resizedImg1 = PNG.sync.read(img1ResizedBuffer);
-        const resizedImg2 = PNG.sync.read(img2ResizedBuffer);
-        img1.data = resizedImg1.data;
-        img2.data = resizedImg2.data;
+        img1.data = img1ResizedBuffer;
+        img2.data = img2ResizedBuffer;
         img1.width = width;
         img1.height = height;
       }
@@ -728,9 +765,6 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
         // guard at saveScreenshot entry.
         result.status = "FAIL";
         result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
-        if (!isUrlPath && filePath !== existFilePath && fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
         return result;
       }
       const numDiffPixels = pixelmatchFn(
@@ -753,7 +787,7 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
       // WARNING severity. Expose the computed fractional diff as
       // `outputs.variation` and push the spec; the shared engine records WARNING
       // (not FAIL) when it evaluates false, matching the prior `WARNING` status.
-      // The file-write/rename side effects below are preserved exactly.
+      // The file-write side effects below are preserved exactly.
       result.outputs.variation = fractionalDiff;
       specs.push({
         statement: `$$outputs.variation <= ${step.screenshot.maxVariation}`,
@@ -762,8 +796,8 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
 
       if (fractionalDiff > step.screenshot.maxVariation) {
         if (step.screenshot.overwrite == "aboveVariation" && !isUrlPath) {
-          // Replace old file with new file
-          fs.renameSync(filePath, existFilePath);
+          // Replace old file with the new capture (single write to the target).
+          if (!writeFinalPng(existFilePath)) return result;
         }
         result.description += ` The difference between the existing screenshot and new screenshot (${fractionalDiff.toFixed(
           2
@@ -776,7 +810,7 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
           // like collectChangedFiles()/Heretto don't treat this as something
           // to push, and omit sourceIntegration for the same reason. The
           // drift signal lives in `result.status === "WARNING"` + the local
-          // capture path + referenceUrl.
+          // capture path (already written above) + referenceUrl.
           result.outputs.screenshotPath = filePath;
           result.outputs.referenceUrl = redactedUrl;
         } else {
@@ -797,20 +831,22 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
           result.outputs.screenshotPath = filePath;
           result.outputs.referenceUrl = redactedUrl;
         } else {
+          // Within variation: keep the existing reference unchanged. The new
+          // capture stayed in memory, so there is no temp file to delete.
           result.outputs.screenshotPath = existFilePath;
           if (step.screenshot.sourceIntegration) {
             result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
-          }
-          if (step.screenshot.overwrite != "true") {
-            fs.unlinkSync(filePath);
           }
         }
       }
     }
   }
 
-  // Set output path for new screenshots
+  // New screenshot with no reference kept: write the final PNG once and record
+  // it. (URL paths already wrote and set screenshotPath above, so they never
+  // reach this branch.)
   if (!result.outputs.screenshotPath) {
+    if (!writeFinalPng(filePath)) return result;
     result.outputs.screenshotPath = filePath;
     // Mark new screenshots as changed so they can be uploaded
     result.outputs.changed = true;
