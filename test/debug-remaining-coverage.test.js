@@ -66,8 +66,13 @@ import { probeTool, probeAllTools } from "../dist/debug/tools.js";
 function cleanupTmp(dir) {
   try {
     fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-  } catch {
-    /* best-effort: OS reaps %TEMP%; a cleanup EPERM must not fail a passed test */
+  } catch (err) {
+    // Non-fatal: the cleanup runs after the assertions have passed, so a
+    // residual Windows AV/indexer EPERM must not fail the test. But don't
+    // swallow it silently — surface it as a warning so a genuine, persistent
+    // disk/permission regression (or a leaked temp tree) is still visible in
+    // the CI log rather than hidden.
+    console.warn(`cleanupTmp: could not remove ${dir}: ${err?.message ?? err}`);
   }
 }
 
