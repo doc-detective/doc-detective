@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,9 +16,142 @@ const CLI_PATH = path.join(__dirname, "..", "bin", "doc-detective.js");
 //      DOC_DETECTIVE_AUTOINSTALL=0.
 //   2. maybePromptInstallAgents(): the optional agent-tools install prompt —
 //      lightweight (TTY-gated, time-bounded, skipped in CI).
+//
+// Both are skipped for a first-time install triggered solely to run the
+// language server (`npx doc-detective lsp`): the LSP needs none of the heavy
+// runtime, so pre-warming browsers/drivers there is pure waste. The runtime
+// still lazy-installs on the first actual test run if one ever happens.
 async function main() {
+  if (isLspInvocation()) return;
   await maybeInstallRuntime();
   await maybePromptInstallAgents();
+}
+
+// --- LSP-invocation detection -----------------------------------------------
+
+/**
+ * Does this command line invoke `doc-detective lsp`? Matches the package name
+ * plus a standalone `lsp` argument, covering `npx doc-detective lsp`,
+ * `npx --yes doc-detective lsp --stdio`, and `node …/bin/doc-detective.js lsp`.
+ * The `\blsp\b`-as-a-word check avoids false hits like a `lsp-…` path segment.
+ * Exported for tests.
+ */
+export function isDocDetectiveLspCommand(cmdline) {
+  if (typeof cmdline !== "string") return false;
+  return /doc-detective/i.test(cmdline) && /(^|\s)lsp(\s|$)/.test(cmdline);
+}
+
+/**
+ * Read the process table (pid → { ppid, cmd }) for the current platform. On
+ * Linux this reads `/proc` directly (no child process); elsewhere it makes a
+ * single `powershell`/`ps` call. Best-effort — the caller wraps it in a guard.
+ * `deps.readProcessTable` overrides the real reader for tests.
+ */
+function buildProcessTable(platform, deps = {}) {
+  if (deps.readProcessTable) return deps.readProcessTable();
+
+  if (platform === "win32") {
+    const json = execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress",
+      ],
+      { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const parsed = JSON.parse(json);
+    const rows = Array.isArray(parsed) ? parsed : [parsed];
+    const table = new Map();
+    for (const row of rows) {
+      table.set(Number(row.ProcessId), {
+        ppid: Number(row.ParentProcessId),
+        cmd: row.CommandLine || "",
+      });
+    }
+    return table;
+  }
+
+  if (platform === "linux") {
+    const table = new Map();
+    for (const name of fs.readdirSync("/proc")) {
+      if (!/^\d+$/.test(name)) continue;
+      try {
+        // `/proc/<pid>/stat`: the ppid is the 2nd field AFTER the `(comm)`
+        // parenthesized name, which itself can contain spaces/parens.
+        const stat = fs.readFileSync(`/proc/${name}/stat`, "utf8");
+        const afterComm = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+        const ppid = Number(afterComm[1]);
+        let cmd = "";
+        try {
+          cmd = fs
+            .readFileSync(`/proc/${name}/cmdline`)
+            .toString()
+            .replace(/\0/g, " ")
+            .trim();
+        } catch {
+          /* process vanished / no cmdline (kernel thread) */
+        }
+        table.set(Number(name), { ppid, cmd });
+      } catch {
+        /* process vanished between readdir and read */
+      }
+    }
+    return table;
+  }
+
+  // macOS and other Unixes.
+  const out = execFileSync("ps", ["-Ao", "pid=,ppid=,command="], {
+    encoding: "utf8",
+    timeout: 5000,
+  });
+  const table = new Map();
+  for (const line of out.split(/\r?\n/)) {
+    const m = line.match(/^\s*(\d+)\s+(\d+)\s+(.*)$/);
+    if (m) table.set(Number(m[1]), { ppid: Number(m[2]), cmd: m[3] });
+  }
+  return table;
+}
+
+/**
+ * Walk the ancestry from `deps.pid` (default this process) up the parent chain
+ * and return each ancestor's command line. Bounded and cycle-guarded. Never
+ * throws — returns `[]` on any failure so callers fall back to default
+ * behavior. Exported for tests.
+ */
+export function readAncestorCommandLines(deps = {}) {
+  const platform = deps.platform || process.platform;
+  let pid = deps.pid || process.pid;
+  try {
+    const table = buildProcessTable(platform, deps);
+    const lines = [];
+    const seen = new Set();
+    for (let hops = 0; hops < 12 && pid && !seen.has(pid); hops++) {
+      seen.add(pid);
+      const entry = table.get(pid);
+      if (!entry) break;
+      if (entry.cmd) lines.push(entry.cmd);
+      pid = entry.ppid;
+    }
+    return lines;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Is this postinstall running as part of `npx doc-detective lsp`? Only an
+ * `npm exec` (npx) invocation can be an lsp-first-use, so a plain
+ * `npm install` / Docker build returns `false` immediately without walking the
+ * process tree (they always pre-warm). For npx, inspect the ancestry for a
+ * `doc-detective lsp` command. `ancestorLines` is injectable for tests.
+ * Exported for tests.
+ */
+export function isLspInvocation(env = process.env, ancestorLines) {
+  if (env.npm_command !== "exec") return false;
+  const lines = ancestorLines || readAncestorCommandLines();
+  return lines.some(isDocDetectiveLspCommand);
 }
 
 // Only run the install steps when executed as the npm lifecycle script, not

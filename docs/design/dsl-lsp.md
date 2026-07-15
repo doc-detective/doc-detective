@@ -245,6 +245,27 @@ user-facing docs page — both should land *with* the published plugin, not ahea
 of it (the repo's "don't pre-announce" norm). The design doc + ADRs are the
 record until then.
 
+### Install weight: `npx doc-detective lsp` stays light
+
+A user (or the plugin shim) reaching for the LSP via `npx doc-detective lsp`
+should not pay for the heavy browser/driver runtime the postinstall normally
+pre-warms — the server needs none of it. `scripts/postinstall.js` detects this
+invocation and skips both the runtime pre-warm and the agent-install prompt; the
+runtime still lazy-installs on the first actual test run. Detection can't read
+the `lsp` subcommand from npm's environment (no `npm_config_argv` on npm 7+), so
+it inspects the process ancestry for a `doc-detective lsp` command — but only for
+npx (`npm_command === "exec"`), so a plain `npm install` / Docker build pays
+nothing and still pre-warms, and `npx doc-detective runTests` still pre-warms
+too. Best-effort: any detection failure falls back to pre-warming. See
+[ADR 01070](../../adrs/01070-skip-runtime-prewarm-for-lsp-invocations.md). The
+three LSP dependencies stay lightweight regular deps (not JIT), so no first-run
+install delay.
+
+> Note: the concrete `.lsp.json` + shim below predate the shipped `agent-tools`
+> wiring; the delivered plugin maps single trailing extensions (Claude Code's
+> `extensionToLanguage` doesn't match multi-part `.spec.json` keys) and launches
+> `lsp/lsp-launch.js`, relying on the server's detection gate for silence.
+
 ## Plugin bundling
 
 `agent-tools` adds an `.lsp.json` at the plugin root plus a resolution shim:
