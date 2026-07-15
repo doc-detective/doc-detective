@@ -36,8 +36,7 @@ export function schemaMessage(error: {
   if (error.keyword === "additionalProperties" && params.additionalProperty) {
     return `${base}: "${params.additionalProperty}"`;
   }
-  if (error.keyword === "required" && params.missingProperty) {
-    return `${base}`;
-  }
+  // AJV's `required` message already names the missing property, so `base`
+  // needs no augmentation — it falls through to the return below.
   return base;
 }
