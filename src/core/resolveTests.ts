@@ -154,13 +154,31 @@ async function fetchOpenApiDocuments({ config, documentArray }: { config: any; d
   const openApiDocuments: any[] = [];
   if (config?.integrations?.openApi?.length > 0)
     openApiDocuments.push(...config.integrations.openApi);
+  // Per-run cache of dereferenced OpenAPI descriptions, keyed by resolved
+  // description path. resolveTests seeds a fresh Map at the start of each run;
+  // the `||=` fallback covers direct resolveSpec/resolveTest callers. Without
+  // this, a spec's T tests each re-enter here with the SAME spec-level
+  // definition objects and re-read + re-dereference the same document T more
+  // times (resolveSpec already loaded it once). Promises are cached (not just
+  // resolved values) so concurrent callers share one in-flight load.
+  const descriptionCache: Map<string, Promise<any>> =
+    config._openApiDescriptionCache ||
+    (config._openApiDescriptionCache = new Map());
   if (documentArray?.length > 0) {
     for (const definition of documentArray) {
       try {
-        const openApiDefinition = await loadDescription(
-          definition.descriptionPath
-        );
-        definition.definition = openApiDefinition;
+        // Reuse a definition already dereferenced onto this object earlier in
+        // the run (resolveSpec attaches spec-level definitions before the tests
+        // re-process them); otherwise load through the per-run path cache.
+        if (!definition.definition) {
+          const key = definition.descriptionPath;
+          let pending = descriptionCache.get(key);
+          if (!pending) {
+            pending = loadDescription(key);
+            descriptionCache.set(key, pending);
+          }
+          definition.definition = await pending;
+        }
       } catch (error: any) {
         log(
           config,
@@ -319,6 +337,12 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
     config: config,
     specs: [] as any[],
   };
+
+  // Seed a fresh OpenAPI description cache for this run so fetchOpenApiDocuments
+  // reads + dereferences each document once, not once per (spec + test). Fresh
+  // per resolveTests call so a config reused across runs never serves a stale
+  // description.
+  config._openApiDescriptionCache = new Map();
 
   log(config, "info", "Resolving test specs.");
   for (const spec of detectedTests) {

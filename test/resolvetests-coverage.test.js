@@ -133,6 +133,49 @@ describe("resolveTests coverage: fetchOpenApiDocuments", function () {
     );
   });
 
+  it("memoizes loadDescription across tests sharing one description path (item 3.3)", async function () {
+    // Two tests each declare their OWN openApi entry pointing at the SAME
+    // description file. With no spec-level openApi to pre-attach a definition,
+    // the first test loads + caches the path and the second hits the per-run
+    // cache (distinct entry object, so it can't reuse an attached definition —
+    // this is the path-keyed branch). Both must resolve identically.
+    const file = path.join(tmp, "shared.json");
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        openapi: "3.0.0",
+        info: { title: "shared", version: "1" },
+        paths: {},
+      })
+    );
+    const spec = {
+      specId: "docs/shared.json",
+      contentPath: path.join(process.cwd(), "docs", "shared.json"),
+      openApi: [],
+      runOn: [],
+      tests: [
+        {
+          testId: "t1",
+          steps: [{ runShell: { command: "echo hi" } }],
+          openApi: [{ name: "shared", descriptionPath: file }],
+        },
+        {
+          testId: "t2",
+          steps: [{ runShell: { command: "echo hi" } }],
+          openApi: [{ name: "shared", descriptionPath: file }],
+        },
+      ],
+    };
+    const resolved = await resolveTests({ config, detectedTests: [spec] });
+    const [t1, t2] = resolved.specs[0].tests;
+    const d1 = t1.openApi.find((d) => d.name === "shared");
+    const d2 = t2.openApi.find((d) => d.name === "shared");
+    assert.ok(d1?.definition, "first test attached the dereferenced definition");
+    assert.ok(d2?.definition, "second test attached the dereferenced definition");
+    // Identical resolution: the memoized load yields the same dereferenced doc.
+    assert.deepEqual(d2.definition, d1.definition);
+  });
+
   it("assigns a random-UUID specId when neither specId nor contentPath is present", async function () {
     const spec = {
       openApi: [],

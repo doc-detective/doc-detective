@@ -1,0 +1,64 @@
+{
+  "specId": "openapi-shared-description-multitest",
+  "description": "One spec-level openApi description shared by MULTIPLE tests must resolve and run identically for every test. Exercises the per-run loadDescription memoization (item 3.3): resolveSpec dereferences the description once, then each test reuses it instead of re-reading + re-dereferencing the same document. Hermetic: mockResponse means no network call.",
+  "openApi": [
+    {
+      "name": "reqres",
+      "descriptionPath": "./reqres.openapi.json",
+      "server": "https://reqres.in/api",
+      "mockResponse": true,
+      "useExample": "none",
+      "validateAgainstSchema": "none"
+    }
+  ],
+  "tests": [
+    {
+      "description": "first test resolves the shared description",
+      "steps": [
+        {
+          "description": "getUsers via the shared spec-level openApi description",
+          "httpRequest": {
+            "openApi": "getUsers",
+            "statusCodes": [
+              200
+            ],
+            "response": {}
+          }
+        }
+      ]
+    },
+    {
+      "description": "second test reuses the same description (memoized, not re-loaded)",
+      "steps": [
+        {
+          "description": "getUsers again through the reused description",
+          "httpRequest": {
+            "openApi": {
+              "operationId": "getUsers"
+            },
+            "statusCodes": [
+              200
+            ],
+            "response": {}
+          }
+        }
+      ]
+    },
+    {
+      "description": "third test also reuses the same description",
+      "steps": [
+        {
+          "description": "addUser resolves through the same memoized description",
+          "httpRequest": {
+            "openApi": "addUser",
+            "statusCodes": [
+              200,
+              201
+            ],
+            "response": {}
+          }
+        }
+      ]
+    }
+  ]
+}

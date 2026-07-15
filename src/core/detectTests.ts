@@ -12,7 +12,15 @@ import YAML from "yaml";
 import { validate } from "../common/src/validate.js";
 import { detectTests as parseContent, getLineNumber, getLineStarts, contentHash } from "../common/src/detectTests.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
+
+// Bounded fan-out for the per-file parse pass. Detection is I/O-bound (reading
+// text/markdown files and remote before/after specs); overlapping those reads
+// instead of running strictly one file at a time is the win. Bounded so a large
+// input set can't open an unbounded number of file handles / remote sockets at
+// once. Independent of `config.concurrentRunners` (a test-execution knob) —
+// detection order and results are unchanged regardless of this value.
+const DETECTION_PARSE_CONCURRENCY = 8;
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 
 export { detectTests, parseTests, generateSpecId };
@@ -102,7 +110,26 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
     path.extname(source) === ".yaml" ||
     path.extname(source) === ".yml"
   ) {
-    const content: any = await readFile({ fileURLOrPath: source });
+    // Read the file's raw text ONCE here (qualification) and parse it, rather
+    // than parsing via readFile now and re-reading in parseTests. The raw text +
+    // parsed object are cached below on success so parseTests reuses them.
+    const ext = path.extname(source).slice(1).toLowerCase();
+    let rawContent: string;
+    try {
+      rawContent = await fs.promises.readFile(source, "utf8");
+    } catch {
+      /* c8 ignore next 3 - unreachable: caller stat'd the file as readable */
+      log(config, "debug", `${source} couldn't be read. Skipping.`);
+      return false;
+    }
+    let content: any;
+    try {
+      content = ext === "json" ? JSON.parse(rawContent) : YAML.parse(rawContent);
+    } catch {
+      // Parse failure => not a spec. Mirrors readFile's raw-string fallback,
+      // which the object guard below then rejects.
+      content = rawContent;
+    }
     if (typeof content !== "object") {
       log(
         config,
@@ -159,6 +186,10 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
         }
       }
     }
+    // Qualified: stash the raw text + parsed object so parseTests reuses them
+    // instead of reading + parsing this file again (keyed by the resolved path
+    // that qualifyFiles pushes into `files`).
+    config._parsedFileCache?.set(source, { rawContent, content });
   }
   // Extension not in allowed list
   const extension = path.extname(source).substring(1);
@@ -245,6 +276,16 @@ async function qualifyFiles({ config }: { config: any }) {
   let sequence: Array<{ source: string; phase: string }> = [];
   const phaseByFile: Map<string, string> = new Map();
   config._phaseByFile = phaseByFile;
+
+  // Read-once thread (item 3.1): isValidSourceFile already reads + parses each
+  // JSON/YAML spec to qualify it. It stashes the raw text + parsed object here
+  // (keyed by the resolved path it pushes into `files`) so parseTests can reuse
+  // them instead of reading + parsing the same file a second time. A programmatic
+  // parseTests call that bypasses qualifyFiles simply finds no cache entry and
+  // reads the file itself (same side-channel pattern as `_phaseByFile`).
+  const parsedFileCache: Map<string, { rawContent: string; content: any }> =
+    new Map();
+  config._parsedFileCache = parsedFileCache;
 
   const toEntries = (value: any, phase: string) =>
     (value == null ? [] : [].concat(value)).map((source: string) => ({
@@ -442,26 +483,35 @@ async function qualifyFiles({ config }: { config: any }) {
  * @returns {Promise<Array>} Array of test specifications
  */
 async function parseTests({ config, files }: { config: any; files: string[] }) {
-  let specs: any[] = [];
-
-  for (const file of files) {
+  // Per-file parsing extracted so it can run concurrently. Returns the parsed
+  // spec, or null when the file yields no valid spec (the old `continue` cases).
+  const parseOneFile = async (file: string): Promise<any | null> => {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
     let content: any = "";
     let rawContent: string | undefined;
 
-    // For JSON/YAML specs, read raw content once and parse from it
+    // For JSON/YAML specs, reuse the raw text + parsed object captured during
+    // qualification (isValidSourceFile) when available — the file is then read
+    // and parsed exactly once per run. A programmatic parseTests call that
+    // skipped qualifyFiles finds no cache entry and reads it here instead.
     if (extension === "json" || extension === "yaml" || extension === "yml") {
-      try {
-        rawContent = await fs.promises.readFile(file, "utf8");
-        if (extension === "json") {
-          content = JSON.parse(rawContent);
-        } else {
-          content = YAML.parse(rawContent);
+      const cached = config._parsedFileCache?.get(file);
+      if (cached) {
+        rawContent = cached.rawContent;
+        content = cached.content;
+      } else {
+        try {
+          rawContent = await fs.promises.readFile(file, "utf8");
+          if (extension === "json") {
+            content = JSON.parse(rawContent);
+          } else {
+            content = YAML.parse(rawContent);
+          }
+        } catch (err: any) {
+          console.warn(`Failed to read/parse ${file}: ${err.message}`);
+          content = await readFile({ fileURLOrPath: file });
         }
-      } catch (err: any) {
-        console.warn(`Failed to read/parse ${file}: ${err.message}`);
-        content = await readFile({ fileURLOrPath: file });
       }
     } else {
       content = await readFile({ fileURLOrPath: file });
@@ -557,6 +607,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         config: config,
         object: content,
         filePath: file,
+        // Detection only ever resolves specs; passing the known objectType skips
+        // resolvePaths' config_v3-then-spec_v3 discovery probe (item 3.1).
+        objectType: "spec",
       });
 
       // Merge before/after steps, tracking which steps came from before-specs.
@@ -647,13 +700,16 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           "warning",
           `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
         );
-        continue;
+        return null;
       }
       content = validation.object;
       content = await resolvePaths({
         config: config,
         object: content,
         filePath: file,
+        // Detection only ever resolves specs; passing the known objectType skips
+        // resolvePaths' config_v3-then-spec_v3 discovery probe (item 3.1).
+        objectType: "spec",
       });
       // Re-stamp the phase: neither `content = validation.object` nor
       // resolvePaths is guaranteed to preserve unknown keys.
@@ -693,7 +749,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         }
       }
 
-      specs.push(content);
+      return content;
     } else {
       // Text content - use common's detectTests for parsing
       let id = generateSpecId(file);
@@ -732,7 +788,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             "warning",
             `Failed to convert ${file} to a runShell step: ${validation.errors}. Skipping.`
           );
-          continue;
+          return null;
         }
 
         spec.tests.push(test);
@@ -759,13 +815,16 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             config: config,
             object: spec,
             filePath: file,
+            // Detection only resolves specs — skip the discovery probe (3.1).
+            objectType: "spec",
           });
           // Re-stamp the phase: resolvePaths isn't guaranteed to preserve
           // unknown keys. Mirrors the JSON/YAML and text branches.
           spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
-          specs.push(spec);
+          return spec;
         }
-        continue;
+        // runShell file whose spec didn't validate — no spec emitted.
+        return null;
       }
 
       // Parse content using common's detectTests. testIdBase keys generated
@@ -802,14 +861,33 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           config: config,
           object: spec,
           filePath: file,
+          // Detection only resolves specs — skip the discovery probe (3.1).
+          objectType: "spec",
         });
         // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
         // keys, so a text/markdown file referenced by beforeAny/afterAll would
         // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.
         spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
-        specs.push(spec);
+        return spec;
       }
     }
-  }
-  return specs;
+    // Reached only when a file yields no valid spec (e.g. text/markdown whose
+    // assembled spec didn't validate) — nothing to emit.
+    return null;
+  };
+
+  // Fan out the per-file parse with bounded concurrency, writing each result
+  // into its file's slot so the emitted spec order is identical to serial
+  // processing (and to `files`). runConcurrent with a limit of 1 degenerates to
+  // sequential, so the only observable difference from the old loop is that the
+  // I/O of independent files now overlaps.
+  const slots: Array<any | null> = new Array(files.length).fill(null);
+  await runConcurrent(
+    files.map((_, i) => i),
+    DETECTION_PARSE_CONCURRENCY,
+    async (i) => {
+      slots[i] = await parseOneFile(files[i]);
+    }
+  );
+  return slots.filter((spec) => spec != null);
 }

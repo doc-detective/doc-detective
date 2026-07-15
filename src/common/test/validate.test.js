@@ -1177,6 +1177,139 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // Phase 3.2 clone-strategy invariants. These pin the four contracts the
+    // clone exists to protect BEFORE the internal refactor (probe candidate
+    // schemas with a non-mutating validator; clone once for the winning
+    // mutate-with-defaults pass; structuredClone where JSON-value semantics
+    // hold). They must hold identically before and after the refactor.
+    describe("clone strategy invariants (phase 3.2)", function () {
+      // (a) caller's object is never mutated — direct (non-compat) path.
+      it("does not mutate the caller's object on the direct path", function () {
+        const original = { goTo: { url: "https://example.com" } };
+        const originalCopy = JSON.parse(JSON.stringify(original));
+        const result = validate({ schemaKey: "step_v3", object: original });
+        expect(result.valid, result.errors).to.be.true;
+        expect(original).to.deep.equal(originalCopy);
+        // The returned (defaulted) object is a distinct clone, not the input.
+        expect(result.object).to.not.equal(original);
+      });
+
+      // (a) caller's object is never mutated — compatible-schema transform path.
+      // A bare { url, statusCodes } is not a valid step_v3 directly, so it falls
+      // through the compatible-schema probe (checkLink_v2) and the v2->v3
+      // transform — the exact code being optimized. The caller's object must
+      // survive with no v2 defaults, coercions, or v3 transform leaked back.
+      it("does not mutate the caller's object on the compatible-schema path", function () {
+        const original = {
+          action: "checkLink",
+          url: "https://example.com",
+          statusCodes: [200, 201],
+        };
+        const originalCopy = JSON.parse(JSON.stringify(original));
+        const result = validate({ schemaKey: "step_v3", object: original });
+        expect(result.valid, result.errors).to.be.true;
+        expect(original).to.deep.equal(originalCopy);
+      });
+
+      // (d) the compatible-schema selection picks the same schema, and (b) the
+      // returned object carries the transformed shape + applied defaults.
+      it("selects the compatible schema and returns the transformed, defaulted object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            action: "checkLink",
+            url: "https://example.com",
+            statusCodes: [200, 201],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        // checkLink_v2 was the selected compatible schema and was transformed
+        // into a v3 checkLink step.
+        expect(result.object.checkLink.url).to.equal("https://example.com");
+        expect(result.object.checkLink.statusCodes).to.deep.equal([200, 201]);
+        // The target-schema pass applied its dynamic stepId default.
+        expect(result.object.stepId).to.be.a("string").and.not.equal("");
+      });
+
+      // (d) selection on a multi-candidate schema (config_v3 <- config_v2).
+      it("selects config_v2 for a v2-shaped config and returns the restructured object", function () {
+        const original = {
+          runTests: { input: "./docs", output: "./output" },
+          logLevel: "info",
+        };
+        const originalCopy = JSON.parse(JSON.stringify(original));
+        const result = validate({ schemaKey: "config_v3", object: original });
+        expect(result.valid, result.errors).to.be.true;
+        // config_v2 restructures runTests.input up to the top level.
+        expect(result.object.input).to.exist;
+        expect(result.object.runTests).to.be.undefined;
+        expect(original).to.deep.equal(originalCopy);
+      });
+
+      // (d) REGRESSION GUARD: a compatible schema whose *validity* depends on an
+      // AJV default must still be selected. config_v2's telemetry.send is
+      // required AND has a default, so a v2 config that includes a telemetry
+      // object but omits `send` is valid only once useDefaults fills it. The
+      // non-mutating probe doesn't apply defaults, so this must fall back to the
+      // mutating probe rather than be rejected outright (as the old
+      // clone-per-candidate mutating loop accepted it).
+      it("selects a compatible schema whose validity needs a default (config_v2 telemetry.send)", function () {
+        const original = {
+          runTests: { input: "./docs" },
+          telemetry: { userId: "abc" }, // note: `send` omitted -> relies on default
+        };
+        const originalCopy = JSON.parse(JSON.stringify(original));
+        const result = validate({ schemaKey: "config_v3", object: original });
+        expect(result.valid, result.errors).to.be.true;
+        // Restructured to v3 (input hoisted) with the telemetry default applied.
+        expect(result.object.input).to.exist;
+        expect(result.object.telemetry.send).to.equal(true);
+        expect(original).to.deep.equal(originalCopy);
+      });
+
+      // (b)/(c) addDefaults=false returns the ORIGINAL object (no defaults, not
+      // a clone) and reports the same validity — unchanged by the refactor.
+      it("returns the original object unchanged when addDefaults=false and valid", function () {
+        const original = { goTo: { url: "https://example.com" } };
+        const result = validate({
+          schemaKey: "step_v3",
+          object: original,
+          addDefaults: false,
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.equal(original);
+        expect(result.object.stepId).to.be.undefined;
+      });
+
+      // (c) an object matching neither the target nor any compatible schema is
+      // reported invalid with errors, and the original is returned untouched.
+      it("reports invalid (with errors) when no compatible schema matches", function () {
+        const original = { config_but: "not really", nonsense: 42 };
+        const originalCopy = JSON.parse(JSON.stringify(original));
+        const result = validate({ schemaKey: "step_v3", object: original });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string").and.not.equal("");
+        expect(result.object).to.deep.equal(originalCopy);
+      });
+
+      // structuredClone-based clone must faithfully copy nested arrays/objects
+      // (deep independence) exactly like the JSON clone did.
+      it("deep-clones nested structures so mutations do not alias the input", function () {
+        const original = {
+          httpRequest: {
+            url: "https://example.com",
+            request: { headers: { A: "1" }, parameters: { p: [1, 2, 3] } },
+          },
+        };
+        const originalCopy = JSON.parse(JSON.stringify(original));
+        const result = validate({ schemaKey: "step_v3", object: original });
+        expect(result.valid, result.errors).to.be.true;
+        // Mutating the returned clone must not touch the caller's nested data.
+        result.object.httpRequest.request.parameters.p.push(4);
+        expect(original).to.deep.equal(originalCopy);
+      });
+    });
+
     describe("report_v3 warm block", function () {
       const minimalSpecs = [
         { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
