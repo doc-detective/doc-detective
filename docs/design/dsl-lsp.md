@@ -1,10 +1,12 @@
 # Design: a language server for the Doc Detective test DSL
 
-Status: **in progress** — Phases 0–4 landed (schema-association contract,
-`doc-detective lsp` server + JSON diagnostics, action-registry completion +
-hover, YAML diagnostics parity + v2-deprecation warning, inline-test diagnostics
-across all fileTypes); Phase 5 (packaging) remains, plus the follow-ups noted per
-phase (YAML/inline completion+hover, fs/cross-file semantic checks, quick-fixes,
+Status: **Phases 0–5 landed in this repo.** Schema-association contract;
+`doc-detective lsp` server + JSON diagnostics; action-registry completion +
+hover; YAML diagnostics parity + v2-deprecation warning; inline-test diagnostics
+across all fileTypes; packaging (a `doc-detective-lsp` bin + the finalized
+`agent-tools` `.lsp.json`/shim reference). Remaining work is cross-repo (the
+`agent-tools` plugin PR, a VS Code extension) and the per-phase follow-ups
+(YAML/inline completion+hover, fs/cross-file semantic checks, quick-fixes,
 assembled-region check). This document is the roadmap and the package-boundary
 reference. Each shipped phase carries its own ADR + fixtures + docs assessment
 per [CLAUDE.md](../../CLAUDE.md); this doc is the shared context they all
@@ -224,12 +226,14 @@ statement offsets to flag e.g. a region that never gains steps).
 
 ### Phase 5 — surface packaging
 
-**This repo (delivered):** the server is a shipped `doc-detective lsp`
-subcommand, so nothing else is needed here to make it runnable — the Claude
-adapter (`src/agents/adapters/claude-code.ts`) fetches whatever the `agent-tools`
-repo contains, so a plugin `.lsp.json` requires **no adapter change**. The
-finalized launcher config + shim (below) is the copy-paste for the `agent-tools`
-PR.
+**This repo (delivered):** two entry points ship the server — the
+`doc-detective lsp --stdio` subcommand and a bare **`doc-detective-lsp`** bin
+(`bin/doc-detective-lsp.js`) for editor LSP configs that want a single command.
+Both call the same `startServer`, which binds explicit stdin/stdout streams so it
+works no matter how it's launched. The Claude adapter
+(`src/agents/adapters/claude-code.ts`) fetches whatever the `agent-tools` repo
+contains, so a plugin `.lsp.json` requires **no adapter change**. The finalized
+launcher config + shim (below) is the copy-paste for the `agent-tools` PR.
 
 **`agent-tools` repo (separate PR):** add the `.lsp.json` + `scripts/lsp-shim.cjs`
 below and a CI smoke test (launch via the shipped config, `didOpen` a fixture

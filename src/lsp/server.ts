@@ -2,6 +2,8 @@ import {
   createConnection,
   TextDocuments,
   ProposedFeatures,
+  StreamMessageReader,
+  StreamMessageWriter,
   TextDocumentSyncKind,
   type Connection,
   type InitializeResult,
@@ -95,7 +97,15 @@ export function registerHandlers(
  * subcommand.
  */
 export function startServer(): void {
-  const connection: Connection = createConnection(ProposedFeatures.all);
+  // Explicit stdio streams so the server works no matter how it's launched —
+  // the `doc-detective lsp` subcommand OR the bare `doc-detective-lsp` bin.
+  // (createConnection(ProposedFeatures.all) alone sniffs argv for `--stdio`,
+  // which the bare bin doesn't pass.)
+  const connection: Connection = createConnection(
+    ProposedFeatures.all,
+    new StreamMessageReader(process.stdin),
+    new StreamMessageWriter(process.stdout),
+  );
   const documents = new TextDocuments(TextDocument);
   registerHandlers(connection, documents);
   documents.listen(connection);

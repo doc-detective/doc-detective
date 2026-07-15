@@ -76,6 +76,7 @@ function markerPos(text, marker = "§") {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI = path.resolve(__dirname, "..", "bin", "doc-detective.js");
+const LSP_BIN = path.resolve(__dirname, "..", "bin", "doc-detective-lsp.js");
 
 function doc(uri, text) {
   return TextDocument.create(uri, "doc-detective-spec", 1, text);
@@ -878,8 +879,10 @@ describe("lsp — command module", function () {
 describe("lsp — protocol (spawned server end-to-end)", function () {
   this.timeout(20000);
 
-  it("initializes and publishes the action-keyed diagnostic over stdio", function (done) {
-    const child = spawn(process.execPath, [CLI, "lsp", "--stdio"], {
+  // Drive a spawned LSP server over stdio: initialize → didOpen an
+  // action-keyed spec → assert the flagship diagnostic is published.
+  function drivesFlagshipDiagnostic(spawnCmd, spawnArgs, done) {
+    const child = spawn(spawnCmd, spawnArgs, {
       env: { ...process.env, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" },
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -957,5 +960,13 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
         },
       },
     });
+  }
+
+  it("initializes and publishes the action-keyed diagnostic via `doc-detective lsp`", function (done) {
+    drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp", "--stdio"], done);
+  });
+
+  it("starts the same server via the bare `doc-detective-lsp` bin", function (done) {
+    drivesFlagshipDiagnostic(process.execPath, [LSP_BIN], done);
   });
 });
