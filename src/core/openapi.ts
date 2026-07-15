@@ -9,13 +9,17 @@ import { readFile } from "./files.js";
 // loadDescription), so only OpenAPI-using runs pay the cost. Keep the generator
 // as a lazily-created singleton so a run that hits getExample many times still
 // builds it once.
-let jsf: any;
-async function getGenerator() {
-  if (!jsf) {
-    const { createGenerator } = await import("json-schema-faker");
-    jsf = createGenerator({ optionalsProbability: 0 });
+// Cache the in-flight Promise (not just the resolved value) so two concurrent
+// first callers share one import + one createGenerator, rather than both racing
+// past a `!jsf` check and building the generator twice.
+let jsfPromise: Promise<any> | undefined;
+function getGenerator() {
+  if (!jsfPromise) {
+    jsfPromise = import("json-schema-faker").then(({ createGenerator }) =>
+      createGenerator({ optionalsProbability: 0 })
+    );
   }
-  return jsf;
+  return jsfPromise;
 }
 
 /**
