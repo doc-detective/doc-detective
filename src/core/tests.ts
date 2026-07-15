@@ -24,6 +24,7 @@ import {
 import os from "node:os";
 import {
   log,
+  logLevelEnabled,
   replaceEnvs,
   selectSpecsForRun,
   findFreePort,
@@ -204,12 +205,11 @@ export {
   buildWarmPlanDeps,
   warmBrowserInstall,
   prefetchMobileChromedriver,
+  appiumIsReady,
   seedRegistriesFromHandoff,
   collectHandoffDevices,
   warmDown,
 };
-// exports.appiumStart = appiumStart;
-// exports.appiumIsReady = appiumIsReady;
 // exports.driverStart = driverStart;
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
@@ -1783,6 +1783,11 @@ async function runSpecs({
     // that removes the port race and fails fast on the first server that can't
     // come up, tearing down any already started so they don't leak.
     try {
+      // Spawn servers one at a time (serial spawn keeps the findFreePort race
+      // protection + avoids a CPU spike), but collect their readiness polls and
+      // await them together so the waits OVERLAP — total ≈ max(readiness)
+      // instead of the sum of serial waits.
+      const readinessWaits: Promise<boolean>[] = [];
       for (let i = 0; i < serverCount; i++) {
         let display: string | undefined;
         if (useXvfbDisplays) {
@@ -1790,9 +1795,20 @@ async function runSpecs({
           xvfbProcesses.push(await startXvfb(display));
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
-        appiumServers.push(
-          await startAppiumServer(appiumEntry, config, display)
-        );
+        const server = await spawnAppiumServer(appiumEntry, config, display);
+        appiumServers.push(server);
+        const wait = appiumIsReady(server.port);
+        // Attach a no-op catch so that once Promise.all rejects on the FIRST
+        // failing server, the other still-pending readiness rejections don't
+        // surface as unhandled promise rejections. Promise.all still sees the
+        // original `wait`, so it fails fast on the first error; the catch
+        // block below tears down every spawned server (ready or not).
+        wait.catch(() => {});
+        readinessWaits.push(wait);
+      }
+      await Promise.all(readinessWaits);
+      for (const server of appiumServers) {
+        log(config, "debug", `Appium is ready on port ${server.port}.`);
       }
     } catch (error) {
       await Promise.all(
@@ -3467,8 +3483,9 @@ function collectHandoffDevices({
 async function sweepHandoffDevices(
   devices: WarmDeviceHandoff[],
   { config }: { config: any }
-): Promise<void> {
+): Promise<{ failed: WarmDeviceHandoff[] }> {
   let simDeps: ReturnType<typeof buildAcquireSimulatorDeps> | undefined;
+  const failed: WarmDeviceHandoff[] = [];
   for (const device of devices ?? []) {
     try {
       if (device.platform === "android" && typeof device.pid === "number") {
@@ -3489,6 +3506,7 @@ async function sweepHandoffDevices(
         `Swept stale warm device '${device.name}' (${device.udid}).`
       );
     } catch (error: any) {
+      failed.push(device);
       log(
         config,
         "warning",
@@ -3496,6 +3514,7 @@ async function sweepHandoffDevices(
       );
     }
   }
+  return { failed };
 }
 /* c8 ignore stop */
 
@@ -3505,6 +3524,9 @@ async function sweepHandoffDevices(
  * every claimed file (a live adopter's run-end sweep tolerates the loss:
  * its kills/shutdowns are already best-effort), then delete the files.
  */
+/* c8 ignore start — thin effect wrapper (real fs + device kills); the
+   selection logic lives in warmManifest.ts's hermetic suite, and the CLI
+   path is exercised end-to-end (out of process) by test/warm-cli.test.js. */
 async function warmDown({
   config,
 }: {
@@ -3520,7 +3542,18 @@ async function warmDown({
     );
     return { files: 0, devices: 0 };
   }
-  await sweepHandoffDevices(devices, { config });
+  const { failed } = await sweepHandoffDevices(devices, { config });
+  if (failed.length) {
+    // Ownership records must outlive the resources they describe: a device
+    // whose teardown failed stays recorded, so a rerun (or the next run's
+    // orphan sweep) can retry instead of forgetting it exists.
+    log(
+      config,
+      "warning",
+      `Warm teardown incomplete: ${failed.length} of ${devices.length} device(s) couldn't be swept — keeping the manifest file(s); rerun \`doc-detective warm --down\` to retry.`
+    );
+    return { files: 0, devices: devices.length - failed.length };
+  }
   for (const file of files) {
     try {
       fs.unlinkSync(file);
@@ -3535,6 +3568,7 @@ async function warmDown({
   );
   return { files: files.length, devices: devices.length };
 }
+/* c8 ignore stop */
 
 /**
  * Pure predicate: does this spec carry TEST-level routing? True iff ANY of its
@@ -4401,7 +4435,7 @@ async function runContext({
     contextReport.resultDescription = errorMessage;
     return contextReport;
   }
-  clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
   let driver: any;
   let appiumPort: number | undefined;
@@ -4916,7 +4950,7 @@ async function runContext({
         break;
       }
 
-      clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
+      if (logLevelEnabled(config, "debug")) clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
         clog(
@@ -5034,7 +5068,7 @@ async function runContext({
           processRegistry: processRegistry,
           appSession: appSession,
         });
-        clog(
+        if (logLevelEnabled(config, "debug")) clog(
           "debug",
           `RESULT: ${r.status}\n${JSON.stringify(r, null, 2)}`
         );
@@ -5664,7 +5698,12 @@ async function runStep({
 // Start one Appium server on a free port and resolve once it answers /status.
 // Each concurrent runner gets its own server (own port) so parallel contexts
 // never create sessions on the same Appium instance.
-async function startAppiumServer(
+// Spawn an Appium server process WITHOUT waiting for readiness. Split out from
+// startAppiumServer so the browser-pool startup (below) can spawn servers
+// SERIALLY — preserving the findFreePort close-to-rebind race protection and
+// avoiding a startup CPU spike — while OVERLAPPING their readiness polls. A
+// single-server caller uses startAppiumServer, which spawns then awaits.
+async function spawnAppiumServer(
   appiumEntry: string,
   config: any,
   display?: string,
@@ -5706,38 +5745,86 @@ async function startAppiumServer(
   });
   proc.stdout.on("data", () => {});
   proc.stderr.on("data", () => {});
+  return { port, process: proc, display };
+}
+
+async function startAppiumServer(
+  appiumEntry: string,
+  config: any,
+  display?: string,
+  extraEnv?: Record<string, string>,
+  // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
+  // chromedriver-autodownload opt-in for android mobile-web sessions.
+  extraArgs?: string[]
+): Promise<{ port: number; process: any; display?: string }> {
+  const server = await spawnAppiumServer(
+    appiumEntry,
+    config,
+    display,
+    extraEnv,
+    extraArgs
+  );
   try {
-    await appiumIsReady(port);
+    await appiumIsReady(server.port);
   } catch (error) {
     // appiumIsReady threw or timed out — the spawned child is still alive and
     // would leak (orphan process, port still bound). Tear it down before
     // propagating so subsequent runs don't trip on the stale state. Awaited
     // so the process is confirmed gone before this function returns control
     // to the caller.
-    await killTree(proc?.pid);
+    await killTree(server.process?.pid);
     throw error;
   }
-  log(config, "debug", `Appium is ready on port ${port}.`);
-  return { port, process: proc, display };
+  log(config, "debug", `Appium is ready on port ${server.port}.`);
+  return server;
 }
 
-// Delay execution until Appium server is available.
-async function appiumIsReady(port: number, timeoutMs: number = 120000) {
-  let isReady = false;
+// Per-probe HTTP timeout for the Appium `/status` check. Bounds a single
+// hung request so the overall readiness timeout can still fire; a healthy
+// server answers in milliseconds.
+const STATUS_PROBE_TIMEOUT_MS = 10000;
+
+// Delay execution until Appium server is available. Probe `/status`
+// IMMEDIATELY, then poll on a short 250ms interval until ready or the overall
+// timeout — a server that is already up returns in ~one round-trip instead of
+// paying a fixed leading 1s sleep (the old loop slept before its first probe).
+// `probe`/`sleep` are injectable for hermetic unit tests; the overall timeout
+// cap (default 120s) is unchanged.
+async function appiumIsReady(
+  port: number,
+  timeoutMs: number = 120000,
+  deps: {
+    probe?: (port: number) => Promise<boolean>;
+    sleep?: (ms: number) => Promise<void>;
+  } = {}
+) {
+  const probe =
+    deps.probe ??
+    (async (p: number) => {
+      try {
+        // Bound each probe: without a per-request timeout a hung /status
+        // response would block this await indefinitely, and the overall
+        // `timeoutMs` guard (checked only between probes) could never fire.
+        const resp = await axios.get(`http://127.0.0.1:${p}/status`, {
+          timeout: STATUS_PROBE_TIMEOUT_MS,
+        });
+        return resp.status === 200;
+      } catch {
+        return false;
+      }
+    });
+  const sleep =
+    deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const start = Date.now();
-  while (!isReady) {
+  while (true) {
+    if (await probe(port)) return true;
     if (Date.now() - start > timeoutMs) {
       throw new Error(
         `Appium server on port ${port} failed to start within ${timeoutMs / 1000} seconds`
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    try {
-      let resp = await axios.get(`http://127.0.0.1:${port}/status`);
-      if (resp.status === 200) isReady = true;
-    } catch {}
+    await sleep(250);
   }
-  return isReady;
 }
 
 // Start the Appium driver specified in `capabilities`.

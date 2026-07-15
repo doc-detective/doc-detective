@@ -1,13 +1,14 @@
 {
   "name": "doc-detective",
-  "version": "4.28.0",
+  "version": "4.30.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
   ],
   "bin": {
     "doc-detective": "bin/doc-detective.js",
-    "doc-detective-runner": "bin/runner-entrypoint.js"
+    "doc-detective-runner": "bin/runner-entrypoint.js",
+    "doc-detective-lsp": "bin/doc-detective-lsp.js"
   },
   "type": "module",
   "engines": {
@@ -89,8 +90,11 @@
     "fast-xml-parser": "^5.9.3",
     "jq-web": "^0.6.2",
     "json-schema-faker": "^0.6.2",
+    "jsonc-parser": "^3.3.1",
     "posthog-node": "^5.38.6",
     "tree-kill": "^1.2.2",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
     "yaml": "^2.9.0",
     "yargs": "^18.0.0"
   },

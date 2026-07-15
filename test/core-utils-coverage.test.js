@@ -13,6 +13,7 @@ import sinon from "sinon";
 import dnsPromises from "node:dns/promises";
 import {
   log,
+  logLevelEnabled,
   outputResults,
   replaceEnvs,
   timestamp,
@@ -364,10 +365,92 @@ describe("core/utils coverage", function () {
       assert.equal(logged[0], "(INFO)");
       assert.equal(logged[1], JSON.stringify({ a: 1 }, null, 2));
     });
-    it("supports the 2-arg form log(message, level) with empty config (no match)", async function () {
-      // config defaults to {} so logLevel is undefined → no match → nothing logged
+    it("2-arg form log(message, level) defaults an undefined logLevel to info and emits", async function () {
+      // config defaults to {} so logLevel is undefined → treated as "info" (parity
+      // with src/utils.ts#log). error/warning/info messages must surface rather
+      // than being silently dropped (regression: 2-arg expressions.ts log sites).
       await log("just a message", "info");
+      await log("an error", "error");
+      await log("a warning", "warning");
+      assert.deepEqual(logged, ["(INFO) just a message", "(ERROR) an error", "(WARNING) a warning"]);
+    });
+    it("2-arg form still suppresses debug under the info default", async function () {
+      // The info default surfaces error/warning/info but NOT debug — matching the
+      // configured-info semantics, so 2-arg calls don't force debug spam.
+      await log("a debug line", "debug");
       assert.equal(logged.length, 0);
+    });
+    it("3-arg form with explicit logLevel is unaffected by the default", async function () {
+      // A caller that DOES supply logLevel keeps exact configured semantics: an
+      // explicit "error" level still suppresses info.
+      await log({ logLevel: "error" }, "info", "quiet");
+      assert.equal(logged.length, 0);
+    });
+  });
+
+  describe("logLevelEnabled (lazy-log gate, mirrors log's level policy)", function () {
+    let logged;
+    beforeEach(function () {
+      sandbox = sinon.createSandbox();
+      logged = [];
+      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+    });
+    afterEach(function () {
+      sandbox.restore();
+      sandbox = undefined;
+    });
+    it("error level: only error is enabled", function () {
+      const c = { logLevel: "error" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), false);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("warning level: error + warning enabled", function () {
+      const c = { logLevel: "warning" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("info level: error/warning/info enabled, debug not", function () {
+      const c = { logLevel: "info" };
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("debug level: everything enabled", function () {
+      const c = { logLevel: "debug" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), true);
+    });
+    it("undefined/empty logLevel defaults to info (parity with log's 2-arg default)", function () {
+      // Undefined/empty logLevel is treated as "info": error/warning/info enabled,
+      // debug not. This mirrors log()'s default so the guard never drifts from the
+      // emit — the fix that stopped 2-arg calls being silently dropped.
+      assert.equal(logLevelEnabled({}, "error"), true);
+      assert.equal(logLevelEnabled({}, "warning"), true);
+      assert.equal(logLevelEnabled({}, "info"), true);
+      assert.equal(logLevelEnabled({}, "debug"), false);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "error"), true);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "debug"), false);
+    });
+    it("explicit silent logLevel suppresses everything", function () {
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "error"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "warning"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "info"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "debug"), false);
+    });
+    it("agrees with log(): guarding a debug dump prints iff enabled", async function () {
+      // At info level the guard is false, so the expensive message is never
+      // built or printed; at debug it prints exactly once.
+      const infoCfg = { logLevel: "info" };
+      if (logLevelEnabled(infoCfg, "debug")) await log(infoCfg, "debug", "X");
+      assert.equal(logged.length, 0);
+      const dbgCfg = { logLevel: "debug" };
+      if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
+      assert.deepEqual(logged, ["(DEBUG) X"]);
     });
   });
 
@@ -461,6 +544,31 @@ describe("core/utils coverage", function () {
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
+    });
+    it("module-hoisted regex is safe across multiple matches and repeated calls (1.5)", function () {
+      // The matcher is now a single module-scoped /g RegExp reused on every
+      // string node. `String.prototype.match` with /g does not depend on or
+      // leave mutated lastIndex, so multiple matches in one string and repeated
+      // calls must all resolve correctly (a shared stateful regex would drop
+      // matches on alternate calls).
+      const prev = process.env.DD_TEST_VAL;
+      process.env.DD_TEST_VAL = "X";
+      try {
+        // Two references in one string → both replaced in a single call.
+        assert.equal(
+          replaceEnvs("$DD_TEST_VAL-$DD_TEST_VAL"),
+          "X-X"
+        );
+        // Repeated invocations stay correct (no lastIndex carry-over).
+        for (let i = 0; i < 3; i++) {
+          assert.equal(replaceEnvs("a $DD_TEST_VAL b"), "a X b");
+        }
+      } finally {
+        // Restore so this mutation can't make later env-sensitive tests
+        // order-dependent.
+        if (prev === undefined) delete process.env.DD_TEST_VAL;
+        else process.env.DD_TEST_VAL = prev;
+      }
     });
   });
 

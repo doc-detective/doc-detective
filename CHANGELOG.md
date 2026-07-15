@@ -1,3 +1,41 @@
+# [4.30.0](https://github.com/doc-detective/doc-detective/compare/v4.29.1...v4.30.0) (2026-07-15)
+
+
+### Features
+
+* **lsp:** Doc Detective language server (DSL/LSP) ([#641](https://github.com/doc-detective/doc-detective/issues/641)) ([346f3be](https://github.com/doc-detective/doc-detective/commit/346f3bef2cda75fd22726027aaf156f85bdf5918))
+
+
+### Performance Improvements
+
+* **core:** in-memory screenshot pipeline (phase 4) ([#639](https://github.com/doc-detective/doc-detective/issues/639)) ([dee71b2](https://github.com/doc-detective/doc-detective/commit/dee71b29256e226ad89bad0279ed4ad32a00e522))
+
+## [4.29.1](https://github.com/doc-detective/doc-detective/compare/v4.29.0...v4.29.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **core:** default log level to info so 2-arg calls stop dropping messages ([#633](https://github.com/doc-detective/doc-detective/issues/633)) ([c07a893](https://github.com/doc-detective/doc-detective/commit/c07a89301d8aa322e9a61adb83744d181b131999)), closes [src/utils.ts#log](https://github.com/src/utils.ts/issues/log)
+* **core:** match find elementText against whole element text ([#634](https://github.com/doc-detective/doc-detective/issues/634)) ([f2173b2](https://github.com/doc-detective/doc-detective/commit/f2173b2944d2daf87645396c94fe728b018b1140))
+
+
+### Performance Improvements
+
+* **core:** resolution & validation efficiency (phase 3) ([#638](https://github.com/doc-detective/doc-detective/issues/638)) ([78c9986](https://github.com/doc-detective/doc-detective/commit/78c99868d79542f71b9f6fcaba06ef026ebf3a5f))
+* **core:** startup-path latency removal (phase 2) ([#635](https://github.com/doc-detective/doc-detective/issues/635)) ([ecb27ea](https://github.com/doc-detective/doc-detective/commit/ecb27eaaf59bdf24cd63fdd2933925277a04c0d5))
+
+# [4.29.0](https://github.com/doc-detective/doc-detective/compare/v4.28.0...v4.29.0) (2026-07-14)
+
+
+### Features
+
+* **core:** inline always-on warm phase (resolve → warm → run → sweep) ([#628](https://github.com/doc-detective/doc-detective/issues/628)) ([e5a9449](https://github.com/doc-detective/doc-detective/commit/e5a94498d54482507e0b0505a088d0f112630db2))
+
+
+### Performance Improvements
+
+* **core:** eliminate per-run/step/file waste (phase 1) ([#632](https://github.com/doc-detective/doc-detective/issues/632)) ([12a2312](https://github.com/doc-detective/doc-detective/commit/12a2312e8264b299b7cbe180c03b0a7c696cd5be))
+
 # [4.28.0](https://github.com/doc-detective/doc-detective/compare/v4.27.0...v4.28.0) (2026-07-14)
 
 

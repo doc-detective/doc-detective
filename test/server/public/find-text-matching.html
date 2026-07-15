@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Text Matching Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        /* `white-space: pre` preserves the leading/trailing/internal whitespace
+           below all the way to WebDriver's getText(), so the fixture exercises
+           find's whitespace normalization (ADR 01061) on any engine — not just
+           geckodriver, which happens to keep whitespace chromedriver strips. */
+        .pre { white-space: pre; }
+    </style>
+</head>
+<body>
+    <!-- Internal run of whitespace between words. getText() returns
+         "Submit    Order"; find must match "Submit Order" (collapsed). -->
+    <p class="pre" id="internal-spaces">Submit    Order</p>
+
+    <!-- selector + text combo target, padded on both ends. -->
+    <button class="pre" id="padded-button">   Save changes
+    </button>
+
+    <!-- Regex target: raw (un-normalized) text still drives /pattern/ matching. -->
+    <div class="pre" id="regex-target">
+       Order #4821
+    </div>
+
+    <!-- Framework-fragmented heading: built below as three text nodes
+         ["", "Garden companion API", ""] to mirror how React/Vue/Svelte (e.g.
+         Scalar's OpenAPI reference) split text, with an EMPTY leading node.
+         XPath text() sees only that empty first node, so find must match on the
+         element's whole text (normalize-space(.)) — ADR 01061. -->
+    <h1 id="fragmented-heading"></h1>
+    <script>
+      (function () {
+        var h = document.getElementById("fragmented-heading");
+        h.appendChild(document.createTextNode(""));
+        h.appendChild(document.createTextNode("Garden companion API"));
+        h.appendChild(document.createTextNode(""));
+      })();
+    </script>
+</body>
+</html>

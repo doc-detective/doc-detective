@@ -75,7 +75,7 @@
           },
           "elementText": {
             "type": "string",
-            "description": "Display text of the element to find. If combined with other element finding fields, the element must match all specified criteria."
+            "description": "Display text of the element to find. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed to single spaces), so text a framework splits across several nodes still matches and a driver's surrounding whitespace doesn't cause a miss. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text. If combined with other element finding fields, the element must match all specified criteria."
           },
           "selector": {
             "type": "string",

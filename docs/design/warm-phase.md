@@ -150,7 +150,8 @@ per the CLAUDE.md schema workflow.
 
 ## Phase B3 (shipped — ADR 01061) — standalone `doc-detective warm` + ownership handoff
 
-Sketch only; own ADR when picked up. `doc-detective warm --input <specs>` runs resolve + B1's
+Shipped as sketched — [ADR 01061](../../adrs/01061-standalone-warm-command-ownership-handoff.md)
+records the locked decisions. `doc-detective warm --input <specs>` runs resolve + B1's
 planner/executor and **exits with devices left up**, writing an ownership handoff manifest
 (`<cacheDir>/warm-manifest.json`: UDIDs, AVD names, PIDs, timestamp). The next `runTests`
 atomically claims it — rename to `warm-manifest.claimed-<runId>.json` **in the same directory**,

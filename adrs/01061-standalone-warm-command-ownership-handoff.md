@@ -71,10 +71,20 @@ Specifics settled here:
 
 - Good: CI can boot devices while the project builds; the test run adopts ready devices and its
   warm phase reports `device ready` in milliseconds.
-- Good: every crash window converges to "swept by the next run or `--down`"; hosted-runner VM
-  disposal remains the backstop.
-- Bad: a crashed `warm` (no manifest yet) can leave devices up with no record until `--down` or
-  VM disposal — accepted; writing the manifest earlier would hand off unready devices.
+- Good: every RECORDED crash window converges to "swept by the next run or `--down`";
+  hosted-runner VM disposal remains the backstop.
+- Bad: a `warm` that crashes before writing the manifest leaves devices up with **no record** —
+  `--down` can only sweep recorded devices, so this window falls to platform process cleanup / VM
+  disposal. Accepted; writing the manifest earlier would hand off unready devices.
+- Bad: two warms racing on one cache merge their manifests at write time (deduped by udid, newer
+  entry wins), so neither orphans the other's records — but the read-merge-write itself is not
+  atomic, leaving a small residual overwrite window. Accepted: concurrent warms against one cache
+  dir are an operator error the merge merely softens; a cross-process lock (src/runtime/lock.ts)
+  can harden this later if real usage hits it.
+- Bad: pid liveness can misread a recycled pid as the recorded emulator within the TTL (adopting
+  a dead device, or worse, sweeping the recycling process). Bounded by the 60-minute TTL and the
+  ESRCH-only death rule; verifying by udid against `adb devices` at claim time is the future
+  hardening if this bites in practice.
 - Bad: the TTL is a heuristic; a warm followed by a >60-minute build hands off nothing (the run
   boots its own devices, exactly as today).
 - Neutral: the fixtures.yml iOS pre-boot step can now be replaced by `doc-detective warm` — a CI

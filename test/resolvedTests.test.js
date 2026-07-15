@@ -4,11 +4,13 @@ import assert from "node:assert/strict";
 // A DOC_DETECTIVE_API run never writes to `-o`/config.output — cli.ts routes
 // its results through reportResults() (a POST back to the orchestration
 // API's /contexts endpoint) instead of outputResults(). The results object is
-// still logged to stdout as a "(INFO) RESULTS:" marker followed by pretty
-// JSON, so tests recover it from there rather than waiting on a file that
-// this run mode never produces.
+// logged to stdout as a "(DEBUG) RESULTS:" marker followed by pretty JSON, so
+// tests recover it from there rather than waiting on a file that this run mode
+// never produces. The dump is debug-level (ADR 01064 demoted it from info so it
+// no longer floods the default-level terminal), so these tests run the CLI at
+// logLevel "debug" via DOC_DETECTIVE_CONFIG to surface it.
 function extractResultsJson(stdout) {
-  const marker = "(INFO) RESULTS:";
+  const marker = "(DEBUG) RESULTS:";
   const markerIndex = stdout.indexOf(marker);
   assert.ok(
     markerIndex !== -1,
@@ -60,9 +62,13 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       contextIds: "test-context",
     };
 
-    // Set environment variable
+    // Set environment variables. logLevel "debug" surfaces the "(DEBUG)
+    // RESULTS:" dump that extractResultsJson parses (ADR 01064 demoted it from
+    // info); the API path writes no results file, so stdout is the only source.
     const originalEnv = process.env.DOC_DETECTIVE_API;
+    const originalConfigEnv = process.env.DOC_DETECTIVE_CONFIG;
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfig);
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ logLevel: "debug" });
 
     try {
       const result = await spawnCommand("node ./bin/doc-detective.js");
@@ -87,6 +93,11 @@ describe("DOC_DETECTIVE_API environment variable", function () {
         process.env.DOC_DETECTIVE_API = originalEnv;
       } else {
         delete process.env.DOC_DETECTIVE_API;
+      }
+      if (originalConfigEnv !== undefined) {
+        process.env.DOC_DETECTIVE_CONFIG = originalConfigEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_CONFIG;
       }
     }
   });

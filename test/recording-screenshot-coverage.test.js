@@ -79,11 +79,16 @@ function makeFakeElement({ location = { x: 0, y: 0 }, size = { width: 10, height
   };
 }
 
-// A fake WebDriver whose saveScreenshot writes a chosen PNG buffer to the
-// target path. Optional overrides let individual tests supply crop-related
-// hooks (execute/getLocation/getSize/pause) without a real browser.
+// A fake WebDriver whose takeScreenshot returns a chosen PNG buffer as base64
+// (the in-memory capture path saveScreenshot now uses). `saveScreenshot` is
+// retained for parity with the real WebdriverIO surface. Optional overrides let
+// individual tests supply crop-related hooks (execute/getLocation/getSize/
+// pause) — or a throwing takeScreenshot — without a real browser.
 function fakeDriver(buffer, overrides = {}) {
   return {
+    async takeScreenshot() {
+      return buffer.toString("base64");
+    },
     async saveScreenshot(filePath) {
       fs.writeFileSync(filePath, buffer);
     },
@@ -285,19 +290,21 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     assert.equal(typeof result.outputs.variation, "number");
   });
 
-  it("FAILs when driver.saveScreenshot throws (capture error, no assertions)", async function () {
+  it("FAILs when driver.takeScreenshot throws (capture error, no assertions)", async function () {
     const target = path.join(tmpDir, "boom.png");
     const result = await saveScreenshot({
       config,
       step: { stepId: "boom", screenshot: { path: target } },
       driver: {
-        async saveScreenshot() {
+        async takeScreenshot() {
           throw new Error("device lost");
         },
       },
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Couldn't save screenshot/);
+    // Nothing should have been written to disk on a capture failure.
+    assert.equal(fs.existsSync(target), false);
   });
 
   it("FAILs to fetch a private/unreachable URL reference (offline SSRF guard)", async function () {

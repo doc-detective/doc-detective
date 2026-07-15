@@ -9,6 +9,8 @@ import path from "node:path";
 import fs from "node:fs";
 import { runTests } from "../dist/core/index.js";
 import { WARM_MANIFEST_NAME } from "../dist/core/warmManifest.js";
+import { warmCommand } from "../dist/warm/command.js";
+import { discoverConfigPath } from "../dist/utils.js";
 
 const CACHE_DIR = path.resolve("./.tmp/warm-cli-cache");
 const SPEC_PATH = path.resolve("./.tmp/warm-cli-spec.json");
@@ -98,6 +100,73 @@ describe("CLI: doc-detective warm", function () {
     assert.equal(r.status, 0, r.stderr + r.stdout);
     assert.match(r.stdout, /Warm teardown complete: 1 device\(s\) swept, 1 manifest file\(s\) removed/);
     assert.equal(fs.existsSync(manifestPath), false);
+  });
+
+  it("handler: `--down` in-process reports a clean cache (direct-call precedent: debug-remaining-coverage)", async function () {
+    const prev = process.env.DOC_DETECTIVE_CACHE_DIR;
+    process.env.DOC_DETECTIVE_CACHE_DIR = CACHE_DIR;
+    try {
+      // No manifests in the cache — the handler must return cleanly after
+      // warmDown's nothing-to-tear-down path.
+      await warmCommand.handler({ down: true, logLevel: "silent" });
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+      else process.env.DOC_DETECTIVE_CACHE_DIR = prev;
+    }
+  });
+
+  it("handler: returns quietly when nothing resolves (runTests → null)", async function () {
+    const prev = process.env.DOC_DETECTIVE_CACHE_DIR;
+    process.env.DOC_DETECTIVE_CACHE_DIR = CACHE_DIR;
+    try {
+      const emptyDir = path.join(CACHE_DIR, "no-tests-here");
+      fs.mkdirSync(emptyDir, { recursive: true });
+      await warmCommand.handler({
+        down: false,
+        input: emptyDir,
+        logLevel: "silent",
+      });
+    } finally {
+      if (prev === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+      else process.env.DOC_DETECTIVE_CACHE_DIR = prev;
+    }
+  });
+
+  describe("discoverConfigPath (shared command config discovery)", function () {
+    it("treats a non-empty --config as authoritative, trimmed and resolved", function () {
+      assert.equal(
+        discoverConfigPath({ config: "  ./somewhere/config.json  " }),
+        path.resolve("./somewhere/config.json")
+      );
+    });
+
+    it("returns null when nothing is configured and no .doc-detective file exists in cwd", function () {
+      const emptyDir = path.join(CACHE_DIR, "cfg-empty");
+      fs.mkdirSync(emptyDir, { recursive: true });
+      const prevCwd = process.cwd();
+      process.chdir(emptyDir);
+      try {
+        assert.equal(discoverConfigPath({}), null);
+        assert.equal(discoverConfigPath({ config: "   " }), null);
+        assert.equal(discoverConfigPath({ config: 42 }), null);
+      } finally {
+        process.chdir(prevCwd);
+      }
+    });
+
+    it("auto-discovers a .doc-detective.json in the cwd", function () {
+      const dir = path.join(CACHE_DIR, "cfg-discovery");
+      fs.mkdirSync(dir, { recursive: true });
+      const cfg = path.join(dir, ".doc-detective.json");
+      fs.writeFileSync(cfg, "{}");
+      const prevCwd = process.cwd();
+      process.chdir(dir);
+      try {
+        assert.equal(discoverConfigPath({}), cfg);
+      } finally {
+        process.chdir(prevCwd);
+      }
+    });
   });
 
   it("runTests({warmOnly: true}) returns the warm report without running tests", async function () {

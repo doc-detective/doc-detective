@@ -43,6 +43,14 @@ function telemetryNotice(config: any) {
 //   core_deployment: "node", // node, electron, docker, github-action, lambda, vscode-extension, browser-extension
 // };
 
+// Bounded worst case for the telemetry flush that overlaps reporter/hint I/O.
+const TELEMETRY_FLUSH_TIMEOUT_MS = 2000;
+
+// The in-flight flush kicked off by the most recent sendTelemetry call, or null
+// when none is pending. Module-scoped so awaitTelemetryFlush (called at the end
+// of the run path) can join the flush that sendTelemetry started earlier.
+let pendingTelemetryFlush: Promise<void> | null = null;
+
 // Send telemetry data to PostHog
 function sendTelemetry(config: any, command: string, results: any) {
   // Exit early if telemetry is disabled
@@ -99,7 +107,25 @@ function sendTelemetry(config: any, command: string, results: any) {
     { host: "https://app.posthog.com" }
   );
   client.capture(event);
-  client.shutdown();
+  // Kick off the flush NOW (as soon as results are final) but DON'T await it
+  // here — store the promise so the run path can await it AFTER the reporters
+  // and hint run, letting the network round-trip overlap that I/O instead of
+  // adding a full round-trip to the tail of the run. `shutdown(timeoutMs)`
+  // flushes queued events and bounds the wait; never `unref()` (that would
+  // drop events). Errors are swallowed — telemetry must never fail a run.
+  pendingTelemetryFlush = Promise.resolve(client.shutdown(TELEMETRY_FLUSH_TIMEOUT_MS))
+    .then(() => undefined)
+    .catch(() => undefined);
 }
 
-export { telemetryNotice, sendTelemetry };
+// Await any in-flight telemetry flush started by sendTelemetry. Call at the
+// very end of the run path (after reporters + hint) so the flush overlaps that
+// work. Bounded by the shutdown timeout above; resolves immediately when no
+// flush is pending. Never throws.
+async function awaitTelemetryFlush(): Promise<void> {
+  const pending = pendingTelemetryFlush;
+  pendingTelemetryFlush = null;
+  if (pending) await pending;
+}
+
+export { telemetryNotice, sendTelemetry, awaitTelemetryFlush };

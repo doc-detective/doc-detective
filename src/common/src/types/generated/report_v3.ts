@@ -12,13 +12,9 @@ export type DeviceByName = string;
 /**
  * OpenAPI description and configuration.
  */
-export type OpenApi =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type OpenApi = {
+  [k: string]: unknown;
+};
 /**
  * A Doc Detective test.
  */
@@ -44,11 +40,13 @@ export interface Report {
    */
   runDir?: string;
   /**
-   * Test specifications that were performed.
-   *
-   * @minItems 1
+   * Test specifications that were performed. Empty when the run executed no specs — a fully filtered run, or a warm-only run (`doc-detective warm`), which provisions and exits without running tests.
    */
-  specs: [Specification, ...Specification[]];
+  specs: Specification[];
+  /**
+   * Absolute path of the device ownership-handoff manifest a `doc-detective warm` run wrote (`<cacheDir>/warm-manifest.json`). Present only on warm-only runs that left devices up for the next run to adopt. System-populated.
+   */
+  warmManifest?: string;
   /**
    * Absolute path of the device ownership-handoff manifest a `doc-detective warm` run wrote (`<cacheDir>/warm-manifest.json`). Present only on warm-only runs that left devices up for the next run to adopt. System-populated.
    */
