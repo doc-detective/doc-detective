@@ -1,5 +1,5 @@
 import { schemas, SchemaKey } from "./schemas/index.js";
-import Ajv, { ValidateFunction } from "ajv";
+import Ajv, { ValidateFunction, ErrorObject } from "ajv";
 // Ajv extra formats: https://ajv.js.org/packages/ajv-formats.html
 import addFormats from "ajv-formats";
 // Ajv extra keywords: https://ajv.js.org/packages/ajv-keywords.html
@@ -132,12 +132,35 @@ export interface ValidateOptions {
   schemaKey: string;
   object: any;
   addDefaults?: boolean;
+  /**
+   * When true, `ValidateResult.errorObjects` is populated with the raw AJV
+   * `ErrorObject`s from the target-schema validation (empty array when valid or
+   * when the schema key is unknown). Off by default so the hot runner path pays
+   * nothing; the LSP opts in to map `instancePath`/`keyword`/`params` to source
+   * ranges. The string `errors` field is always produced regardless.
+   */
+  structuredErrors?: boolean;
 }
 
 export interface ValidateResult {
   valid: boolean;
   errors: string;
   object: any;
+  /**
+   * Raw AJV errors from the target-schema validation. Present only when
+   * `structuredErrors: true` was passed. Snapshotted (shallow-cloned) so the
+   * shared AJV instance's error array can't mutate them out from under a caller.
+   */
+  errorObjects?: ErrorObject[];
+}
+
+/**
+ * Shallow-clone AJV errors so a later validation on the shared instance can't
+ * mutate the snapshot handed back to the caller. Only ever called inside an
+ * `if (check.errors)` guard, so the input is always a non-null error array.
+ */
+function snapshotErrors(errors: ErrorObject[]): ErrorObject[] {
+  return errors.map((error) => ({ ...error }));
 }
 
 export interface TransformOptions {
@@ -173,6 +196,7 @@ export function validate({
   schemaKey,
   object,
   addDefaults = true,
+  structuredErrors = false,
 }: ValidateOptions): ValidateResult {
   if (!schemaKey) {
     throw new Error("Schema key is required.");
@@ -185,6 +209,9 @@ export function validate({
     errors: "",
     object: object,
   };
+  if (structuredErrors) {
+    result.errorObjects = [];
+  }
   let validationObject: any;
   let check: ValidateFunction | undefined = ajv.getSchema(schemaKey);
   if (!check) {
@@ -219,6 +246,9 @@ export function validate({
             )})`,
         )
         .join(", ");
+      if (structuredErrors) {
+        result.errorObjects = snapshotErrors(targetErrors);
+      }
       result.object = object;
       result.valid = false;
       return result;
@@ -257,6 +287,9 @@ export function validate({
             )})`,
         )
         .join(", ");
+      if (structuredErrors) {
+        result.errorObjects = snapshotErrors(targetErrors);
+      }
       result.object = object;
       result.valid = false;
       return result;

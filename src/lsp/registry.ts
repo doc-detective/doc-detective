@@ -1,0 +1,133 @@
+import { schemas } from "../common/src/schemas/index.js";
+
+/**
+ * A field inside an action's object form — used for field-name completion and
+ * (Phase 3) enum-value completion.
+ */
+export interface ActionField {
+  name: string;
+  description?: string;
+  /** Enumerated values, when the field's schema (or a branch) pins them. */
+  enumValues?: Array<string | number | boolean>;
+}
+
+/** Everything the language features need to know about one action. */
+export interface ActionInfo {
+  /** The action key, which IS the step key (`goTo`, `find`, …). */
+  key: string;
+  title?: string;
+  description?: string;
+  /** True when the compact scalar form (e.g. `"goTo": "https://…"`) is valid. */
+  acceptsPrimitive: boolean;
+  /** Fields available inside the object form. */
+  fields: ActionField[];
+}
+
+export interface Registry {
+  actions: ActionInfo[];
+  byKey: Map<string, ActionInfo>;
+}
+
+const PRIMITIVE_TYPES = new Set(["string", "number", "integer", "boolean"]);
+
+/** Collect the candidate sub-schemas of a schema: itself plus anyOf/oneOf/allOf. */
+export function branchesOf(schema: any): any[] {
+  if (!schema || typeof schema !== "object") return [];
+  const out = [schema];
+  for (const key of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(schema[key])) out.push(...schema[key]);
+  }
+  return out;
+}
+
+/** Dig for a human description across a schema and its immediate branches. */
+export function findDescription(schema: any): string | undefined {
+  for (const branch of branchesOf(schema)) {
+    if (typeof branch.description === "string" && branch.description.length > 0) {
+      return branch.description;
+    }
+  }
+  return undefined;
+}
+
+/** Does the schema (or a branch) accept a primitive scalar value? */
+export function acceptsPrimitive(schema: any): boolean {
+  for (const branch of branchesOf(schema)) {
+    const type = branch.type;
+    if (typeof type === "string" && PRIMITIVE_TYPES.has(type)) return true;
+    if (Array.isArray(type) && type.some((t) => PRIMITIVE_TYPES.has(t))) return true;
+  }
+  return false;
+}
+
+/** Merge the `properties` maps found across a schema's object branches. */
+export function collectFields(schema: any): ActionField[] {
+  const seen = new Map<string, ActionField>();
+  for (const branch of branchesOf(schema)) {
+    const props = branch.properties;
+    if (!props || typeof props !== "object") continue;
+    for (const [name, propSchema] of Object.entries(props) as any) {
+      if (name === "$schema" || seen.has(name)) continue;
+      seen.set(name, {
+        name,
+        description: findDescription(propSchema),
+        enumValues: extractEnum(propSchema),
+      });
+    }
+  }
+  return [...seen.values()];
+}
+
+/** Pull an enum list from a schema or its branches, if any. */
+export function extractEnum(schema: any): Array<string | number | boolean> | undefined {
+  for (const branch of branchesOf(schema)) {
+    if (Array.isArray(branch.enum)) return branch.enum.slice();
+  }
+  return undefined;
+}
+
+/**
+ * The `allOf` element of a `step_v3` anyOf branch that carries the action: the
+ * one whose `required` names exactly the action key (never `$schema`).
+ */
+function actionPartOf(branch: any): any {
+  const parts = Array.isArray(branch.allOf) ? branch.allOf : [branch];
+  return parts.find(
+    (p: any) =>
+      Array.isArray(p.required) &&
+      p.required.length === 1 &&
+      p.required[0] !== "$schema",
+  );
+}
+
+/**
+ * Build the action registry from the live `step_v3` schema. Derived at runtime
+ * (not a build step) so a new action added to the schemas automatically appears
+ * in completion/hover — the anti-drift test pins that guarantee.
+ */
+export function buildRegistry(step: any = (schemas as any)["step_v3"]): Registry {
+  const actions: ActionInfo[] = [];
+  for (const branch of step.anyOf || []) {
+    const part = actionPartOf(branch);
+    /* c8 ignore next - every step_v3 anyOf branch has an action part; defensive */
+    if (!part) continue;
+    const key = part.required[0];
+    const propSchema = part.properties?.[key];
+    actions.push({
+      key,
+      title: part.title || key,
+      description: findDescription(propSchema),
+      acceptsPrimitive: acceptsPrimitive(propSchema),
+      fields: collectFields(propSchema),
+    });
+  }
+  const byKey = new Map(actions.map((a) => [a.key, a]));
+  return { actions, byKey };
+}
+
+/** Lazily-built shared registry (the schemas are static within a process). */
+let cached: Registry | undefined;
+export function getRegistry(): Registry {
+  if (!cached) cached = buildRegistry();
+  return cached;
+}
