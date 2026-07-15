@@ -6,12 +6,24 @@ import { instancePathToSegments, pointerFromPath } from "../json/positions.js";
 export interface YamlParse {
   doc: YAML.Document.Parsed;
   value: any;
+  /** Set when `doc.toJS()` threw (e.g. an alias-bomb exceeding maxAliasCount). */
+  valueError?: string;
 }
 
 /** Parse YAML into a position-preserving document plus its plain JS value. */
 export function parseYamlTree(text: string): YamlParse {
   const doc = YAML.parseDocument(text, { keepSourceTokens: true });
-  return { doc, value: doc.toJS() };
+  // `toJS()` resolves aliases and can throw on a pathological document (the
+  // "billion laughs" alias bomb the yaml lib guards with maxAliasCount). Catch
+  // it so a malicious/degenerate buffer can't crash the server — surface it as
+  // a document-level error instead.
+  try {
+    return { doc, value: doc.toJS() };
+  } catch (error: any) {
+    /* c8 ignore next - the yaml lib always throws an Error with a message; the String() fallback guards a hypothetical non-Error throw */
+    const message = error instanceof Error ? error.message : String(error);
+    return { doc, value: undefined, valueError: message };
+  }
 }
 
 /** A YAML syntax error reduced to an offset span and message. */

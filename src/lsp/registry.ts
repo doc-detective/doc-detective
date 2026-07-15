@@ -1,5 +1,8 @@
 import { schemas } from "../common/src/schemas/index.js";
 
+/** The kind of scalar an action's compact form accepts, if any. */
+export type PrimitiveKind = "string" | "number" | "boolean" | null;
+
 /**
  * A field inside an action's object form — used for field-name completion and
  * (Phase 3) enum-value completion.
@@ -7,12 +10,14 @@ import { schemas } from "../common/src/schemas/index.js";
 export interface ActionField {
   name: string;
   description?: string;
+  /**
+   * The scalar kind this field accepts, or null for object/array fields. Drives
+   * whether a completion snippet quotes the value placeholder.
+   */
+  primitiveKind: PrimitiveKind;
   /** Enumerated values, when the field's schema (or a branch) pins them. */
   enumValues?: Array<string | number | boolean>;
 }
-
-/** The kind of scalar an action's compact form accepts, if any. */
-export type PrimitiveKind = "string" | "number" | "boolean" | null;
 
 /** Everything the language features need to know about one action. */
 export interface ActionInfo {
@@ -36,8 +41,6 @@ export interface Registry {
   actions: ActionInfo[];
   byKey: Map<string, ActionInfo>;
 }
-
-const PRIMITIVE_TYPES = new Set(["string", "number", "integer", "boolean"]);
 
 /** Collect the candidate sub-schemas of a schema: itself plus anyOf/oneOf/allOf. */
 export function branchesOf(schema: any): any[] {
@@ -99,6 +102,7 @@ export function collectFields(schema: any): ActionField[] {
       seen.set(name, {
         name,
         description: findDescription(propSchema),
+        primitiveKind: primitiveKindOf(propSchema),
         enumValues: extractEnum(propSchema),
       });
     }

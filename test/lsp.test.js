@@ -25,7 +25,12 @@ import {
 } from "../dist/lsp/diagnostics.js";
 import { buildModel } from "../dist/lsp/model.js";
 import { isJsonUri, isYamlUri } from "../dist/lsp/gate.js";
-import { fileTypeForUri, computeInlineDiagnostics } from "../dist/lsp/inline.js";
+import {
+  fileTypeForUri,
+  computeInlineDiagnostics,
+  collectMatchOffsets,
+  extractStatements,
+} from "../dist/lsp/inline.js";
 import {
   parseYamlTree,
   rangeForInstancePathYaml,
@@ -765,6 +770,49 @@ describe("lsp — inline tests (markup fileTypes)", function () {
   });
 });
 
+describe("lsp — review hardening", function () {
+  it("gate: refuses to classify malformed JSON by content sniff", function () {
+    // A partial buffer jsonc can still coerce to {tests:[]} must NOT be treated
+    // as a spec when the filename didn't already say so.
+    expect(classifyDocument({ uri: "file:///a/thing.json", text: '{"tests":[],' })).to.equal(null);
+    // But a filename-classified spec is still handled (syntax errors shown there).
+    expect(classifyDocument({ uri: "file:///a/foo.spec.json", text: '{"tests":[],' })).to.equal("spec");
+  });
+
+  it("yaml: an alias bomb surfaces an error instead of crashing", function () {
+    // Classic "billion laughs": a non-empty leaf doubled each level blows past
+    // the yaml lib's maxAliasCount weighting; toJS throws.
+    const lines = ['a0: &a0 "lol"'];
+    for (let i = 1; i <= 15; i++) lines.push(`a${i}: &a${i} [*a${i - 1}, *a${i - 1}]`);
+    const bomb = lines.join("\n");
+    const parsed = parseYamlTree(bomb);
+    expect(parsed.value).to.equal(undefined);
+    expect(parsed.valueError).to.be.a("string").with.length.greaterThan(0);
+    // End to end: it becomes a diagnostic, not a thrown exception.
+    const d = computeDiagnostics(doc("file:///a/foo.spec.yaml", bomb));
+    expect(d.some((x) => /YAML error/.test(x.message))).to.equal(true);
+  });
+
+  it("completion: quotes string field placeholders, leaves numeric bare", function () {
+    const { doc: d, position } = markerPos('{"tests":[{"steps":[{"find":{§}}]}]}');
+    const items = computeCompletions(d, position);
+    const text = (i) => (i.textEdit ? i.textEdit.newText : i.insertText);
+    const selector = items.find((i) => i.label === "selector");
+    const timeout = items.find((i) => i.label === "timeout");
+    expect(text(selector)).to.equal('"selector": "$1"'); // string → quoted
+    expect(text(timeout)).to.equal('"timeout": $1'); // number → bare
+  });
+
+  it("inline: zero-width regex patterns terminate instead of hanging", function () {
+    // `x?` / `(x?)` match the empty string at every position; without the
+    // lastIndex nudge these would loop forever.
+    const offsets = collectMatchOffsets("abc", ["x?"]);
+    expect(offsets).to.deep.equal([0, 1, 2, 3]);
+    const stmts = extractStatements("abc", ["(x?)"], []);
+    expect(stmts).to.have.length(4);
+  });
+});
+
 describe("lsp — server wiring", function () {
   function fakes(docStore = new Map()) {
     const sent = [];
@@ -888,11 +936,20 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
     });
 
     let buffer = Buffer.alloc(0);
+    let stderr = "";
     let settled = false;
+
+    // Helper-owned watchdog: if the server never publishes the expected
+    // diagnostic, fail fast (and kill the child) instead of leaking the process
+    // until Mocha's suite timeout fires.
+    const watchdog = setTimeout(() => {
+      finish(new Error(`server never published expected diagnostic; stderr:\n${stderr}`));
+    }, 12000);
 
     function finish(err) {
       if (settled) return;
       settled = true;
+      clearTimeout(watchdog);
       try {
         child.kill();
       } catch {
@@ -900,6 +957,15 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
       }
       done(err);
     }
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    // A server that exits before publishing is a failure, not a hang.
+    child.on("close", (code) => {
+      finish(new Error(`server exited early (code ${code}); stderr:\n${stderr}`));
+    });
 
     function send(message) {
       const json = JSON.stringify(message);

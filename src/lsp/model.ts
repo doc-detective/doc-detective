@@ -50,13 +50,22 @@ function buildJsonModel(text: string): SpecModel {
 }
 
 function buildYamlModel(text: string): SpecModel {
-  const { doc, value } = parseYamlTree(text);
+  const { doc, value, valueError } = parseYamlTree(text);
+  const syntaxErrors: SyntaxErrorSpan[] = yamlSyntaxErrors(doc).map((e) => ({
+    range: e.range,
+    message: `YAML syntax: ${e.message}`,
+  }));
+  // A `toJS()` failure (e.g. an alias bomb) has no single node to blame; anchor
+  // it at the document start so the author still sees the problem.
+  if (valueError) {
+    syntaxErrors.push({
+      range: { start: 0, end: Math.min(text.length, 1) },
+      message: `YAML error: ${valueError}`,
+    });
+  }
   return {
     value,
-    syntaxErrors: yamlSyntaxErrors(doc).map((e) => ({
-      range: e.range,
-      message: `YAML syntax: ${e.message}`,
-    })),
+    syntaxErrors,
     rangeForPath: (path) => rangeForInstancePathYaml(doc, path),
     actionKeyedSteps: () => findActionKeyedStepsYaml(doc),
   };

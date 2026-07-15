@@ -115,10 +115,7 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
   const value = model.value;
   if (!value || typeof value !== "object") return diagnostics;
 
-  // Flag action-keyed steps up front and collect their pointers so we can
-  // suppress the schema's raw anyOf noise for those same steps.
   const actionKeyed = model.actionKeyedSteps();
-  const suppressedPointers = actionKeyed.map((a) => a.pointer);
 
   const result = validate({
     schemaKey: SCHEMA_FOR_CLASS[cls],
@@ -126,49 +123,49 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
     addDefaults: false,
     structuredErrors: true,
   });
+  // `structuredErrors: true` guarantees `errorObjects` is populated (empty when
+  // valid), so it is never undefined here.
+  const errorObjects = result.errorObjects!;
 
-  // A valid document: no errors. A legacy v2 spec whose steps are `action`-keyed
-  // transforms to a valid spec_v3 — don't error on it, but nudge toward v3 with
-  // a non-blocking deprecation warning.
-  if (result.valid) {
-    for (const step of actionKeyed) {
-      diagnostics.push({
-        severity: DiagnosticSeverity.Warning,
-        range: offsetRangeToLspRange(doc, step.keyRange),
-        message: V2_DEPRECATION_MESSAGE,
-        source: DIAGNOSTIC_SOURCE,
-        code: "legacy-v2-step",
-      });
+  // Decide each action-keyed step's fate *per step*, by whether AJV flagged an
+  // error at/under that specific step's pointer:
+  //   - own errors  → the step is genuinely invalid v3 → flagship error, and its
+  //                    raw anyOf noise is suppressed in favor of that one message.
+  //   - no errors   → a valid legacy v2 step (it transforms to v3) → a
+  //                    non-blocking deprecation nudge, and we do NOT suppress
+  //                    unrelated errors on its behalf.
+  // This keeps a valid v2 step from being mislabeled just because some *other*
+  // part of the document failed to validate.
+  const invalidPointers = actionKeyed
+    .map((step) => step.pointer)
+    .filter((pointer) =>
+      errorObjects.some((error) => isUnderPointer(error.instancePath, pointer)),
+    );
+
+  for (const error of errorObjects) {
+    const instancePath = error.instancePath;
+    if (isSuppressedByActionKeyed(instancePath, error.keyword, invalidPointers)) {
+      continue;
     }
-    return diagnostics;
-  }
-
-  if (result.errorObjects) {
-    for (const error of result.errorObjects) {
-      const instancePath = error.instancePath || "";
-      if (isSuppressedByActionKeyed(instancePath, error.keyword, suppressedPointers)) {
-        continue;
-      }
-      const offsetRange = model.rangeForPath(instancePath);
-      /* c8 ignore next - rangeForPath always resolves to at least the root for a parsed tree */
-      if (!offsetRange) continue;
-      diagnostics.push({
-        severity: DiagnosticSeverity.Error,
-        range: offsetRangeToLspRange(doc, offsetRange),
-        message: schemaMessage(error),
-        source: DIAGNOSTIC_SOURCE,
-      });
-    }
-  }
-
-  // Invalid document: the offending action-keyed steps get the flagship error.
-  for (const step of actionKeyed) {
+    const offsetRange = model.rangeForPath(instancePath);
+    /* c8 ignore next - rangeForPath always resolves to at least the root for a parsed tree */
+    if (!offsetRange) continue;
     diagnostics.push({
       severity: DiagnosticSeverity.Error,
-      range: offsetRangeToLspRange(doc, step.keyRange),
-      message: ACTION_KEYED_MESSAGE,
+      range: offsetRangeToLspRange(doc, offsetRange),
+      message: schemaMessage(error),
       source: DIAGNOSTIC_SOURCE,
-      code: "action-keyed-step",
+    });
+  }
+
+  for (const step of actionKeyed) {
+    const invalid = invalidPointers.includes(step.pointer);
+    diagnostics.push({
+      severity: invalid ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+      range: offsetRangeToLspRange(doc, step.keyRange),
+      message: invalid ? ACTION_KEYED_MESSAGE : V2_DEPRECATION_MESSAGE,
+      source: DIAGNOSTIC_SOURCE,
+      code: invalid ? "action-keyed-step" : "legacy-v2-step",
     });
   }
 

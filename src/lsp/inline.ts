@@ -74,20 +74,25 @@ function ignoreRanges(text: string, fileType: FileType): OffsetRange[] {
   return ranges;
 }
 
-function collectMatchOffsets(text: string, patterns?: string[]): number[] {
+export function collectMatchOffsets(text: string, patterns?: string[]): number[] {
   const offsets: number[] = [];
   for (const pattern of patterns || []) {
     const re = compilePattern(pattern);
     /* c8 ignore next - compilePattern only returns null for an invalid custom pattern */
     if (!re) continue;
     let m: RegExpExecArray | null;
-    while ((m = re.exec(text))) offsets.push(m.index);
+    while ((m = re.exec(text))) {
+      offsets.push(m.index);
+      // A zero-width match doesn't advance lastIndex; nudge it so a degenerate
+      // (empty-matching) custom pattern can't spin forever and hang the server.
+      if (m[0].length === 0) re.lastIndex++;
+    }
   }
   return offsets.sort((a, b) => a - b);
 }
 
 /** Extract statements of one kind (testStart / step) with payloads + spans. */
-function extractStatements(
+export function extractStatements(
   text: string,
   patterns: string[] | undefined,
   ignore: OffsetRange[],
@@ -99,6 +104,9 @@ function extractStatements(
     if (!re) continue;
     let m: RegExpExecArray | null;
     while ((m = re.exec(text))) {
+      // A zero-width match doesn't advance lastIndex; nudge it so a degenerate
+      // (empty-matching) custom pattern can't spin forever and hang the server.
+      if (m[0].length === 0) re.lastIndex++;
       if (ignore.some((r) => m!.index >= r.start && m!.index < r.end)) continue;
       const group = (m as any).indices?.[1] as [number, number] | undefined;
       const range: OffsetRange = group

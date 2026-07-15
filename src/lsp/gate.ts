@@ -1,4 +1,4 @@
-import { parse as parseJsonc } from "jsonc-parser";
+import { parse as parseJsonc, type ParseError } from "jsonc-parser";
 import YAML from "yaml";
 
 /**
@@ -48,7 +48,16 @@ export function classifyDocument({ uri, text }: ClassifyInput): DocClass {
   const isYaml = name.endsWith(".yaml") || name.endsWith(".yml");
   let parsed: any;
   try {
-    parsed = isYaml ? YAML.parse(text) : parseJsonc(text);
+    if (isYaml) {
+      parsed = YAML.parse(text);
+    } else {
+      // jsonc.parse returns a *partial* value for malformed input (`{"tests":[],`
+      // yields `{tests:[]}`), which would wrongly classify garbage as a spec.
+      // Collect its errors and refuse to classify when any remain.
+      const errors: ParseError[] = [];
+      parsed = parseJsonc(text, errors, { allowTrailingComma: true });
+      if (errors.length > 0) return null;
+    }
   } catch {
     return null;
   }

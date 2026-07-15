@@ -105,7 +105,7 @@ function fieldItem(
   doc: TextDocument,
   previousNode: Node | undefined,
 ): CompletionItem {
-  const insert = `"${field.name}": $1`;
+  const insert = `"${field.name}": ${valueSnippet(field.primitiveKind)}`;
   const edit = keyTextEdit(doc, previousNode, insert);
   return {
     label: field.name,
