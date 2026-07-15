@@ -59,7 +59,14 @@ function buildProcessTable(platform, deps = {}) {
         "-Command",
         "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress",
       ],
-      { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"] },
+      {
+        encoding: "utf8",
+        timeout: 5000,
+        // A busy host's full process list (with command lines) can be large;
+        // raise the buffer well past the 1 MB default so the read doesn't abort.
+        maxBuffer: 32 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "ignore"],
+      },
     );
     const parsed = JSON.parse(json);
     const rows = Array.isArray(parsed) ? parsed : [parsed];
@@ -101,10 +108,13 @@ function buildProcessTable(platform, deps = {}) {
     return table;
   }
 
-  // macOS and other Unixes.
-  const out = execFileSync("ps", ["-Ao", "pid=,ppid=,command="], {
+  // macOS and other Unixes. `-ww` disables ps's default command-line
+  // truncation (otherwise a long path can cut off the `lsp` token before the
+  // matcher ever sees it); maxBuffer guards a busy host's large process list.
+  const out = execFileSync("ps", ["-A", "-ww", "-o", "pid=,ppid=,command="], {
     encoding: "utf8",
     timeout: 5000,
+    maxBuffer: 32 * 1024 * 1024,
   });
   const table = new Map();
   for (const line of out.split(/\r?\n/)) {
