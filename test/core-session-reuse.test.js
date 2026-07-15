@@ -110,6 +110,35 @@ describe("deriveSessionPoolKey", function () {
     );
   });
 
+  it("ignores per-context recording identifiers under ms:edgeOptions too (Edge reuse)", function () {
+    // Chromium Edge puts the same per-context args/prefs under `ms:edgeOptions`
+    // rather than `goog:chromeOptions`. If those aren't stripped, an Edge
+    // context's take-key (with the download dir) never matches its park-key
+    // (without it), silently disabling Edge reuse.
+    const edgeA = {
+      platformName: "windows",
+      "appium:automationName": "Chromium",
+      browserName: "edge",
+      "ms:edgeOptions": {
+        args: [
+          "--enable-chrome-browser-cloud-management",
+          "--auto-select-desktop-capture-source=browser-ctx-AAAA",
+        ],
+        prefs: { "download.default_directory": "/tmp/ctx-AAAA" },
+        binary: "/path/to/edge",
+      },
+    };
+    const edgeB = JSON.parse(JSON.stringify(edgeA));
+    edgeB["ms:edgeOptions"].args[1] =
+      "--auto-select-desktop-capture-source=browser-ctx-BBBB";
+    edgeB["ms:edgeOptions"].prefs["download.default_directory"] = "/tmp/ctx-BBBB";
+    assert.equal(
+      deriveSessionPoolKey(edgeA),
+      deriveSessionPoolKey(edgeB),
+      "two non-recording Edge contexts of the same engine/headless must share a key"
+    );
+  });
+
   it("strips the per-attempt chromedriver port", function () {
     const withPort = JSON.parse(JSON.stringify(capsA));
     withPort["appium:chromedriverPort"] = 51234;

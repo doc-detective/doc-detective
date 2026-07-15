@@ -96,8 +96,14 @@ const PER_CONTEXT_ARG_PREFIXES = ["--auto-select-desktop-capture-source="];
 // Capability keys assigned per attempt / per context that must not affect the
 // signature (the chromedriver port is a fresh free port allocated at start).
 const PER_ATTEMPT_CAP_KEYS = new Set(["appium:chromedriverPort"]);
-// goog:chromeOptions.prefs keys that are per-context (download directory).
+// chromeOptions/edgeOptions.prefs keys that are per-context (download directory).
 const PER_CONTEXT_PREF_KEYS = new Set(["download.default_directory"]);
+// The vendor options blocks that carry the per-context args/prefs above. Both
+// Chrome (`goog:chromeOptions`) and Chromium Edge (`ms:edgeOptions`) use the
+// SAME arg + pref names, so both must be normalized — otherwise an Edge
+// context's per-context download dir stays in the key and its take-key never
+// matches its park-key, silently disabling Edge reuse.
+const CHROMIUM_OPTIONS_KEYS = new Set(["goog:chromeOptions", "ms:edgeOptions"]);
 
 /** Strip per-context / per-attempt noise from a capabilities object for keying. */
 function normalizeCapsForKey(capabilities: any): any {
@@ -105,7 +111,7 @@ function normalizeCapsForKey(capabilities: any): any {
   const caps: any = {};
   for (const [k, v] of Object.entries(capabilities)) {
     if (PER_ATTEMPT_CAP_KEYS.has(k)) continue;
-    if (k === "goog:chromeOptions" && v && typeof v === "object") {
+    if (CHROMIUM_OPTIONS_KEYS.has(k) && v && typeof v === "object") {
       const opts: any = { ...(v as any) };
       if (Array.isArray(opts.args)) {
         opts.args = opts.args.filter(

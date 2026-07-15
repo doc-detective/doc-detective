@@ -5129,6 +5129,16 @@ async function runContext({
       })
     ) {
       try {
+        // The park key omits `recordOptions` (which the take key includes),
+        // yet the two must produce the SAME signature so a future identical
+        // context matches this parked session. That invariant holds because
+        // `recordOptions` injects ONLY per-context identifiers that
+        // deriveSessionPoolKey normalizes away for BOTH Chromium option blocks:
+        // the capture-source arg (PER_CONTEXT_ARG_PREFIXES) and the download-dir
+        // pref (PER_CONTEXT_PREF_KEYS), under goog:chromeOptions AND
+        // ms:edgeOptions. If `recordOptions` ever grows a field that maps to a
+        // cap those strip lists don't cover, add it there (an Edge context
+        // silently losing reuse is exactly how the ms:edgeOptions gap surfaced).
         const parkKey = deriveSessionPoolKey(
           getDriverCapabilities({
             runnerDetails,
