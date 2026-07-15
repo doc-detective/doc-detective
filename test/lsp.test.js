@@ -967,6 +967,10 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
       finish(new Error(`server exited early (code ${code}); stderr:\n${stderr}`));
     });
 
+    // If the server dies mid-write, stdin emits EPIPE on the stream itself,
+    // which bypasses child.on("error") — route it through the same failure path.
+    child.stdin.on("error", finish);
+
     function send(message) {
       const json = JSON.stringify(message);
       const payload = `Content-Length: ${Buffer.byteLength(json, "utf8")}\r\n\r\n${json}`;
