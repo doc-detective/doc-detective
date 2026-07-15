@@ -4,7 +4,7 @@ import {
   Range,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import { parse as parseJsoncValue, printParseErrorCode } from "jsonc-parser";
+import { getNodeValue, printParseErrorCode } from "jsonc-parser";
 import { validate } from "../common/src/validate.js";
 import { classifyDocument, basenameFromUri, DocClass } from "./gate.js";
 import {
@@ -123,7 +123,8 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
 
   if (!root) return diagnostics;
 
-  const value = parseJsoncValue(text, [], { allowTrailingComma: true });
+  // Reuse the value from the CST we already parsed instead of parsing again.
+  const value = getNodeValue(root);
   if (!value || typeof value !== "object") return diagnostics;
 
   // Flag action-keyed steps up front and collect their pointers so we can
@@ -138,7 +139,12 @@ export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
     structuredErrors: true,
   });
 
-  if (!result.valid && result.errorObjects) {
+  // A valid document has nothing to report — crucially, a legacy v2 spec whose
+  // steps are legitimately `action`-keyed transforms to a valid spec_v3, so we
+  // must NOT nag about it. The action-keyed hint fires only on invalid docs.
+  if (result.valid) return diagnostics;
+
+  if (result.errorObjects) {
     for (const error of result.errorObjects) {
       const instancePath = error.instancePath || "";
       if (isSuppressedByActionKeyed(instancePath, error.keyword, suppressedPointers)) {

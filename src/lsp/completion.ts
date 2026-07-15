@@ -9,7 +9,7 @@ import type { Position } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { getLocation, type Node } from "jsonc-parser";
 import { classifyDocument, basenameFromUri } from "./gate.js";
-import { getRegistry, ActionInfo, ActionField } from "./registry.js";
+import { getRegistry, ActionInfo, ActionField, PrimitiveKind } from "./registry.js";
 
 type JsonPath = Array<string | number>;
 
@@ -45,9 +45,16 @@ export function actionFieldContext(path: JsonPath): string | null {
   return null;
 }
 
-/** The value placeholder inserted after an action/field key. */
-function valueSnippet(acceptsPrimitive: boolean): string {
-  return acceptsPrimitive ? '"$1"' : "{\n\t$1\n}";
+/**
+ * The value placeholder inserted after an action key. Quotes the tab-stop only
+ * for string scalars — a numeric (`wait`) or boolean (`stopRecord`) action gets
+ * a bare placeholder so the starter isn't schema-invalid; object-only actions
+ * get a brace body.
+ */
+function valueSnippet(primitiveKind: PrimitiveKind): string {
+  if (primitiveKind === "string") return '"$1"';
+  if (primitiveKind === "number" || primitiveKind === "boolean") return "$1";
+  return "{\n\t$1\n}";
 }
 
 /** A Markdown documentation payload, or undefined when there's no text. */
@@ -81,7 +88,7 @@ function actionItem(
   doc: TextDocument,
   previousNode: Node | undefined,
 ): CompletionItem {
-  const insert = `"${action.key}": ${valueSnippet(action.acceptsPrimitive)}`;
+  const insert = `"${action.key}": ${valueSnippet(action.primitiveKind)}`;
   const edit = keyTextEdit(doc, previousNode, insert);
   return {
     label: action.key,

@@ -30,6 +30,7 @@ import {
   branchesOf,
   findDescription,
   acceptsPrimitive,
+  primitiveKindOf,
   collectFields,
   extractEnum,
 } from "../dist/lsp/registry.js";
@@ -73,10 +74,17 @@ function doc(uri, text) {
 const VALID_SPEC = JSON.stringify({
   tests: [{ steps: [{ goTo: "https://example.com" }] }],
 });
+// Action-keyed AND invalid (unknown action), so it never transforms to a valid
+// v2 spec — the flagship diagnostic should fire.
 const ACTION_KEYED_SPEC = JSON.stringify(
-  { tests: [{ steps: [{ action: "goTo", url: "https://example.com" }] }] },
+  { tests: [{ steps: [{ action: "madeUpAction", value: 1 }] }] },
   null,
   2,
+);
+// A genuinely valid legacy v2 spec (action-keyed steps transform to valid
+// spec_v3) — the LSP must NOT nag about it.
+const VALID_V2_SPEC = JSON.stringify(
+  { tests: [{ steps: [{ action: "goTo", url: "https://example.com" }] }] },
 );
 
 describe("lsp — detection gate", function () {
@@ -200,19 +208,11 @@ describe("lsp — diagnostics", function () {
     expect(text.slice(start)).to.contain('"action"');
   });
 
-  it("suppresses the anyOf noise even when an action-keyed step does not transform", function () {
-    // An action-keyed step whose action matches no v2 compatibility schema
-    // stays invalid, so validate() DOES produce anyOf errors at that step —
-    // exactly the pile the suppression logic must drop in favor of the one
-    // friendly diagnostic.
-    const spec = JSON.stringify({
-      tests: [{ steps: [{ action: "notARealAction", foo: 1 }] }],
-    });
-    const d = computeDiagnostics(doc("file:///a/foo.spec.json", spec));
-    const flagship = d.filter((x) => x.message === ACTION_KEYED_MESSAGE);
-    expect(flagship).to.have.length(1);
-    // No raw anyOf failures for that step leak through.
-    expect(d).to.have.length(1);
+  it("does NOT nag about a valid legacy v2 spec", function () {
+    // Action-keyed steps that transform to a valid spec_v3 are legitimately
+    // valid — the flagship diagnostic must not fire (no false positives).
+    const d = computeDiagnostics(doc("file:///a/legacy.spec.json", VALID_V2_SPEC));
+    expect(d).to.deep.equal([]);
   });
 
   it("names the offending property on additionalProperties errors", function () {
@@ -308,12 +308,15 @@ describe("lsp — action registry", function () {
     expect(registry.actions.length).to.equal(schemaKeys.length);
   });
 
-  it("captures fields, descriptions, and primitive-acceptance", function () {
+  it("captures fields, descriptions, and primitive kinds", function () {
     const registry = buildRegistry();
     const find = registry.byKey.get("find");
     expect(find.fields.map((f) => f.name)).to.include.members(["selector", "timeout"]);
     const goTo = registry.byKey.get("goTo");
     expect(goTo.acceptsPrimitive).to.equal(true); // goTo accepts a bare URL string
+    expect(goTo.primitiveKind).to.equal("string");
+    expect(registry.byKey.get("wait").primitiveKind).to.equal("number");
+    expect(registry.byKey.get("stopRecord").primitiveKind).to.equal("boolean");
     const httpRequest = registry.byKey.get("httpRequest");
     expect(httpRequest.description).to.be.a("string").with.length.greaterThan(0);
   });
@@ -341,6 +344,15 @@ describe("lsp — registry helpers", function () {
     expect(acceptsPrimitive({ type: ["null", "number"] })).to.equal(true);
     expect(acceptsPrimitive({ type: "object" })).to.equal(false);
     expect(acceptsPrimitive({ anyOf: [{ type: "object" }] })).to.equal(false);
+  });
+
+  it("primitiveKindOf maps schema types to snippet kinds", function () {
+    expect(primitiveKindOf({ type: "string" })).to.equal("string");
+    expect(primitiveKindOf({ type: "integer" })).to.equal("number");
+    expect(primitiveKindOf({ type: ["null", "boolean"] })).to.equal("boolean");
+    expect(primitiveKindOf({ anyOf: [{ type: "object" }, { type: "number" }] })).to.equal("number");
+    expect(primitiveKindOf({ type: "object" })).to.equal(null);
+    expect(primitiveKindOf({ type: "array" })).to.equal(null);
   });
 
   it("collectFields merges properties, dedupes, and skips $schema", function () {
@@ -405,6 +417,17 @@ describe("lsp — completion", function () {
     // Empty object → plain insert (no token to replace).
     expect(goTo.textEdit).to.equal(undefined);
     expect(goTo.insertText).to.equal('"goTo": "$1"');
+  });
+
+  it("uses an unquoted placeholder for numeric/boolean actions", function () {
+    const { doc: d, position } = markerPos('{"tests":[{"steps":[{§}]}]}');
+    const items = computeCompletions(d, position);
+    const wait = items.find((i) => i.label === "wait");
+    expect(wait.insertText).to.equal('"wait": $1'); // number → no quotes
+    const stopRecord = items.find((i) => i.label === "stopRecord");
+    expect(stopRecord.insertText).to.equal('"stopRecord": $1'); // boolean → no quotes
+    const goTo = items.find((i) => i.label === "goTo");
+    expect(goTo.insertText).to.equal('"goTo": "$1"'); // string → quoted
   });
 
   it("replaces a partial key token via textEdit", function () {

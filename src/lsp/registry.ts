@@ -11,6 +11,9 @@ export interface ActionField {
   enumValues?: Array<string | number | boolean>;
 }
 
+/** The kind of scalar an action's compact form accepts, if any. */
+export type PrimitiveKind = "string" | "number" | "boolean" | null;
+
 /** Everything the language features need to know about one action. */
 export interface ActionInfo {
   /** The action key, which IS the step key (`goTo`, `find`, …). */
@@ -19,6 +22,12 @@ export interface ActionInfo {
   description?: string;
   /** True when the compact scalar form (e.g. `"goTo": "https://…"`) is valid. */
   acceptsPrimitive: boolean;
+  /**
+   * The scalar kind the compact form accepts (`"goTo"` → string, `"wait"` →
+   * number, `"stopRecord"` → boolean), or null for object-only actions. Drives
+   * whether a completion snippet quotes the placeholder.
+   */
+  primitiveKind: PrimitiveKind;
   /** Fields available inside the object form. */
   fields: ActionField[];
 }
@@ -50,14 +59,33 @@ export function findDescription(schema: any): string | undefined {
   return undefined;
 }
 
-/** Does the schema (or a branch) accept a primitive scalar value? */
-export function acceptsPrimitive(schema: any): boolean {
+/** Map a JSON-Schema scalar type onto the snippet-relevant primitive kind. */
+function normalizePrimitive(type: string): PrimitiveKind {
+  if (type === "string") return "string";
+  if (type === "number" || type === "integer") return "number";
+  if (type === "boolean") return "boolean";
+  return null;
+}
+
+/**
+ * The scalar kind a schema (or a branch) accepts in its compact form, or null.
+ * The first primitive type encountered across branches wins.
+ */
+export function primitiveKindOf(schema: any): PrimitiveKind {
   for (const branch of branchesOf(schema)) {
     const type = branch.type;
-    if (typeof type === "string" && PRIMITIVE_TYPES.has(type)) return true;
-    if (Array.isArray(type) && type.some((t) => PRIMITIVE_TYPES.has(t))) return true;
+    const types = typeof type === "string" ? [type] : Array.isArray(type) ? type : [];
+    for (const t of types) {
+      const kind = normalizePrimitive(t);
+      if (kind) return kind;
+    }
   }
-  return false;
+  return null;
+}
+
+/** Does the schema (or a branch) accept a primitive scalar value? */
+export function acceptsPrimitive(schema: any): boolean {
+  return primitiveKindOf(schema) !== null;
 }
 
 /** Merge the `properties` maps found across a schema's object branches. */
@@ -113,11 +141,13 @@ export function buildRegistry(step: any = (schemas as any)["step_v3"]): Registry
     if (!part) continue;
     const key = part.required[0];
     const propSchema = part.properties?.[key];
+    const primitiveKind = primitiveKindOf(propSchema);
     actions.push({
       key,
       title: part.title || key,
       description: findDescription(propSchema),
-      acceptsPrimitive: acceptsPrimitive(propSchema),
+      acceptsPrimitive: primitiveKind !== null,
+      primitiveKind,
       fields: collectFields(propSchema),
     });
   }
