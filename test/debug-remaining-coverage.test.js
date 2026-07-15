@@ -126,7 +126,7 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -152,7 +152,7 @@ describe("debug/* remaining coverage", function () {
         stub.restore();
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
   });
@@ -179,7 +179,7 @@ describe("debug/* remaining coverage", function () {
         for (const e of status.entries) assert.equal(e.exists, false);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -215,7 +215,7 @@ describe("debug/* remaining coverage", function () {
         }
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -228,7 +228,7 @@ describe("debug/* remaining coverage", function () {
         assert.equal(cacheDir.freeBytes, null);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -241,7 +241,7 @@ describe("debug/* remaining coverage", function () {
         assert.equal(cacheDir.freeBytes, null);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -254,7 +254,7 @@ describe("debug/* remaining coverage", function () {
         assert.equal(cacheDir.freeBytes, null);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -618,7 +618,7 @@ describe("debug/* remaining coverage", function () {
         assert.ok(files.some((f) => f.endsWith("a.txt")));
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -631,7 +631,7 @@ describe("debug/* remaining coverage", function () {
         assert.deepEqual(files, []);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -661,7 +661,7 @@ describe("debug/* remaining coverage", function () {
         assert.ok(["a.txt", "b.txt"].includes(path.basename(files[0])));
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
   });
@@ -810,7 +810,7 @@ describe("debug/* remaining coverage", function () {
         assert.doesNotMatch(text, /ship in lockstep/);
       } finally {
         process.chdir(prevCwd);
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -949,7 +949,7 @@ describe("debug/* remaining coverage", function () {
         const parsed = JSON.parse(saved);
         assert.equal(parsed.error, "failed to serialize debug data: plain string from toJSON");
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -972,7 +972,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /failed to save .*: plain string from mkdirSync/);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1053,7 +1053,7 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1085,7 +1085,7 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1136,7 +1136,7 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1162,7 +1162,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /<no \$VAR references found>/);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1202,7 +1202,7 @@ describe("debug/* remaining coverage", function () {
         const parsed = JSON.parse(saved);
         assert.match(parsed.error, /failed to serialize debug data/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1224,7 +1224,7 @@ describe("debug/* remaining coverage", function () {
         assert.doesNotMatch(text, /failed to save/);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1293,7 +1293,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /configPath:\s+\S*my-config\.json/);
         assert.notEqual(exitCode, 1);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1309,7 +1309,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+\S*\.doc-detective\.json/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1325,7 +1325,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+\S*\.doc-detective\.yaml/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1341,7 +1341,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+\S*\.doc-detective\.yml/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1356,7 +1356,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+<none>/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1371,7 +1371,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /-- Environment variables \(full\) /);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1393,7 +1393,7 @@ describe("debug/* remaining coverage", function () {
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
         assert.ok(saved.some((f) => /^debug-.+\.json$/.test(f)));
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1420,7 +1420,7 @@ describe("debug/* remaining coverage", function () {
         const saved = fs.readdirSync(savedDir);
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
 
@@ -1442,7 +1442,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /"input":\s*"\."/);
         assert.equal(exitCode, 1);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     });
   });
