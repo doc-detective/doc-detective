@@ -1,3 +1,17 @@
+## [4.29.1](https://github.com/doc-detective/doc-detective/compare/v4.29.0...v4.29.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **core:** default log level to info so 2-arg calls stop dropping messages ([#633](https://github.com/doc-detective/doc-detective/issues/633)) ([c07a893](https://github.com/doc-detective/doc-detective/commit/c07a89301d8aa322e9a61adb83744d181b131999)), closes [src/utils.ts#log](https://github.com/src/utils.ts/issues/log)
+* **core:** match find elementText against whole element text ([#634](https://github.com/doc-detective/doc-detective/issues/634)) ([f2173b2](https://github.com/doc-detective/doc-detective/commit/f2173b2944d2daf87645396c94fe728b018b1140))
+
+
+### Performance Improvements
+
+* **core:** resolution & validation efficiency (phase 3) ([#638](https://github.com/doc-detective/doc-detective/issues/638)) ([78c9986](https://github.com/doc-detective/doc-detective/commit/78c99868d79542f71b9f6fcaba06ef026ebf3a5f))
+* **core:** startup-path latency removal (phase 2) ([#635](https://github.com/doc-detective/doc-detective/issues/635)) ([ecb27ea](https://github.com/doc-detective/doc-detective/commit/ecb27eaaf59bdf24cd63fdd2933925277a04c0d5))
+
 # [4.29.0](https://github.com/doc-detective/doc-detective/compare/v4.28.0...v4.29.0) (2026-07-14)
 
 
