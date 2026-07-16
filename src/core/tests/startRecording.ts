@@ -26,6 +26,7 @@ import {
   appWindowRect,
 } from "./appWindows.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
+import { recordingCheckpointsEnabled } from "./recordingCheckpoints.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
@@ -338,11 +339,7 @@ async function startRecording({
   // and stopRecord reports staleness read-only — no video, no writes.
   const phantomRecordingResult = (skipDescription: string) => {
     result.status = "SKIPPED";
-    if (
-      step.record.overwrite === "aboveVariation" ||
-      (step.record.checkpoints !== undefined &&
-        step.record.checkpoints !== false)
-    ) {
+    if (recordingCheckpointsEnabled(step.record)) {
       result.description = `${skipDescription} Running checkpoint comparisons only, to detect whether the recording is stale.`;
       result.recording = { type: "phantom", targetPath: filePath };
     } else {

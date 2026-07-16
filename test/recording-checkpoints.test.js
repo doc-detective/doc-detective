@@ -550,3 +550,47 @@ describe("stopRecording: checkpoint seeding and outputs", function () {
     assert.equal(result.outputs.maxCheckpointVariation, 0.001);
   });
 });
+
+// A FAILed step marks every active checkpoint span dirty (ADR 01073): the
+// entry set is incomplete from that point, so span verdicts must not run.
+describeIfSharp("captureRecordingCheckpoints: dirty spans", function () {
+  this.timeout(20000);
+  let tmpDir;
+  const config = {};
+
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-ckpt-dirty-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("marks active spans dirty on a FAILed step instead of capturing", async function () {
+    const targetPath = path.join(tmpDir, "demo.mp4");
+    const handle = {
+      id: "rec1",
+      targetPath,
+      checkpoints: resolveCheckpointsConfig({
+        record: { path: "demo.mp4", checkpoints: true },
+        targetPath,
+        handleId: "h-dirty",
+      }),
+    };
+    const driver = fakeDriver(await makePngBuffer(24, 24));
+    const host = { state: { recordings: [handle] } };
+
+    await captureRecordingCheckpoints({
+      config,
+      driver,
+      recordingHost: host,
+      step: { stepId: "t~s1", find: "x" },
+      stepStatus: "FAIL",
+      stepIndex: 0,
+      stepCount: 1,
+      testId: "t",
+    });
+
+    expect(handle.checkpoints.spanDirty).to.equal(true);
+    expect(handle.checkpoints.entries).to.have.length(0);
+  });
+});

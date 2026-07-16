@@ -332,6 +332,8 @@ export const HINTS: Hint[] = [
       "A recording in this run appears stale: its checkpoint screenshots no longer match their committed baselines, but recording is skipped in headless mode so the video couldn't refresh itself.",
       "",
       "Re-run the affected test on a headed context (a visible display) to re-record it — with `overwrite: \"aboveVariation\"`, the recording and its baselines refresh together automatically.",
+      "",
+      "More: [doc-detective.com/docs/actions/record](https://doc-detective.com/docs/get-started/actions/record#detecting-staleness-in-headless-runs)",
     ].join("\n"),
     when: (ctx) => ctx.hasStaleRecordings,
   },

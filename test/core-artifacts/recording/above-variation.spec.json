@@ -1,9 +1,10 @@
 {
   "specId": "recording-above-variation",
-  "description": "record overwrite aboveVariation (ADR 01073): the span always records to staging; at stopRecord a span verdict decides whether the staged capture replaces the existing recording (and baselines update with it) or is discarded. Baselines persist between runs in the same tree, so the assert accepts either outcome — refreshed (changed true, first run or drift) or kept (changed false, clean comparison) — while NaN-guarding against the verdict not running. The recording file must exist afterward in both outcomes.",
+  "description": "record overwrite aboveVariation (ADR 01073): the span always records to staging; at stopRecord a span verdict decides whether the staged capture replaces the existing recording (and baselines update with it) or is discarded. Baselines persist between tests/reruns and tests aren't contractually ordered, so every assert accepts either clean outcome — refreshed (changed true) or kept (changed false) — while NaN-guarding against the verdict not running. In practice the two identical-span tests exercise both branches in one job: whichever runs first seeds (changed true), the other compares clean against the just-written baselines (changed false). Permutations: implied checkpoints (bare aboveVariation) and an explicit checkpoints object tuning maxVariation. The aboveVariation + checkpoints:false combo is overridden to checkpoints-on (unit-tested in test/recording-above-variation.test.js); dirty-span and promote-failure paths are unit-level too.",
   "tests": [
     {
       "testId": "above-variation-span",
+      "description": "Bare aboveVariation: checkpoints implied with defaults.",
       "runOn": [
         {
           "platforms": [
@@ -47,6 +48,108 @@
         {
           "description": "Assert the verdict ran (changed is a boolean), no checkpoint errors, and the recording file exists at the reported absolute path in both outcomes.",
           "runShell": "node -e \"const changed = process.env.AV_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AV_ERRORS) === 0 && require('fs').existsSync(process.env.AV_PATH); process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "above-variation-span-compare",
+      "description": "The identical span again: against the sibling test's baselines this compares clean (changed false); on a fresh tree whichever test runs first seeds instead. Either way the verdict must have run cleanly.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "above-variation-demo.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "aboveVariation"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "AV2_CHANGED": "$$changed",
+            "AV2_PATH": "$$recordingPath",
+            "AV2_ERRORS": "$$checkpointErrors"
+          }
+        },
+        {
+          "description": "Assert the verdict ran cleanly and the recording exists.",
+          "runShell": "node -e \"const changed = process.env.AV2_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AV2_ERRORS) === 0 && require('fs').existsSync(process.env.AV2_PATH); process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "above-variation-tuned",
+      "description": "aboveVariation with an explicit checkpoints object: custom maxVariation and baseline directory still drive the verdict.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "above-variation-tuned.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "aboveVariation",
+            "checkpoints": {
+              "maxVariation": 0.1,
+              "directory": "above-variation-tuned-baselines"
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "AVT_CHANGED": "$$changed",
+            "AVT_PATH": "$$recordingPath",
+            "AVT_ERRORS": "$$checkpointErrors"
+          }
+        },
+        {
+          "description": "Assert the tuned verdict ran cleanly and the recording exists.",
+          "runShell": "node -e \"const changed = process.env.AVT_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AVT_ERRORS) === 0 && require('fs').existsSync(process.env.AVT_PATH); process.exit(ok ? 0 : 1)\""
         }
       ]
     }

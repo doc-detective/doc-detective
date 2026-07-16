@@ -21,6 +21,7 @@ import {
 import {
   computeSpanVerdict,
   promoteRecordingSpan,
+  buildCheckpointOutputs,
 } from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
@@ -145,14 +146,25 @@ async function stopRecording({
     dropHandle();
     const phantomCheckpoints: CheckpointsConfig | undefined =
       recording.checkpoints;
+    const entries = phantomCheckpoints?.entries ?? [];
+    discardCheckpointStaging();
+    // A dirty span (a step FAILed mid-span) or a span that captured nothing
+    // has no evidence either way — report neither stale nor current.
+    if (phantomCheckpoints?.spanDirty || entries.length === 0) {
+      result.status = "SKIPPED";
+      result.description = `Recording skipped (headless); the span didn't produce a complete checkpoint set, so staleness couldn't be determined.`;
+      return result;
+    }
     const verdict = computeSpanVerdict({
-      entries: phantomCheckpoints?.entries ?? [],
+      entries,
       baselineDir: phantomCheckpoints?.baselineDir ?? "",
       maxVariation: phantomCheckpoints?.maxVariation ?? 0.05,
       targetExists: fs.existsSync(recording.targetPath),
     });
-    discardCheckpointStaging();
-    result.outputs = { stale: verdict.changed };
+    result.outputs = {
+      stale: verdict.changed,
+      ...buildCheckpointOutputs(entries),
+    };
     if (verdict.changed) {
       result.status = "WARNING";
       result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. Recording is skipped in headless mode; re-run headed to refresh it.`;
@@ -187,6 +199,10 @@ async function stopRecording({
   // rename), and the span verdict decides at the end whether it replaces the
   // existing recording or is discarded. Every other mode writes the target
   // directly, as before.
+  // The staging name is DETERMINISTIC (no per-run suffix): concurrent
+  // same-target recordings are already refused at start, and a crashed or
+  // failed run's leftover staging file is simply overwritten by the next
+  // run's transcode (-y) instead of accumulating orphans.
   const isAboveVariation = recording.overwrite === "aboveVariation";
   const finalTargetPath = recording.targetPath;
   const writeTargetPath = isAboveVariation
@@ -195,7 +211,7 @@ async function stopRecording({
         `.${path.basename(
           finalTargetPath,
           path.extname(finalTargetPath)
-        )}.staging-${randomUUID().slice(0, 8)}${path.extname(finalTargetPath)}`
+        )}.staging${path.extname(finalTargetPath)}`
       )
     : finalTargetPath;
 
@@ -431,6 +447,15 @@ async function stopRecording({
     // doomed second stop.
     dropHandle();
     discardCheckpointStaging();
+    if (isAboveVariation) {
+      // A failed transcode can leave a partial staging file beside the
+      // user's recording — remove it (the target itself was never touched).
+      try {
+        fs.rmSync(writeTargetPath, { force: true });
+      } catch {
+        /* best-effort */
+      }
+    }
     return result;
   }
 
@@ -443,44 +468,85 @@ async function stopRecording({
     // Span verdict (ADR 01073): promote the staged capture over the target
     // only when the span meaningfully changed; otherwise discard it and
     // leave target + baselines byte-untouched. Promote updates ALL baselines
-    // together with the video — they must never disagree.
-    const verdict = computeSpanVerdict({
-      entries: checkpoints?.entries ?? [],
-      baselineDir: checkpoints?.baselineDir ?? "",
-      maxVariation: checkpoints?.maxVariation ?? 0.05,
-      targetExists: fs.existsSync(finalTargetPath),
-    });
-    if (verdict.changed) {
-      promoteRecordingSpan({
-        config,
-        stagingTarget: writeTargetPath,
-        targetPath: finalTargetPath,
-        entries: checkpoints?.entries ?? [],
-        orphans: verdict.orphans,
-        baselineDir: checkpoints?.baselineDir ?? "",
-      });
-      seededBaselines = (checkpoints?.entries ?? []).filter(
-        (entry) => entry.baselineMissing && !entry.error
-      ).length;
-      result.outputs.changeReasons = verdict.reasons;
-      log(
-        config,
-        "info",
-        `Recording refreshed (${finalTargetPath}): ${verdict.reasons.join("; ")}`
-      );
-    } else {
+    // together with the video — they must never disagree. Two indeterminate
+    // cases keep the existing recording (unless none exists, when the fresh
+    // capture is better than nothing): a dirty span (a step FAILed — the
+    // entry set is incomplete, so orphans would misread as removed steps)
+    // and a span that captured no checkpoints at all (no evidence).
+    const entries = checkpoints?.entries ?? [];
+    const targetExists = fs.existsSync(finalTargetPath);
+    const discardStagedVideo = () => {
       try {
         fs.rmSync(writeTargetPath, { force: true });
       } catch {
         /* best-effort */
       }
+    };
+    const indeterminate = checkpoints?.spanDirty || entries.length === 0;
+    if (indeterminate && targetExists) {
+      discardStagedVideo();
+      result.outputs.changed = false;
+      log(
+        config,
+        "warning",
+        checkpoints?.spanDirty
+          ? `Recording kept unchanged (${finalTargetPath}): a step failed during the span, so drift couldn't be judged.`
+          : `Recording kept unchanged (${finalTargetPath}): no checkpoints were captured this run, so drift couldn't be judged.`
+      );
+    } else if (indeterminate) {
+      // No committed recording yet — promote the fresh capture without a
+      // verdict (better than nothing), seeding whatever baselines exist.
+      const promoted = promoteRecordingSpan({
+        config,
+        stagingTarget: writeTargetPath,
+        targetPath: finalTargetPath,
+        entries,
+        orphans: [],
+        baselineDir: checkpoints?.baselineDir ?? "",
+      });
+      seededBaselines = promoted.seededBaselines;
+      result.outputs.changed = promoted.videoPromoted;
+      if (promoted.videoPromoted) {
+        result.outputs.changeReasons = ["the recording file is missing"];
+      }
+    } else {
+      const verdict = computeSpanVerdict({
+        entries,
+        baselineDir: checkpoints?.baselineDir ?? "",
+        maxVariation: checkpoints?.maxVariation ?? 0.05,
+        targetExists,
+      });
+      if (verdict.changed) {
+        const promoted = promoteRecordingSpan({
+          config,
+          stagingTarget: writeTargetPath,
+          targetPath: finalTargetPath,
+          entries,
+          orphans: verdict.orphans,
+          baselineDir: checkpoints?.baselineDir ?? "",
+        });
+        seededBaselines = promoted.seededBaselines;
+        result.outputs.changed = promoted.videoPromoted;
+        if (promoted.videoPromoted) {
+          result.outputs.changeReasons = verdict.reasons;
+          log(
+            config,
+            "info",
+            `Recording refreshed (${finalTargetPath}): ${verdict.reasons.join("; ")}`
+          );
+        }
+      } else {
+        discardStagedVideo();
+        result.outputs.changed = false;
+      }
     }
-    result.outputs.changed = verdict.changed;
   } else if (checkpoints?.entries?.length) {
     // Recording checkpoints without aboveVariation (ADR 01072): seed missing
     // baselines from the staged captures (first run); never modify existing
-    // baselines.
+    // baselines. A dirty span (a step FAILed) seeds nothing — first-run
+    // baselines must come from a clean run.
     for (const entry of checkpoints.entries) {
+      if (checkpoints.spanDirty) break;
       if (entry.baselineMissing && !entry.error) {
         try {
           fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
@@ -525,32 +591,12 @@ async function stopRecording({
   // WARNING severity — never FAIL, mirroring screenshot semantics. Under
   // aboveVariation the WARNING doubles as "the recording was refreshed".
   if (checkpoints?.entries?.length) {
-    let maxCheckpointVariation = 0;
-    for (const entry of checkpoints.entries) {
-      if (typeof entry.variation === "number") {
-        maxCheckpointVariation = Math.max(
-          maxCheckpointVariation,
-          entry.variation
-        );
-      }
-    }
-    result.outputs.checkpoints = checkpoints.entries.map((entry) => ({
-      fileName: entry.fileName,
-      ...(typeof entry.variation === "number"
-        ? { variation: entry.variation }
-        : {}),
-      ...(entry.baselineMissing ? { baselineMissing: true } : {}),
-      ...(entry.error ? { error: entry.error } : {}),
-    }));
-    result.outputs.maxCheckpointVariation = maxCheckpointVariation;
-    result.outputs.seededBaselines = seededBaselines;
     // Errored checkpoints (capture failure, aspect-ratio mismatch against
     // the baseline) can hide extreme drift behind a variation of 0 — they
     // get their own WARNING-severity spec so they never read as a clean
     // pass.
-    result.outputs.checkpointErrors = checkpoints.entries.filter(
-      (entry) => entry.error
-    ).length;
+    Object.assign(result.outputs, buildCheckpointOutputs(checkpoints.entries));
+    result.outputs.seededBaselines = seededBaselines;
     const ctx = buildConditionContext({ outputs: result.outputs });
     const { assertions, status } = await evaluateImplicitAssertions(
       [

@@ -48,7 +48,8 @@ Mechanics:
 
 - Unit tests: a phantom handle with drifted/missing-baseline entries yields WARNING + `outputs.stale = true` and writes nothing (baseline dir mtimes unchanged, no seeding); matching entries yield SKIPPED + `outputs.stale = false`.
 - Hint unit test: `hasStaleRecordings` context signal + hint `when` predicate.
-- Feature fixture `test/core-artifacts/recording/stale-headless.spec.json` (headless, all platforms): an `aboveVariation` span with no committed baselines ⇒ phantom ⇒ WARNING with `outputs.stale = true`, asserted via captured outputs; the spec stays out of FAIL (verified: the fixture gate fails only on spec `result === "FAIL"`).
+- Feature fixture `test/core-artifacts/recording/stale-headless.spec.json` (headless **Windows/macOS only** — on Linux fixture jobs an Xvfb display can make headless ffmpeg recording real instead of skipped, so the phantom path never engages there): an `aboveVariation` span with no committed baselines ⇒ phantom ⇒ WARNING with `outputs.stale = true`, asserted via captured outputs; the spec stays out of FAIL (verified: the fixture gate fails only on spec `result === "FAIL"`).
+- A dirty span (a step FAILed mid-span) or a span that captured no checkpoints reports SKIPPED with **no** `stale` output — indeterminate evidence must claim neither staleness nor freshness. Unit-tested in `test/recording-above-variation.test.js`.
 
 ## Pros and Cons of the Options
 

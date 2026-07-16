@@ -9,10 +9,12 @@ import { saveScreenshot } from "./saveScreenshot.js";
 export {
   capPathSegment,
   stepArtifactFileName,
+  recordingCheckpointsEnabled,
   resolveCheckpointsConfig,
   captureRecordingCheckpoints,
   computeSpanVerdict,
   promoteRecordingSpan,
+  buildCheckpointOutputs,
 };
 export type { CheckpointsConfig, CheckpointEntry, SpanVerdict };
 
@@ -86,7 +88,23 @@ type CheckpointsConfig = {
   baselineDir: string;
   stagingDir: string;
   entries: CheckpointEntry[];
+  /**
+   * Set when a step FAILed while this span was active. A dirty span's
+   * checkpoint set is incomplete (failed/unreached steps have no entries),
+   * so orphan-based verdicts would misread it as "steps removed" -- the
+   * verdict, promote, and seeding are all skipped for dirty spans.
+   */
+  spanDirty?: boolean;
 };
+
+// Whether a record step's authored form enables checkpoints — the single
+// predicate shared by resolveCheckpointsConfig and startRecording's phantom
+// gate (ADR 01074), so the two can't drift: this returns true exactly when
+// resolveCheckpointsConfig returns a config.
+function recordingCheckpointsEnabled(record: any): boolean {
+  if (record?.overwrite === "aboveVariation") return true;
+  return record?.checkpoints !== undefined && record?.checkpoints !== false;
+}
 
 // Resolve a record step's `checkpoints` field against the recording's target
 // path. Baselines default to a `.checkpoints` directory named after the full
@@ -104,10 +122,15 @@ function resolveCheckpointsConfig({
   handleId: string;
 }): CheckpointsConfig | null {
   let raw = record?.checkpoints;
-  // overwrite: "aboveVariation" implies checkpoints with defaults — the
-  // span verdict (ADR 01073) is computed from them. An explicit checkpoints
-  // field still tunes maxVariation/directory.
-  if (raw === undefined && record?.overwrite === "aboveVariation") {
+  // overwrite: "aboveVariation" REQUIRES checkpoints — the span verdict
+  // (ADR 01073) is computed from them, so the mode forces them on even over
+  // an explicit `checkpoints: false` (documented; a verdict with no evidence
+  // could never refresh a drifted recording). An explicit checkpoints object
+  // still tunes maxVariation/directory.
+  if (
+    record?.overwrite === "aboveVariation" &&
+    (raw === undefined || raw === false)
+  ) {
     raw = true;
   }
   if (raw === undefined || raw === false) return null;
@@ -202,10 +225,13 @@ function computeSpanVerdict({
 // orphans — in that order, so any mid-sequence crash leaves a fresh video
 // with stale baselines, which the next run detects as CHANGED and repairs
 // (self-healing in the safe direction; true multi-file atomicity isn't
-// possible). Windows can't rename over an existing file, hence rm-then-
-// rename; baselines write via copy-to-temp-then-rename so a torn write
-// never corrupts a committed baseline. Failures log warnings and continue —
-// a partial promote must not fail the already-passed stop.
+// possible). The video swap parks the existing target at a backup name
+// first (Windows can't rename over an existing file) and RESTORES it if the
+// staging rename fails — the user's committed recording is never destroyed
+// without its replacement in place. Baselines write via copy-to-temp-then-
+// rename so a torn write never corrupts a committed baseline. Failures log
+// warnings; the returned counts tell the caller what actually happened so
+// outputs never claim a refresh that didn't land.
 function promoteRecordingSpan({
   config,
   stagingTarget,
@@ -220,29 +246,42 @@ function promoteRecordingSpan({
   entries: CheckpointEntry[];
   orphans: string[];
   baselineDir: string;
-}): void {
+}): { videoPromoted: boolean; seededBaselines: number } {
+  const backupPath = `${targetPath}.promote-backup`;
+  const targetExisted = fs.existsSync(targetPath);
   try {
-    fs.rmSync(targetPath, { force: true });
+    if (targetExisted) fs.renameSync(targetPath, backupPath);
     fs.renameSync(stagingTarget, targetPath);
+    if (targetExisted) fs.rmSync(backupPath, { force: true });
   } catch (error: any) {
     log(
       config,
       "warning",
-      `Couldn't promote the refreshed recording over ${targetPath}: ${error?.message ?? error}`
+      `Couldn't promote the refreshed recording over ${targetPath}; keeping the existing recording. ${error?.message ?? error}`
     );
-    return;
+    try {
+      if (targetExisted && !fs.existsSync(targetPath)) {
+        fs.renameSync(backupPath, targetPath);
+      }
+      fs.rmSync(stagingTarget, { force: true });
+    } catch {
+      /* best-effort restore */
+    }
+    return { videoPromoted: false, seededBaselines: 0 };
   }
   try {
     fs.mkdirSync(baselineDir, { recursive: true });
   } catch {
     /* surfaced by the per-entry writes below */
   }
+  let seededBaselines = 0;
   for (const entry of entries) {
     if (entry.error) continue;
     try {
       const tempPath = `${entry.baselinePath}.tmp`;
       fs.copyFileSync(entry.stagingPath, tempPath);
       fs.renameSync(tempPath, entry.baselinePath);
+      if (entry.baselineMissing) seededBaselines++;
     } catch (error: any) {
       log(
         config,
@@ -262,6 +301,37 @@ function promoteRecordingSpan({
       );
     }
   }
+  return { videoPromoted: true, seededBaselines };
+}
+
+// The per-checkpoint slice of stopRecord's outputs, shared by headed stops
+// and phantom (headless) stops so both report the same structured surface.
+function buildCheckpointOutputs(entries: CheckpointEntry[]): {
+  checkpoints: any[];
+  maxCheckpointVariation: number;
+  checkpointErrors: number;
+} {
+  let maxCheckpointVariation = 0;
+  for (const entry of entries) {
+    if (typeof entry.variation === "number") {
+      maxCheckpointVariation = Math.max(
+        maxCheckpointVariation,
+        entry.variation
+      );
+    }
+  }
+  return {
+    checkpoints: entries.map((entry) => ({
+      fileName: entry.fileName,
+      ...(typeof entry.variation === "number"
+        ? { variation: entry.variation }
+        : {}),
+      ...(entry.baselineMissing ? { baselineMissing: true } : {}),
+      ...(entry.error ? { error: entry.error } : {}),
+    })),
+    maxCheckpointVariation,
+    checkpointErrors: entries.filter((entry) => entry.error).length,
+  };
 }
 
 // The post-step checkpoint hook body: for every active, non-synthetic
@@ -314,12 +384,19 @@ async function captureRecordingCheckpoints({
   }
   // A FAILed step's frame is not a meaningful baseline (unlike
   // autoScreenshot, which deliberately captures failure frames for
-  // debugging) — seeding it would poison every later comparison.
+  // debugging) — seeding it would poison every later comparison. Worse, the
+  // failed step and everything after it produce NO entries, so orphan-based
+  // span verdicts would misread the gap as "steps removed" and destroy good
+  // artifacts. Mark every active span dirty so stopRecord skips the verdict,
+  // promotion, and seeding for this span.
   if (stepStatus === "FAIL") {
+    for (const handle of qualifying) {
+      handle.checkpoints.spanDirty = true;
+    }
     log(
       config,
       "debug",
-      `Recording checkpoint skipped for failed step ${step.stepId}.`
+      `Recording checkpoint skipped for failed step ${step.stepId}; span marked dirty.`
     );
     return;
   }

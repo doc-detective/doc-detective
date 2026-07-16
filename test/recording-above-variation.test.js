@@ -5,6 +5,8 @@ import path from "node:path";
 import {
   computeSpanVerdict,
   promoteRecordingSpan,
+  recordingCheckpointsEnabled,
+  resolveCheckpointsConfig,
 } from "../dist/core/tests/recordingCheckpoints.js";
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 
@@ -495,5 +497,232 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
       false,
       "phantom stops never seed baselines"
     );
+  });
+});
+
+// Review hardening (ADR 01073/01074 follow-ups): dirty spans, evidence-free
+// verdicts, checkpoint enablement coherence, and truthful promote reporting.
+describe("aboveVariation hardening", function () {
+  this.timeout(20000);
+  let tmpDir;
+  const config = {};
+
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-av-hard-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function makeHandle({ entries, targetContents, spanDirty }) {
+    const targetPath = path.join(tmpDir, "demo.mp4");
+    if (targetContents !== undefined)
+      fs.writeFileSync(targetPath, targetContents);
+    return {
+      type: "appium",
+      driver: {
+        stopRecordingScreen: async () =>
+          Buffer.from("fresh-video").toString("base64"),
+      },
+      targetPath,
+      overwrite: "aboveVariation",
+      checkpoints: {
+        maxVariation: 0.05,
+        baselineDir: path.join(tmpDir, "demo.mp4.checkpoints"),
+        stagingDir: path.join(tmpDir, "staging"),
+        entries,
+        ...(spanDirty ? { spanDirty: true } : {}),
+      },
+    };
+  }
+
+  it("a dirty span keeps the existing recording and baselines untouched", async function () {
+    const handle = makeHandle({
+      entries: [],
+      targetContents: "old-video",
+      spanDirty: true,
+    });
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    const baselinePath = path.join(
+      handle.checkpoints.baselineDir,
+      "01-a.png"
+    );
+    fs.writeFileSync(baselinePath, "committed");
+    // Even a drifted entry must not promote when the span is dirty.
+    fs.mkdirSync(handle.checkpoints.stagingDir, { recursive: true });
+    const stagingPath = path.join(handle.checkpoints.stagingDir, "01-a.png");
+    fs.writeFileSync(stagingPath, "drifted");
+    handle.checkpoints.entries.push({
+      fileName: "01-a.png",
+      stagingPath,
+      baselinePath,
+      variation: 0.9,
+    });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.outputs.changed, false);
+    assert.equal(fs.readFileSync(handle.targetPath, "utf8"), "old-video");
+    assert.equal(fs.readFileSync(baselinePath, "utf8"), "committed");
+  });
+
+  it("a span with zero checkpoints keeps an existing recording (no evidence)", async function () {
+    const handle = makeHandle({ entries: [], targetContents: "old-video" });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.outputs.changed, false);
+    assert.equal(fs.readFileSync(handle.targetPath, "utf8"), "old-video");
+  });
+
+  it("a span with zero checkpoints still seeds a missing recording (first run)", async function () {
+    const handle = makeHandle({ entries: [] });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.outputs.changed, true);
+    assert.equal(fs.readFileSync(handle.targetPath, "utf8"), "fresh-video");
+  });
+
+  it("a dirty span under plain checkpoints seeds nothing", async function () {
+    const handle = makeHandle({
+      entries: [],
+      targetContents: "old-video",
+      spanDirty: true,
+    });
+    handle.overwrite = "true";
+    fs.mkdirSync(handle.checkpoints.stagingDir, { recursive: true });
+    const stagingPath = path.join(handle.checkpoints.stagingDir, "01-a.png");
+    fs.writeFileSync(stagingPath, "capture");
+    handle.checkpoints.entries.push({
+      fileName: "01-a.png",
+      stagingPath,
+      baselinePath: path.join(handle.checkpoints.baselineDir, "01-a.png"),
+      baselineMissing: true,
+    });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.outputs.seededBaselines, 0);
+    assert.equal(
+      fs.existsSync(handle.checkpoints.baselineDir),
+      false,
+      "a dirty span must not seed baselines"
+    );
+  });
+});
+
+describe("recordingCheckpointsEnabled + aboveVariation implication", function () {
+  const targetPath = path.resolve("out", "demo.mp4");
+
+  it("aboveVariation forces checkpoints on, even over explicit false", function () {
+    for (const record of [
+      { path: "demo.mp4", overwrite: "aboveVariation" },
+      { path: "demo.mp4", overwrite: "aboveVariation", checkpoints: false },
+    ]) {
+      assert.equal(recordingCheckpointsEnabled(record), true);
+      const resolved = resolveCheckpointsConfig({
+        record,
+        targetPath,
+        handleId: "h1",
+      });
+      assert.notEqual(resolved, null);
+      assert.equal(resolved.maxVariation, 0.05);
+    }
+  });
+
+  it("aboveVariation keeps an explicit checkpoints object's tuning", function () {
+    const resolved = resolveCheckpointsConfig({
+      record: {
+        path: "demo.mp4",
+        overwrite: "aboveVariation",
+        checkpoints: { maxVariation: 0.2 },
+      },
+      targetPath,
+      handleId: "h2",
+    });
+    assert.equal(resolved.maxVariation, 0.2);
+  });
+
+  it("matches resolveCheckpointsConfig's nullability exactly", function () {
+    for (const record of [
+      { path: "demo.mp4" },
+      { path: "demo.mp4", checkpoints: false },
+      { path: "demo.mp4", checkpoints: true },
+      { path: "demo.mp4", checkpoints: {} },
+      { path: "demo.mp4", overwrite: "true" },
+      { path: "demo.mp4", overwrite: "aboveVariation", checkpoints: false },
+    ]) {
+      const enabled = recordingCheckpointsEnabled(record);
+      const resolved = resolveCheckpointsConfig({
+        record,
+        targetPath,
+        handleId: "h3",
+      });
+      assert.equal(
+        enabled,
+        resolved !== null,
+        `predicate/config disagree for ${JSON.stringify(record)}`
+      );
+    }
+  });
+});
+
+describe("stopRecording: phantom indeterminate spans", function () {
+  this.timeout(20000);
+  let tmpDir;
+  const config = {};
+
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-phantom-ind-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("a dirty or empty phantom span reports neither stale nor current", async function () {
+    for (const overrides of [
+      { entries: [], spanDirty: true },
+      { entries: [] },
+    ]) {
+      const handle = {
+        type: "phantom",
+        targetPath: path.join(tmpDir, "demo.mp4"),
+        checkpoints: {
+          maxVariation: 0.05,
+          baselineDir: path.join(tmpDir, "demo.mp4.checkpoints"),
+          stagingDir: path.join(tmpDir, "staging"),
+          ...overrides,
+        },
+      };
+      const host = { state: { recordings: [handle] } };
+      const result = await stopRecording({
+        config,
+        step: { stepId: "x", stopRecord: true },
+        driver: host,
+      });
+      assert.equal(result.status, "SKIPPED");
+      assert.equal(result.outputs?.stale, undefined);
+    }
   });
 });
