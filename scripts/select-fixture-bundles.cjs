@@ -20,7 +20,7 @@
 const BUNDLES = [
   { name: "nav-capture", dirs: ["navigation", "capture"] },
   { name: "interactions", dirs: ["interactions"] },
-  { name: "web-plumbing", dirs: ["routing", "http", "guards"] },
+  { name: "web-plumbing", dirs: ["routing", "http", "guards", "secrets"] },
   { name: "proc-sessions", dirs: ["process", "sessions"] },
   { name: "recording", dirs: ["recording"] },
   { name: "apps", dirs: ["apps"], timeout: 30 },

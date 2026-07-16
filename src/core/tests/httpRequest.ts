@@ -10,6 +10,7 @@ import {
   calculateFractionalDifference,
   replaceEnvs,
 } from "../utils.js";
+import { resolveSecrets } from "../secrets.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -176,6 +177,19 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   // Load environment variables
   // Have to do it again to catch any changes made to the OpenAPI config
   step = await replaceEnvs(step);
+
+  // Secrets, for the same reason: fields pulled in from an OpenAPI definition
+  // never went through runStep's resolution pass, so a `$secret.NAME` reference
+  // in one would otherwise be sent to the server literally. Steps that came
+  // straight from the spec are already resolved and no-op here. Routed through
+  // the same helper as runStep so the two passes can't drift (ADR 01071).
+  const secretResolution = resolveSecrets(step);
+  if (secretResolution.failure) {
+    result.status = secretResolution.failure.status;
+    result.description = secretResolution.failure.description;
+    return result;
+  }
+  step = secretResolution.step;
 
   // Validate step payload
   const isValidStep = validate({ schemaKey: "step_v3", object: step });

@@ -68,6 +68,13 @@ import {
   getFfmpegPath,
   ffmpegPathEnv,
 } from "./tests/ffmpegRecorder.js";
+import {
+  resolveSecrets,
+  scrubObject,
+  scrubString,
+  hasRegisteredSecrets,
+  redactUndeclaredSecrets,
+} from "./secrets.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
@@ -2180,7 +2187,22 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   }
 
-  return report;
+  // Final sweep before the report leaves the runner. The per-step seam already
+  // masks `outputs`; this catches every OTHER string a resolved secret can
+  // reach — driver error text rolled into resultDescriptions, warm/teardown
+  // notes, anything a future field adds. It is also the single point that
+  // covers BOTH egress paths downstream: `outputResults` (json / html /
+  // runFolder reporters all consume this object) and `reportResults`, which
+  // POSTs whole contexts off-box.
+  //
+  // Order matters. The registry scrub (ADR 01072, exact values of DECLARED
+  // secrets) runs first and is unconditional. The heuristic pass (ADR 01073,
+  // credential-SHAPED values the author never declared) runs second and is
+  // opt-out-able — so a user whose legitimate output trips a shape can disable
+  // it without ever weakening the guarantee for declared secrets.
+  let out: any = hasRegisteredSecrets() ? scrubObject(report) : report;
+  if (config?.heuristicRedaction !== false) out = redactUndeclaredSecrets(out);
+  return out;
 }
 
 /**
@@ -4743,6 +4765,16 @@ async function runContext({
           processRegistry: processRegistry,
           appSession: appSession,
         });
+        // Mask resolved secrets that the action ECHOED back (ADR 01072) before
+        // the result reaches ANY consumer: the step report below, the debug
+        // dump, and — critically — `stepOutputsById`, which backs routing,
+        // `$$steps.*`, and expressions. Scrubbing here rather than at each
+        // consumer is what makes "a secret is never matched" hold even when the
+        // system under test reflects the credential (a shell printing its argv,
+        // an auth endpoint returning the token). Routing may match the mask;
+        // it can never see the value.
+        if (r.outputs) r.outputs = scrubObject(r.outputs);
+        if (typeof r.description === "string") r.description = scrubString(r.description);
         if (logLevelEnabled(config, "debug")) clog(
           "debug",
           `RESULT: ${r.status}\n${JSON.stringify(r, null, 2)}`
@@ -5090,8 +5122,30 @@ async function runStep({
   appSession?: AppSessionState;
 }): Promise<any> {
   let actionResult: any;
-  // Load values from environment variables
+  // Resolve `$VAR` references IN PLACE on the caller's step. This object is the
+  // REPORT copy — `runStepOnce` spreads it into the step report — so resolved
+  // env vars keep appearing in reports exactly as they always have.
+  // `$secret.NAME` tokens survive this pass untouched (ENV_VAR_REGEX reserves
+  // the prefix), so the report shows the placeholder, not the credential.
   step = replaceEnvs(step);
+
+  // Resolve `$secret.NAME` references into an EXECUTION copy — a clone, so the
+  // caller's report copy keeps its placeholders. Rebinding the local `step`
+  // below hands every action handler the real values without the report ever
+  // seeing them (ADR 01071).
+  const secretResolution = resolveSecrets(step);
+  for (const warning of secretResolution.warnings) {
+    log(config, "warning", `Step '${step.stepId || "(unnamed)"}': ${warning}`);
+  }
+  if (secretResolution.failure) {
+    return {
+      status: secretResolution.failure.status,
+      description: secretResolution.failure.description,
+      outputs: {},
+    };
+  }
+  step = secretResolution.step;
+
   if (typeof step.click !== "undefined") {
     actionResult = await clickElement({
       config: config,

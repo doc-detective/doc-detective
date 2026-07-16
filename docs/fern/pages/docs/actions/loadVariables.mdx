@@ -10,6 +10,10 @@ The `loadVariables` action loads environment variables from a specified `.env` f
 >
 > For comprehensive options, see the [`loadVariables`](/reference/schemas/loadvariables) reference.
 
+<Warning>
+A `$VAR` reference resolves to its value in your test results, logs, and reports. For a credential, reference it as `$secret.API_KEY` instead — Doc Detective reads the same variable but keeps the value out of everything it writes. Load it the same way. See [Secrets](/docs/test-code/secrets).
+</Warning>
+
 ## Example
 
 Assuming a file named `secrets.env` exists in the same directory as the test file or at the specified path:
