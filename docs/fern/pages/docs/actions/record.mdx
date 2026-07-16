@@ -204,6 +204,8 @@ Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this se
 
 Recording needs a visible display, so headless runs skip `record` steps. With `aboveVariation` (or `checkpoints`) configured, a headless run still compares checkpoints against the committed baselines and reports whether the recording has gone stale: the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint suggests re-running headed to refresh. Your headless CI continuously watches recording freshness; you only run headed when something actually changed.
 
+A headless browser can render slightly differently from a headed one—fonts, scrollbars, and viewport dimensions all shift—so a checkpoint sometimes reads as drift even when the recording hasn't actually changed. If clean recordings flag as stale in your headless runs, raise `checkpoints.maxVariation` a little above the `maxCheckpointVariation` the `stopRecord` step reports—for example, if it reports `0.07`, try `0.1`. That absorbs the rendering noise while still surfacing genuine drift. A run that has no committed baselines yet always reports the recording as stale—there's nothing to compare against until you record it headed once.
+
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
 ## Examples
