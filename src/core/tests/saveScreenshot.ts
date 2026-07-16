@@ -383,8 +383,10 @@ async function saveScreenshot({
   } else {
     // Set path directory
     dir = path.dirname(step.screenshot.path);
-    // If `dir` doesn't exist, create it
-    if (!fs.existsSync(dir)) {
+    // If `dir` doesn't exist, create it. Compare-only callers never write
+    // the target path, so creating its directory mid-span would litter an
+    // empty baseline folder that seeding (stopRecord) owns.
+    if (!internal?.compareOnly && !fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 

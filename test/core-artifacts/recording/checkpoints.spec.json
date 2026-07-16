@@ -1,10 +1,10 @@
 {
   "specId": "recording-checkpoints",
-  "description": "Recording checkpoints (ADR 01072): while a checkpoint-enabled recording is active, every step captures a compare-only screenshot against a persistent baseline beside the recording. Test 1 is the first run (baselines seed at stopRecord, maxCheckpointVariation 0); test 2 replays the identical span against the seeded baselines (comparison path, variation within tolerance on the static test page). Headed-only like all recordings; compareOnly/no-write mechanics are unit-tested in test/recording-checkpoints.test.js.",
+  "description": "Recording checkpoints (ADR 01072): while a checkpoint-enabled recording is active, every step captures a compare-only screenshot against a persistent baseline beside the recording. Baselines persist between tests and between reruns in the same tree, and tests aren't contractually ordered, so every assert accepts EITHER outcome of a run — seeded cleanly (seededBaselines >= 2, variation 0) OR compared cleanly (seededBaselines == 0, variation within tolerance) — while still failing if checkpoints never ran (unresolved outputs make the Number() checks NaN). Permutations: boolean form, object form (maxVariation + directory), and the disabling false form (no-op smoke; the strong null-config assert is unit-level in test/recording-checkpoints.test.js). Headed-only like all recordings; headless legs land SKIPPED.",
   "tests": [
     {
-      "testId": "checkpoints-seed",
-      "description": "First run: checkpoints stage captures and stopRecord seeds the baselines.",
+      "testId": "checkpoints-boolean",
+      "description": "Boolean checkpoints: true — default maxVariation and baseline dir beside the recording.",
       "runOn": [
         {
           "platforms": [
@@ -41,19 +41,20 @@
         {
           "stopRecord": true,
           "variables": {
-            "CKPT_SEED_MAX_VARIATION": "$$maxCheckpointVariation",
-            "CKPT_SEEDED": "$$seededBaselines"
+            "CKPT_BOOL_SEEDED": "$$seededBaselines",
+            "CKPT_BOOL_MAX_VARIATION": "$$maxCheckpointVariation",
+            "CKPT_BOOL_ERRORS": "$$checkpointErrors"
           }
         },
         {
-          "description": "Assert the first run seeded baselines (record bookend + find step) and had nothing to differ from.",
-          "runShell": "node -e \"process.exit(Number('$CKPT_SEED_MAX_VARIATION') === 0 && Number('$CKPT_SEEDED') >= 2 ? 0 : 1)\""
+          "description": "Assert checkpoints ran and either seeded cleanly or compared cleanly, with zero comparison errors.",
+          "runShell": "node -e \"const s = Number('$CKPT_BOOL_SEEDED'); const v = Number('$CKPT_BOOL_MAX_VARIATION'); const e = Number('$CKPT_BOOL_ERRORS'); const ok = e === 0 && ((s >= 2 && v === 0) || (s === 0 && v <= 0.05)); process.exit(ok ? 0 : 1)\""
         }
       ]
     },
     {
-      "testId": "checkpoints-compare",
-      "description": "Second run of the identical span: checkpoints compare against the baselines test 1 seeded.",
+      "testId": "checkpoints-object",
+      "description": "Object checkpoints form: custom maxVariation and a relative directory that resolves beside the recording.",
       "runOn": [
         {
           "platforms": [
@@ -72,13 +73,16 @@
         },
         {
           "record": {
-            "path": "checkpoints-demo.mp4",
+            "path": "checkpoints-demo-object.mp4",
             "engine": {
               "name": "ffmpeg",
               "target": "display"
             },
             "overwrite": "true",
-            "checkpoints": true
+            "checkpoints": {
+              "maxVariation": 0.1,
+              "directory": "checkpoints-object-baselines"
+            }
           }
         },
         {
@@ -90,13 +94,55 @@
         {
           "stopRecord": true,
           "variables": {
-            "CKPT_COMPARE_MAX_VARIATION": "$$maxCheckpointVariation",
-            "CKPT_COMPARE_SEEDED": "$$seededBaselines"
+            "CKPT_OBJ_SEEDED": "$$seededBaselines",
+            "CKPT_OBJ_MAX_VARIATION": "$$maxCheckpointVariation",
+            "CKPT_OBJ_ERRORS": "$$checkpointErrors"
           }
         },
         {
-          "description": "Assert this run COMPARED (seeded nothing) and the static page stayed within tolerance.",
-          "runShell": "node -e \"const v = Number('$CKPT_COMPARE_MAX_VARIATION'); process.exit(Number('$CKPT_COMPARE_SEEDED') === 0 && Number.isFinite(v) && v <= 0.05 ? 0 : 1)\""
+          "description": "Assert the object form ran with the custom tolerance: seeded cleanly or compared within 0.1.",
+          "runShell": "node -e \"const s = Number('$CKPT_OBJ_SEEDED'); const v = Number('$CKPT_OBJ_MAX_VARIATION'); const e = Number('$CKPT_OBJ_ERRORS'); const ok = e === 0 && ((s >= 2 && v === 0) || (s === 0 && v <= 0.1)); process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "checkpoints-disabled",
+      "description": "checkpoints: false is a no-op — the span records normally and stopRecord passes without checkpoint machinery.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "checkpoints-demo-disabled.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "true",
+            "checkpoints": false
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
         }
       ]
     }

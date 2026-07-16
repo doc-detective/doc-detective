@@ -133,6 +133,7 @@ async function captureRecordingCheckpoints({
   driver,
   recordingHost,
   step,
+  stepStatus,
   stepIndex,
   stepCount,
   testId,
@@ -142,6 +143,7 @@ async function captureRecordingCheckpoints({
   driver: any;
   recordingHost: any;
   step: any;
+  stepStatus?: string;
   stepIndex: number;
   stepCount: number;
   testId: string;
@@ -149,12 +151,36 @@ async function captureRecordingCheckpoints({
 }): Promise<void> {
   const recordings = recordingHost?.state?.recordings;
   if (!Array.isArray(recordings) || recordings.length === 0) return;
-  for (const handle of recordings) {
-    const checkpoints: CheckpointsConfig | null | undefined =
-      handle?.checkpoints;
-    // autoRecord's synthetic span targets a per-run output folder, so a
-    // persistent baseline could never anchor there — skip it.
-    if (!checkpoints || handle.synthetic) continue;
+  // Single home for "which handles qualify": non-synthetic (autoRecord's
+  // span targets a per-run output folder, so a persistent baseline could
+  // never anchor there) with resolved checkpoint config.
+  const qualifying = recordings.filter(
+    (h: any) => h?.checkpoints && !h.synthetic
+  );
+  if (qualifying.length === 0) return;
+  if (!driver) {
+    // App-only contexts have no browser driver to capture with (v1
+    // limitation — app-surface checkpoints are a follow-up, ADR 01072).
+    log(
+      config,
+      "debug",
+      "Recording checkpoints skipped: no browser driver in this context."
+    );
+    return;
+  }
+  // A FAILed step's frame is not a meaningful baseline (unlike
+  // autoScreenshot, which deliberately captures failure frames for
+  // debugging) — seeding it would poison every later comparison.
+  if (stepStatus === "FAIL") {
+    log(
+      config,
+      "debug",
+      `Recording checkpoint skipped for failed step ${step.stepId}.`
+    );
+    return;
+  }
+  for (const handle of qualifying) {
+    const checkpoints: CheckpointsConfig = handle.checkpoints;
     const fileName = stepArtifactFileName({
       step,
       stepIndex,

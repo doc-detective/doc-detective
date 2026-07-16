@@ -4815,37 +4815,23 @@ async function runContext({
       // after every step (final attempt only, same placement rationale as
       // autoScreenshot — retry frames would poison the staged captures).
       // The record step's own post-step capture is the opening bookend.
-      // Requires a browser driver; app-only contexts skip with a debug log.
+      // The host is the ACTIVE session's driver — the same driver runStep
+      // pushed the handle onto — falling back to the app session's host for
+      // app-only contexts (which skip capture inside the helper: no browser
+      // driver to capture with).
       {
-        const checkpointHost = driver ?? appSession?.recordingHost;
         const checkpointDriver = activeDriver(browserSessions) ?? driver;
-        const hasCheckpointSpan = Array.isArray(
-          checkpointHost?.state?.recordings
-        )
-          ? checkpointHost.state.recordings.some(
-              (h: any) => h?.checkpoints && !h.synthetic
-            )
-          : false;
-        if (hasCheckpointSpan) {
-          if (checkpointDriver) {
-            await captureRecordingCheckpoints({
-              config,
-              driver: checkpointDriver,
-              recordingHost: checkpointHost,
-              step,
-              stepIndex,
-              stepCount: context.steps.length,
-              testId: test.testId,
-              appSession,
-            });
-          } else {
-            log(
-              config,
-              "debug",
-              "Recording checkpoints skipped: no browser driver in this context."
-            );
-          }
-        }
+        await captureRecordingCheckpoints({
+          config,
+          driver: checkpointDriver,
+          recordingHost: checkpointDriver ?? appSession?.recordingHost,
+          step,
+          stepStatus: stepReport.result,
+          stepIndex,
+          stepCount: context.steps.length,
+          testId: test.testId,
+          appSession,
+        });
       }
 
       pushStepReport(stepReport);
@@ -5185,8 +5171,10 @@ async function runStep({
       // Recording checkpoints (ADR 01072): resolve the step's `checkpoints`
       // field once, here, where the handle and its target path are both at
       // hand — the post-step hook and stopRecord read the resolved config
-      // off the handle.
-      if (handle.targetPath && typeof step.record === "object") {
+      // off the handle. resolveCheckpointsConfig returns null for every
+      // record form without a checkpoints field (string/boolean included),
+      // so `null` is the single "disabled" encoding.
+      if (handle.targetPath) {
         handle.checkpoints = resolveCheckpointsConfig({
           record: step.record,
           targetPath: handle.targetPath,

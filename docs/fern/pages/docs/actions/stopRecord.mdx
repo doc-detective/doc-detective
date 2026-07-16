@@ -33,6 +33,7 @@ When the recording ran with [checkpoints](record#recording-checkpoints) enabled,
 - `$$checkpoints`: per-checkpoint results (file name, variation, whether the baseline was missing).
 - `$$maxCheckpointVariation`: the highest variation across the span's checkpoints. Beyond the configured `maxVariation`, the step returns WARNING.
 - `$$seededBaselines`: how many baselines this stop seeded (first run only; `0` when every checkpoint compared against an existing baseline).
+- `$$checkpointErrors`: how many checkpoints couldn't be captured or compared (for example, an aspect-ratio mismatch against the baseline). Any errors also return WARNING—an incomparable checkpoint is a drift signal, not a clean pass.
 
 A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
 
