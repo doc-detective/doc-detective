@@ -20,6 +20,7 @@ directory | string | Optional. Directory of the file. If the directory doesn't e
 overwrite | string | Optional. If `true`, overwrites the existing recording at `path` if it exists.<br/><br/>Accepted values: `true`, `false` | 
 name | string | Optional. Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.<br/><br/>Pattern: `\S` | 
 engine | one of:<br/>- string<br/>- object([Recording engine (detailed)](/reference/schemas/recording-engine-detailed)) | Optional. Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise. | 
+checkpoints | one of:<br/>- boolean<br/>- object([Recording checkpoints (detailed)](/reference/schemas/recording-checkpoints-detailed)) | Optional. Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured. | 
 
 ## Examples
 
@@ -30,6 +31,7 @@ engine | one of:<br/>- string<br/>- object([Recording engine (detailed)](/refere
   "directory": "example",
   "overwrite": "true",
   "name": "example",
-  "engine": "browser"
+  "engine": "browser",
+  "checkpoints": true
 }
 ```

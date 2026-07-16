@@ -1,10 +1,17 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { sanitizeFilesystemName } from "../utils.js";
+import { log, sanitizeFilesystemName } from "../utils.js";
 import { BROWSER_STEP_KEYS as driverActions } from "../../runtime/browserStepKeys.js";
+import { saveScreenshot } from "./saveScreenshot.js";
 
-export { capPathSegment, stepArtifactFileName, resolveCheckpointsConfig };
+export {
+  capPathSegment,
+  stepArtifactFileName,
+  resolveCheckpointsConfig,
+  captureRecordingCheckpoints,
+};
 export type { CheckpointsConfig, CheckpointEntry };
 
 // Directory/file segments built from IDs are capped so deeply nested doc
@@ -111,4 +118,107 @@ function resolveCheckpointsConfig({
     ),
     entries: [],
   };
+}
+
+// The post-step checkpoint hook body: for every active, non-synthetic
+// recording handle with checkpoints enabled, capture one screenshot and
+// compare it compare-only against the handle's persistent baseline, pushing
+// a CheckpointEntry either way. Baselines are never written here — seeding
+// and updates belong to stopRecord (ADR 01072). Never throws: a failed
+// capture records an entry with `error` and a warning log, mirroring
+// captureAutoScreenshot's contract (a missed checkpoint must not fail the
+// step it documents).
+async function captureRecordingCheckpoints({
+  config,
+  driver,
+  recordingHost,
+  step,
+  stepIndex,
+  stepCount,
+  testId,
+  appSession,
+}: {
+  config: any;
+  driver: any;
+  recordingHost: any;
+  step: any;
+  stepIndex: number;
+  stepCount: number;
+  testId: string;
+  appSession?: any;
+}): Promise<void> {
+  const recordings = recordingHost?.state?.recordings;
+  if (!Array.isArray(recordings) || recordings.length === 0) return;
+  for (const handle of recordings) {
+    const checkpoints: CheckpointsConfig | null | undefined =
+      handle?.checkpoints;
+    // autoRecord's synthetic span targets a per-run output folder, so a
+    // persistent baseline could never anchor there — skip it.
+    if (!checkpoints || handle.synthetic) continue;
+    const fileName = stepArtifactFileName({
+      step,
+      stepIndex,
+      stepCount,
+      testId,
+    });
+    const entry: CheckpointEntry = {
+      fileName,
+      stagingPath: path.join(checkpoints.stagingDir, fileName),
+      baselinePath: path.join(checkpoints.baselineDir, fileName),
+    };
+    try {
+      fs.mkdirSync(checkpoints.stagingDir, { recursive: true });
+      const screenshotStep = {
+        stepId: `${step.stepId}_checkpoint`,
+        description: "Recording checkpoint screenshot",
+        screenshot: {
+          path: entry.baselinePath,
+          maxVariation: checkpoints.maxVariation,
+          overwrite: "aboveVariation",
+        },
+      };
+      const captureResult = await saveScreenshot({
+        config,
+        step: screenshotStep,
+        driver,
+        appSession,
+        internal: { compareOnly: true, capturePath: entry.stagingPath },
+      });
+      if (
+        captureResult.status !== "PASS" &&
+        captureResult.status !== "WARNING"
+      ) {
+        entry.error = captureResult.description;
+        log(
+          config,
+          "warning",
+          `Recording checkpoint failed after step ${step.stepId}: ${captureResult.description}`
+        );
+      } else {
+        if (typeof captureResult.outputs?.variation === "number") {
+          entry.variation = captureResult.outputs.variation;
+        }
+        if (captureResult.outputs?.baselineMissing) {
+          entry.baselineMissing = true;
+        }
+      }
+    } catch (error: any) {
+      entry.error = String(error?.message ?? error);
+      log(
+        config,
+        "warning",
+        `Recording checkpoint failed after step ${step.stepId}: ${entry.error}`
+      );
+    }
+    // A step revisited via goToStep produces the same fileName — keep only
+    // the latest visit's entry (latest-visit-wins, same as autoScreenshot).
+    const existingIndex = checkpoints.entries.findIndex(
+      (e) => e.fileName === fileName
+    );
+    if (existingIndex >= 0) {
+      checkpoints.entries[existingIndex] = entry;
+    } else {
+      checkpoints.entries.push(entry);
+    }
+  }
 }

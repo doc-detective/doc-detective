@@ -14,6 +14,11 @@ import {
   detectDisplayPointSize,
   probeVideoMetadata,
 } from "./ffmpegRecorder.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
 export { stopRecording };
 
@@ -382,6 +387,69 @@ async function stopRecording({
       "debug",
       `Couldn't probe recording metadata for ${recording.targetPath}.`
     );
+  }
+
+  // Recording checkpoints (ADR 01072): seed missing baselines from the
+  // staged captures (first run), report per-checkpoint results, and surface
+  // drift beyond maxVariation through the shared implicit-assertion engine
+  // at WARNING severity — never FAIL, mirroring screenshot semantics.
+  // Existing baselines are never modified here.
+  const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
+  if (checkpoints?.entries?.length) {
+    let maxCheckpointVariation = 0;
+    let seededBaselines = 0;
+    for (const entry of checkpoints.entries) {
+      if (entry.baselineMissing && !entry.error) {
+        try {
+          fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
+          fs.copyFileSync(entry.stagingPath, entry.baselinePath);
+          seededBaselines++;
+        } catch (error: any) {
+          entry.error = String(error?.message ?? error);
+          log(
+            config,
+            "warning",
+            `Couldn't seed checkpoint baseline ${entry.baselinePath}: ${entry.error}`
+          );
+        }
+      }
+      if (typeof entry.variation === "number") {
+        maxCheckpointVariation = Math.max(
+          maxCheckpointVariation,
+          entry.variation
+        );
+      }
+    }
+    result.outputs.checkpoints = checkpoints.entries.map((entry) => ({
+      fileName: entry.fileName,
+      ...(typeof entry.variation === "number"
+        ? { variation: entry.variation }
+        : {}),
+      ...(entry.baselineMissing ? { baselineMissing: true } : {}),
+      ...(entry.error ? { error: entry.error } : {}),
+    }));
+    result.outputs.maxCheckpointVariation = maxCheckpointVariation;
+    result.outputs.seededBaselines = seededBaselines;
+    const ctx = buildConditionContext({ outputs: result.outputs });
+    const { assertions, status } = await evaluateImplicitAssertions(
+      [
+        {
+          statement: `$$outputs.maxCheckpointVariation <= ${checkpoints.maxVariation}`,
+          severity: "warning",
+        },
+      ],
+      ctx
+    );
+    result.assertions = assertions;
+    result.status = status;
+    if (status === "WARNING") {
+      result.description += ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) — the recorded flow's content may have changed since its baselines were captured.`;
+    }
+    try {
+      fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
+    } catch {
+      /* best-effort cleanup; staged files live under the OS temp dir */
+    }
   }
   return result;
 }

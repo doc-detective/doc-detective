@@ -28,6 +28,12 @@ The same untargeted and named forms stop recordings of every kind—browser, des
 - `$$width` and `$$height`: the video's dimensions in pixels, after any window or viewport crop.
 - `$$fps`: the video's frame rate.
 
+When the recording ran with [checkpoints](record#recording-checkpoints) enabled, the outputs also include:
+
+- `$$checkpoints`: per-checkpoint results (file name, variation, whether the baseline was missing).
+- `$$maxCheckpointVariation`: the highest variation across the span's checkpoints. Beyond the configured `maxVariation`, the step returns WARNING.
+- `$$seededBaselines`: how many baselines this stop seeded (first run only; `0` when every checkpoint compared against an existing baseline).
+
 A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
 
 ## Examples

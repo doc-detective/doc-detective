@@ -49,10 +49,9 @@ Mechanics:
 
 ### Confirmation
 
-- Unit tests: the extracted naming helper produces byte-identical names to `autoScreenshot`'s previous output; `saveScreenshot` compareOnly leaves an existing baseline untouched above-variation, writes the capture to the staging path, and reports `baselineMissing` without writing when no baseline exists; `stopRecording` seeds missing baselines and reports `outputs.checkpoints`.
+- Unit tests in `test/recording-checkpoints.test.js`: the extracted naming helper produces byte-identical names to `autoScreenshot`'s previous output; `saveScreenshot` compareOnly leaves an existing baseline untouched above-variation, stages the capture, and reports `baselineMissing` without writing when no baseline exists; `captureRecordingCheckpoints` accumulates entries per handle, skips synthetic handles, and records errors without throwing; `stopRecording` seeds missing baselines, reports `outputs.checkpoints`/`maxCheckpointVariation`/`seededBaselines`, and lands WARNING (never FAIL) on drift through the shared assertion engine.
 - Schema tests: positive and negative `checkpoints` cases in `src/common/test/validate.test.js`.
-- Feature fixture `test/core-artifacts/recording/checkpoints.spec.json` (headed Windows/macOS): a checkpointed span against the local test server, first-run seeding asserted via captured outputs; headless legs land SKIPPED.
-- Programmatic assertions in `test/core-core.test.js` for the seeding/report shape end-to-end through `runTests`.
+- Feature fixture `test/core-artifacts/recording/checkpoints.spec.json` (headed Windows/macOS): two sequential tests of the identical span — the first asserts seeding (`seededBaselines >= 2`, variation 0) and the second asserts the comparison path against those baselines (`seededBaselines == 0`, variation within tolerance) via captured outputs and exit-code asserts. Headless legs land SKIPPED. (End-to-end checkpoint capture requires a headed recording span, so there is no headless `runTests` programmatic test; the hook body is unit-tested directly.)
 
 ## Pros and Cons of the Options
 

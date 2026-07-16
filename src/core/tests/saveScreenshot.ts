@@ -97,7 +97,25 @@ function aspectRatiosMatch(
   return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
 }
 
-async function saveScreenshot({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
+// `internal` is a core-only seam (not a schema field): recording checkpoints
+// run comparisons against persistent baselines that must never be written
+// mid-span — baseline writes belong to stopRecord (ADR 01072). In compareOnly
+// mode the fresh capture always persists to `capturePath` (staging) instead,
+// and a missing reference reports `outputs.baselineMissing` rather than
+// seeding the file.
+async function saveScreenshot({
+  config,
+  step,
+  driver,
+  appSession,
+  internal,
+}: {
+  config: any;
+  step: any;
+  driver: any;
+  appSession?: any;
+  internal?: { compareOnly: true; capturePath: string };
+}) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -669,6 +687,14 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     if (!writeFinalPng(filePath)) return result;
   }
 
+  // Compare-only callers (recording checkpoints) always persist the fresh
+  // capture to their staging path — whether a baseline exists or not, and
+  // whatever the comparison says. The baseline decision happens later, at
+  // stopRecord. This is the single write in compareOnly mode.
+  if (internal?.compareOnly) {
+    if (!writeFinalPng(internal.capturePath)) return result;
+  }
+
   // If a reference already exists (local target or fetched URL temp):
   // - overwrite "true": replace it with the new capture.
   // - overwrite "aboveVariation": compare, replace only if variance exceeds
@@ -795,7 +821,11 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
       });
 
       if (fractionalDiff > step.screenshot.maxVariation) {
-        if (step.screenshot.overwrite == "aboveVariation" && !isUrlPath) {
+        if (
+          step.screenshot.overwrite == "aboveVariation" &&
+          !isUrlPath &&
+          !internal?.compareOnly
+        ) {
           // Replace old file with the new capture (single write to the target).
           if (!writeFinalPng(existFilePath)) return result;
         }
@@ -813,6 +843,11 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
           // capture path (already written above) + referenceUrl.
           result.outputs.screenshotPath = filePath;
           result.outputs.referenceUrl = redactedUrl;
+        } else if (internal?.compareOnly) {
+          // Compare-only: the baseline stayed untouched and nothing user-owned
+          // changed — keep `outputs.changed` false. The drift signal is the
+          // WARNING + outputs.variation; the staged capture carries the pixels.
+          result.outputs.screenshotPath = internal.capturePath;
         } else {
           result.outputs.changed = true;
           result.outputs.screenshotPath = existFilePath;
@@ -846,13 +881,22 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   // it. (URL paths already wrote and set screenshotPath above, so they never
   // reach this branch.)
   if (!result.outputs.screenshotPath) {
-    if (!writeFinalPng(filePath)) return result;
-    result.outputs.screenshotPath = filePath;
-    // Mark new screenshots as changed so they can be uploaded
-    result.outputs.changed = true;
-    // Preserve sourceIntegration metadata
-    if (step.screenshot.sourceIntegration) {
-      result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+    if (internal?.compareOnly) {
+      // No baseline yet: report it instead of seeding the file — first-run
+      // baseline writes belong to stopRecord (ADR 01072). The capture is
+      // already staged at internal.capturePath; `changed` stays false so
+      // upload pipelines ignore compare-only captures.
+      result.outputs.screenshotPath = internal.capturePath;
+      result.outputs.baselineMissing = true;
+    } else {
+      if (!writeFinalPng(filePath)) return result;
+      result.outputs.screenshotPath = filePath;
+      // Mark new screenshots as changed so they can be uploaded
+      result.outputs.changed = true;
+      // Preserve sourceIntegration metadata
+      if (step.screenshot.sourceIntegration) {
+        result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+      }
     }
   }
 

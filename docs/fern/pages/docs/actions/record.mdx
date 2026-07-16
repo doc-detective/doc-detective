@@ -149,6 +149,42 @@ An automatic recording coexists with any explicit `record` and `stopRecord` step
 On Linux, each runner records its own virtual display with Xvfb, so automatic recordings stay isolated even when runs are concurrent. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
 </Note>
 
+## Recording checkpoints
+
+A recording documents a flow, but the steps can keep passing while the recorded content quietly drifts—a redesigned page, a moved button, changed copy. To detect that drift, enable `checkpoints` on a `record` step:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "checkpoints": true
+  }
+}
+```
+
+While the recording is active, Doc Detective captures a screenshot after every step (the `record` step's own capture is the opening bookend) and compares each against a persistent baseline stored beside the recording—`signup-flow.mp4.checkpoints/` by default. On the first run, the baselines don't exist yet, so `stopRecord` seeds them from the captures. Commit the baseline folder alongside your recording. On every later run, each checkpoint compares against its baseline:
+
+- Variation within `maxVariation` (default `0.05`): the step passes.
+- Variation beyond `maxVariation`: the `stopRecord` step returns WARNING—the recorded flow's content has probably changed since the recording was captured. Baselines are never modified by a checkpoint comparison.
+
+The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord#outputs): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
+
+Tune or relocate the comparison with the object form:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "checkpoints": {
+      "maxVariation": 0.1,
+      "directory": "baselines/signup-flow"
+    }
+  }
+}
+```
+
+A relative `directory` resolves beside the recording. Raise `maxVariation` (or disable checkpoints) for spans that show dynamic content—animations, ads, clocks—which otherwise produce WARNING noise. Checkpoints apply only to explicit `record` steps ([automatic recordings](#automatic-recordings) save to per-run folders, where baselines couldn't persist), and each checkpoint costs one extra screenshot per step while the span is active.
+
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
 ## Examples

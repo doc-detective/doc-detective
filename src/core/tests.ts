@@ -52,6 +52,8 @@ import { saveScreenshot } from "./tests/saveScreenshot.js";
 import {
   capPathSegment,
   stepArtifactFileName,
+  resolveCheckpointsConfig,
+  captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
 import { startRecording } from "./tests/startRecording.js";
 import { stopRecording } from "./tests/stopRecording.js";
@@ -4808,6 +4810,44 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
+      // Recording checkpoints (ADR 01072): while a checkpoint-enabled
+      // recording is active, capture a compare-only screenshot per handle
+      // after every step (final attempt only, same placement rationale as
+      // autoScreenshot — retry frames would poison the staged captures).
+      // The record step's own post-step capture is the opening bookend.
+      // Requires a browser driver; app-only contexts skip with a debug log.
+      {
+        const checkpointHost = driver ?? appSession?.recordingHost;
+        const checkpointDriver = activeDriver(browserSessions) ?? driver;
+        const hasCheckpointSpan = Array.isArray(
+          checkpointHost?.state?.recordings
+        )
+          ? checkpointHost.state.recordings.some(
+              (h: any) => h?.checkpoints && !h.synthetic
+            )
+          : false;
+        if (hasCheckpointSpan) {
+          if (checkpointDriver) {
+            await captureRecordingCheckpoints({
+              config,
+              driver: checkpointDriver,
+              recordingHost: checkpointHost,
+              step,
+              stepIndex,
+              stepCount: context.steps.length,
+              testId: test.testId,
+              appSession,
+            });
+          } else {
+            log(
+              config,
+              "debug",
+              "Recording checkpoints skipped: no browser driver in this context."
+            );
+          }
+        }
+      }
+
       pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
@@ -5142,6 +5182,17 @@ async function runStep({
       const handle = actionResult.recording;
       handle.id = handle.id ?? randomUUID();
       handle.name = handle.name ?? recordStepName(step.record);
+      // Recording checkpoints (ADR 01072): resolve the step's `checkpoints`
+      // field once, here, where the handle and its target path are both at
+      // hand — the post-step hook and stopRecord read the resolved config
+      // off the handle.
+      if (handle.targetPath && typeof step.record === "object") {
+        handle.checkpoints = resolveCheckpointsConfig({
+          record: step.record,
+          targetPath: handle.targetPath,
+          handleId: handle.id,
+        });
+      }
       if (step.__autoRecord) {
         handle.synthetic = true;
         // Desktop app-only context: no window exists yet to crop to. Mark the
