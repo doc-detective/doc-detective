@@ -19,6 +19,7 @@ import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 import {
   computeSpanVerdict,
   promoteRecordingSpan,
@@ -595,7 +596,7 @@ async function stopRecording({
   // FAIL > WARNING roll-up is computed once: a violated structural guard
   // (author-demanded, FAIL severity) outranks checkpoint drift (advice,
   // WARNING severity).
-  const specs: { statement: string; severity: "fail" | "warning" }[] = [];
+  const specs: ImplicitAssertionSpec[] = [];
   const verify = recording.verify;
   if (verify && typeof verify === "object") {
     if (typeof verify.minDuration === "number") {
@@ -652,17 +653,23 @@ async function stopRecording({
       }
     }
     if (verify.notBlack) {
-      const allBlack = await detectAllBlack({
-        cacheDir: config?.cacheDir,
-        filePath: finalTargetPath,
-        duration: result.outputs.duration,
-        fps: result.outputs.fps,
-      });
+      // Blackness is judged as a fraction of the clip, so an unknown duration
+      // can't be judged at all — skip rather than report a not-black that
+      // never had evidence behind it.
+      const allBlack =
+        typeof result.outputs.duration === "number"
+          ? await detectAllBlack({
+              cacheDir: config?.cacheDir,
+              filePath: finalTargetPath,
+              duration: result.outputs.duration,
+              fps: result.outputs.fps,
+            })
+          : null;
       if (allBlack === null) {
         log(
           config,
           "debug",
-          `verify.notBlack: couldn't analyze ${finalTargetPath}; skipping the check.`
+          `verify.notBlack: couldn't analyze ${finalTargetPath} (unreadable or unknown duration); skipping the check.`
         );
       } else {
         result.outputs.allBlack = allBlack;

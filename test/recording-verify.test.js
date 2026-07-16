@@ -226,6 +226,45 @@ describe("stopRecording: record.verify structural guards", function () {
     assert.equal(result.outputs.resolutionMatch, undefined);
   });
 
+  // An unprobeable file (not real video) can't satisfy a demanded guard.
+  // Duration guards fail closed — the author asked for a floor and we can't
+  // show one. Blackness is a fraction OF the duration, so with no duration
+  // there's no evidence either way: skip rather than assert not-black.
+  async function stopUnprobeable(verify) {
+    const target = path.join(tmpDir, "junk.mp4");
+    const handle = {
+      type: "appium",
+      driver: {
+        stopRecordingScreen: async () =>
+          Buffer.from("not-a-video").toString("base64"),
+      },
+      targetPath: target,
+      verify,
+    };
+    const host = { state: { recordings: [handle] } };
+    return stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+  }
+
+  it("FAILs a duration guard when the file can't be probed (fail closed)", async function () {
+    const result = await stopUnprobeable({ minDuration: 1 });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.outputs.duration, undefined);
+  });
+
+  it("skips notBlack when the duration is unknown rather than passing it", async function () {
+    const result = await stopUnprobeable({ notBlack: true });
+    assert.equal(result.status, "PASS");
+    assert.equal(
+      result.outputs.allBlack,
+      undefined,
+      "notBlack must not report a verdict it had no evidence for"
+    );
+  });
+
   it("a verify FAIL outranks checkpoint drift's WARNING in the roll-up", async function () {
     const samplePath = path.join(tmpDir, "sample-red.mp4");
     await generateColorMp4(samplePath, "red");

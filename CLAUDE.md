@@ -39,6 +39,21 @@ Don't reach for `--no-verify` when a husky hook fails for a missing dependency �
 instead. Verify runnable changes against the real toolchain (e.g. run a doc's inline tests with
 `doc-detective runTests --input <file>`) rather than guessing at CI behavior.
 
+## Don't rewrite whole files with scripts (CRLF landmine)
+
+Some tracked files are committed with **CRLF** ([src/core/tests.ts](src/core/tests.ts) is the
+notable one) while most are LF, and `core.autocrlf=input` re-normalizes on `git add`. A script that
+reads and rewrites a whole file (`python`'s `io.open(...).read()` / `write()`, or any
+read-modify-write helper) silently converts CRLF → LF, turning a one-line change into a
+**whole-file diff** that buries the real change and rewrites `git blame`.
+
+- Prefer the **Edit tool** for source changes — it preserves the file's existing endings.
+- After any scripted rewrite, check `git diff --numstat <file>`: a line count near the file's total
+  means the endings flipped. Confirm with `git diff --ignore-cr-at-eol --numstat <file>` (the real
+  delta) and compare `git show <ref>:<file>` against the working copy.
+- To restore, convert the working copy back (`d.replace(b"\n", b"\r\n")` in binary mode) and stage
+  it with `git -c core.autocrlf=false add <file>` — a plain `git add` re-strips the CRs.
+
 ## Persistent knowledge: repo instructions, not Claude memory (required)
 
 Do **not** use Claude Code's auto-memory feature (the per-project `~/.claude/projects/**/memory/`
