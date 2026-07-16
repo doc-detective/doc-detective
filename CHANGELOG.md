@@ -1,3 +1,10 @@
+# [4.31.0](https://github.com/doc-detective/doc-detective/compare/v4.30.0...v4.31.0) (2026-07-16)
+
+
+### Features
+
+* surface true viewport & screenshot dimensions when a browser floors a request ([#644](https://github.com/doc-detective/doc-detective/issues/644)) ([48dc75e](https://github.com/doc-detective/doc-detective/commit/48dc75e7f4cc826f2e8e94a665dffcfb3f7bd779))
+
 # [4.30.0](https://github.com/doc-detective/doc-detective/compare/v4.29.1...v4.30.0) (2026-07-15)
 
 
