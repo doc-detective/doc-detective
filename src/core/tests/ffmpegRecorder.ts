@@ -532,9 +532,11 @@ async function probeVideoMetadata({
       let head = "";
       let settled = false;
       let proc: any = null;
+      let timer: any;
       const done = (v: string | null) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timer);
         try {
           proc?.kill();
         } catch {
@@ -553,7 +555,7 @@ async function probeVideoMetadata({
         });
         proc.on("error", () => done(null));
         proc.on("close", () => done(head));
-        setTimeout(() => done(head.length > 0 ? head : null), 5000);
+        timer = setTimeout(() => done(head.length > 0 ? head : null), 5000);
       } catch {
         done(null);
       }
