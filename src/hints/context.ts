@@ -159,6 +159,7 @@ export async function buildHintContext(
     // ffmpeg recordings on the shared display (other contexts still ran in
     // parallel). Defensive read — results may be partial/absent.
     recordingSerialized: options.results?.recordingSerialized === true,
+    hasStaleRecordings: walkData.hasStaleRecordings,
   };
 }
 
@@ -399,6 +400,7 @@ interface WalkData {
   failedTransientRequest: boolean;
   failedRunShellWithoutShell: boolean;
   ranIosContexts: boolean;
+  hasStaleRecordings: boolean;
 }
 
 function emptyWalkData(): WalkData {
@@ -417,6 +419,7 @@ function emptyWalkData(): WalkData {
     failedTransientRequest: false,
     failedRunShellWithoutShell: false,
     ranIosContexts: false,
+    hasStaleRecordings: false,
   };
 }
 
@@ -465,6 +468,13 @@ function inspectStep(step: any, data: WalkData): void {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
   }
 
+  // Stale recordings (ADR 01074): a phantom recording span (headless run of
+  // a checkpointed/aboveVariation record) sets `outputs.stale: true` on its
+  // stopRecord step when the committed baselines no longer match. Powers
+  // `refreshStaleRecording`.
+  if (step.outputs?.stale === true) {
+    data.hasStaleRecordings = true;
+  }
   // Custom assertions: under the unified model every step report carries an
   // `assertions` array of records; a `source: "custom"` record means the user
   // authored a `step.assertions` condition (implicit records have

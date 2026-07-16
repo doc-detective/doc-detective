@@ -332,14 +332,33 @@ async function startRecording({
     plan = { name: "ffmpeg", target: "viewport", fps: plan.fps };
   }
 
+  // A headless-skipped recording with checkpoints (or aboveVariation, which
+  // implies them) still tracks a compare-only "phantom" span (ADR 01074):
+  // the post-step hook captures checkpoints against the committed baselines
+  // and stopRecord reports staleness read-only — no video, no writes.
+  const phantomRecordingResult = (skipDescription: string) => {
+    result.status = "SKIPPED";
+    if (
+      step.record.overwrite === "aboveVariation" ||
+      (step.record.checkpoints !== undefined &&
+        step.record.checkpoints !== false)
+    ) {
+      result.description = `${skipDescription} Running checkpoint comparisons only, to detect whether the recording is stale.`;
+      result.recording = { type: "phantom", targetPath: filePath };
+    } else {
+      result.description = skipDescription;
+    }
+    return result;
+  };
+
   if (plan.name === "browser") {
     // Browser engine: capture the Chrome viewport via getDisplayMedia +
     // MediaRecorder. Concurrency-safe — each context auto-selects its own
     // window by a unique title. Requires headed Chrome.
     if (context.browser?.headless) {
-      result.status = "SKIPPED";
-      result.description = `Recording isn't supported in headless mode with the browser engine. Use the ffmpeg engine to record headless.`;
-      return result;
+      return phantomRecordingResult(
+        `Recording isn't supported in headless mode with the browser engine. Use the ffmpeg engine to record headless.`
+      );
     }
     if (context.browser?.name !== "chrome") {
       result.status = "SKIPPED";
@@ -511,9 +530,9 @@ async function startRecording({
   // app-targeted recording captures a native window, which exists (headed)
   // regardless of any browser's headless mode, so the guard doesn't apply.
   if (!appRef && context.browser?.headless && !context.__display) {
-    result.status = "SKIPPED";
-    result.description = `Recording isn't supported in headless mode without a virtual display (Xvfb).`;
-    return result;
+    return phantomRecordingResult(
+      `Recording isn't supported in headless mode without a virtual display (Xvfb).`
+    );
   }
 
   // Crop geometry. Browser-driver crops (viewport, window) resolve through

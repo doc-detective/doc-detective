@@ -3826,9 +3826,9 @@ export interface RecordDetailed {
    */
   directory?: string;
   /**
-   * If `true`, overwrites the existing recording at `path` if it exists.
+   * If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — enables `checkpoints` with defaults when not otherwise configured.
    */
-  overwrite?: "true" | "false";
+  overwrite?: "true" | "false" | "aboveVariation";
   /**
    * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
    */

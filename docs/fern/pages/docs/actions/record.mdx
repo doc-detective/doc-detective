@@ -185,6 +185,25 @@ Tune or relocate the comparison with the object form:
 
 A relative `directory` resolves beside the recording. Raise `maxVariation` (or disable checkpoints) for spans that show dynamic content—animations, ads, clocks—which otherwise produce WARNING noise. Checkpoints apply only to explicit `record` steps ([automatic recordings](#automatic-recordings) save to per-run folders, where baselines couldn't persist), and each checkpoint costs one extra screenshot per step while the span is active.
 
+### Refreshing stale recordings automatically
+
+Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this setting, the span always records, but the new video replaces the existing file **only when the span meaningfully changed**—checkpoint drift beyond `maxVariation`, an added, removed, or edited step, or a missing recording file. Otherwise Doc Detective discards the fresh capture and leaves the recording and its baselines byte-untouched, so unchanged recordings stay stable across runs:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+`aboveVariation` enables checkpoints automatically (add a `checkpoints` object to tune them). When the recording refreshes, its baselines update with it—the two always stay in sync—and the `stopRecord` step reports `changed: true` with the reasons in its outputs.
+
+### Detecting staleness in headless runs
+
+Recording needs a visible display, so headless runs skip `record` steps. With `aboveVariation` (or `checkpoints`) configured, a headless run still compares checkpoints against the committed baselines and reports whether the recording has gone stale: the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint suggests re-running headed to refresh. Your headless CI continuously watches recording freshness; you only run headed when something actually changed.
+
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
 ## Examples

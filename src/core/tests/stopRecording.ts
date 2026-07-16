@@ -18,6 +18,10 @@ import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
+import {
+  computeSpanVerdict,
+  promoteRecordingSpan,
+} from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
 export { stopRecording };
@@ -132,6 +136,33 @@ async function stopRecording({
     }
   };
 
+  // Phantom span (ADR 01074): the recording itself was skipped (headless),
+  // but checkpoints ran against the committed baselines. Compute the span
+  // verdict READ-ONLY — no video, no seeding, no baseline updates, no orphan
+  // deletion — and surface staleness. WARNING = the recording appears stale;
+  // SKIPPED = the recording was skipped but its content still matches.
+  if (recording.type === "phantom") {
+    dropHandle();
+    const phantomCheckpoints: CheckpointsConfig | undefined =
+      recording.checkpoints;
+    const verdict = computeSpanVerdict({
+      entries: phantomCheckpoints?.entries ?? [],
+      baselineDir: phantomCheckpoints?.baselineDir ?? "",
+      maxVariation: phantomCheckpoints?.maxVariation ?? 0.05,
+      targetExists: fs.existsSync(recording.targetPath),
+    });
+    discardCheckpointStaging();
+    result.outputs = { stale: verdict.changed };
+    if (verdict.changed) {
+      result.status = "WARNING";
+      result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. Recording is skipped in headless mode; re-run headed to refresh it.`;
+    } else {
+      result.status = "SKIPPED";
+      result.description = `Recording skipped (headless); checkpoints match their baselines, so the recording appears current.`;
+    }
+    return result;
+  }
+
   // A pending device recording never actually started. If the late-start
   // attempt errored, surface that as the FAIL; otherwise no app surface ever
   // opened a device session — there's nothing to save.
@@ -150,6 +181,23 @@ async function stopRecording({
       "The device recording never started (no app surface opened a device session), so there is nothing to save.";
     return result;
   }
+
+  // overwrite "aboveVariation" (ADR 01073): the produced file lands at a
+  // staging path in the target's directory (same volume — promotion is a
+  // rename), and the span verdict decides at the end whether it replaces the
+  // existing recording or is discarded. Every other mode writes the target
+  // directly, as before.
+  const isAboveVariation = recording.overwrite === "aboveVariation";
+  const finalTargetPath = recording.targetPath;
+  const writeTargetPath = isAboveVariation
+    ? path.join(
+        path.dirname(finalTargetPath),
+        `.${path.basename(
+          finalTargetPath,
+          path.extname(finalTargetPath)
+        )}.staging-${randomUUID().slice(0, 8)}${path.extname(finalTargetPath)}`
+      )
+    : finalTargetPath;
 
   try {
     if (recording.type === "MediaRecorder") {
@@ -230,7 +278,7 @@ async function stopRecording({
       await transcode({
         config,
         sourcePath: recording.downloadPath,
-        targetPath: recording.targetPath,
+        targetPath: writeTargetPath,
         deleteSource: true,
       });
       dropHandle();
@@ -311,7 +359,7 @@ async function stopRecording({
       await transcode({
         config,
         sourcePath: recording.tempPath,
-        targetPath: recording.targetPath,
+        targetPath: writeTargetPath,
         deleteSource: true,
         crop,
       });
@@ -356,8 +404,8 @@ async function stopRecording({
         discardCheckpointStaging();
         return result;
       }
-      if (path.extname(recording.targetPath) === ".mp4") {
-        fs.writeFileSync(recording.targetPath, buffer);
+      if (path.extname(writeTargetPath) === ".mp4") {
+        fs.writeFileSync(writeTargetPath, buffer);
       } else {
         const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
@@ -369,7 +417,7 @@ async function stopRecording({
         await transcode({
           config,
           sourcePath: tempPath,
-          targetPath: recording.targetPath,
+          targetPath: writeTargetPath,
           deleteSource: true,
         });
       }
@@ -386,39 +434,52 @@ async function stopRecording({
     return result;
   }
 
-  // PASS — report what was produced. Metadata is best-effort: a probe
-  // failure omits fields and logs debug; it never changes the step's status.
-  // The field list is copied explicitly — the outputs object is a documented
-  // user-facing contract ($$duration etc.), so parser additions must opt in.
-  result.outputs = {
-    recordingPath: path.resolve(recording.targetPath),
-    format: path.extname(recording.targetPath).slice(1),
-  };
-  const meta = await probeVideoMetadata({
-    cacheDir: config?.cacheDir,
-    filePath: recording.targetPath,
-  });
-  if (meta?.duration !== undefined) result.outputs.duration = meta.duration;
-  if (meta?.width !== undefined) result.outputs.width = meta.width;
-  if (meta?.height !== undefined) result.outputs.height = meta.height;
-  if (meta?.fps !== undefined) result.outputs.fps = meta.fps;
-  if (!meta || Object.keys(meta).length === 0) {
-    log(
-      config,
-      "debug",
-      `Couldn't probe recording metadata for ${recording.targetPath}.`
-    );
-  }
-
-  // Recording checkpoints (ADR 01072): seed missing baselines from the
-  // staged captures (first run), report per-checkpoint results, and surface
-  // drift beyond maxVariation through the shared implicit-assertion engine
-  // at WARNING severity — never FAIL, mirroring screenshot semantics.
-  // Existing baselines are never modified here.
+  // PASS — first decide the produced file's fate, then report on the file
+  // the user actually keeps.
   const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
-  if (checkpoints?.entries?.length) {
-    let maxCheckpointVariation = 0;
-    let seededBaselines = 0;
+  let seededBaselines = 0;
+  result.outputs = {};
+  if (isAboveVariation) {
+    // Span verdict (ADR 01073): promote the staged capture over the target
+    // only when the span meaningfully changed; otherwise discard it and
+    // leave target + baselines byte-untouched. Promote updates ALL baselines
+    // together with the video — they must never disagree.
+    const verdict = computeSpanVerdict({
+      entries: checkpoints?.entries ?? [],
+      baselineDir: checkpoints?.baselineDir ?? "",
+      maxVariation: checkpoints?.maxVariation ?? 0.05,
+      targetExists: fs.existsSync(finalTargetPath),
+    });
+    if (verdict.changed) {
+      promoteRecordingSpan({
+        config,
+        stagingTarget: writeTargetPath,
+        targetPath: finalTargetPath,
+        entries: checkpoints?.entries ?? [],
+        orphans: verdict.orphans,
+        baselineDir: checkpoints?.baselineDir ?? "",
+      });
+      seededBaselines = (checkpoints?.entries ?? []).filter(
+        (entry) => entry.baselineMissing && !entry.error
+      ).length;
+      result.outputs.changeReasons = verdict.reasons;
+      log(
+        config,
+        "info",
+        `Recording refreshed (${finalTargetPath}): ${verdict.reasons.join("; ")}`
+      );
+    } else {
+      try {
+        fs.rmSync(writeTargetPath, { force: true });
+      } catch {
+        /* best-effort */
+      }
+    }
+    result.outputs.changed = verdict.changed;
+  } else if (checkpoints?.entries?.length) {
+    // Recording checkpoints without aboveVariation (ADR 01072): seed missing
+    // baselines from the staged captures (first run); never modify existing
+    // baselines.
     for (const entry of checkpoints.entries) {
       if (entry.baselineMissing && !entry.error) {
         try {
@@ -434,6 +495,38 @@ async function stopRecording({
           );
         }
       }
+    }
+  }
+
+  // Report what was produced/kept. Metadata is best-effort: a probe failure
+  // omits fields and logs debug; it never changes the step's status. The
+  // field list is copied explicitly — the outputs object is a documented
+  // user-facing contract ($$duration etc.), so parser additions must opt in.
+  result.outputs.recordingPath = path.resolve(finalTargetPath);
+  result.outputs.format = path.extname(finalTargetPath).slice(1);
+  const meta = await probeVideoMetadata({
+    cacheDir: config?.cacheDir,
+    filePath: finalTargetPath,
+  });
+  if (meta?.duration !== undefined) result.outputs.duration = meta.duration;
+  if (meta?.width !== undefined) result.outputs.width = meta.width;
+  if (meta?.height !== undefined) result.outputs.height = meta.height;
+  if (meta?.fps !== undefined) result.outputs.fps = meta.fps;
+  if (!meta || Object.keys(meta).length === 0) {
+    log(
+      config,
+      "debug",
+      `Couldn't probe recording metadata for ${finalTargetPath}.`
+    );
+  }
+
+  // Checkpoint reporting (ADR 01072): per-checkpoint results plus drift and
+  // comparison-error signals through the shared implicit-assertion engine at
+  // WARNING severity — never FAIL, mirroring screenshot semantics. Under
+  // aboveVariation the WARNING doubles as "the recording was refreshed".
+  if (checkpoints?.entries?.length) {
+    let maxCheckpointVariation = 0;
+    for (const entry of checkpoints.entries) {
       if (typeof entry.variation === "number") {
         maxCheckpointVariation = Math.max(
           maxCheckpointVariation,
@@ -475,7 +568,9 @@ async function stopRecording({
     result.assertions = assertions;
     result.status = status;
     if (status === "WARNING") {
-      result.description += ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
+      result.description += isAboveVariation
+        ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
+        : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
     }
     try {
       fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });

@@ -252,10 +252,11 @@
         },
         "overwrite": {
           "type": "string",
-          "description": "If `true`, overwrites the existing recording at `path` if it exists.",
+          "description": "If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — enables `checkpoints` with defaults when not otherwise configured.",
           "enum": [
             "true",
-            "false"
+            "false",
+            "aboveVariation"
           ]
         },
         "name": {
@@ -606,10 +607,11 @@
           },
           "overwrite": {
             "type": "string",
-            "description": "If `true`, overwrites the existing recording at `path` if it exists.",
+            "description": "If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — enables `checkpoints` with defaults when not otherwise configured.",
             "enum": [
               "true",
-              "false"
+              "false",
+              "aboveVariation"
             ]
           },
           "name": {

@@ -11,8 +11,10 @@ export {
   stepArtifactFileName,
   resolveCheckpointsConfig,
   captureRecordingCheckpoints,
+  computeSpanVerdict,
+  promoteRecordingSpan,
 };
-export type { CheckpointsConfig, CheckpointEntry };
+export type { CheckpointsConfig, CheckpointEntry, SpanVerdict };
 
 // Directory/file segments built from IDs are capped so deeply nested doc
 // trees can't push the full path past Windows' MAX_PATH. The default cap is
@@ -101,7 +103,13 @@ function resolveCheckpointsConfig({
   targetPath: string;
   handleId: string;
 }): CheckpointsConfig | null {
-  const raw = record?.checkpoints;
+  let raw = record?.checkpoints;
+  // overwrite: "aboveVariation" implies checkpoints with defaults — the
+  // span verdict (ADR 01073) is computed from them. An explicit checkpoints
+  // field still tunes maxVariation/directory.
+  if (raw === undefined && record?.overwrite === "aboveVariation") {
+    raw = true;
+  }
   if (raw === undefined || raw === false) return null;
   const opts = raw === true ? {} : raw;
   const baselineDir = opts.directory
@@ -118,6 +126,142 @@ function resolveCheckpointsConfig({
     ),
     entries: [],
   };
+}
+
+// The outcome of judging a recording span against its baselines (ADR 01073).
+type SpanVerdict = {
+  changed: boolean;
+  reasons: string[];
+  orphans: string[];
+};
+
+// Judge whether a recording span meaningfully changed since its baselines
+// were captured. CHANGED on any of: pixel drift beyond maxVariation, a
+// checkpoint with no baseline (step added or renamed), an orphaned baseline
+// with no matching checkpoint (step removed or renamed), an errored
+// checkpoint (incomparable — can't prove the span unchanged), or a missing
+// target recording. Pure decision over the entries plus one baseline-dir
+// listing; a renamed step's paired missing+orphan reads as one edit in the
+// reasons.
+function computeSpanVerdict({
+  entries,
+  baselineDir,
+  maxVariation,
+  targetExists,
+}: {
+  entries: CheckpointEntry[];
+  baselineDir: string;
+  maxVariation: number;
+  targetExists: boolean;
+}): SpanVerdict {
+  const reasons: string[] = [];
+  const drifted = entries.filter(
+    (e) => typeof e.variation === "number" && e.variation > maxVariation
+  );
+  if (drifted.length > 0) {
+    reasons.push(
+      `${drifted.length} checkpoint(s) drifted beyond maxVariation (${maxVariation}): pixel variation up to ${Math.max(
+        ...drifted.map((e) => e.variation as number)
+      ).toFixed(3)}`
+    );
+  }
+  const missing = entries.filter((e) => e.baselineMissing);
+  if (missing.length > 0) {
+    reasons.push(
+      `${missing.length} checkpoint(s) have no baseline (step added or renamed)`
+    );
+  }
+  const errored = entries.filter((e) => e.error);
+  if (errored.length > 0) {
+    reasons.push(
+      `${errored.length} checkpoint(s) couldn't be compared (capture or comparison error)`
+    );
+  }
+  let orphans: string[] = [];
+  try {
+    const expected = new Set(entries.map((e) => e.fileName));
+    orphans = fs
+      .readdirSync(baselineDir)
+      .filter((name) => name.endsWith(".png") && !expected.has(name));
+  } catch {
+    // No baseline dir yet — nothing to orphan.
+  }
+  if (orphans.length > 0) {
+    reasons.push(
+      `${orphans.length} baseline(s) have no matching step (step removed or renamed)`
+    );
+  }
+  if (!targetExists) {
+    reasons.push("the recording file is missing");
+  }
+  return { changed: reasons.length > 0, reasons, orphans };
+}
+
+// Promote a CHANGED span: replace the target video with the staged capture,
+// then bring every baseline in line with this run's captures, then delete
+// orphans — in that order, so any mid-sequence crash leaves a fresh video
+// with stale baselines, which the next run detects as CHANGED and repairs
+// (self-healing in the safe direction; true multi-file atomicity isn't
+// possible). Windows can't rename over an existing file, hence rm-then-
+// rename; baselines write via copy-to-temp-then-rename so a torn write
+// never corrupts a committed baseline. Failures log warnings and continue —
+// a partial promote must not fail the already-passed stop.
+function promoteRecordingSpan({
+  config,
+  stagingTarget,
+  targetPath,
+  entries,
+  orphans,
+  baselineDir,
+}: {
+  config: any;
+  stagingTarget: string;
+  targetPath: string;
+  entries: CheckpointEntry[];
+  orphans: string[];
+  baselineDir: string;
+}): void {
+  try {
+    fs.rmSync(targetPath, { force: true });
+    fs.renameSync(stagingTarget, targetPath);
+  } catch (error: any) {
+    log(
+      config,
+      "warning",
+      `Couldn't promote the refreshed recording over ${targetPath}: ${error?.message ?? error}`
+    );
+    return;
+  }
+  try {
+    fs.mkdirSync(baselineDir, { recursive: true });
+  } catch {
+    /* surfaced by the per-entry writes below */
+  }
+  for (const entry of entries) {
+    if (entry.error) continue;
+    try {
+      const tempPath = `${entry.baselinePath}.tmp`;
+      fs.copyFileSync(entry.stagingPath, tempPath);
+      fs.renameSync(tempPath, entry.baselinePath);
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Couldn't update checkpoint baseline ${entry.baselinePath}: ${error?.message ?? error}`
+      );
+    }
+  }
+  for (const orphan of orphans) {
+    try {
+      fs.unlinkSync(path.join(baselineDir, orphan));
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Couldn't remove orphaned checkpoint baseline ${orphan}: ${error?.message ?? error}`
+      );
+    }
+  }
 }
 
 // The post-step checkpoint hook body: for every active, non-synthetic

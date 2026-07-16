@@ -1,0 +1,54 @@
+{
+  "specId": "recording-above-variation",
+  "description": "record overwrite aboveVariation (ADR 01073): the span always records to staging; at stopRecord a span verdict decides whether the staged capture replaces the existing recording (and baselines update with it) or is discarded. Baselines persist between runs in the same tree, so the assert accepts either outcome — refreshed (changed true, first run or drift) or kept (changed false, clean comparison) — while NaN-guarding against the verdict not running. The recording file must exist afterward in both outcomes.",
+  "tests": [
+    {
+      "testId": "above-variation-span",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "above-variation-demo.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "aboveVariation"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "AV_CHANGED": "$$changed",
+            "AV_PATH": "$$recordingPath",
+            "AV_ERRORS": "$$checkpointErrors"
+          }
+        },
+        {
+          "description": "Assert the verdict ran (changed is a boolean), no checkpoint errors, and the recording file exists at the reported absolute path in both outcomes.",
+          "runShell": "node -e \"const changed = process.env.AV_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AV_ERRORS) === 0 && require('fs').existsSync(process.env.AV_PATH); process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    }
+  ]
+}
