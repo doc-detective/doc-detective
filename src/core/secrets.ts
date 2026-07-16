@@ -20,7 +20,6 @@ export {
   SECRET_TOKEN_REGEX,
   resolveSecrets,
   findDisallowedSecretRefs,
-  deepCloneStep,
   registerSecretValue,
   listRegisteredSecretNames,
   hasRegisteredSecrets,
@@ -233,17 +232,6 @@ function redactUndeclaredSecrets(value: unknown): unknown {
   );
 }
 
-// --- clone ---------------------------------------------------------------
-// JSON round-trip, matching the existing precedent in config.ts / validate.ts.
-// Steps are JSON-shaped by construction (they come from JSON/YAML specs), so
-// this is lossless here. Also fixes latent aliasing: today `runStep` resolves
-// the caller's step in place, so a retried step re-resolves an already-resolved
-// object.
-function deepCloneStep<T>(step: T): T {
-  if (step === null || typeof step !== "object") return step;
-  return JSON.parse(JSON.stringify(step));
-}
-
 // --- disallowed contexts (fail closed) -----------------------------------
 // Paths are dot-joined from the step root, with array indices as segments
 // (`onFail.0.if`, `find.elementClass.1`). Each rule matches a path PREFIX so
@@ -409,9 +397,13 @@ function resolveSecrets(step: any): ResolveResult {
   }
 
   const missing = new Set<string>();
-  const resolved = deepCloneStep(step);
 
-  mapStrings(resolved, (value) => {
+  // `deepMapStrings` COPIES rather than mutating in place, so this both clones
+  // and resolves in a single walk. Building a fresh object also means no
+  // assignment ever targets an attacker-influenced key on an existing object —
+  // the prototype-pollution shape is absent by construction rather than by
+  // denylist (the copy's keys are still filtered by the shared walker).
+  const resolved = deepMapStrings(step, (value) => {
     if (!hasSecretToken(value)) return value;
     return value.replace(SECRET_TOKEN_REGEX, (token, name: string) => {
       const envValue = process.env[name];
@@ -450,23 +442,3 @@ function resolveSecrets(step: any): ResolveResult {
   return { step: resolved, warnings };
 }
 
-/**
- * In-place string mapper over an already-cloned structure. Separate from
- * `walkStrings` because it REPLACES values rather than observing them.
- */
-function mapStrings(value: any, map: (value: string) => string): void {
-  if (value === null || typeof value !== "object") return;
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => {
-      if (typeof entry === "string") value[index] = map(entry);
-      else mapStrings(entry, map);
-    });
-    return;
-  }
-  for (const key of Object.keys(value)) {
-    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-    const entry = value[key];
-    if (typeof entry === "string") value[key] = map(entry);
-    else mapStrings(entry, map);
-  }
-}

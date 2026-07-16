@@ -6,7 +6,6 @@ import {
   SECRET_TOKEN_REGEX,
   resolveSecrets,
   findDisallowedSecretRefs,
-  deepCloneStep,
   listRegisteredSecretNames,
   registerSecretValue,
   scrubString,
@@ -254,15 +253,28 @@ describe("secrets: resolveSecrets", function () {
   });
 });
 
-describe("secrets: deepCloneStep", function () {
-  it("returns a structurally equal but non-aliased copy", function () {
-    const step = { httpRequest: { headers: { A: "1" } }, list: [1, 2] };
-    const clone = deepCloneStep(step);
-    assert.deepEqual(clone, step);
-    assert.notEqual(clone, step);
-    assert.notEqual(clone.httpRequest, step.httpRequest);
-    clone.httpRequest.headers.A = "mutated";
-    assert.equal(step.httpRequest.headers.A, "1");
+// resolveSecrets returns a resolved COPY. The caller's object is the report
+// copy, so any aliasing here would put the credential straight into the report.
+describe("secrets: resolution copies rather than aliases", function () {
+  it("leaves the caller's nested objects untouched and non-aliased", function () {
+    withEnv({ ALIAS_TOKEN: VALUE }, function () {
+      const step = {
+        httpRequest: { request: { headers: { A: "Bearer $secret.ALIAS_TOKEN" } } },
+        list: ["$secret.ALIAS_TOKEN", 2],
+      };
+      const { step: out } = resolveSecrets(step);
+      // The copy carries the real value...
+      assert.equal(out.httpRequest.request.headers.A, "Bearer " + VALUE);
+      assert.equal(out.list[0], VALUE);
+      // ...while the caller's object keeps its placeholders, deeply.
+      assert.equal(
+        step.httpRequest.request.headers.A,
+        "Bearer $secret.ALIAS_TOKEN"
+      );
+      assert.equal(step.list[0], "$secret.ALIAS_TOKEN");
+      assert.notEqual(out.httpRequest, step.httpRequest);
+      assert.notEqual(out.list, step.list);
+    });
   });
 });
 
