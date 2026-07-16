@@ -44,7 +44,10 @@ function memFs(initial = {}) {
         throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
       files.delete(norm(p));
     },
-    readdirSync: () => [...files.keys()].map((p) => path.basename(p)),
+    readdirSync: (dir) =>
+      [...files.keys()]
+        .filter((p) => path.dirname(p) === norm(dir))
+        .map((p) => path.basename(p)),
     mkdirSync: () => {},
   };
 }
@@ -185,6 +188,48 @@ describe("warm manifest: write / claim / release / sweep", function () {
     assert.equal(fs.files.has(manifestPath), false);
   });
 
+  it("sweeps (never adopts) devices when createdAt is unparseable", function () {
+    // Date.parse("junk") is NaN; `now - NaN > ttl` is false, so without a
+    // finite-date guard a corrupt timestamp would read as "fresh forever"
+    // and every device (with a live-looking pid) would be adopted.
+    const fs = memFs({
+      [manifestPath]: manifestContent({ createdAt: "not-a-date" }),
+    });
+    const claim = claimWarmManifest({
+      cacheDir: CACHE,
+      runId: "run-1",
+      deps: deps({ fs }),
+    });
+    assert.ok(claim);
+    assert.deepEqual(claim.adopt, []);
+    assert.deepEqual(claim.sweep, [androidDevice, iosDevice]);
+  });
+
+  it("drops malformed device entries at parse time instead of adopting them", function () {
+    const fs = memFs({
+      [manifestPath]: JSON.stringify({
+        version: 1,
+        createdAt: "2026-07-14T00:00:00.000Z",
+        devices: [
+          androidDevice,
+          null,
+          "junk",
+          { platform: "toaster", name: "x", udid: "y" },
+          { platform: "android", name: "", udid: "emulator-5560" },
+          { platform: "ios", name: "no-udid" },
+        ],
+      }),
+    });
+    const claim = claimWarmManifest({
+      cacheDir: CACHE,
+      runId: "run-1",
+      deps: deps({ fs }),
+    });
+    assert.ok(claim);
+    assert.deepEqual(claim.adopt, [androidDevice]);
+    assert.deepEqual(claim.sweep, []);
+  });
+
   it("sweeps (never adopts) a manifest older than the TTL", function () {
     const fs = memFs({ [manifestPath]: manifestContent() });
     const claim = claimWarmManifest({
@@ -235,6 +280,23 @@ describe("warm manifest: write / claim / release / sweep", function () {
       orphans[0].devices.map((d) => d.udid).sort(),
       ["UDID-1", "emulator-5554"]
     );
+  });
+
+  it("treats an unstamped claim with an unparseable createdAt as orphaned", function () {
+    // A crash between the claim rename and the claimedBy stamp leaves an
+    // unstamped claimed file; its only staleness signal is createdAt. A
+    // corrupt timestamp must fall on the orphaned side (NaN comparisons
+    // would otherwise keep it "fresh" forever, devices never swept).
+    const fs = memFs({
+      [claimedPath("crashed-run")]: JSON.stringify({
+        version: 1,
+        createdAt: "garbage",
+        devices: [iosDevice],
+      }),
+    });
+    const orphans = listOrphanedClaims({ cacheDir: CACHE, deps: deps({ fs }) });
+    assert.equal(orphans.length, 1);
+    assert.deepEqual(orphans[0].devices, [iosDevice]);
   });
 
   it("does not list a live adopter's claim as orphaned", function () {
@@ -357,7 +419,7 @@ describe("warm manifest: write / claim / release / sweep", function () {
     assert.equal(old[0].path, claimedPath("crashed"));
   });
 
-  it("skips an unreadable claimed file in the orphan scan but --down still lists a corrupt manifest", function () {
+  it("skips an unreadable claimed file in the orphan scan but --down still lists every file", function () {
     const fs = memFs({
       [manifestPath]: "corrupt{{",
       [claimedPath("x")]: manifestContent(),
@@ -369,11 +431,11 @@ describe("warm manifest: write / claim / release / sweep", function () {
       }
       return realRead(p);
     };
+    // Nothing safe to SWEEP from an unreadable claim (no device list) —
+    // but --down must still enumerate both files for deletion.
     assert.deepEqual(listOrphanedClaims({ cacheDir: CACHE, deps: deps({ fs }) }), []);
     const leftovers = collectWarmLeftovers({ cacheDir: CACHE, deps: deps({ fs }) });
-    // The corrupt manifest is still a file --down must delete; it just
-    // contributes no devices.
-    assert.deepEqual(leftovers.files, [manifestPath]);
+    assert.deepEqual(leftovers.files.sort(), [manifestPath, claimedPath("x")].sort());
     assert.deepEqual(leftovers.devices, []);
   });
 
@@ -411,5 +473,14 @@ describe("warm manifest: write / claim / release / sweep", function () {
       leftovers.devices.map((d) => d.udid).sort(),
       ["UDID-1", "emulator-5554"]
     );
+  });
+
+  it("collectWarmLeftovers includes unreadable claimed files so --down can delete them", function () {
+    const fs = memFs({
+      [claimedPath("mangled")]: "not json{{",
+    });
+    const leftovers = collectWarmLeftovers({ cacheDir: CACHE, deps: deps({ fs }) });
+    assert.deepEqual(leftovers.files, [claimedPath("mangled")]);
+    assert.deepEqual(leftovers.devices, []);
   });
 });

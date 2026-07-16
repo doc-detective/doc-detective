@@ -1439,6 +1439,22 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         );
       });
 
+      it("should reject a warmManifest that is not a path string", function () {
+        // An object can't coerce to string under coerceTypes, so this pins
+        // the field's type (scalars would coerce and are not a useful
+        // negative).
+        const result = validate({
+          schemaKey: "report_v3",
+          object: {
+            specs: minimalSpecs,
+            warmManifest: { path: "C:\\cache\\warm-manifest.json" },
+          },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("warmManifest");
+      });
+
       it("should validate a report_v3 object without a warm block (back-compat)", function () {
         const result = validate({
           schemaKey: "report_v3",

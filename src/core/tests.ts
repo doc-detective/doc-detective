@@ -3499,6 +3499,15 @@ async function sweepHandoffDevices(
           udid: device.udid,
           bootedByUs: true,
         });
+      } else {
+        // Nothing actionable recorded (e.g. an android entry without a
+        // pid) — say so rather than logging a sweep that never happened.
+        log(
+          config,
+          "debug",
+          `No sweep action for warm device '${device.name}' (${device.udid}): no recorded process.`
+        );
+        continue;
       }
       log(
         config,

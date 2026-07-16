@@ -35,6 +35,9 @@ describe("CLI: doc-detective warm", function () {
   this.timeout(120000);
 
   before(function () {
+    // A previous interrupted run can leave a manifest behind; the assertions
+    // below depend on a pristine cache.
+    fs.rmSync(CACHE_DIR, { recursive: true, force: true });
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     fs.writeFileSync(
       SPEC_PATH,

@@ -145,6 +145,28 @@
           "$ref": "spec_v3.schema.json#/examples/2"
         }
       ]
+    },
+    {
+      "specs": [],
+      "warm": {
+        "durationMs": 96500,
+        "tasks": [
+          {
+            "name": "driver-install:appium-uiautomator2-driver",
+            "kind": "driver-install",
+            "outcome": "warmed",
+            "durationMs": 12040
+          },
+          {
+            "name": "device-boot:android:default:<any>:<latest>",
+            "kind": "device-boot",
+            "outcome": "warmed",
+            "durationMs": 850,
+            "note": "boot initiated"
+          }
+        ]
+      },
+      "warmManifest": "/home/runner/.dd-cache/warm-manifest.json"
     }
   ]
 }

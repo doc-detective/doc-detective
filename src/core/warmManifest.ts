@@ -113,10 +113,43 @@ function parseManifest(text: string | Buffer): WarmManifestFile | null {
     ) {
       return null;
     }
-    return parsed as WarmManifestFile;
+    // Sanitize device entries rather than trusting the cast: a malformed
+    // entry (foreign writer, partial edit) must never seed a registry or
+    // reach a sweep's kill path. Dropped entries are simply not ours to
+    // manage. createdAt stays lenient here — an unparseable timestamp is
+    // handled at the expiry sites (treated as expired → swept), which keeps
+    // the DEVICES recoverable instead of orphaning them with the file.
+    const devices: WarmDeviceHandoff[] = [];
+    for (const entry of parsed.devices) {
+      if (!entry || typeof entry !== "object") continue;
+      if (entry.platform !== "android" && entry.platform !== "ios") continue;
+      if (typeof entry.name !== "string" || !entry.name) continue;
+      if (typeof entry.udid !== "string" || !entry.udid) continue;
+      devices.push({
+        platform: entry.platform,
+        name: entry.name,
+        udid: entry.udid,
+        ...(typeof entry.pid === "number" ? { pid: entry.pid } : {}),
+        ...(typeof entry.sdkRoot === "string"
+          ? { sdkRoot: entry.sdkRoot }
+          : {}),
+        ...(typeof entry.headless === "boolean"
+          ? { headless: entry.headless }
+          : {}),
+      });
+    }
+    return { ...(parsed as WarmManifestFile), devices };
   } catch {
     return null;
   }
+}
+
+// NaN-safe staleness: Date.parse on a corrupt timestamp is NaN, and every
+// NaN comparison is false — without this guard a mangled createdAt would
+// read as "fresh forever" and its devices would be adopted indefinitely.
+function isExpired(createdAt: string, nowMs: number, ttlMs: number): boolean {
+  const created = Date.parse(createdAt);
+  return !Number.isFinite(created) || nowMs - created > ttlMs;
 }
 
 // Atomic temp+rename publish (the installed.json pattern) so a concurrent
@@ -275,7 +308,7 @@ export function claimWarmManifest({
     // The rename already succeeded; a failed stamp only degrades the
     // orphan scan (the file falls back to the TTL heuristic).
   }
-  const expired = now() - Date.parse(manifest.createdAt) > ttlMs;
+  const expired = isExpired(manifest.createdAt, now(), ttlMs);
   const adopt: WarmDeviceHandoff[] = [];
   const sweep: WarmDeviceHandoff[] = [];
   for (const device of manifest.devices) {
@@ -308,26 +341,30 @@ export function releaseWarmClaim({
   }
 }
 
+// Enumerate every claimed file, parseable or not: path discovery and manifest
+// parsing are separate concerns, because `--down` must be able to DELETE a
+// mangled claim file even though nothing in it is safe to sweep.
 function listClaimedFiles(
   cacheDir: string,
   fs: WarmManifestFs
-): Array<{ path: string; manifest: WarmManifestFile }> {
+): Array<{ path: string; manifest: WarmManifestFile | null }> {
   let names: string[];
   try {
     names = fs.readdirSync(cacheDir);
   } catch {
     return [];
   }
-  const out: Array<{ path: string; manifest: WarmManifestFile }> = [];
+  const out: Array<{ path: string; manifest: WarmManifestFile | null }> = [];
   for (const name of names) {
     if (!name.startsWith(CLAIMED_PREFIX) || !name.endsWith(".json")) continue;
     const filePath = path.join(cacheDir, name);
+    let manifest: WarmManifestFile | null = null;
     try {
-      const manifest = parseManifest(fs.readFileSync(filePath));
-      if (manifest) out.push({ path: filePath, manifest });
+      manifest = parseManifest(fs.readFileSync(filePath));
     } catch {
-      // Unreadable claim files are left for --down.
+      // Unreadable — still enumerated so --down can remove it.
     }
+    out.push({ path: filePath, manifest });
   }
   return out;
 }
@@ -349,9 +386,12 @@ export function listOrphanedClaims({
   const { fs, now, isPidAlive } = resolveDeps(deps);
   const orphans: Array<{ path: string; devices: WarmDeviceHandoff[] }> = [];
   for (const { path: filePath, manifest } of listClaimedFiles(cacheDir, fs)) {
+    // Unparseable claims carry nothing safe to sweep; they surface (and get
+    // deleted) through --down's collectWarmLeftovers instead.
+    if (!manifest) continue;
     const ownerDead = manifest.claimedBy
       ? !isPidAlive(manifest.claimedBy.pid)
-      : now() - Date.parse(manifest.createdAt) > ttlMs;
+      : isExpired(manifest.createdAt, now(), ttlMs);
     if (ownerDead) orphans.push({ path: filePath, devices: manifest.devices });
   }
   return orphans;
@@ -387,7 +427,9 @@ export function collectWarmLeftovers({
   }
   for (const { path: filePath, manifest } of listClaimedFiles(cacheDir, fs)) {
     files.push(filePath);
-    for (const device of manifest.devices) byUdid.set(device.udid, device);
+    for (const device of manifest?.devices ?? []) {
+      byUdid.set(device.udid, device);
+    }
   }
   return { files, devices: [...byUdid.values()] };
 }
