@@ -16,6 +16,22 @@
 
 import { isSecretValue } from "../debug/redact.js";
 
+// Token grammar: `$secret.` + an env var name. Global, so it is only ever used
+// with `matchAll` / `replace` — both of which are stateless on the source regex
+// (`matchAll` clones internally; `replace` with /g resets lastIndex). Never call
+// `.test()` on this: that IS stateful. Use `hasSecretToken` instead.
+const SECRET_TOKEN_REGEX = /\$secret\.([A-Za-z0-9_]+)/g;
+
+// Non-global twin for stateless predicate checks.
+const SECRET_TOKEN_PROBE = /\$secret\.[A-Za-z0-9_]+/;
+
+// Values shorter than this are registered but never used as mask needles —
+// masking a 1-3 char value would shred unrelated output. Resolution still works;
+// the caller warns.
+const SECRET_MIN_MASK_LENGTH = 4;
+
+// Consts are declared above this block (and functions below it), matching the
+// module layout used elsewhere in core — e.g. tests/ffmpegRecorder.ts.
 export {
   SECRET_TOKEN_REGEX,
   resolveSecrets,
@@ -28,15 +44,6 @@ export {
   redactUndeclaredSecrets,
   SECRET_MIN_MASK_LENGTH,
 };
-
-// Token grammar: `$secret.` + an env var name. Global, so it is only ever used
-// with `matchAll` / `replace` — both of which are stateless on the source regex
-// (`matchAll` clones internally; `replace` with /g resets lastIndex). Never call
-// `.test()` on this: that IS stateful. Use `hasSecretToken` instead.
-const SECRET_TOKEN_REGEX = /\$secret\.([A-Za-z0-9_]+)/g;
-
-// Non-global twin for stateless predicate checks.
-const SECRET_TOKEN_PROBE = /\$secret\.[A-Za-z0-9_]+/;
 
 function hasSecretToken(value: string): boolean {
   return SECRET_TOKEN_PROBE.test(value);
@@ -62,12 +69,8 @@ function containsSecretToken(value: unknown, seen = new WeakSet<object>()): bool
 // --- mask registry -------------------------------------------------------
 // Populated at resolution time; consumed by the scrubbing layer. Runners are
 // in-process async closures sharing module state, so a module-level store is
-// shared across concurrent runners for free.
-//
-// Values shorter than this are registered but never used as mask needles —
-// masking a 1-3 char value would shred unrelated output. Resolution still works;
-// the caller warns.
-const SECRET_MIN_MASK_LENGTH = 4;
+// shared across concurrent runners for free. (SECRET_MIN_MASK_LENGTH, the floor
+// below which a value is never used as a mask needle, is declared at the top.)
 
 const registeredSecrets = new Map<string, string>();
 
