@@ -48,7 +48,7 @@
         },
         {
           "description": "Assert checkpoints ran and either seeded cleanly or compared cleanly, with zero comparison errors.",
-          "runShell": "node -e \"const s = Number('$CKPT_BOOL_SEEDED'); const v = Number('$CKPT_BOOL_MAX_VARIATION'); const e = Number('$CKPT_BOOL_ERRORS'); const ok = e === 0 && ((s >= 2 && v === 0) || (s === 0 && v <= 0.05)); process.exit(ok ? 0 : 1)\""
+          "runShell": "node -e \"const s = Number(process.env.CKPT_BOOL_SEEDED); const v = Number(process.env.CKPT_BOOL_MAX_VARIATION); const e = Number(process.env.CKPT_BOOL_ERRORS); const ok = e === 0 && ((s >= 2 && v === 0) || (s === 0 && v <= 0.05)); process.exit(ok ? 0 : 1)\""
         }
       ]
     },
@@ -101,7 +101,7 @@
         },
         {
           "description": "Assert the object form ran with the custom tolerance: seeded cleanly or compared within 0.1.",
-          "runShell": "node -e \"const s = Number('$CKPT_OBJ_SEEDED'); const v = Number('$CKPT_OBJ_MAX_VARIATION'); const e = Number('$CKPT_OBJ_ERRORS'); const ok = e === 0 && ((s >= 2 && v === 0) || (s === 0 && v <= 0.1)); process.exit(ok ? 0 : 1)\""
+          "runShell": "node -e \"const s = Number(process.env.CKPT_OBJ_SEEDED); const v = Number(process.env.CKPT_OBJ_MAX_VARIATION); const e = Number(process.env.CKPT_OBJ_ERRORS); const ok = e === 0 && ((s >= 2 && v === 0) || (s === 0 && v <= 0.1)); process.exit(ok ? 0 : 1)\""
         }
       ]
     },
