@@ -40,6 +40,11 @@ With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automati
 - `$$changed`: whether the span meaningfully changed and the recording (plus its baselines) was refreshed. `false` means the fresh capture was discarded and the existing file kept.
 - `$$changeReasons`: why the recording refreshed (drift, added/removed steps, missing file). Present only when `changed` is `true`.
 
+With [`verify` guards](record#verifying-the-video-file-itself):
+
+- `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
+- `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
+
 In a headless run of an `aboveVariation` or checkpointed span (the recording itself is skipped):
 
 - `$$stale`: whether the committed recording appears stale—its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint suggesting a headed re-run.

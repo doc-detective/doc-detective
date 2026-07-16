@@ -410,6 +410,53 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should validate a record step with verify guards", function () {
+        for (const verify of [
+          {},
+          { minDuration: 1 },
+          { minDuration: 0.5, maxDuration: 30 },
+          { resolution: true },
+          { resolution: false },
+          { resolution: { width: 1280, height: 720 } },
+          { notBlack: true },
+          {
+            minDuration: 1,
+            resolution: { width: 640, height: 480 },
+            notBlack: true,
+          },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", verify } },
+          });
+          expect(
+            result.valid,
+            `verify: ${JSON.stringify(verify)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject a record step with invalid verify guards", function () {
+        // Note: primitives coerce under ajv coerceTypes, so negatives use
+        // out-of-range numbers, unknown keys, incomplete objects, and arrays.
+        for (const verify of [
+          { minDuration: -1 },
+          { unknownGuard: true },
+          { resolution: { width: 1280 } },
+          { resolution: { width: 0, height: 480 } },
+          [true],
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", verify } },
+          });
+          expect(
+            result.valid,
+            `expected invalid verify: ${JSON.stringify(verify)}`
+          ).to.be.false;
+        }
+      });
+
       it("should validate a record step with checkpoints enabled", function () {
         for (const checkpoints of [
           true,

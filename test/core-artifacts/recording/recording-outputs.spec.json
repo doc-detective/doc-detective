@@ -28,7 +28,12 @@
               "name": "ffmpeg",
               "target": "display"
             },
-            "overwrite": "true"
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 0.5,
+              "resolution": true,
+              "notBlack": true
+            }
           }
         },
         {

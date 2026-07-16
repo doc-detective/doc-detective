@@ -865,6 +865,7 @@ export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
  * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
  */
 export type RecordingEngineSimple = "browser" | "ffmpeg";
+export type VerifyResolutionBoolean = boolean;
 /**
  * Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.
  */
@@ -3834,6 +3835,7 @@ export interface RecordDetailed {
    */
   name?: string;
   engine?: RecordingEngine;
+  verify?: RecordingVerifyGuards;
   checkpoints?: RecordingCheckpoints;
   [k: string]: unknown;
 }
@@ -3919,6 +3921,31 @@ export interface RecordingEngineDetailed {
    * Capture frame rate for the `ffmpeg` engine.
    */
   fps?: number;
+}
+/**
+ * Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.
+ */
+export interface RecordingVerifyGuards {
+  /**
+   * Fail if the video is shorter than this many seconds.
+   */
+  minDuration?: number;
+  /**
+   * Fail if the video is longer than this many seconds.
+   */
+  maxDuration?: number;
+  /**
+   * Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.
+   */
+  resolution?: VerifyResolutionBoolean | VerifyResolutionDetailed;
+  /**
+   * Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture.
+   */
+  notBlack?: boolean;
+}
+export interface VerifyResolutionDetailed {
+  width: number;
+  height: number;
 }
 export interface RecordingCheckpointsDetailed {
   /**

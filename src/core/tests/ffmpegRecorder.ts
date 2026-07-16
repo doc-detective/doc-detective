@@ -25,6 +25,8 @@ export {
   parseCaptureFrameSize,
   parseMediaProbeStderr,
   probeVideoMetadata,
+  parseBlackdetect,
+  detectAllBlack,
   deriveCropScale,
   detectDisplayPointSize,
   jobIsFfmpegRecording,
@@ -562,6 +564,110 @@ async function probeVideoMetadata({
     });
     if (stderr === null) return null;
     return parseMediaProbeStderr(stderr);
+  } catch {
+    return null;
+  }
+}
+
+// Parse ffmpeg blackdetect stderr lines and decide whether the detected
+// black intervals cover the clip. blackdetect emits one line per interval:
+// "[blackdetect @ 0x...] black_start:0 black_end:2.04 black_duration:2.04".
+// Coverage is the sum of reported durations — good enough for the all-black
+// failure mode this guards against (ADR 01075).
+//
+// Two allowances, both measured against real ffmpeg output:
+// - An interval ends at the last black FRAME's timestamp, not the clip end,
+//   so a fully-black clip under-reports by up to one frame interval (a 0.5s
+//   10fps black clip reports black_duration:0.4). `fps` sizes that tolerance;
+//   without it the gap can't be told from real content, so we don't guess.
+// - 5% slack on top, for encoders that shade the first/last frame.
+// Unknown/zero duration can't be judged -> false (not provably black).
+function parseBlackdetect(
+  stderr: string,
+  duration?: number,
+  fps?: number
+): boolean {
+  if (typeof duration !== "number" || !(duration > 0)) return false;
+  let covered = 0;
+  const re = /black_duration:([\d.]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(stderr ?? "")) !== null) {
+    const d = Number(m[1]);
+    if (Number.isFinite(d)) covered += d;
+  }
+  const frameInterval =
+    typeof fps === "number" && fps > 0 ? 1 / fps : 0;
+  return covered >= (duration - frameInterval) * 0.95;
+}
+
+// Run a bounded ffmpeg blackdetect pass over a produced recording and report
+// whether it is (essentially) all black. Returns null when the analysis
+// couldn't run (missing binary, spawn error, timeout) — the caller skips the
+// guard rather than guessing. Bounded like probeVideoMetadata: no JIT
+// install, and a kill timer sized for a real decode pass (30s — doc
+// recordings are short).
+async function detectAllBlack({
+  cacheDir,
+  filePath,
+  duration,
+  fps,
+}: {
+  cacheDir?: string;
+  filePath: string;
+  duration?: number;
+  fps?: number;
+}): Promise<boolean | null> {
+  try {
+    const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
+    const stderr = await new Promise<string | null>((resolve) => {
+      let collected = "";
+      let settled = false;
+      let proc: any = null;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        try {
+          proc?.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(v);
+      };
+      try {
+        proc = spawn(
+          ffmpegPath,
+          [
+            "-hide_banner",
+            "-i",
+            filePath,
+            "-vf",
+            "blackdetect=d=0.1:pix_th=0.10",
+            "-an",
+            "-f",
+            "null",
+            "-",
+          ],
+          { stdio: ["ignore", "ignore", "pipe"] }
+        );
+        proc.stderr?.on("data", (chunk: Buffer) => {
+          // Keep only the blackdetect lines (bounded) — progress spam from a
+          // long decode must not evict them.
+          const text = chunk.toString();
+          if (text.includes("black_") && collected.length < 65536) {
+            collected = (collected + text).slice(0, 65536);
+          }
+        });
+        proc.on("error", () => done(null));
+        proc.on("close", (code: number | null) =>
+          done(code === 0 ? collected : null)
+        );
+        setTimeout(() => done(null), 30000);
+      } catch {
+        done(null);
+      }
+    });
+    if (stderr === null) return null;
+    return parseBlackdetect(stderr, duration, fps);
   } catch {
     return null;
   }

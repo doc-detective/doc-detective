@@ -13,6 +13,7 @@ import {
   deriveCropScale,
   detectDisplayPointSize,
   probeVideoMetadata,
+  detectAllBlack,
 } from "./ffmpegRecorder.js";
 import {
   buildConditionContext,
@@ -203,6 +204,8 @@ async function stopRecording({
   // same-target recordings are already refused at start, and a crashed or
   // failed run's leftover staging file is simply overwritten by the next
   // run's transcode (-y) instead of accumulating orphans.
+  let appliedCrop: { x: number; y: number; w: number; h: number } | null =
+    null;
   const isAboveVariation = recording.overwrite === "aboveVariation";
   const finalTargetPath = recording.targetPath;
   const writeTargetPath = isAboveVariation
@@ -379,6 +382,7 @@ async function stopRecording({
         deleteSource: true,
         crop,
       });
+      appliedCrop = crop;
       dropHandle();
     } else if (recording.type === "appium") {
       // Device engine (phase A7): the whole video arrives base64 from the
@@ -586,10 +590,89 @@ async function stopRecording({
     );
   }
 
-  // Checkpoint reporting (ADR 01072): per-checkpoint results plus drift and
-  // comparison-error signals through the shared implicit-assertion engine at
-  // WARNING severity — never FAIL, mirroring screenshot semantics. Under
-  // aboveVariation the WARNING doubles as "the recording was refreshed".
+  // Structural verify guards (ADR 01075) and checkpoint drift reporting
+  // (ADR 01072) evaluate through ONE shared implicit-assertion pass, so the
+  // FAIL > WARNING roll-up is computed once: a violated structural guard
+  // (author-demanded, FAIL severity) outranks checkpoint drift (advice,
+  // WARNING severity).
+  const specs: { statement: string; severity: "fail" | "warning" }[] = [];
+  const verify = recording.verify;
+  if (verify && typeof verify === "object") {
+    if (typeof verify.minDuration === "number") {
+      // An unprobeable duration fails the guard — an author who demanded a
+      // duration floor shouldn't get a silent pass on an unreadable file.
+      specs.push({
+        statement: `$$outputs.duration >= ${verify.minDuration}`,
+        severity: "fail",
+      });
+    }
+    if (typeof verify.maxDuration === "number") {
+      specs.push({
+        statement: `$$outputs.duration <= ${verify.maxDuration}`,
+        severity: "fail",
+      });
+    }
+    if (verify.resolution !== undefined && verify.resolution !== false) {
+      // resolution: true compares against the resolved capture expectation
+      // (crop rect when one applied, else the capture frame size). The
+      // object form compares literal dimensions. ±2 px tolerance — encoders
+      // round to even dimensions.
+      let expected: { width: number; height: number } | null = null;
+      if (verify.resolution === true) {
+        if (appliedCrop) {
+          expected = { width: appliedCrop.w, height: appliedCrop.h };
+        } else if (recording.captureInfo?.frameSize) {
+          expected = {
+            width: recording.captureInfo.frameSize.w,
+            height: recording.captureInfo.frameSize.h,
+          };
+        }
+      } else {
+        expected = {
+          width: verify.resolution.width,
+          height: verify.resolution.height,
+        };
+      }
+      if (!expected) {
+        log(
+          config,
+          "debug",
+          `verify.resolution: true has no capture expectation for this engine; skipping the check.`
+        );
+      } else {
+        result.outputs.resolutionMatch =
+          typeof result.outputs.width === "number" &&
+          typeof result.outputs.height === "number" &&
+          Math.abs(result.outputs.width - expected.width) <= 2 &&
+          Math.abs(result.outputs.height - expected.height) <= 2;
+        specs.push({
+          statement: `$$outputs.resolutionMatch == true`,
+          severity: "fail",
+        });
+      }
+    }
+    if (verify.notBlack) {
+      const allBlack = await detectAllBlack({
+        cacheDir: config?.cacheDir,
+        filePath: finalTargetPath,
+        duration: result.outputs.duration,
+        fps: result.outputs.fps,
+      });
+      if (allBlack === null) {
+        log(
+          config,
+          "debug",
+          `verify.notBlack: couldn't analyze ${finalTargetPath}; skipping the check.`
+        );
+      } else {
+        result.outputs.allBlack = allBlack;
+        specs.push({
+          statement: `$$outputs.allBlack == false`,
+          severity: "fail",
+        });
+      }
+    }
+  }
   if (checkpoints?.entries?.length) {
     // Errored checkpoints (capture failure, aspect-ratio mismatch against
     // the baseline) can hide extreme drift behind a variation of 0 — they
@@ -597,27 +680,31 @@ async function stopRecording({
     // pass.
     Object.assign(result.outputs, buildCheckpointOutputs(checkpoints.entries));
     result.outputs.seededBaselines = seededBaselines;
-    const ctx = buildConditionContext({ outputs: result.outputs });
-    const { assertions, status } = await evaluateImplicitAssertions(
-      [
-        {
-          statement: `$$outputs.maxCheckpointVariation <= ${checkpoints.maxVariation}`,
-          severity: "warning",
-        },
-        {
-          statement: `$$outputs.checkpointErrors == 0`,
-          severity: "warning",
-        },
-      ],
-      ctx
+    specs.push(
+      {
+        statement: `$$outputs.maxCheckpointVariation <= ${checkpoints.maxVariation}`,
+        severity: "warning",
+      },
+      {
+        statement: `$$outputs.checkpointErrors == 0`,
+        severity: "warning",
+      }
     );
+  }
+  if (specs.length > 0) {
+    const ctx = buildConditionContext({ outputs: result.outputs });
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
     result.assertions = assertions;
     result.status = status;
-    if (status === "WARNING") {
+    if (status === "FAIL") {
+      result.description += ` One or more structural verify guards failed.`;
+    } else if (status === "WARNING" && checkpoints?.entries?.length) {
       result.description += isAboveVariation
         ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
         : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
     }
+  }
+  if (checkpoints) {
     try {
       fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
     } catch {
