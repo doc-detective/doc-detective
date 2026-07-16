@@ -38,6 +38,7 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
+  realizeViewport,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -422,6 +423,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
+          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
+          // viewport emulation (driver.setViewport) crashed headed recording
+          // contexts with a stack overflow and can't be gated off recording
+          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
           "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
@@ -1160,30 +1165,34 @@ function driverSkipDiagnostic({
   return msg;
 }
 
-// Set window size to match target viewport size
-async function setViewportSize(context: any, driver: any) {
-  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
-    // Get viewport size, not window size
-    const viewportSize = await driver.execute(
-      "return { width: window.innerWidth, height: window.innerHeight }",
-      []
-    );
-    // Get window size
-    const windowSize = await driver.getWindowSize();
-    // Get viewport size delta
-    const deltaWidth =
-      (context.browser?.viewport?.width || viewportSize.width) -
-      viewportSize.width;
-    const deltaHeight =
-      (context.browser?.viewport?.height || viewportSize.height) -
-      viewportSize.height;
-    // Resize window if necessary
-    await driver.setWindowSize(
-      windowSize.width + deltaWidth,
-      windowSize.height + deltaHeight
-    );
-    // Confirm viewport size
+// Realize a context's target viewport and return the size the page actually
+// rendered. Prefers viewport emulation (exact size, no window floor) and falls
+// back to window resizing, warning if the browser/OS floored the request. The
+// `// Confirm viewport size` intent is now realized by realizeViewport's
+// read-back.
+async function setViewportSize(
+  context: any,
+  driver: any,
+  config: any = {}
+): Promise<{ width: number; height: number } | undefined> {
+  // Guard on POSITIVE dimensions (not truthiness): the schema doesn't floor
+  // these, so a 0/negative/NaN value must not enter the resize path — matching
+  // the startSurface browser descriptor's guard.
+  const vw = Number(context.browser?.viewport?.width);
+  const vh = Number(context.browser?.viewport?.height);
+  if (vw > 0 || vh > 0) {
+    const requested = {
+      ...(vw > 0 ? { width: vw } : {}),
+      ...(vh > 0 ? { height: vh } : {}),
+    };
+    // Attribute the warning so a multi-context run can tell which context's
+    // viewport was floored.
+    const label = `viewport for ${context.browser?.name ?? "browser"} on ${
+      context.platform ?? "host"
+    }`;
+    return realizeViewport(driver, requested, config, label);
   }
+  return undefined;
 }
 
 async function allowUnsafeSteps({ config }: { config: any }) {
@@ -4472,12 +4481,14 @@ async function runContext({
         });
       }
 
-      if (
-        context.browser?.viewport?.width ||
-        context.browser?.viewport?.height
-      ) {
+      // Positive-dimension guard (not truthiness): a 0/negative/NaN viewport
+      // must fall through to the window-size branch rather than entering the
+      // (no-op) viewport path.
+      const viewportW = Number(context.browser?.viewport?.width);
+      const viewportH = Number(context.browser?.viewport?.height);
+      if (viewportW > 0 || viewportH > 0) {
         // Set driver viewport size
-        await setViewportSize(context, driver);
+        await setViewportSize(context, driver, config);
       } else if (
         context.browser?.window?.width ||
         context.browser?.window?.height
