@@ -213,7 +213,16 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
  * @returns {Promise<string|null>} Path to output directory or null on failure
  */
 async function processDitaMap({ config, source }: { config: any; source: string }) {
-  const hash = crypto.createHash("md5").update(source).digest("hex");
+  // Cache key for the temp output dir, not a security primitive — but MD5 is a
+  // broken algorithm and CodeQL flags every use of it, so use SHA-256 and keep
+  // the digest truncated to MD5's 32 hex chars: `outputDir` is nested under
+  // os.tmpdir() and a 64-char name would push these paths toward Windows'
+  // MAX_PATH ceiling for no benefit. Truncation is fine for a cache key.
+  const hash = crypto
+    .createHash("sha256")
+    .update(source)
+    .digest("hex")
+    .slice(0, 32);
   const tmpBase = path.join(os.tmpdir(), "doc-detective");
   const outputDir = path.join(tmpBase, `ditamap_${hash}`);
   if (!fs.existsSync(tmpBase)) {

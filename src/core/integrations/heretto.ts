@@ -1262,10 +1262,15 @@ export async function downloadAndExtractOutput(
   const ZipClass = deps?.ZipClass || AdmZip;
 
   const tempDir = path.join(os.tmpdir(), "doc-detective");
+  // Cache key for the temp download dir, not a security primitive — but MD5 is
+  // a broken algorithm and CodeQL flags every use of it. SHA-256 truncated to
+  // MD5's 32 hex chars keeps these os.tmpdir()-nested paths the same length
+  // (Windows MAX_PATH); truncation is fine for a cache key.
   const hash = crypto
-    .createHash("md5")
+    .createHash("sha256")
     .update(`${herettoName}_${jobId}`)
-    .digest("hex");
+    .digest("hex")
+    .slice(0, 32);
 
   try {
     fsModule.mkdirSync(tempDir, { recursive: true });
