@@ -49,6 +49,10 @@ import { typeKeys } from "./tests/typeKeys.js";
 import { swipeSurface } from "./tests/swipe.js";
 import { wait } from "./tests/wait.js";
 import { saveScreenshot } from "./tests/saveScreenshot.js";
+import {
+  capPathSegment,
+  stepArtifactFileName,
+} from "./tests/recordingCheckpoints.js";
 import { startRecording } from "./tests/startRecording.js";
 import { stopRecording } from "./tests/stopRecording.js";
 import {
@@ -142,7 +146,7 @@ import {
 } from "./tests/browserSessions.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { setAppiumHome } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
@@ -3612,28 +3616,6 @@ function buildAutoRecordStep({
   };
 }
 
-// Directory/file segments built from IDs are capped so deeply nested doc
-// trees can't push the full path past Windows' MAX_PATH. The default cap is
-// 32: the REST artifact tree nests several id segments
-// (specs/<id>/tests/<id>/contexts/<id>/…), so a larger default could exceed
-// MAX_PATH on Windows.
-//
-// Plain tail truncation alone is unsafe: two distinct ids that share the same
-// trailing `max` characters (e.g. mirror directory trees that differ only in a
-// long prefix) would collapse into the same path segment, so one context's
-// screenshots/recording could overwrite another's and the reported relative
-// path would resolve to the wrong artifact. When a segment exceeds the cap,
-// prepend a short deterministic hash of the *full* segment so distinct ids stay
-// distinct, and keep the trailing chars (where generated ids carry their
-// content hash) for human correlation. Deterministic — the same id maps to the
-// same segment every run, preserving run-over-run comparison.
-function capPathSegment(segment: string, max: number = 32): string {
-  if (segment.length <= max) return segment;
-  const hash = createHash("sha1").update(segment).digest("hex").slice(0, 8);
-  const tail = segment.slice(segment.length - (max - hash.length - 1));
-  return `${hash}-${tail}`;
-}
-
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
 // path follows the REST resource tree — stable IDs (spec/test/context) as
 // nested collections plus the step's order, action, and ID (e.g.
@@ -3662,41 +3644,27 @@ async function captureAutoScreenshot({
   stepCount: number;
 }): Promise<string | null> {
   try {
-    const action =
-      driverActions.find((key) => typeof step[key] !== "undefined") || "step";
-    const sanitizedTestId = sanitizeFilesystemName(
-      String(test.testId ?? ""),
-      "test"
-    );
     const runDir = getRunOutputDir(config);
     const dir = path.join(
       runDir,
       "specs",
       capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
       "tests",
-      capPathSegment(sanitizedTestId),
+      capPathSegment(
+        sanitizeFilesystemName(String(test.testId ?? ""), "test")
+      ),
       "contexts",
       capPathSegment(
         sanitizeFilesystemName(String(context.contextId ?? ""), "context")
       ),
       "screenshots"
     );
-    // The stepId usually embeds the testId (its parent folder) — strip that
-    // prefix so filenames stay short while still carrying the step's ID.
-    const stepIdString = sanitizeFilesystemName(
-      String(step.stepId ?? ""),
-      "step"
-    );
-    const stepRef = capPathSegment(
-      stepIdString.startsWith(`${sanitizedTestId}~`)
-        ? stepIdString.slice(sanitizedTestId.length + 1)
-        : stepIdString
-    );
-    // Zero-pad the step ordinal to the width of the context's step count
-    // (min 2), so file listings sort naturally even past 99 steps (100 would
-    // otherwise sort before 11).
-    const pad = Math.max(2, String(stepCount).length);
-    const fileName = `${String(stepIndex + 1).padStart(pad, "0")}-${action}-${stepRef}.png`;
+    const fileName = stepArtifactFileName({
+      step,
+      stepIndex,
+      stepCount,
+      testId: test.testId,
+    });
     const screenshotStep = {
       stepId: `${step.stepId}_auto`,
       description: "Automatic post-step screenshot",

@@ -391,6 +391,48 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.record.engine.target).to.equal(undefined);
       });
 
+      it("should validate a record step with checkpoints enabled", function () {
+        for (const checkpoints of [
+          true,
+          false,
+          {},
+          { maxVariation: 0.02 },
+          { directory: "baselines" },
+          { maxVariation: 0.1, directory: "baselines" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", checkpoints } },
+          });
+          expect(
+            result.valid,
+            `checkpoints: ${JSON.stringify(checkpoints)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject a record step with invalid checkpoints", function () {
+        // Note: string/number primitives coerce under ajv coerceTypes (7 ->
+        // "7"), so negatives use shapes that never coerce clean: out-of-range
+        // numbers, unknown keys, arrays, and object-typed field values.
+        for (const checkpoints of [
+          { maxVariation: 2 },
+          { maxVariation: -0.5 },
+          { unknownField: true },
+          { directory: {} },
+          [true],
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", checkpoints } },
+          });
+          expect(
+            result.valid,
+            `expected invalid checkpoints: ${JSON.stringify(checkpoints)}`
+          ).to.be.false;
+        }
+      });
+
       it("should validate a config_v3 object with autoRecord set", function () {
         const result = validate({
           schemaKey: "config_v3",

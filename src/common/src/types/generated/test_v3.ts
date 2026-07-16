@@ -1715,6 +1715,14 @@ export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
  */
 export type RecordingEngineSimple = "browser" | "ffmpeg";
 /**
+ * Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.
+ */
+export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckpointsDetailed;
+/**
+ * If `true`, enables checkpoints with default settings.
+ */
+export type RecordingCheckpointsBoolean = boolean;
+/**
  * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
@@ -4374,6 +4382,14 @@ export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1
  * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
  */
 export type RecordingEngineSimple1 = "browser" | "ffmpeg";
+/**
+ * Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.
+ */
+export type RecordingCheckpoints1 = RecordingCheckpointsBoolean1 | RecordingCheckpointsDetailed1;
+/**
+ * If `true`, enables checkpoints with default settings.
+ */
+export type RecordingCheckpointsBoolean1 = boolean;
 /**
  * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
@@ -8025,6 +8041,7 @@ export interface RecordDetailed {
    */
   name?: string;
   engine?: RecordingEngine;
+  checkpoints?: RecordingCheckpoints;
   [k: string]: unknown;
 }
 export interface BrowserSurface4 {
@@ -8109,6 +8126,16 @@ export interface RecordingEngineDetailed {
    * Capture frame rate for the `ffmpeg` engine.
    */
   fps?: number;
+}
+export interface RecordingCheckpointsDetailed {
+  /**
+   * Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.
+   */
+  maxVariation?: number;
+  /**
+   * Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).
+   */
+  directory?: string;
 }
 export interface Common12 {
   /**
@@ -12596,6 +12623,7 @@ export interface RecordDetailed1 {
    */
   name?: string;
   engine?: RecordingEngine1;
+  checkpoints?: RecordingCheckpoints1;
   [k: string]: unknown;
 }
 export interface BrowserSurface14 {
@@ -12680,6 +12708,16 @@ export interface RecordingEngineDetailed1 {
    * Capture frame rate for the `ffmpeg` engine.
    */
   fps?: number;
+}
+export interface RecordingCheckpointsDetailed1 {
+  /**
+   * Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.
+   */
+  maxVariation?: number;
+  /**
+   * Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).
+   */
+  directory?: string;
 }
 export interface Common32 {
   /**
