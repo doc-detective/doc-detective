@@ -12,6 +12,7 @@ import {
   stopRecordTargetName,
   deriveCropScale,
   detectDisplayPointSize,
+  probeVideoMetadata,
 } from "./ffmpegRecorder.js";
 
 export { stopRecording };
@@ -359,7 +360,29 @@ async function stopRecording({
     return result;
   }
 
-  // PASS
+  // PASS — report what was produced. Metadata is best-effort: a probe
+  // failure omits fields and logs debug; it never changes the step's status.
+  // The field list is copied explicitly — the outputs object is a documented
+  // user-facing contract ($$duration etc.), so parser additions must opt in.
+  result.outputs = {
+    recordingPath: path.resolve(recording.targetPath),
+    format: path.extname(recording.targetPath).slice(1),
+  };
+  const meta = await probeVideoMetadata({
+    cacheDir: config?.cacheDir,
+    filePath: recording.targetPath,
+  });
+  if (meta?.duration !== undefined) result.outputs.duration = meta.duration;
+  if (meta?.width !== undefined) result.outputs.width = meta.width;
+  if (meta?.height !== undefined) result.outputs.height = meta.height;
+  if (meta?.fps !== undefined) result.outputs.fps = meta.fps;
+  if (!meta || Object.keys(meta).length === 0) {
+    log(
+      config,
+      "debug",
+      `Couldn't probe recording metadata for ${recording.targetPath}.`
+    );
+  }
   return result;
 }
 

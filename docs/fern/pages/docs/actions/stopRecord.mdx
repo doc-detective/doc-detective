@@ -20,6 +20,16 @@ The same untargeted and named forms stop recordings of every kind—browser, des
 >
 > For comprehensive options, see the [`stopRecord`](/reference/schemas/stoprecord) reference.
 
+**Outputs:** when a recording saves, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Metadata fields are best-effort—if Doc Detective can't read the saved file's metadata, it omits those fields without failing the step:
+
+- `$$recordingPath`: the absolute path of the saved video file.
+- `$$format`: the saved file's format (`mp4`, `webm`, or `gif`).
+- `$$duration`: the video's duration in seconds.
+- `$$width` and `$$height`: the video's dimensions in pixels, after any window or viewport crop.
+- `$$fps`: the video's frame rate.
+
+A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
+
 ## Examples
 
 This example starts recording, performs an action, and then stops the recording.

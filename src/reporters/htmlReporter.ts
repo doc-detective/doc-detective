@@ -1052,7 +1052,9 @@ function collectMedia(step) {
   if (step.record && (step.record.path || outs.recordingPath)) {
     media.push({ kind: "video", path: outs.recordingPath || step.record.path });
   }
-  if (step.stopRecord && outs.recordingPath) {
+  // Match the runner's dispatch (presence, not truthiness): stopRecord null
+  // is a valid untargeted stop that still saves a video.
+  if (typeof step.stopRecord !== "undefined" && outs.recordingPath) {
     media.push({ kind: "video", path: outs.recordingPath });
   }
   return media;

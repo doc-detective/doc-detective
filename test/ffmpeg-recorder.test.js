@@ -5,6 +5,7 @@ import {
   resolveRecordPlan,
   coerceRecordContextBrowser,
   parseCaptureFrameSize,
+  parseMediaProbeStderr,
   deriveCropScale,
   ffmpegPathEnv,
   safeContextId,
@@ -1158,5 +1159,92 @@ describe("ffmpegRecorder", function () {
       expect(threw).to.not.equal(null);
       expect(threw.message).to.match(/ENOENT|spawn/i);
     });
+  });
+});
+
+// parseMediaProbeStderr parses the human-readable `ffmpeg -i <file>` stderr
+// into recording metadata. Canned blobs below are trimmed from real ffmpeg
+// output for each supported container.
+describe("parseMediaProbeStderr", function () {
+  const MP4_STDERR = [
+    "ffmpeg version 6.1.1-full_build Copyright (c) 2000-2023 the FFmpeg developers",
+    "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'demo.mp4':",
+    "  Metadata:",
+    "    major_brand     : isom",
+    "    encoder         : Lavf60.16.100",
+    "  Duration: 00:00:05.43, start: 0.000000, bitrate: 1092 kb/s",
+    "  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637634), yuv420p(progressive), 1280x720 [SAR 1:1 DAR 16:9], 1090 kb/s, 30 fps, 30 tbr, 15360 tbn (default)",
+    "At least one output file must be specified",
+  ].join("\n");
+
+  const WEBM_STDERR = [
+    "Input #0, matroska,webm, from 'demo.webm':",
+    "  Metadata:",
+    "    ENCODER         : Lavf60.3.100",
+    "  Duration: 00:01:02.07, start: 0.000000, bitrate: 723 kb/s",
+    "  Stream #0:0: Video: vp9 (Profile 0), yuv420p(tv, bt709), 1920x1080, SAR 1:1 DAR 16:9, 29.97 fps, 29.97 tbr, 1k tbn (default)",
+    "At least one output file must be specified",
+  ].join("\n");
+
+  // gif reports no `fps` token -- only `tbr`.
+  const GIF_STDERR = [
+    "Input #0, gif, from 'demo.gif':",
+    "  Duration: 00:00:03.90, start: 0.000000, bitrate: 1832 kb/s",
+    "  Stream #0:0: Video: gif, bgra, 800x600, 10.42 tbr, 100 tbn",
+    "At least one output file must be specified",
+  ].join("\n");
+
+  it("parses duration, dimensions, and fps from mp4 stderr", function () {
+    const meta = parseMediaProbeStderr(MP4_STDERR);
+    expect(meta.duration).to.be.closeTo(5.43, 0.001);
+    expect(meta.width).to.equal(1280);
+    expect(meta.height).to.equal(720);
+    expect(meta.fps).to.be.closeTo(30, 0.001);
+  });
+
+  it("parses minutes-bearing duration and fractional fps from webm stderr", function () {
+    const meta = parseMediaProbeStderr(WEBM_STDERR);
+    expect(meta.duration).to.be.closeTo(62.07, 0.001);
+    expect(meta.width).to.equal(1920);
+    expect(meta.height).to.equal(1080);
+    expect(meta.fps).to.be.closeTo(29.97, 0.001);
+  });
+
+  it("falls back to tbr when the stream reports no fps (gif)", function () {
+    const meta = parseMediaProbeStderr(GIF_STDERR);
+    expect(meta.duration).to.be.closeTo(3.9, 0.001);
+    expect(meta.width).to.equal(800);
+    expect(meta.height).to.equal(600);
+    expect(meta.fps).to.be.closeTo(10.42, 0.001);
+  });
+
+  it("omits duration when ffmpeg reports N/A", function () {
+    const meta = parseMediaProbeStderr(
+      [
+        "Input #0, matroska,webm, from 'x.webm':",
+        "  Duration: N/A, start: 0.000000, bitrate: N/A",
+        "  Stream #0:0: Video: vp9, yuv420p, 640x480, 25 fps, 25 tbr, 1k tbn",
+      ].join("\n")
+    );
+    expect(meta.duration).to.equal(undefined);
+    expect(meta.width).to.equal(640);
+    expect(meta.height).to.equal(480);
+  });
+
+  it("returns an empty object for unparsable input", function () {
+    expect(parseMediaProbeStderr("")).to.deep.equal({});
+    expect(parseMediaProbeStderr("no such file or directory")).to.deep.equal({});
+  });
+
+  it("ignores dimension-like tokens outside the Video stream line", function () {
+    const meta = parseMediaProbeStderr(
+      [
+        "Input #0, mov, from 'weird 99x99 name.mp4':",
+        "  Duration: 00:00:01.00, start: 0.000000, bitrate: 100 kb/s",
+        "  Stream #0:0: Video: h264, yuv420p, 320x240, 15 fps, 15 tbr",
+      ].join("\n")
+    );
+    expect(meta.width).to.equal(320);
+    expect(meta.height).to.equal(240);
   });
 });
