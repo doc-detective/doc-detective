@@ -99,7 +99,7 @@ type CheckpointsConfig = {
 
 // Whether a record step's authored form enables checkpoints — the single
 // predicate shared by resolveCheckpointsConfig and startRecording's phantom
-// gate (ADR 01074), so the two can't drift: this returns true exactly when
+// gate (ADR 01079), so the two can't drift: this returns true exactly when
 // resolveCheckpointsConfig returns a config.
 function recordingCheckpointsEnabled(record: any): boolean {
   if (record?.overwrite === "aboveVariation") return true;
@@ -123,7 +123,7 @@ function resolveCheckpointsConfig({
 }): CheckpointsConfig | null {
   let raw = record?.checkpoints;
   // overwrite: "aboveVariation" REQUIRES checkpoints — the span verdict
-  // (ADR 01073) is computed from them, so the mode forces them on even over
+  // (ADR 01078) is computed from them, so the mode forces them on even over
   // an explicit `checkpoints: false` (documented; a verdict with no evidence
   // could never refresh a drifted recording). An explicit checkpoints object
   // still tunes maxVariation/directory.
@@ -151,7 +151,7 @@ function resolveCheckpointsConfig({
   };
 }
 
-// The outcome of judging a recording span against its baselines (ADR 01073).
+// The outcome of judging a recording span against its baselines (ADR 01078).
 type SpanVerdict = {
   changed: boolean;
   reasons: string[];
@@ -338,7 +338,7 @@ function buildCheckpointOutputs(entries: CheckpointEntry[]): {
 // recording handle with checkpoints enabled, capture one screenshot and
 // compare it compare-only against the handle's persistent baseline, pushing
 // a CheckpointEntry either way. Baselines are never written here — seeding
-// and updates belong to stopRecord (ADR 01072). Never throws: a failed
+// and updates belong to stopRecord (ADR 01075). Never throws: a failed
 // capture records an entry with `error` and a warning log, mirroring
 // captureAutoScreenshot's contract (a missed checkpoint must not fail the
 // step it documents).
@@ -374,7 +374,7 @@ async function captureRecordingCheckpoints({
   if (qualifying.length === 0) return;
   if (!driver) {
     // App-only contexts have no browser driver to capture with (v1
-    // limitation — app-surface checkpoints are a follow-up, ADR 01072).
+    // limitation — app-surface checkpoints are a follow-up, ADR 01075).
     log(
       config,
       "debug",

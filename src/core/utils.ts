@@ -1327,6 +1327,138 @@ function logLevelEnabled(config: any, level: string): boolean {
   return false;
 }
 
+/**
+ * Benign viewport delta (px) that must not raise a mismatch warning. A vertical
+ * scrollbar appearing/disappearing after a resize shifts the content width by
+ * ~15px on desktop; this absorbs that so only a meaningful floor (e.g. a mobile
+ * width clamped up by a hundred-plus pixels) is flagged.
+ */
+export const VIEWPORT_TOLERANCE_PX = 16;
+
+/**
+ * Compare a requested browser viewport against the viewport the page actually
+ * rendered (window.innerWidth/innerHeight read back after a resize) and produce
+ * a warning when they diverge.
+ *
+ * Browsers and the host OS enforce a minimum window size, so a requested
+ * viewport — a 375px mobile width, say — can be silently floored to a larger
+ * size with no error and no failing step (the "the browser had a floor I didn't
+ * know about" case). This surfaces that gap so the rendered size is honest
+ * rather than assumed.
+ *
+ * Only dimensions the caller actually requested (a positive number) are
+ * compared, so a width-only request is never warned about an unrequested
+ * height. A requested dimension that couldn't be read back (non-finite actual)
+ * is treated as a mismatch — an unconfirmed size is not a matched size.
+ * `tolerance` (px) absorbs benign deltas such as a scrollbar's width. Returns
+ * null when every requested dimension landed within tolerance.
+ */
+export function viewportMismatchWarning(
+  requested: { width?: number; height?: number } | undefined,
+  actual: { width?: number; height?: number } | undefined,
+  tolerance = 0
+): string | null {
+  const parts: string[] = [];
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(requested?.[dim]);
+    if (!(req > 0)) continue; // only compare dimensions the caller requested
+    const act = Number(actual?.[dim]);
+    if (!Number.isFinite(act)) {
+      parts.push(`${dim} requested ${req}px, rendered unknown`);
+    } else if (Math.abs(act - req) > tolerance) {
+      parts.push(`${dim} requested ${req}px, rendered ${act}px`);
+    }
+  }
+  if (parts.length === 0) return null;
+  return `Requested viewport not fully realized — the browser or OS enforces a minimum window size: ${parts.join(
+    "; "
+  )}. Screenshots and measurements reflect the rendered size, not the requested size.`;
+}
+
+/**
+ * Resolve the concrete target the viewport should be set to. A request may name
+ * only one dimension (width OR height); the other is filled from the current
+ * viewport so the unrequested dimension is left as-is. Non-positive/absent
+ * values fall back to the current size.
+ */
+export function resolveViewportTarget(
+  requested: { width?: number; height?: number } | undefined,
+  current: { width?: number; height?: number } | undefined
+): { width: number; height: number } {
+  const w = Number(requested?.width);
+  const h = Number(requested?.height);
+  return {
+    width: w > 0 ? w : Number(current?.width),
+    height: h > 0 ? h : Number(current?.height),
+  };
+}
+
+async function readViewport(
+  driver: any
+): Promise<{ width: number; height: number }> {
+  const v = await driver.execute(
+    "return { width: window.innerWidth, height: window.innerHeight }",
+    []
+  );
+  return { width: Number(v?.width), height: Number(v?.height) };
+}
+
+/**
+ * Realize a requested browser viewport by resizing the OS window, then read the
+ * viewport back and return the size the page actually rendered.
+ *
+ * The window is grown/shrunk by the delta between the requested and current
+ * viewport. This is subject to the browser/OS minimum *window* size, so a small
+ * mobile width (375px) can be floored to a larger size; the realized size is
+ * read back and a warning is emitted when the request wasn't met, since the size
+ * the page rendered — not the size requested — is ground truth.
+ *
+ * True viewport *emulation* (`driver.setViewport`, setting the content size
+ * below the window floor) was evaluated and rejected: it needs a WebDriver BiDi
+ * socket, which crashed headed recording contexts with a stack overflow and
+ * flaked geckodriver startup — the cross-driver instability ADR 00132 documented.
+ * See [ADR 01072] (rejected). This resize-and-warn path is the shipped behavior.
+ *
+ * Only meaningful when at least one dimension was requested; callers guard that.
+ */
+export async function realizeViewport(
+  driver: any,
+  requested: { width?: number; height?: number },
+  config: any = {},
+  label?: string
+): Promise<{ width: number; height: number }> {
+  const current = await readViewport(driver);
+  const target = resolveViewportTarget(requested, current);
+
+  const windowSize = await driver.getWindowSize();
+  // If the viewport read-back failed (non-finite current/target), keep the
+  // window as-is for that axis rather than passing NaN to setWindowSize (which
+  // some drivers reject). Round to integers — drivers expect whole pixels.
+  const deltaWidth =
+    Number.isFinite(current.width) && Number.isFinite(target.width)
+      ? target.width - current.width
+      : 0;
+  const deltaHeight =
+    Number.isFinite(current.height) && Number.isFinite(target.height)
+      ? target.height - current.height
+      : 0;
+  await driver.setWindowSize(
+    Math.round(windowSize.width + deltaWidth),
+    Math.round(windowSize.height + deltaHeight)
+  );
+
+  const actual = await readViewport(driver);
+  const warning = viewportMismatchWarning(
+    requested,
+    actual,
+    VIEWPORT_TOLERANCE_PX
+  );
+  if (warning) {
+    await log(config, "warning", label ? `${label}: ${warning}` : warning);
+  }
+  return actual;
+}
+
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)

@@ -137,7 +137,7 @@ async function stopRecording({
     }
   };
 
-  // Phantom span (ADR 01074): the recording itself was skipped (headless),
+  // Phantom span (ADR 01079): the recording itself was skipped (headless),
   // but checkpoints ran against the committed baselines. Compute the span
   // verdict READ-ONLY — no video, no seeding, no baseline updates, no orphan
   // deletion — and surface staleness. WARNING = the recording appears stale;
@@ -194,7 +194,7 @@ async function stopRecording({
     return result;
   }
 
-  // overwrite "aboveVariation" (ADR 01073): the produced file lands at a
+  // overwrite "aboveVariation" (ADR 01078): the produced file lands at a
   // staging path in the target's directory (same volume — promotion is a
   // rename), and the span verdict decides at the end whether it replaces the
   // existing recording or is discarded. Every other mode writes the target
@@ -460,12 +460,14 @@ async function stopRecording({
   }
 
   // PASS — first decide the produced file's fate, then report on the file
-  // the user actually keeps.
+  // the user actually keeps. (This supersedes the probe-then-seed order from
+  // the checkpoints layer: under aboveVariation the probe has to read the
+  // file that survives the promote/discard decision, not the staged one.)
   const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
   let seededBaselines = 0;
   result.outputs = {};
   if (isAboveVariation) {
-    // Span verdict (ADR 01073): promote the staged capture over the target
+    // Span verdict (ADR 01078): promote the staged capture over the target
     // only when the span meaningfully changed; otherwise discard it and
     // leave target + baselines byte-untouched. Promote updates ALL baselines
     // together with the video — they must never disagree. Two indeterminate
@@ -550,10 +552,22 @@ async function stopRecording({
       if (entry.baselineMissing && !entry.error) {
         try {
           fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
-          fs.copyFileSync(entry.stagingPath, entry.baselinePath);
+          // COPYFILE_EXCL enforces "seeding never overwrites a baseline" at
+          // the syscall: `baselineMissing` was decided back when the
+          // checkpoint was captured, so a baseline committed (or written by
+          // another run) since then would otherwise be silently replaced —
+          // the one thing this layer promises not to do.
+          fs.copyFileSync(
+            entry.stagingPath,
+            entry.baselinePath,
+            fs.constants.COPYFILE_EXCL
+          );
           seededBaselines++;
         } catch (error: any) {
-          entry.error = String(error?.message ?? error);
+          entry.error =
+            error?.code === "EEXIST"
+              ? `A baseline appeared at ${entry.baselinePath} after this checkpoint was captured; left it untouched.`
+              : String(error?.message ?? error);
           log(
             config,
             "warning",

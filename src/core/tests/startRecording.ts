@@ -334,7 +334,7 @@ async function startRecording({
   }
 
   // A headless-skipped recording with checkpoints (or aboveVariation, which
-  // implies them) still tracks a compare-only "phantom" span (ADR 01074):
+  // implies them) still tracks a compare-only "phantom" span (ADR 01079):
   // the post-step hook captures checkpoints against the committed baselines
   // and stopRecord reports staleness read-only — no video, no writes.
   const phantomRecordingResult = (skipDescription: string) => {

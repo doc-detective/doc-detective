@@ -233,6 +233,22 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     assert.ok(fs.existsSync(target));
   });
 
+  it("reports the saved screenshot's rendered dimensions in outputs (ground truth)", async function () {
+    // The article's workaround was captioning screenshots with the size the
+    // page actually rendered. saveScreenshot now reports that size directly, so
+    // a floored/emulated viewport is reconcilable against the file.
+    const target = path.join(tmpDir, "dims.png");
+    const buf = await makePngBuffer(375, 812);
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "dims1", screenshot: target },
+      driver: fakeDriver(buf),
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.width, 375);
+    assert.equal(result.outputs.height, 812);
+  });
+
   it("new capture (no reference) preserves sourceIntegration on the output", async function () {
     const target = path.join(tmpDir, "new-si.png");
     const buf = await makePngBuffer(24, 18);

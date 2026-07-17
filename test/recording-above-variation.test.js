@@ -11,8 +11,8 @@ import {
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 
 // ---------------------------------------------------------------------------
-// ADR 01073: record overwrite "aboveVariation" — span verdict + promote.
-// ADR 01074: phantom spans — read-only staleness detection headless.
+// ADR 01078: record overwrite "aboveVariation" — span verdict + promote.
+// ADR 01079: phantom spans — read-only staleness detection headless.
 // ---------------------------------------------------------------------------
 
 describe("computeSpanVerdict", function () {
@@ -500,7 +500,7 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
   });
 });
 
-// Review hardening (ADR 01073/01074 follow-ups): dirty spans, evidence-free
+// Review hardening (ADR 01078/01074 follow-ups): dirty spans, evidence-free
 // verdicts, checkpoint enablement coherence, and truthful promote reporting.
 describe("aboveVariation hardening", function () {
   this.timeout(20000);
