@@ -465,6 +465,10 @@ async function stopRecording({
   // file that survives the promote/discard decision, not the staged one.)
   const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
   let seededBaselines = 0;
+  // A promote that couldn't commit must never read as a clean PASS, and a
+  // video that refreshed without its baselines is only a partial refresh.
+  let promoteFailed = false;
+  let baselineFailures = 0;
   result.outputs = {};
   if (isAboveVariation) {
     // Span verdict (ADR 01078): promote the staged capture over the target
@@ -508,6 +512,8 @@ async function stopRecording({
       });
       seededBaselines = promoted.seededBaselines;
       result.outputs.changed = promoted.videoPromoted;
+      promoteFailed = !promoted.videoPromoted;
+      baselineFailures = promoted.baselineFailures;
       if (promoted.videoPromoted) {
         result.outputs.changeReasons = ["the recording file is missing"];
       }
@@ -529,6 +535,8 @@ async function stopRecording({
         });
         seededBaselines = promoted.seededBaselines;
         result.outputs.changed = promoted.videoPromoted;
+        promoteFailed = !promoted.videoPromoted;
+        baselineFailures = promoted.baselineFailures;
         if (promoted.videoPromoted) {
           result.outputs.changeReasons = verdict.reasons;
           log(
@@ -628,14 +636,39 @@ async function stopRecording({
     result.assertions = assertions;
     result.status = status;
     if (status === "WARNING") {
-      result.description += isAboveVariation
-        ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
-        : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
+      // Only claim a refresh when one actually happened: an indeterminate or
+      // failed span keeps the existing recording, so saying "refreshed" there
+      // would describe the opposite of what's on disk.
+      result.description += !isAboveVariation
+        ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`
+        : result.outputs.changed
+          ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
+          : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the existing recording was kept.`;
+    }
+    if (baselineFailures > 0) {
+      result.outputs.baselineFailures = baselineFailures;
     }
     try {
       fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
     } catch {
       /* best-effort cleanup; staged files live under the OS temp dir */
+    }
+  }
+
+  // A promote that couldn't commit outranks everything above: the step must
+  // not report a clean PASS over a recording that isn't there. With no target
+  // at all there is nothing to hand the user (FAIL, and drop the path we can't
+  // honour); with the previous target retained the run still has a video, just
+  // a stale one (WARNING).
+  if (promoteFailed) {
+    if (!fs.existsSync(finalTargetPath)) {
+      result.status = "FAIL";
+      result.description = `Couldn't save the recording to ${finalTargetPath}: promoting the captured video failed and no previous recording exists at that path.`;
+      delete result.outputs.recordingPath;
+      delete result.outputs.format;
+    } else {
+      result.status = "WARNING";
+      result.description += ` The captured video couldn't replace ${finalTargetPath}, so the existing (now stale) recording was kept.`;
     }
   }
   return result;

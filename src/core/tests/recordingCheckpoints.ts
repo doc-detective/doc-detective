@@ -246,13 +246,23 @@ function promoteRecordingSpan({
   entries: CheckpointEntry[];
   orphans: string[];
   baselineDir: string;
-}): { videoPromoted: boolean; seededBaselines: number } {
+}): { videoPromoted: boolean; seededBaselines: number; baselineFailures: number } {
   const backupPath = `${targetPath}.promote-backup`;
   const targetExisted = fs.existsSync(targetPath);
+  // A crashed run can leave a backup behind, and Windows can't rename onto an
+  // existing file — so a stale backup would fail every future promote. Clear
+  // it first: the committed target is the source of truth, never the backup.
+  try {
+    fs.rmSync(backupPath, { force: true });
+  } catch {
+    /* if it survives, the rename below fails and we report honestly */
+  }
+  // The swap is the only step that can lose the user's recording, so it's the
+  // only step inside this try. Cleanup of the backup happens AFTER the swap is
+  // committed (below) — a failed cleanup must never un-report a real refresh.
   try {
     if (targetExisted) fs.renameSync(targetPath, backupPath);
     fs.renameSync(stagingTarget, targetPath);
-    if (targetExisted) fs.rmSync(backupPath, { force: true });
   } catch (error: any) {
     log(
       config,
@@ -267,7 +277,13 @@ function promoteRecordingSpan({
     } catch {
       /* best-effort restore */
     }
-    return { videoPromoted: false, seededBaselines: 0 };
+    return { videoPromoted: false, seededBaselines: 0, baselineFailures: 0 };
+  }
+  // Committed. From here the refresh is real no matter what else fails.
+  try {
+    fs.rmSync(backupPath, { force: true });
+  } catch {
+    /* a surviving backup is cosmetic; the next promote clears it */
   }
   try {
     fs.mkdirSync(baselineDir, { recursive: true });
@@ -275,6 +291,7 @@ function promoteRecordingSpan({
     /* surfaced by the per-entry writes below */
   }
   let seededBaselines = 0;
+  let baselineFailures = 0;
   for (const entry of entries) {
     if (entry.error) continue;
     try {
@@ -283,6 +300,7 @@ function promoteRecordingSpan({
       fs.renameSync(tempPath, entry.baselinePath);
       if (entry.baselineMissing) seededBaselines++;
     } catch (error: any) {
+      baselineFailures++;
       log(
         config,
         "warning",
@@ -294,6 +312,7 @@ function promoteRecordingSpan({
     try {
       fs.unlinkSync(path.join(baselineDir, orphan));
     } catch (error: any) {
+      baselineFailures++;
       log(
         config,
         "warning",
@@ -301,7 +320,10 @@ function promoteRecordingSpan({
       );
     }
   }
-  return { videoPromoted: true, seededBaselines };
+  // The video refreshed, but any baseline left behind means the pair is out of
+  // step. Report it so the caller doesn't call this a complete refresh; the
+  // next run sees the mismatch as drift and repairs it (ADR 01078).
+  return { videoPromoted: true, seededBaselines, baselineFailures };
 }
 
 // The per-checkpoint slice of stopRecord's outputs, shared by headed stops

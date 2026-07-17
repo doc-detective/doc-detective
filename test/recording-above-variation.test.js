@@ -726,3 +726,67 @@ describe("stopRecording: phantom indeterminate spans", function () {
     }
   });
 });
+
+// Review findings on #651: a promote that can't commit must never read as a
+// clean PASS, and cleanup of the backup must not un-report a real refresh.
+describe("promoteRecordingSpan: failure honesty", function () {
+  let tmpDir;
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-promote-fail-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("clears a crashed run's leftover backup instead of failing forever", function () {
+    const targetPath = path.join(tmpDir, "demo.mp4");
+    const stagingTarget = path.join(tmpDir, ".demo.staging.mp4");
+    const baselineDir = path.join(tmpDir, "demo.mp4.checkpoints");
+    fs.writeFileSync(targetPath, "old-video");
+    fs.writeFileSync(stagingTarget, "new-video");
+    // A previous run died mid-swap and left this behind. Windows can't rename
+    // onto an existing file, so a stale backup would break every future promote.
+    fs.writeFileSync(`${targetPath}.promote-backup`, "stale-backup");
+
+    const out = promoteRecordingSpan({
+      config: {},
+      stagingTarget,
+      targetPath,
+      entries: [],
+      orphans: [],
+      baselineDir,
+    });
+
+    assert.equal(out.videoPromoted, true);
+    assert.equal(fs.readFileSync(targetPath, "utf8"), "new-video");
+    assert.equal(fs.existsSync(`${targetPath}.promote-backup`), false);
+  });
+
+  it("reports baselineFailures when the video refreshed but a baseline didn't", function () {
+    const targetPath = path.join(tmpDir, "demo.mp4");
+    const stagingTarget = path.join(tmpDir, ".demo.staging.mp4");
+    const baselineDir = path.join(tmpDir, "demo.mp4.checkpoints");
+    fs.writeFileSync(targetPath, "old-video");
+    fs.writeFileSync(stagingTarget, "new-video");
+
+    const out = promoteRecordingSpan({
+      config: {},
+      stagingTarget,
+      targetPath,
+      // Staged capture is absent -> the baseline copy must fail and be counted.
+      entries: [
+        {
+          fileName: "01-a.png",
+          stagingPath: path.join(tmpDir, "nope", "01-a.png"),
+          baselinePath: path.join(baselineDir, "01-a.png"),
+          variation: 0.9,
+        },
+      ],
+      orphans: [],
+      baselineDir,
+    });
+
+    assert.equal(out.videoPromoted, true, "the video swap still committed");
+    assert.equal(out.baselineFailures, 1, "the failed baseline is reported");
+  });
+});
