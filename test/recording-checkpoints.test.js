@@ -580,7 +580,9 @@ describe("stopRecording: checkpoint seeding and outputs", function () {
 
 // A FAILed step marks every active checkpoint span dirty (ADR 01078): the
 // entry set is incomplete from that point, so span verdicts must not run.
-describeIfSharp("captureRecordingCheckpoints: dirty spans", function () {
+// Not gated on Sharp: a FAILed step marks the span dirty and returns before any
+// screenshot is captured, so this regression test needs no image pipeline.
+describe("captureRecordingCheckpoints: dirty spans", function () {
   this.timeout(20000);
   let tmpDir;
   const config = {};
@@ -603,7 +605,8 @@ describeIfSharp("captureRecordingCheckpoints: dirty spans", function () {
         handleId: "h-dirty",
       }),
     };
-    const driver = fakeDriver(await makePngBuffer(24, 24));
+    // Any truthy driver: the dirty check short-circuits before capture.
+    const driver = {};
     const host = { state: { recordings: [handle] } };
 
     await captureRecordingCheckpoints({

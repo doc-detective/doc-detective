@@ -329,7 +329,7 @@ export const HINTS: Hint[] = [
     id: "refreshStaleRecording",
     priority: 20,
     markdown: [
-      "A recording in this run appears stale: its checkpoint screenshots no longer match their committed baselines, but recording is skipped in headless mode so the video couldn't refresh itself.",
+      "A recording in this run appears stale: its checkpoint screenshots couldn't be verified against committed baselines, or no longer match them — but recording is skipped in headless mode, so the video couldn't refresh itself.",
       "",
       "Re-run the affected test on a headed context (a visible display) to re-record it — with `overwrite: \"aboveVariation\"`, the recording and its baselines refresh together automatically.",
       "",
