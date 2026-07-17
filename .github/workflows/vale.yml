@@ -61,7 +61,7 @@ jobs:
           # content. The glob is belt-and-braces with files_ignore above: it also
           # covers vale-action's fallback to linting the whole repo when the
           # changed-file list is too long to resolve as a path.
-          vale_flags: "--config=docs/.vale.ini --glob=!docs/fern/pages/reference/schemas/*"
+          vale_flags: "--config=docs/.vale.ini --glob=!docs/fern/pages/reference/schemas/**"
           reporter: github-pr-review
           fail_on_error: false
         env:
