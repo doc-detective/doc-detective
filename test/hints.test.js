@@ -1919,12 +1919,10 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 38 active hints. `useFileTypesForRst` is commented out in the
-    // registry but the `RST_EXTENSIONS` constant, the
-    // `detectRstFiles` helper, and the `hasRstFiles` context field
-    // are kept in place so the hint can be re-enabled without
-    // re-plumbing.
-    expect(HINTS.length).to.equal(38);
+    // (`useFileTypesForRst` is commented out in the registry but its
+    // `RST_EXTENSIONS` constant, `detectRstFiles` helper, and `hasRstFiles`
+    // context field are kept in place so the hint can be re-enabled without
+    // re-plumbing — so it isn't in HINTS and isn't covered below.)
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1940,6 +1938,30 @@ describe("hints/hints (registry)", function () {
       expect(h.markdown).to.be.a("string").and.have.length.greaterThan(0);
       expect(h.when).to.be.a("function");
       if (h.priority !== undefined) expect(h.priority).to.be.a("number");
+    }
+  });
+
+  it("every registry hint has a dedicated predicate test", function () {
+    // Replaces a hardcoded `expect(HINTS.length).to.equal(N)`. That count was
+    // a magic number that collided across concurrent PRs: two branches that
+    // each add a hint both bump N to the same value and merge without conflict
+    // (identical edits), leaving the registry one ahead of the assertion — a
+    // red main that also fails the release gate. It happened three times while
+    // landing screenshot annotations.
+    //
+    // The count was only ever a weak proxy for the real invariant: every hint
+    // should be exercised by a test. Assert that directly — each registry id
+    // must appear as a `findHint("<id>")` call in this file. Adding a hint now
+    // requires adding its test (no shared number to collide), and it's more
+    // meaningful: an untested hint can't slip in. Accidental *deletion* is
+    // caught independently — each hint's own predicate test calls
+    // `findHint`, which returns undefined for a missing hint and throws.
+    const testSource = fs.readFileSync(__filename).toString();
+    for (const h of HINTS) {
+      expect(
+        testSource.includes(`findHint("${h.id}")`),
+        `hint "${h.id}" has no findHint("${h.id}") test — add one`
+      ).to.equal(true);
     }
   });
 
