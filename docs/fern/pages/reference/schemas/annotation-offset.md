@@ -12,6 +12,7 @@ A nudge in pixels from the annotation's default placement.
 
 - [annotation](/reference/schemas/annotation)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 
 ## Fields
 

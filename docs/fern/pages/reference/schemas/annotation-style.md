@@ -12,6 +12,7 @@ Visual overrides for this annotation. Anything unset falls back to the resolved 
 
 - [annotation](/reference/schemas/annotation)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 - [Annotation defaults](/reference/schemas/annotation-defaults)
 
 ## Fields

@@ -10,6 +10,7 @@ import fs from "node:fs";
 // turn that skipped install into an intermittent build failure.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { resolveTheme } from "./annotations/model.js";
+import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
 import {
   requiredBrowserAssets,
@@ -5345,6 +5346,13 @@ async function runStep({
       appSession,
       annotationTheme: options?.annotationTheme,
     });
+  } else if (typeof step.annotate !== "undefined") {
+    actionResult = await annotate({
+      config: config,
+      step: step,
+      driver: driver,
+      annotationTheme: options?.annotationTheme,
+    });
   } else if (typeof step.swipe !== "undefined") {
     actionResult = await swipeSurface({
       config: config,
@@ -5368,14 +5376,47 @@ async function runStep({
       description: `Unknown step action: ${JSON.stringify(step)}`,
     };
   }
-  // If recording, wait until browser is loaded, then instantiate cursor.
-  // The `getUrl` guard skips the synthetic-cursor dance when `driver` is the
-  // app session's recordingHost (a bare state holder, not a browser session).
-  if (isRecordingActive(driver) && typeof driver.getUrl === "function") {
+  // Re-inject anything we've drawn into the page after a navigation wiped it.
+  // A fresh document has neither the synthetic cursor nor the annotation
+  // layer, so both are re-mounted here rather than in `goTo` — every step that
+  // can navigate lands on this hook.
+  //
+  // The `getUrl` guard skips the dance when `driver` is the app session's
+  // recordingHost (a bare state holder, not a browser session). The condition
+  // is broader than the recording check it started as: persistent annotations
+  // must survive navigation whether or not a recording is running, since a
+  // screenshot taken after a `goTo` should still show them.
+  const persistedAnnotations: any[] = Array.isArray(driver?.state?.annotations)
+    ? driver.state.annotations
+    : [];
+  const recordingActive = isRecordingActive(driver);
+  if (
+    (recordingActive || persistedAnnotations.length > 0) &&
+    typeof driver?.getUrl === "function"
+  ) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
-      await instantiateCursor(driver);
+      if (recordingActive) await instantiateCursor(driver);
+      if (persistedAnnotations.length > 0) {
+        const kept = pruneExpired(persistedAnnotations, Date.now());
+        driver.state.annotations = kept;
+        try {
+          // Re-mounted annotations are not "new", so they don't replay their
+          // enter transition — a fade-in on every navigation would read as a
+          // glitch in the recording.
+          await renderLayer({
+            config,
+            driver,
+            entries: kept,
+            annotationTheme: options?.annotationTheme,
+          });
+        } catch {
+          // Best-effort: losing the overlay after a navigation shouldn't turn
+          // an otherwise-passing step into a failure. The next annotate step
+          // re-renders from the same state.
+        }
+      }
     }
   }
   // Clean up actionResult outputs

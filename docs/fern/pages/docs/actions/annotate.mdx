@@ -1,0 +1,142 @@
+---
+title: annotate
+description: Draw annotations into the page so they stay on screen and appear in recordings.
+---
+
+
+The `annotate` action draws annotations into the page and leaves them there. They stay up across steps, survive navigation, and appear in any recording or screenshot taken while they're visible.
+
+Here's how `annotate` differs from the [`annotations` option on a screenshot](/docs/actions/screenshot#annotations):
+
+| | `screenshot.annotations` | `annotate` |
+|---|---|---|
+| Lifetime | One capture | Until something clears them |
+| Appears in recordings | No | Yes |
+| Works on app surfaces | Yes | No. Needs a page to draw into. |
+| Touches the page | No | Yes |
+
+Use `screenshot.annotations` to mark up a single image. Use `annotate` to narrate a video, or to keep a redaction up across a whole flow.
+
+Both accept the same annotation objects, so `{ "outline": "#submit" }` means the same thing in either.
+
+## Options
+
+Give the object at least one of:
+
+- `add`: Annotations to draw. Give one an `id` to update or clear it later. Adding an annotation with an id that's already on screen replaces it.
+- `update`: Changes to annotations already on screen, matched by `id`. Each entry replaces the annotation with that id. Updating an id that isn't on screen fails the step, since it usually means a typo or an already-cleared annotation.
+- `clear`: `true` clears everything; a list of ids clears just those. Clearing an id that isn't on screen does nothing.
+
+`clear` runs before `add`, so `{ "clear": ["a"], "add": [{ "id": "a", … }] }` reads as replacing `a`.
+
+The [screenshot annotations](/docs/actions/screenshot#annotations) page covers the annotation objects themselves: the six types, targets, `style`, and the `annotationDefaults` theme. Four fields matter here that do nothing in a still screenshot:
+
+- `id`: A handle, so a later step can update or clear this annotation.
+- `track`: Follow the element as the page scrolls or the layout shifts.
+- `transition`: How the annotation enters and leaves. `enter` accepts `none`, `fade`, `pop`, or `draw`. `exit` accepts `none` or `fade`. `durationMs` sets the length.
+- `duration`: Milliseconds to stay up before clearing itself, with no paired `clear` step.
+
+<Warning>
+Set `"transition": { "enter": "none" }` on a `blur` you're using to redact. An annotation that fades in leaves the content underneath readable for the length of the animation, and every frame of that is in the recording.
+</Warning>
+
+**Outputs:** the action exposes `$$annotationCount`, the number of annotations on screen after the step.
+
+> For comprehensive options, see the [`annotate`](/reference/schemas/annotate) reference.
+
+## Examples
+
+### Narrate a recording
+
+Annotations track the flow, moving from field to field as the walkthrough progresses.
+
+{/* test {"testId":"annotate-narrate","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "record": "sso-setup.webm" },
+        {
+          "description": "Point at the first field.",
+          "annotate": {
+            "add": [
+              { "id": "step", "badge": "#idp", "label": "1" },
+              {
+                "id": "guide",
+                "callout": "#idp",
+                "label": "Pick your provider first",
+                "position": "right",
+                "track": true
+              }
+            ]
+          }
+        },
+        { "click": "#idp" },
+        {
+          "description": "Move the same annotations to the next field.",
+          "annotate": {
+            "update": [
+              { "id": "step", "badge": "#metadata-url", "label": "2" },
+              { "id": "guide", "callout": "#metadata-url", "label": "Paste the metadata URL" }
+            ]
+          }
+        },
+        { "annotate": { "clear": true } },
+        { "stopRecord": true }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"annotate-goto","description":"Open the local test server","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"annotate-add-step","description":"Add a tracked callout and a numbered badge","annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"},{"id":"guide","callout":"#username-input","label":"Enter your username","position":"right","track":true}]}} */}
+{/* step {"stepId":"annotate-update-step","description":"Move them to the submit button","annotate":{"update":[{"id":"step","badge":"#submit-button","label":"2"},{"id":"guide","callout":"#submit-button","label":"Then submit","position":"right"}]}} */}
+{/* step {"stepId":"annotate-clear-step","description":"Clear every annotation","annotate":{"clear":true}} */}
+{/* test end */}
+
+### Redact for a whole recording
+
+The blur stays glued to every match while the page scrolls, and never animates in.
+
+```json
+{
+  "annotate": {
+    "add": [
+      {
+        "id": "redact",
+        "blur": { "selector": ".account-id" },
+        "all": true,
+        "track": true,
+        "transition": { "enter": "none" }
+      }
+    ]
+  }
+}
+```
+
+### Show a note briefly
+
+`duration` clears the annotation on its own.
+
+```json
+{
+  "annotate": {
+    "add": [
+      {
+        "outline": "#usage-meter",
+        "duration": 3500,
+        "transition": { "enter": "draw", "exit": "fade", "durationMs": 400 }
+      }
+    ]
+  }
+}
+```
+
+## How it works
+
+Doc Detective draws annotations into a `dd-annotation-layer` element with its own shadow root, sitting above the page and ignoring pointer events. The page under test keeps behaving exactly as it would without annotations, and the page's CSS can't restyle them.
+
+Doc Detective tracks the annotations itself, so they survive navigation: after a step loads a new page, it re-draws whatever is still up. Annotations last until an `annotate` step clears them, their `duration` elapses, or the test context ends.

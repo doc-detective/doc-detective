@@ -383,6 +383,12 @@ async function resolveAnnotationRects({
       placed.push({
         ...annotation,
         rect: toCanvasRect(logical, scale, cropOrigin),
+        // The live overlay needs the handle to tag the element for its
+        // tracking loop. Carrying it here beats re-finding the element by
+        // matching rects, which would scan the document and could tag the
+        // wrong node when two elements share a box. The buffer adapter
+        // ignores it, and runStep never sees these objects.
+        element,
       });
     }
   }

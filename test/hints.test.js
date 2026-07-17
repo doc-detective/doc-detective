@@ -2285,6 +2285,29 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
+  it("useAnnotateStepForRecordings: fires for recorders who aren't annotating yet", function () {
+    const h = findHint("useAnnotateStepForRecordings");
+    expect(
+      h.when(
+        fakeCtx({ producedRecordings: true, usedStepTypes: new Set(["record"]) })
+      )
+    ).to.equal(true);
+    // Already using annotate -> don't pitch the feature back at them.
+    expect(
+      h.when(
+        fakeCtx({
+          producedRecordings: true,
+          usedStepTypes: new Set(["record", "annotate"]),
+        })
+      )
+    ).to.equal(false);
+    // No recordings -> the annotate step's main draw doesn't apply, and
+    // useAnnotationsOnScreenshots covers the still-image case.
+    expect(
+      h.when(fakeCtx({ producedRecordings: false, usedStepTypes: new Set() }))
+    ).to.equal(false);
+  });
+
   it("useAnnotationsOnScreenshots: fires for screenshot users who aren't annotating yet", function () {
     const h = findHint("useAnnotationsOnScreenshots");
     expect(

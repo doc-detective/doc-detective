@@ -13,6 +13,7 @@ An absolute coordinate in the capture, in pixels from the top-left.
 - [annotation](/reference/schemas/annotation)
 - [Target by position](/reference/schemas/target-by-position)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 
 ## Fields
 

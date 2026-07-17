@@ -16,8 +16,21 @@ export type { PlacedAnnotation, BlurRegion, Rect };
 
 type Rect = { x: number; y: number; width: number; height: number };
 type Point = { x: number; y: number };
-type PlacedAnnotation = ResolvedAnnotation & { rect: Rect };
-type BlurRegion = { rect: Rect; intensity: number };
+type PlacedAnnotation = ResolvedAnnotation & {
+  rect: Rect;
+  // The driver handle the rect came from, when there is one. The renderer
+  // ignores it; the live DOM overlay uses it to tag the element for tracking.
+  // Absent for position-anchored annotations, which have no element.
+  element?: any;
+};
+// `id`/`track` ride along for the DOM adapter, which needs a handle per region
+// to move it as its element scrolls. The buffer adapter ignores both.
+type BlurRegion = {
+  rect: Rect;
+  intensity: number;
+  id?: string;
+  track?: boolean;
+};
 
 const XML_ESCAPES: Record<string, string> = {
   "<": "&lt;",
@@ -144,7 +157,7 @@ function renderOutline(item: PlacedAnnotation): string {
   return (
     `<rect x="${num(rect.x)}" y="${num(rect.y)}" ` +
     `width="${num(rect.width)}" height="${num(rect.height)}" ` +
-    `rx="${num(item.style.radius ?? 0)}" fill="none" ` +
+    `rx="${num(item.style.radius ?? 0)}" fill="none" pathLength="1" ` +
     `stroke="${escapeXml(item.style.color!)}" ` +
     `stroke-width="${num(item.style.strokeWidth ?? 2)}"${styleAttrs(item)}/>`
   );
@@ -191,7 +204,7 @@ function renderArrow(item: PlacedAnnotation): string {
   const attrs = styleAttrs(item);
   return (
     `<line x1="${num(tail.x)}" y1="${num(tail.y)}" x2="${num(backX)}" y2="${num(backY)}" ` +
-    `stroke="${color}" stroke-width="${num(width)}" stroke-linecap="round"${attrs}/>` +
+    `pathLength="1" stroke="${color}" stroke-width="${num(width)}" stroke-linecap="round"${attrs}/>` +
     `<polygon points="${points}" fill="${color}"${attrs}/>`
   );
 }
@@ -273,7 +286,7 @@ function renderCallout(
   const boxCenter = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   const line =
     `<line x1="${num(anchor.x)}" y1="${num(anchor.y)}" ` +
-    `x2="${num(boxCenter.x)}" y2="${num(boxCenter.y)}" ` +
+    `x2="${num(boxCenter.x)}" y2="${num(boxCenter.y)}" pathLength="1" ` +
     `stroke="${escapeXml(item.style.color!)}" ` +
     `stroke-width="${num(item.style.strokeWidth ?? 2)}"${styleAttrs(item)}/>`;
   // Leader first so the box paints over it.
@@ -309,30 +322,53 @@ function annotationsToSvg(
   const blurRegions: BlurRegion[] = [];
   let body = "";
 
-  for (const item of items) {
+  items.forEach((item, index) => {
+    let markup = "";
     switch (item.type) {
       case "blur": {
         const rect = clipToCanvas(item.rect, canvas);
-        if (rect) blurRegions.push({ rect, intensity: item.style.intensity ?? 14 });
-        break;
+        if (rect)
+          blurRegions.push({
+            rect,
+            intensity: item.style.intensity ?? 14,
+            id: item.id ?? `dd-${index}`,
+            track: item.track === true,
+          });
+        return;
       }
       case "outline":
-        body += renderOutline(item);
+        markup = renderOutline(item);
         break;
       case "arrow":
-        body += renderArrow(item);
+        markup = renderArrow(item);
         break;
       case "badge":
-        body += renderBadge(item);
+        markup = renderBadge(item);
         break;
       case "callout":
-        body += renderCallout(item, canvas);
+        markup = renderCallout(item, canvas);
         break;
       case "text":
-        body += renderText(item, canvas);
+        markup = renderText(item, canvas);
         break;
     }
-  }
+    // Each annotation is its own group. The buffer renderer doesn't care, but
+    // the live DOM overlay needs a per-annotation handle: tracking translates
+    // the group as its element moves, and enter/exit transitions animate it.
+    // Emitting the group from the SHARED generator keeps both media drawing
+    // the same tree rather than the DOM adapter re-wrapping markup it didn't
+    // build.
+    //
+    // Note for the buffer path: screenshot annotations composited by sharp now
+    // carry these `data-dd-*` attributes in the SVG too. Sharp ignores them, so
+    // there's no visual change — but a future screenshot-comparison fixture that
+    // asserted on raw SVG markup text would see them.
+    body +=
+      `<g data-dd-annotation="${escapeXml(item.id ?? `dd-${index}`)}"` +
+      ` data-dd-type="${item.type}"` +
+      (item.track ? ` data-dd-track="1"` : "") +
+      `>${markup}</g>`;
+  });
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${num(canvas.width)}" ` +
