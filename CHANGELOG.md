@@ -1,3 +1,15 @@
+# [4.32.0](https://github.com/doc-detective/doc-detective/compare/v4.31.0...v4.32.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **record:** clear the metadata probe's watchdog timer on completion ([fd3798b](https://github.com/doc-detective/doc-detective/commit/fd3798bf36dae4915f6cbc4ae487227bc01a82df))
+
+
+### Features
+
+* **record:** report recording metadata outputs from stopRecord ([0fd79c7](https://github.com/doc-detective/doc-detective/commit/0fd79c7d56a78fa93c11ae0b62d901fb8811e863))
+
 # [4.31.0](https://github.com/doc-detective/doc-detective/compare/v4.30.0...v4.31.0) (2026-07-16)
 
 
