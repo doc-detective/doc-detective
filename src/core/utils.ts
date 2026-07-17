@@ -1376,6 +1376,29 @@ export function viewportMismatchWarning(
 }
 
 /**
+ * True when the browser FLOORED a requested viewport — the realized size came
+ * back LARGER than requested by more than `tolerance`, i.e. the window refused
+ * to shrink past its minimum. A smaller-than-requested render is not a floor.
+ *
+ * Distinct from `viewportMismatchWarning`, which flags any divergence (either
+ * direction, plus unreadable dimensions). This is the narrower "the user asked
+ * for a phone-sized viewport and couldn't get it" signal.
+ */
+export function isViewportFloored(
+  requested: { width?: number; height?: number } | undefined,
+  actual: { width?: number; height?: number } | undefined,
+  tolerance = VIEWPORT_TOLERANCE_PX
+): boolean {
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(requested?.[dim]);
+    const act = Number(actual?.[dim]);
+    if (!(req > 0) || !Number.isFinite(act)) continue;
+    if (act - req > tolerance) return true;
+  }
+  return false;
+}
+
+/**
  * Resolve the concrete target the viewport should be set to. A request may name
  * only one dimension (width OR height); the other is filled from the current
  * viewport so the unrequested dimension is left as-is. Non-positive/absent

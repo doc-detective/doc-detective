@@ -40,6 +40,7 @@ import {
   evaluateContextRequirements,
   isRetryableSessionError,
   realizeViewport,
+  isViewportFloored,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -4459,7 +4460,22 @@ async function runContext({
       const viewportH = Number(context.browser?.viewport?.height);
       if (viewportW > 0 || viewportH > 0) {
         // Set driver viewport size
-        await setViewportSize(context, driver, config);
+        const realized = await setViewportSize(context, driver, config);
+        // Stamp the context REPORT (not the context object — the report is a
+        // curated copy) when the browser floored the request. A context-level
+        // viewport has no step output to carry the realized size, so this is
+        // the only signal the post-run `useMobilePlatforms` hint can read.
+        if (
+          isViewportFloored(
+            {
+              ...(viewportW > 0 ? { width: viewportW } : {}),
+              ...(viewportH > 0 ? { height: viewportH } : {}),
+            },
+            realized
+          )
+        ) {
+          contextReport.viewportFloored = true;
+        }
       } else if (
         context.browser?.window?.width ||
         context.browser?.window?.height
