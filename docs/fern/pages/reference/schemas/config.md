@@ -209,6 +209,12 @@ browserFallback | string | Optional. Controls whether a context whose browser ca
 
 ```json
 {
+  "heuristicRedaction": false
+}
+```
+
+```json
+{
   "integrations": {
     "heretto": [
       {
