@@ -36,6 +36,7 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 
 **Outputs:** depending on which options you configure, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Each output is present only when its check applies:
 
+- `$$width` / `$$height`: the saved image's actual pixel dimensions, after any crop. When the browser floors a requested viewport, these reflect the size the page rendered, not the size you requested, so a caption or report reconciles against the file. Always present.
 - `$$cropElementFound`: whether the element to crop to was located (when `crop` is set).
 - `$$fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
 - `$$aspectRatioMatch`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).

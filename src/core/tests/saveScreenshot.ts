@@ -666,6 +666,21 @@ async function saveScreenshot({
     }
   }
 
+  // Record the saved image's actual pixel dimensions — the size the page really
+  // rendered (or was cropped to), which can differ from the requested viewport
+  // when the browser/OS floors it. Surfacing it here makes the report and any
+  // caption reflect ground truth rather than the requested size. Best-effort:
+  // never fail the step over a metadata read.
+  try {
+    const savedMeta = await sharp(finalBuffer).metadata();
+    if (savedMeta.width && savedMeta.height) {
+      result.outputs.width = savedMeta.width;
+      result.outputs.height = savedMeta.height;
+    }
+  } catch {
+    /* dimensions are best-effort metadata */
+  }
+
   // Write the final (captured or cropped) PNG buffer to disk exactly once. On
   // failure, stamp a step-level FAIL (mirrors the prior capture-write failure)
   // and signal the caller to return.
