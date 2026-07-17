@@ -508,6 +508,7 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
     });
 
     assert.equal(result.status, "WARNING");
+    assert.equal(result.outputs.stale, true);
     assert.match(result.description, /headed/i);
   });
 

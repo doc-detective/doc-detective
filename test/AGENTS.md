@@ -45,10 +45,16 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   [select-fixture-bundles.test.js](select-fixture-bundles.test.js) then fails with `bundle dirs
   must match on-disk group dirs exactly` (actual gains `'.doc-detective'`): it enumerates the group
   directories *on disk* and can't tell your run output from a new fixture group. It's local
-  pollution, not a regression — `rm -rf test/core-artifacts/.doc-detective` and re-run. Two ways to
-  avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full suite. Fixture
-  artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to leave, but the
-  run directory is not harmless.
+  pollution, not a regression — remove the directory and re-run:
+
+  ```bash
+  rm -rf test/core-artifacts/.doc-detective                                    # bash
+  Remove-Item -Recurse -Force test/core-artifacts/.doc-detective              # PowerShell
+  ```
+
+  Two ways to avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full
+  suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
+  leave, but the run directory is not harmless.
 
 ## Fixture concurrency & the resource-aware scheduler
 
