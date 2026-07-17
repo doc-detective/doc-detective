@@ -229,6 +229,23 @@ export interface HintContext {
    * capped at 100 entries, plus a marker read per entry; false on any error.
    */
   hasManagedWdaProducts: boolean;
+  /**
+   * True if any startSurface step reported a viewport the browser FLOORED —
+   * i.e. `outputs.viewport.actual` came back wider/taller than
+   * `outputs.viewport.requested` by more than `VIEWPORT_FLOOR_TOLERANCE_PX`.
+   * A desktop browser can't shrink its window below ~500px, so a requested
+   * phone width renders larger. Powers `useMobilePlatforms`. Sourced from the
+   * `walkResults` step pass (covers both the single-surface `outputs.viewport`
+   * and the array form's `outputs.surfaces[].outputs.viewport`).
+   */
+  viewportFloored: boolean;
+  /**
+   * True if any context in this run resolved to a mobile device
+   * (`context.device.platform` of `android` or `ios`) — i.e. the user already
+   * tests on a real mobile screen. Gates `useMobilePlatforms` off. Sourced from
+   * the `walkResults` context pass.
+   */
+  ranMobileContexts: boolean;
 }
 
 export interface Hint {

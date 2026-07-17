@@ -671,6 +671,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useMobilePlatforms (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useMobilePlatforms",
+    priority: 20,
+    markdown: [
+      "A browser floored a viewport this run: desktop browsers enforce a minimum window size (about 500px wide), so a smaller request (a 375px phone width, say) rendered larger. Screenshots and measurements show the size that actually rendered, not the size you asked for.",
+      "",
+      "Resizing a desktop window doesn't emulate a phone. To test a real mobile viewport, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions:",
+      "",
+      "```json",
+      "{ \"runOn\": [{ \"platforms\": \"android\" }] }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/test-docs/platforms-and-browsers](https://doc-detective.com/docs/test-docs/platforms-and-browsers)",
+    ].join("\n"),
+    when: (ctx) => ctx.viewportFloored && !ctx.ranMobileContexts,
+  },
+
+  // ------------------------------------------------------------------
   // useOpenApiValidation (feature discovery)
   // ------------------------------------------------------------------
   {
