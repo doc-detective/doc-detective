@@ -1,6 +1,6 @@
 {
   "specId": "recording-above-variation",
-  "description": "record overwrite aboveVariation (ADR 01073): the span always records to staging; at stopRecord a span verdict decides whether the staged capture replaces the existing recording (and baselines update with it) or is discarded. Baselines persist between tests/reruns and tests aren't contractually ordered, so every assert accepts either clean outcome — refreshed (changed true) or kept (changed false) — while NaN-guarding against the verdict not running. In practice the two identical-span tests exercise both branches in one job: whichever runs first seeds (changed true), the other compares clean against the just-written baselines (changed false). Permutations: implied checkpoints (bare aboveVariation) and an explicit checkpoints object tuning maxVariation. The aboveVariation + checkpoints:false combo is overridden to checkpoints-on (unit-tested in test/recording-above-variation.test.js); dirty-span and promote-failure paths are unit-level too.",
+  "description": "record overwrite aboveVariation (ADR 01078): the span always records to staging; at stopRecord a span verdict decides whether the staged capture replaces the existing recording (and baselines update with it) or is discarded. Baselines persist between tests/reruns and contexts are scheduled concurrently (config.concurrentRunners), so tests aren't contractually ordered and no single test can be pinned to one branch. Instead every assert pins the CORRESPONDENCE the verdict must satisfy whichever branch it takes: seeded (no baselines existed) IFF changed, and compared (baselines existed) IFF unchanged. That fails a verdict stuck at either value, fails a seed that didn't promote, and fails outputs that never resolved (NaN). In practice the two identical-span tests cover both branches in one job: whichever runs first seeds (changed true), the other compares clean against the just-written baselines (changed false). Two spans in ONE test can't do this — a baseline's filename embeds the step's index within its test, so a second span's checkpoints never match the first's baselines. Permutations: implied checkpoints (bare aboveVariation) and an explicit checkpoints object tuning maxVariation and directory. The aboveVariation + checkpoints:false combo is overridden to checkpoints-on (unit-tested in test/recording-above-variation.test.js); dirty-span and promote-failure paths are unit-level too.",
   "tests": [
     {
       "testId": "above-variation-span",
@@ -42,18 +42,19 @@
           "variables": {
             "AV_CHANGED": "$$changed",
             "AV_PATH": "$$recordingPath",
-            "AV_ERRORS": "$$checkpointErrors"
+            "AV_ERRORS": "$$checkpointErrors",
+            "AV_SEEDED": "$$seededBaselines"
           }
         },
         {
-          "description": "Assert the verdict ran (changed is a boolean), no checkpoint errors, and the recording file exists at the reported absolute path in both outcomes.",
-          "runShell": "node -e \"const changed = process.env.AV_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AV_ERRORS) === 0 && require('fs').existsSync(process.env.AV_PATH); process.exit(ok ? 0 : 1)\""
+          "description": "Assert the verdict matched its evidence: seeded IFF changed, compared IFF unchanged, no checkpoint errors, and the recording exists at the reported absolute path in both outcomes.",
+          "runShell": "node -e \"const e={changed:process.env.AV_CHANGED,errors:Number(process.env.AV_ERRORS),seeded:Number(process.env.AV_SEEDED),path:process.env.AV_PATH};const consistent = (e.seeded > 0 && e.changed === 'true') || (e.seeded === 0 && e.changed === 'false');const ok = e.errors === 0 && consistent && require('fs').existsSync(e.path);if (!ok) { console.error('span verdict inconsistent with its evidence:', JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     },
     {
       "testId": "above-variation-span-compare",
-      "description": "The identical span again: against the sibling test's baselines this compares clean (changed false); on a fresh tree whichever test runs first seeds instead. Either way the verdict must have run cleanly.",
+      "description": "The identical span again: against the sibling test's baselines this compares clean (changed false); on a fresh tree whichever test runs first seeds instead. Either way the verdict must match its evidence.",
       "runOn": [
         {
           "platforms": [
@@ -91,12 +92,13 @@
           "variables": {
             "AV2_CHANGED": "$$changed",
             "AV2_PATH": "$$recordingPath",
-            "AV2_ERRORS": "$$checkpointErrors"
+            "AV2_ERRORS": "$$checkpointErrors",
+            "AV2_SEEDED": "$$seededBaselines"
           }
         },
         {
-          "description": "Assert the verdict ran cleanly and the recording exists.",
-          "runShell": "node -e \"const changed = process.env.AV2_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AV2_ERRORS) === 0 && require('fs').existsSync(process.env.AV2_PATH); process.exit(ok ? 0 : 1)\""
+          "description": "Assert the verdict matched its evidence, as in the sibling test.",
+          "runShell": "node -e \"const e={changed:process.env.AV2_CHANGED,errors:Number(process.env.AV2_ERRORS),seeded:Number(process.env.AV2_SEEDED),path:process.env.AV2_PATH};const consistent = (e.seeded > 0 && e.changed === 'true') || (e.seeded === 0 && e.changed === 'false');const ok = e.errors === 0 && consistent && require('fs').existsSync(e.path);if (!ok) { console.error('span verdict inconsistent with its evidence:', JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     },
@@ -144,12 +146,13 @@
           "variables": {
             "AVT_CHANGED": "$$changed",
             "AVT_PATH": "$$recordingPath",
-            "AVT_ERRORS": "$$checkpointErrors"
+            "AVT_ERRORS": "$$checkpointErrors",
+            "AVT_SEEDED": "$$seededBaselines"
           }
         },
         {
-          "description": "Assert the tuned verdict ran cleanly and the recording exists.",
-          "runShell": "node -e \"const changed = process.env.AVT_CHANGED; const ok = (changed === 'true' || changed === 'false') && Number(process.env.AVT_ERRORS) === 0 && require('fs').existsSync(process.env.AVT_PATH); process.exit(ok ? 0 : 1)\""
+          "description": "Assert the tuned verdict matched its evidence and the recording exists.",
+          "runShell": "node -e \"const e={changed:process.env.AVT_CHANGED,errors:Number(process.env.AVT_ERRORS),seeded:Number(process.env.AVT_SEEDED),path:process.env.AVT_PATH};const consistent = (e.seeded > 0 && e.changed === 'true') || (e.seeded === 0 && e.changed === 'false');const ok = e.errors === 0 && consistent && require('fs').existsSync(e.path);if (!ok) { console.error('tuned span verdict inconsistent with its evidence:', JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     }

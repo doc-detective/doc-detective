@@ -25,11 +25,36 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   ("All core specs pass under concurrentRunners=2") still passes, (c) if unsure,
   `git stash push -- src test`, `npm run compile`, re-run one failing test — it fails identically
   on base.
+- **Don't trust a browser-engine recording failure seen while another run was live.** Two
+  doc-detective processes on one machine (the CLI while `npm test` runs, or parallel worktree
+  sessions) used to share the Chrome capture title and the download path whenever their context ids
+  matched — the common `default` / `windows-chrome` — which surfaced as `Recording download timed
+  out`, a truncated `.webm` (`Read error at pos. 37`), or, worst, two runs silently producing
+  byte-identical videos. Both keys are now per-process (ADR 01076). If you see these symptoms
+  anyway, check for a concurrent run *before* suspecting Chrome: reproduce with nothing else
+  running, and compare against the `fixtures / recording (windows-latest|macos-latest)` CI jobs,
+  which exercise the browser engine headed on the same managed Chrome build.
 - **Killed runs leave debris.** Killing mocha mid-flight orphans its test server and can leave
   stray artifacts: modified root `image.png`/`reference.png` baselines, `screenshot-boolean.png`,
   `rec-perm-*.gif`, and scratch files under `test/core-artifacts/`. Scope-check and restore these
   (`git checkout -- image.png` etc.) before committing — subagents are especially prone to leaving
   them behind.
+- **Running a fixture through the CLI pollutes `npm test`.** `doc-detective runTests` writes its
+  per-run reports to a `.doc-detective/` directory beside the input — so running a fixture from
+  `test/core-artifacts/` leaves `test/core-artifacts/.doc-detective/`, and
+  [select-fixture-bundles.test.js](select-fixture-bundles.test.js) then fails with `bundle dirs
+  must match on-disk group dirs exactly` (actual gains `'.doc-detective'`): it enumerates the group
+  directories *on disk* and can't tell your run output from a new fixture group. It's local
+  pollution, not a regression — remove the directory and re-run:
+
+  ```bash
+  rm -rf test/core-artifacts/.doc-detective                                    # bash
+  Remove-Item -Recurse -Force test/core-artifacts/.doc-detective              # PowerShell
+  ```
+
+  Two ways to avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full
+  suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
+  leave, but the run directory is not harmless.
 
 ## Fixture concurrency & the resource-aware scheduler
 
@@ -90,6 +115,7 @@ Known flake signatures and dispositions:
 | `mobile-web-ios (macos)` (or another iOS leg) fails in a `wda-check` step with `Error: No elements matched selector or text` (log tail also shows `Terminate orphan process … (Simulator)`) | iOS-simulator/WebDriverAgent timing flake: the WebView content hadn't rendered when the `find` ran. Distinct from the session-timeout row above (the session started fine here). Sibling legs and reruns pass. **Not code** when the diff can't touch iOS/mobile-web rendering (e.g. an install-script or diagnostic-string change) | Confirm the change class can't affect iOS mobile-web, then `gh run rerun --job <jobId>` once the run completes |
 | A bundled fixture leg (e.g. `web-plumbing (ubuntu)`) fails on `guards/expression-embedded-failure` with `Error: Returned exit code 1. Expected one of [0]` | Transient shell/runner blip on a `runShell`/`runCode` step — the spec passes on adjacent commits and on rerun. The `guards/` group rides inside the `web-plumbing` bundle, so the failing leg name doesn't name the spec; read the log for the actual `specId`. **Not a regression** when the diff can't touch shell execution | Verify it passed on an adjacent commit, then rerun the failed job after the run completes |
 | `vale` job fails with `##[error]Vale and reviewdog exited with status code: 1` while the log shows `reviewdog: fail to get diff: GET https://api.github.com/repos/.../pulls/<n>: 503` | GitHub API outage collateral — reviewdog couldn't fetch the PR diff. The workflow sets `fail_on_error: false`, so vale *lint findings* can never fail this job; only infrastructure errors do. Check [githubstatus.com](https://www.githubstatus.com/) | Wait for GitHub to recover, then `gh run rerun <runId> --failed`. Don't chase docs style — `vale --minAlertLevel=error` locally (from `docs/`) confirms content is clean |
+| An android leg fails fast (~6m vs its usual ~14m) with `Emulator "dd-*" exited (code 1) before finishing boot`, and the emulator's own stderr ends in `FATAL \| Not enough space to create userdata partition. Available: <n> MB … need 7372.80 MB` | Runner disk pressure, not code — the AVD needs ~7.4 GB and hosted ubuntu runners land just under it (observed: 7183 MB available, ~97% of need), so it tips on runner-image variation while sibling PRs pass. The emulator buries the reason: read the `description` of the failing step in the results JSON, not just the summary line | Rerun once the run completes (`gh run rerun <runId> --failed` is refused while it's still queued/in-progress). If it survives reruns, free runner disk in the workflow rather than touching the fixture |
 
 ## CI environment reference
 

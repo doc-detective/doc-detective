@@ -139,22 +139,32 @@ async function stopRecording({
     }
   };
 
-  // Phantom span (ADR 01074): the recording itself was skipped (headless),
-  // but checkpoints ran against the committed baselines. Compute the span
-  // verdict READ-ONLY — no video, no seeding, no baseline updates, no orphan
-  // deletion — and surface staleness. WARNING = the recording appears stale;
-  // SKIPPED = the recording was skipped but its content still matches.
+  // Phantom span (ADR 01079): the recording itself was skipped — headless, or
+  // the target already exists — but checkpoints ran against the committed
+  // baselines. Compute the span verdict READ-ONLY — no video, no seeding, no
+  // baseline updates, no orphan deletion — and surface staleness. WARNING =
+  // the recording appears stale; SKIPPED = it was skipped but still matches.
   if (recording.type === "phantom") {
     dropHandle();
     const phantomCheckpoints: CheckpointsConfig | undefined =
       recording.checkpoints;
     const entries = phantomCheckpoints?.entries ?? [];
     discardCheckpointStaging();
+    // Name the skip and its remedy accurately: a headless run needs a headed
+    // one, an existing target needs `overwrite` (or the file removed).
+    const skipCause =
+      recording.skipReason === "targetExists"
+        ? `Recording skipped (the target already exists)`
+        : `Recording skipped (headless)`;
+    const refreshRemedy =
+      recording.skipReason === "targetExists"
+        ? `Delete it, or set \`overwrite\` to "true" or "aboveVariation", to refresh it.`
+        : `Recording is skipped in headless mode; re-run headed to refresh it.`;
     // A dirty span (a step FAILed mid-span) or a span that captured nothing
     // has no evidence either way — report neither stale nor current.
     if (phantomCheckpoints?.spanDirty || entries.length === 0) {
       result.status = "SKIPPED";
-      result.description = `Recording skipped (headless); the span didn't produce a complete checkpoint set, so staleness couldn't be determined.`;
+      result.description = `${skipCause}; the span didn't produce a complete checkpoint set, so staleness couldn't be determined.`;
       return result;
     }
     const verdict = computeSpanVerdict({
@@ -169,10 +179,10 @@ async function stopRecording({
     };
     if (verdict.changed) {
       result.status = "WARNING";
-      result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. Recording is skipped in headless mode; re-run headed to refresh it.`;
+      result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. ${refreshRemedy}`;
     } else {
       result.status = "SKIPPED";
-      result.description = `Recording skipped (headless); checkpoints match their baselines, so the recording appears current.`;
+      result.description = `${skipCause}; checkpoints match their baselines, so the recording appears current.`;
     }
     return result;
   }
@@ -196,7 +206,7 @@ async function stopRecording({
     return result;
   }
 
-  // overwrite "aboveVariation" (ADR 01073): the produced file lands at a
+  // overwrite "aboveVariation" (ADR 01078): the produced file lands at a
   // staging path in the target's directory (same volume — promotion is a
   // rename), and the span verdict decides at the end whether it replaces the
   // existing recording or is discarded. Every other mode writes the target
@@ -465,12 +475,18 @@ async function stopRecording({
   }
 
   // PASS — first decide the produced file's fate, then report on the file
-  // the user actually keeps.
+  // the user actually keeps. (This supersedes the probe-then-seed order from
+  // the checkpoints layer: under aboveVariation the probe has to read the
+  // file that survives the promote/discard decision, not the staged one.)
   const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
   let seededBaselines = 0;
+  // A promote that couldn't commit must never read as a clean PASS, and a
+  // video that refreshed without its baselines is only a partial refresh.
+  let promoteFailed = false;
+  let baselineFailures = 0;
   result.outputs = {};
   if (isAboveVariation) {
-    // Span verdict (ADR 01073): promote the staged capture over the target
+    // Span verdict (ADR 01078): promote the staged capture over the target
     // only when the span meaningfully changed; otherwise discard it and
     // leave target + baselines byte-untouched. Promote updates ALL baselines
     // together with the video — they must never disagree. Two indeterminate
@@ -511,6 +527,8 @@ async function stopRecording({
       });
       seededBaselines = promoted.seededBaselines;
       result.outputs.changed = promoted.videoPromoted;
+      promoteFailed = !promoted.videoPromoted;
+      baselineFailures = promoted.baselineFailures;
       if (promoted.videoPromoted) {
         result.outputs.changeReasons = ["the recording file is missing"];
       }
@@ -532,6 +550,8 @@ async function stopRecording({
         });
         seededBaselines = promoted.seededBaselines;
         result.outputs.changed = promoted.videoPromoted;
+        promoteFailed = !promoted.videoPromoted;
+        baselineFailures = promoted.baselineFailures;
         if (promoted.videoPromoted) {
           result.outputs.changeReasons = verdict.reasons;
           log(
@@ -546,7 +566,7 @@ async function stopRecording({
       }
     }
   } else if (checkpoints?.entries?.length) {
-    // Recording checkpoints without aboveVariation (ADR 01072): seed missing
+    // Recording checkpoints without aboveVariation (ADR 01075): seed missing
     // baselines from the staged captures (first run); never modify existing
     // baselines. A dirty span (a step FAILed) seeds nothing — first-run
     // baselines must come from a clean run.
@@ -555,10 +575,22 @@ async function stopRecording({
       if (entry.baselineMissing && !entry.error) {
         try {
           fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
-          fs.copyFileSync(entry.stagingPath, entry.baselinePath);
+          // COPYFILE_EXCL enforces "seeding never overwrites a baseline" at
+          // the syscall: `baselineMissing` was decided back when the
+          // checkpoint was captured, so a baseline committed (or written by
+          // another run) since then would otherwise be silently replaced —
+          // the one thing this layer promises not to do.
+          fs.copyFileSync(
+            entry.stagingPath,
+            entry.baselinePath,
+            fs.constants.COPYFILE_EXCL
+          );
           seededBaselines++;
         } catch (error: any) {
-          entry.error = String(error?.message ?? error);
+          entry.error =
+            error?.code === "EEXIST"
+              ? `A baseline appeared at ${entry.baselinePath} after this checkpoint was captured; left it untouched.`
+              : String(error?.message ?? error);
           log(
             config,
             "warning",
@@ -591,8 +623,8 @@ async function stopRecording({
     );
   }
 
-  // Structural verify guards (ADR 01075) and checkpoint drift reporting
-  // (ADR 01072) evaluate through ONE shared implicit-assertion pass, so the
+  // Structural verify guards (ADR 01080) and checkpoint drift reporting
+  // (ADR 01075) evaluate through ONE shared implicit-assertion pass, so the
   // FAIL > WARNING roll-up is computed once: a violated structural guard
   // (author-demanded, FAIL severity) outranks checkpoint drift (advice,
   // WARNING severity).
@@ -703,12 +735,24 @@ async function stopRecording({
     const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
     result.assertions = assertions;
     result.status = status;
+    // Only verify guards carry FAIL severity; checkpoint specs are warnings.
+    // So a FAIL here is always a guard, and a WARNING always has checkpoints —
+    // the `entries` check keeps that assumption honest rather than implicit,
+    // since the guards can run on a span with no checkpoints at all.
     if (status === "FAIL") {
       result.description += ` One or more structural verify guards failed.`;
     } else if (status === "WARNING" && checkpoints?.entries?.length) {
-      result.description += isAboveVariation
-        ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
-        : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
+      // Only claim a refresh when one actually happened: an indeterminate or
+      // failed span keeps the existing recording, so saying "refreshed" there
+      // would describe the opposite of what's on disk.
+      result.description += !isAboveVariation
+        ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`
+        : result.outputs.changed
+          ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
+          : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the existing recording was kept.`;
+    }
+    if (baselineFailures > 0) {
+      result.outputs.baselineFailures = baselineFailures;
     }
   }
   if (checkpoints) {
@@ -716,6 +760,28 @@ async function stopRecording({
       fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
     } catch {
       /* best-effort cleanup; staged files live under the OS temp dir */
+    }
+  }
+
+  // A promote that couldn't commit outranks everything above: the step must
+  // not report a clean PASS over a recording that isn't there. With no target
+  // at all there is nothing to hand the user (FAIL, and drop the path we can't
+  // honour); with the previous target retained the run still has a video, just
+  // a stale one (WARNING).
+  if (promoteFailed) {
+    if (!fs.existsSync(finalTargetPath)) {
+      result.status = "FAIL";
+      result.description = `Couldn't save the recording to ${finalTargetPath}: promoting the captured video failed and no previous recording exists at that path.`;
+      delete result.outputs.recordingPath;
+      delete result.outputs.format;
+    } else {
+      // Never downgrade a structural verify FAIL (ADR 01080) to WARNING here:
+      // a guard the author explicitly demanded outranks "we kept the old
+      // video", and the roll-up is FAIL > WARNING everywhere else. Say the
+      // target is stale either way — that's additive information, not a
+      // verdict.
+      if (result.status !== "FAIL") result.status = "WARNING";
+      result.description += ` The captured video couldn't replace ${finalTargetPath}, so the existing (now stale) recording was kept.`;
     }
   }
   return result;

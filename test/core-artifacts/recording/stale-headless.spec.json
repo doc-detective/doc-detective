@@ -1,6 +1,6 @@
 {
   "specId": "recording-stale-headless",
-  "description": "Phantom recording spans (ADR 01074): a headless context skips the recording itself, but an aboveVariation record still runs checkpoint comparisons against committed baselines and reports staleness on stopRecord. This spec uses a recording path that is never recorded headed, so no baselines ever exist and the span deterministically reports stale (WARNING, outputs.stale true) on every run — proving headless staleness detection end-to-end. Windows/mac only: on Linux fixture jobs an Xvfb display can make headless ffmpeg recording real instead of skipped.",
+  "description": "Phantom recording spans (ADR 01079): a headless context skips the recording itself, but an aboveVariation record still runs checkpoint comparisons against committed baselines and reports staleness on stopRecord. This spec uses a recording path that is never recorded headed, so no baselines ever exist and the span deterministically reports stale (WARNING, outputs.stale true) on every run — proving headless staleness detection end-to-end. Windows/mac only: on Linux fixture jobs an Xvfb display can make headless ffmpeg recording real instead of skipped.",
   "tests": [
     {
       "testId": "stale-headless-phantom",

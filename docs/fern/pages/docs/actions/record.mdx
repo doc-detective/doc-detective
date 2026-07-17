@@ -167,6 +167,8 @@ While the recording is active, Doc Detective captures a screenshot after every s
 - Variation within `maxVariation` (default `0.05`): the step passes.
 - Variation beyond `maxVariation`: the `stopRecord` step returns WARNING—the recorded flow's content has probably changed since the recording was captured. Baselines are never modified by a checkpoint comparison.
 
+Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists—which, once you commit the recording, is every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift, so you keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
+
 The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
 
 Tune or relocate the comparison with the object form:
@@ -198,11 +200,11 @@ Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this se
 }
 ```
 
-`aboveVariation` requires checkpoints, so it enables them automatically—including over an explicit `checkpoints: false`, which this mode overrides (a verdict with no evidence could never refresh a drifted recording). Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it—the two always stay in sync—and the `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
+`aboveVariation` requires checkpoints, so it enables them automatically—including over an explicit `checkpoints: false`, which this mode overrides (a verdict with no evidence could never refresh a drifted recording). Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it in the same step, so they describe the video you have. If a run is interrupted partway through that update, the next run sees the mismatch as drift and refreshes both again—it repairs itself rather than leaving you to notice. The `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
 
 ### Verifying the video file itself
 
-Checkpoints validate the scene a recording shows; `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are an all-black video, a wrong-sized crop, or a truncated clip:
+Checkpoints validate the scene a recording shows, while `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are an all-black video, a wrong-sized crop, or a truncated clip:
 
 ```json
 {
@@ -225,9 +227,16 @@ Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord`
 
 The measured values land in the [`stopRecord` outputs](stopRecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
 
-### Detecting staleness in headless runs
+### Detecting staleness without re-recording
 
-Recording needs a visible display, so headless runs skip `record` steps. With `aboveVariation` (or `checkpoints`) configured, a headless run still compares checkpoints against the committed baselines and reports whether the recording has gone stale: the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint suggests re-running headed to refresh. Your headless CI continuously watches recording freshness; you only run headed when something actually changed.
+Doc Detective skips the capture in two situations: a headless run (recording needs a visible display), and a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale—the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
+
+The fix depends on which skip you hit, and the `stopRecord` step's description names it:
+
+- **Headless run:** re-run the test on a headed context to refresh the recording.
+- **Target already exists:** set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file. With `aboveVariation`, the recording refreshes itself the moment it drifts, so this never comes up.
+
+Either way, detection is cheap and continuous—your headless CI watches recording freshness on every run, and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 

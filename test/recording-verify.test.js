@@ -5,13 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import {
   parseBlackdetect,
+  createMatchingLineCollector,
   detectAllBlack,
   getFfmpegPath,
 } from "../dist/core/tests/ffmpegRecorder.js";
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 
 // ---------------------------------------------------------------------------
-// ADR 01075: structural recording assertions (record.verify).
+// ADR 01080: structural recording assertions (record.verify).
 // ---------------------------------------------------------------------------
 
 // Generate a tiny real mp4 with the bundled ffmpeg (lavfi color source), same
@@ -97,6 +98,70 @@ describe("parseBlackdetect", function () {
   });
 });
 
+// The blackdetect filter runs over a CHUNKED stderr stream. Chunk boundaries
+// fall wherever the pipe flushes, so these pin that a `black_` line survives
+// being torn in half — the failure that would let an all-black video pass.
+describe("createMatchingLineCollector", function () {
+  const BLACK_LINE =
+    "[blackdetect @ 0x1] black_start:0 black_end:0.4 black_duration:0.4";
+
+  it("keeps a matching line delivered in one chunk", function () {
+    const c = createMatchingLineCollector("black_");
+    c.push(`${BLACK_LINE}\n`);
+    assert.match(c.flush(), /black_duration:0\.4/);
+  });
+
+  it("keeps a matching line split across chunk boundaries", function () {
+    const c = createMatchingLineCollector("black_");
+    // Tear it mid-token, so neither chunk contains "black_" on its own.
+    const cut = BLACK_LINE.indexOf("black_start") + 3;
+    c.push(BLACK_LINE.slice(0, cut));
+    c.push(`${BLACK_LINE.slice(cut)}\n`);
+    assert.match(c.flush(), /black_duration:0\.4/);
+  });
+
+  it("keeps a matching line split one character at a time", function () {
+    const c = createMatchingLineCollector("black_");
+    for (const ch of `${BLACK_LINE}\n`) c.push(ch);
+    assert.match(c.flush(), /black_duration:0\.4/);
+  });
+
+  it("flushes a final line that has no trailing newline", function () {
+    const c = createMatchingLineCollector("black_");
+    c.push(BLACK_LINE);
+    assert.match(c.flush(), /black_duration:0\.4/);
+  });
+
+  it("drops non-matching lines and handles CRLF", function () {
+    const c = createMatchingLineCollector("black_");
+    c.push("frame= 100 fps=25 q=28.0 size=1kB\r\n");
+    c.push(`${BLACK_LINE}\r\n`);
+    c.push("frame= 200 fps=25 q=28.0 size=2kB\r\n");
+    const out = c.flush();
+    assert.match(out, /black_duration:0\.4/);
+    assert.ok(!/frame=/.test(out), `progress spam leaked: ${out}`);
+  });
+
+  it("stays bounded under progress spam, keeping earlier matches", function () {
+    const c = createMatchingLineCollector("black_", 200);
+    c.push(`${BLACK_LINE}\n`);
+    for (let i = 0; i < 500; i++) c.push(`black_noise_${i}\n`);
+    const out = c.flush();
+    assert.ok(out.length <= 200, `unbounded: ${out.length}`);
+    assert.match(out, /black_duration:0\.4/);
+  });
+
+  // The end-to-end shape of the bug: a chunk-split interval must still be
+  // parsed as full coverage, not dropped into a false "not black".
+  it("feeds parseBlackdetect a torn line without losing the interval", function () {
+    const c = createMatchingLineCollector("black_");
+    const cut = BLACK_LINE.indexOf("duration") + 2;
+    c.push(BLACK_LINE.slice(0, cut));
+    c.push(`${BLACK_LINE.slice(cut)}\n`);
+    assert.equal(parseBlackdetect(c.flush(), 0.5, 10), true);
+  });
+});
+
 describe("detectAllBlack (real ffmpeg)", function () {
   this.timeout(60000);
   let tmpDir;
@@ -166,6 +231,143 @@ describe("stopRecording: record.verify structural guards", function () {
       driver: host,
     });
   }
+
+  // `resolution: true` resolves its expectation from the crop rect when one
+  // applied, and only the ffmpeg engine sets one — the device path never crops.
+  // Without these, the appliedCrop branch is unexercised: the check would fall
+  // through to the capture frame size and compare a cropped video against the
+  // uncropped capture, and nothing would notice.
+  it("resolution: true measures against the applied crop, not the capture frame", async function () {
+    const samplePath = path.join(tmpDir, "crop-source.mp4"); // 64x64
+    await generateColorMp4(samplePath, "red");
+    const target = path.join(tmpDir, "cropped.mp4");
+    const handle = {
+      type: "ffmpeg",
+      process: { stdin: { write() {}, end() {} }, exitCode: 0 },
+      tempPath: samplePath,
+      targetPath: target,
+      crop: { x: 0, y: 0, w: 32, h: 32 },
+      // The uncropped capture is 64x64. If the guard measured this instead of
+      // the crop, the 32x32 output would read as a mismatch and FAIL.
+      captureInfo: { frameSize: { w: 64, h: 64 } },
+      verify: { resolution: true },
+    };
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      result.status,
+      "PASS",
+      `expected the crop rect to be the expectation: ${result.description}`
+    );
+    assert.equal(result.outputs.resolutionMatch, true);
+    assert.equal(result.outputs.width, 32);
+    assert.equal(result.outputs.height, 32);
+  });
+
+  it("resolution: true FAILs when the crop rect and the produced video disagree", async function () {
+    const samplePath = path.join(tmpDir, "crop-source-bad.mp4"); // 64x64
+    await generateColorMp4(samplePath, "red");
+    const target = path.join(tmpDir, "cropped-bad.mp4");
+    const handle = {
+      type: "ffmpeg",
+      process: { stdin: { write() {}, end() {} }, exitCode: 0 },
+      tempPath: samplePath,
+      targetPath: target,
+      // A crop rect larger than the source: the transcode's min/max expressions
+      // clamp it to the 64x64 frame, so the produced video can't match the
+      // 200x200 the rect claimed. That's the shape of a real bug — a bad
+      // cropRect, or a pending-scale factor that overshot — and it's exactly
+      // what the guard exists to catch: a crop landing outside the window.
+      crop: { x: 0, y: 0, w: 200, h: 200 },
+      captureInfo: { frameSize: { w: 64, h: 64 } },
+      verify: { resolution: true },
+    };
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      result.status,
+      "FAIL",
+      `a clamped crop must not read as a match: ${result.description}`
+    );
+    assert.equal(result.outputs.resolutionMatch, false);
+  });
+
+  // A promote failure downgrades the step to WARNING ("we kept the old video").
+  // A violated structural guard is a FAIL the author explicitly asked for, and
+  // FAIL outranks WARNING in every other roll-up — so the downgrade must not
+  // swallow it. This combination only became reachable when aboveVariation
+  // (ADR 01078) and verify (ADR 01080) landed together.
+  it("keeps a verify FAIL when a failed promote leaves the old recording", async function () {
+    const target = path.join(tmpDir, "out.mp4");
+    // The committed recording is all black — it violates notBlack, and it's
+    // what the probe measures once the promote fails and it's retained.
+    await generateColorMp4(target, "black");
+    // Force the promote to fail: a non-empty directory at the backup name
+    // defeats both the non-recursive rmSync and the rename onto it.
+    const backupDir = `${target}.promote-backup`;
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, "occupied"), "x");
+
+    const fresh = path.join(tmpDir, "fresh.mp4");
+    await generateColorMp4(fresh, "red");
+    const b64 = fs.readFileSync(fresh).toString("base64");
+
+    const baselineDir = path.join(tmpDir, "out.mp4.checkpoints");
+    fs.mkdirSync(baselineDir, { recursive: true });
+    const baselinePath = path.join(baselineDir, "01-a.png");
+    fs.writeFileSync(baselinePath, "committed-baseline");
+
+    const handle = {
+      type: "appium",
+      driver: { stopRecordingScreen: async () => b64 },
+      targetPath: target,
+      overwrite: "aboveVariation",
+      verify: { notBlack: true },
+      checkpoints: {
+        maxVariation: 0.05,
+        baselineDir,
+        stagingDir: path.join(tmpDir, "staging"),
+        // Drift, so the verdict is CHANGED and a promote is attempted.
+        entries: [
+          {
+            fileName: "01-a.png",
+            stagingPath: path.join(tmpDir, "staging", "01-a.png"),
+            baselinePath,
+            variation: 0.9,
+          },
+        ],
+      },
+    };
+    fs.mkdirSync(path.join(tmpDir, "staging"), { recursive: true });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      result.status,
+      "FAIL",
+      `a violated guard must survive the promote-failure downgrade, got ${result.status}: ${result.description}`
+    );
+    // The stale-target note is additive information, not a verdict — it should
+    // still reach the author.
+    assert.match(result.description, /couldn't replace|stale/i);
+  });
 
   it("passes when every guard holds", async function () {
     const result = await stopWithVerify({

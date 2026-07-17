@@ -99,7 +99,7 @@ type CheckpointsConfig = {
 
 // Whether a record step's authored form enables checkpoints — the single
 // predicate shared by resolveCheckpointsConfig and startRecording's phantom
-// gate (ADR 01074), so the two can't drift: this returns true exactly when
+// gate (ADR 01079), so the two can't drift: this returns true exactly when
 // resolveCheckpointsConfig returns a config.
 function recordingCheckpointsEnabled(record: any): boolean {
   if (record?.overwrite === "aboveVariation") return true;
@@ -123,7 +123,7 @@ function resolveCheckpointsConfig({
 }): CheckpointsConfig | null {
   let raw = record?.checkpoints;
   // overwrite: "aboveVariation" REQUIRES checkpoints — the span verdict
-  // (ADR 01073) is computed from them, so the mode forces them on even over
+  // (ADR 01078) is computed from them, so the mode forces them on even over
   // an explicit `checkpoints: false` (documented; a verdict with no evidence
   // could never refresh a drifted recording). An explicit checkpoints object
   // still tunes maxVariation/directory.
@@ -151,7 +151,7 @@ function resolveCheckpointsConfig({
   };
 }
 
-// The outcome of judging a recording span against its baselines (ADR 01073).
+// The outcome of judging a recording span against its baselines (ADR 01078).
 type SpanVerdict = {
   changed: boolean;
   reasons: string[];
@@ -246,13 +246,23 @@ function promoteRecordingSpan({
   entries: CheckpointEntry[];
   orphans: string[];
   baselineDir: string;
-}): { videoPromoted: boolean; seededBaselines: number } {
+}): { videoPromoted: boolean; seededBaselines: number; baselineFailures: number } {
   const backupPath = `${targetPath}.promote-backup`;
   const targetExisted = fs.existsSync(targetPath);
+  // A crashed run can leave a backup behind, and Windows can't rename onto an
+  // existing file — so a stale backup would fail every future promote. Clear
+  // it first: the committed target is the source of truth, never the backup.
+  try {
+    fs.rmSync(backupPath, { force: true });
+  } catch {
+    /* if it survives, the rename below fails and we report honestly */
+  }
+  // The swap is the only step that can lose the user's recording, so it's the
+  // only step inside this try. Cleanup of the backup happens AFTER the swap is
+  // committed (below) — a failed cleanup must never un-report a real refresh.
   try {
     if (targetExisted) fs.renameSync(targetPath, backupPath);
     fs.renameSync(stagingTarget, targetPath);
-    if (targetExisted) fs.rmSync(backupPath, { force: true });
   } catch (error: any) {
     log(
       config,
@@ -267,7 +277,13 @@ function promoteRecordingSpan({
     } catch {
       /* best-effort restore */
     }
-    return { videoPromoted: false, seededBaselines: 0 };
+    return { videoPromoted: false, seededBaselines: 0, baselineFailures: 0 };
+  }
+  // Committed. From here the refresh is real no matter what else fails.
+  try {
+    fs.rmSync(backupPath, { force: true });
+  } catch {
+    /* a surviving backup is cosmetic; the next promote clears it */
   }
   try {
     fs.mkdirSync(baselineDir, { recursive: true });
@@ -275,6 +291,7 @@ function promoteRecordingSpan({
     /* surfaced by the per-entry writes below */
   }
   let seededBaselines = 0;
+  let baselineFailures = 0;
   for (const entry of entries) {
     if (entry.error) continue;
     try {
@@ -283,6 +300,7 @@ function promoteRecordingSpan({
       fs.renameSync(tempPath, entry.baselinePath);
       if (entry.baselineMissing) seededBaselines++;
     } catch (error: any) {
+      baselineFailures++;
       log(
         config,
         "warning",
@@ -294,6 +312,7 @@ function promoteRecordingSpan({
     try {
       fs.unlinkSync(path.join(baselineDir, orphan));
     } catch (error: any) {
+      baselineFailures++;
       log(
         config,
         "warning",
@@ -301,7 +320,10 @@ function promoteRecordingSpan({
       );
     }
   }
-  return { videoPromoted: true, seededBaselines };
+  // The video refreshed, but any baseline left behind means the pair is out of
+  // step. Report it so the caller doesn't call this a complete refresh; the
+  // next run sees the mismatch as drift and repairs it (ADR 01078).
+  return { videoPromoted: true, seededBaselines, baselineFailures };
 }
 
 // The per-checkpoint slice of stopRecord's outputs, shared by headed stops
@@ -338,7 +360,7 @@ function buildCheckpointOutputs(entries: CheckpointEntry[]): {
 // recording handle with checkpoints enabled, capture one screenshot and
 // compare it compare-only against the handle's persistent baseline, pushing
 // a CheckpointEntry either way. Baselines are never written here — seeding
-// and updates belong to stopRecord (ADR 01072). Never throws: a failed
+// and updates belong to stopRecord (ADR 01075). Never throws: a failed
 // capture records an entry with `error` and a warning log, mirroring
 // captureAutoScreenshot's contract (a missed checkpoint must not fail the
 // step it documents).
@@ -374,7 +396,7 @@ async function captureRecordingCheckpoints({
   if (qualifying.length === 0) return;
   if (!driver) {
     // App-only contexts have no browser driver to capture with (v1
-    // limitation — app-surface checkpoints are a follow-up, ADR 01072).
+    // limitation — app-surface checkpoints are a follow-up, ADR 01075).
     log(
       config,
       "debug",
