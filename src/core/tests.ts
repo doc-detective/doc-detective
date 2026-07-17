@@ -4821,7 +4821,7 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
-      // Recording checkpoints (ADR 01072): while a checkpoint-enabled
+      // Recording checkpoints (ADR 01075): while a checkpoint-enabled
       // recording is active, capture a compare-only screenshot per handle
       // after every step (final attempt only, same placement rationale as
       // autoScreenshot — retry frames would poison the staged captures).
@@ -5179,7 +5179,7 @@ async function runStep({
       const handle = actionResult.recording;
       handle.id = handle.id ?? randomUUID();
       handle.name = handle.name ?? recordStepName(step.record);
-      // Recording checkpoints (ADR 01072): resolve the step's `checkpoints`
+      // Recording checkpoints (ADR 01075): resolve the step's `checkpoints`
       // field once, here, where the handle and its target path are both at
       // hand — the post-step hook and stopRecord read the resolved config
       // off the handle. resolveCheckpointsConfig returns null for every

@@ -124,7 +124,7 @@ function resolveCheckpointsConfig({
 // recording handle with checkpoints enabled, capture one screenshot and
 // compare it compare-only against the handle's persistent baseline, pushing
 // a CheckpointEntry either way. Baselines are never written here — seeding
-// and updates belong to stopRecord (ADR 01072). Never throws: a failed
+// and updates belong to stopRecord (ADR 01075). Never throws: a failed
 // capture records an entry with `error` and a warning log, mirroring
 // captureAutoScreenshot's contract (a missed checkpoint must not fail the
 // step it documents).
@@ -160,7 +160,7 @@ async function captureRecordingCheckpoints({
   if (qualifying.length === 0) return;
   if (!driver) {
     // App-only contexts have no browser driver to capture with (v1
-    // limitation — app-surface checkpoints are a follow-up, ADR 01072).
+    // limitation — app-surface checkpoints are a follow-up, ADR 01075).
     log(
       config,
       "debug",

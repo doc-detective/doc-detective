@@ -410,7 +410,7 @@ async function stopRecording({
     );
   }
 
-  // Recording checkpoints (ADR 01072): seed missing baselines from the
+  // Recording checkpoints (ADR 01075): seed missing baselines from the
   // staged captures (first run), report per-checkpoint results, and surface
   // drift beyond maxVariation through the shared implicit-assertion engine
   // at WARNING severity — never FAIL, mirroring screenshot semantics.

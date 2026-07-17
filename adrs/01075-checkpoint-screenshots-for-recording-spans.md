@@ -14,7 +14,7 @@ A recording documents a flow, but nothing tells its author when the flow's *cont
 
 - Drift detection must compare against **persistent, committable baselines** — per-run artifacts (like `autoScreenshot`'s) can't anchor a comparison.
 - Comparison noise must not fail tests: screenshots' `maxVariation` overage is a WARNING, and checkpoints must mirror that (fixtures stay PASS/SKIPPED-only).
-- Baselines and the recording must stay **in sync**: a baseline that self-updates mid-span while the video stays stale would mask drift forever. All baseline writes belong to `stopRecord` (and, later, to the `overwrite: "aboveVariation"` promote decision — ADR 01073).
+- Baselines and the recording must stay **in sync**: a baseline that self-updates mid-span while the video stays stale would mask drift forever. All baseline writes belong to `stopRecord` (and, later, to the `overwrite: "aboveVariation"` promote decision — ADR 01076).
 - Reuse the screenshot pipeline (sharp + pixelmatch + implicit assertions) rather than building a parallel comparator.
 - Steps edited by an author should invalidate their own checkpoint naturally.
 
@@ -26,7 +26,7 @@ A recording documents a flow, but nothing tells its author when the flow's *cont
 
 ## Decision Outcome
 
-Chosen option: **1 — post-step checkpoints with compare-only semantics**, because it detects drift in the *scene the recording shows* without video-encoding noise (lossless PNG captures, so the screenshot pipeline's default tolerance applies), works headless (which video capture doesn't — the basis for headless staleness detection in ADR 01074), and reuses `saveScreenshot` end to end.
+Chosen option: **1 — post-step checkpoints with compare-only semantics**, because it detects drift in the *scene the recording shows* without video-encoding noise (lossless PNG captures, so the screenshot pipeline's default tolerance applies), works headless (which video capture doesn't — the basis for headless staleness detection in ADR 01077), and reuses `saveScreenshot` end to end.
 
 Mechanics:
 
@@ -61,7 +61,7 @@ Mechanics:
 
 - Good, because lossless captures make the screenshot tolerance model directly applicable.
 - Good, because it works headless and reuses the existing pipeline nearly wholesale.
-- Bad, because it validates the scene, not the encoded video file itself (structural guards on the file are ADR 01075's job).
+- Bad, because it validates the scene, not the encoded video file itself (structural guards on the file are ADR 01078's job).
 
 ### 2. Frame extraction from the produced video
 
