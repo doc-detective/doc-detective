@@ -38,9 +38,9 @@ sequenced by journey.
 
 **Frontmatter requirement:** every page in `docs/fern/pages/**` must include `title` and `description`
 in its frontmatter (see [`docs/AGENTS.md`](../AGENTS.md)) and avoid level-1 (`#`) headings. Author
-hand-written content pages as `.mdx`. Some pages are `.md` by exception: the generated schema
-reference pages under `reference/schemas/`, and a few legacy pages (e.g. `get-started/concepts.md`)
-that predate this convention.
+all hand-written content pages as `.mdx`. The only exception is the generated schema reference pages
+under `reference/schemas/`, which are machine output — never hand-authored (see "Generated reference
+pages — never hand-edit" in [`README.md`](README.md)).
 
 ---
 
