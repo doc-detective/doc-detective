@@ -358,6 +358,11 @@ function annotationsToSvg(
     // Emitting the group from the SHARED generator keeps both media drawing
     // the same tree rather than the DOM adapter re-wrapping markup it didn't
     // build.
+    //
+    // Note for the buffer path: screenshot annotations composited by sharp now
+    // carry these `data-dd-*` attributes in the SVG too. Sharp ignores them, so
+    // there's no visual change — but a future screenshot-comparison fixture that
+    // asserted on raw SVG markup text would see them.
     body +=
       `<g data-dd-annotation="${escapeXml(item.id ?? `dd-${index}`)}"` +
       ` data-dd-type="${item.type}"` +

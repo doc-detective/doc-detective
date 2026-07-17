@@ -19,6 +19,12 @@
 // in the same space — so the browser's own devicePixelRatio handling applies
 // and no scaling is needed.
 
+// Declared before the export so the two module constants precede their first
+// textual use (the export list is a binding, not an evaluation, so this is
+// cosmetic — but it keeps CodeQL's declared-before-use check quiet).
+const LAYER_TAG = "dd-annotation-layer";
+const TARGET_ATTRIBUTE = "data-dd-annotate-target";
+
 export {
   LAYER_TAG,
   TARGET_ATTRIBUTE,
@@ -26,9 +32,6 @@ export {
   clearLayer,
   layerScript,
 };
-
-const LAYER_TAG = "dd-annotation-layer";
-const TARGET_ATTRIBUTE = "data-dd-annotate-target";
 
 /**
  * The page-side renderer, serialized into the browser.
@@ -186,11 +189,17 @@ function layerScript(
   if (tracked.length > 0) {
     // Ids come from the schema's [A-Za-z0-9_-] pattern (or are generated to
     // match), so they're already selector-safe. Escape anyway rather than let
-    // that invariant live only in a schema three files away.
+    // that invariant live only in a schema three files away. The fallback
+    // (for the rare engine without CSS.escape) is a real CSS-ident escape —
+    // every character outside [A-Za-z0-9_-] becomes a `\` + hex + space
+    // escape — not just a strip of quotes, so it holds even if the id
+    // constraint ever loosens.
     const esc = (value: string) =>
       (window as any).CSS && (window as any).CSS.escape
         ? (window as any).CSS.escape(value)
-        : String(value).replace(/["\\]/g, "");
+        : String(value).replace(/[^A-Za-z0-9_-]/g, (c: string) =>
+            "\\" + c.charCodeAt(0).toString(16) + " "
+          );
     const step = () => {
       for (const t of tracked) {
         const el = doc.querySelector(
@@ -292,12 +301,16 @@ async function mountAnnotations({
   );
 }
 
-/** Remove the layer entirely, stopping its tracking loop. */
+/** Remove the layer entirely, stopping its tracking loop and any pending
+ * ghost-exit timeout. Cancelling both mirrors the two timers a render can
+ * arm, so a teardown mid-exit leaves nothing pending. (Firing against a
+ * removed layer is a DOM no-op, so this is tidiness rather than a crash fix.) */
 async function clearLayer(driver: any): Promise<void> {
   await driver.execute((tag: string) => {
     const layer: any = document.querySelector(tag);
     if (!layer) return;
     if (layer.__ddRaf) cancelAnimationFrame(layer.__ddRaf);
+    if (layer.__ddGhostTimeout) clearTimeout(layer.__ddGhostTimeout);
     layer.remove();
   }, LAYER_TAG);
 }

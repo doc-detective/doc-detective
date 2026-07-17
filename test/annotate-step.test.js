@@ -216,7 +216,7 @@ describe("annotate step", function () {
         // Match the mount payload FIRST: the layer script itself contains
         // `setAttribute` and `getBoundingClientRect`, so a source-substring
         // check would swallow it before this ever ran.
-        if (args && args.length === 3 && args[2] && args[2].svg !== undefined) {
+        if (args.length === 3 && args[2] && args[2].svg !== undefined) {
           mounted = args[2];
           return undefined;
         }
@@ -266,7 +266,7 @@ describe("annotate step", function () {
       async execute(fn, ...args) {
         const src = String(fn);
         if (src.includes("innerWidth")) return { width: 800, height: 600 };
-        if (args && args.length === 3 && args[2] && args[2].svg !== undefined) {
+        if (args.length === 3 && args[2] && args[2].svg !== undefined) {
           mounted = args[2];
         }
         return undefined;
@@ -307,7 +307,7 @@ describe("annotate step", function () {
         return [];
       },
       async execute(fn, ...args) {
-        if (args && args.length === 3 && args[2] && args[2].svg !== undefined) {
+        if (args.length === 3 && args[2] && args[2].svg !== undefined) {
           mounted = args[2];
           return undefined;
         }
@@ -344,7 +344,7 @@ describe("annotate step", function () {
         return [];
       },
       async execute(fn, ...args) {
-        if (args && args.length === 3 && args[2] && args[2].svg !== undefined) {
+        if (args.length === 3 && args[2] && args[2].svg !== undefined) {
           mounted = args[2];
           return undefined;
         }
@@ -391,7 +391,7 @@ describe("annotate step", function () {
         return [];
       },
       async execute(fn, ...args) {
-        if (args && args.length === 3 && args[2] && args[2].svg !== undefined) {
+        if (args.length === 3 && args[2] && args[2].svg !== undefined) {
           mounted = args[2];
           return undefined;
         }
