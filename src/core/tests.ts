@@ -5193,6 +5193,7 @@ async function runStep({
       // so `null` is the single "disabled" encoding. `overwrite` rides along
       // for stopRecord's aboveVariation staging/promote decision (ADR 01078).
       handle.overwrite = (step.record as any)?.overwrite;
+      handle.verify = (step.record as any)?.verify;
       if (handle.targetPath) {
         handle.checkpoints = resolveCheckpointsConfig({
           record: step.record,

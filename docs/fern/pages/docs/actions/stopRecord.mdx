@@ -41,6 +41,11 @@ With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automati
 - `$$changeReasons`: why the recording refreshed (drift, added/removed steps, missing file). Present only when `changed` is `true`.
 - `$$baselineFailures`: how many checkpoint baselines Doc Detective couldn't write during a refresh. Present only when at least one failed—the video refreshed but its baselines didn't fully follow, so the next run treats the mismatch as drift and refreshes both again.
 
+With [`verify` guards](record#verifying-the-video-file-itself):
+
+- `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
+- `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
+
 When the capture is skipped but checkpoints still run—a headless run, or a target that already exists under `overwrite: "false"`—`stopRecord` compares against the committed baselines, writes nothing, and reports the checkpoint outputs above (`$$checkpoints`, `$$maxCheckpointVariation`, `$$checkpointErrors`) plus:
 
 - `$$stale`: whether the committed recording looks stale—its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint pointing at the fix for the skip you hit: a headed re-run for a headless skip, or `overwrite: "true"` / `"aboveVariation"` (or removing the file) when the target already exists.
