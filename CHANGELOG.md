@@ -1,3 +1,12 @@
+# [4.35.0](https://github.com/doc-detective/doc-detective/compare/v4.34.0...v4.35.0) (2026-07-17)
+
+
+### Features
+
+* **annotate:** persistent annotations for recordings ([#666](https://github.com/doc-detective/doc-detective/issues/666)) ([60e8f7f](https://github.com/doc-detective/doc-detective/commit/60e8f7f80019b2994cb2855bc735aa91c06d1551)), closes [#662](https://github.com/doc-detective/doc-detective/issues/662)
+* **hints:** recommend mobile platforms when a browser floors a viewport ([#657](https://github.com/doc-detective/doc-detective/issues/657)) ([7121df3](https://github.com/doc-detective/doc-detective/commit/7121df33ab369e97799cd02aba5387a8d97bcd86))
+* **screenshot:** declarative screenshot annotations ([978eeef](https://github.com/doc-detective/doc-detective/commit/978eeef8cb41e56101de39d8251fe578f75b5b98))
+
 # [4.34.0](https://github.com/doc-detective/doc-detective/compare/v4.33.0...v4.34.0) (2026-07-17)
 
 
