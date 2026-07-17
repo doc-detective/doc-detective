@@ -99,7 +99,7 @@ function aspectRatiosMatch(
 
 // `internal` is a core-only seam (not a schema field): recording checkpoints
 // run comparisons against persistent baselines that must never be written
-// mid-span — baseline writes belong to stopRecord (ADR 01072). In compareOnly
+// mid-span — baseline writes belong to stopRecord (ADR 01075). In compareOnly
 // mode the fresh capture always persists to `capturePath` (staging) instead,
 // and a missing reference reports `outputs.baselineMissing` rather than
 // seeding the file.
@@ -666,6 +666,21 @@ async function saveScreenshot({
     }
   }
 
+  // Record the saved image's actual pixel dimensions — the size the page really
+  // rendered (or was cropped to), which can differ from the requested viewport
+  // when the browser/OS floors it. Surfacing it here makes the report and any
+  // caption reflect ground truth rather than the requested size. Best-effort:
+  // never fail the step over a metadata read.
+  try {
+    const savedMeta = await sharp(finalBuffer).metadata();
+    if (savedMeta.width && savedMeta.height) {
+      result.outputs.width = savedMeta.width;
+      result.outputs.height = savedMeta.height;
+    }
+  } catch {
+    /* dimensions are best-effort metadata */
+  }
+
   // Write the final (captured or cropped) PNG buffer to disk exactly once. On
   // failure, stamp a step-level FAIL (mirrors the prior capture-write failure)
   // and signal the caller to return.
@@ -885,7 +900,7 @@ async function saveScreenshot({
   if (!result.outputs.screenshotPath) {
     if (internal?.compareOnly) {
       // No baseline yet: report it instead of seeding the file — first-run
-      // baseline writes belong to stopRecord (ADR 01072). The capture is
+      // baseline writes belong to stopRecord (ADR 01075). The capture is
       // already staged at internal.capturePath; `changed` stays false so
       // upload pipelines ignore compare-only captures.
       result.outputs.screenshotPath = internal.capturePath;

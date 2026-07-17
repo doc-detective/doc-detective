@@ -11,8 +11,8 @@ import {
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 
 // ---------------------------------------------------------------------------
-// ADR 01073: record overwrite "aboveVariation" — span verdict + promote.
-// ADR 01074: phantom spans — read-only staleness detection headless.
+// ADR 01078: record overwrite "aboveVariation" — span verdict + promote.
+// ADR 01079: phantom spans — read-only staleness detection headless.
 // ---------------------------------------------------------------------------
 
 describe("computeSpanVerdict", function () {
@@ -397,12 +397,13 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function makePhantom({ entries, targetExists }) {
+  function makePhantom({ entries, targetExists, skipReason }) {
     const targetPath = path.join(tmpDir, "demo.mp4");
     if (targetExists) fs.writeFileSync(targetPath, "committed-video");
     return {
       type: "phantom",
       targetPath,
+      ...(skipReason ? { skipReason } : {}),
       checkpoints: {
         maxVariation: 0.05,
         baselineDir: path.join(tmpDir, "demo.mp4.checkpoints"),
@@ -445,6 +446,70 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
     );
     assert.equal(host.state.recordings.length, 0, "handle dropped");
     assert.equal(fs.existsSync(handle.checkpoints.stagingDir), false);
+  });
+
+  // A phantom raised by the existing-target skip must not tell the author to
+  // re-run headed — the run may already be headed; the remedy is `overwrite`.
+  it("names the right remedy when the skip was an existing target, not headless", async function () {
+    const handle = makePhantom({
+      entries: [],
+      targetExists: true,
+      skipReason: "targetExists",
+    });
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    fs.mkdirSync(handle.checkpoints.stagingDir, { recursive: true });
+    const baselinePath = path.join(handle.checkpoints.baselineDir, "01-a.png");
+    fs.writeFileSync(baselinePath, "committed-baseline");
+    handle.checkpoints.entries.push({
+      fileName: "01-a.png",
+      stagingPath: path.join(handle.checkpoints.stagingDir, "01-a.png"),
+      baselinePath,
+      variation: 0.4,
+    });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.status, "WARNING");
+    assert.equal(result.outputs.stale, true);
+    assert.match(result.description, /overwrite/);
+    assert.ok(
+      !/headless|headed/i.test(result.description),
+      `existing-target skip must not blame headless, got: ${result.description}`
+    );
+  });
+
+  it("still names headless as the remedy for a headless phantom", async function () {
+    const handle = makePhantom({
+      entries: [],
+      targetExists: true,
+      skipReason: "headless",
+    });
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    fs.mkdirSync(handle.checkpoints.stagingDir, { recursive: true });
+    const baselinePath = path.join(handle.checkpoints.baselineDir, "01-a.png");
+    fs.writeFileSync(baselinePath, "committed-baseline");
+    handle.checkpoints.entries.push({
+      fileName: "01-a.png",
+      stagingPath: path.join(handle.checkpoints.stagingDir, "01-a.png"),
+      baselinePath,
+      variation: 0.4,
+    });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.status, "WARNING");
+    assert.equal(result.outputs.stale, true);
+    assert.match(result.description, /headed/i);
   });
 
   it("reports SKIPPED + stale=false when checkpoints match", async function () {
@@ -500,7 +565,7 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
   });
 });
 
-// Review hardening (ADR 01073/01074 follow-ups): dirty spans, evidence-free
+// Review hardening (ADR 01078/01074 follow-ups): dirty spans, evidence-free
 // verdicts, checkpoint enablement coherence, and truthful promote reporting.
 describe("aboveVariation hardening", function () {
   this.timeout(20000);
@@ -724,5 +789,69 @@ describe("stopRecording: phantom indeterminate spans", function () {
       assert.equal(result.status, "SKIPPED");
       assert.equal(result.outputs?.stale, undefined);
     }
+  });
+});
+
+// Review findings on #651: a promote that can't commit must never read as a
+// clean PASS, and cleanup of the backup must not un-report a real refresh.
+describe("promoteRecordingSpan: failure honesty", function () {
+  let tmpDir;
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-promote-fail-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("clears a crashed run's leftover backup instead of failing forever", function () {
+    const targetPath = path.join(tmpDir, "demo.mp4");
+    const stagingTarget = path.join(tmpDir, ".demo.staging.mp4");
+    const baselineDir = path.join(tmpDir, "demo.mp4.checkpoints");
+    fs.writeFileSync(targetPath, "old-video");
+    fs.writeFileSync(stagingTarget, "new-video");
+    // A previous run died mid-swap and left this behind. Windows can't rename
+    // onto an existing file, so a stale backup would break every future promote.
+    fs.writeFileSync(`${targetPath}.promote-backup`, "stale-backup");
+
+    const out = promoteRecordingSpan({
+      config: {},
+      stagingTarget,
+      targetPath,
+      entries: [],
+      orphans: [],
+      baselineDir,
+    });
+
+    assert.equal(out.videoPromoted, true);
+    assert.equal(fs.readFileSync(targetPath, "utf8"), "new-video");
+    assert.equal(fs.existsSync(`${targetPath}.promote-backup`), false);
+  });
+
+  it("reports baselineFailures when the video refreshed but a baseline didn't", function () {
+    const targetPath = path.join(tmpDir, "demo.mp4");
+    const stagingTarget = path.join(tmpDir, ".demo.staging.mp4");
+    const baselineDir = path.join(tmpDir, "demo.mp4.checkpoints");
+    fs.writeFileSync(targetPath, "old-video");
+    fs.writeFileSync(stagingTarget, "new-video");
+
+    const out = promoteRecordingSpan({
+      config: {},
+      stagingTarget,
+      targetPath,
+      // Staged capture is absent -> the baseline copy must fail and be counted.
+      entries: [
+        {
+          fileName: "01-a.png",
+          stagingPath: path.join(tmpDir, "nope", "01-a.png"),
+          baselinePath: path.join(baselineDir, "01-a.png"),
+          variation: 0.9,
+        },
+      ],
+      orphans: [],
+      baselineDir,
+    });
+
+    assert.equal(out.videoPromoted, true, "the video swap still committed");
+    assert.equal(out.baselineFailures, 1, "the failed baseline is reported");
   });
 });

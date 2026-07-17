@@ -173,12 +173,37 @@ async function startRecording({
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Check if file already exists
-  if (fs.existsSync(filePath) && step.record.overwrite == "false") {
-    // File already exists
+  // A recording that's skipped — because the target already exists, or because
+  // the engine can't capture headless — still tracks a compare-only "phantom"
+  // span when checkpoints are on (or aboveVariation, which implies them), per
+  // ADR 01079: the post-step hook captures checkpoints against the committed
+  // baselines and stopRecord reports staleness read-only — no video, no writes.
+  // `skipReason` travels to stopRecord so a stale verdict can name the right
+  // remedy: a headless skip needs a headed re-run, an existing target needs
+  // `overwrite` (or the file removed).
+  const phantomRecordingResult = (
+    skipDescription: string,
+    skipReason: "headless" | "targetExists" = "headless"
+  ) => {
     result.status = "SKIPPED";
-    result.description = `File already exists: ${filePath}`;
+    if (recordingCheckpointsEnabled(step.record)) {
+      result.description = `${skipDescription} Running checkpoint comparisons only, to detect whether the recording is stale.`;
+      result.recording = { type: "phantom", targetPath: filePath, skipReason };
+    } else {
+      result.description = skipDescription;
+    }
     return result;
+  };
+
+  // Check if file already exists. Skipping the video doesn't skip the
+  // checkpoints: without the phantom span, `checkpoints: true` (which leaves
+  // overwrite at its "false" default) would seed baselines on the first run and
+  // then never compare again, silently retiring the drift detection it promises.
+  if (fs.existsSync(filePath) && step.record.overwrite == "false") {
+    return phantomRecordingResult(
+      `File already exists: ${filePath}`,
+      "targetExists"
+    );
   }
 
   // With overlapping recordings, two could target the same output before
@@ -332,21 +357,6 @@ async function startRecording({
     );
     plan = { name: "ffmpeg", target: "viewport", fps: plan.fps };
   }
-
-  // A headless-skipped recording with checkpoints (or aboveVariation, which
-  // implies them) still tracks a compare-only "phantom" span (ADR 01074):
-  // the post-step hook captures checkpoints against the committed baselines
-  // and stopRecord reports staleness read-only — no video, no writes.
-  const phantomRecordingResult = (skipDescription: string) => {
-    result.status = "SKIPPED";
-    if (recordingCheckpointsEnabled(step.record)) {
-      result.description = `${skipDescription} Running checkpoint comparisons only, to detect whether the recording is stale.`;
-      result.recording = { type: "phantom", targetPath: filePath };
-    } else {
-      result.description = skipDescription;
-    }
-    return result;
-  };
 
   if (plan.name === "browser") {
     // Browser engine: capture the Chrome viewport via getDisplayMedia +

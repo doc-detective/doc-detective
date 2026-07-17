@@ -260,6 +260,12 @@ files, throwaway `--cache-dir` targets, downloaded archives for inspection — p
 `.tmp/` at the repo root (gitignored), so they're visible in the worktree, cleaned up with it, and
 never orphaned in `%TEMP%`/`/tmp`.
 
+This rule governs **files you create to inspect during a task**. It is *not* about a test's own
+scratch directories: mocha suites create theirs with `fs.mkdtempSync(path.join(os.tmpdir(), …))`
+and remove them in `after`/`afterEach` — uniquely named, never read by a human, cleaned up by the
+test that made them. That's the suite-wide convention (150+ call sites); follow it in new tests
+rather than reinventing a `.tmp/` variant for one file.
+
 Running tests is time-intensive. Instead of running a test multiple times to check for different behaviors (such as looking at tail for output verification), save output to a file and inspect that file:
 
 ```bash

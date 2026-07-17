@@ -38,6 +38,7 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
+  realizeViewport,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -428,6 +429,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
+          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
+          // viewport emulation (driver.setViewport) crashed headed recording
+          // contexts with a stack overflow and can't be gated off recording
+          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
           "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
@@ -1166,30 +1171,34 @@ function driverSkipDiagnostic({
   return msg;
 }
 
-// Set window size to match target viewport size
-async function setViewportSize(context: any, driver: any) {
-  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
-    // Get viewport size, not window size
-    const viewportSize = await driver.execute(
-      "return { width: window.innerWidth, height: window.innerHeight }",
-      []
-    );
-    // Get window size
-    const windowSize = await driver.getWindowSize();
-    // Get viewport size delta
-    const deltaWidth =
-      (context.browser?.viewport?.width || viewportSize.width) -
-      viewportSize.width;
-    const deltaHeight =
-      (context.browser?.viewport?.height || viewportSize.height) -
-      viewportSize.height;
-    // Resize window if necessary
-    await driver.setWindowSize(
-      windowSize.width + deltaWidth,
-      windowSize.height + deltaHeight
-    );
-    // Confirm viewport size
+// Realize a context's target viewport and return the size the page actually
+// rendered. Prefers viewport emulation (exact size, no window floor) and falls
+// back to window resizing, warning if the browser/OS floored the request. The
+// `// Confirm viewport size` intent is now realized by realizeViewport's
+// read-back.
+async function setViewportSize(
+  context: any,
+  driver: any,
+  config: any = {}
+): Promise<{ width: number; height: number } | undefined> {
+  // Guard on POSITIVE dimensions (not truthiness): the schema doesn't floor
+  // these, so a 0/negative/NaN value must not enter the resize path — matching
+  // the startSurface browser descriptor's guard.
+  const vw = Number(context.browser?.viewport?.width);
+  const vh = Number(context.browser?.viewport?.height);
+  if (vw > 0 || vh > 0) {
+    const requested = {
+      ...(vw > 0 ? { width: vw } : {}),
+      ...(vh > 0 ? { height: vh } : {}),
+    };
+    // Attribute the warning so a multi-context run can tell which context's
+    // viewport was floored.
+    const label = `viewport for ${context.browser?.name ?? "browser"} on ${
+      context.platform ?? "host"
+    }`;
+    return realizeViewport(driver, requested, config, label);
   }
+  return undefined;
 }
 
 async function allowUnsafeSteps({ config }: { config: any }) {
@@ -4442,12 +4451,14 @@ async function runContext({
         });
       }
 
-      if (
-        context.browser?.viewport?.width ||
-        context.browser?.viewport?.height
-      ) {
+      // Positive-dimension guard (not truthiness): a 0/negative/NaN viewport
+      // must fall through to the window-size branch rather than entering the
+      // (no-op) viewport path.
+      const viewportW = Number(context.browser?.viewport?.width);
+      const viewportH = Number(context.browser?.viewport?.height);
+      if (viewportW > 0 || viewportH > 0) {
         // Set driver viewport size
-        await setViewportSize(context, driver);
+        await setViewportSize(context, driver, config);
       } else if (
         context.browser?.window?.width ||
         context.browser?.window?.height
@@ -4810,7 +4821,7 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
-      // Recording checkpoints (ADR 01072): while a checkpoint-enabled
+      // Recording checkpoints (ADR 01075): while a checkpoint-enabled
       // recording is active, capture a compare-only screenshot per handle
       // after every step (final attempt only, same placement rationale as
       // autoScreenshot — retry frames would poison the staged captures).
@@ -4819,12 +4830,18 @@ async function runContext({
       // pushed the handle onto — falling back to the app session's host for
       // app-only contexts (which skip capture inside the helper: no browser
       // driver to capture with).
-      {
-        const checkpointDriver = activeDriver(browserSessions) ?? driver;
+      // Recordings live per SESSION, so sweep every live session driver the
+      // way stopAllRecordings does — not just the active one. A span started
+      // on a second browser surface keeps its handle on that session's
+      // driver; checking only the active session would silently capture
+      // nothing for it. Each driver is both the host (whose recordings we
+      // read) and the capture source, so a checkpoint always photographs the
+      // surface its own recording is filming.
+      for (const checkpointDriver of sessionDrivers(browserSessions, driver)) {
         await captureRecordingCheckpoints({
           config,
           driver: checkpointDriver,
-          recordingHost: checkpointDriver ?? appSession?.recordingHost,
+          recordingHost: checkpointDriver,
           step,
           stepStatus: stepReport.result,
           stepIndex,
@@ -5168,13 +5185,13 @@ async function runStep({
       const handle = actionResult.recording;
       handle.id = handle.id ?? randomUUID();
       handle.name = handle.name ?? recordStepName(step.record);
-      // Recording checkpoints (ADR 01072): resolve the step's `checkpoints`
+      // Recording checkpoints (ADR 01075): resolve the step's `checkpoints`
       // field once, here, where the handle and its target path are both at
       // hand — the post-step hook and stopRecord read the resolved config
       // off the handle. resolveCheckpointsConfig returns null for every
       // record form without a checkpoints field (string/boolean included),
       // so `null` is the single "disabled" encoding. `overwrite` rides along
-      // for stopRecord's aboveVariation staging/promote decision (ADR 01073).
+      // for stopRecord's aboveVariation staging/promote decision (ADR 01078).
       handle.overwrite = (step.record as any)?.overwrite;
       handle.verify = (step.record as any)?.verify;
       if (handle.targetPath) {

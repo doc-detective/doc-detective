@@ -504,6 +504,33 @@ describe("stopRecording: checkpoint seeding and outputs", function () {
     );
   });
 
+  // baselineMissing is decided when the checkpoint is CAPTURED. If a baseline
+  // appears before stopRecord seeds (a peer run, or the author committing one
+  // mid-run), seeding must not clobber it — ADR 01075 promises existing
+  // baselines are never modified by this layer.
+  it("never overwrites a baseline that appeared after the checkpoint was captured", async function () {
+    const handle = makeStoppableHandle([]);
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    const entry = stage(handle.checkpoints, "01-goTo-s1.png", "fresh-capture");
+    // Captured as "missing", but a baseline exists by stop time.
+    fs.writeFileSync(entry.baselinePath, "committed-baseline");
+    handle.checkpoints.entries.push({ ...entry, baselineMissing: true });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      fs.readFileSync(entry.baselinePath, "utf8"),
+      "committed-baseline",
+      "seeding must not overwrite a baseline that appeared mid-run"
+    );
+    assert.equal(result.outputs.seededBaselines, 0);
+  });
+
   it("reports WARNING (not FAIL) when a checkpoint drifted beyond maxVariation", async function () {
     const handle = makeStoppableHandle([]);
     fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
@@ -551,9 +578,11 @@ describe("stopRecording: checkpoint seeding and outputs", function () {
   });
 });
 
-// A FAILed step marks every active checkpoint span dirty (ADR 01073): the
+// A FAILed step marks every active checkpoint span dirty (ADR 01078): the
 // entry set is incomplete from that point, so span verdicts must not run.
-describeIfSharp("captureRecordingCheckpoints: dirty spans", function () {
+// Not gated on Sharp: a FAILed step marks the span dirty and returns before any
+// screenshot is captured, so this regression test needs no image pipeline.
+describe("captureRecordingCheckpoints: dirty spans", function () {
   this.timeout(20000);
   let tmpDir;
   const config = {};
@@ -576,7 +605,8 @@ describeIfSharp("captureRecordingCheckpoints: dirty spans", function () {
         handleId: "h-dirty",
       }),
     };
-    const driver = fakeDriver(await makePngBuffer(24, 24));
+    // Any truthy driver: the dirty check short-circuits before capture.
+    const driver = {};
     const host = { state: { recordings: [handle] } };
 
     await captureRecordingCheckpoints({
