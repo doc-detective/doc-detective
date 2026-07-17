@@ -26,6 +26,7 @@ export {
   parseMediaProbeStderr,
   probeVideoMetadata,
   parseBlackdetect,
+  createMatchingLineCollector,
   detectAllBlack,
   deriveCropScale,
   detectDisplayPointSize,
@@ -597,6 +598,47 @@ async function probeVideoMetadata({
 //   without it the gap can't be told from real content, so we don't guess.
 // - 5% slack on top, for encoders that shade the first/last frame.
 // Unknown/zero duration can't be judged -> false (not provably black).
+
+// Collect only the lines containing `needle` from a chunked stream, bounded so
+// progress spam from a long decode can't evict them.
+//
+// Filtering must happen per LINE, not per chunk. Stream chunks split wherever
+// the pipe flushes, with no regard for newlines, so a `black_duration:0.4` can
+// straddle two chunks — and then NEITHER chunk contains `black_`, the interval
+// is silently dropped, and an all-black video passes `notBlack`. That failure
+// mode is invisible on the short clips the tests generate (one chunk) and
+// shows up on exactly the long recordings the guard exists to protect.
+//
+// `push` keeps the trailing partial line back for the next chunk; `flush`
+// returns the collected text and consumes any final unterminated line, since
+// ffmpeg's last write may not end in a newline.
+function createMatchingLineCollector(needle: string, limit = 65536) {
+  let partial = "";
+  let collected = "";
+  const keep = (lines: string[]) => {
+    for (const line of lines) {
+      if (line.includes(needle) && collected.length < limit) {
+        collected = (collected + line + "\n").slice(0, limit);
+      }
+    }
+  };
+  return {
+    push(text: string) {
+      partial += text;
+      const lines = partial.split(/\r?\n/);
+      partial = lines.pop() ?? "";
+      keep(lines);
+    },
+    flush(): string {
+      if (partial) {
+        keep([partial]);
+        partial = "";
+      }
+      return collected;
+    },
+  };
+}
+
 function parseBlackdetect(
   stderr: string,
   duration?: number,
@@ -638,9 +680,11 @@ async function detectAllBlack({
       let collected = "";
       let settled = false;
       let proc: any = null;
+      let timer: NodeJS.Timeout | undefined;
       const done = (v: string | null) => {
         if (settled) return;
         settled = true;
+        if (timer) clearTimeout(timer);
         try {
           proc?.kill();
         } catch {
@@ -664,19 +708,13 @@ async function detectAllBlack({
           ],
           { stdio: ["ignore", "ignore", "pipe"] }
         );
-        proc.stderr?.on("data", (chunk: Buffer) => {
-          // Keep only the blackdetect lines (bounded) — progress spam from a
-          // long decode must not evict them.
-          const text = chunk.toString();
-          if (text.includes("black_") && collected.length < 65536) {
-            collected = (collected + text).slice(0, 65536);
-          }
-        });
+        const lines = createMatchingLineCollector("black_");
+        proc.stderr?.on("data", (chunk: Buffer) => lines.push(chunk.toString()));
         proc.on("error", () => done(null));
         proc.on("close", (code: number | null) =>
-          done(code === 0 ? collected : null)
+          done(code === 0 ? lines.flush() : null)
         );
-        setTimeout(() => done(null), 30000);
+        timer = setTimeout(() => done(null), 30000);
       } catch {
         done(null);
       }

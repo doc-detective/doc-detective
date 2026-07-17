@@ -775,7 +775,12 @@ async function stopRecording({
       delete result.outputs.recordingPath;
       delete result.outputs.format;
     } else {
-      result.status = "WARNING";
+      // Never downgrade a structural verify FAIL (ADR 01080) to WARNING here:
+      // a guard the author explicitly demanded outranks "we kept the old
+      // video", and the roll-up is FAIL > WARNING everywhere else. Say the
+      // target is stale either way — that's additive information, not a
+      // verdict.
+      if (result.status !== "FAIL") result.status = "WARNING";
       result.description += ` The captured video couldn't replace ${finalTargetPath}, so the existing (now stale) recording was kept.`;
     }
   }

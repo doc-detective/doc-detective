@@ -48,12 +48,18 @@
             "REC_MP4_DURATION": "$$duration",
             "REC_MP4_WIDTH": "$$width",
             "REC_MP4_HEIGHT": "$$height",
-            "REC_MP4_FPS": "$$fps"
+            "REC_MP4_FPS": "$$fps",
+            "REC_MP4_RES_MATCH": "$$resolutionMatch",
+            "REC_MP4_ALL_BLACK": "$$allBlack"
           }
         },
         {
           "description": "Assert the captured outputs: format matches, path non-empty, and every probed metric is a positive number.",
           "runShell": "node -e \"const ok = process.env.REC_MP4_FORMAT === 'mp4' && require('fs').existsSync(process.env.REC_MP4_PATH) && Number(process.env.REC_MP4_DURATION) > 0 && Number(process.env.REC_MP4_WIDTH) > 0 && Number(process.env.REC_MP4_HEIGHT) > 0 && Number(process.env.REC_MP4_FPS) > 0; process.exit(ok ? 0 : 1)\""
+        },
+        {
+          "description": "Assert the guards didn't just pass but measured: resolutionMatch and allBlack must be the real verdicts, not unresolved variables. A guard that silently never ran would leave the step green while proving nothing.",
+          "runShell": "node -e \"const e={res:process.env.REC_MP4_RES_MATCH,black:process.env.REC_MP4_ALL_BLACK};const ok = e.res === 'true' && e.black === 'false'; if (!ok) { console.error('verify guards did not report:', JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     },
@@ -101,6 +107,57 @@
         {
           "description": "Assert the gif outputs: format matches and duration/fps are positive (fps comes from the tbr fallback).",
           "runShell": "node -e \"const ok = process.env.REC_GIF_FORMAT === 'gif' && Number(process.env.REC_GIF_DURATION) > 0 && Number(process.env.REC_GIF_FPS) > 0; process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "recording-verify-disabling-forms",
+      "description": "ADR 01080: the `false` shape of each guard is a no-op, not an error. `resolution: false` and `notBlack: false` must skip their checks — reporting no verdict rather than a default one — while a sibling duration guard still runs. (Omitting `verify` entirely is the other disabling form; the gif test above covers it.)",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "recording-verify-disabled.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 0.5,
+              "resolution": false,
+              "notBlack": false
+            }
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "REC_OFF_DURATION": "$$duration",
+            "REC_OFF_RES_MATCH": "$$resolutionMatch",
+            "REC_OFF_ALL_BLACK": "$$allBlack"
+          }
+        },
+        {
+          "description": "The duration guard ran (duration is a positive number and the step passed), while the disabled guards reported nothing at all — their outputs stay unresolved rather than reporting a verdict the run never made.",
+          "runShell": "node -e \"const unset = (v) => v !== 'true' && v !== 'false';const e={dur:process.env.REC_OFF_DURATION,res:process.env.REC_OFF_RES_MATCH,black:process.env.REC_OFF_ALL_BLACK};const ok = Number(e.dur) > 0 && unset(e.res) && unset(e.black); if (!ok) { console.error('disabled guards should report no verdict:', JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     }

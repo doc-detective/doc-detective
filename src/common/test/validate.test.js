@@ -441,6 +441,9 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         // out-of-range numbers, unknown keys, incomplete objects, and arrays.
         for (const verify of [
           { minDuration: -1 },
+          { maxDuration: -1 },
+          { minDuration: "soon" },
+          { notBlack: {} },
           { unknownGuard: true },
           { resolution: { width: 1280 } },
           { resolution: { width: 0, height: 480 } },
