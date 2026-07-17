@@ -167,7 +167,7 @@ While the recording is active, Doc Detective captures a screenshot after every s
 - Variation within `maxVariation` (default `0.05`): the step passes.
 - Variation beyond `maxVariation`: the `stopRecord` step returns WARNING—the recorded flow's content has probably changed since the recording was captured. Baselines are never modified by a checkpoint comparison.
 
-The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
+The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, `seededBaselines`, and `checkpointErrors`.
 
 Tune or relocate the comparison with the object form:
 
