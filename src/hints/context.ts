@@ -27,6 +27,7 @@ import type { AgentDetection, HintContext } from "./types.js";
 // silently never match real results, so this list must mirror the
 // schema. Order doesn't matter; the consumer is `Set.has()`.
 const STEP_ACTION_KEYS = [
+  "annotate",
   "checkLink",
   "click",
   "closeSurface",

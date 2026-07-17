@@ -1,0 +1,393 @@
+{
+  "specId": "annotate",
+  "description": "The annotate step: annotations drawn into the page, so they persist across steps and appear in recordings. Unlike screenshot annotations (composited into one image), these need a live browser, so the permutations that assert visible behavior are gated to headed Chrome on Windows/macOS like the rest of this bundle; headless Linux lands them SKIPPED, which passes the gate. FAIL paths (updating an absent id, an invalid payload) and the no-browser SKIP are pinned in test/annotate-step.test.js, since a spec can't assert FAIL.",
+  "tests": [
+    {
+      "testId": "annotate-lifecycle-in-recording",
+      "description": "The core choreography: add annotations, interact, update one by id, clear one, clear the rest \u2014 all inside a recording, so every state lands in the video.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "record": {
+            "path": "annotate-lifecycle.webm",
+            "overwrite": "true"
+          }
+        },
+        {
+          "stepId": "annotate-add",
+          "annotate": {
+            "add": [
+              {
+                "id": "step-counter",
+                "badge": "#username-input",
+                "label": "1"
+              },
+              {
+                "id": "guide",
+                "callout": "#username-input",
+                "label": "Enter your username first",
+                "position": "right",
+                "track": true
+              }
+            ]
+          }
+        },
+        {
+          "click": "#username-input"
+        },
+        {
+          "stepId": "annotate-update",
+          "description": "Move the same annotations to the next control by id.",
+          "annotate": {
+            "update": [
+              {
+                "id": "step-counter",
+                "badge": "#submit-button",
+                "label": "2"
+              },
+              {
+                "id": "guide",
+                "callout": "#submit-button",
+                "label": "Then submit",
+                "position": "right",
+                "track": true
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-clear-one",
+          "annotate": {
+            "clear": [
+              "guide"
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-clear-all",
+          "annotate": {
+            "clear": true
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "annotate-persists-into-screenshot",
+      "description": "A screenshot taken while annotations are up captures them: the layer is drawn into the page, and the capture's cursor-hiding must not touch it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "annotate": {
+            "add": [
+              {
+                "id": "persist",
+                "outline": "#submit-button"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-screenshot-shows-layer",
+          "screenshot": {
+            "path": "annotate-persisted.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-survives-navigation",
+      "description": "Navigation wipes injected DOM, so the runner re-mounts persistent annotations into the fresh document. Without a recording running, which is why the re-injection hook can't stay gated on isRecordingActive.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "annotate": {
+            "add": [
+              {
+                "id": "banner",
+                "text": {
+                  "position": "top-left"
+                },
+                "label": "Demo"
+              }
+            ]
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "stepId": "annotate-after-navigation",
+          "description": "The banner is position-anchored, so it re-mounts on any page.",
+          "screenshot": {
+            "path": "annotate-after-nav.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-transitions-and-duration",
+      "description": "Recording-only semantics: each enter transition, and a duration that clears the annotation without a paired clear step. No recording here \u2014 the browser engine allows one recording per context and four in a spec contend; the lifecycle test covers the in-recording path, and these exercise the same rendering.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotate-transition-fade",
+          "annotate": {
+            "add": [
+              {
+                "id": "t-fade",
+                "outline": "#username-input",
+                "transition": {
+                  "enter": "fade",
+                  "durationMs": 300
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-transition-pop",
+          "annotate": {
+            "add": [
+              {
+                "id": "t-pop",
+                "badge": "#submit-button",
+                "label": "1",
+                "transition": {
+                  "enter": "pop",
+                  "durationMs": 300
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-transition-draw",
+          "annotate": {
+            "add": [
+              {
+                "id": "t-draw",
+                "outline": {
+                  "elementTestId": "password-field"
+                },
+                "transition": {
+                  "enter": "draw",
+                  "durationMs": 400
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-transition-none",
+          "description": "A blur must never fade in \u2014 that would show the sensitive content while it animates.",
+          "annotate": {
+            "add": [
+              {
+                "id": "t-none",
+                "blur": "#contact-email",
+                "transition": {
+                  "enter": "none"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-duration",
+          "annotate": {
+            "add": [
+              {
+                "id": "t-timed",
+                "outline": "#primary-action",
+                "duration": 800
+              }
+            ]
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stepId": "annotate-after-duration",
+          "description": "The timed annotation has expired; this step prunes it, leaving the four still up.",
+          "annotate": {
+            "clear": [
+              "t-fade"
+            ]
+          }
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-tracks-through-scroll",
+      "description": "track: true re-anchors an annotation to its element as the page scrolls. The tracking loop runs in the page regardless of recording, so this asserts the step path without adding a second recording.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotate-tracked",
+          "annotate": {
+            "add": [
+              {
+                "id": "tracked",
+                "outline": "#submit-button",
+                "track": true
+              }
+            ]
+          }
+        },
+        {
+          "find": {
+            "selector": "#contact-email"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-all-blur-redaction",
+      "description": "Persistent redaction: every match blurred, entering with no transition so nothing is readable at any frame. No recording, for the same one-recorder-per-context reason as above.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotate-redact-all",
+          "annotate": {
+            "add": [
+              {
+                "id": "redact",
+                "blur": {
+                  "selector": ".form-control"
+                },
+                "all": true,
+                "track": true,
+                "transition": {
+                  "enter": "none"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -12,6 +12,7 @@ How the annotation enters and leaves. Applies to recordings; inert in still scre
 
 - [annotation](/reference/schemas/annotation)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 - [Annotation defaults](/reference/schemas/annotation-defaults)
 
 ## Fields

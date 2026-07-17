@@ -16,6 +16,7 @@
  * forward-compatibility and are inert.
  */
 export const BROWSER_STEP_KEYS = [
+  "annotate",
   "click",
   "dragAndDrop",
   "find",

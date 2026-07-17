@@ -10,6 +10,8 @@ description: "Reference for the `Annotation fields` schema."
 
 - [Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)
 - [Capture screenshot fields](/reference/schemas/capture-screenshot-fields)
+- [annotate](/reference/schemas/annotate)
+- [Annotate fields](/reference/schemas/annotate-fields)
 
 ## Fields
 

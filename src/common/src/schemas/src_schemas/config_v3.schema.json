@@ -600,6 +600,7 @@
       "markupActionString": {
         "type": "string",
         "enum": [
+          "annotate",
           "checkLink",
           "click",
           "find",

@@ -12,6 +12,7 @@ A fixed spot in the capture, for annotations that aren't anchored to an element.
 
 - [annotation](/reference/schemas/annotation)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 
 ## Fields
 

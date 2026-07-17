@@ -1359,6 +1359,121 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(config.object.annotationDefaults).to.equal(undefined);
       });
 
+      it("should validate an annotate step's add, update, and clear forms", function () {
+        const add = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: {
+              add: [
+                { id: "guide", callout: "#totp", label: "Only with 2FA on" },
+                { id: "redact", blur: { selector: ".key" }, all: true, track: true },
+              ],
+            },
+          },
+        });
+        expect(add.valid, add.errors).to.be.true;
+
+        const update = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: { update: [{ id: "guide", callout: "#metadata-url" }] },
+          },
+        });
+        expect(update.valid, update.errors).to.be.true;
+
+        const clearAll = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: true } },
+        });
+        expect(clearAll.valid, clearAll.errors).to.be.true;
+
+        const clearSome = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: ["guide", "redact"] } },
+        });
+        expect(clearSome.valid, clearSome.errors).to.be.true;
+
+        const combined = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: { add: [{ outline: "#a" }], clear: ["old"] },
+          },
+        });
+        expect(combined.valid, combined.errors).to.be.true;
+      });
+
+      it("should require an id on every annotate update entry", function () {
+        // `update` addresses an annotation that's already on screen, so
+        // without an id there's nothing to address.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { update: [{ callout: "#a", label: "x" }] } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty annotate step", function () {
+        // An annotate that neither adds, updates, nor clears is a no-op the
+        // author didn't mean to write.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: {} },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject annotate entries that aren't valid annotations", function () {
+        const noType = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ label: "orphan" }] } },
+        });
+        expect(noType.valid).to.be.false;
+
+        const twoTypes = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ outline: "#a", blur: "#b" }] } },
+        });
+        expect(twoTypes.valid).to.be.false;
+
+        const unknown = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ outline: "#a" }], bogus: true } },
+        });
+        expect(unknown.valid).to.be.false;
+      });
+
+      it("should keep clear's boolean form a boolean rather than coercing it", function () {
+        // AJV runs with coerceTypes; a leading array/string branch could turn
+        // `true` into something else. The boolean branch comes first.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: true } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotate.clear).to.equal(true);
+      });
+
+      it("should list annotate as a markup action", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            fileTypes: [
+              {
+                name: "markdown",
+                extensions: [".md"],
+                markup: [
+                  { name: "annotateStep", regex: ["x"], actions: ["annotate"] },
+                ],
+              },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
       it("should reject an invalid annotationDefaults theme", function () {
         const result = validate({
           schemaKey: "config_v3",

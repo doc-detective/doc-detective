@@ -459,6 +459,28 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useAnnotateStepForRecordings (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAnnotateStepForRecordings",
+    priority: 40,
+    markdown: [
+      "Recording a walkthrough? An `annotate` step draws annotations into the page, so they stay on screen across steps and appear in the video.",
+      "",
+      "```json",
+      '{ "record": "walkthrough.webm" },',
+      '{ "annotate": { "add": [{ "id": "tip", "callout": "#submit", "label": "Sends a code" }] } },',
+      '{ "click": "#submit" },',
+      '{ "annotate": { "clear": ["tip"] } }',
+      "```",
+      "",
+      "More: [annotate](https://doc-detective.com/docs/actions/annotate)",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.producedRecordings && !ctx.usedStepTypes.has("annotate"),
+  },
+
+  // ------------------------------------------------------------------
   // useAnnotationsOnScreenshots (feature discovery)
   // ------------------------------------------------------------------
   {
