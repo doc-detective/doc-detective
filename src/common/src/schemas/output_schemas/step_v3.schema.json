@@ -31143,6 +31143,56 @@
                         }
                       ]
                     },
+                    "verify": {
+                      "title": "Recording verify guards",
+                      "description": "Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "minDuration": {
+                          "type": "number",
+                          "description": "Fail if the video is shorter than this many seconds.",
+                          "minimum": 0
+                        },
+                        "maxDuration": {
+                          "type": "number",
+                          "description": "Fail if the video is longer than this many seconds.",
+                          "minimum": 0
+                        },
+                        "resolution": {
+                          "description": "Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.",
+                          "anyOf": [
+                            {
+                              "type": "boolean",
+                              "title": "Verify resolution (boolean)"
+                            },
+                            {
+                              "type": "object",
+                              "title": "Verify resolution (detailed)",
+                              "additionalProperties": false,
+                              "required": [
+                                "width",
+                                "height"
+                              ],
+                              "properties": {
+                                "width": {
+                                  "type": "integer",
+                                  "minimum": 1
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "minimum": 1
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "notBlack": {
+                          "type": "boolean",
+                          "description": "Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture."
+                        }
+                      }
+                    },
                     "checkpoints": {
                       "title": "Recording checkpoints",
                       "description": "Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.",
@@ -31497,6 +31547,56 @@
                             }
                           }
                         ]
+                      },
+                      "verify": {
+                        "title": "Recording verify guards",
+                        "description": "Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.",
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "minDuration": {
+                            "type": "number",
+                            "description": "Fail if the video is shorter than this many seconds.",
+                            "minimum": 0
+                          },
+                          "maxDuration": {
+                            "type": "number",
+                            "description": "Fail if the video is longer than this many seconds.",
+                            "minimum": 0
+                          },
+                          "resolution": {
+                            "description": "Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.",
+                            "anyOf": [
+                              {
+                                "type": "boolean",
+                                "title": "Verify resolution (boolean)"
+                              },
+                              {
+                                "type": "object",
+                                "title": "Verify resolution (detailed)",
+                                "additionalProperties": false,
+                                "required": [
+                                  "width",
+                                  "height"
+                                ],
+                                "properties": {
+                                  "width": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "height": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "notBlack": {
+                            "type": "boolean",
+                            "description": "Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture."
+                          }
+                        }
                       },
                       "checkpoints": {
                         "title": "Recording checkpoints",
