@@ -61,6 +61,12 @@ Behavior decided:
    safe — the name is already public in the spec — and keeps a masked report debuggable. **The
    literal is unspecified and non-contractual**: it may change, and specs must not match on it.
 
+   The literal embeds an author-chosen name and the value is arbitrary, so the preferred literal can
+   itself *contain* the value — a credential of literally `secret`, or a variable named after its own
+   value, would "mask" into a string that still carries it verbatim (and every subsequent scrub pass
+   would re-find it). When that happens the mask falls back to a form that names nothing: losing the
+   which-credential hint is strictly better than emitting the credential.
+
 3. **Scrub points.** Log emission (both the core logger and the CLI logger), the step `outputs` seam
    *before* the report spread and *before* `stepOutputsById`, and the whole results object at the end
    of `runSpecs` — the last covering both `outputResults` and the `reportResults` POST.
@@ -70,10 +76,23 @@ Behavior decided:
    is possible and harmless; routing over the real value is impossible. This is the enforcement half
    of 01071's "never matched."
 
-5. **Minimum length 4.** Shorter values are resolved but never used as mask needles — masking a 1–3
-   character value would corrupt unrelated output. The author gets a warning naming the variable.
+5. **Minimum length 4, and a shorter secret FAILs.** A 1–3 character value is never used as a mask
+   needle — masking it would corrupt unrelated output. But resolving it anyway would mean sending a
+   credential we have already admitted we cannot mask, which is the one case where this ADR's whole
+   guarantee silently does not hold. So the step fails, naming the variable and explaining the floor,
+   exactly as an unset secret does. (An earlier revision only warned; that left the run proceeding
+   with an unmaskable credential loose in it.)
 
-6. **Registered variants.** The raw value plus its URL-encoded form, since secrets ride in URLs and
+6. **Keyed by value, append-only.** The registry maps value → name, not name → value. A single name
+   legitimately resolves to more than one value within a run — a later `loadVariables` re-points it,
+   or an embedding host mutates `process.env`. Keying by name meant the second registration EVICTED
+   the first, and that first value had already been resolved and sent, so it could already have been
+   echoed back and would then pass the end-of-run scrub unmasked. Once a value has been handed to a
+   step it stays maskable for the life of the process; `clearRegisteredSecrets` exists only for tests
+   (module state needs isolation) and for a long-lived host that wants to stop masking a finished
+   run's credentials.
+
+7. **Registered variants.** The raw value plus its URL-encoded form, since secrets ride in URLs and
    form bodies. Replacement is longest-value-first so an overlapping registration cannot leave a
    fragment behind. Base64 and other encodings are **not** covered — see Consequences.
 
