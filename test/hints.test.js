@@ -1755,6 +1755,23 @@ describe("useMobilePlatforms hint", function () {
     expect(walkResults(smaller).viewportFloored).to.equal(false);
   });
 
+  it("walkResults flags a HEIGHT-only floor (the mobile advice applies to either axis)", function () {
+    // A minimum window HEIGHT can floor a short viewport just as a minimum
+    // width floors a narrow one; the hint (test on a mobile platform) applies
+    // either way, so the signal fires for a height-only floor too.
+    const heightFloor = JSON.parse(JSON.stringify(floored));
+    heightFloor.specs[0].tests[0].contexts[0].steps[0].outputs.viewport = {
+      requested: { height: 300 },
+      actual: { height: 500 },
+    };
+    expect(walkResults(heightFloor).viewportFloored).to.equal(true);
+
+    const hint = findHint("useMobilePlatforms");
+    expect(
+      hint.when(fakeCtx({ viewportFloored: true, ranMobileContexts: false }))
+    ).to.equal(true);
+  });
+
   it("walkResults detects a floored CONTEXT-level viewport via the runner's stamp", function () {
     // A context-level `browser.viewport` has no step output, so the runner
     // stamps `context.viewportFloored`. This is the article's own scenario.

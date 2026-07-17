@@ -677,7 +677,7 @@ export const HINTS: Hint[] = [
     id: "useMobilePlatforms",
     priority: 20,
     markdown: [
-      "A browser floored a viewport this run: desktop browsers won't shrink their window below about 500px, so a narrower request (a 375px phone width, say) rendered wider. Screenshots and measurements show the size that actually rendered, not the size you asked for.",
+      "A browser floored a viewport this run: desktop browsers enforce a minimum window size (about 500px wide), so a smaller request (a 375px phone width, say) rendered larger. Screenshots and measurements show the size that actually rendered, not the size you asked for.",
       "",
       "Resizing a desktop window doesn't emulate a phone. To test a real mobile viewport, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions:",
       "",

@@ -426,7 +426,7 @@ export const VIEWPORT_FLOOR_TOLERANCE_PX = 16;
  */
 function isFlooredViewport(viewport: any): boolean {
   if (!viewport || typeof viewport !== "object") return false;
-  for (const dim of ["width", "height"]) {
+  for (const dim of ["width", "height"] as const) {
     const req = Number(viewport.requested?.[dim]);
     const act = Number(viewport.actual?.[dim]);
     if (!(req > 0) || !Number.isFinite(act)) continue;
@@ -475,17 +475,15 @@ export function walkResults(results: any): WalkData {
           if (typeof browserName === "string" && browserName.length > 0) {
             data.usedBrowserContexts.add(browserName);
           }
-          // Mobile contexts record the resolved device on the context
-          // report. Powers `prebuildWebDriverAgent`.
-          if (context?.device?.platform === "ios") {
+          // Mobile contexts record the resolved device on the context report.
+          const devicePlatform = context?.device?.platform;
+          // iOS-only, powers `prebuildWebDriverAgent`.
+          if (devicePlatform === "ios") {
             data.ranIosContexts = true;
           }
           // Any real mobile screen (android or ios) means the user already
           // tests mobile — gates `useMobilePlatforms` off.
-          if (
-            context?.device?.platform === "ios" ||
-            context?.device?.platform === "android"
-          ) {
+          if (devicePlatform === "ios" || devicePlatform === "android") {
             data.ranMobileContexts = true;
           }
           // A context-level `browser.viewport` has no step output to carry the
