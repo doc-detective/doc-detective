@@ -31,6 +31,7 @@
             "overwrite": "true",
             "verify": {
               "minDuration": 0.5,
+              "maxDuration": 60,
               "resolution": true,
               "notBlack": true
             }

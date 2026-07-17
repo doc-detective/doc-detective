@@ -45,7 +45,7 @@ Mechanics:
 
 - Unit tests for `parseBlackdetect` in `test/recording-verify.test.js`: no intervals, partial coverage, multi-interval summing, garbage input, unknown/zero duration, the one-frame under-report of a fully black clip (with and without an fps to size the tolerance), and a half-black clip that must stay not-black despite the tolerance. `detectAllBlack` runs against real ffmpeg-generated black and red clips.
 - `stopRecording` integration tests (device-engine handles, real mp4 samples): passing and violated duration guards, resolution object-form match/mismatch, `notBlack` passing on colored content and FAILing on an all-black clip.
-- Feature fixture: the recording-outputs fixture's mp4 test gains a passing `verify` block (duration floor, `resolution: true`, `notBlack`) on real headed recordings; violated-guard cases stay in mocha (fixtures never FAIL).
+- Feature fixture: the recording-outputs fixture's mp4 test gains a passing `verify` block (duration floor *and* ceiling, `resolution: true`, `notBlack`) on real headed recordings, so every guard runs end-to-end through the real probe at least once. Two permutations can't be fixtures and stay in mocha: a violated guard (it would FAIL, and fixtures never do), and `resolution`'s object form (a literal `{width, height}` can't be deterministic when the capture is the runner's display, whose size varies by image). The fixture's ceiling is deliberately loose — the boundary behavior is unit-tested; the fixture only proves the guard runs and passes against a real file.
 
 ## Pros and Cons of the Options
 
