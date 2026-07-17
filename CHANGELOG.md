@@ -1,3 +1,16 @@
+# [4.34.0](https://github.com/doc-detective/doc-detective/compare/v4.33.0...v4.34.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **record:** don't let a failed promote mask a verify FAIL ([3db1a84](https://github.com/doc-detective/doc-detective/commit/3db1a8428bb9924705f20e6efd95c50f087fa1bf))
+* **record:** don't let verify guards report verdicts without evidence ([b753a71](https://github.com/doc-detective/doc-detective/commit/b753a7184f4c128ee7544b0d49fe60edf06d1da2))
+
+
+### Features
+
+* **record:** structural verify guards for the produced video ([7dc8205](https://github.com/doc-detective/doc-detective/commit/7dc8205ea6c875a5f506c3c7b335791ab4e9693b))
+
 # [4.33.0](https://github.com/doc-detective/doc-detective/compare/v4.32.0...v4.33.0) (2026-07-17)
 
 
