@@ -423,10 +423,22 @@ async function stopRecording({
       if (entry.baselineMissing && !entry.error) {
         try {
           fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
-          fs.copyFileSync(entry.stagingPath, entry.baselinePath);
+          // COPYFILE_EXCL enforces "seeding never overwrites a baseline" at
+          // the syscall: `baselineMissing` was decided back when the
+          // checkpoint was captured, so a baseline committed (or written by
+          // another run) since then would otherwise be silently replaced —
+          // the one thing this layer promises not to do.
+          fs.copyFileSync(
+            entry.stagingPath,
+            entry.baselinePath,
+            fs.constants.COPYFILE_EXCL
+          );
           seededBaselines++;
         } catch (error: any) {
-          entry.error = String(error?.message ?? error);
+          entry.error =
+            error?.code === "EEXIST"
+              ? `A baseline appeared at ${entry.baselinePath} after this checkpoint was captured; left it untouched.`
+              : String(error?.message ?? error);
           log(
             config,
             "warning",

@@ -504,6 +504,33 @@ describe("stopRecording: checkpoint seeding and outputs", function () {
     );
   });
 
+  // baselineMissing is decided when the checkpoint is CAPTURED. If a baseline
+  // appears before stopRecord seeds (a peer run, or the author committing one
+  // mid-run), seeding must not clobber it — ADR 01075 promises existing
+  // baselines are never modified by this layer.
+  it("never overwrites a baseline that appeared after the checkpoint was captured", async function () {
+    const handle = makeStoppableHandle([]);
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    const entry = stage(handle.checkpoints, "01-goTo-s1.png", "fresh-capture");
+    // Captured as "missing", but a baseline exists by stop time.
+    fs.writeFileSync(entry.baselinePath, "committed-baseline");
+    handle.checkpoints.entries.push({ ...entry, baselineMissing: true });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      fs.readFileSync(entry.baselinePath, "utf8"),
+      "committed-baseline",
+      "seeding must not overwrite a baseline that appeared mid-run"
+    );
+    assert.equal(result.outputs.seededBaselines, 0);
+  });
+
   it("reports WARNING (not FAIL) when a checkpoint drifted beyond maxVariation", async function () {
     const handle = makeStoppableHandle([]);
     fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });

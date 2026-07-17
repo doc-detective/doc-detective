@@ -4830,12 +4830,18 @@ async function runContext({
       // pushed the handle onto — falling back to the app session's host for
       // app-only contexts (which skip capture inside the helper: no browser
       // driver to capture with).
-      {
-        const checkpointDriver = activeDriver(browserSessions) ?? driver;
+      // Recordings live per SESSION, so sweep every live session driver the
+      // way stopAllRecordings does — not just the active one. A span started
+      // on a second browser surface keeps its handle on that session's
+      // driver; checking only the active session would silently capture
+      // nothing for it. Each driver is both the host (whose recordings we
+      // read) and the capture source, so a checkpoint always photographs the
+      // surface its own recording is filming.
+      for (const checkpointDriver of sessionDrivers(browserSessions, driver)) {
         await captureRecordingCheckpoints({
           config,
           driver: checkpointDriver,
-          recordingHost: checkpointDriver ?? appSession?.recordingHost,
+          recordingHost: checkpointDriver,
           step,
           stepStatus: stepReport.result,
           stepIndex,

@@ -27,7 +27,9 @@ A `stopRecord` step currently returns only `{ status, description }`. The produc
 
 ## Decision Outcome
 
-Chosen option: **1 — probe the final artifact with `ffmpeg -i` and parse stderr**, because it is the only option that measures the file users actually get, works identically for all three engines (including the device engine's native-mp4 path that never transcodes), and needs no new dependency. `ffmpeg -i` with no output file exits non-zero by design; the probe captures stderr with the same bounded-tail pattern the transcode step uses and parses it regardless of exit code.
+Chosen option: **1 — probe the final artifact with `ffmpeg -i` and parse stderr**. Options 1 and 4 both measure the file users actually get (options 2 and 3 don't — see below); option 1 wins between them because it needs no new dependency, while option 4 costs a second ~70 MB heavy dep and installer surface for metadata the bundled ffmpeg already reports. Both work identically for all three engines, including the device engine's native-mp4 path that never transcodes.
+
+`ffmpeg -i` with no output file exits non-zero by design, so the probe parses stderr regardless of exit code. It retains the **head** of that stderr (the first 4 KB): ffmpeg prints the `Duration`/`Stream` metadata block first, so a tail — the pattern the transcode step uses, where the interesting lines come last — would let trailing demux warnings evict exactly what we came for.
 
 `stopRecord` gains `outputs`:
 
