@@ -1,3 +1,24 @@
+# [4.33.0](https://github.com/doc-detective/doc-detective/compare/v4.32.0...v4.33.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **hints:** correct refreshStaleRecording URL (drop spurious get-started/ segment) ([2391e3d](https://github.com/doc-detective/doc-detective/commit/2391e3d503fc4d8bc1cf5151855927202d586aa2))
+* **record:** address review — multi-session checkpoints, seed safety, ADR accuracy ([28d92bf](https://github.com/doc-detective/doc-detective/commit/28d92bf74d4eadf6d69adfd52b61318aca857b61)), closes [#655](https://github.com/doc-detective/doc-detective/issues/655) [#656](https://github.com/doc-detective/doc-detective/issues/656)
+* **record:** harden checkpoint capture and reporting after review ([e14d6d9](https://github.com/doc-detective/doc-detective/commit/e14d6d9d3efb949966bd308adfc2fb75cb1f648c))
+* **record:** harden span verdicts and promote after review ([3f37bb7](https://github.com/doc-detective/doc-detective/commit/3f37bb76e726d6879a6bc1f62a0a82c27df9c609))
+* **record:** isolate browser recordings per process, not just per context ([54c1c7b](https://github.com/doc-detective/doc-detective/commit/54c1c7ba6e24dac054f693f315d29e86e1c395a4))
+* **record:** keep comparing checkpoints when the capture is skipped ([1ef9996](https://github.com/doc-detective/doc-detective/commit/1ef999612ec0306efbe163ed7e89102e018eaa48))
+* **record:** report promote failures honestly in aboveVariation spans ([0c4f1d5](https://github.com/doc-detective/doc-detective/commit/0c4f1d562a401e7b087295dc1bfcf97b1b6df1fc)), closes [#651](https://github.com/doc-detective/doc-detective/issues/651)
+* **schema:** gate the screenshot path on its extension, not its charset ([30738d2](https://github.com/doc-detective/doc-detective/commit/30738d2a05c69a82e30fa311993601e42ab8aa08))
+
+
+### Features
+
+* **record:** checkpoint config schema and shared artifact naming ([26be0a7](https://github.com/doc-detective/doc-detective/commit/26be0a76848718e02a2aa2c11e29026f8a64069e))
+* **record:** checkpoint screenshots for recording spans ([5a4d3fe](https://github.com/doc-detective/doc-detective/commit/5a4d3fe17681bc06ec3b58c9445068064b38bfb4))
+* **record:** overwrite aboveVariation and headless staleness detection ([9661147](https://github.com/doc-detective/doc-detective/commit/96611474e6ea9d6f2d9b75bba3d01313d27b4c3c))
+
 # [4.32.0](https://github.com/doc-detective/doc-detective/compare/v4.31.0...v4.32.0) (2026-07-17)
 
 
