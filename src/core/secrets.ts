@@ -421,7 +421,6 @@ function walkStrings(
 type ResolveResult = {
   step: any;
   failure?: { status: "FAIL"; description: string };
-  warnings: string[];
 };
 
 /**
@@ -437,13 +436,11 @@ type ResolveResult = {
  * the step naming only the VARIABLE, never the value.
  */
 function resolveSecrets(step: any): ResolveResult {
-  const warnings: string[] = [];
-
   // Fast path for the overwhelming majority of steps: no `$secret.` token
   // anywhere, so there is nothing to guard, clone, or resolve. Without this,
   // every step of every run — including every run by every user who has never
   // heard of secrets — pays a full JSON round-trip clone plus a recursive walk.
-  if (!containsSecretToken(step)) return { step, warnings };
+  if (!containsSecretToken(step)) return { step };
 
   // Defense in depth: `runContext` runs this same check earlier (before the
   // guard/skip branches, which can route a step past runStep entirely), but
@@ -453,7 +450,6 @@ function resolveSecrets(step: any): ResolveResult {
   if (disallowed.length > 0) {
     return {
       step,
-      warnings,
       failure: {
         status: "FAIL",
         description: describeDisallowedSecretRefs(disallowed),
@@ -496,7 +492,6 @@ function resolveSecrets(step: any): ResolveResult {
     const names = [...unmaskable];
     return {
       step,
-      warnings,
       failure: {
         status: "FAIL",
         description:
@@ -513,7 +508,6 @@ function resolveSecrets(step: any): ResolveResult {
     const names = [...missing];
     return {
       step,
-      warnings,
       failure: {
         status: "FAIL",
         description:
@@ -527,6 +521,6 @@ function resolveSecrets(step: any): ResolveResult {
     };
   }
 
-  return { step: resolved, warnings };
+  return { step: resolved };
 }
 

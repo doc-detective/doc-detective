@@ -5156,9 +5156,6 @@ async function runStep({
   // below hands every action handler the real values without the report ever
   // seeing them (ADR 01071).
   const secretResolution = resolveSecrets(step);
-  for (const warning of secretResolution.warnings) {
-    log(config, "warning", `Step '${step.stepId || "(unnamed)"}': ${warning}`);
-  }
   if (secretResolution.failure) {
     return {
       status: secretResolution.failure.status,

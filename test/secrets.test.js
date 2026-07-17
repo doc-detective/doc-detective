@@ -225,13 +225,6 @@ describe("secrets: resolveSecrets", function () {
     });
   });
 
-  it("emits no warnings for a value long enough to mask", function () {
-    withEnv({ API_TOKEN: VALUE }, function () {
-      const { warnings } = resolveSecrets({ typeKeys: "$secret.API_TOKEN" });
-      assert.deepEqual(warnings, []);
-    });
-  });
-
   it("registers each resolved value for later masking", function () {
     withEnv({ REGISTERED_TOKEN: VALUE }, function () {
       resolveSecrets({ typeKeys: "$secret.REGISTERED_TOKEN" });
@@ -250,10 +243,9 @@ describe("secrets: resolveSecrets", function () {
   // Returning the SAME reference is the observable proof that it wasn't.
   it("returns the identical step object when there are no secret references", function () {
     const step = { type: "hello", find: { elementText: "world" } };
-    const { step: out, failure, warnings } = resolveSecrets(step);
+    const { step: out, failure } = resolveSecrets(step);
     assert.equal(out, step, "a secret-free step must not be cloned");
     assert.equal(failure, undefined);
-    assert.deepEqual(warnings, []);
   });
 });
 
