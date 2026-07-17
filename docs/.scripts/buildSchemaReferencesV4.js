@@ -459,7 +459,10 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   // four-column header, which markdownlint flags as MD055/MD056.
   let defaultValue = "—";
   if (propSchema.default !== undefined) {
-    if (typeof propSchema.default === "object") {
+    if (propSchema.default !== null && typeof propSchema.default === "object") {
+      // Objects and arrays are rendered as JSON in a double-backtick span so a
+      // `{}` or `[]` body doesn't itself close the span. `null` is typeof
+      // "object" but has no braces, so it takes the single-backtick path below.
       defaultValue = `\`\`${JSON.stringify(propSchema.default)}\`\``;
     } else if (propSchema.default === "") {
       // An empty-string default interpolates to a bare "``", which is malformed
