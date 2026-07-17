@@ -172,15 +172,30 @@ function safeContextId(contextId: any): string {
   const hash = crypto.createHash("sha1").update(raw).digest("hex").slice(0, 8);
   return `${base}-${hash}`;
 }
+// Browser-engine recordings are isolated by context AND by process. The
+// contextId alone isn't enough: ids repeat across runs ("default",
+// "windows-chrome"), so two doc-detective processes on one machine — a dev
+// running the CLI while the suite runs, or parallel worktree sessions (see
+// test/AGENTS.md) — would share both keys below and corrupt each other
+// silently: Chrome auto-selects a capture source by window title, and the
+// downloaded .webm lands at a title-independent path. Two concurrent runs
+// each recording `out.mp4` were observed producing byte-identical videos
+// (one transcoded the other's download) and, when a peer's start deletes an
+// in-flight download, "Recording download timed out". The pid is unique
+// among live processes by construction and stable for the run's lifetime,
+// which is exactly the scope these keys need (ADR 01076).
+function recordingProcessToken(): string {
+  return String(process.pid);
+}
 function browserCaptureTitle(contextId: string): string {
-  return `RECORD_ME_${safeContextId(contextId)}`;
+  return `RECORD_ME_${recordingProcessToken()}_${safeContextId(contextId)}`;
 }
 function browserDownloadDir(contextId: string): string {
   return path.join(
     os.tmpdir(),
     "doc-detective",
     "recordings",
-    safeContextId(contextId)
+    `${safeContextId(contextId)}-${recordingProcessToken()}`
   );
 }
 

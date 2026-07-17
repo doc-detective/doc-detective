@@ -25,6 +25,15 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   ("All core specs pass under concurrentRunners=2") still passes, (c) if unsure,
   `git stash push -- src test`, `npm run compile`, re-run one failing test — it fails identically
   on base.
+- **Don't trust a browser-engine recording failure seen while another run was live.** Two
+  doc-detective processes on one machine (the CLI while `npm test` runs, or parallel worktree
+  sessions) used to share the Chrome capture title and the download path whenever their context ids
+  matched — the common `default` / `windows-chrome` — which surfaced as `Recording download timed
+  out`, a truncated `.webm` (`Read error at pos. 37`), or, worst, two runs silently producing
+  byte-identical videos. Both keys are now per-process (ADR 01076). If you see these symptoms
+  anyway, check for a concurrent run *before* suspecting Chrome: reproduce with nothing else
+  running, and compare against the `fixtures / recording (windows-latest|macos-latest)` CI jobs,
+  which exercise the browser engine headed on the same managed Chrome build.
 - **Killed runs leave debris.** Killing mocha mid-flight orphans its test server and can leave
   stray artifacts: modified root `image.png`/`reference.png` baselines, `screenshot-boolean.png`,
   `rec-perm-*.gif`, and scratch files under `test/core-artifacts/`. Scope-check and restore these

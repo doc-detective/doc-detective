@@ -209,13 +209,30 @@ describe("ffmpegRecorder", function () {
 
   describe("browser engine paths", function () {
     it("derives a unique capture title per contextId", function () {
-      expect(browserCaptureTitle("chrome-2")).to.equal("RECORD_ME_chrome-2");
+      expect(browserCaptureTitle("chrome-2")).to.contain("RECORD_ME");
+      expect(browserCaptureTitle("chrome-2")).to.contain("chrome-2");
       expect(browserCaptureTitle("a")).to.not.equal(browserCaptureTitle("b"));
     });
 
     it("derives a per-context download dir that varies by contextId", function () {
       expect(browserDownloadDir("a")).to.not.equal(browserDownloadDir("b"));
       expect(browserDownloadDir("a")).to.contain("a");
+    });
+
+    // contextIds repeat across processes ("default", "windows-chrome"), so
+    // keying isolation on the contextId alone lets two doc-detective runs on
+    // one machine share a capture title and a download path. Observed: two
+    // concurrent runs each recording `out.mp4` produced BYTE-IDENTICAL videos
+    // — one silently transcoded the other's capture — and the same collision
+    // surfaces as "Recording download timed out" when the peer's start
+    // deletes an in-flight download. The process id makes both keys unique
+    // per run while staying stable within it.
+    it("isolates the capture title per process, not just per context", function () {
+      expect(browserCaptureTitle("default")).to.contain(String(process.pid));
+    });
+
+    it("isolates the download dir per process, not just per context", function () {
+      expect(browserDownloadDir("default")).to.contain(String(process.pid));
     });
 
     it("sanitizes a traversal contextId so it can't escape the temp dir", function () {
