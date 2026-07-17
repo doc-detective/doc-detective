@@ -137,6 +137,7 @@ export async function buildHintContext(
     usedStepTypes: walkData.usedStepTypes,
     usedBrowserContexts: walkData.usedBrowserContexts,
     producedScreenshots: walkData.producedScreenshots,
+    usedAnnotations: walkData.usedAnnotations,
     producedAutoScreenshots: walkData.producedAutoScreenshots,
     producedRecordings: walkData.producedRecordings,
     usedSelectorOnlyFinds: walkData.usedSelectorOnlyFinds,
@@ -389,6 +390,7 @@ interface WalkData {
   usedStepTypes: Set<string>;
   usedBrowserContexts: Set<string>;
   producedScreenshots: boolean;
+  usedAnnotations: boolean;
   producedAutoScreenshots: boolean;
   producedRecordings: boolean;
   usedSelectorOnlyFinds: boolean;
@@ -408,6 +410,7 @@ function emptyWalkData(): WalkData {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    usedAnnotations: false,
     producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
@@ -525,6 +528,13 @@ function inspectStep(step: any, data: WalkData): void {
   // Screenshot / recording outputs.
   if (step.screenshot !== undefined) {
     if (producesOutput(step.screenshot)) data.producedScreenshots = true;
+    // Read defensively: `screenshot` is boolean | string | object.
+    if (
+      Array.isArray((step.screenshot as any)?.annotations) &&
+      (step.screenshot as any).annotations.length > 0
+    ) {
+      data.usedAnnotations = true;
+    }
   }
   // Auto screenshots land in a separate result field (a relative path string),
   // not `step.screenshot`. Track it so the enableAutoScreenshot hint doesn't

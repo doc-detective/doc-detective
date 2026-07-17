@@ -128,6 +128,12 @@ async function findElement({ config, step, driver, click, appSession }: { config
         return await finalizeFound({ result });
       }
       result.outputs.found = true;
+      // Expose the driver handle the same way the browser path does (via
+      // setElementOutputs), so callers that need real geometry — screenshot
+      // annotations reading getElementRect — can work on app surfaces too.
+      // runStep strips `rawElement` from the result after every step, so it
+      // never reaches a report.
+      result.outputs.rawElement = found.element;
       try {
         result.outputs.element = { text: await found.element.getText() };
       } catch {

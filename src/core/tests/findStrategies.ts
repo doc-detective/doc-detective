@@ -419,6 +419,7 @@ async function findElementByCriteria({
   elementAria,
   timeout = 5000,
   driver,
+  all = false,
 }: {
   selector?: any;
   elementText?: any;
@@ -429,6 +430,12 @@ async function findElementByCriteria({
   elementAria?: any;
   timeout?: number;
   driver: any;
+  // Collect EVERY matching element instead of stopping at the first. Used by
+  // annotations' `all` option, where redacting only the first match would
+  // leave the rest of the sensitive content visible. Callers that don't pass
+  // it keep the original first-match-and-stop behavior; `elements` is always
+  // populated, so `element` stays the first match either way.
+  all?: boolean;
 }) {
   // Validate at least one criterion is provided
   if (
@@ -562,15 +569,16 @@ async function findElementByCriteria({
       }
 
       // Filter candidates by all criteria - check elements sequentially to avoid hangs
-      let matchedElement: any = null;
+      const matchedElements: any[] = [];
       let matchedCriteria: string[] = [];
 
       for (const element of candidates) {
         if (!elementText && !elementId && !elementTestId && !elementClass && !elementAttribute && !elementAria) {
           // No criteria to check, should happen if only selector was used
-          matchedElement = element;
+          matchedElements.push(element);
           matchedCriteria = ["selector"];
-          break;
+          if (!all) break;
+          continue;
         }
         try {
           // Check if element is valid and exists in DOM
@@ -671,9 +679,11 @@ async function findElementByCriteria({
 
           // If all checks passed, we found our element
           if (allChecksPassed) {
-            matchedElement = element;
-            matchedCriteria = elementCriteriaUsed;
-            break; // Found a match, stop searching
+            matchedElements.push(element);
+            // `foundBy` describes the FIRST match, so it means the same thing
+            // whether or not `all` was set — later matches must not rewrite it.
+            if (matchedElements.length === 1) matchedCriteria = elementCriteriaUsed;
+            if (!all) break; // Found a match, stop searching
           }
         } catch {
           // Element might have become stale, skip it
@@ -682,12 +692,13 @@ async function findElementByCriteria({
       }
 
       // Check if we found a match
-      if (matchedElement) {
+      if (matchedElements.length > 0) {
         const allCriteria = selector
           ? ["selector", ...matchedCriteria]
           : matchedCriteria;
         return {
-          element: matchedElement,
+          element: matchedElements[0],
+          elements: matchedElements,
           foundBy: allCriteria,
           error: null,
         };
@@ -703,6 +714,7 @@ async function findElementByCriteria({
   // Timeout reached, return error
   return {
     element: null,
+    elements: [],
     foundBy: null,
     error: "Element not found within timeout",
   };

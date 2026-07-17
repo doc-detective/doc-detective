@@ -20,6 +20,7 @@ runOn | array of object([context](/reference/schemas/context)) | Optional. Conte
 openApi | array of unknown | Optional. No description provided. | 
 autoScreenshot | boolean | Optional. If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level. | 
 autoRecord | boolean | Optional. If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level. | 
+annotationDefaults | object([Annotation defaults](/reference/schemas/annotation-defaults)) | Optional. Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level. | 
 tests | array of object([test](/reference/schemas/test)) | Required. [Tests](test) to perform. | 
 
 ## Examples
@@ -182,6 +183,35 @@ tests | array of object([test](/reference/schemas/test)) | Required. [Tests](tes
             "overwrite": "aboveVariation"
           },
           "variables": {}
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "annotationDefaults": {
+    "color": "#E11D48",
+    "strokeWidth": 3,
+    "badge": {
+      "background": "#E11D48",
+      "color": "#FFFFFF"
+    }
+  },
+  "tests": [
+    {
+      "steps": [
+        {
+          "screenshot": {
+            "path": "a.png",
+            "annotations": [
+              {
+                "outline": "#submit"
+              }
+            ]
+          }
         }
       ]
     }

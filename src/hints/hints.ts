@@ -475,6 +475,27 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useAnnotationsOnScreenshots (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAnnotationsOnScreenshots",
+    priority: 40,
+    markdown: [
+      "Annotating screenshots by hand? `annotations` draws them as part of the capture, so the callouts regenerate with the image instead of drifting from it.",
+      "",
+      "```json",
+      '{ "screenshot": { "path": "./login.png", "annotations": [',
+      '  { "badge": "#username", "label": "1" },',
+      '  { "blur": { "selector": ".account-id" }, "all": true }',
+      "] } }",
+      "```",
+      "",
+      "More: [screenshot annotations](https://doc-detective.com/docs/actions/screenshot#annotations)",
+    ].join("\n"),
+    when: (ctx) => ctx.producedScreenshots && !ctx.usedAnnotations,
+  },
+
+  // ------------------------------------------------------------------
   // useAssertionsForOutputChecks (feature discovery)
   // ------------------------------------------------------------------
   {

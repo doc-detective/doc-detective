@@ -46,6 +46,10 @@
       "type": "boolean",
       "description": "If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level."
     },
+    "annotationDefaults": {
+      "description": "Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.",
+      "$ref": "annotationDefaults_v3.schema.json#"
+    },
     "tests": {
       "description": "[Tests](test) to perform.",
       "type": "array",
@@ -214,6 +218,32 @@
                 "overwrite": "aboveVariation"
               },
               "variables": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "annotationDefaults": {
+        "color": "#E11D48",
+        "strokeWidth": 3,
+        "badge": {
+          "background": "#E11D48",
+          "color": "#FFFFFF"
+        }
+      },
+      "tests": [
+        {
+          "steps": [
+            {
+              "screenshot": {
+                "path": "a.png",
+                "annotations": [
+                  {
+                    "outline": "#submit"
+                  }
+                ]
+              }
             }
           ]
         }

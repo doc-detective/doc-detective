@@ -100,6 +100,12 @@ export interface HintContext {
   /** True if any step produced a screenshot. */
   producedScreenshots: boolean;
   /**
+   * True if any screenshot step declared `annotations`. Annotations are an
+   * option on `screenshot` rather than a step type, so `usedStepTypes` can't
+   * see them — the discovery hint needs its own "already using it?" gate.
+   */
+  usedAnnotations: boolean;
+  /**
    * True if any step produced an auto screenshot (the `--auto-screenshot` /
    * config/spec/test `autoScreenshot` feature), which lands in the separate
    * `step.autoScreenshot` result field rather than `step.screenshot`.
