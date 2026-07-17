@@ -12,6 +12,7 @@ Element to annotate. Mirrors the element-finding fields used elsewhere. On app s
 
 - [annotation](/reference/schemas/annotation)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 
 ## Fields
 

@@ -1715,12 +1715,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 36 active hints. `useFileTypesForRst` is commented out in the
+    // 38 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(36);
+    expect(HINTS.length).to.equal(38);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -2078,6 +2078,29 @@ describe("hints/hints (registry)", function () {
           config: { autoRecord: true },
         })
       )
+    ).to.equal(false);
+  });
+
+  it("useAnnotateStepForRecordings: fires for recorders who aren't annotating yet", function () {
+    const h = findHint("useAnnotateStepForRecordings");
+    expect(
+      h.when(
+        fakeCtx({ producedRecordings: true, usedStepTypes: new Set(["record"]) })
+      )
+    ).to.equal(true);
+    // Already using annotate -> don't pitch the feature back at them.
+    expect(
+      h.when(
+        fakeCtx({
+          producedRecordings: true,
+          usedStepTypes: new Set(["record", "annotate"]),
+        })
+      )
+    ).to.equal(false);
+    // No recordings -> the annotate step's main draw doesn't apply, and
+    // useAnnotationsOnScreenshots covers the still-image case.
+    expect(
+      h.when(fakeCtx({ producedRecordings: false, usedStepTypes: new Set() }))
     ).to.equal(false);
   });
 

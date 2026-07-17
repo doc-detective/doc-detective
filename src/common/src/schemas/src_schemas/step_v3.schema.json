@@ -110,7 +110,7 @@
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+        "description": "Routing entries evaluated when this step is skipped (reached but not run \u2014 unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here \u2014 a step that never ran cannot be re-run.)",
         "type": "array",
         "items": {
           "$ref": "routing_v3.schema.json#"
@@ -205,7 +205,11 @@
             "minimum": 0
           }
         },
-        "required": ["line", "startIndex", "endIndex"],
+        "required": [
+          "line",
+          "startIndex",
+          "endIndex"
+        ],
         "additionalProperties": false,
         "title": "Source Location"
       }
@@ -219,7 +223,9 @@
         },
         {
           "type": "object",
-          "required": ["checkLink"],
+          "required": [
+            "checkLink"
+          ],
           "properties": {
             "checkLink": {
               "$ref": "checkLink_v3.schema.json#"
@@ -236,7 +242,9 @@
         },
         {
           "type": "object",
-          "required": ["click"],
+          "required": [
+            "click"
+          ],
           "properties": {
             "click": {
               "$ref": "click_v3.schema.json#"
@@ -253,7 +261,9 @@
         },
         {
           "type": "object",
-          "required": ["find"],
+          "required": [
+            "find"
+          ],
           "properties": {
             "find": {
               "$ref": "find_v3.schema.json#"
@@ -270,7 +280,9 @@
         },
         {
           "type": "object",
-          "required": ["goTo"],
+          "required": [
+            "goTo"
+          ],
           "properties": {
             "goTo": {
               "$ref": "goTo_v3.schema.json#"
@@ -287,7 +299,9 @@
         },
         {
           "type": "object",
-          "required": ["httpRequest"],
+          "required": [
+            "httpRequest"
+          ],
           "properties": {
             "httpRequest": {
               "$ref": "httpRequest_v3.schema.json#"
@@ -304,7 +318,9 @@
         },
         {
           "type": "object",
-          "required": ["runShell"],
+          "required": [
+            "runShell"
+          ],
           "properties": {
             "runShell": {
               "$ref": "runShell_v3.schema.json#"
@@ -321,7 +337,9 @@
         },
         {
           "type": "object",
-          "required": ["runCode"],
+          "required": [
+            "runCode"
+          ],
           "properties": {
             "runCode": {
               "$ref": "runCode_v3.schema.json#"
@@ -338,7 +356,9 @@
         },
         {
           "type": "object",
-          "required": ["runBrowserScript"],
+          "required": [
+            "runBrowserScript"
+          ],
           "properties": {
             "runBrowserScript": {
               "$ref": "runBrowserScript_v3.schema.json#"
@@ -355,7 +375,9 @@
         },
         {
           "type": "object",
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "properties": {
             "type": {
               "$ref": "type_v3.schema.json#"
@@ -372,7 +394,9 @@
         },
         {
           "type": "object",
-          "required": ["screenshot"],
+          "required": [
+            "screenshot"
+          ],
           "properties": {
             "screenshot": {
               "$ref": "screenshot_v3.schema.json#"
@@ -389,7 +413,9 @@
         },
         {
           "type": "object",
-          "required": ["saveCookie"],
+          "required": [
+            "saveCookie"
+          ],
           "properties": {
             "saveCookie": {
               "$ref": "saveCookie_v3.schema.json#"
@@ -406,7 +432,9 @@
         },
         {
           "type": "object",
-          "required": ["record"],
+          "required": [
+            "record"
+          ],
           "properties": {
             "record": {
               "$ref": "record_v3.schema.json#"
@@ -423,7 +451,9 @@
         },
         {
           "type": "object",
-          "required": ["stopRecord"],
+          "required": [
+            "stopRecord"
+          ],
           "properties": {
             "stopRecord": {
               "$ref": "stopRecord_v3.schema.json#"
@@ -440,7 +470,9 @@
         },
         {
           "type": "object",
-          "required": ["closeSurface"],
+          "required": [
+            "closeSurface"
+          ],
           "properties": {
             "closeSurface": {
               "$ref": "closeSurface_v3.schema.json#"
@@ -457,7 +489,9 @@
         },
         {
           "type": "object",
-          "required": ["startSurface"],
+          "required": [
+            "startSurface"
+          ],
           "properties": {
             "startSurface": {
               "$ref": "startSurface_v3.schema.json#"
@@ -475,7 +509,9 @@
         {
           "title": "loadVariables",
           "type": "object",
-          "required": ["loadVariables"],
+          "required": [
+            "loadVariables"
+          ],
           "properties": {
             "loadVariables": {
               "$ref": "loadVariables_v3.schema.json#"
@@ -492,7 +528,9 @@
         {
           "title": "dragAndDrop",
           "type": "object",
-          "required": ["dragAndDrop"],
+          "required": [
+            "dragAndDrop"
+          ],
           "properties": {
             "dragAndDrop": {
               "$ref": "dragAndDrop_v3.schema.json#"
@@ -509,7 +547,9 @@
         {
           "title": "loadCookie",
           "type": "object",
-          "required": ["loadCookie"],
+          "required": [
+            "loadCookie"
+          ],
           "properties": {
             "loadCookie": {
               "$ref": "loadCookie_v3.schema.json#"
@@ -526,7 +566,9 @@
         {
           "title": "swipe",
           "type": "object",
-          "required": ["swipe"],
+          "required": [
+            "swipe"
+          ],
           "properties": {
             "swipe": {
               "$ref": "swipe_v3.schema.json#"
@@ -543,12 +585,33 @@
         {
           "title": "wait",
           "type": "object",
-          "required": ["wait"],
+          "required": [
+            "wait"
+          ],
           "properties": {
             "wait": {
               "$ref": "wait_v3.schema.json#"
             }
           }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": [
+            "annotate"
+          ],
+          "properties": {
+            "annotate": {
+              "$ref": "annotate_v3.schema.json#"
+            }
+          },
+          "title": "annotate"
         }
       ]
     }
@@ -576,7 +639,9 @@
       "stepId": "status-code",
       "checkLink": {
         "url": "https://www.google.com",
-        "statusCodes": [200]
+        "statusCodes": [
+          200
+        ]
       }
     },
     {
@@ -610,7 +675,9 @@
         "language": "python",
         "code": "print('Hello from Python')",
         "workingDirectory": ".",
-        "exitCodes": [0],
+        "exitCodes": [
+          0
+        ],
         "stdio": "Hello from Python!",
         "path": "python-output.txt",
         "directory": "output",
@@ -857,8 +924,27 @@
     {
       "runBrowserScript": {
         "script": "return arguments[0] + arguments[1];",
-        "args": ["foo", "bar"],
+        "args": [
+          "foo",
+          "bar"
+        ],
         "output": "foobar"
+      }
+    },
+    {
+      "annotate": {
+        "add": [
+          {
+            "id": "step-1",
+            "badge": "#username",
+            "label": "1"
+          }
+        ]
+      }
+    },
+    {
+      "annotate": {
+        "clear": true
       }
     }
   ]
