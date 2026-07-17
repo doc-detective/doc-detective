@@ -1052,6 +1052,57 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // The screenshot `path` pattern gates every screenshot step, including the
+    // ones doc-detective synthesizes internally with ABSOLUTE paths derived
+    // from the user's project location (captureAutoScreenshot in
+    // src/core/tests.ts, and recording checkpoints in
+    // src/core/tests/recordingCheckpoints.ts). The Windows branch accepts any
+    // absolute path, so the POSIX branch must be equally permissive — a mac or
+    // Linux project under "/Users/jane doe/..." must not be second-class.
+    describe("screenshot path pattern", function () {
+      const validPath = (path) =>
+        validate({ schemaKey: "step_v3", object: { screenshot: { path } } })
+          .valid;
+
+      it("accepts absolute POSIX paths containing characters real projects use", function () {
+        for (const path of [
+          "/Users/jane doe/docs/shot.png",
+          "/home/u/docs (v2)/shot.png",
+          "/home/u/~backup/shot.png",
+          "/home/u/café/shot.png",
+          "/home/u/a'b/shot.png",
+          "/home/u/shot.PNG",
+        ]) {
+          expect(validPath(path), `expected valid: ${path}`).to.be.true;
+        }
+      });
+
+      it("keeps accepting the forms it already did", function () {
+        for (const path of [
+          "shot.png",
+          "screenshots/spec/01.png",
+          "/home/user/shot.png",
+          "C:\\Users\\jane doe\\docs (v2)\\shot.png",
+          "https://example.com/a.png",
+          "https://example.com/a.png?sig=1",
+          "$MY_VAR",
+        ]) {
+          expect(validPath(path), `expected valid: ${path}`).to.be.true;
+        }
+      });
+
+      it("still requires a .png/.PNG target", function () {
+        for (const path of [
+          "/Users/jane doe/docs/shot.jpg",
+          "/Users/jane doe/docs/shot.png.exe",
+          "/Users/jane doe/docs/shot",
+          "shot.gif",
+        ]) {
+          expect(validPath(path), `expected invalid: ${path}`).to.be.false;
+        }
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({
