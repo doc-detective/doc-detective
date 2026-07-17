@@ -18,6 +18,7 @@ import {
   detectRstFiles,
   detectManagedWdaProducts,
   runInvokesDocDetective,
+  VIEWPORT_FLOOR_TOLERANCE_PX,
 } from "../dist/hints/context.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
@@ -1643,6 +1644,9 @@ function fakeCtx(partial = {}) {
     failedRunShellWithoutShell: false,
     ranIosContexts: false,
     hasManagedWdaProducts: false,
+    hasStaleRecordings: false,
+    viewportFloored: false,
+    ranMobileContexts: false,
     ...partial,
   };
 }
@@ -1652,6 +1656,189 @@ function findHint(id) {
   if (!hint) throw new Error(`hint not found: ${id}`);
   return hint;
 }
+
+describe("useMobilePlatforms hint", function () {
+  // A desktop browser can't shrink its window below ~500px, so a requested
+  // mobile viewport renders wider. The realized size rides in the startSurface
+  // step's `outputs.viewport`, which is the signal here.
+  const floored = {
+    specs: [
+      {
+        tests: [
+          {
+            contexts: [
+              {
+                steps: [
+                  {
+                    startSurface: { browser: "chrome" },
+                    outputs: {
+                      viewport: {
+                        requested: { width: 375, height: 812 },
+                        actual: { width: 501, height: 813 },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("walkResults detects a floored viewport (single-surface form)", function () {
+    expect(walkResults(floored).viewportFloored).to.equal(true);
+  });
+
+  it("walkResults detects a floored viewport in the startSurface array form", function () {
+    const arrayForm = {
+      specs: [
+        {
+          tests: [
+            {
+              contexts: [
+                {
+                  steps: [
+                    {
+                      startSurface: [{ browser: "chrome" }],
+                      outputs: {
+                        surfaces: [
+                          {
+                            outputs: {
+                              viewport: {
+                                requested: { width: 375 },
+                                actual: { width: 501 },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(walkResults(arrayForm).viewportFloored).to.equal(true);
+  });
+
+  it("walkResults does not flag a viewport realized exactly", function () {
+    const exact = JSON.parse(JSON.stringify(floored));
+    exact.specs[0].tests[0].contexts[0].steps[0].outputs.viewport.actual = {
+      width: 375,
+      height: 812,
+    };
+    expect(walkResults(exact).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults does not flag a within-tolerance delta (scrollbar)", function () {
+    const near = JSON.parse(JSON.stringify(floored));
+    near.specs[0].tests[0].contexts[0].steps[0].outputs.viewport.actual = {
+      width: 380,
+      height: 812,
+    };
+    expect(walkResults(near).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults does not flag a viewport that rendered SMALLER than requested", function () {
+    // Only a floor (rendered larger than requested) is the mobile-testing
+    // signal; a smaller render isn't the browser refusing to shrink.
+    const smaller = JSON.parse(JSON.stringify(floored));
+    smaller.specs[0].tests[0].contexts[0].steps[0].outputs.viewport.actual = {
+      width: 300,
+      height: 812,
+    };
+    expect(walkResults(smaller).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults detects a floored CONTEXT-level viewport via the runner's stamp", function () {
+    // A context-level `browser.viewport` has no step output, so the runner
+    // stamps `context.viewportFloored`. This is the article's own scenario.
+    const stamped = {
+      specs: [
+        {
+          tests: [
+            {
+              contexts: [
+                {
+                  browser: { name: "chrome" },
+                  viewportFloored: true,
+                  steps: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(walkResults(stamped).viewportFloored).to.equal(true);
+  });
+
+  it("walkResults leaves viewportFloored false for an unstamped context", function () {
+    const plain = {
+      specs: [
+        {
+          tests: [{ contexts: [{ browser: { name: "chrome" }, steps: [] }] }],
+        },
+      ],
+    };
+    expect(walkResults(plain).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults detects android and ios device contexts (ranMobileContexts)", function () {
+    const mk = (platform) => ({
+      specs: [
+        {
+          tests: [{ contexts: [{ device: { platform }, steps: [] }] }],
+        },
+      ],
+    });
+    expect(walkResults(mk("android")).ranMobileContexts).to.equal(true);
+    expect(walkResults(mk("ios")).ranMobileContexts).to.equal(true);
+    expect(walkResults(mk("windows")).ranMobileContexts).to.equal(false);
+    expect(walkResults(floored).ranMobileContexts).to.equal(false);
+  });
+
+  it("fires when a viewport was floored and no mobile platform ran", function () {
+    const hint = findHint("useMobilePlatforms");
+    expect(hint.when(fakeCtx({ viewportFloored: true }))).to.equal(true);
+  });
+
+  it("does not fire when no viewport was floored", function () {
+    const hint = findHint("useMobilePlatforms");
+    expect(hint.when(fakeCtx({ viewportFloored: false }))).to.equal(false);
+  });
+
+  it("does not fire when the run already used a mobile platform", function () {
+    const hint = findHint("useMobilePlatforms");
+    expect(
+      hint.when(fakeCtx({ viewportFloored: true, ranMobileContexts: true }))
+    ).to.equal(false);
+  });
+
+  it("is a current-run-problem hint (priority 20)", function () {
+    expect(findHint("useMobilePlatforms").priority).to.equal(20);
+  });
+
+  it("recommends the android/ios platforms in its body", function () {
+    const md = findHint("useMobilePlatforms").markdown;
+    expect(md).to.match(/android/);
+    expect(md).to.match(/ios/);
+  });
+
+  it("uses the same floor tolerance as the runner's viewport warning", async function () {
+    // hints/ deliberately doesn't import core/utils (which pulls axios and the
+    // runtime stack), so the tolerance is duplicated. This test is the guard
+    // against the two drifting apart: the hint must fire exactly when the
+    // runner warned.
+    const { VIEWPORT_TOLERANCE_PX } = await import("../dist/core/utils.js");
+    expect(VIEWPORT_FLOOR_TOLERANCE_PX).to.equal(VIEWPORT_TOLERANCE_PX);
+  });
+});
 
 describe("hints/index pickByPriority + priorityWeight", function () {
   it("returns the only hint when there is exactly one eligible", function () {
@@ -1715,12 +1902,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 36 active hints. `useFileTypesForRst` is commented out in the
+    // 38 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(36);
+    expect(HINTS.length).to.equal(38);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like

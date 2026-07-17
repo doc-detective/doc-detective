@@ -149,6 +149,8 @@ export async function buildHintContext(
     failedTransientRequest: walkData.failedTransientRequest,
     failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
     ranIosContexts: walkData.ranIosContexts,
+    viewportFloored: walkData.viewportFloored,
+    ranMobileContexts: walkData.ranMobileContexts,
     hasManagedWdaProducts: detectManagedWdaProducts(config),
     agentDetections,
     hasPackageJson,
@@ -403,6 +405,34 @@ interface WalkData {
   failedRunShellWithoutShell: boolean;
   ranIosContexts: boolean;
   hasStaleRecordings: boolean;
+  viewportFloored: boolean;
+  ranMobileContexts: boolean;
+}
+
+/**
+ * Px delta above which a realized viewport counts as FLOORED by the browser.
+ * Mirrors `VIEWPORT_TOLERANCE_PX` in `src/core/utils.ts` — the threshold the
+ * runner itself uses to warn — so the hint fires exactly when the run warned.
+ * Duplicated rather than imported: `hints/` stays free of the core module graph
+ * (core/utils pulls axios and the runtime stack). `test/hints.test.js` asserts
+ * the two constants stay equal.
+ */
+export const VIEWPORT_FLOOR_TOLERANCE_PX = 16;
+
+/**
+ * True when a realized viewport came back LARGER than requested by more than
+ * the tolerance — the browser refusing to shrink below its minimum window size.
+ * A smaller-than-requested render isn't a floor, so it doesn't count.
+ */
+function isFlooredViewport(viewport: any): boolean {
+  if (!viewport || typeof viewport !== "object") return false;
+  for (const dim of ["width", "height"]) {
+    const req = Number(viewport.requested?.[dim]);
+    const act = Number(viewport.actual?.[dim]);
+    if (!(req > 0) || !Number.isFinite(act)) continue;
+    if (act - req > VIEWPORT_FLOOR_TOLERANCE_PX) return true;
+  }
+  return false;
 }
 
 function emptyWalkData(): WalkData {
@@ -423,6 +453,8 @@ function emptyWalkData(): WalkData {
     failedRunShellWithoutShell: false,
     ranIosContexts: false,
     hasStaleRecordings: false,
+    viewportFloored: false,
+    ranMobileContexts: false,
   };
 }
 
@@ -447,6 +479,19 @@ export function walkResults(results: any): WalkData {
           // report. Powers `prebuildWebDriverAgent`.
           if (context?.device?.platform === "ios") {
             data.ranIosContexts = true;
+          }
+          // Any real mobile screen (android or ios) means the user already
+          // tests mobile — gates `useMobilePlatforms` off.
+          if (
+            context?.device?.platform === "ios" ||
+            context?.device?.platform === "android"
+          ) {
+            data.ranMobileContexts = true;
+          }
+          // A context-level `browser.viewport` has no step output to carry the
+          // realized size, so the runner stamps the context when it floors one.
+          if (context?.viewportFloored === true) {
+            data.viewportFloored = true;
           }
           const steps = Array.isArray(context?.steps) ? context.steps : [];
           for (const step of steps) {
@@ -478,6 +523,23 @@ function inspectStep(step: any, data: WalkData): void {
   if (step.outputs?.stale === true) {
     data.hasStaleRecordings = true;
   }
+  // A startSurface step that requested a viewport reports the realized size as
+  // `outputs.viewport` (single-surface form) or under each entry of
+  // `outputs.surfaces[]` (array form). A realized size larger than requested
+  // means the browser floored it. Powers `useMobilePlatforms`.
+  if (!data.viewportFloored) {
+    if (isFlooredViewport(step.outputs?.viewport)) {
+      data.viewportFloored = true;
+    } else if (Array.isArray(step.outputs?.surfaces)) {
+      for (const surface of step.outputs.surfaces) {
+        if (isFlooredViewport(surface?.outputs?.viewport)) {
+          data.viewportFloored = true;
+          break;
+        }
+      }
+    }
+  }
+
   // Custom assertions: under the unified model every step report carries an
   // `assertions` array of records; a `source: "custom"` record means the user
   // authored a `step.assertions` condition (implicit records have
