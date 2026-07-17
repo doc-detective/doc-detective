@@ -18,6 +18,11 @@ import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
+import {
+  computeSpanVerdict,
+  promoteRecordingSpan,
+  buildCheckpointOutputs,
+} from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
 export { stopRecording };
@@ -132,6 +137,54 @@ async function stopRecording({
     }
   };
 
+  // Phantom span (ADR 01079): the recording itself was skipped — headless, or
+  // the target already exists — but checkpoints ran against the committed
+  // baselines. Compute the span verdict READ-ONLY — no video, no seeding, no
+  // baseline updates, no orphan deletion — and surface staleness. WARNING =
+  // the recording appears stale; SKIPPED = it was skipped but still matches.
+  if (recording.type === "phantom") {
+    dropHandle();
+    const phantomCheckpoints: CheckpointsConfig | undefined =
+      recording.checkpoints;
+    const entries = phantomCheckpoints?.entries ?? [];
+    discardCheckpointStaging();
+    // Name the skip and its remedy accurately: a headless run needs a headed
+    // one, an existing target needs `overwrite` (or the file removed).
+    const skipCause =
+      recording.skipReason === "targetExists"
+        ? `Recording skipped (the target already exists)`
+        : `Recording skipped (headless)`;
+    const refreshRemedy =
+      recording.skipReason === "targetExists"
+        ? `Delete it, or set \`overwrite\` to "true" or "aboveVariation", to refresh it.`
+        : `Recording is skipped in headless mode; re-run headed to refresh it.`;
+    // A dirty span (a step FAILed mid-span) or a span that captured nothing
+    // has no evidence either way — report neither stale nor current.
+    if (phantomCheckpoints?.spanDirty || entries.length === 0) {
+      result.status = "SKIPPED";
+      result.description = `${skipCause}; the span didn't produce a complete checkpoint set, so staleness couldn't be determined.`;
+      return result;
+    }
+    const verdict = computeSpanVerdict({
+      entries,
+      baselineDir: phantomCheckpoints?.baselineDir ?? "",
+      maxVariation: phantomCheckpoints?.maxVariation ?? 0.05,
+      targetExists: fs.existsSync(recording.targetPath),
+    });
+    result.outputs = {
+      stale: verdict.changed,
+      ...buildCheckpointOutputs(entries),
+    };
+    if (verdict.changed) {
+      result.status = "WARNING";
+      result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. ${refreshRemedy}`;
+    } else {
+      result.status = "SKIPPED";
+      result.description = `${skipCause}; checkpoints match their baselines, so the recording appears current.`;
+    }
+    return result;
+  }
+
   // A pending device recording never actually started. If the late-start
   // attempt errored, surface that as the FAIL; otherwise no app surface ever
   // opened a device session — there's nothing to save.
@@ -150,6 +203,27 @@ async function stopRecording({
       "The device recording never started (no app surface opened a device session), so there is nothing to save.";
     return result;
   }
+
+  // overwrite "aboveVariation" (ADR 01078): the produced file lands at a
+  // staging path in the target's directory (same volume — promotion is a
+  // rename), and the span verdict decides at the end whether it replaces the
+  // existing recording or is discarded. Every other mode writes the target
+  // directly, as before.
+  // The staging name is DETERMINISTIC (no per-run suffix): concurrent
+  // same-target recordings are already refused at start, and a crashed or
+  // failed run's leftover staging file is simply overwritten by the next
+  // run's transcode (-y) instead of accumulating orphans.
+  const isAboveVariation = recording.overwrite === "aboveVariation";
+  const finalTargetPath = recording.targetPath;
+  const writeTargetPath = isAboveVariation
+    ? path.join(
+        path.dirname(finalTargetPath),
+        `.${path.basename(
+          finalTargetPath,
+          path.extname(finalTargetPath)
+        )}.staging${path.extname(finalTargetPath)}`
+      )
+    : finalTargetPath;
 
   try {
     if (recording.type === "MediaRecorder") {
@@ -230,7 +304,7 @@ async function stopRecording({
       await transcode({
         config,
         sourcePath: recording.downloadPath,
-        targetPath: recording.targetPath,
+        targetPath: writeTargetPath,
         deleteSource: true,
       });
       dropHandle();
@@ -311,7 +385,7 @@ async function stopRecording({
       await transcode({
         config,
         sourcePath: recording.tempPath,
-        targetPath: recording.targetPath,
+        targetPath: writeTargetPath,
         deleteSource: true,
         crop,
       });
@@ -356,8 +430,8 @@ async function stopRecording({
         discardCheckpointStaging();
         return result;
       }
-      if (path.extname(recording.targetPath) === ".mp4") {
-        fs.writeFileSync(recording.targetPath, buffer);
+      if (path.extname(writeTargetPath) === ".mp4") {
+        fs.writeFileSync(writeTargetPath, buffer);
       } else {
         const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
         if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
@@ -369,7 +443,7 @@ async function stopRecording({
         await transcode({
           config,
           sourcePath: tempPath,
-          targetPath: recording.targetPath,
+          targetPath: writeTargetPath,
           deleteSource: true,
         });
       }
@@ -383,43 +457,116 @@ async function stopRecording({
     // doomed second stop.
     dropHandle();
     discardCheckpointStaging();
+    if (isAboveVariation) {
+      // A failed transcode can leave a partial staging file beside the
+      // user's recording — remove it (the target itself was never touched).
+      try {
+        fs.rmSync(writeTargetPath, { force: true });
+      } catch {
+        /* best-effort */
+      }
+    }
     return result;
   }
 
-  // PASS — report what was produced. Metadata is best-effort: a probe
-  // failure omits fields and logs debug; it never changes the step's status.
-  // The field list is copied explicitly — the outputs object is a documented
-  // user-facing contract ($$duration etc.), so parser additions must opt in.
-  result.outputs = {
-    recordingPath: path.resolve(recording.targetPath),
-    format: path.extname(recording.targetPath).slice(1),
-  };
-  const meta = await probeVideoMetadata({
-    cacheDir: config?.cacheDir,
-    filePath: recording.targetPath,
-  });
-  if (meta?.duration !== undefined) result.outputs.duration = meta.duration;
-  if (meta?.width !== undefined) result.outputs.width = meta.width;
-  if (meta?.height !== undefined) result.outputs.height = meta.height;
-  if (meta?.fps !== undefined) result.outputs.fps = meta.fps;
-  if (!meta || Object.keys(meta).length === 0) {
-    log(
-      config,
-      "debug",
-      `Couldn't probe recording metadata for ${recording.targetPath}.`
-    );
-  }
-
-  // Recording checkpoints (ADR 01075): seed missing baselines from the
-  // staged captures (first run), report per-checkpoint results, and surface
-  // drift beyond maxVariation through the shared implicit-assertion engine
-  // at WARNING severity — never FAIL, mirroring screenshot semantics.
-  // Existing baselines are never modified here.
+  // PASS — first decide the produced file's fate, then report on the file
+  // the user actually keeps. (This supersedes the probe-then-seed order from
+  // the checkpoints layer: under aboveVariation the probe has to read the
+  // file that survives the promote/discard decision, not the staged one.)
   const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
-  if (checkpoints?.entries?.length) {
-    let maxCheckpointVariation = 0;
-    let seededBaselines = 0;
+  let seededBaselines = 0;
+  // A promote that couldn't commit must never read as a clean PASS, and a
+  // video that refreshed without its baselines is only a partial refresh.
+  let promoteFailed = false;
+  let baselineFailures = 0;
+  result.outputs = {};
+  if (isAboveVariation) {
+    // Span verdict (ADR 01078): promote the staged capture over the target
+    // only when the span meaningfully changed; otherwise discard it and
+    // leave target + baselines byte-untouched. Promote updates ALL baselines
+    // together with the video — they must never disagree. Two indeterminate
+    // cases keep the existing recording (unless none exists, when the fresh
+    // capture is better than nothing): a dirty span (a step FAILed — the
+    // entry set is incomplete, so orphans would misread as removed steps)
+    // and a span that captured no checkpoints at all (no evidence).
+    const entries = checkpoints?.entries ?? [];
+    const targetExists = fs.existsSync(finalTargetPath);
+    const discardStagedVideo = () => {
+      try {
+        fs.rmSync(writeTargetPath, { force: true });
+      } catch {
+        /* best-effort */
+      }
+    };
+    const indeterminate = checkpoints?.spanDirty || entries.length === 0;
+    if (indeterminate && targetExists) {
+      discardStagedVideo();
+      result.outputs.changed = false;
+      log(
+        config,
+        "warning",
+        checkpoints?.spanDirty
+          ? `Recording kept unchanged (${finalTargetPath}): a step failed during the span, so drift couldn't be judged.`
+          : `Recording kept unchanged (${finalTargetPath}): no checkpoints were captured this run, so drift couldn't be judged.`
+      );
+    } else if (indeterminate) {
+      // No committed recording yet — promote the fresh capture without a
+      // verdict (better than nothing), seeding whatever baselines exist.
+      const promoted = promoteRecordingSpan({
+        config,
+        stagingTarget: writeTargetPath,
+        targetPath: finalTargetPath,
+        entries,
+        orphans: [],
+        baselineDir: checkpoints?.baselineDir ?? "",
+      });
+      seededBaselines = promoted.seededBaselines;
+      result.outputs.changed = promoted.videoPromoted;
+      promoteFailed = !promoted.videoPromoted;
+      baselineFailures = promoted.baselineFailures;
+      if (promoted.videoPromoted) {
+        result.outputs.changeReasons = ["the recording file is missing"];
+      }
+    } else {
+      const verdict = computeSpanVerdict({
+        entries,
+        baselineDir: checkpoints?.baselineDir ?? "",
+        maxVariation: checkpoints?.maxVariation ?? 0.05,
+        targetExists,
+      });
+      if (verdict.changed) {
+        const promoted = promoteRecordingSpan({
+          config,
+          stagingTarget: writeTargetPath,
+          targetPath: finalTargetPath,
+          entries,
+          orphans: verdict.orphans,
+          baselineDir: checkpoints?.baselineDir ?? "",
+        });
+        seededBaselines = promoted.seededBaselines;
+        result.outputs.changed = promoted.videoPromoted;
+        promoteFailed = !promoted.videoPromoted;
+        baselineFailures = promoted.baselineFailures;
+        if (promoted.videoPromoted) {
+          result.outputs.changeReasons = verdict.reasons;
+          log(
+            config,
+            "info",
+            `Recording refreshed (${finalTargetPath}): ${verdict.reasons.join("; ")}`
+          );
+        }
+      } else {
+        discardStagedVideo();
+        result.outputs.changed = false;
+      }
+    }
+  } else if (checkpoints?.entries?.length) {
+    // Recording checkpoints without aboveVariation (ADR 01072): seed missing
+    // baselines from the staged captures (first run); never modify existing
+    // baselines. A dirty span (a step FAILed) seeds nothing — first-run
+    // baselines must come from a clean run.
     for (const entry of checkpoints.entries) {
+      if (checkpoints.spanDirty) break;
       if (entry.baselineMissing && !entry.error) {
         try {
           fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
@@ -446,30 +593,42 @@ async function stopRecording({
           );
         }
       }
-      if (typeof entry.variation === "number") {
-        maxCheckpointVariation = Math.max(
-          maxCheckpointVariation,
-          entry.variation
-        );
-      }
     }
-    result.outputs.checkpoints = checkpoints.entries.map((entry) => ({
-      fileName: entry.fileName,
-      ...(typeof entry.variation === "number"
-        ? { variation: entry.variation }
-        : {}),
-      ...(entry.baselineMissing ? { baselineMissing: true } : {}),
-      ...(entry.error ? { error: entry.error } : {}),
-    }));
-    result.outputs.maxCheckpointVariation = maxCheckpointVariation;
-    result.outputs.seededBaselines = seededBaselines;
+  }
+
+  // Report what was produced/kept. Metadata is best-effort: a probe failure
+  // omits fields and logs debug; it never changes the step's status. The
+  // field list is copied explicitly — the outputs object is a documented
+  // user-facing contract ($$duration etc.), so parser additions must opt in.
+  result.outputs.recordingPath = path.resolve(finalTargetPath);
+  result.outputs.format = path.extname(finalTargetPath).slice(1);
+  const meta = await probeVideoMetadata({
+    cacheDir: config?.cacheDir,
+    filePath: finalTargetPath,
+  });
+  if (meta?.duration !== undefined) result.outputs.duration = meta.duration;
+  if (meta?.width !== undefined) result.outputs.width = meta.width;
+  if (meta?.height !== undefined) result.outputs.height = meta.height;
+  if (meta?.fps !== undefined) result.outputs.fps = meta.fps;
+  if (!meta || Object.keys(meta).length === 0) {
+    log(
+      config,
+      "debug",
+      `Couldn't probe recording metadata for ${finalTargetPath}.`
+    );
+  }
+
+  // Checkpoint reporting (ADR 01072): per-checkpoint results plus drift and
+  // comparison-error signals through the shared implicit-assertion engine at
+  // WARNING severity — never FAIL, mirroring screenshot semantics. Under
+  // aboveVariation the WARNING doubles as "the recording was refreshed".
+  if (checkpoints?.entries?.length) {
     // Errored checkpoints (capture failure, aspect-ratio mismatch against
     // the baseline) can hide extreme drift behind a variation of 0 — they
     // get their own WARNING-severity spec so they never read as a clean
     // pass.
-    result.outputs.checkpointErrors = checkpoints.entries.filter(
-      (entry) => entry.error
-    ).length;
+    Object.assign(result.outputs, buildCheckpointOutputs(checkpoints.entries));
+    result.outputs.seededBaselines = seededBaselines;
     const ctx = buildConditionContext({ outputs: result.outputs });
     const { assertions, status } = await evaluateImplicitAssertions(
       [
@@ -487,12 +646,39 @@ async function stopRecording({
     result.assertions = assertions;
     result.status = status;
     if (status === "WARNING") {
-      result.description += ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
+      // Only claim a refresh when one actually happened: an indeterminate or
+      // failed span keeps the existing recording, so saying "refreshed" there
+      // would describe the opposite of what's on disk.
+      result.description += !isAboveVariation
+        ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`
+        : result.outputs.changed
+          ? ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recording was refreshed to match the current content.`
+          : ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the existing recording was kept.`;
+    }
+    if (baselineFailures > 0) {
+      result.outputs.baselineFailures = baselineFailures;
     }
     try {
       fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
     } catch {
       /* best-effort cleanup; staged files live under the OS temp dir */
+    }
+  }
+
+  // A promote that couldn't commit outranks everything above: the step must
+  // not report a clean PASS over a recording that isn't there. With no target
+  // at all there is nothing to hand the user (FAIL, and drop the path we can't
+  // honour); with the previous target retained the run still has a video, just
+  // a stale one (WARNING).
+  if (promoteFailed) {
+    if (!fs.existsSync(finalTargetPath)) {
+      result.status = "FAIL";
+      result.description = `Couldn't save the recording to ${finalTargetPath}: promoting the captured video failed and no previous recording exists at that path.`;
+      delete result.outputs.recordingPath;
+      delete result.outputs.format;
+    } else {
+      result.status = "WARNING";
+      result.description += ` The captured video couldn't replace ${finalTargetPath}, so the existing (now stale) recording was kept.`;
     }
   }
   return result;

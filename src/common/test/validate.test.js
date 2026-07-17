@@ -391,6 +391,25 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.record.engine.target).to.equal(undefined);
       });
 
+      it("should validate every record overwrite enum value including aboveVariation", function () {
+        for (const overwrite of ["true", "false", "aboveVariation"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", overwrite } },
+          });
+          expect(result.valid, `overwrite: ${overwrite} -> ${result.errors}`).to
+            .be.true;
+        }
+      });
+
+      it("should reject a record step with an invalid overwrite value", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", overwrite: "sometimes" } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
       it("should validate a record step with checkpoints enabled", function () {
         for (const checkpoints of [
           true,

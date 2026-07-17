@@ -672,6 +672,62 @@ describe("startRecording: guards + browser engine", function () {
     assert.match(result.description, /File already exists/);
   });
 
+  // ADR 01079: an existing target skips the *video*, but checkpoints are a
+  // separate concern — the span still compares read-only, or `checkpoints: true`
+  // would seed baselines on the first run and never compare again.
+  it("existing target file + checkpoints -> SKIPPED with a phantom span", async function () {
+    const target = path.join(tmpDir, "exists.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: {
+        stepId: "x",
+        record: { path: target, overwrite: "false", checkpoints: true },
+      },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /checkpoint comparisons only/);
+    assert.equal(result.recording?.type, "phantom");
+    assert.equal(result.recording?.targetPath, target);
+  });
+
+  it("existing target file + aboveVariation -> records (never skips)", async function () {
+    const target = path.join(tmpDir, "av.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: {
+        stepId: "x",
+        record: { path: target, overwrite: "aboveVariation" },
+      },
+      driver: {},
+    });
+    // Must not hit the existing-file skip: aboveVariation always records, then
+    // decides at stopRecord whether the capture replaces the target.
+    assert.ok(
+      !/File already exists/.test(String(result.description)),
+      `aboveVariation must not skip an existing target, got: ${result.description}`
+    );
+  });
+
+  it("existing target file + overwrite:false, no checkpoints -> plain SKIPPED, no phantom", async function () {
+    const target = path.join(tmpDir, "plain.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: { stepId: "x", record: { path: target, overwrite: "false" } },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /File already exists/);
+    assert.equal(result.recording, undefined);
+  });
+
   it("target already claimed by an active recording -> SKIPPED", async function () {
     const target = path.join(tmpDir, "busy.mp4");
     const driver = {

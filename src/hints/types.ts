@@ -208,6 +208,14 @@ export interface HintContext {
    */
   ranIosContexts: boolean;
   /**
+   * True if any step report carried `outputs.stale === true` — a phantom
+   * recording span (ADR 01079: headless run of a checkpointed or
+   * `overwrite: "aboveVariation"` record step) found the committed
+   * recording's checkpoint baselines no longer match the current content.
+   * Powers `refreshStaleRecording`. Sourced from the `walkResults` step pass.
+   */
+  hasStaleRecordings: boolean;
+  /**
    * True when the managed WebDriverAgent cache (`<cacheDir>/ios/wda/`)
    * contains at least one completed, VALID prebuild (same
    * `readProductsMarker` validity the session locator uses) — i.e. the user

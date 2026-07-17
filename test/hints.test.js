@@ -454,6 +454,41 @@ describe("hints/context", function () {
       expect(walkResults({ specs: [] }).ranIosContexts).to.equal(false);
     });
 
+    it("sets hasStaleRecordings when a step report carries outputs.stale (phantom span)", function () {
+      const stale = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  {
+                    steps: [
+                      { stopRecord: true, outputs: { stale: true } },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(stale.hasStaleRecordings).to.equal(true);
+      const fresh = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { steps: [{ stopRecord: true, outputs: { stale: false } }] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(fresh.hasStaleRecordings).to.equal(false);
+    });
+
     it("collects step types, browsers, screenshot/recording flags from a typical results shape", function () {
       const data = walkResults({
         specs: [
@@ -1635,12 +1670,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 35 active hints. `useFileTypesForRst` is commented out in the
+    // 36 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(35);
+    expect(HINTS.length).to.equal(36);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -2299,6 +2334,15 @@ describe("hints/hints (registry)", function () {
     expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ recordingSerialized: true }))).to.equal(true);
     expect(h.when(fakeCtx({ recordingSerialized: false }))).to.equal(false);
+  });
+
+  it("refreshStaleRecording: fires only when a phantom span flagged a stale recording", function () {
+    const h = findHint("refreshStaleRecording");
+    expect(h.priority).to.equal(20);
+    expect(h.when(fakeCtx({ hasStaleRecordings: true }))).to.equal(true);
+    expect(h.when(fakeCtx({ hasStaleRecordings: false }))).to.equal(false);
+    // The body must point at the fix: a headed re-run.
+    expect(h.markdown).to.match(/headed/i);
   });
 
   it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {

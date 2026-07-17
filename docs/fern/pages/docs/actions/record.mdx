@@ -167,6 +167,8 @@ While the recording is active, Doc Detective captures a screenshot after every s
 - Variation within `maxVariation` (default `0.05`): the step passes.
 - Variation beyond `maxVariation`: the `stopRecord` step returns WARNING—the recorded flow's content has probably changed since the recording was captured. Baselines are never modified by a checkpoint comparison.
 
+Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists—which, once you commit the recording, is every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift, so you keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
+
 The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord#outputs): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
 
 Tune or relocate the comparison with the object form:
@@ -184,6 +186,32 @@ Tune or relocate the comparison with the object form:
 ```
 
 A relative `directory` resolves beside the recording. Raise `maxVariation` (or disable checkpoints) for spans that show dynamic content—animations, ads, clocks—which otherwise produce WARNING noise. Checkpoints apply only to explicit `record` steps ([automatic recordings](#automatic-recordings) save to per-run folders, where baselines couldn't persist), and each checkpoint costs one extra screenshot per step while the span is active.
+
+### Refreshing stale recordings automatically
+
+Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this setting, the span always records, but the new video replaces the existing file **only when the span meaningfully changed**—checkpoint drift beyond `maxVariation`, an added, removed, or edited step, or a missing recording file. Otherwise Doc Detective discards the fresh capture and leaves the recording and its baselines byte-untouched, so unchanged recordings stay stable across runs:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+`aboveVariation` requires checkpoints, so it enables them automatically—including over an explicit `checkpoints: false`, which this mode overrides (a verdict with no evidence could never refresh a drifted recording). Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it in the same step, so they describe the video you have. If a run is interrupted partway through that update, the next run sees the mismatch as drift and refreshes both again—it repairs itself rather than leaving you to notice. The `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
+
+### Detecting staleness without re-recording
+
+Doc Detective skips the capture in two situations: a headless run (recording needs a visible display), and a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale—the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
+
+The fix depends on which skip you hit, and the `stopRecord` step's description names it:
+
+- **Headless run:** re-run the test on a headed context to refresh the recording.
+- **Target already exists:** set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file. With `aboveVariation`, the recording refreshes itself the moment it drifts, so this never comes up.
+
+Either way, detection is cheap and continuous—your headless CI watches recording freshness on every run, and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 

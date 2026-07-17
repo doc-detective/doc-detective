@@ -323,6 +323,22 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // refreshStaleRecording (current-run problems)
+  // ------------------------------------------------------------------
+  {
+    id: "refreshStaleRecording",
+    priority: 20,
+    markdown: [
+      "A recording in this run appears stale: its checkpoint screenshots couldn't be verified against committed baselines, or no longer match them — but the capture was skipped, so the video couldn't refresh itself.",
+      "",
+      "Check the `stopRecord` step's description for which skip applies. A headless run needs a re-run on a headed context (a visible display). A recording skipped because its target already exists needs `overwrite` set to `\"true\"` or `\"aboveVariation\"` (or the file removed) — with `overwrite: \"aboveVariation\"`, the recording and its baselines then refresh together automatically.",
+      "",
+      "More: [doc-detective.com/docs/actions/record](https://doc-detective.com/docs/actions/record#detecting-staleness-without-re-recording)",
+    ].join("\n"),
+    when: (ctx) => ctx.hasStaleRecordings,
+  },
+
+  // ------------------------------------------------------------------
   // setConcurrentRunners (optimization & advanced)
   // ------------------------------------------------------------------
   {

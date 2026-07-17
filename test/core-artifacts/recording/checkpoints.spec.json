@@ -145,6 +145,82 @@
           "stopRecord": true
         }
       ]
+    },
+    {
+      "testId": "checkpoints-existing-target-still-compares",
+      "description": "ADR 01079: with the default overwrite (\"false\") an existing target skips the capture — the steady state for a committed recording — but checkpoints still compare read-only. Two spans on one path: the first commits it and seeds baselines, the second finds the file present and skips the video. The second span is deliberately a *different* flow from the first (a baseline's filename embeds its step's index within the test, so the later span's steps can't match the earlier span's baselines), which is exactly the added/removed/edited-step trigger — so it must report stale, deterministically, WARNING. The point isn't the verdict's value: it's that a skipped capture reported a verdict at all. Before this, stopRecord SKIPPED with no outputs and the drift went unreported. Spec lands WARNING by design (staleness detection is a warning-signal feature; the gate fails only on FAIL).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "description": "Commit the recording and seed its baselines (overwrite true, so this span always captures).",
+          "record": {
+            "path": "checkpoints-existing.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "true",
+            "checkpoints": true
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "CKPT_EX_PATH": "$$recordingPath"
+          }
+        },
+        {
+          "description": "The target now exists. This span leaves overwrite at its default, so the capture is skipped.",
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "checkpoints-existing.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "checkpoints": true
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "CKPT_EX_STALE": "$$stale",
+            "CKPT_EX_ERRORS": "$$checkpointErrors"
+          }
+        },
+        {
+          "description": "The skipped span must still have compared and judged: `stale` must be exactly true (this span's steps don't match the committed baselines), with no checkpoint errors, and the committed recording must survive untouched — a phantom span never writes. Before ADR 01079's existing-target phantom, stopRecord SKIPPED with no outputs at all and `stale` stayed unsubstituted.",
+          "runShell": "node -e \"const e={stale:process.env.CKPT_EX_STALE,errors:Number(process.env.CKPT_EX_ERRORS),path:process.env.CKPT_EX_PATH};const ok = e.stale === 'true' && e.errors === 0 && require('fs').existsSync(e.path);if (!ok) { console.error('skipped span did not report a checkpoint verdict:', JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
     }
   ]
 }
