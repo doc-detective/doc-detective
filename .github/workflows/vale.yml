@@ -35,8 +35,11 @@ jobs:
           files: |
             docs/fern/**/*.md
             docs/fern/**/*.mdx
+          # Generated schema reference pages are excluded here and again via --glob
+          # below; see the note on the Run vale step for why they can't be parsed.
           files_ignore: |
             **/changelog/**
+            docs/fern/pages/reference/schemas/**
 
       - name: Run vale
         uses: errata-ai/vale-action@d89dee975228ae261d22c15adcd03578634d429c #v2.1.1 - branch `reviewdog`
@@ -48,7 +51,17 @@ jobs:
           # to resolve it, and silently falls back to linting the entire repo.
           separator: " "
           version: 3.13.0
-          vale_flags: "--config=docs/.vale.ini"
+          # Exclude the generated schema reference pages. Vale parses .mdx through
+          # mdx2vast, whose MDX pipeline doesn't treat GFM tables as tables — the
+          # whole fields table collapses into one paragraph, backtick code spans
+          # then pair across rows, and schema prose containing angle brackets
+          # (`<contextId>`, `<os.tmpdir()>`) is parsed as JSX. That's a hard E100
+          # runtime error, which fail_on_error can't downgrade. Fern renders the
+          # same pages correctly, so this is a linter-parser limitation, not bad
+          # content. The glob is belt-and-braces with files_ignore above: it also
+          # covers vale-action's fallback to linting the whole repo when the
+          # changed-file list is too long to resolve as a path.
+          vale_flags: "--config=docs/.vale.ini --glob=!docs/fern/pages/reference/schemas/*"
           reporter: github-pr-review
           fail_on_error: false
         env:
