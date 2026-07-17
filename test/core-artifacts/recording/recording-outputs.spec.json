@@ -47,7 +47,7 @@
         },
         {
           "description": "Assert the captured outputs: format matches, path non-empty, and every probed metric is a positive number.",
-          "runShell": "node -e \"const ok = '$REC_MP4_FORMAT' === 'mp4' && '$REC_MP4_PATH'.length > 0 && Number('$REC_MP4_DURATION') > 0 && Number('$REC_MP4_WIDTH') > 0 && Number('$REC_MP4_HEIGHT') > 0 && Number('$REC_MP4_FPS') > 0; process.exit(ok ? 0 : 1)\""
+          "runShell": "node -e \"const ok = process.env.REC_MP4_FORMAT === 'mp4' && require('fs').existsSync(process.env.REC_MP4_PATH) && Number(process.env.REC_MP4_DURATION) > 0 && Number(process.env.REC_MP4_WIDTH) > 0 && Number(process.env.REC_MP4_HEIGHT) > 0 && Number(process.env.REC_MP4_FPS) > 0; process.exit(ok ? 0 : 1)\""
         }
       ]
     },
@@ -94,7 +94,7 @@
         },
         {
           "description": "Assert the gif outputs: format matches and duration/fps are positive (fps comes from the tbr fallback).",
-          "runShell": "node -e \"const ok = '$REC_GIF_FORMAT' === 'gif' && Number('$REC_GIF_DURATION') > 0 && Number('$REC_GIF_FPS') > 0; process.exit(ok ? 0 : 1)\""
+          "runShell": "node -e \"const ok = process.env.REC_GIF_FORMAT === 'gif' && Number(process.env.REC_GIF_DURATION) > 0 && Number(process.env.REC_GIF_FPS) > 0; process.exit(ok ? 0 : 1)\""
         }
       ]
     }

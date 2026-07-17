@@ -76,6 +76,38 @@
           },
           "engine": {
             "$ref": "#/components/schemas/engine"
+          },
+          "checkpoints": {
+            "title": "Recording checkpoints",
+            "description": "Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.",
+            "anyOf": [
+              {
+                "type": "boolean",
+                "title": "Recording checkpoints (boolean)",
+                "description": "If `true`, enables checkpoints with default settings."
+              },
+              {
+                "type": "object",
+                "title": "Recording checkpoints (detailed)",
+                "additionalProperties": false,
+                "properties": {
+                  "maxVariation": {
+                    "type": "number",
+                    "description": "Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.",
+                    "default": 0.05,
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "directory": {
+                    "type": "string",
+                    "description": "Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).",
+                    "transform": [
+                      "trim"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         },
         "title": "Record (detailed)"
@@ -141,6 +173,17 @@
     {
       "path": "results.mp4",
       "engine": "ffmpeg"
+    },
+    {
+      "path": "results.mp4",
+      "checkpoints": true
+    },
+    {
+      "path": "results.mp4",
+      "checkpoints": {
+        "maxVariation": 0.02,
+        "directory": "baselines/results"
+      }
     },
     {
       "path": "results.mp4",

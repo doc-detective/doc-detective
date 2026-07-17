@@ -14,6 +14,11 @@ import {
   detectDisplayPointSize,
   probeVideoMetadata,
 } from "./ffmpegRecorder.js";
+import {
+  buildConditionContext,
+  evaluateImplicitAssertions,
+} from "../routing.js";
+import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
 export { stopRecording };
 
@@ -113,11 +118,26 @@ async function stopRecording({
     if (idx !== -1) recordings.splice(idx, 1);
   };
 
+  // Staged checkpoint captures live under the OS temp dir keyed by handle id;
+  // every exit path that abandons the stop (FAIL, never-started) must discard
+  // them or they leak — a fresh id per recording means nothing ever reuses
+  // the directory. The success path cleans up after baseline seeding instead.
+  const discardCheckpointStaging = () => {
+    const dir = recording?.checkpoints?.stagingDir;
+    if (!dir) return;
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* best-effort */
+    }
+  };
+
   // A pending device recording never actually started. If the late-start
   // attempt errored, surface that as the FAIL; otherwise no app surface ever
   // opened a device session — there's nothing to save.
   if (recording.type === "appium-pending") {
     dropHandle();
+    discardCheckpointStaging();
     if (recording.startError) {
       // An environment gap (missing host ffmpeg) is a gated SKIP; anything
       // else is a real start failure.
@@ -177,6 +197,7 @@ async function stopRecording({
           "Recording was not properly started. The recorder object doesn't exist in the browser context.";
         await closeRecorderTabAndRestoreFocus();
         dropHandle();
+        discardCheckpointStaging();
         return result;
       }
 
@@ -199,6 +220,7 @@ async function stopRecording({
         // Clear the state so the auto-stop in runContext doesn't re-invoke
         // a doomed second stop (the recorder was already told to stop).
         dropHandle();
+        discardCheckpointStaging();
         return result;
       }
       // Close recording tab and switch back to the original content tab.
@@ -305,6 +327,7 @@ async function stopRecording({
         result.description =
           "The device recording returned no data; nothing was saved.";
         dropHandle();
+        discardCheckpointStaging();
         return result;
       }
       // The whole video arrives in one base64 string; a very long recording
@@ -322,6 +345,7 @@ async function stopRecording({
           b64.length / 1024 / 1024
         )} MB base64) — device recordings transfer in one payload, so long recordings can exhaust memory. Keep device recordings short (they cap at 30 minutes). ${error?.message ?? error}`;
         dropHandle();
+        discardCheckpointStaging();
         return result;
       }
       if (buffer.length === 0) {
@@ -329,6 +353,7 @@ async function stopRecording({
         result.description =
           "The device recording decoded to an empty payload (no data); nothing was saved.";
         dropHandle();
+        discardCheckpointStaging();
         return result;
       }
       if (path.extname(recording.targetPath) === ".mp4") {
@@ -357,6 +382,7 @@ async function stopRecording({
     // Drop the handle so the auto-stop in runContext doesn't re-invoke a
     // doomed second stop.
     dropHandle();
+    discardCheckpointStaging();
     return result;
   }
 
@@ -382,6 +408,92 @@ async function stopRecording({
       "debug",
       `Couldn't probe recording metadata for ${recording.targetPath}.`
     );
+  }
+
+  // Recording checkpoints (ADR 01075): seed missing baselines from the
+  // staged captures (first run), report per-checkpoint results, and surface
+  // drift beyond maxVariation through the shared implicit-assertion engine
+  // at WARNING severity — never FAIL, mirroring screenshot semantics.
+  // Existing baselines are never modified here.
+  const checkpoints: CheckpointsConfig | undefined = recording.checkpoints;
+  if (checkpoints?.entries?.length) {
+    let maxCheckpointVariation = 0;
+    let seededBaselines = 0;
+    for (const entry of checkpoints.entries) {
+      if (entry.baselineMissing && !entry.error) {
+        try {
+          fs.mkdirSync(checkpoints.baselineDir, { recursive: true });
+          // COPYFILE_EXCL enforces "seeding never overwrites a baseline" at
+          // the syscall: `baselineMissing` was decided back when the
+          // checkpoint was captured, so a baseline committed (or written by
+          // another run) since then would otherwise be silently replaced —
+          // the one thing this layer promises not to do.
+          fs.copyFileSync(
+            entry.stagingPath,
+            entry.baselinePath,
+            fs.constants.COPYFILE_EXCL
+          );
+          seededBaselines++;
+        } catch (error: any) {
+          entry.error =
+            error?.code === "EEXIST"
+              ? `A baseline appeared at ${entry.baselinePath} after this checkpoint was captured; left it untouched.`
+              : String(error?.message ?? error);
+          log(
+            config,
+            "warning",
+            `Couldn't seed checkpoint baseline ${entry.baselinePath}: ${entry.error}`
+          );
+        }
+      }
+      if (typeof entry.variation === "number") {
+        maxCheckpointVariation = Math.max(
+          maxCheckpointVariation,
+          entry.variation
+        );
+      }
+    }
+    result.outputs.checkpoints = checkpoints.entries.map((entry) => ({
+      fileName: entry.fileName,
+      ...(typeof entry.variation === "number"
+        ? { variation: entry.variation }
+        : {}),
+      ...(entry.baselineMissing ? { baselineMissing: true } : {}),
+      ...(entry.error ? { error: entry.error } : {}),
+    }));
+    result.outputs.maxCheckpointVariation = maxCheckpointVariation;
+    result.outputs.seededBaselines = seededBaselines;
+    // Errored checkpoints (capture failure, aspect-ratio mismatch against
+    // the baseline) can hide extreme drift behind a variation of 0 — they
+    // get their own WARNING-severity spec so they never read as a clean
+    // pass.
+    result.outputs.checkpointErrors = checkpoints.entries.filter(
+      (entry) => entry.error
+    ).length;
+    const ctx = buildConditionContext({ outputs: result.outputs });
+    const { assertions, status } = await evaluateImplicitAssertions(
+      [
+        {
+          statement: `$$outputs.maxCheckpointVariation <= ${checkpoints.maxVariation}`,
+          severity: "warning",
+        },
+        {
+          statement: `$$outputs.checkpointErrors == 0`,
+          severity: "warning",
+        },
+      ],
+      ctx
+    );
+    result.assertions = assertions;
+    result.status = status;
+    if (status === "WARNING") {
+      result.description += ` One or more checkpoints drifted beyond maxVariation (${checkpoints.maxVariation}) or couldn't be compared — the recorded flow's content may have changed since its baselines were captured.`;
+    }
+    try {
+      fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
+    } catch {
+      /* best-effort cleanup; staged files live under the OS temp dir */
+    }
   }
   return result;
 }
