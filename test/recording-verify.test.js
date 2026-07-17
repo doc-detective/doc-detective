@@ -11,7 +11,7 @@ import {
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 
 // ---------------------------------------------------------------------------
-// ADR 01075: structural recording assertions (record.verify).
+// ADR 01080: structural recording assertions (record.verify).
 // ---------------------------------------------------------------------------
 
 // Generate a tiny real mp4 with the bundled ffmpeg (lavfi color source), same

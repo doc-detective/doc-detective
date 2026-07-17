@@ -588,7 +588,7 @@ async function probeVideoMetadata({
 // black intervals cover the clip. blackdetect emits one line per interval:
 // "[blackdetect @ 0x...] black_start:0 black_end:2.04 black_duration:2.04".
 // Coverage is the sum of reported durations — good enough for the all-black
-// failure mode this guards against (ADR 01075).
+// failure mode this guards against (ADR 01080).
 //
 // Two allowances, both measured against real ffmpeg output:
 // - An interval ends at the last black FRAME's timestamp, not the clip end,

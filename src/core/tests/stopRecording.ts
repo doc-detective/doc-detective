@@ -566,7 +566,7 @@ async function stopRecording({
       }
     }
   } else if (checkpoints?.entries?.length) {
-    // Recording checkpoints without aboveVariation (ADR 01072): seed missing
+    // Recording checkpoints without aboveVariation (ADR 01075): seed missing
     // baselines from the staged captures (first run); never modify existing
     // baselines. A dirty span (a step FAILed) seeds nothing — first-run
     // baselines must come from a clean run.
@@ -623,8 +623,8 @@ async function stopRecording({
     );
   }
 
-  // Structural verify guards (ADR 01075) and checkpoint drift reporting
-  // (ADR 01072) evaluate through ONE shared implicit-assertion pass, so the
+  // Structural verify guards (ADR 01080) and checkpoint drift reporting
+  // (ADR 01075) evaluate through ONE shared implicit-assertion pass, so the
   // FAIL > WARNING roll-up is computed once: a violated structural guard
   // (author-demanded, FAIL severity) outranks checkpoint drift (advice,
   // WARNING severity).

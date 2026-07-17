@@ -8,11 +8,11 @@ decision-makers: [hawkeyexl]
 
 ## Context and Problem Statement
 
-Checkpoints (ADR 01072) validate the *scene* a recording shows, but nothing validates the produced *file*: a capture bug can ship an all-black video, a wrong-region crop, or a truncated clip while every step passes. The historical failure modes of screen recording are exactly these — black gdigrab output, wrong display index on macOS, crops landing outside the window. How do authors assert structural properties of the video artifact itself?
+Checkpoints (ADR 01075) validate the *scene* a recording shows, but nothing validates the produced *file*: a capture bug can ship an all-black video, a wrong-region crop, or a truncated clip while every step passes. The historical failure modes of screen recording are exactly these — black gdigrab output, wrong display index on macOS, crops landing outside the window. How do authors assert structural properties of the video artifact itself?
 
 ## Decision Drivers
 
-- The guards must measure the final file, not the capture intent — reusing the `stopRecord` metadata probe (ADR 01071) and the bundled ffmpeg.
+- The guards must measure the final file, not the capture intent — reusing the `stopRecord` metadata probe (ADR 01074) and the bundled ffmpeg.
 - Opt-in and author-owned: unlike checkpoint drift (advice, WARNING), a violated structural guard is a real failure of something the author explicitly demanded — FAIL severity through the shared implicit-assertion engine.
 - No new dependencies; content analysis (blackness) must come from ffmpeg filters.
 
@@ -32,12 +32,12 @@ Mechanics:
 - **Duration**: `$$outputs.duration >= minDuration` / `<= maxDuration` (FAIL severity). If the probe couldn't produce a duration, the assertion fails — an author who demanded a duration guard shouldn't get a silent pass on an unprobeable file.
 - **Resolution**: `resolution: true` compares the probed dimensions against the resolved expectation — the crop rectangle when a window/viewport crop applied, else the capture frame size — exposed as `outputs.resolutionMatch` with a ±2 px tolerance (encoders round to even dimensions). The object form compares literal `width`/`height`. When no expectation exists (`true` on the device engine, which reports no capture frame size), the check is skipped with a debug log rather than guessing.
 - **notBlack**: a bounded ffmpeg pass with `blackdetect=d=0.1:pix_th=0.10`; `outputs.allBlack` is true when the detected black intervals cover the clip. Coverage needs two measured allowances: blackdetect's final interval ends at the **last black frame's timestamp**, not the clip end, so a fully-black clip under-reports by up to one frame interval (verified: a 0.5 s 10 fps black clip reports `black_duration:0.4`) — the probed `fps` sizes that tolerance, and without an fps the shortfall is indistinguishable from real content, so the check stays undecided rather than guessing. A further 5% slack absorbs encoders that shade the first/last frame. `$$outputs.allBlack == false` at FAIL severity.
-- Verify specs and checkpoint specs (ADR 01072) evaluate in one `evaluateImplicitAssertions` call, so the FAIL > WARNING roll-up is computed once — a structural failure outranks checkpoint drift.
+- Verify specs and checkpoint specs (ADR 01075) evaluate in one `evaluateImplicitAssertions` call, so the FAIL > WARNING roll-up is computed once — a structural failure outranks checkpoint drift.
 
 ### Consequences
 
 - Good, because capture regressions (black output, wrong crop geometry, truncated files) become assertable, both in users' tests and in this repo's recording fixtures.
-- Good, because the guards reuse the ADR 01071 probe and the shared assertion engine — the only new machinery is the blackdetect parse.
+- Good, because the guards reuse the ADR 01074 probe and the shared assertion engine — the only new machinery is the blackdetect parse.
 - Neutral, because `notBlack` costs one bounded ffmpeg decode pass per stop that requests it.
 - Bad, because gif duration reporting is imprecise — duration guards need ~±0.5 s slop, documented.
 
@@ -61,4 +61,4 @@ Mechanics:
 
 ### 3. External tooling over outputs
 
-- Bad, because duration/resolution are already reported (ADR 01071) but blackness isn't derivable from outputs, and "run another tool" isn't a contract doc tests can enforce in CI.
+- Bad, because duration/resolution are already reported (ADR 01074) but blackness isn't derivable from outputs, and "run another tool" isn't a contract doc tests can enforce in CI.
