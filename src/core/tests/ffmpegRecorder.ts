@@ -677,7 +677,6 @@ async function detectAllBlack({
   try {
     const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
     const stderr = await new Promise<string | null>((resolve) => {
-      let collected = "";
       let settled = false;
       let proc: any = null;
       let timer: NodeJS.Timeout | undefined;
