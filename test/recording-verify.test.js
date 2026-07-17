@@ -232,6 +232,78 @@ describe("stopRecording: record.verify structural guards", function () {
     });
   }
 
+  // `resolution: true` resolves its expectation from the crop rect when one
+  // applied, and only the ffmpeg engine sets one — the device path never crops.
+  // Without these, the appliedCrop branch is unexercised: the check would fall
+  // through to the capture frame size and compare a cropped video against the
+  // uncropped capture, and nothing would notice.
+  it("resolution: true measures against the applied crop, not the capture frame", async function () {
+    const samplePath = path.join(tmpDir, "crop-source.mp4"); // 64x64
+    await generateColorMp4(samplePath, "red");
+    const target = path.join(tmpDir, "cropped.mp4");
+    const handle = {
+      type: "ffmpeg",
+      process: { stdin: { write() {}, end() {} }, exitCode: 0 },
+      tempPath: samplePath,
+      targetPath: target,
+      crop: { x: 0, y: 0, w: 32, h: 32 },
+      // The uncropped capture is 64x64. If the guard measured this instead of
+      // the crop, the 32x32 output would read as a mismatch and FAIL.
+      captureInfo: { frameSize: { w: 64, h: 64 } },
+      verify: { resolution: true },
+    };
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      result.status,
+      "PASS",
+      `expected the crop rect to be the expectation: ${result.description}`
+    );
+    assert.equal(result.outputs.resolutionMatch, true);
+    assert.equal(result.outputs.width, 32);
+    assert.equal(result.outputs.height, 32);
+  });
+
+  it("resolution: true FAILs when the crop rect and the produced video disagree", async function () {
+    const samplePath = path.join(tmpDir, "crop-source-bad.mp4"); // 64x64
+    await generateColorMp4(samplePath, "red");
+    const target = path.join(tmpDir, "cropped-bad.mp4");
+    const handle = {
+      type: "ffmpeg",
+      process: { stdin: { write() {}, end() {} }, exitCode: 0 },
+      tempPath: samplePath,
+      targetPath: target,
+      // A crop rect larger than the source: the transcode's min/max expressions
+      // clamp it to the 64x64 frame, so the produced video can't match the
+      // 200x200 the rect claimed. That's the shape of a real bug — a bad
+      // cropRect, or a pending-scale factor that overshot — and it's exactly
+      // what the guard exists to catch: a crop landing outside the window.
+      crop: { x: 0, y: 0, w: 200, h: 200 },
+      captureInfo: { frameSize: { w: 64, h: 64 } },
+      verify: { resolution: true },
+    };
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(
+      result.status,
+      "FAIL",
+      `a clamped crop must not read as a match: ${result.description}`
+    );
+    assert.equal(result.outputs.resolutionMatch, false);
+  });
+
   // A promote failure downgrades the step to WARNING ("we kept the old video").
   // A violated structural guard is a FAIL the author explicitly asked for, and
   // FAIL outranks WARNING in every other roll-up — so the downgrade must not
