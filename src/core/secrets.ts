@@ -36,8 +36,10 @@ export {
   SECRET_TOKEN_REGEX,
   resolveSecrets,
   findDisallowedSecretRefs,
+  describeDisallowedSecretRefs,
   registerSecretValue,
   listRegisteredSecretNames,
+  clearRegisteredSecrets,
   hasRegisteredSecrets,
   scrubString,
   scrubObject,
@@ -72,7 +74,15 @@ function containsSecretToken(value: unknown, seen = new WeakSet<object>()): bool
 // shared across concurrent runners for free. (SECRET_MIN_MASK_LENGTH, the floor
 // below which a value is never used as a mask needle, is declared at the top.)
 
-const registeredSecrets = new Map<string, string>();
+// Keyed by VALUE, not by name. A name can legitimately resolve to more than one
+// value in a single run — a later `loadVariables` re-points the same variable,
+// or an embedding host mutates process.env between runs. Keying by name would
+// make the second registration EVICT the first, and the evicted value then
+// sails through the end-of-run report scrub unmasked even though it was
+// resolved, sent, and possibly echoed earlier in that same run. The registry is
+// append-only: once a value has been handed to a step, it must stay maskable
+// for the rest of the process.
+const registeredSecrets = new Map<string, string>(); // value -> name
 
 // Mask needles, rebuilt on registration and kept sorted longest-first. When one
 // registered value contains another, masking the SHORT one first would consume
@@ -83,7 +93,7 @@ let maskNeedles: MaskNeedle[] = [];
 
 function rebuildMaskNeedles(): void {
   const needles: MaskNeedle[] = [];
-  for (const [name, value] of registeredSecrets) {
+  for (const [value, name] of registeredSecrets) {
     if (value.length < SECRET_MIN_MASK_LENGTH) continue;
     needles.push({ needle: value, name });
     // Secrets ride in URLs and form bodies, where they arrive percent-encoded.
@@ -101,13 +111,25 @@ function registerSecretValue(name: string, value: string): void {
   if (typeof value !== "string" || value.length === 0) return;
   // A secret referenced in N steps registers N times with the same value. Only
   // rebuild when something actually changed.
-  if (registeredSecrets.get(name) === value) return;
-  registeredSecrets.set(name, value);
+  if (registeredSecrets.get(value) === name) return;
+  registeredSecrets.set(value, name);
   rebuildMaskNeedles();
 }
 
 function listRegisteredSecretNames(): string[] {
-  return [...registeredSecrets.keys()];
+  return [...new Set(registeredSecrets.values())];
+}
+
+/**
+ * Drop every registered value. The runner never calls this — within a run the
+ * registry must only ever grow (see the note on `registeredSecrets`). It exists
+ * for tests, which need isolation because the registry is module state, and for
+ * a long-lived embedding host that wants to stop masking a previous run's
+ * credentials once that run's report has been consumed.
+ */
+function clearRegisteredSecrets(): void {
+  registeredSecrets.clear();
+  rebuildMaskNeedles();
 }
 
 // Cheap guard so callers can skip the walk entirely on runs with no secrets —
@@ -116,8 +138,19 @@ function hasRegisteredSecrets(): boolean {
   return maskNeedles.length > 0;
 }
 
-function maskLiteral(name: string): string {
-  return `***secret.${name}***`;
+// The mask names the secret so a masked report stays debuggable — but the name
+// is author-chosen and the VALUE is arbitrary, so the preferred literal can
+// itself contain the needle. A credential that is literally `secret`, or a
+// variable named after its own value, would otherwise be "masked" into a string
+// that still contains it verbatim (and each scrub pass would re-find it).
+// Fall back to a literal that names nothing when that happens: losing the
+// which-credential hint is strictly better than emitting the credential.
+function maskLiteral(name: string, needle: string): string {
+  const preferred = `***secret.${name}***`;
+  if (!preferred.includes(needle)) return preferred;
+  const generic = "***secret***";
+  if (!generic.includes(needle)) return generic;
+  return "***";
 }
 
 /**
@@ -135,7 +168,7 @@ function scrubString<T>(value: T): T {
   if (maskNeedles.length === 0) return value;
   let out: string = value;
   for (const { needle, name } of maskNeedles) {
-    if (out.includes(needle)) out = out.split(needle).join(maskLiteral(name));
+    if (out.includes(needle)) out = out.split(needle).join(maskLiteral(name, needle));
   }
   return out as unknown as T;
 }
@@ -194,23 +227,37 @@ function deepMapStrings(
   const out: Record<string, unknown> = {};
   seen.set(value as object, out);
   for (const key of Object.keys(value as Record<string, unknown>)) {
-    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
     const mapped = deepMapStrings((value as Record<string, unknown>)[key], map, opts, seen);
-    if (!opts.mapKeys) {
-      out[key] = mapped;
-      continue;
-    }
     // A masked key can collide with an existing one (two distinct keys that
     // both contain the same secret mask to the same string). Keep the first
     // writer rather than silently dropping a field.
-    const outKey = map(key);
+    let outKey = opts.mapKeys ? map(key) : key;
     if (outKey !== key && Object.prototype.hasOwnProperty.call(out, outKey)) {
-      out[`${outKey} (${Object.keys(out).length})`] = mapped;
-    } else {
-      out[outKey] = mapped;
+      outKey = `${outKey} (${Object.keys(out).length})`;
     }
+    defineDataProperty(out, outKey, mapped);
   }
   return out;
+}
+
+// `out[key] = v` invokes the `__proto__` SETTER rather than creating a data
+// property, which is the prototype-pollution hazard — but simply skipping those
+// keys silently DROPS legitimate data (an HTTP request body is free to contain a
+// field called `constructor`, and dropping it would send a different request
+// than the author wrote, or hide it from the report). Define them as plain own
+// data properties instead: no setter runs, Object.prototype is untouched, and
+// the payload survives intact.
+function defineDataProperty(
+  target: Record<string, unknown>,
+  key: string,
+  value: unknown
+): void {
+  Object.defineProperty(target, key, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
 }
 
 // --- heuristic backstop (ADR 01073) --------------------------------------
@@ -273,41 +320,42 @@ const DISALLOWED_PATH_RULES: { pattern: RegExp; reason: string }[] = [
     pattern: /^on(Pass|Fail|Warning|Skip)(\.|$)/,
     reason: "routing conditions make control flow a readable function of the secret",
   },
-  // --- find: every element-targeting field is a comparison ---
-  {
-    // Bare-string shorthand (`find: "text"`) is elementText.
-    pattern: /^find$/,
-    reason: "the `find` string shorthand is an elementText match",
-  },
+  // --- element targeting, wherever it appears ---
+  // These field NAMES mean "match this against the page" under every action that
+  // has them (find, type, click, dragAndDrop's source/target, and any action
+  // added later). Matching on the segment rather than enumerating
+  // `<action>.<field>` per action is deliberate: the per-action list already
+  // missed click and dragAndDrop once, and a new action would silently inherit
+  // the gap. Anything named this way is a comparison, never a sink.
   {
     pattern:
-      /^find\.(elementText|selector|elementId|elementTestId|elementAria|elementClass|elementAttribute)(\.|$)/,
+      /(^|\.)(elementText|selector|elementId|elementTestId|elementAria|elementClass|elementAttribute)(\.|$)/,
     reason: "element-targeting fields are matched against the page",
   },
-  // --- httpRequest: the `response` block and status codes are expectations ---
   {
-    pattern: /^httpRequest\.(statusCodes|response)(\.|$)/,
+    // Bare-string shorthands that mean "find this element":
+    //   find: "text"                    -> elementText
+    //   dragAndDrop: { source: "..." }  -> element specification
+    pattern: /^(find|dragAndDrop\.(source|target))$/,
+    reason: "this string shorthand is an element match",
+  },
+  // --- readiness conditions, wherever they appear ---
+  // `waitUntil` hangs off goTo, type, startSurface (app/process descriptors),
+  // and runShell/runCode background blocks. Every one of them polls until the
+  // condition matches, which is a comparison.
+  {
+    pattern: /(^|\.)waitUntil(\.|$)/,
+    reason: "readiness conditions are compared against the target",
+  },
+  // --- expected results, wherever they appear ---
+  {
+    pattern: /(^|\.)(statusCodes|exitCodes|stdio)(\.|$)/,
+    reason: "expected status/exit codes and stdio are compared against the real result",
+  },
+  // --- httpRequest: the whole `response` block is an expectation ---
+  {
+    pattern: /^httpRequest\.response(\.|$)/,
     reason: "the expected response is compared against the real one",
-  },
-  { pattern: /^checkLink\.statusCodes(\.|$)/, reason: "status codes are compared" },
-  // --- runShell / runCode: expected output and exit codes are expectations ---
-  {
-    pattern: /^run(Shell|Code)\.(exitCodes|stdio)(\.|$)/,
-    reason: "expected exit codes and stdio are compared against the real output",
-  },
-  {
-    pattern: /^run(Shell|Code)\.background\.waitUntil(\.|$)/,
-    reason: "readiness conditions are compared against process output",
-  },
-  // --- type / typeKeys: `keys` is the sink; targeting and waiting compare ---
-  {
-    pattern:
-      /^type(Keys)?\.(selector|elementText|elementId|elementTestId|elementAria)(\.|$)/,
-    reason: "element-targeting fields are matched against the page",
-  },
-  {
-    pattern: /^type(Keys)?\.waitUntil(\.|$)/,
-    reason: "readiness conditions are compared against the page",
   },
 ];
 
@@ -330,6 +378,22 @@ function findDisallowedSecretRefs(step: any): DisallowedRef[] {
     }
   });
   return found;
+}
+
+/**
+ * The user-facing wording for a blocked reference. Shared so the pre-guard
+ * check in `runContext` and `resolveSecrets`' own fail-closed path can't drift.
+ * Names the variable and the field; never the value.
+ */
+function describeDisallowedSecretRefs(refs: DisallowedRef[]): string {
+  const detail = refs
+    .map((r) => `\`$secret.${r.name}\` in \`${r.path}\` (${r.reason})`)
+    .join("; ");
+  return (
+    `Secret references aren't allowed in fields that are compared or reported: ${detail}. ` +
+    `Secrets can only be sent to the system under test (for example \`type\`, or an \`httpRequest\` URL, header, or body). ` +
+    `Assert on an observable effect instead — a status code, or an element that appears once the credential worked.`
+  );
 }
 
 function walkStrings(
@@ -381,25 +445,24 @@ function resolveSecrets(step: any): ResolveResult {
   // heard of secrets — pays a full JSON round-trip clone plus a recursive walk.
   if (!containsSecretToken(step)) return { step, warnings };
 
+  // Defense in depth: `runContext` runs this same check earlier (before the
+  // guard/skip branches, which can route a step past runStep entirely), but
+  // resolveSecrets must stay fail-closed on its own for the httpRequest
+  // OpenAPI-injection pass and any future caller.
   const disallowed = findDisallowedSecretRefs(step);
   if (disallowed.length > 0) {
-    const detail = disallowed
-      .map((r) => `\`$secret.${r.name}\` in \`${r.path}\` (${r.reason})`)
-      .join("; ");
     return {
       step,
       warnings,
       failure: {
         status: "FAIL",
-        description:
-          `Secret references aren't allowed in fields that are compared or reported: ${detail}. ` +
-          `Secrets can only be sent to the system under test (for example \`typeKeys\`, or an \`httpRequest\` URL, header, or body). ` +
-          `Assert on an observable effect instead — a status code, or an element that appears once the credential worked.`,
+        description: describeDisallowedSecretRefs(disallowed),
       },
     };
   }
 
   const missing = new Set<string>();
+  const unmaskable = new Set<string>();
 
   // `deepMapStrings` COPIES rather than mutating in place, so this both clones
   // and resolves in a single walk. Building a fresh object also means no
@@ -414,15 +477,37 @@ function resolveSecrets(step: any): ResolveResult {
         missing.add(name);
         return token;
       }
-      registerSecretValue(name, envValue);
+      // Too short to mask safely — collect and fail below rather than resolve.
       if (envValue.length < SECRET_MIN_MASK_LENGTH) {
-        warnings.push(
-          `Secret \`${name}\` is shorter than ${SECRET_MIN_MASK_LENGTH} characters, so it won't be masked in reports or logs (masking a value that short would corrupt unrelated output).`
-        );
+        unmaskable.add(name);
+        return token;
       }
+      registerSecretValue(name, envValue);
       return envValue;
     });
   });
+
+  // A value below the masking floor cannot honor the guarantee this feature
+  // exists for: it would be sent to the target but never registered as a mask
+  // needle, so an echo would land verbatim in outputs and reports. Warning and
+  // proceeding would mean `$secret.` silently means "not actually secret" for
+  // this value. Fail instead — declared means protected, always.
+  if (unmaskable.size > 0) {
+    const names = [...unmaskable];
+    return {
+      step,
+      warnings,
+      failure: {
+        status: "FAIL",
+        description:
+          `${names.length === 1 ? "Secret" : "Secrets"} ${names
+            .map((n) => `\`$secret.${n}\``)
+            .join(", ")} ${names.length === 1 ? "is" : "are"} shorter than ${SECRET_MIN_MASK_LENGTH} characters. ` +
+          `Doc Detective can't mask a value that short without corrupting unrelated output, so it can't guarantee the value stays out of reports and logs — and a secret it can't protect is one it won't resolve. ` +
+          `Use a longer value, or reference it as a plain \`$${names[0]}\` variable if it isn't really a credential.`,
+      },
+    };
+  }
 
   if (missing.size > 0) {
     const names = [...missing];

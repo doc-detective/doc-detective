@@ -717,6 +717,9 @@
       "processDitaMaps": true
     },
     {
+      "heuristicRedaction": false
+    },
+    {
       "integrations": {
         "heretto": [
           {

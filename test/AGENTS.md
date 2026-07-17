@@ -28,8 +28,10 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
     `getRunner()` tab-selector tests) and `Failed to stop test server: Server is not running` in your
     own teardown. Resource contention from two concurrent suites also surfaces as
     `stopRecord ... Recording download timed out` in the `runTests.test.js` end-to-end CLI spec.
-    All three are environmental. Confirm by re-running the single test file in isolation — it passes
-    — before spending time on the diff.
+    All three *may* be environmental — but a connection refusal, a teardown error, and a recording
+    timeout are all shapes a real regression can take too, so don't file them as contention on the
+    signature alone. Re-run the single test file in isolation: it passing is what makes the
+    contention diagnosis, and it failing means you have a real bug.
 - **Browserless worktrees fail the browser-dependent tests.** A worktree with no Chrome/Firefox/
   Appium installed and no network to lazy-provision fails browser-dependent tests with "Chrome
   browser is not available" or step-count assertions (`0 !== 1`, `undefined (reading 'result')`)

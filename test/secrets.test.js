@@ -6,6 +6,7 @@ import {
   resolveSecrets,
   findDisallowedSecretRefs,
   listRegisteredSecretNames,
+  clearRegisteredSecrets,
   registerSecretValue,
   scrubString,
   scrubObject,
@@ -204,19 +205,23 @@ describe("secrets: resolveSecrets", function () {
   // Masking a 1-3 char value would shred unrelated output, so such a value
   // resolves but is never used as a mask needle. Warn rather than fail — the
   // author's credential still works; they just lose masking on it.
-  it("warns (but still resolves) when a value is too short to mask safely", function () {
+  // A value below the masking floor can't honor the no-emission guarantee: it
+  // would be sent to the target but never registered as a mask needle, so an
+  // echo would land verbatim in the report. Declared means protected, so this
+  // fails rather than resolving with a warning.
+  it("fails when a value is too short to mask safely", function () {
     withEnv({ TINY: "ab" }, function () {
-      const { step, failure, warnings } = resolveSecrets({
-        typeKeys: "$secret.TINY",
-      });
-      assert.equal(failure, undefined);
-      assert.equal(step.typeKeys, "ab");
-      assert.equal(warnings.length, 1);
-      assert.match(warnings[0], /TINY/);
-      assert.ok(
-        !warnings[0].includes("ab") || warnings[0].indexOf("ab") === warnings[0].indexOf("TINY") + 2,
-        "the warning must name the variable, not quote the value"
-      );
+      const { failure } = resolveSecrets({ type: "$secret.TINY" });
+      assert.equal(failure.status, "FAIL");
+      assert.match(failure.description, /TINY/);
+      assert.match(failure.description, /shorter than 4/);
+    });
+  });
+
+  it("does not register a too-short value as a mask needle", function () {
+    withEnv({ TINY2: "xy" }, function () {
+      resolveSecrets({ type: "$secret.TINY2" });
+      assert.ok(!listRegisteredSecretNames().includes("TINY2"));
     });
   });
 
@@ -310,6 +315,24 @@ describe("secrets: findDisallowedSecretRefs", function () {
       },
     ],
     ["runShell.stdio", { runShell: { command: "ls", stdio: "$secret.A" } }],
+    ["runShell.exitCodes", { runShell: { command: "ls", exitCodes: ["$secret.A"] } }],
+    // Element targeting and readiness are blocked by field NAME under every
+    // action that has them, not per-action — these three were missed by an
+    // earlier per-action list.
+    ["click.selector", { click: { selector: "$secret.A" } }],
+    ["click.elementText", { click: { elementText: "$secret.A" } }],
+    [
+      "dragAndDrop.source.selector",
+      { dragAndDrop: { source: { selector: "$secret.A" }, target: { selector: "b" } } },
+    ],
+    ["dragAndDrop.source shorthand", { dragAndDrop: { source: "$secret.A", target: "b" } }],
+    ["dragAndDrop.target shorthand", { dragAndDrop: { source: "a", target: "$secret.A" } }],
+    ["goTo.waitUntil", { goTo: { url: "http://x", waitUntil: "$secret.A" } }],
+    [
+      "startSurface waitUntil",
+      { startSurface: { process: { name: "p", waitUntil: { stdio: "$secret.A" } } } },
+    ],
+    ["type.waitUntil", { type: { keys: "hi", waitUntil: "$secret.A" } }],
   ];
 
   for (const [label, step] of blocked) {
@@ -357,6 +380,12 @@ describe("secrets: findDisallowedSecretRefs", function () {
 // definition — a shell echoing its own argv, an auth endpoint reflecting the
 // token. The registry masks by exact value wherever text leaves the run.
 describe("secrets: mask registry", function () {
+  // The registry is module state that only ever grows within a run, so tests
+  // must isolate: a needle registered by one case (notably the pathological
+  // `secret` value below) would otherwise mangle every later case's mask.
+  beforeEach(clearRegisteredSecrets);
+  after(clearRegisteredSecrets);
+
   it("masks a registered value with a name-bearing literal", function () {
     registerSecretValue("MASK_A", "swordfish-abcdef");
     assert.equal(
@@ -401,6 +430,35 @@ describe("secrets: mask registry", function () {
   it("never uses a value shorter than the floor as a mask needle", function () {
     registerSecretValue("TINY_ONE", "ab");
     assert.equal(scrubString("a cab in a cabin"), "a cab in a cabin");
+  });
+
+  // A name can resolve to more than one value in a run (a later loadVariables
+  // re-points the variable). Keying the registry by name would evict the first
+  // value's needle, and that value — already sent, possibly already echoed —
+  // would sail through the end-of-run report scrub unmasked.
+  it("keeps masking an earlier value after the same name registers a new one", function () {
+    registerSecretValue("ROTATED", "first-value-aaaa");
+    registerSecretValue("ROTATED", "second-value-bbbb");
+    const scrubbed = scrubString("saw first-value-aaaa and second-value-bbbb");
+    assert.ok(!scrubbed.includes("first-value-aaaa"), "the earlier value must stay masked");
+    assert.ok(!scrubbed.includes("second-value-bbbb"), "the newer value must be masked");
+  });
+
+  // The mask names the secret, so a value that appears inside its own mask
+  // literal would survive "masking" verbatim.
+  it("does not emit the credential when the mask literal would contain it", function () {
+    registerSecretValue("SELFY", "secret");
+    const scrubbed = scrubString("token=secret done");
+    assert.ok(
+      !scrubbed.includes("secret"),
+      `the credential must not survive in the mask, got: ${scrubbed}`
+    );
+  });
+
+  it("still masks a value that collides with the generic fallback", function () {
+    registerSecretValue("STARRY", "***secret***");
+    const scrubbed = scrubString("v=***secret*** end");
+    assert.ok(!scrubbed.includes("***secret***"));
   });
 
   it("is idempotent", function () {
@@ -476,6 +534,35 @@ describe("secrets: mask registry", function () {
     });
     assert.equal(Object.keys(out).length, 2, "neither field may be dropped");
   });
+
+  // An HTTP request body is free to contain a field called `constructor`.
+  // Dropping it would send a different request than the author wrote — the walk
+  // must preserve the data while still never invoking the __proto__ setter.
+  it("preserves data keys named constructor / prototype / __proto__", function () {
+    registerSecretValue("PROTO_ONE", "proto-adjacent-secret");
+    // JSON.parse, not an object literal: in a literal, `__proto__:` invokes the
+    // prototype setter instead of creating a key, so the literal wouldn't have
+    // the own property this test is about. A parsed HTTP body is exactly how
+    // such a key reaches the runner for real.
+    const input = JSON.parse(
+      '{"constructor":"keep-me","prototype":"keep-me-too","__proto__":"keep-me-three","normal":"proto-adjacent-secret"}'
+    );
+    const out = scrubObject(input);
+    assert.equal(Object.getOwnPropertyDescriptor(out, "constructor").value, "keep-me");
+    assert.equal(Object.getOwnPropertyDescriptor(out, "prototype").value, "keep-me-too");
+    assert.equal(
+      Object.getOwnPropertyDescriptor(out, "__proto__").value,
+      "keep-me-three",
+      "a legitimate __proto__ data key must survive the walk"
+    );
+    assert.equal(out.normal, "***secret.PROTO_ONE***");
+  });
+
+  it("does not pollute Object.prototype via a __proto__ data key", function () {
+    registerSecretValue("POLLUTE_ONE", "pollution-secret-val");
+    scrubObject(JSON.parse('{"__proto__": {"polluted": "yes"}, "a": "pollution-secret-val"}'));
+    assert.equal({}.polluted, undefined, "Object.prototype must be untouched");
+  });
 });
 
 // ADR 01073: a backstop for credentials the author never declared. Value-shape
@@ -529,6 +616,9 @@ describe("secrets: heuristic backstop", function () {
 // REAL value while the report retains the `$secret.NAME` placeholder.
 describe("secrets: execution/report split (integration)", function () {
   this.timeout(60000);
+  // Isolate from needles the unit tests registered — notably the pathological
+  // `secret` value, which would otherwise mangle this run's mask literals.
+  before(clearRegisteredSecrets);
   const tmpDir = path.join(process.cwd(), ".tmp", "secrets-test");
   // runShell joins command+args into one shell line, so keep every path free of
   // backslashes and every value free of shell metacharacters. Forward slashes

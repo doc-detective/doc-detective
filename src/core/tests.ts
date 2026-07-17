@@ -70,6 +70,8 @@ import {
 } from "./tests/ffmpegRecorder.js";
 import {
   resolveSecrets,
+  findDisallowedSecretRefs,
+  describeDisallowedSecretRefs,
   scrubObject,
   scrubString,
   hasRegisteredSecrets,
@@ -4648,6 +4650,26 @@ async function runContext({
       }
 
       if (logLevelEnabled(config, "debug")) clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
+
+      // Reject `$secret.` in emit-or-compare fields BEFORE anything reads them
+      // (ADR 01071). This has to sit ahead of the unsafe gate and the `if`
+      // guard: those branches consume `step.if` and can route the step to
+      // SKIPPED without ever calling runStep, where the rest of the secret
+      // resolution lives — so a secret in a guard condition would have been
+      // quietly skipped instead of failing. The check is static (it reads the
+      // authored step, not resolved values), so it is safe to run this early
+      // and it costs nothing on the steps that reference no secret.
+      const disallowedSecretRefs = findDisallowedSecretRefs(step);
+      if (disallowedSecretRefs.length > 0) {
+        pushStepReport({
+          ...step,
+          result: "FAIL",
+          resultDescription: describeDisallowedSecretRefs(disallowedSecretRefs),
+        });
+        stepExecutionFailed = true;
+        i++;
+        continue;
+      }
 
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
         clog(

@@ -102,10 +102,13 @@ resolver ever saw it. Two coordinated changes:
 values. The fix is a split at the top of `runStep`
 ([tests.ts:5092-5094](../../src/core/tests.ts)):
 
+```text
+report step    = replaceEnvs(step)              // in place on the caller's object, as today
+execution step = resolveSecrets(step).step      // a COPY; only the handlers see it
 ```
-execution step = resolveSecrets(replaceEnvs(deepClone(step)))   → passed to action handlers
-report step    = the caller's step, replaceEnvs applied as today → spread into the step report
-```
+
+`resolveSecrets` copies internally (via the same `deepMapStrings` walker the scrubber uses), so
+resolution and cloning are one walk rather than clone-then-mutate.
 
 - The **execution copy** carries real values into the action handlers (typing, HTTP headers/body,
   shell env, cookie values — wherever the author put the token).
