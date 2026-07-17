@@ -46,6 +46,12 @@ screenshot | one of:<br/>- string<br/>- object([Capture screenshot (detailed)](/
 
 ```json
 {
+  "screenshot": "/Users/jane doe/projects/my docs (v2)/static/images/image.png"
+}
+```
+
+```json
+{
   "screenshot": "https://example.com/static/images/image.png"
 }
 ```

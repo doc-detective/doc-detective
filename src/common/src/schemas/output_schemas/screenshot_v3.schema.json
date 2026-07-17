@@ -1602,6 +1602,7 @@
     "image.png",
     "static/images/image.png",
     "/User/manny/projects/doc-detective/static/images/image.png",
+    "/Users/jane doe/projects/my docs (v2)/static/images/image.png",
     "https://example.com/static/images/image.png",
     {
       "path": "https://promptless-customer-doc-assets.s3.amazonaws.com/docs-images/request-changes-button-0c851bb3.png",
