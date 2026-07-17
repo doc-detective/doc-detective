@@ -39,7 +39,7 @@ With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automati
 
 - `$$changed`: whether the span meaningfully changed and the recording (plus its baselines) was refreshed. `false` means the fresh capture was discarded and the existing file kept.
 - `$$changeReasons`: why the recording refreshed (drift, added/removed steps, missing file). Present only when `changed` is `true`.
-- `$$baselineFailures`: how many checkpoint baselines couldn't be written during a refresh. Present only when at least one failed—the video refreshed but its baselines didn't fully follow, so the next run treats the mismatch as drift and refreshes both again.
+- `$$baselineFailures`: how many checkpoint baselines Doc Detective couldn't write during a refresh. Present only when at least one failed—the video refreshed but its baselines didn't fully follow, so the next run treats the mismatch as drift and refreshes both again.
 
 In a headless run of an `aboveVariation` or checkpointed span (the recording itself is skipped):
 

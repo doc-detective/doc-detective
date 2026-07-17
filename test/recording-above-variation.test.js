@@ -397,12 +397,13 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function makePhantom({ entries, targetExists }) {
+  function makePhantom({ entries, targetExists, skipReason }) {
     const targetPath = path.join(tmpDir, "demo.mp4");
     if (targetExists) fs.writeFileSync(targetPath, "committed-video");
     return {
       type: "phantom",
       targetPath,
+      ...(skipReason ? { skipReason } : {}),
       checkpoints: {
         maxVariation: 0.05,
         baselineDir: path.join(tmpDir, "demo.mp4.checkpoints"),
@@ -445,6 +446,69 @@ describe("stopRecording: phantom spans (headless staleness)", function () {
     );
     assert.equal(host.state.recordings.length, 0, "handle dropped");
     assert.equal(fs.existsSync(handle.checkpoints.stagingDir), false);
+  });
+
+  // A phantom raised by the existing-target skip must not tell the author to
+  // re-run headed — the run may already be headed; the remedy is `overwrite`.
+  it("names the right remedy when the skip was an existing target, not headless", async function () {
+    const handle = makePhantom({
+      entries: [],
+      targetExists: true,
+      skipReason: "targetExists",
+    });
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    fs.mkdirSync(handle.checkpoints.stagingDir, { recursive: true });
+    const baselinePath = path.join(handle.checkpoints.baselineDir, "01-a.png");
+    fs.writeFileSync(baselinePath, "committed-baseline");
+    handle.checkpoints.entries.push({
+      fileName: "01-a.png",
+      stagingPath: path.join(handle.checkpoints.stagingDir, "01-a.png"),
+      baselinePath,
+      variation: 0.4,
+    });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.status, "WARNING");
+    assert.equal(result.outputs.stale, true);
+    assert.match(result.description, /overwrite/);
+    assert.ok(
+      !/headless|headed/i.test(result.description),
+      `existing-target skip must not blame headless, got: ${result.description}`
+    );
+  });
+
+  it("still names headless as the remedy for a headless phantom", async function () {
+    const handle = makePhantom({
+      entries: [],
+      targetExists: true,
+      skipReason: "headless",
+    });
+    fs.mkdirSync(handle.checkpoints.baselineDir, { recursive: true });
+    fs.mkdirSync(handle.checkpoints.stagingDir, { recursive: true });
+    const baselinePath = path.join(handle.checkpoints.baselineDir, "01-a.png");
+    fs.writeFileSync(baselinePath, "committed-baseline");
+    handle.checkpoints.entries.push({
+      fileName: "01-a.png",
+      stagingPath: path.join(handle.checkpoints.stagingDir, "01-a.png"),
+      baselinePath,
+      variation: 0.4,
+    });
+    const host = { state: { recordings: [handle] } };
+
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+
+    assert.equal(result.status, "WARNING");
+    assert.match(result.description, /headed/i);
   });
 
   it("reports SKIPPED + stale=false when checkpoints match", async function () {

@@ -468,10 +468,10 @@ function inspectStep(step: any, data: WalkData): void {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
   }
 
-  // Stale recordings (ADR 01079): a phantom recording span (headless run of
-  // a checkpointed/aboveVariation record) sets `outputs.stale: true` on its
-  // stopRecord step when the committed baselines no longer match. Powers
-  // `refreshStaleRecording`.
+  // Stale recordings (ADR 01079): a phantom recording span — a checkpointed or
+  // aboveVariation record whose capture was skipped, headless or because the
+  // target already exists — sets `outputs.stale: true` on its stopRecord step
+  // when the committed baselines no longer match. Powers `refreshStaleRecording`.
   if (step.outputs?.stale === true) {
     data.hasStaleRecordings = true;
   }

@@ -137,22 +137,32 @@ async function stopRecording({
     }
   };
 
-  // Phantom span (ADR 01079): the recording itself was skipped (headless),
-  // but checkpoints ran against the committed baselines. Compute the span
-  // verdict READ-ONLY — no video, no seeding, no baseline updates, no orphan
-  // deletion — and surface staleness. WARNING = the recording appears stale;
-  // SKIPPED = the recording was skipped but its content still matches.
+  // Phantom span (ADR 01079): the recording itself was skipped — headless, or
+  // the target already exists — but checkpoints ran against the committed
+  // baselines. Compute the span verdict READ-ONLY — no video, no seeding, no
+  // baseline updates, no orphan deletion — and surface staleness. WARNING =
+  // the recording appears stale; SKIPPED = it was skipped but still matches.
   if (recording.type === "phantom") {
     dropHandle();
     const phantomCheckpoints: CheckpointsConfig | undefined =
       recording.checkpoints;
     const entries = phantomCheckpoints?.entries ?? [];
     discardCheckpointStaging();
+    // Name the skip and its remedy accurately: a headless run needs a headed
+    // one, an existing target needs `overwrite` (or the file removed).
+    const skipCause =
+      recording.skipReason === "targetExists"
+        ? `Recording skipped (the target already exists)`
+        : `Recording skipped (headless)`;
+    const refreshRemedy =
+      recording.skipReason === "targetExists"
+        ? `Delete it, or set \`overwrite\` to "true" or "aboveVariation", to refresh it.`
+        : `Recording is skipped in headless mode; re-run headed to refresh it.`;
     // A dirty span (a step FAILed mid-span) or a span that captured nothing
     // has no evidence either way — report neither stale nor current.
     if (phantomCheckpoints?.spanDirty || entries.length === 0) {
       result.status = "SKIPPED";
-      result.description = `Recording skipped (headless); the span didn't produce a complete checkpoint set, so staleness couldn't be determined.`;
+      result.description = `${skipCause}; the span didn't produce a complete checkpoint set, so staleness couldn't be determined.`;
       return result;
     }
     const verdict = computeSpanVerdict({
@@ -167,10 +177,10 @@ async function stopRecording({
     };
     if (verdict.changed) {
       result.status = "WARNING";
-      result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. Recording is skipped in headless mode; re-run headed to refresh it.`;
+      result.description = `The recording at ${recording.targetPath} appears stale — ${verdict.reasons.join("; ")}. ${refreshRemedy}`;
     } else {
       result.status = "SKIPPED";
-      result.description = `Recording skipped (headless); checkpoints match their baselines, so the recording appears current.`;
+      result.description = `${skipCause}; checkpoints match their baselines, so the recording appears current.`;
     }
     return result;
   }
