@@ -25,9 +25,9 @@ const SECRET_TOKEN_REGEX = /\$secret\.([A-Za-z0-9_]+)/g;
 // Non-global twin for stateless predicate checks.
 const SECRET_TOKEN_PROBE = /\$secret\.[A-Za-z0-9_]+/;
 
-// Values shorter than this are registered but never used as mask needles —
-// masking a 1-3 char value would shred unrelated output. Resolution still works;
-// the caller warns.
+// Values shorter than this cannot be mask needles — masking a 1-3 char value
+// would shred unrelated output. Resolution FAILs for such values (sending a
+// credential we cannot mask would violate the no-emission guarantee).
 const SECRET_MIN_MASK_LENGTH = 4;
 
 // Consts are declared above this block (and functions below it), matching the

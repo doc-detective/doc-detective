@@ -202,9 +202,6 @@ describe("secrets: resolveSecrets", function () {
     });
   });
 
-  // Masking a 1-3 char value would shred unrelated output, so such a value
-  // resolves but is never used as a mask needle. Warn rather than fail — the
-  // author's credential still works; they just lose masking on it.
   // A value below the masking floor can't honor the no-emission guarantee: it
   // would be sent to the target but never registered as a mask needle, so an
   // echo would land verbatim in the report. Declared means protected, so this

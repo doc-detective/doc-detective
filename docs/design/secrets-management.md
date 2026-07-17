@@ -173,7 +173,9 @@ Mechanics:
   the raw value plus its URL-encoded form (secrets ride in URLs and form bodies). Base64 variants
   are deferred — the heuristic layer's shape patterns cover the common encoded carriers.
 - **Minimum length 4.** Masking one- and two-character values would shred unrelated output; a
-  sub-4-char "secret" gets a resolution-time warning instead.
+  sub-4-char secret FAILs at resolution time, naming the variable and explaining the floor — the
+  step never proceeds (an earlier revision warned and continued, but that left an unmaskable
+  credential loose in the run).
 - The registry lives on the run (alongside the registries created in `runSpecs`,
   [tests.ts:1695-1778](../../src/core/tests.ts)) and is never serialized.
 
