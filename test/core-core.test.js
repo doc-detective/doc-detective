@@ -821,6 +821,39 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("a skipped stopRecord reports no recording outputs", async function () {
+    // stopRecord with no active recording SKIPs deterministically on every
+    // platform, headed or headless. Skip paths must not report `outputs` —
+    // recording metadata (recordingPath, duration, ...) is only set when a
+    // file was actually produced.
+    const spec = {
+      tests: [
+        {
+          testId: "skipped-recording-outputs",
+          steps: [{ goTo: "http://localhost:8092" }, { stopRecord: true }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-skipped-record-outputs.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      const stopStep = steps.find((s) => typeof s.stopRecord !== "undefined");
+      assert.ok(stopStep, "stopRecord step should be reported");
+      assert.equal(stopStep.result, "SKIPPED");
+      assert.equal(
+        stopStep.outputs,
+        undefined,
+        "a skipped stopRecord must not report recording outputs"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("autoRecord/record name conflict skips the whole test before any step runs", async function () {
     // A `record` step that reuses a recording `name` while one with that name
     // is still active is caught by the static Phase-1 preflight, which skips

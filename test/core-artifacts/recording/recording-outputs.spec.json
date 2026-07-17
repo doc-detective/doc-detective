@@ -1,0 +1,102 @@
+{
+  "specId": "recording-outputs",
+  "description": "stopRecord metadata outputs: after a recording saves, the stopRecord step exposes recordingPath/format/duration/width/height/fps in outputs, capturable via step variables. One test per output-bearing format family: mp4 (fps token in ffmpeg stderr) and gif (fps derived from the tbr fallback). Headed-only like all real recordings; the skip path (no outputs on a skipped stopRecord) is asserted programmatically in test/core-core.test.js.",
+  "tests": [
+    {
+      "testId": "recording-outputs-mp4",
+      "description": "An mp4 recording reports probe-derived metadata outputs.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "recording-outputs.mp4",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display"
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "REC_MP4_PATH": "$$recordingPath",
+            "REC_MP4_FORMAT": "$$format",
+            "REC_MP4_DURATION": "$$duration",
+            "REC_MP4_WIDTH": "$$width",
+            "REC_MP4_HEIGHT": "$$height",
+            "REC_MP4_FPS": "$$fps"
+          }
+        },
+        {
+          "description": "Assert the captured outputs: format matches, path non-empty, and every probed metric is a positive number.",
+          "runShell": "node -e \"const ok = '$REC_MP4_FORMAT' === 'mp4' && '$REC_MP4_PATH'.length > 0 && Number('$REC_MP4_DURATION') > 0 && Number('$REC_MP4_WIDTH') > 0 && Number('$REC_MP4_HEIGHT') > 0 && Number('$REC_MP4_FPS') > 0; process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "recording-outputs-gif",
+      "description": "A gif recording reports metadata outputs, exercising the tbr fps fallback (gif streams carry no fps token in ffmpeg stderr).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "recording-outputs.gif",
+            "engine": {
+              "name": "ffmpeg",
+              "target": "display",
+              "fps": 10
+            },
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "REC_GIF_FORMAT": "$$format",
+            "REC_GIF_DURATION": "$$duration",
+            "REC_GIF_FPS": "$$fps"
+          }
+        },
+        {
+          "description": "Assert the gif outputs: format matches and duration/fps are positive (fps comes from the tbr fallback).",
+          "runShell": "node -e \"const ok = '$REC_GIF_FORMAT' === 'gif' && Number('$REC_GIF_DURATION') > 0 && Number('$REC_GIF_FPS') > 0; process.exit(ok ? 0 : 1)\""
+        }
+      ]
+    }
+  ]
+}
