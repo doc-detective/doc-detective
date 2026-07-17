@@ -10,6 +10,7 @@ description: "Reference for the `Element-finding fields` schema."
 
 - [annotation](/reference/schemas/annotation)
 - [Annotation fields](/reference/schemas/annotation-fields)
+- [Identified annotation](/reference/schemas/identified-annotation)
 
 ## Fields
 
