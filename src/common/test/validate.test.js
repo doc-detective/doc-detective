@@ -1145,6 +1145,231 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("annotations", function () {
+      const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
+
+      it("should validate an annotation_v3 object for each type with a string target", function () {
+        for (const type of TYPES) {
+          const result = validate({
+            schemaKey: "annotation_v3",
+            object: { [type]: "#submit-button" },
+          });
+
+          expect(result.valid, `expected valid: ${type} — ${result.errors}`).to
+            .be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate an annotation_v3 object with a find-criteria target", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: {
+            outline: {
+              elementClass: ["form-field", "/^billing-/"],
+              elementAttribute: { "data-state": "invalid" },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate an annotation_v3 object with a position target", function () {
+        const named = validate({
+          schemaKey: "annotation_v3",
+          object: { text: { position: "top-right" }, label: "Demo data" },
+        });
+        expect(named.valid, named.errors).to.be.true;
+
+        const point = validate({
+          schemaKey: "annotation_v3",
+          object: { arrow: { position: { x: 640, y: 220 } } },
+        });
+        expect(point.valid, point.errors).to.be.true;
+      });
+
+      it("should reject an annotation_v3 object with no type key", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { label: "Orphaned label" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an annotation_v3 object with more than one type key", function () {
+        // Exactly one type key per annotation — two shapes in one object is
+        // ambiguous about what should be drawn.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", blur: "#b" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate an annotation_v3 object with the full shared prop set", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: {
+            id: "redact-api-keys",
+            blur: { elementAttribute: { "data-sensitive": true } },
+            all: true,
+            track: true,
+            duration: 3500,
+            position: "right",
+            style: { intensity: 22, color: "#E11D48", strokeWidth: 3 },
+            transition: { enter: "none", exit: "fade", durationMs: 400 },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject unknown annotation_v3 properties and bad style values", function () {
+        const unknown = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", bogus: true },
+        });
+        expect(unknown.valid).to.be.false;
+
+        const badOpacity = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", style: { opacity: 5 } },
+        });
+        expect(badOpacity.valid).to.be.false;
+
+        const badTransition = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", transition: { enter: "explode" } },
+        });
+        expect(badTransition.valid).to.be.false;
+      });
+
+      it("should not inject defaults into an annotation_v3 object", function () {
+        // annotation_v3 is $ref'd from screenshot steps and the defaults
+        // cascade alike; a schema-level default here would be force-injected
+        // into every consumer and break the config→spec→test resolution.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a" },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.deep.equal({ outline: "#a" });
+      });
+
+      it("should validate a screenshot step with an annotations array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "checkout.png",
+              crop: { selector: "#checkout-panel", padding: 24 },
+              annotations: [
+                { outline: "#credit-card-number" },
+                { badge: "#expiry", label: "2" },
+                {
+                  callout: { elementTestId: "cvv-input" },
+                  label: "Never stored",
+                  position: "right",
+                  style: { maxWidth: 240 },
+                },
+                { blur: ".customer-email", all: true },
+              ],
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.screenshot.annotations).to.have.lengthOf(4);
+      });
+
+      it("should reject a screenshot annotations entry that isn't a valid annotation", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: { path: "a.png", annotations: [{ label: "no type" }] },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate annotationDefaults at the config level", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            annotationDefaults: {
+              color: "#E11D48",
+              strokeWidth: 3,
+              fontFamily: "Inter, system-ui, sans-serif",
+              fontSize: 14,
+              badge: { background: "#E11D48", color: "#FFFFFF" },
+              callout: { background: "#1E293B", maxWidth: 280 },
+              blur: { intensity: 14 },
+              transition: { enter: "fade", exit: "fade", durationMs: 250 },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotationDefaults.color).to.equal("#E11D48");
+      });
+
+      it("should validate annotationDefaults overrides on specs and tests", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            annotationDefaults: { color: "#7C3AED" },
+            tests: [
+              {
+                annotationDefaults: { color: "#0EA5E9" },
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotationDefaults.color).to.equal("#7C3AED");
+        expect(result.object.tests[0].annotationDefaults.color).to.equal(
+          "#0EA5E9"
+        );
+      });
+
+      it("should not default annotationDefaults at any cascade level when unset", function () {
+        // Same contract as autoScreenshot: absent must stay absent so the
+        // runtime can resolve test > spec > config > built-in theme.
+        const spec = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+        expect(spec.valid, spec.errors).to.be.true;
+        expect(spec.object.annotationDefaults).to.equal(undefined);
+        expect(spec.object.tests[0].annotationDefaults).to.equal(undefined);
+
+        const config = validate({ schemaKey: "config_v3", object: {} });
+        expect(config.valid, config.errors).to.be.true;
+        expect(config.object.annotationDefaults).to.equal(undefined);
+      });
+
+      it("should reject an invalid annotationDefaults theme", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { annotationDefaults: { color: 5, bogus: true } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({

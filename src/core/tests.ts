@@ -9,6 +9,7 @@ import fs from "node:fs";
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { resolveTheme } from "./annotations/model.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
 import {
   requiredBrowserAssets,
@@ -4476,6 +4477,15 @@ async function runContext({
     // Effective autoScreenshot for this context (test > spec > config).
     const autoScreenshotEnabled = resolveAutoScreenshot({ config, spec, test });
 
+    // Effective annotation theme for this context, same precedence. Resolved
+    // here because spec/test are only in scope at this level; steps get it
+    // through `options` since runStep has no view of the spec or test.
+    const annotationTheme = resolveTheme([
+      config?.annotationDefaults,
+      spec?.annotationDefaults,
+      test?.annotationDefaults,
+    ]);
+
     // Iterates steps
     let stepExecutionFailed = false;
     // The reason recorded on steps skipped after execution stopped. Defaults to
@@ -4720,6 +4730,7 @@ async function runContext({
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
+            annotationTheme,
           },
           processRegistry: processRegistry,
           appSession: appSession,
@@ -5313,6 +5324,7 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      annotationTheme: options?.annotationTheme,
     });
   } else if (typeof step.swipe !== "undefined") {
     actionResult = await swipeSurface({

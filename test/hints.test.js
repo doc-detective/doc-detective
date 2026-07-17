@@ -500,6 +500,50 @@ describe("hints/context", function () {
         expect(data.producedScreenshots).to.equal(true);
       });
     }
+    it("usedAnnotations is true when a screenshot step declares annotations", function () {
+      const data = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  {
+                    steps: [
+                      {
+                        screenshot: {
+                          path: "x.png",
+                          annotations: [{ outline: "#a" }],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(data.usedAnnotations).to.equal(true);
+    });
+
+    // `screenshot` is boolean | string | object, so the annotations read has to
+    // survive the non-object forms and an empty array.
+    for (const screenshotValue of [
+      true,
+      "home.png",
+      { path: "x.png" },
+      { path: "x.png", annotations: [] },
+    ]) {
+      it(`usedAnnotations is false for ${JSON.stringify(screenshotValue)}`, function () {
+        const data = walkResults({
+          specs: [
+            { tests: [{ contexts: [{ steps: [{ screenshot: screenshotValue }] }] }] },
+          ],
+        });
+        expect(data.usedAnnotations).to.equal(false);
+      });
+    }
+
     for (const recordValue of [true, "run.webm", { path: "x.mp4", directory: "out" }]) {
       it(`producedRecordings is true for ${JSON.stringify(recordValue)}`, function () {
         const data = walkResults({
@@ -1544,6 +1588,7 @@ function fakeCtx(partial = {}) {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    usedAnnotations: false,
     producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
@@ -1635,12 +1680,12 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 35 active hints. `useFileTypesForRst` is commented out in the
+    // 36 active hints. `useFileTypesForRst` is commented out in the
     // registry but the `RST_EXTENSIONS` constant, the
     // `detectRstFiles` helper, and the `hasRstFiles` context field
     // are kept in place so the hint can be re-enabled without
     // re-plumbing.
-    expect(HINTS.length).to.equal(35);
+    expect(HINTS.length).to.equal(36);
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1998,6 +2043,21 @@ describe("hints/hints (registry)", function () {
           config: { autoRecord: true },
         })
       )
+    ).to.equal(false);
+  });
+
+  it("useAnnotationsOnScreenshots: fires for screenshot users who aren't annotating yet", function () {
+    const h = findHint("useAnnotationsOnScreenshots");
+    expect(
+      h.when(fakeCtx({ producedScreenshots: true, usedAnnotations: false }))
+    ).to.equal(true);
+    // Already annotating -> don't pitch the feature back at them.
+    expect(
+      h.when(fakeCtx({ producedScreenshots: true, usedAnnotations: true }))
+    ).to.equal(false);
+    // No screenshots at all -> useScreenshotStep is the relevant hint.
+    expect(
+      h.when(fakeCtx({ producedScreenshots: false, usedAnnotations: false }))
     ).to.equal(false);
   });
 

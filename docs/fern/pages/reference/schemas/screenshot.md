@@ -109,3 +109,31 @@ screenshot | one of:<br/>- string<br/>- object([Capture screenshot (detailed)](/
   }
 }
 ```
+
+```json
+{
+  "screenshot": {
+    "path": "login.png",
+    "directory": "static/images",
+    "annotations": [
+      {
+        "badge": "#username",
+        "label": "1"
+      },
+      {
+        "callout": {
+          "elementTestId": "submit"
+        },
+        "label": "Sends a one-time code",
+        "position": "right"
+      },
+      {
+        "blur": {
+          "selector": ".account-id"
+        },
+        "all": true
+      }
+    ]
+  }
+}
+```

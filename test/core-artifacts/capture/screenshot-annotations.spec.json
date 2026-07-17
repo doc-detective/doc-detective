@@ -1,0 +1,436 @@
+{
+  "specId": "screenshot-annotations",
+  "description": "End-to-end coverage for screenshot annotations. Every annotation type, every target shape (string, find object, position), per-annotation style overrides, the annotationDefaults cascade, annotations combined with crop, and `all` for multi-element redaction. Annotations are composited into the image with sharp rather than injected into the page, so these run headless on every platform and need no display. Specs can only assert PASS/SKIPPED — the FAIL paths (missing target, `all` with a string target) are pinned in test/annotations-screenshot.test.js.",
+  "tests": [
+    {
+      "testId": "annotations-types",
+      "description": "Each of the six annotation types against a string target.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-outline",
+          "screenshot": {
+            "path": "annotation-outline.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": "#submit-button"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-arrow",
+          "screenshot": {
+            "path": "annotation-arrow.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "arrow": "#submit-button"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-badge",
+          "screenshot": {
+            "path": "annotation-badge.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "badge": "#submit-button",
+                "label": "1"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-callout",
+          "screenshot": {
+            "path": "annotation-callout.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "callout": "#submit-button",
+                "label": "Submits the form",
+                "position": "right"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-blur",
+          "screenshot": {
+            "path": "annotation-blur.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "blur": "#username-input"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-text",
+          "screenshot": {
+            "path": "annotation-text.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "text": {
+                  "position": "top-right"
+                },
+                "label": "Demo environment"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotations-targets",
+      "description": "Every target shape: bare string, detailed find object across criteria, and fixed positions.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-target-selector",
+          "screenshot": {
+            "path": "annotation-target-selector.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": {
+                  "selector": "#submit-button"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-target-testid",
+          "screenshot": {
+            "path": "annotation-target-testid.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": {
+                  "elementTestId": "login-form-submit"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-target-class",
+          "screenshot": {
+            "path": "annotation-target-class.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": {
+                  "elementClass": [
+                    "btn",
+                    "btn-primary"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-target-text",
+          "screenshot": {
+            "path": "annotation-target-text.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "badge": {
+                  "elementText": "Submit by ID"
+                },
+                "label": "A"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-target-position-point",
+          "screenshot": {
+            "path": "annotation-target-point.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "arrow": {
+                  "position": {
+                    "x": 200,
+                    "y": 150
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-target-position-region",
+          "screenshot": {
+            "path": "annotation-target-region.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "text": {
+                  "position": "bottom-left"
+                },
+                "label": "Sample data"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotations-style-and-theme",
+      "description": "Per-annotation style overrides and the annotationDefaults cascade. This test's theme overrides the spec's, which overrides the config's.",
+      "annotationDefaults": {
+        "color": "#0EA5E9",
+        "strokeWidth": 4,
+        "badge": {
+          "background": "#0EA5E9",
+          "color": "#FFFFFF"
+        }
+      },
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-theme-applied",
+          "screenshot": {
+            "path": "annotation-theme.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": "#submit-button"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-style-override",
+          "screenshot": {
+            "path": "annotation-style-override.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": "#submit-button",
+                "style": {
+                  "color": "#7C3AED",
+                  "strokeWidth": 2,
+                  "radius": 10,
+                  "padding": 12,
+                  "opacity": 0.8
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotations-with-crop",
+      "description": "Annotations resolve against the capture but draw onto the cropped canvas, so their rects have to shift by the crop origin.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-crop-string",
+          "screenshot": {
+            "path": "annotation-crop.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#buttons-section",
+            "annotations": [
+              {
+                "outline": "#submit-button"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-crop-padded",
+          "screenshot": {
+            "path": "annotation-crop-padded.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": {
+              "selector": "#submit-button",
+              "padding": 60
+            },
+            "annotations": [
+              {
+                "badge": "#submit-button",
+                "label": "1"
+              },
+              {
+                "outline": "#submit-button"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotations-all",
+      "description": "`all` annotates every match rather than the first — the shape redaction needs, since blurring only the first match leaves the rest visible.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-all-blur",
+          "screenshot": {
+            "path": "annotation-all-blur.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "blur": {
+                  "selector": ".form-control"
+                },
+                "all": true
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-all-outline",
+          "screenshot": {
+            "path": "annotation-all-outline.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": {
+                  "selector": ".btn-primary"
+                },
+                "all": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotations-multiple",
+      "description": "Several annotations of different types composited into one image.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-combined",
+          "screenshot": {
+            "path": "annotation-combined.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "badge": "#username-input",
+                "label": "1"
+              },
+              {
+                "badge": {
+                  "elementTestId": "password-field"
+                },
+                "label": "2"
+              },
+              {
+                "outline": "#submit-button"
+              },
+              {
+                "arrow": "#submit-button",
+                "position": "bottom"
+              },
+              {
+                "blur": {
+                  "elementTestId": "password-field"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotations-text-rendering-canary",
+      "description": "Text-bearing annotations on every platform. sharp rasterizes SVG text through the host's fontconfig, and the CI matrix spans three OSes with different faces installed — if a font stack resolves to nothing, this is where it surfaces rather than in a user's doc build.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "annotation-canary-default-font",
+          "screenshot": {
+            "path": "annotation-canary-default.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "badge": "#submit-button",
+                "label": "1"
+              },
+              {
+                "callout": "#username-input",
+                "label": "Long enough to wrap across several lines at this width",
+                "style": {
+                  "maxWidth": 160
+                }
+              },
+              {
+                "text": {
+                  "position": "top-left"
+                },
+                "label": "Canary"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-canary-generic-font",
+          "screenshot": {
+            "path": "annotation-canary-generic.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "callout": "#submit-button",
+                "label": "Generic family only",
+                "style": {
+                  "fontFamily": "sans-serif",
+                  "fontSize": 18
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

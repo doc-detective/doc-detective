@@ -22,6 +22,7 @@ contentPath | string | Optional. Path to the content that the test is associated
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on markup regex. | `true`
 autoScreenshot | boolean | Optional. If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level. | 
 autoRecord | boolean | Optional. If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. | 
+annotationDefaults | object([Annotation defaults](/reference/schemas/annotation-defaults)) | Optional. Default visual theme for annotations in this test. Overrides `annotationDefaults` set at the spec or config level. When unset, defers to the spec level, then the config level. | 
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | 
 openApi | array of unknown | Optional. No description provided. | 
 if | one of:<br/>- string<br/>- array of string | Optional. A condition expression, or an array of expressions combined with logical AND. | 
@@ -206,5 +207,30 @@ contexts | array of object([Resolved context](/reference/schemas/resolved-contex
     }
   ],
   "detectSteps": true
+}
+```
+
+```json
+{
+  "annotationDefaults": {
+    "color": "#E11D48",
+    "strokeWidth": 3,
+    "badge": {
+      "background": "#E11D48",
+      "color": "#FFFFFF"
+    }
+  },
+  "steps": [
+    {
+      "screenshot": {
+        "path": "a.png",
+        "annotations": [
+          {
+            "outline": "#submit"
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
