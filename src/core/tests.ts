@@ -5190,7 +5190,9 @@ async function runStep({
       // hand — the post-step hook and stopRecord read the resolved config
       // off the handle. resolveCheckpointsConfig returns null for every
       // record form without a checkpoints field (string/boolean included),
-      // so `null` is the single "disabled" encoding.
+      // so `null` is the single "disabled" encoding. `overwrite` rides along
+      // for stopRecord's aboveVariation staging/promote decision (ADR 01078).
+      handle.overwrite = (step.record as any)?.overwrite;
       if (handle.targetPath) {
         handle.checkpoints = resolveCheckpointsConfig({
           record: step.record,

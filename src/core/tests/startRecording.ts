@@ -26,6 +26,7 @@ import {
   appWindowRect,
 } from "./appWindows.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
+import { recordingCheckpointsEnabled } from "./recordingCheckpoints.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
@@ -172,12 +173,37 @@ async function startRecording({
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Check if file already exists
-  if (fs.existsSync(filePath) && step.record.overwrite == "false") {
-    // File already exists
+  // A recording that's skipped — because the target already exists, or because
+  // the engine can't capture headless — still tracks a compare-only "phantom"
+  // span when checkpoints are on (or aboveVariation, which implies them), per
+  // ADR 01079: the post-step hook captures checkpoints against the committed
+  // baselines and stopRecord reports staleness read-only — no video, no writes.
+  // `skipReason` travels to stopRecord so a stale verdict can name the right
+  // remedy: a headless skip needs a headed re-run, an existing target needs
+  // `overwrite` (or the file removed).
+  const phantomRecordingResult = (
+    skipDescription: string,
+    skipReason: "headless" | "targetExists" = "headless"
+  ) => {
     result.status = "SKIPPED";
-    result.description = `File already exists: ${filePath}`;
+    if (recordingCheckpointsEnabled(step.record)) {
+      result.description = `${skipDescription} Running checkpoint comparisons only, to detect whether the recording is stale.`;
+      result.recording = { type: "phantom", targetPath: filePath, skipReason };
+    } else {
+      result.description = skipDescription;
+    }
     return result;
+  };
+
+  // Check if file already exists. Skipping the video doesn't skip the
+  // checkpoints: without the phantom span, `checkpoints: true` (which leaves
+  // overwrite at its "false" default) would seed baselines on the first run and
+  // then never compare again, silently retiring the drift detection it promises.
+  if (fs.existsSync(filePath) && step.record.overwrite == "false") {
+    return phantomRecordingResult(
+      `File already exists: ${filePath}`,
+      "targetExists"
+    );
   }
 
   // With overlapping recordings, two could target the same output before
@@ -337,9 +363,9 @@ async function startRecording({
     // MediaRecorder. Concurrency-safe — each context auto-selects its own
     // window by a unique title. Requires headed Chrome.
     if (context.browser?.headless) {
-      result.status = "SKIPPED";
-      result.description = `Recording isn't supported in headless mode with the browser engine. Use the ffmpeg engine to record headless.`;
-      return result;
+      return phantomRecordingResult(
+        `Recording isn't supported in headless mode with the browser engine. Use the ffmpeg engine to record headless.`
+      );
     }
     if (context.browser?.name !== "chrome") {
       result.status = "SKIPPED";
@@ -511,9 +537,9 @@ async function startRecording({
   // app-targeted recording captures a native window, which exists (headed)
   // regardless of any browser's headless mode, so the guard doesn't apply.
   if (!appRef && context.browser?.headless && !context.__display) {
-    result.status = "SKIPPED";
-    result.description = `Recording isn't supported in headless mode without a virtual display (Xvfb).`;
-    return result;
+    return phantomRecordingResult(
+      `Recording isn't supported in headless mode without a virtual display (Xvfb).`
+    );
   }
 
   // Crop geometry. Browser-driver crops (viewport, window) resolve through

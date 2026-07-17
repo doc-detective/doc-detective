@@ -39,6 +39,22 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `rec-perm-*.gif`, and scratch files under `test/core-artifacts/`. Scope-check and restore these
   (`git checkout -- image.png` etc.) before committing — subagents are especially prone to leaving
   them behind.
+- **Running a fixture through the CLI pollutes `npm test`.** `doc-detective runTests` writes its
+  per-run reports to a `.doc-detective/` directory beside the input — so running a fixture from
+  `test/core-artifacts/` leaves `test/core-artifacts/.doc-detective/`, and
+  [select-fixture-bundles.test.js](select-fixture-bundles.test.js) then fails with `bundle dirs
+  must match on-disk group dirs exactly` (actual gains `'.doc-detective'`): it enumerates the group
+  directories *on disk* and can't tell your run output from a new fixture group. It's local
+  pollution, not a regression — remove the directory and re-run:
+
+  ```bash
+  rm -rf test/core-artifacts/.doc-detective                                    # bash
+  Remove-Item -Recurse -Force test/core-artifacts/.doc-detective              # PowerShell
+  ```
+
+  Two ways to avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full
+  suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
+  leave, but the run directory is not harmless.
 
 ## Fixture concurrency & the resource-aware scheduler
 
