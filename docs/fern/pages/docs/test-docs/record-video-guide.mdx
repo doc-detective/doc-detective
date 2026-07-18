@@ -1,10 +1,10 @@
 ---
 title: Record video
 sidebar-title: Recording
-description: Record a flow as a video, choose an engine, automate it, detect video regressions with checkpoints, and narrate it with annotations.
+description: Record a flow as a video, choose an engine, detect visual regressions with checkpoints, automate it, and narrate it with annotations.
 ---
 
-Doc Detective can record a test as a video, pick the right capture engine for you, record every context automatically, watch a recording for visual drift with checkpoints, and narrate a flow with on-screen annotations. This guide walks that path with runnable examples. The [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the generated [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas are where you look up every field.
+Doc Detective can record a test as a video, pick the right capture engine for you, watch a recording for visual drift with checkpoints, record every context automatically, and narrate a flow with on-screen annotations. Each is a standalone capability, and this guide covers all of them with runnable examples. The [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the generated [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas are where you look up every field.
 
 ## Before you begin
 
@@ -18,7 +18,7 @@ The steps in this guide work the same whether you author them in a standalone `.
 
 Recordings are video only, with no audio track.
 
-## Step 1: Record and stop
+## Record and stop
 
 The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`.
 
@@ -45,7 +45,7 @@ A single context can run more than one recording at once—for example, a full s
 
 For the full set of fields, see the [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas.
 
-## Step 2: Choose a recording engine
+## Choose a recording engine
 
 Recording uses one of two engines. If you don't set `engine`, Doc Detective prefers the `browser` engine when a visible Chrome context is available, and falls back to `ffmpeg` otherwise.
 
@@ -75,36 +75,7 @@ Engine choice affects concurrency. The `browser` engine always runs in parallel.
 
 Recording a native app surface or a mobile device screen follows different rules—see [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
 
-## Step 3: Record automatically
-
-To record every driver-based context from start to finish without explicit `record` steps, turn on `autoRecord`. Doc Detective captures each context end to end, which is useful for a video archive or for replaying exactly what happened when a test fails.
-
-Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
-
-```json title="config.json"
-{
-  "autoRecord": true,
-  "output": "./test-results"
-}
-```
-
-The CLI flag does the same for a single run; use `--no-auto-record` to override a config file that enables it:
-
-```bash
-doc-detective --auto-record
-```
-
-Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree, so the same context lands on the same relative path in every run:
-
-```
-<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
-```
-
-An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
-
-For where the artifacts land, see [Automatic recordings](/docs/actions/record#automatic-recordings), the [`config`](/reference/schemas/config) schema, and [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
-
-## Step 4: Detect visual regressions with checkpoints
+## Detect visual regressions with checkpoints
 
 A recording's steps can keep passing while the recorded content quietly drifts—a redesigned page, a moved button, changed copy. To catch that, enable `checkpoints` on a `record` step. Doc Detective then captures a screenshot after every step during the span and compares each against a committed baseline stored beside the recording (`signup-flow.mp4.checkpoints/` by default, or an object-form `directory`):
 
@@ -168,7 +139,36 @@ Detection is cheap and continuous, so headless CI watches recording freshness on
 
 `stopRecord` reports the outcome of all of this in its outputs: `$$checkpoints` and `$$maxCheckpointVariation`, `$$seededBaselines`, `$$changed` and `$$changeReasons`, `$$stale`, `$$duration` / `$$width` / `$$height`, and `$$resolutionMatch` / `$$allBlack`. For the full list, see [Recording checkpoints](/docs/actions/record#recording-checkpoints), the [`stopRecord`](/docs/actions/stoprecord) action reference, and the [`stopRecord`](/reference/schemas/stoprecord) schema.
 
-## Step 5: Narrate a recording with annotations
+## Record video automatically
+
+Turn on `autoRecord` to record every driver-based context from start to finish without explicit `record` steps. Doc Detective captures each context end to end, which is useful for a video archive or for replaying exactly what happened when a test fails.
+
+Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+
+```json title="config.json"
+{
+  "autoRecord": true,
+  "output": "./test-results"
+}
+```
+
+The CLI flag does the same for a single run; use `--no-auto-record` to override a config file that enables it:
+
+```bash
+doc-detective --auto-record
+```
+
+Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree, so the same context lands on the same relative path in every run:
+
+```
+<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
+```
+
+An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+
+For where the artifacts land, see [Automatic recordings](/docs/actions/record#automatic-recordings), the [`config`](/reference/schemas/config) schema, and [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Narrate a recording with annotations
 
 The `annotate` action draws annotations into the page and leaves them up across steps and navigation, so they appear in the video. This is the difference from `screenshot.annotations`, which apply to a single still:
 
@@ -241,7 +241,7 @@ For a redaction that stays up for a whole recording, set `all: true` with an obj
 }
 ```
 
-The step exposes `$$annotationCount`, the number of annotations on screen after it runs. The annotation objects themselves—the six types, targets, `style`, and the `annotationDefaults` theme—live in one place, on the screenshot guide. See [Annotate screenshots](/docs/test-docs/capture-screenshots-guide#step-4-annotate-screenshots) and [Annotations](/docs/actions/screenshot#annotations). For the `annotate` fields, see the [`annotate`](/docs/actions/annotate) action reference and the [`annotate`](/reference/schemas/annotate) schema.
+The step exposes `$$annotationCount`, the number of annotations on screen after it runs. The annotation objects themselves—the six types, targets, `style`, and the `annotationDefaults` theme—live in one place, on the screenshot guide. See [Annotate screenshots](/docs/test-docs/capture-screenshots-guide#annotate-screenshots) and [Annotations](/docs/actions/screenshot#annotations). For the `annotate` fields, see the [`annotate`](/docs/actions/annotate) action reference and the [`annotate`](/reference/schemas/annotate) schema.
 
 ## Verify it works
 
