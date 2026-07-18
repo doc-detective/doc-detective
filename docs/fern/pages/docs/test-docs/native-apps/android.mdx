@@ -28,6 +28,8 @@ This installs the SDK, a system image, and the emulator. The download is multi-G
 
 This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, opens a settings category, confirms the screen opened, takes a screenshot of the window, returns to the top-level screen, and closes the app. Settings ships with Android, so the test needs nothing else installed.
 
+{/* test {"testId":"android-app-settings","detectSteps":false,"runOn":[{"platforms":["android"]}]} */}
+
 ```json
 {
   "tests": [
@@ -86,6 +88,14 @@ This test targets the `android` platform, launches the Settings app by its packa
   ]
 }
 ```
+
+{/* step {"stepId":"android-settings-start","description":"Launch the app and wait until it's ready","startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Settings"}}}} */}
+{/* step {"stepId":"android-settings-click","description":"Open a settings category","click":{"elementText":"Network & internet","surface":{"app":"settings"}}} */}
+{/* step {"stepId":"android-settings-find","description":"Confirm the category screen opened","find":{"elementText":"Internet","surface":{"app":"settings"}}} */}
+{/* step {"stepId":"android-settings-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"android-settings.png","surface":{"app":"settings"}}} */}
+{/* step {"stepId":"android-settings-type","description":"Return to the top-level Settings screen","type":{"keys":["$BACK$"],"surface":{"app":"settings"}}} */}
+{/* step {"stepId":"android-settings-close","description":"Close the app","closeSurface":{"app":"settings"}} */}
+{/* test end */}
 
 To run this test, save it to a spec file and pass it to Doc Detective:
 

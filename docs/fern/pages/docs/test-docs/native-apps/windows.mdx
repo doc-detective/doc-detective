@@ -22,6 +22,8 @@ Doc Detective drives Windows apps through an automation driver that installs aut
 
 This test targets the `windows` platform, launches Character Map by its executable path, waits until the window is interactive, clicks a control, and closes the app. Character Map ships with Windows, so the test needs nothing else installed.
 
+{/* test {"testId":"windows-app-charmap","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+
 ```json
 {
   "tests": [
@@ -65,6 +67,12 @@ This test targets the `windows` platform, launches Character Map by its executab
   ]
 }
 ```
+
+{/* step {"stepId":"windows-charmap-start","description":"Launch Character Map and wait until it's ready","startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} */}
+{/* step {"stepId":"windows-charmap-click","description":"Click a control","click":{"elementText":"Select","surface":{"app":"charmap"}}} */}
+{/* step {"stepId":"windows-charmap-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"charmap.png","surface":{"app":"charmap"}}} */}
+{/* step {"stepId":"windows-charmap-close","description":"Close the app","closeSurface":{"app":"charmap"}} */}
+{/* test end */}
 
 To run this test, save it to a spec file and pass it to Doc Detective:
 

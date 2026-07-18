@@ -28,6 +28,8 @@ This installs the automation driver and prebuilds WebDriverAgent. It's macOS-onl
 
 This test targets the `ios` platform, launches the Settings app by its bundle ID on the context's default simulator, opens a settings screen, takes a screenshot of the window, and closes the app. Settings ships with iOS, so the test needs nothing else installed.
 
+{/* test {"testId":"ios-app-settings","detectSteps":false,"runOn":[{"platforms":["ios"]}]} */}
+
 ```json
 {
   "tests": [
@@ -71,6 +73,12 @@ This test targets the `ios` platform, launches the Settings app by its bundle ID
   ]
 }
 ```
+
+{/* step {"stepId":"ios-settings-start","description":"Launch the Settings app and wait until it's ready","startSurface":{"app":"com.apple.Preferences","timeout":180000,"waitUntil":{"find":{"elementText":"Settings"}}}} */}
+{/* step {"stepId":"ios-settings-click","description":"Open a settings screen","click":{"elementText":"General","surface":{"app":"Preferences"}}} */}
+{/* step {"stepId":"ios-settings-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"ios-settings.png","surface":{"app":"Preferences"}}} */}
+{/* step {"stepId":"ios-settings-close","description":"Close the app","closeSurface":{"app":"Preferences"}} */}
+{/* test end */}
 
 To run this test, save it to a spec file and pass it to Doc Detective:
 

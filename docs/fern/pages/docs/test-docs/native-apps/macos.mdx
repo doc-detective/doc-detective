@@ -24,6 +24,8 @@ One requirement matters before your first run: the process that runs Doc Detecti
 
 This test targets the `mac` platform, launches Calculator by its `.app` path, waits until a digit button exists, clicks it, and closes the app. Calculator ships with macOS, so the test needs nothing else installed.
 
+{/* test {"testId":"macos-app-calculator","detectSteps":false,"runOn":[{"platforms":["mac"]}]} */}
+
 ```json
 {
   "tests": [
@@ -67,6 +69,12 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
   ]
 }
 ```
+
+{/* step {"stepId":"macos-calculator-start","description":"Launch Calculator and wait until it's ready","startSurface":{"app":"/System/Applications/Calculator.app","timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}} */}
+{/* step {"stepId":"macos-calculator-click","description":"Click a control","click":{"elementAria":"1","surface":{"app":"Calculator"}}} */}
+{/* step {"stepId":"macos-calculator-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"calculator.png","surface":{"app":"Calculator"}}} */}
+{/* step {"stepId":"macos-calculator-close","description":"Close the app","closeSurface":{"app":"Calculator"}} */}
+{/* test end */}
 
 To run this test, save it to a spec file and pass it to Doc Detective:
 
