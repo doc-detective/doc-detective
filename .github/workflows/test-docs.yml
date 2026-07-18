@@ -45,16 +45,6 @@ jobs:
 
       - name: Run Doc Detective on the docs
         uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
-        env:
-          # The native-app guides carry runnable inline `android` tests. ubuntu-latest
-          # exposes KVM, so androidContextPreflight treats this runner as capable and
-          # would otherwise trigger a one-time multi-GB Android SDK/emulator install at
-          # test time. This docs-lint job isn't meant to provision an emulator, so we
-          # disable the lazy install: the `android` context then SKIPs cleanly with a
-          # manual-install pointer instead of downloading gigabytes (see
-          # src/core/tests.ts DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL handling). The
-          # windows/mac/ios inline tests already SKIP on Linux by platform mismatch.
-          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: "1"
         with:
           version: "" # bare npx doc-detective -> the linked local build above
           config: docs/.doc-detective.json
