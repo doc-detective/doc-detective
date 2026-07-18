@@ -26,7 +26,7 @@ This installs the SDK, a system image, and the emulator. The download is multi-G
 
 ## Run your first Android test
 
-This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, opens a settings category, takes a screenshot of the window, and closes the app. Settings ships with Android, so the test needs nothing else installed.
+This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, opens a settings category, confirms the screen opened, takes a screenshot of the window, returns to the top-level screen, and closes the app. Settings ships with Android, so the test needs nothing else installed.
 
 ```json
 {
@@ -57,9 +57,23 @@ This test targets the `android` platform, launches the Settings app by its packa
           }
         },
         {
+          "description": "Confirm the category screen opened.",
+          "find": {
+            "elementText": "Internet",
+            "surface": { "app": "settings" }
+          }
+        },
+        {
           "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "android-settings.png",
+            "surface": { "app": "settings" }
+          }
+        },
+        {
+          "description": "Return to the top-level Settings screen.",
+          "type": {
+            "keys": ["$BACK$"],
             "surface": { "app": "settings" }
           }
         },
@@ -83,9 +97,9 @@ A few things to notice:
 
 - The generous `timeout` (180,000 ms) leaves room for a cold emulator to boot and the app to launch. The toolchain and automation driver must be in place before the first step runs. Install them ahead of time with `doc-detective install android`, or let a capable host install them lazily on the first run that needs them.
 - `waitUntil.find` gates readiness: the step holds until an element with the text `Settings` exists, so the next step never runs against a screen that hasn't drawn its controls yet.
-- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows.
+- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows. If you change the category, also update the following `find` (here `Internet`) to a label the new category screen displays.
 - The example sets `"name": "settings"` on `startSurface`, and later steps address the app with `surface: { "app": "settings" }`. If you omit `name`, Doc Detective derives the same `settings` default from the final dot-segment of the package name; set it explicitly when you want a name of your own.
-- Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. On Android, `type` sends text to the focused control, so tap a field first (for example, the Settings search box) and then type into it.
+- Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. The example uses a standalone `find` to confirm the category screen opened, and a `type` step that sends the `$BACK$` [device key](/docs/actions/type#device-keys-mobile-app-surfaces) to return to the top level. Used for text entry, `type` sends text to the focused control on Android, so tap a field first (for example, the Settings search box) and then type into it.
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To test an app that isn't already on the emulator, point `install` at an `.apk` and name the `activity` to launch:

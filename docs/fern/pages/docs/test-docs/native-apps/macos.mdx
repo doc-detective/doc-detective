@@ -118,7 +118,7 @@ Doc Detective maps the host's `darwin` platform to `mac`, so a macOS runner matc
 
 **Launch arguments or environment variables aren't applied**
 
-- **Cause:** On macOS, `args` reaches the app as a real argument array and `env` is supported (macOS only). Elsewhere, `env` fails the step.
+- **Cause:** On macOS, `args` reaches the app as a real argument array, and Doc Detective supports `env` only on macOS. Elsewhere, `env` fails the step.
 - **Solution:** Pass `args` as an array and set `env` only in macOS specs. See the [app descriptor](/reference/schemas/app-descriptor) reference.
 
 ## What's next

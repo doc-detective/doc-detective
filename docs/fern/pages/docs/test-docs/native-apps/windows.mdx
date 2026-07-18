@@ -109,14 +109,14 @@ On a host that isn't Windows, the test skips with a reason rather than failing. 
 - **Cause:** On Windows, the driver takes launch arguments as a single command string. An `args` entry that contains spaces gets split unless it carries its own quotes.
 - **Solution:** Join your arguments into one string and quote any argument that contains spaces. See the [app descriptor](/reference/schemas/app-descriptor) reference.
 
-**The wrong window is targeted**
+**Doc Detective targets the wrong window**
 
 - **Cause:** An app with more than one window defaults to its main window.
 - **Solution:** Add a `window` selector to the `surface` (an index, where `-1` is the newest, a title, or an object form) to address a specific window. See [App windows](/docs/actions/find#app-windows).
 
-**A working directory setting is ignored elsewhere**
+**Doc Detective rejects a working directory setting elsewhere**
 
-- **Cause:** `workingDirectory` is supported on Windows only. On other platforms, setting it fails the step.
+- **Cause:** Doc Detective supports `workingDirectory` on Windows only. On other platforms, setting it fails the step.
 - **Solution:** Keep `workingDirectory` in Windows-only specs. See the [app descriptor](/reference/schemas/app-descriptor) reference.
 
 ## What's next
