@@ -1,0 +1,287 @@
+---
+title: Record video
+sidebar-title: Recording
+description: Record a flow as a video, choose an engine, automate it, detect video regressions with checkpoints, and narrate it with annotations.
+---
+
+Doc Detective can record a test as a video, pick the right capture engine for you, record every context automatically, watch a recording for visual drift with checkpoints, and narrate a flow with on-screen annotations. This guide walks that path with runnable examples. The [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the generated [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas are where you look up every field.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A visible display. Recording captures a headed context; headless caveats come later in this guide.
+- A directory where you can create a `.spec.json` file.
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+Recordings are video only, with no audio track.
+
+## Step 1: Record and stop
+
+The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`.
+
+Every recording ends at a `stopRecord` step; Doc Detective finalizes any recordings still open at the end of the run. `stopRecord` targets a recording in one of two ways:
+
+- **Untargeted** (`true` or `null`): stops the most recently started recording that's still active (last in, first out). This is the common case, when only one recording runs at a time.
+- **By name** (a string, or `{ "name": "<name>" }`): stops the active recording with that `name`, wherever it falls in the active set.
+
+A single context can run more than one recording at once—for example, a full session alongside a shorter clip. Give each `record` step a `name` so a later `stopRecord` targets the right one. For that pattern, see [Multiple overlapping recordings](/docs/actions/record#multiple-overlapping-recordings).
+
+```json title="recording.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        { "description": "Start recording.", "record": true },
+        { "description": "Walk through the flow.", "goTo": "https://example.com" },
+        { "description": "Stop recording.", "stopRecord": true }
+      ]
+    }
+  ]
+}
+```
+
+For the full set of fields, see the [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas.
+
+## Step 2: Choose a recording engine
+
+Recording uses one of two engines. If you don't set `engine`, Doc Detective prefers the `browser` engine when a visible Chrome context is available, and falls back to `ffmpeg` otherwise.
+
+- **`browser`** records the Chrome viewport for the current tab only. It needs a visible Chrome context and can't record in headless mode, but it's always safe to run concurrently because each context records its own window.
+- **`ffmpeg`** records the whole screen, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically.
+
+Set `engine` as a string to pick an engine with its defaults, or as an object to tune it:
+
+```json
+{
+  "description": "Record the Chrome tab with the browser engine.",
+  "record": { "path": "browser_demo.mp4", "engine": "browser" }
+}
+```
+
+```json
+{
+  "description": "Record the active window at 60 fps with FFmpeg.",
+  "record": {
+    "path": "ffmpeg_demo.mp4",
+    "engine": { "name": "ffmpeg", "target": "window", "fps": 60 }
+  }
+}
+```
+
+Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test so they take turns on the display—you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On Linux, the `ffmpeg` engine needs Xvfb to record a headless context, which has no physical display to capture.
+
+Recording a native app surface or a mobile device screen follows different rules—see [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
+
+## Step 3: Record automatically
+
+To record every driver-based context from start to finish without explicit `record` steps, turn on `autoRecord`. Doc Detective captures each context end to end, which is useful for a video archive or for replaying exactly what happened when a test fails.
+
+Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+
+```json title="config.json"
+{
+  "autoRecord": true,
+  "output": "./test-results"
+}
+```
+
+The CLI flag does the same for a single run; use `--no-auto-record` to override a config file that enables it:
+
+```bash
+doc-detective --auto-record
+```
+
+Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree, so the same context lands on the same relative path in every run:
+
+```
+<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
+```
+
+An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+
+For where the artifacts land, see [Automatic recordings](/docs/actions/record#automatic-recordings), the [`config`](/reference/schemas/config) schema, and [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Step 4: Detect visual regressions with checkpoints
+
+A recording's steps can keep passing while the recorded content quietly drifts—a redesigned page, a moved button, changed copy. To catch that, enable `checkpoints` on a `record` step. Doc Detective then captures a screenshot after every step during the span and compares each against a committed baseline stored beside the recording (`signup-flow.mp4.checkpoints/` by default, or an object-form `directory`):
+
+```json
+{
+  "record": { "path": "signup-flow.mp4", "checkpoints": true }
+}
+```
+
+On the first run the baselines don't exist yet, so `stopRecord` seeds them from the captures. Commit the baseline folder alongside the recording. On every later run, each checkpoint compares against its baseline:
+
+- Within `maxVariation` (default `0.05`): the step passes.
+- Beyond `maxVariation`: `stopRecord` returns `WARNING`, since the recorded flow's content has probably changed. A comparison never modifies the baselines.
+
+Tune or relocate the comparison with the object form, and raise `maxVariation` or disable checkpoints for spans that show dynamic content—animations, ads, clocks—which otherwise produce `WARNING` noise:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "checkpoints": { "maxVariation": 0.1, "directory": "baselines/signup-flow" }
+  }
+}
+```
+
+To act on drift instead of only reporting it, set `overwrite: "aboveVariation"`. The span always records, but the new video replaces the existing file only when the span meaningfully changed—checkpoint drift beyond `maxVariation`, an added, removed, or edited step, or a missing recording file. Otherwise Doc Detective discards the fresh capture and leaves the file and baselines untouched, so unchanged recordings stay stable across runs. This mode implies checkpoints and, when it refreshes, updates the baselines with the video in the same step:
+
+```json
+{
+  "record": { "path": "signup-flow.mp4", "overwrite": "aboveVariation" }
+}
+```
+
+### Verify the video file itself
+
+Checkpoints validate the scene a recording shows; `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are a wrong-sized crop, a truncated clip, and an all-black video:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "verify": { "minDuration": 2, "resolution": true, "notBlack": true }
+  }
+}
+```
+
+Unlike checkpoint drift, which returns `WARNING`, a violated `verify` guard fails the `stopRecord` step—these are properties you explicitly demand of the artifact:
+
+- `minDuration` / `maxDuration`: the video's length in seconds.
+- `resolution`: the video's dimensions, with a ±2 pixel tolerance because encoders round to even dimensions. `true` compares against the capture plan's expectation, or pass `{ "width": …, "height": … }` for literal dimensions.
+- `notBlack`: fails when black frames cover 95% or more of the video—the symptom of a broken screen capture.
+
+### Detect staleness without re-recording
+
+Doc Detective skips the capture in two situations: a headless run, which has no visible display, and a target file that already exists under the default `overwrite: "false"`. In both, a span with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale. `stopRecord` returns `WARNING` with `stale: true`, and a post-run hint points at the fix, which depends on the skip:
+
+- **Headless run:** re-run the test on a headed context to refresh the recording.
+- **Target already exists:** set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file.
+
+Detection is cheap and continuous, so headless CI watches recording freshness on every run and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
+
+`stopRecord` reports the outcome of all of this in its outputs: `$$checkpoints` and `$$maxCheckpointVariation`, `$$seededBaselines`, `$$changed` and `$$changeReasons`, `$$stale`, `$$duration` / `$$width` / `$$height`, and `$$resolutionMatch` / `$$allBlack`. For the full list, see [Recording checkpoints](/docs/actions/record#recording-checkpoints), the [`stopRecord`](/docs/actions/stoprecord) action reference, and the [`stopRecord`](/reference/schemas/stoprecord) schema.
+
+## Step 5: Narrate a recording with annotations
+
+The `annotate` action draws annotations into the page and leaves them up across steps and navigation, so they appear in the video. This is the difference from `screenshot.annotations`, which apply to a single still:
+
+| | `screenshot.annotations` | `annotate` |
+|---|---|---|
+| Lifetime | One capture | Until something clears them |
+| Appears in recordings | No | Yes |
+| Works on app surfaces | Yes | No—needs a page to draw into |
+| Touches the page | No | Yes |
+
+Give an `annotate` step at least one of `add` (draw annotations), `update` (change annotations already on screen, matched by `id`), or `clear` (`true` clears everything, or a list of ids clears just those). `clear` runs before `add`, so clearing and adding the same `id` reads as replacing it.
+
+Four fields matter only in motion:
+
+- `id`: a handle, so a later step can update or clear the annotation.
+- `track`: follow the element as the page scrolls or the layout shifts.
+- `transition`: how the annotation enters and leaves. `enter` accepts `none`, `fade`, `pop`, or `draw`; `exit` accepts `none` or `fade`; `durationMs` sets the length.
+- `duration`: milliseconds to stay up before clearing itself, with no paired `clear` step.
+
+This sequence points at one field, moves the annotations to the next, then clears them, all inside a recording span:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "record": "sso-setup.webm" },
+        {
+          "description": "Point at the first field.",
+          "annotate": {
+            "add": [
+              { "id": "step", "badge": "#idp", "label": "1" },
+              { "id": "guide", "callout": "#idp", "label": "Pick your provider first", "position": "right", "track": true }
+            ]
+          }
+        },
+        { "click": "#idp" },
+        {
+          "description": "Move the annotations to the next field.",
+          "annotate": {
+            "update": [
+              { "id": "step", "badge": "#metadata-url", "label": "2" },
+              { "id": "guide", "callout": "#metadata-url", "label": "Paste the metadata URL" }
+            ]
+          }
+        },
+        { "annotate": { "clear": true } },
+        { "stopRecord": true }
+      ]
+    }
+  ]
+}
+```
+
+For a redaction that stays up for a whole recording, set `all: true` with an object target so every match is covered, `track: true` so the blur follows the element, and `transition: { "enter": "none" }` so the blur never fades in—a fading blur leaves the content readable during the animation, and every frame of that is in the video:
+
+```json
+{
+  "annotate": {
+    "add": [
+      {
+        "id": "redact",
+        "blur": { "selector": ".account-id" },
+        "all": true,
+        "track": true,
+        "transition": { "enter": "none" }
+      }
+    ]
+  }
+}
+```
+
+The step exposes `$$annotationCount`, the number of annotations on screen after it runs. The annotation objects themselves—the six types, targets, `style`, and the `annotationDefaults` theme—live in one place, on the screenshot guide. See [Annotate screenshots](/docs/test-docs/capture-screenshots-guide#step-4-annotate-screenshots) and [Annotations](/docs/actions/screenshot#annotations). For the `annotate` fields, see the [`annotate`](/docs/actions/annotate) action reference and the [`annotate`](/reference/schemas/annotate) schema.
+
+## Verify it works
+
+- A recording that saved—and, when checkpointed, stayed within `maxVariation`—reports `PASS`.
+- Checkpoint drift beyond `maxVariation` reports `WARNING`, so the run continues while flagging that the recorded content probably changed.
+- A violated `verify` guard reports `FAIL`, because you demanded that structural property of the file.
+- A skipped capture whose baselines diverged reports `WARNING` with `stale: true`.
+
+Videos and results land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Troubleshooting
+
+### Recording is skipped in CI
+
+**Cause:** A headless CI run has no visible display to capture.
+
+**Solution:** Run headed, or on Linux install Xvfb for the `ffmpeg` engine (see [Docker and headless](/docs/ci/docker-and-headless)). Even when the capture is skipped, a checkpointed span still reports staleness against its committed baselines.
+
+### `stopRecord` returns WARNING with `stale: true`
+
+**Cause:** The capture was skipped—a headless run or an existing file—while the committed baselines diverged from the current content.
+
+**Solution:** Re-run on a headed context to refresh the recording, or set `overwrite` to `"true"` or `"aboveVariation"`.
+
+### Two concurrent recordings overlap on Windows or macOS
+
+**Cause:** The recordings share one physical display, so their captures overlap.
+
+**Solution:** Use the `browser` engine, which records each context's own window, or let Doc Detective serialize the `ffmpeg` recordings on the shared display.
+
+### A `record` step is skipped and the file isn't refreshed
+
+**Cause:** The default `overwrite: "false"` skips a `record` step whose file already exists.
+
+**Solution:** Set `overwrite` to `"true"` to always re-record, or `"aboveVariation"` to re-record only when the span meaningfully changed.
+
+## What's next
+
+- [Capture screenshots](/docs/test-docs/capture-screenshots-guide) for stills, comparisons, and annotations.
+- Follow the worked [recording example](/docs/test-docs/record-video) end to end.
+- [Keep tests healthy with self-healing](/ai/self-healing) so the recorded flows repair themselves as the product changes.
+- [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
+- [Run in CI and at scale](/docs/ci/reporters-and-artifacts).
