@@ -3,8 +3,143 @@ title: CLI commands and flags
 description: "Reference for the doc-detective command line: commands and every flag."
 ---
 
+This page documents every Doc Detective command and flag. The primary invocation is `npx doc-detective`.
+
+## Synopsis
+
+```bash
+npx doc-detective [command] [options]
+```
+
+A bare invocation with no command runs tests; the available commands are `install`, `lsp`, and `debug`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. The CLI is strict: unknown flags cause an error instead of being ignored.
+
+## Commands
+
+Doc Detective runs tests when you invoke it without a command, and exposes three named commands for setup, editor integration, and diagnostics.
+
+### Default (run tests)
+
+With no command, `doc-detective` runs tests and takes no positional arguments; control its behavior with the flags in the [Run and global flags](#run-and-global-flags) section.
+
+```bash
+npx doc-detective --input ./docs
+```
+
+The `runTests` alias still works but is hidden from `--help`.
+
+### install
+
+The `install` command group manages Doc Detective's lazy-installed runtime assets—npm packages, browser binaries, ffmpeg, agent tools, and mobile toolchains. Its subcommands are `agents`, `runtime`, `browsers`, `bash`, `android`, `ios`, `status`, and `all`. For every subcommand, option, and example, see the [install reference](/install). The older `install-agents` top-level form still works as a hidden alias.
+
+### lsp
+
+Start the Doc Detective language server (LSP) over stdio for editors and AI agents. It also ships as a standalone command, `doc-detective-lsp`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--stdio` | boolean | `true` | Use stdio transport. Stdio is the only supported transport; the flag exists for explicitness and editor configs. |
+
+```bash
+npx doc-detective lsp
+```
+
+To connect a coding agent or editor, see the [agent tools overview](/ai/overview) and the per-agent guides, such as [Claude Code](/ai/claude-code).
+
+### debug
+
+Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, and referenced environment variables) and exit without running tests.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--include-env` | boolean | `false` | Also dump the full `process.env`, redacted by name and value shape. Off by default to avoid leaking injected credentials. |
+
+```bash
+npx doc-detective debug --include-env
+```
+
+## Run and global flags
+
+These flags apply to the default run command. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).
+
+| Option | Alias | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--config` | `-c` | string |  | Path to a `config.json` or `config.yaml` file. |
+| `--input` | `-i` | string | `.` | Path to test specifications and documentation source files. Point at specific files or directories to scan. |
+| `--output` | `-o` | string | `.` | Directory in which to store command output. |
+| `--logLevel` | `-l` | string | `info` | Logging detail. One of `silent`, `error`, `warning`, `info`, or `debug`. |
+| `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests. Sets `allowUnsafeSteps`. |
+| `--dry-run` | `-n` | boolean |  | Fully resolve tests (file detection, inline-test extraction, and config merge) and print the resolved test plan as JSON to stdout without executing any steps. |
+| `--reporters` | `-r` | string (array) | `["terminal", "json", "runFolder"]` | Reporters for output. Built-ins: `terminal`, `json`, `html`, and `runFolder`. Reference custom reporters registered with `registerReporter()` by name. Pass several values after the flag, or repeat the flag. |
+| `--test` | `-t` | string |  | Run only tests whose `testId` matches the regex (case-insensitive). Comma-separate multiple patterns; a test runs if any pattern matches. |
+| `--spec` | `-s` | string |  | Run only specs whose `specId` matches the regex (case-insensitive). Comma-separate multiple patterns. |
+| `--hints` |  | boolean | `true` | Show one applicable hint after a run. Disable with `--no-hints`. |
+| `--auto-screenshot` |  | boolean |  | Capture a screenshot after every browser-based step. Use `--no-auto-screenshot` to override a config file that enables it. |
+| `--auto-record` |  | boolean |  | Record a video of every browser-based test context with the ffmpeg engine. Use `--no-auto-record` to override a config file that enables it. |
+| `--auto-update` |  | boolean | `true` | Check the npm registry on startup for a newer version and self-update before running. Use `--no-auto-update` (or `autoUpdate: false` in config) to pin the installed version. |
+| `--cache-dir` |  | string | `<os.tmpdir()>/doc-detective/` | Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, and ffmpeg). Also set with `DOC_DETECTIVE_CACHE_DIR`. |
+| `--concurrent-runners` |  | string | `1` | Number of test contexts to run concurrently. Pass a number, or pass the flag with no value to use the CPU core count (capped at 4). With more than one runner, log lines interleave and cross-context variable dependencies aren't supported. |
+| `--browser-fallback` |  | string | `auto` | How to handle a context whose browser can't start a driver session. `auto`: fall back to any other available browser (a fallback away from an explicitly requested browser reports a warning). `explicit`: fall back only for auto-selected browsers. `off`: never fall back. |
+| `--shell` |  | string | `bash` | Default shell for `runShell` steps: `bash`, `cmd`, or `powershell`. `cmd` and `powershell` work only on Windows. Steps can override this with their own `shell` field. |
+
+For `--reporters`, see [reporters and artifacts](/docs/ci/reporters-and-artifacts) for details on the `runFolder` reporter and built-in output formats. For `--cache-dir`, see the [cache directory guidance](/install#cache-directory). For `--shell`, [`runShell`](/docs/actions/runshell) documents its steps and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen. The `--test` and `--spec` patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match.
+
+### Negating boolean flags
+
+Boolean flags accept `--no-` negation forms: `--no-hints`, `--no-auto-update`, `--no-auto-screenshot`, and `--no-auto-record`.
+
+## Exit codes
+
 <Note>
-This page is a placeholder created during the documentation information-architecture overhaul. Full content is planned — see the content set in `docs/content-strategy/information-architecture.md`.
+The standalone `doc-detective` CLI does not exit with a non-zero code when tests fail—it exits non-zero only on a crash or invalid configuration. To gate CI on test failures, parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or use the [GitHub Action](/docs/ci/github-action)'s exit-on-fail behavior.
 </Note>
 
-Reference for `doc-detective` commands (default run, `install`, `debug`) and all flags. Authoritative source: `buildYargs()` in `src/utils.ts`.
+The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract, so gate CI on the parsed results, not on which non-zero code the process returns.
+
+## Configuration
+
+### Config auto-discovery
+
+When you omit `--config`, the CLI looks for a config file in the current directory in this order: `.doc-detective.json`, then `.doc-detective.yaml`, then `.doc-detective.yml`. If none exists, it runs with defaults. When you pass `--config`, that path is authoritative—a mistyped path fails rather than falling back.
+
+### Configuration precedence
+
+Doc Detective merges configuration in this order:
+
+1. File config and the `DOC_DETECTIVE_CONFIG` environment variable (the environment value merges over the file).
+2. Validation against the [`config_v3` schema](/reference/schemas/config).
+3. CLI flag overrides.
+4. Runtime: the runner and reporters read only the merged config.
+
+CLI flags override the validated config; they don't bypass it, and every flag maps to a camelCase config key.
+
+## Invocation
+
+- `npx doc-detective ...` is the primary invocation.
+- Global or local install: install with npm, then call `doc-detective ...`. See [installation](/docs/get-started/installation).
+- Docker: the images use the entrypoint `npx doc-detective`, so `docker run <image> --input ...` passes flags straight to the default run command. See [Docker and headless runs](/docs/ci/docker-and-headless).
+
+## Examples
+
+Run tests over a directory:
+
+```bash
+npx doc-detective --input ./docs
+```
+
+Preview the resolved plan without running:
+
+```bash
+npx doc-detective --input ./docs --dry-run
+```
+
+Run a filtered subset with specific reporters:
+
+```bash
+npx doc-detective --input ./docs --test "smoke" --reporters terminal json
+```
+
+Start the language server:
+
+```bash
+npx doc-detective lsp
+```
