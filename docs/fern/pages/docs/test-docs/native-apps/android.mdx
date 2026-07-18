@@ -1,0 +1,154 @@
+---
+title: Test Android apps (experimental)
+sidebar-title: Android apps
+description: Open and test an Android app on an emulator with Doc Detective.
+---
+
+Doc Detective can open and drive Android apps on a managed emulator as part of a test. This experimental workflow launches an app with [`startSurface`](/docs/actions/startsurface), acts on it with the same `find`, `click`, and `type` steps you already use in the browser, and closes it with [`closeSurface`](/docs/actions/closesurface).
+
+<Info>
+
+**Experimental**: Native and mobile app testing is experimental and subject to change.
+
+</Info>
+
+## Before you begin
+
+Android app tests run on an emulator that Doc Detective manages for you, and the emulator needs **hardware acceleration** (KVM on Linux, HVF on macOS, or WHPX on Windows). A host without it can't run the emulator, so Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator).
+
+Android also needs the Android SDK toolchain. Install it ahead of time:
+
+```bash
+doc-detective install android --yes
+```
+
+This installs the SDK, a system image, and the emulator. The download is multi-GB and opt-in, so it isn't part of `install all`. On a capable host, the toolchain installs on demand the first time a run needs it, and the `appium-uiautomator2-driver` (UiAutomator2) automation driver installs lazily on first use. See [`install android`](/reference/cli/install#install-android).
+
+## Run a first test
+
+This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, captures the window, and closes the app. Settings ships with Android, so the test needs nothing else installed.
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["android"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch the Settings app and wait until it's ready.",
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": { "delayMs": 2000 }
+          }
+        },
+        {
+          "description": "Capture the window.",
+          "screenshot": {
+            "path": "android-settings.png",
+            "surface": { "app": "settings" }
+          }
+        },
+        {
+          "description": "Close the Settings app.",
+          "closeSurface": { "app": "settings" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+To run this test, save it to a spec file and pass it to Doc Detective:
+
+```bash
+doc-detective --input android-app.spec.json
+```
+
+A few things to notice:
+
+- The generous `timeout` (180,000 ms) leaves room for a cold emulator boot and, on a first run, for the toolchain and driver to install.
+- `waitUntil.delayMs` holds the step for at least two seconds after launch so the app can settle; you can wait on an element instead with `waitUntil.find`.
+- Later steps address the app with `surface: { "app": "settings" }`. Doc Detective derives the default name `settings` from the final dot-segment of the package name; pass a `name` on `startSurface` to choose your own.
+- The [`screenshot`](/docs/actions/screenshot) step captures a fresh image of the app every run, so the picture never drifts out of sync with the current build.
+
+To test an app that isn't already on the emulator, point `install` at an `.apk` and name the `activity` to launch:
+
+```json
+{
+  "startSurface": {
+    "app": "io.appium.android.apis",
+    "install": "./sample.apk",
+    "activity": ".ApiDemos"
+  }
+}
+```
+
+See the [app descriptor](/reference/schemas/app-descriptor) reference for the `install` and `activity` fields.
+
+## Choose the emulator
+
+Without a `device`, an Android app runs on the context's default emulator, which Doc Detective creates on first use. Set `device` on the context or the `startSurface` step to name a device or refine it by `deviceType` (phone or tablet) and `osVersion`. See [Choose the emulator](/docs/actions/startsurface#choose-the-emulator) and the [device descriptor](/reference/schemas/device-descriptor) reference for the full list of fields.
+
+## Target only Android
+
+Because an app targets one platform, gate the test with a [context](/docs/test-docs/platforms-and-browsers) so it runs only where it can:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["android"]
+    }
+  ]
+}
+```
+
+On a host that can't run an Android emulator, the test skips with a reason rather than failing. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
+
+## Troubleshooting
+
+**Element not found**
+
+- **Cause:** Android exposes controls through UiAutomator2, so element criteria map onto its attributes: `elementText` matches a widget's text, `elementId` and `elementTestId` match its resource ID, and `elementAria` matches its widget class (and its content description as the accessible name). A criterion that doesn't line up with those attributes won't match.
+- **Solution:** Match against the attribute that carries the value you want. Unlike Windows, macOS, and iOS, Android keeps text and content description as separate attributes, so `elementText` and `elementAria` don't collide, and you can set both on one step. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
+
+**The app can't reach a server on your machine**
+
+- **Cause:** The emulator is a separate device, so `localhost` points at the emulator itself, not your host.
+- **Solution:** Reach a service on your host from the emulator at `10.0.2.2`. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers).
+
+**A permission dialog blocks the test**
+
+- **Cause:** Android shows a runtime permission dialog that sits in front of the app.
+- **Solution:** Treat the dialog as an element and click it (for example, `click` on `elementText` `"Allow"`), or suppress dialogs by setting `driverOptions` to `{ "appium:autoGrantPermissions": true }` on the surface. See [Mobile app surfaces](/docs/actions/click#mobile-app-surfaces).
+
+**An element is off-screen**
+
+- **Cause:** The control you want isn't in the visible viewport yet.
+- **Solution:** Nothing extra: mobile `find` auto-scrolls toward an off-screen element (up to five steps within the step's timeout) before giving up.
+
+**Pressing a hardware key**
+
+- **Cause:** Android hardware keys (Back, Home, and so on) aren't on-screen elements.
+- **Solution:** Send a device-key token with [`type`](/docs/actions/type#device-keys-mobile-app-surfaces): `$BACK$`, `$HOME$`, `$APP_SWITCH$`, `$VOLUME_UP$`, or `$VOLUME_DOWN$`.
+
+**Performing a gesture**
+
+- **Cause:** Swipes and scrolls aren't clicks.
+- **Solution:** Use the [`swipe`](/docs/actions/swipe) action, which drives Android gestures.
+
+You can drive several apps in one test: apps on one emulator share a single session, so a later `startSurface` brings another app to the foreground on the same device.
+
+## What's next
+
+- [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator): host requirements and device management.
+- [`swipe`](/docs/actions/swipe): perform mobile gestures.
+- [Device keys on mobile app surfaces](/docs/actions/type#device-keys-mobile-app-surfaces): press hardware keys.
+- [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers): gate tests by platform.
+- [Inline tests](/docs/test-docs/inline) and [Detected tests](/docs/test-docs/detected): author these startSurface, click, screenshot, and closeSurface steps inline in a doc source file instead of a standalone spec.
+- [Docker and headless](/docs/ci/docker-and-headless): run app tests in CI.
