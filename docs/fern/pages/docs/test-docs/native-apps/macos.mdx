@@ -35,7 +35,7 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
       ],
       "steps": [
         {
-          "description": "Launch Calculator and wait until it's ready.",
+          "description": "Launch the app and wait until it's ready.",
           "startSurface": {
             "app": "/System/Applications/Calculator.app",
             "timeout": 180000,
@@ -45,7 +45,7 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
           }
         },
         {
-          "description": "Press 1.",
+          "description": "Click a control.",
           "click": {
             "elementAria": "1",
             "surface": { "app": "Calculator" }
@@ -59,7 +59,7 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
           }
         },
         {
-          "description": "Close Calculator.",
+          "description": "Close the app.",
           "closeSurface": { "app": "Calculator" }
         }
       ]

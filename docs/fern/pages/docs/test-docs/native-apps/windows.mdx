@@ -33,7 +33,7 @@ This test targets the `windows` platform, launches Character Map by its executab
       ],
       "steps": [
         {
-          "description": "Launch Character Map and wait until it's ready.",
+          "description": "Launch the app and wait until it's ready.",
           "startSurface": {
             "app": "C:\\Windows\\System32\\charmap.exe",
             "timeout": 120000,
@@ -43,7 +43,7 @@ This test targets the `windows` platform, launches Character Map by its executab
           }
         },
         {
-          "description": "Click the Select button.",
+          "description": "Click a control.",
           "click": {
             "elementText": "Select",
             "surface": { "app": "charmap" }
@@ -57,7 +57,7 @@ This test targets the `windows` platform, launches Character Map by its executab
           }
         },
         {
-          "description": "Close Character Map.",
+          "description": "Close the app.",
           "closeSurface": { "app": "charmap" }
         }
       ]
