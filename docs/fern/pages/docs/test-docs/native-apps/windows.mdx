@@ -16,9 +16,9 @@ Doc Detective can open and drive native Windows desktop apps as part of a test. 
 
 Windows app tests run only on a **Windows host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green.
 
-Doc Detective drives Windows apps through the `appium-novawindows-driver` (NovaWindows) automation driver. It installs the driver automatically the first time a Windows app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver: it only installs lazily on that first launch. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
+Doc Detective drives Windows apps through an automation driver that installs automatically the first time a Windows app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
 
-## Run a first test
+## Run your first Windows test
 
 This test targets the `windows` platform, launches Character Map by its executable path, waits until the window is interactive, clicks a control, and closes the app. Character Map ships with Windows, so the test needs nothing else installed.
 
@@ -50,7 +50,7 @@ This test targets the `windows` platform, launches Character Map by its executab
           }
         },
         {
-          "description": "Capture the window.",
+          "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "charmap.png",
             "surface": { "app": "charmap" }
@@ -75,9 +75,9 @@ doc-detective --input windows-app.spec.json
 A few things to notice:
 
 - The generous `timeout` (120,000 ms) leaves room for the driver to install on a first run and for the app to launch.
-- `waitUntil.find` gates readiness: the step doesn't finish until an element with the text `Select` exists, so the next step never runs against a window that hasn't drawn its controls yet.
+- `waitUntil.find` gates readiness: the step holds until an element with the text `Select` exists, so the next step never runs against a window that hasn't drawn its controls yet.
 - Later steps address the app with `surface: { "app": "charmap" }`. Doc Detective derives the default name `charmap` from the executable file name; pass a `name` on `startSurface` to choose your own.
-- The [`screenshot`](/docs/actions/screenshot) step captures a fresh image of the app every run, so the picture never drifts out of sync with the current build.
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To launch a packaged (UWP) app instead of an executable, set `app` to its AppUserModelID, such as `"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.
 
@@ -95,7 +95,7 @@ Because an app targets one platform, gate the test with a [context](/docs/test-d
 }
 ```
 
-On a host that isn't Windows, the test skips with the reason that it targets a different platform. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
+On a host that isn't Windows, the test skips with a reason rather than failing. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
 
 ## Troubleshooting
 

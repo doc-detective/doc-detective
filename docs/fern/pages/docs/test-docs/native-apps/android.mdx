@@ -14,7 +14,7 @@ Doc Detective can open and drive Android apps on a managed emulator as part of a
 
 ## Before you begin
 
-Android app tests run on an emulator that Doc Detective manages for you, and the emulator needs **hardware acceleration** (KVM on Linux, HVF on macOS, or WHPX on Windows). A host without it can't run the emulator, so Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator).
+Android app tests run on an emulator that Doc Detective manages for you, and the emulator needs **hardware acceleration** (KVM on Linux, HVF on macOS, or WHPX on Windows). A host without it can't run the emulator, so Doc Detective skips the test with a reason rather than failing it, keeping a mixed-platform spec green. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator).
 
 Android also needs the Android SDK toolchain. Install it ahead of time:
 
@@ -22,11 +22,11 @@ Android also needs the Android SDK toolchain. Install it ahead of time:
 doc-detective install android --yes
 ```
 
-This installs the SDK, a system image, and the emulator. The download is multi-GB and opt-in, so it isn't part of `install all`. On a capable host, the toolchain installs on demand the first time a run needs it, and the `appium-uiautomator2-driver` (UiAutomator2) automation driver installs lazily on first use. See [`install android`](/reference/cli/install#install-android).
+This installs the SDK, a system image, and the emulator. The download is multi-GB and opt-in, so it isn't part of `install all`. On a capable host, the toolchain installs on demand the first time a run needs it, and the automation driver installs lazily on first use. See [`install android`](/reference/cli/install#install-android).
 
-## Run a first test
+## Run your first Android test
 
-This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, captures the window, and closes the app. Settings ships with Android, so the test needs nothing else installed.
+This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, opens a settings category, takes a screenshot of the window, and closes the app. Settings ships with Android, so the test needs nothing else installed.
 
 ```json
 {
@@ -42,12 +42,22 @@ This test targets the `android` platform, launches the Settings app by its packa
           "description": "Launch the app and wait until it's ready.",
           "startSurface": {
             "app": "com.android.settings",
+            "name": "settings",
             "timeout": 180000,
-            "waitUntil": { "delayMs": 2000 }
+            "waitUntil": {
+              "find": { "elementText": "Settings" }
+            }
           }
         },
         {
-          "description": "Capture the window.",
+          "description": "Open a settings category.",
+          "click": {
+            "elementText": "Network & internet",
+            "surface": { "app": "settings" }
+          }
+        },
+        {
+          "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "android-settings.png",
             "surface": { "app": "settings" }
@@ -71,10 +81,12 @@ doc-detective --input android-app.spec.json
 
 A few things to notice:
 
-- The generous `timeout` (180,000 ms) leaves room for a cold emulator boot and, on a first run, for the toolchain and driver to install.
-- `waitUntil.delayMs` holds the step for at least two seconds after launch so the app can settle; you can wait on an element instead with `waitUntil.find`.
-- Later steps address the app with `surface: { "app": "settings" }`. Doc Detective derives the default name `settings` from the final dot-segment of the package name; pass a `name` on `startSurface` to choose your own.
-- The [`screenshot`](/docs/actions/screenshot) step captures a fresh image of the app every run, so the picture never drifts out of sync with the current build.
+- The generous `timeout` (180,000 ms) leaves room for a cold emulator to boot and the app to launch. The toolchain and automation driver must be in place before the first step runs. Install them ahead of time with `doc-detective install android`, or let a capable host install them lazily on the first run that needs them.
+- `waitUntil.find` gates readiness: the step holds until an element with the text `Settings` exists, so the next step never runs against a screen that hasn't drawn its controls yet.
+- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows.
+- The example sets `"name": "settings"` on `startSurface`, and later steps address the app with `surface: { "app": "settings" }`. If you omit `name`, Doc Detective derives the same `settings` default from the final dot-segment of the package name; set it explicitly when you want a name of your own.
+- Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. On Android, `type` sends text to the focused control, so tap a field first (for example, the Settings search box) and then type into it.
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To test an app that isn't already on the emulator, point `install` at an `.apk` and name the `activity` to launch:
 
@@ -92,7 +104,7 @@ See the [app descriptor](/reference/schemas/app-descriptor) reference for the `i
 
 ## Choose the emulator
 
-Without a `device`, an Android app runs on the context's default emulator, which Doc Detective creates on first use. Set `device` on the context or the `startSurface` step to name a device or refine it by `deviceType` (phone or tablet) and `osVersion`. See [Choose the emulator](/docs/actions/startsurface#choose-the-emulator) and the [device descriptor](/reference/schemas/device-descriptor) reference for the full list of fields.
+By default, an Android app runs on the context's default emulator, which Doc Detective creates on first use. To run on a specific device instead, set `device` on the context or the `startSurface` step: name a device, or refine it by `deviceType` (phone or tablet) and `osVersion`. See [Choose the emulator](/docs/actions/startsurface#choose-the-emulator) and the [device descriptor](/reference/schemas/device-descriptor) reference for the full list of fields.
 
 ## Target only Android
 
@@ -120,7 +132,7 @@ On a host that can't run an Android emulator, the test skips with a reason rathe
 **The app can't reach a server on your machine**
 
 - **Cause:** The emulator is a separate device, so `localhost` points at the emulator itself, not your host.
-- **Solution:** Reach a service on your host from the emulator at `10.0.2.2`. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers).
+- **Solution:** Reach a service on your host from the emulator at `10.0.2.2`. See [Mobile browsers (Android and iOS)](/docs/test-docs/platforms-and-browsers#mobile-browsers-android-and-ios) for emulator networking.
 
 **A permission dialog blocks the test**
 

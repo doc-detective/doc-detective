@@ -16,11 +16,11 @@ Doc Detective can open and drive native macOS apps as part of a test. This exper
 
 macOS app tests run only on a **macOS host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green.
 
-Doc Detective drives macOS apps through the `appium-mac2-driver` (Mac2) automation driver. It installs the driver automatically the first time a macOS app surface starts. There's no separate pre-install command for this driver: it only installs lazily on that first launch. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
+Doc Detective drives macOS apps through an automation driver that installs automatically the first time a macOS app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
 
 One requirement matters before your first run: the process that runs Doc Detective (your terminal, IDE, or CI runner process) needs macOS **Accessibility (TCC) permission**, or the driver can't drive apps and the test skips with a walkthrough. Grant it under **System Settings** before you run. For the step-by-step walkthrough, see [Grant Accessibility permission on macOS](/docs/actions/startsurface#grant-accessibility-permission-on-macos).
 
-## Run a first test
+## Run your first macOS test
 
 This test targets the `mac` platform, launches Calculator by its `.app` path, waits until a digit button exists, clicks it, and closes the app. Calculator ships with macOS, so the test needs nothing else installed.
 
@@ -52,7 +52,7 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
           }
         },
         {
-          "description": "Capture the window.",
+          "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "calculator.png",
             "surface": { "app": "Calculator" }
@@ -79,7 +79,7 @@ A few things to notice:
 - The generous `timeout` (180,000 ms) leaves room for the first-run WebDriverAgentMac build and for the driver to install.
 - `waitUntil.find` gates readiness: the step holds until a digit button (matched by `elementAria`) exists, so the next step never runs against a window that hasn't drawn its controls yet.
 - Later steps address the app with `surface: { "app": "Calculator" }`. Doc Detective derives the default name `Calculator` from the `.app` base name; pass a `name` on `startSurface` to choose your own.
-- The [`screenshot`](/docs/actions/screenshot) step captures a fresh image of the app every run, so the picture never drifts out of sync with the current build.
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To launch an app by its bundle ID instead of a `.app` path, set `app` to the identifier, such as `"com.apple.TextEdit"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.
 
