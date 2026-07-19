@@ -1,0 +1,54 @@
+name: CLI reference drift
+
+# The CLI reference page docs/fern/pages/reference/cli.mdx is generated from the
+# doc-detective CLI definitions by docs/.scripts/buildCliReference.js. This check
+# regenerates it and fails if the committed page has drifted — either because the
+# CLI changed without regenerating, or because the page was hand-edited.
+
+on:
+  pull_request:
+    paths:
+      - "src/utils.ts"
+      - "src/cli.ts"
+      - "src/lsp/command.ts"
+      - "src/debug/command.ts"
+      - "src/runtime/installCommand.ts"
+      - "src/agents/command.ts"
+      - "src/common/src/schemas/**"
+      - "docs/fern/pages/reference/cli.mdx"
+      - "docs/.scripts/buildCliReference.js"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli-ref:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies (no postinstall)
+        run: npm ci --ignore-scripts
+
+      # Regenerates from the TypeScript CLI sources (read statically) and the
+      # committed config_v3 schema bundle. Build-free: no `npm run build` needed.
+      - name: Regenerate CLI reference page
+        run: npm run docs:build-cli-ref
+
+      - name: Fail if generated page is out of date
+        run: |
+          if ! git diff --quiet -- docs/fern/pages/reference/cli.mdx; then
+            echo "::error::The CLI reference page is out of date. Run 'npm run docs:build-cli-ref' and commit the result. Do not hand-edit docs/fern/pages/reference/cli.mdx."
+            git --no-pager diff -- docs/fern/pages/reference/cli.mdx
+            exit 1
+          fi
+          echo "CLI reference page is up to date."
