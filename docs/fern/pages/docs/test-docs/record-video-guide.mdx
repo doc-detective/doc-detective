@@ -148,8 +148,8 @@ Checkpoints validate the scene a recording shows; `verify` validates the produce
 ```
 
 {/* step {"stepId":"record-guide-verify-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
-{/* step {"stepId":"record-guide-verify-start","description":"Start a recording with structural verify guards, directed at a gitignored output folder; this test is gated to headed Chrome via runOn because the verify guards (minDuration, resolution, notBlack) can only hold against a real recording from a visible display, so it is SKIPPED on the headless docs-test runner and exercises the guards only on a headed run","record":{"path":"guide_verify.mp4","directory":"./.dd-output","verify":{"minDuration":2,"resolution":true,"notBlack":true}}} */}
-{/* step {"stepId":"record-guide-verify-wait","description":"Let the recording run briefly","wait":1000} */}
+{/* step {"stepId":"record-guide-verify-start","description":"Start a recording with structural verify guards, directed at a gitignored output folder. Gated to headed Chrome via runOn because the verify guards (minDuration, resolution, notBlack) can only hold against a real recording from a visible display; it SKIPS on any platform whose only Chrome is headless and exercises the guards on the headed runner","record":{"path":"guide_verify.mp4","directory":"./.dd-output","verify":{"minDuration":2,"resolution":true,"notBlack":true}}} */}
+{/* step {"stepId":"record-guide-verify-wait","description":"Let the recording run past the minDuration guard (2 s) before stopping","wait":2500} */}
 {/* step {"stepId":"record-guide-verify-stop","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
 
