@@ -1,6 +1,9 @@
 import {
   BROWSER_STEP_KEYS,
   stepTargetsAppSurface,
+  stepTargetsProcessSurface,
+  stepIsSurfacelessInteraction,
+  testHasNonBrowserSurfaceSignal,
   startSurfaceDescriptors,
   stepOpensBrowserSurface,
 } from "./browserStepKeys.js";
@@ -66,8 +69,11 @@ export function inferRuntimeNeeds(
         if (typeof ctx?.browser?.name === "string") {
           addBrowserName(browsers, ctx.browser.name);
         }
+        const ctxHasNonBrowserSignal = testHasNonBrowserSurfaceSignal(
+          ctx?.steps
+        );
         for (const step of arrayOrEmpty<any>(ctx?.steps)) {
-          const flags = classifyStep(step);
+          const flags = classifyStep(step, ctxHasNonBrowserSignal);
           if (flags.browser) sawBrowserStep = true;
           if (flags.screenshot) sawScreenshotStep = true;
           if (flags.recording) sawRecordingStep = true;
@@ -75,8 +81,11 @@ export function inferRuntimeNeeds(
           collectStartSurfaceEngines(step, browsers);
         }
       }
+      const testHasNonBrowserSignal = testHasNonBrowserSurfaceSignal(
+        test?.steps
+      );
       for (const step of arrayOrEmpty<any>(test?.steps)) {
-        const flags = classifyStep(step);
+        const flags = classifyStep(step, testHasNonBrowserSignal);
         if (flags.browser) sawBrowserStep = true;
         if (flags.screenshot) sawScreenshotStep = true;
         if (flags.recording) sawRecordingStep = true;
@@ -189,7 +198,10 @@ function collectBrowserNamesFromRunOn(
   }
 }
 
-function classifyStep(step: any): {
+function classifyStep(
+  step: any,
+  hasNonBrowserSignal = false
+): {
   browser: boolean;
   screenshot: boolean;
   recording: boolean;
@@ -199,14 +211,20 @@ function classifyStep(step: any): {
   let browser = false;
   let screenshot = false;
   let recording = false;
-  // An app-object-targeted step (`surface: { app: … }`) drives a native app
-  // driver, not a browser — mirror the runner's `isBrowserRequired` exclusion
-  // so app-only specs don't provision a browser binary. This gates ONLY the
-  // browser flag: an app screenshot still needs the image stack, and an app
-  // recording still needs ffmpeg.
-  const appTargeted = stepTargetsAppSurface(step);
+  // A non-browser-targeted step drives a native app driver or a background
+  // process's stdin, not a browser — mirror the runner's `isBrowserRequired`
+  // exclusions so app/process-only specs don't provision a browser binary:
+  // explicit `surface: { app: … }` / `surface: { process: … }` payloads, and
+  // (ADR 01081) surface-less interaction steps in a test that opens or
+  // targets a non-browser surface (they route to the active surface at
+  // runtime). This gates ONLY the browser flag: an app screenshot still
+  // needs the image stack, and an app recording still needs ffmpeg.
+  const nonBrowserTargeted =
+    stepTargetsAppSurface(step) ||
+    stepTargetsProcessSurface(step) ||
+    (hasNonBrowserSignal && stepIsSurfacelessInteraction(step));
   for (const key of Object.keys(step)) {
-    if (!appTargeted && BROWSER_STEP_KEY_SET.has(key)) browser = true;
+    if (!nonBrowserTargeted && BROWSER_STEP_KEY_SET.has(key)) browser = true;
     if (SCREENSHOT_STEP_KEYS.has(key)) screenshot = true;
     if (RECORDING_STEP_KEYS.has(key)) recording = true;
   }

@@ -450,7 +450,7 @@ describe("swipe step: browser and process surfaces", function () {
     assert.match(result.description, /startSurface/);
   });
 
-  it("fails without any driver, pointing at the app-surface form", async function () {
+  it("fails without any driver or active surface, with the unified guidance", async function () {
     const result = await swipeSurface({
       config,
       step: { swipe: "up" },
@@ -458,8 +458,8 @@ describe("swipe step: browser and process surfaces", function () {
       appSession: createAppSessionState(),
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /surface/);
-    assert.match(result.description, /app/);
+    assert.match(result.description, /No active surface to act on/);
+    assert.match(result.description, /startSurface/);
   });
 
   it("fails an invalid step shape through schema validation", async function () {

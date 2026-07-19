@@ -19,7 +19,9 @@ import {
   detectManagedWdaProducts,
   runInvokesDocDetective,
   VIEWPORT_FLOOR_TOLERANCE_PX,
+  SURFACE_SENSITIVE_HINT_KEYS,
 } from "../dist/hints/context.js";
+import { SURFACE_SENSITIVE_STEP_KEYS } from "../dist/runtime/browserStepKeys.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
 import fs from "node:fs";
@@ -2851,5 +2853,84 @@ describe("hints CLI wiring", function () {
     });
     expect(r.status, `stderr: ${r.stderr}`).to.equal(0);
     expect(r.stdout.trim()).to.match(/^\d+\.\d+\.\d+/);
+  });
+});
+
+// ---------------------------------------------------------------------
+// omitSurfaceForActiveApp (ADR 01081): repeated explicit app-surface
+// references are redundant once the app is the active surface.
+// ---------------------------------------------------------------------
+
+describe("walkResults repeated app-surface references", function () {
+  function specWithSteps(steps) {
+    return { specs: [{ tests: [{ contexts: [{ steps }] }] }] };
+  }
+
+  it("flags three or more surface-sensitive steps naming the same app", function () {
+    const data = walkResults(
+      specWithSteps([
+        { startSurface: { app: "notepad" } },
+        { find: { elementText: "File", surface: { app: "notepad" } } },
+        { click: { elementText: "Save", surface: { app: "notepad" } } },
+        { screenshot: { path: "s.png", surface: { app: "notepad" } } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(true);
+  });
+
+  it("does not flag fewer than three references to one app", function () {
+    const data = walkResults(
+      specWithSteps([
+        { find: { elementText: "File", surface: { app: "notepad" } } },
+        { click: { elementText: "Save", surface: { app: "notepad" } } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(false);
+  });
+
+  it("does not flag references spread across different apps", function () {
+    const data = walkResults(
+      specWithSteps([
+        { find: { elementText: "a", surface: { app: "one" } } },
+        { find: { elementText: "b", surface: { app: "two" } } },
+        { find: { elementText: "c", surface: { app: "three" } } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(false);
+  });
+
+  it("counts only surface-sensitive steps (closeSurface refs don't count)", function () {
+    const data = walkResults(
+      specWithSteps([
+        { closeSurface: { app: "notepad" } },
+        { closeSurface: { app: "notepad" } },
+        { closeSurface: { app: "notepad" } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(false);
+  });
+
+  it("keeps the hint-side key list in sync with the runtime's surface-sensitive list", function () {
+    expect([...SURFACE_SENSITIVE_HINT_KEYS].sort()).to.deep.equal(
+      [...SURFACE_SENSITIVE_STEP_KEYS].sort()
+    );
+  });
+});
+
+describe("omitSurfaceForActiveApp hint", function () {
+  it("is registered at priority 50", function () {
+    const hint = findHint("omitSurfaceForActiveApp");
+    expect(hint).to.not.equal(undefined);
+    expect(hint.priority).to.equal(50);
+  });
+
+  it("fires when a run repeatedly targeted one app explicitly", function () {
+    const hint = findHint("omitSurfaceForActiveApp");
+    expect(hint.when(fakeCtx({ repeatedAppSurfaceRefs: true }))).to.equal(true);
+  });
+
+  it("stays quiet without the repeated-reference signal", function () {
+    const hint = findHint("omitSurfaceForActiveApp");
+    expect(hint.when(fakeCtx({ repeatedAppSurfaceRefs: false }))).to.equal(false);
   });
 });

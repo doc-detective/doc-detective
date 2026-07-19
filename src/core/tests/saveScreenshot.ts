@@ -1,7 +1,11 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
-import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
+import { ensureAppForeground } from "./appSurface.js";
+import {
+  resolveTargetSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 import {
   resolveAppWindow,
   appWindowScreenshot,
@@ -120,6 +124,8 @@ async function saveScreenshot({
   step,
   driver,
   appSession,
+  processRegistry,
+  surfaceTracker,
   internal,
   annotationTheme,
 }: {
@@ -127,6 +133,8 @@ async function saveScreenshot({
   step: any;
   driver: any;
   appSession?: any;
+  processRegistry?: Map<string, any>;
+  surfaceTracker?: ActiveSurfaceTracker;
   internal?: { compareOnly: true; capturePath: string };
   // The resolved annotation theme (test > spec > config > built-in). The
   // runner resolves it where spec/test are in scope and passes it down; when
@@ -225,69 +233,83 @@ async function saveScreenshot({
   let isAppCapture = false;
   let appEntry: any = null;
   let appWindowTarget: any = null;
-  if (
-    typeof step.screenshot === "object" &&
-    step.screenshot !== null &&
-    step.screenshot.surface !== undefined
-  ) {
-    const appRef = resolveAppSurfaceRef(step.screenshot.surface, appSession);
-    if (appRef) {
-      if (appRef.error) {
+  // Uniform surface routing (ADR 01081): classify the step's target — the
+  // explicit `surface` reference, or the context's active surface — then
+  // capture through that surface's driver.
+  const target = resolveTargetSurface({
+    surface:
+      typeof step.screenshot === "object" && step.screenshot !== null
+        ? step.screenshot.surface
+        : undefined,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "error") {
+    result.status = "FAIL";
+    result.description = target.message;
+    return result;
+  }
+  if (target.kind === "process") {
+    // A background process has no screen to capture — a capability gap, not
+    // a reroute.
+    result.status = "FAIL";
+    result.description = `The resolved surface is the background process "${target.name}", which doesn't support screenshot steps. Target a browser or app surface with \`surface\`.`;
+    return result;
+  }
+  if (target.kind === "app") {
+    const appRef = { entry: target.entry, window: target.window };
+    // Window selectors (ADR 01036): resolve to a real window. Selector-less
+    // app captures use the sticky/default window — on macOS that's the
+    // window ELEMENT (Mac2's driver screenshot is the whole display).
+    if (appRef.window !== undefined) {
+      const resolvedWindow = await resolveAppWindow({
+        entry: appRef.entry!,
+        selector: appRef.window,
+        timeoutMs: 5000,
+      });
+      if (!resolvedWindow.ok) {
         result.status = "FAIL";
-        result.description = appRef.error;
+        result.description = resolvedWindow.message;
         return result;
       }
-      // Window selectors (ADR 01036): resolve to a real window. Selector-less
-      // app captures use the sticky/default window — on macOS that's the
-      // window ELEMENT (Mac2's driver screenshot is the whole display).
-      if (appRef.window !== undefined) {
-        const resolvedWindow = await resolveAppWindow({
-          entry: appRef.entry!,
-          selector: appRef.window,
-          timeoutMs: 5000,
-        });
-        if (!resolvedWindow.ok) {
-          result.status = "FAIL";
-          result.description = resolvedWindow.message;
-          return result;
-        }
-        appWindowTarget = resolvedWindow.target;
-      }
-      if (step.screenshot.crop) {
-        result.status = "FAIL";
-        result.description =
-          "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
-        return result;
-      }
-      const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
-      if (switchedApp.error) {
-        result.status = "FAIL";
-        result.description = switchedApp.error;
-        return result;
-      }
-      captureDriver = appRef.entry!.driver;
-      appEntry = appRef.entry!;
-      isAppCapture = true;
-    } else {
-      const switched = await switchToSurface(driver, step.screenshot.surface);
-      if (!switched.ok) {
-        result.status = "FAIL";
-        result.description = switched.message;
-        return result;
-      }
-      driver = switched.driver ?? driver;
-      captureDriver = driver;
+      appWindowTarget = resolvedWindow.target;
     }
+    if (typeof step.screenshot === "object" && step.screenshot?.crop) {
+      result.status = "FAIL";
+      result.description =
+        "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+      return result;
+    }
+    const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
+    if (switchedApp.error) {
+      result.status = "FAIL";
+      result.description = switchedApp.error;
+      return result;
+    }
+    captureDriver = appRef.entry!.driver;
+    appEntry = appRef.entry!;
+    isAppCapture = true;
+  } else if (target.surface !== undefined) {
+    const switched = await switchToSurface(driver, target.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
+    captureDriver = driver;
   }
 
-  // In an app-only context (no browser driver), a screenshot step that omits
-  // `surface` has nothing to capture — fail with the fix named instead of a
-  // TypeError on the missing driver. Checked BEFORE the path/crop handling
-  // below, which dereferences `driver` for crop geometry.
+  // Defense-in-depth: the resolver should never route here without a driver,
+  // but a missing one must be a clean FAIL, not a TypeError. Checked BEFORE
+  // the path/crop handling below, which dereferences `driver` for crop
+  // geometry.
   if (!captureDriver) {
     result.status = "FAIL";
     result.description =
-      'No browser session is running in this context to capture. Target an app surface explicitly (e.g. "surface": { "app": "…" }).';
+      "No active surface to act on. Open one first with a startSurface step (or a goTo step for a browser), or target a surface explicitly with `surface`.";
     return result;
   }
 
