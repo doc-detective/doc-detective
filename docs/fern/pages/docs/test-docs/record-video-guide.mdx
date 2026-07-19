@@ -136,7 +136,7 @@ To act on drift instead of only reporting it, set `overwrite: "aboveVariation"`.
 
 Checkpoints validate the scene a recording shows; `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are a wrong-sized crop, a truncated clip, and an all-black video:
 
-{/* test {"testId":"record-guide-verify","detectSteps":false} */}
+{/* test {"testId":"record-guide-verify","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false}}]} */}
 
 ```json
 {
@@ -148,7 +148,7 @@ Checkpoints validate the scene a recording shows; `verify` validates the produce
 ```
 
 {/* step {"stepId":"record-guide-verify-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
-{/* step {"stepId":"record-guide-verify-start","description":"Start a recording with structural verify guards, directed at a gitignored output folder (SKIPS on this headless docs-test runner, so the guards never run against a phantom file)","record":{"path":"guide_verify.mp4","directory":"./.dd-output","verify":{"minDuration":2,"resolution":true,"notBlack":true}}} */}
+{/* step {"stepId":"record-guide-verify-start","description":"Start a recording with structural verify guards, directed at a gitignored output folder; this test is gated to headed Chrome via runOn because the verify guards (minDuration, resolution, notBlack) can only hold against a real recording from a visible display, so it is SKIPPED on the headless docs-test runner and exercises the guards only on a headed run","record":{"path":"guide_verify.mp4","directory":"./.dd-output","verify":{"minDuration":2,"resolution":true,"notBlack":true}}} */}
 {/* step {"stepId":"record-guide-verify-wait","description":"Let the recording run briefly","wait":1000} */}
 {/* step {"stepId":"record-guide-verify-stop","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
@@ -291,7 +291,7 @@ The step exposes `$$annotationCount`, the number of annotations on screen after 
 
 ## Verify it works
 
-- A recording that saved—and, when checkpointed, stayed within `maxVariation`—reports `PASS`.
+- A recording that saved—and, when checkpoints were compared, stayed within `maxVariation`—reports `PASS`.
 - Checkpoint drift beyond `maxVariation` reports `WARNING`, so the run continues while flagging that the recorded content probably changed.
 - A violated `verify` guard reports `FAIL`, because you demanded that structural property of the file.
 - A skipped capture whose baselines diverged reports `WARNING` with `stale: true`.
@@ -302,27 +302,27 @@ Videos and results land in the run's output directory and the per-run artifact t
 
 ### Recording is skipped in CI
 
-**Cause:** A headless CI run has no visible display to capture.
+**Cause:** a headless CI run has no visible display to capture.
 
-**Solution:** Run headed, or on Linux install Xvfb for the `ffmpeg` engine (see [Docker and headless](/docs/ci/docker-and-headless)). Even when the capture is skipped, a checkpointed span still reports staleness against its committed baselines.
+**Solution:** run headed, or on Linux install Xvfb for the `ffmpeg` engine (see [Docker and headless](/docs/ci/docker-and-headless)). Even when the capture is skipped, a span with checkpoints still reports staleness against its committed baselines.
 
 ### `stopRecord` returns WARNING with `stale: true`
 
-**Cause:** The capture was skipped—a headless run or an existing file—while the committed baselines diverged from the current content.
+**Cause:** the capture was skipped—a headless run or an existing file—while the committed baselines diverged from the current content.
 
-**Solution:** Re-run on a headed context to refresh the recording, or set `overwrite` to `"true"` or `"aboveVariation"`.
+**Solution:** re-run on a headed context to refresh the recording, or set `overwrite` to `"true"` or `"aboveVariation"`.
 
 ### Two concurrent recordings overlap on Windows or macOS
 
-**Cause:** The recordings share one physical display, so their captures overlap.
+**Cause:** the recordings share one physical display, so their captures overlap.
 
-**Solution:** Use the `browser` engine, which records each context's own window, or let Doc Detective serialize the `ffmpeg` recordings on the shared display.
+**Solution:** use the `browser` engine, which records each context's own window, or let Doc Detective serialize the `ffmpeg` recordings on the shared display.
 
 ### A `record` step is skipped and the file isn't refreshed
 
-**Cause:** The default `overwrite: "false"` skips a `record` step whose file already exists.
+**Cause:** the default `overwrite: "false"` skips a `record` step whose file already exists.
 
-**Solution:** Set `overwrite` to `"true"` to always re-record, or `"aboveVariation"` to re-record only when the span meaningfully changed.
+**Solution:** set `overwrite` to `"true"` to always re-record, or `"aboveVariation"` to re-record only when the span meaningfully changed.
 
 ## What's next
 

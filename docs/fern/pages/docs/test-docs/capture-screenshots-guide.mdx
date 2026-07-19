@@ -72,7 +72,7 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 {/* step {"stepId":"capture-guide-crop-shot","description":"Capture only the buttons section (a selector that fits the viewport), directed at a gitignored output folder","screenshot":{"path":"guide_crop.png","directory":"./.dd-output","crop":"#buttons"}} */}
 {/* test end */}
 
-`crop` accepts the same selector grammar as [`find`](/docs/selectors/css). To disambiguate a selector by its visible text or add breathing room, use the object form of `crop`:
+`crop` accepts the same selector grammar as `find`—a [CSS](/docs/selectors/css) or [XPath](/docs/selectors/xpath) selector. To disambiguate a selector by its visible text or add breathing room, use the object form of `crop`:
 
 ```json
 {
@@ -261,25 +261,25 @@ Captures and results land in the run's output directory and the per-run artifact
 
 **Cause:** `maxVariation` isn't set, so the step only captures an image without comparing it.
 
-**Solution:** Set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
+**Solution:** set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
 
 ### A remote reference URL fails with "Refusing to fetch private/loopback address"
 
-**Cause:** The SSRF guard blocks reference URLs that resolve to a private, loopback, or link-local address.
+**Cause:** the SSRF guard blocks reference URLs that resolve to a private, loopback, or link-local address.
 
-**Solution:** Host the reference image on a public address, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to compare against an internal address such as a local development server.
+**Solution:** host the reference image on a public address, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to compare against an internal address such as a local development server.
 
 ### An annotation turns previously passing comparisons to WARNING
 
-**Cause:** Annotations change the image's pixels, so an added or restyled annotation makes the new capture differ from a reference image captured without it.
+**Cause:** annotations change the image's pixels, so an added or restyled annotation makes the new capture differ from a reference image captured without it.
 
-**Solution:** Refresh the reference image after you change annotations or the `annotationDefaults` theme.
+**Solution:** refresh the reference image after you change annotations or the `annotationDefaults` theme.
 
 ### Auto screenshots don't appear for a step
 
-**Cause:** The step already defines an explicit `screenshot` (Doc Detective skips it to avoid a duplicate), or the step isn't browser-driven.
+**Cause:** the step already defines an explicit `screenshot` (Doc Detective skips it to avoid a duplicate), or the step isn't browser-driven.
 
-**Solution:** This is expected behavior. Explicit `screenshot` steps produce their own image, and `autoScreenshot` only captures browser-driven steps.
+**Solution:** this is expected behavior. Explicit `screenshot` steps produce their own image, and `autoScreenshot` only captures browser-driven steps.
 
 ## What's next
 

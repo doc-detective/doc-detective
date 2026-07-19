@@ -160,18 +160,18 @@ navigation:
               - page: Fill fields
                 path: pages/tutorials/fill-fields.mdx
                 slug: fill-fields
-              - page: Screenshot example
-                path: pages/tutorials/capture-screenshot.mdx
-                slug: capture-screenshots
               - page: Capture screenshots
                 path: pages/docs/test-docs/capture-screenshots-guide.mdx
                 slug: capture-screenshots-guide
-              - page: Recording example
-                path: pages/tutorials/record-video.mdx
-                slug: record-video
+              - page: Screenshot example
+                path: pages/tutorials/capture-screenshot.mdx
+                slug: capture-screenshots
               - page: Record video
                 path: pages/docs/test-docs/record-video-guide.mdx
                 slug: record-video-guide
+              - page: Recording example
+                path: pages/tutorials/record-video.mdx
+                slug: record-video
               - page: Multiple tabs, windows & browsers
                 path: pages/tutorials/multiple-tabs-and-windows.mdx
                 slug: multiple-tabs-and-windows
