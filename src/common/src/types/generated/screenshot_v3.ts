@@ -238,7 +238,7 @@ export type CaptureScreenshot = boolean;
 
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface: it stays targeted for later surface-less steps. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
    */
   surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
   path?: ScreenshotSimple1;

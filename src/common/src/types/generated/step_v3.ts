@@ -581,7 +581,7 @@ export type TypeKeysDetailed = {
  */
 export type TypeKeysSimple1 = string | string[];
 /**
- * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface: it stays targeted for later surface-less steps. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface2 | AppSurface;
 /**
@@ -1128,7 +1128,7 @@ export type Routing55 = {
  */
 export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
 /**
- * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface: it stays targeted for later surface-less steps. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
 export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface5 | AppSurface3;
 /**
@@ -1172,7 +1172,7 @@ export type ByIndex15 = number;
  */
 export type ByName15 = string;
 /**
- * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface: it stays targeted for later surface-less steps. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
 export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface6 | AppSurface4;
 /**
@@ -3942,7 +3942,7 @@ export interface Screenshot {
 }
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface: it stays targeted for later surface-less steps. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
    */
   surface?: SurfaceByBrowserEngine2 | BrowserSurface3 | AppSurface1;
   path?: ScreenshotSimple1;
@@ -6620,7 +6620,7 @@ export interface SwipeDirectional {
    */
   duration?: number;
   /**
-   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface: it stays targeted for later surface-less steps. App surfaces use the object form ({ "app": … }).
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
   surface?: SurfaceByBrowserEngine5 | BrowserSurface8 | AppSurface5;
 }
@@ -6701,7 +6701,7 @@ export interface SwipePointToPoint {
    */
   duration?: number;
   /**
-   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface: it stays targeted for later surface-less steps. App surfaces use the object form ({ "app": … }).
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
   surface?: SurfaceByBrowserEngine6 | BrowserSurface9 | AppSurface6;
 }

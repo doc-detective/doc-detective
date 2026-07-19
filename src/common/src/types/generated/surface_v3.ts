@@ -5,7 +5,7 @@
  */
 
 /**
- * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface: it stays targeted for later surface-less steps. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface | AppSurface;
 /**

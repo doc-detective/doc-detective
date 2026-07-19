@@ -17,7 +17,7 @@ Field | Type | Description | Default
 from | object([Point](/reference/schemas/point)) | Required. A pixel coordinate on the surface, measured from its top-left corner (0, 0). | 
 to | object([Point](/reference/schemas/point)) | Required. A pixel coordinate on the surface, measured from its top-left corner (0, 0). | 
 duration | integer | Optional. Duration of the swipe movement in milliseconds.<br/><br/>Minimum: 1 | `500`
-surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface: it stays targeted for later surface-less steps. App surfaces use the object form (&#123; "app": … &#125;). | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form (&#123; "app": … &#125;). | 
 
 ## Examples
 
