@@ -1,4 +1,8 @@
 import type { ParsedSurface } from "./browserSurface.js";
+import {
+  activateSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 
 // Multi-surface Phase 4 (ADR 01019): several concurrent WebDriver sessions in
 // one context, keyed by surface name. This module owns the context-scoped
@@ -105,12 +109,17 @@ export interface BrowserSessionRegistry {
   // Cross-kind name collision check (e.g. background process names), so one
   // name never means two surfaces.
   isNameTaken?: (name: string) => boolean;
+  // Cross-kind active-surface tracker (ADR 01081): every browser activation
+  // also marks the browser as the context's active surface, so surface-less
+  // steps route here after any browser open/focus.
+  tracker?: ActiveSurfaceTracker;
 }
 
 function createSessionRegistry(
   opts: {
     open?: (engine: string, overrides?: BrowserOpenOverrides) => Promise<any>;
     isNameTaken?: (name: string) => boolean;
+    tracker?: ActiveSurfaceTracker;
   } = {}
 ): BrowserSessionRegistry {
   return {
@@ -119,6 +128,7 @@ function createSessionRegistry(
     focusSeq: 0,
     ...(opts.open ? { open: opts.open } : {}),
     ...(opts.isNameTaken ? { isNameTaken: opts.isNameTaken } : {}),
+    ...(opts.tracker ? { tracker: opts.tracker } : {}),
   };
 }
 
@@ -128,6 +138,7 @@ function activate(
 ): void {
   entry.lastFocused = ++registry.focusSeq;
   registry.activeName = entry.name;
+  activateSurface(registry.tracker, { kind: "browser", name: entry.name });
 }
 
 // Register a live session and activate it. Throws on a duplicate name, or on a

@@ -287,6 +287,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // omitSurfaceForActiveApp (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "omitSurfaceForActiveApp",
+    priority: 50,
+    markdown: [
+      "Steps that omit `surface` act on the **active surface** — the surface most recently opened, focused, or explicitly targeted. After `startSurface` opens an app it is the active surface, so the repeated `surface: { \"app\": … }` on the steps that follow can be dropped; use `surface` only to switch targets mid-test.",
+      "",
+      "```diff",
+      "  { \"startSurface\": { \"app\": \"notepad\" } },",
+      "- { \"click\": { \"elementText\": \"Save\", \"surface\": { \"app\": \"notepad\" } } }",
+      "+ { \"click\": \"Save\" }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/actions/startsurface](https://doc-detective.com/docs/actions/startsurface#target-an-app-surface)",
+    ].join("\n"),
+    when: (ctx) => ctx.repeatedAppSurfaceRefs,
+  },
+
+  // ------------------------------------------------------------------
   // prebuildWebDriverAgent (optimization & advanced)
   // ------------------------------------------------------------------
   {

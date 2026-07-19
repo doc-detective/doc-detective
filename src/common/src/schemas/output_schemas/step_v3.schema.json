@@ -4038,7 +4038,7 @@
                       "minimum": 1
                     },
                     "surface": {
-                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -4391,7 +4391,7 @@
                         "minimum": 1
                       },
                       "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -5681,7 +5681,7 @@
                   "additionalProperties": false,
                   "properties": {
                     "surface": {
-                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -6030,7 +6030,7 @@
                                   "minimum": 1
                                 },
                                 "surface": {
-                                  "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                                  "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                                   "anyOf": [
                                     {
                                       "title": "Surface (by browser engine)",
@@ -6383,7 +6383,7 @@
                                     "minimum": 1
                                   },
                                   "surface": {
-                                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                                     "anyOf": [
                                       {
                                         "title": "Surface (by browser engine)",
@@ -6753,7 +6753,7 @@
                                     "surface": {
                                       "$schema": "http://json-schema.org/draft-07/schema#",
                                       "title": "surface",
-                                      "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                                      "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                                       "anyOf": [
                                         {
                                           "title": "Surface (by name)",
@@ -8250,7 +8250,7 @@
                                       "surface": {
                                         "$schema": "http://json-schema.org/draft-07/schema#",
                                         "title": "surface",
-                                        "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                                        "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                                         "anyOf": [
                                           {
                                             "title": "Surface (by name)",
@@ -9827,7 +9827,7 @@
                     "additionalProperties": false,
                     "properties": {
                       "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -10176,7 +10176,7 @@
                                     "minimum": 1
                                   },
                                   "surface": {
-                                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                                     "anyOf": [
                                       {
                                         "title": "Surface (by browser engine)",
@@ -10529,7 +10529,7 @@
                                       "minimum": 1
                                     },
                                     "surface": {
-                                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                                       "anyOf": [
                                         {
                                           "title": "Surface (by browser engine)",
@@ -10899,7 +10899,7 @@
                                       "surface": {
                                         "$schema": "http://json-schema.org/draft-07/schema#",
                                         "title": "surface",
-                                        "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                                        "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                                         "anyOf": [
                                           {
                                             "title": "Surface (by name)",
@@ -12396,7 +12396,7 @@
                                         "surface": {
                                           "$schema": "http://json-schema.org/draft-07/schema#",
                                           "title": "surface",
-                                          "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                                          "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                                           "anyOf": [
                                             {
                                               "title": "Surface (by name)",
@@ -23088,7 +23088,7 @@
                         "surface": {
                           "$schema": "http://json-schema.org/draft-07/schema#",
                           "title": "surface",
-                          "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                          "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                           "anyOf": [
                             {
                               "title": "Surface (by name)",
@@ -24585,7 +24585,7 @@
                           "surface": {
                             "$schema": "http://json-schema.org/draft-07/schema#",
                             "title": "surface",
-                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                            "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                             "anyOf": [
                               {
                                 "title": "Surface (by name)",
@@ -27064,7 +27064,7 @@
                       "additionalProperties": false,
                       "properties": {
                         "surface": {
-                          "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                          "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
                           "anyOf": [
                             {
                               "title": "Surface (by browser engine)",
@@ -29615,7 +29615,7 @@
                         "additionalProperties": false,
                         "properties": {
                           "surface": {
-                            "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
                             "anyOf": [
                               {
                                 "title": "Surface (by browser engine)",
@@ -32145,7 +32145,7 @@
                     "additionalProperties": false,
                     "properties": {
                       "surface": {
-                        "description": "The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -39871,7 +39871,7 @@
                 {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "title": "surface",
-                  "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                  "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                   "anyOf": [
                     {
                       "title": "Surface (by name)",
@@ -40495,7 +40495,7 @@
                   "items": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "title": "surface",
-                    "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                    "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                     "anyOf": [
                       {
                         "title": "Surface (by name)",
@@ -48251,7 +48251,7 @@
                       "description": "Duration of the swipe movement in milliseconds."
                     },
                     "surface": {
-                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -48532,7 +48532,7 @@
                       "description": "Duration of the swipe movement in milliseconds."
                     },
                     "surface": {
-                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -48796,7 +48796,7 @@
                     "description": "Duration of the swipe movement in milliseconds."
                   },
                   "surface": {
-                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                    "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                     "anyOf": [
                       {
                         "title": "Surface (by browser engine)",
@@ -49048,7 +49048,7 @@
                         "description": "Duration of the swipe movement in milliseconds."
                       },
                       "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -49329,7 +49329,7 @@
                         "description": "Duration of the swipe movement in milliseconds."
                       },
                       "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
