@@ -295,7 +295,7 @@ navigation:
           - page: Expressions
             path: pages/reference/expressions.mdx
             slug: expressions
-          - page: CLI commands & flags
+          - page: CLI commands and flags
             path: pages/reference/cli.mdx
             slug: cli
           - section: CLI
