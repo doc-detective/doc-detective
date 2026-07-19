@@ -13,7 +13,6 @@ on:
       - "src/lsp/command.ts"
       - "src/debug/command.ts"
       - "src/runtime/installCommand.ts"
-      - "src/agents/command.ts"
       - "src/common/src/schemas/**"
       - "docs/fern/pages/reference/cli.mdx"
       - "docs/.scripts/buildCliReference.js"
@@ -32,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 #v4.4.0
         with:
           node-version: "22"
 
