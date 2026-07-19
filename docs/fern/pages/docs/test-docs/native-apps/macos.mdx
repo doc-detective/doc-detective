@@ -49,15 +49,13 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
         {
           "description": "Click a control.",
           "click": {
-            "elementAria": "1",
-            "surface": { "app": "Calculator" }
+            "elementAria": "1"
           }
         },
         {
           "description": "Take a screenshot of the window.",
           "screenshot": {
-            "path": "calculator.png",
-            "surface": { "app": "Calculator" }
+            "path": "calculator.png"
           }
         },
         {
@@ -71,8 +69,8 @@ This test targets the `mac` platform, launches Calculator by its `.app` path, wa
 ```
 
 {/* step {"stepId":"macos-calculator-start","description":"Launch Calculator and wait until it's ready","startSurface":{"app":"/System/Applications/Calculator.app","timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}} */}
-{/* step {"stepId":"macos-calculator-click","description":"Click a control","click":{"elementAria":"1","surface":{"app":"Calculator"}}} */}
-{/* step {"stepId":"macos-calculator-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"calculator.png","surface":{"app":"Calculator"}}} */}
+{/* step {"stepId":"macos-calculator-click","description":"Click a control","click":{"elementAria":"1"}} */}
+{/* step {"stepId":"macos-calculator-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"calculator.png"}} */}
 {/* step {"stepId":"macos-calculator-close","description":"Close the app","closeSurface":{"app":"Calculator"}} */}
 {/* test end */}
 
@@ -86,7 +84,7 @@ A few things to notice:
 
 - The generous `timeout` (180,000 ms) leaves room for the first-run WebDriverAgentMac build and for the driver to install.
 - `waitUntil.find` gates readiness: the step holds until a digit button (matched by `elementAria`) exists, so the next step never runs against a window that hasn't drawn its controls yet.
-- The app that `startSurface` opens becomes the active surface, so the later steps act on it. This example names the app on each step with `surface: { "app": "Calculator" }`; a step can also omit `surface` to act on the active surface. Doc Detective derives the default name `Calculator` from the `.app` base name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. Pass an explicit `surface` on a step—for example `{ "app": "Calculator" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "Calculator" }`) because it's a lifecycle step, not an interaction on the active surface. Doc Detective derives the default name `Calculator` from the `.app` base name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To launch an app by its bundle ID instead of a `.app` path, set `app` to the identifier, such as `"com.apple.TextEdit"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.

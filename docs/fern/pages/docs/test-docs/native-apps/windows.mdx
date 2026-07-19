@@ -47,15 +47,13 @@ This test targets the `windows` platform, launches Character Map by its executab
         {
           "description": "Click a control.",
           "click": {
-            "elementText": "Select",
-            "surface": { "app": "charmap" }
+            "elementText": "Select"
           }
         },
         {
           "description": "Take a screenshot of the window.",
           "screenshot": {
-            "path": "charmap.png",
-            "surface": { "app": "charmap" }
+            "path": "charmap.png"
           }
         },
         {
@@ -69,8 +67,8 @@ This test targets the `windows` platform, launches Character Map by its executab
 ```
 
 {/* step {"stepId":"windows-charmap-start","description":"Launch Character Map and wait until it's ready","startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} */}
-{/* step {"stepId":"windows-charmap-click","description":"Click a control","click":{"elementText":"Select","surface":{"app":"charmap"}}} */}
-{/* step {"stepId":"windows-charmap-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"charmap.png","surface":{"app":"charmap"}}} */}
+{/* step {"stepId":"windows-charmap-click","description":"Click a control","click":{"elementText":"Select"}} */}
+{/* step {"stepId":"windows-charmap-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"charmap.png"}} */}
 {/* step {"stepId":"windows-charmap-close","description":"Close the app","closeSurface":{"app":"charmap"}} */}
 {/* test end */}
 
@@ -84,7 +82,7 @@ A few things to notice:
 
 - The generous `timeout` (120,000 ms) leaves room for the driver to install on a first run and for the app to launch.
 - `waitUntil.find` gates readiness: the step holds until an element with the text `Select` exists, so the next step never runs against a window that hasn't drawn its controls yet.
-- The app that `startSurface` opens becomes the active surface, so the later steps act on it. This example names the app on each step with `surface: { "app": "charmap" }`; a step can also omit `surface` to act on the active surface. Doc Detective derives the default name `charmap` from the executable file name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. Pass an explicit `surface` on a step—for example `{ "app": "charmap" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "charmap" }`) because it's a lifecycle step, not an interaction on the active surface. Doc Detective derives the default name `charmap` from the executable file name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To launch a packaged (UWP) app instead of an executable, set `app` to its AppUserModelID, such as `"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.
@@ -120,7 +118,7 @@ On a host that isn't Windows, the test skips with a reason rather than failing. 
 **Doc Detective targets the wrong window**
 
 - **Cause:** An app with more than one window defaults to its main window.
-- **Solution:** Add a `window` selector to the `surface` (an index, where `-1` is the newest, a title, or an object form) to address a specific window. See [App windows](/docs/actions/find#app-windows).
+- **Solution:** Reintroduce an explicit `surface` on the step and add a `window` selector to it—for example `"surface": { "app": "charmap", "window": -1 }`, where `-1` is the newest window; a title or object form also works—to address a specific window. See [App windows](/docs/actions/find#app-windows).
 
 **Doc Detective rejects a working directory setting elsewhere**
 
