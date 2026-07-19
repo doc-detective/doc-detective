@@ -71,7 +71,9 @@ Safari is the exception: `safaridriver` allows only one automation session per h
 
 ## Target an app surface
 
-After `startSurface` registers an app, reference it from a later step with a `surface` object that names it:
+An app that `startSurface` opens becomes the **active surface**: later surface-sensitive steps ([`find`](find), [`click`](click), [`type`](type), [`screenshot`](screenshot), [`swipe`](swipe)) act on it with no `surface` field at all, the same way browser steps act on the active tab. Use `surface` when you need to *switch* targets mid-test (to another app, a browser, or a background process). A step's explicit `surface` reference also makes that surface active for the surface-less steps that follow.
+
+To target an app explicitly, name it in a `surface` object:
 
 ```json
 {

@@ -84,7 +84,7 @@ A few things to notice:
 
 - The generous `timeout` (120,000 ms) leaves room for the driver to install on a first run and for the app to launch.
 - `waitUntil.find` gates readiness: the step holds until an element with the text `Select` exists, so the next step never runs against a window that hasn't drawn its controls yet.
-- Later steps address the app with `surface: { "app": "charmap" }`. Doc Detective derives the default name `charmap` from the executable file name; pass a `name` on `startSurface` to choose your own.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it. This example names the app on each step with `surface: { "app": "charmap" }`; a step can also omit `surface` to act on the active surface. Doc Detective derives the default name `charmap` from the executable file name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To launch a packaged (UWP) app instead of an executable, set `app` to its AppUserModelID, such as `"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.

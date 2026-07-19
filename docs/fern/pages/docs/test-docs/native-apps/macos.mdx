@@ -86,7 +86,7 @@ A few things to notice:
 
 - The generous `timeout` (180,000 ms) leaves room for the first-run WebDriverAgentMac build and for the driver to install.
 - `waitUntil.find` gates readiness: the step holds until a digit button (matched by `elementAria`) exists, so the next step never runs against a window that hasn't drawn its controls yet.
-- Later steps address the app with `surface: { "app": "Calculator" }`. Doc Detective derives the default name `Calculator` from the `.app` base name; pass a `name` on `startSurface` to choose your own.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it. This example names the app on each step with `surface: { "app": "Calculator" }`; a step can also omit `surface` to act on the active surface. Doc Detective derives the default name `Calculator` from the `.app` base name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To launch an app by its bundle ID instead of a `.app` path, set `app` to the identifier, such as `"com.apple.TextEdit"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.
