@@ -174,7 +174,7 @@ On a host that can't run an Android emulator, the test skips with a reason rathe
 - **Cause:** Swipes and scrolls aren't clicks.
 - **Solution:** Use the [`swipe`](/docs/actions/swipe) action, which drives Android gestures.
 
-You can drive several apps in one test: apps on one emulator share a single session, so a later `startSurface` brings another app to the foreground on the same device and makes it the active surface; pass an explicit `surface` on a step to act on the earlier app again.
+You can drive several apps in one test: apps on one emulator share a single session, so a later `startSurface` brings another app to the foreground on the same device and makes it the active surface. Pass an explicit `surface` on a step to act on the earlier app again.
 
 ## What's next
 
