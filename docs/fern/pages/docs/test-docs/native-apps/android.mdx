@@ -47,7 +47,7 @@ This test targets the `android` platform, launches the Settings app by its packa
             "name": "settings",
             "timeout": 180000,
             "waitUntil": {
-              "find": { "elementText": "Settings" }
+              "find": { "elementText": "Network & internet" }
             }
           }
         },
@@ -89,7 +89,7 @@ This test targets the `android` platform, launches the Settings app by its packa
 }
 ```
 
-{/* step {"stepId":"android-settings-start","description":"Launch the app and wait until it's ready","startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Settings"}}}} */}
+{/* step {"stepId":"android-settings-start","description":"Launch the app and wait until it's ready","startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Network & internet"}}}} */}
 {/* step {"stepId":"android-settings-click","description":"Open a settings category","click":{"elementText":"Network & internet","surface":{"app":"settings"}}} */}
 {/* step {"stepId":"android-settings-find","description":"Confirm the category screen opened","find":{"elementText":"Internet","surface":{"app":"settings"}}} */}
 {/* step {"stepId":"android-settings-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"android-settings.png","surface":{"app":"settings"}}} */}
@@ -106,8 +106,8 @@ doc-detective --input android-app.spec.json
 A few things to notice:
 
 - The generous `timeout` (180,000 ms) leaves room for a cold emulator to boot and the app to launch. The toolchain and automation driver must be in place before the first step runs. Install them ahead of time with `doc-detective install android`, or let a capable host install them lazily on the first run that needs them.
-- `waitUntil.find` gates readiness: the step holds until an element with the text `Settings` exists, so the next step never runs against a screen that hasn't drawn its controls yet.
-- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows. If you change the category, also update the following `find` (here `Internet`) to a label the new category screen displays.
+- `waitUntil.find` gates readiness: the step holds until the **Network & internet** entry exists, so the next step never runs against a screen that hasn't drawn its controls yet. Gate readiness on an element the test actually uses—here the same entry the next `click` targets—rather than on a screen title or heading that can appear before the list below it has drawn, which would let the test race ahead to a control that isn't there yet.
+- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows. If you change the category, also update the `waitUntil.find` gate and the following `find` (here `Internet`) to labels the new screens display.
 - The example sets `"name": "settings"` on `startSurface`, and later steps address the app with `surface: { "app": "settings" }`. If you omit `name`, Doc Detective derives the same `settings` default from the final dot-segment of the package name; set it explicitly when you want a name of your own.
 - Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. The example uses a standalone `find` to confirm the category screen opened, and a `type` step that sends the `$BACK$` [device key](/docs/actions/type#device-keys-mobile-app-surfaces) to return to the top level. Used for text entry, `type` sends text to the focused control on Android, so tap a field first (for example, the Settings search box) and then type into it.
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
