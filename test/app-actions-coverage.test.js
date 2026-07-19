@@ -773,9 +773,11 @@ describe("saveScreenshot app-surface branch", function () {
     assert.match(unknown.description, /No app surface named "ghost"/);
   });
 
-  it("fails with guidance when an app-only context captures without a surface", async function () {
-    // No browser driver and no surface named: nothing to capture — must be a
-    // clear FAIL, not a TypeError on the missing driver.
+  it("fails with the unified guidance when nothing is active to capture", async function () {
+    // No browser driver, no surface named, and no ACTIVE app (the registered
+    // surface was never activated): nothing to capture — must be a clear
+    // FAIL with the unified no-active-surface guidance (ADR 01081), not a
+    // TypeError on the missing driver.
     const appSession = fakeAppSession({});
     const result = await saveScreenshot({
       config: {},
@@ -784,8 +786,8 @@ describe("saveScreenshot app-surface branch", function () {
       appSession,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /No browser session/);
-    assert.match(result.description, /"app"/);
+    assert.match(result.description, /No active surface to act on/);
+    assert.match(result.description, /startSurface/);
 
     // Same guard must fire BEFORE the crop path dereferences the missing
     // browser driver for element geometry.
@@ -802,7 +804,7 @@ describe("saveScreenshot app-surface branch", function () {
       appSession,
     });
     assert.equal(withCrop.status, "FAIL");
-    assert.match(withCrop.description, /No browser session/);
+    assert.match(withCrop.description, /No active surface to act on/);
   });
 });
 

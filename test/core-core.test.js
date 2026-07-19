@@ -1388,6 +1388,50 @@ describe("browserJobCount() Appium pool sizing", function () {
     assert.equal(browserJobCount([{ context: {} }, { context: { steps: [] } }, {}]), 0);
   });
 
+  it("excludes surface-less interaction steps when the test opens a non-browser surface (ADR 01081)", function () {
+    const jobs = [
+      // App-only test with surface-less steps: they route to the active app
+      // at runtime, so no browser pool server is needed.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { find: { elementText: "Select" } },
+            { screenshot: true },
+          ],
+        },
+      },
+      // Process-only test with a surface-less type: routes to the process.
+      {
+        context: {
+          steps: [
+            { startSurface: { process: "node repl.js", name: "repl" } },
+            { type: ["hello"] },
+          ],
+        },
+      },
+      // Explicit process targeting also never needs a browser.
+      {
+        context: {
+          steps: [{ type: { keys: ["hi"], surface: { process: "repl" } } }],
+        },
+      },
+      // Mixed: a goTo still requires the browser even with an app signal.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { goTo: "https://x.test" },
+            { find: "Ready" },
+          ],
+        },
+      },
+      // No non-browser signal: a surface-less find keeps requiring a browser.
+      { context: { steps: [{ find: "Ready" }] } },
+    ];
+    assert.equal(browserJobCount(jobs), 2);
+  });
+
   it("counts a context whose only browser touch is a startSurface browser descriptor (Phase 6)", function () {
     const jobs = [
       { context: { steps: [{ startSurface: { browser: "chrome" } }] } },

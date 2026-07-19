@@ -164,6 +164,7 @@ export async function buildHintContext(
     // parallel). Defensive read — results may be partial/absent.
     recordingSerialized: options.results?.recordingSerialized === true,
     hasStaleRecordings: walkData.hasStaleRecordings,
+    repeatedAppSurfaceRefs: walkData.repeatedAppSurfaceRefs,
   };
 }
 
@@ -408,6 +409,13 @@ interface WalkData {
   hasStaleRecordings: boolean;
   viewportFloored: boolean;
   ranMobileContexts: boolean;
+  // True when >= 3 surface-sensitive steps (find/click/type/screenshot/swipe)
+  // explicitly referenced the SAME app surface — redundant under the
+  // active-surface default (ADR 01081). Powers `omitSurfaceForActiveApp`.
+  repeatedAppSurfaceRefs: boolean;
+  // Internal counter behind `repeatedAppSurfaceRefs`: app name → explicit
+  // reference count, folded by inspectStep, reduced at the end of walkResults.
+  appSurfaceRefCounts: Map<string, number>;
 }
 
 /**
@@ -456,8 +464,23 @@ function emptyWalkData(): WalkData {
     hasStaleRecordings: false,
     viewportFloored: false,
     ranMobileContexts: false,
+    repeatedAppSurfaceRefs: false,
+    appSurfaceRefCounts: new Map(),
   };
 }
+
+// The step keys whose actions route through the active-surface resolver
+// (ADR 01081). Mirrors SURFACE_SENSITIVE_STEP_KEYS in
+// `src/runtime/browserStepKeys.ts`; duplicated (like the viewport tolerance
+// above) so `hints/` stays import-light — `test/hints.test.js` asserts the
+// two lists stay equal.
+export const SURFACE_SENSITIVE_HINT_KEYS = [
+  "click",
+  "find",
+  "screenshot",
+  "swipe",
+  "type",
+];
 
 // Test/step routing handler keys.
 const ROUTING_HANDLER_KEYS = ["onPass", "onFail", "onWarning", "onSkip"];
@@ -506,6 +529,9 @@ export function walkResults(results: any): WalkData {
   } catch {
     // Defensive: malformed result shape — return whatever we collected.
   }
+  data.repeatedAppSurfaceRefs = [...data.appSurfaceRefCounts.values()].some(
+    (count) => count >= 3
+  );
   return data;
 }
 
@@ -513,6 +539,19 @@ function inspectStep(step: any, data: WalkData): void {
   if (!step || typeof step !== "object") return;
   for (const key of STEP_ACTION_KEYS) {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
+  }
+
+  // Explicit app-surface references on surface-sensitive steps, counted per
+  // app name. Three or more on one app means the author is repeating a
+  // reference the active-surface default (ADR 01081) makes redundant.
+  for (const key of SURFACE_SENSITIVE_HINT_KEYS) {
+    const appName = step[key]?.surface?.app;
+    if (typeof appName === "string" && appName.length > 0) {
+      data.appSurfaceRefCounts.set(
+        appName,
+        (data.appSurfaceRefCounts.get(appName) ?? 0) + 1
+      );
+    }
   }
 
   // Stale recordings (ADR 01079): a phantom recording span — a checkpointed or
