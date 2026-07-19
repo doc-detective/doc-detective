@@ -95,6 +95,8 @@ A screenshot becomes a regression test when you compare it against a saved refer
 
 Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the maximum acceptable fractional difference between the new capture and the reference at `path`. When the difference exceeds the threshold, the step returns `WARNING`—not `FAIL`—because visual drift is a signal to review, not a hard break:
 
+{/* test {"testId":"capture-guide-regression","detectSteps":false} */}
+
 ```json
 {
   "description": "Compare against the committed reference image.",
@@ -105,6 +107,10 @@ Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the max
   }
 }
 ```
+
+{/* step {"stepId":"capture-guide-regression-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-regression-shot","description":"Capture with a comparison threshold, directed at a fresh gitignored path so the run seeds the reference and passes","screenshot":{"path":"guide_regression.png","directory":"./.dd-output","maxVariation":0.05,"overwrite":"aboveVariation"}} */}
+{/* test end */}
 
 `overwrite` controls when Doc Detective replaces the reference image with the new capture:
 
@@ -145,9 +151,15 @@ Enable it at the config, spec, or test level. A test's setting overrides a spec'
 
 The CLI flag does the same thing for a single run:
 
+{/* test {"testId":"capture-guide-autoscreenshot","detectSteps":false,"autoScreenshot":true} */}
+
 ```bash
 doc-detective --auto-screenshot
 ```
+
+{/* step {"stepId":"capture-guide-autoscreenshot-goto","description":"Open the local test server; with autoScreenshot on, Doc Detective captures a screenshot after this browser-driven step (screenshots capture fine headless)","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-autoscreenshot-step","description":"Take another step, which also gets an automatic screenshot","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* test end */}
 
 To scope the behavior more tightly, set `autoScreenshot` on an individual spec or test to override the config:
 

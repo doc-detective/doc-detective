@@ -29,6 +29,8 @@ Every recording ends at a `stopRecord` step; Doc Detective finalizes any recordi
 
 A single context can run more than one recording at once—for example, a full session alongside a shorter clip. Give each `record` step a `name` so a later `stopRecord` targets the right one. For that pattern, see [Multiple overlapping recordings](/docs/actions/record#multiple-overlapping-recordings).
 
+{/* test {"testId":"record-guide-record-stop","detectSteps":false} */}
+
 ```json title="recording.spec.json"
 {
   "tests": [
@@ -42,6 +44,11 @@ A single context can run more than one recording at once—for example, a full s
   ]
 }
 ```
+
+{/* step {"stepId":"record-guide-rs-start","description":"Start recording, directed at a gitignored output folder instead of the default path (on this headless docs-test runner, with no display, this step SKIPS rather than fails)","record":{"path":"guide_record.mp4","directory":"./.dd-output"}} */}
+{/* step {"stepId":"record-guide-rs-goto","description":"Walk through the flow on the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-rs-stop","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 
 For the full set of fields, see the [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas.
 
@@ -61,6 +68,8 @@ Set `engine` as a string to pick an engine with its defaults, or as an object to
 }
 ```
 
+{/* test {"testId":"record-guide-engine-ffmpeg","detectSteps":false} */}
+
 ```json
 {
   "description": "Record the active window at 60 fps with FFmpeg.",
@@ -71,6 +80,12 @@ Set `engine` as a string to pick an engine with its defaults, or as an object to
 }
 ```
 
+{/* step {"stepId":"record-guide-engine-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-engine-start","description":"Start recording the active window at 60 fps with FFmpeg, directed at a gitignored output folder (SKIPS on this headless docs-test runner)","record":{"path":"guide_ffmpeg.mp4","directory":"./.dd-output","engine":{"name":"ffmpeg","target":"window","fps":60}}} */}
+{/* step {"stepId":"record-guide-engine-wait","description":"Wait briefly","wait":1000} */}
+{/* step {"stepId":"record-guide-engine-stop","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
 Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test so they take turns on the display—you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On Linux, the `ffmpeg` engine needs Xvfb to record a headless context, which has no physical display to capture.
 
 Recording a native app surface or a mobile device screen follows different rules—see [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
@@ -79,11 +94,19 @@ Recording a native app surface or a mobile device screen follows different rules
 
 A recording's steps can keep passing while the recorded content quietly drifts—a redesigned page, a moved button, changed copy. To catch that, enable `checkpoints` on a `record` step. Doc Detective then captures a screenshot after every step during the span and compares each against a committed baseline stored beside the recording (`signup-flow.mp4.checkpoints/` by default, or an object-form `directory`):
 
+{/* test {"testId":"record-guide-checkpoints","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false}}]} */}
+
 ```json
 {
   "record": { "path": "signup-flow.mp4", "checkpoints": true }
 }
 ```
+
+{/* step {"stepId":"record-guide-cp-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-cp-start","description":"Start a checkpointed recording, directed at a gitignored output folder; this test is gated to headed Chrome via runOn because checkpoints need a real recording from a visible display, so it is SKIPPED on the headless docs-test runner and seeds baselines on a headed run","record":{"path":"guide_checkpoints.mp4","directory":"./.dd-output","checkpoints":true}} */}
+{/* step {"stepId":"record-guide-cp-step","description":"Take a step during the span","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"record-guide-cp-stop","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 
 On the first run the baselines don't exist yet, so `stopRecord` seeds them from the captures. Commit the baseline folder alongside the recording. On every later run, each checkpoint compares against its baseline:
 
@@ -113,6 +136,8 @@ To act on drift instead of only reporting it, set `overwrite: "aboveVariation"`.
 
 Checkpoints validate the scene a recording shows; `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are a wrong-sized crop, a truncated clip, and an all-black video:
 
+{/* test {"testId":"record-guide-verify","detectSteps":false} */}
+
 ```json
 {
   "record": {
@@ -121,6 +146,12 @@ Checkpoints validate the scene a recording shows; `verify` validates the produce
   }
 }
 ```
+
+{/* step {"stepId":"record-guide-verify-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-verify-start","description":"Start a recording with structural verify guards, directed at a gitignored output folder (SKIPS on this headless docs-test runner, so the guards never run against a phantom file)","record":{"path":"guide_verify.mp4","directory":"./.dd-output","verify":{"minDuration":2,"resolution":true,"notBlack":true}}} */}
+{/* step {"stepId":"record-guide-verify-wait","description":"Let the recording run briefly","wait":1000} */}
+{/* step {"stepId":"record-guide-verify-stop","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 
 Unlike checkpoint drift, which returns `WARNING`, a violated `verify` guard fails the `stopRecord` step—these are properties you explicitly demand of the artifact:
 
@@ -154,9 +185,15 @@ Enable it at the config, spec, or test level. A test's setting overrides a spec'
 
 The CLI flag does the same for a single run; use `--no-auto-record` to override a config file that enables it:
 
+{/* test {"testId":"record-guide-autorecord","detectSteps":false,"autoRecord":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false}}]} */}
+
 ```bash
 doc-detective --auto-record
 ```
+
+{/* step {"stepId":"record-guide-autorecord-goto","description":"Open the local test server; with autoRecord on, Doc Detective records this context end to end. This test is gated to headed Chrome via runOn (autoRecord uses the ffmpeg engine, which needs a visible display), so the whole test is SKIPPED on the headless docs-test runner and runs only on a headed runner","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-autorecord-step","description":"Take another step in the same context","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* test end */}
 
 Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree, so the same context lands on the same relative path in every run:
 
@@ -190,6 +227,8 @@ Four fields matter only in motion:
 
 This sequence points at one field, moves the annotations to the next, then clears them, all inside a recording span:
 
+{/* test {"testId":"record-guide-narrate","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -222,6 +261,13 @@ This sequence points at one field, moves the annotations to the next, then clear
   ]
 }
 ```
+
+{/* step {"stepId":"record-guide-narrate-goto","description":"Open the enhanced-elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"record-guide-narrate-add","description":"Point at the first field with a tracked callout and a numbered badge","annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"},{"id":"guide","callout":"#username-input","label":"Enter your username first","position":"right","track":true}]}} */}
+{/* step {"stepId":"record-guide-narrate-click","description":"Advance the flow","click":"#username-input"} */}
+{/* step {"stepId":"record-guide-narrate-update","description":"Move the annotations to the submit button","annotate":{"update":[{"id":"step","badge":"#submit-button","label":"2"},{"id":"guide","callout":"#submit-button","label":"Then submit"}]}} */}
+{/* step {"stepId":"record-guide-narrate-clear","description":"Clear every annotation","annotate":{"clear":true}} */}
+{/* test end */}
 
 For a redaction that stays up for a whole recording, set `all: true` with an object target so every match is covered, `track: true` so the blur follows the element, and `transition: { "enter": "none" }` so the blur never fades in—a fading blur leaves the content readable during the animation, and every frame of that is in the video:
 
