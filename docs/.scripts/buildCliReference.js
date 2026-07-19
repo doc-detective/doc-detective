@@ -378,7 +378,7 @@ function installSummary(subcommands) {
     "",
     "The `install` command group manages Doc Detective's lazy-installed runtime assets—npm packages, browser binaries, ffmpeg, agent tools, and mobile toolchains. Its subcommands are " +
       names +
-      ". For every subcommand, option, and example, see the [install reference](/reference/cli/install). The older `install-agents` top-level form still works as a hidden alias.",
+      ". For every subcommand, option, and example, see the [install reference](/reference/cli/install).",
     "",
   ];
   return lines.join("\n");
@@ -425,6 +425,42 @@ function buildPage(data) {
     ""
   );
 
+  // Run and global flags.
+  parts.push(
+    "## Run and global flags",
+    "",
+    "These flags apply to the default run command. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).",
+    "",
+    runFlagsTable(runFlags, configSchema),
+    ""
+  );
+
+  if (negatable.length > 0) {
+    parts.push(
+      "### Negating boolean flags",
+      "",
+      "Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: " +
+        serialJoin(negatable) +
+        ". (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)",
+      ""
+    );
+  }
+
+  // Editorial cross-links and caveats (not derivable from yargs metadata).
+  parts.push(
+    "Notes on individual flags:",
+    "",
+    "- `--reporters`: see [reporters and artifacts](/docs/ci/reporters-and-artifacts) for the `runFolder` reporter and the built-in output formats.",
+    "- `--cache-dir`: see the [cache directory guidance](/reference/cli/install#cache-directory).",
+    "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
+    "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
+    "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
+    "- `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test \"step{1,3}\"` is split into `step{1` and `3}`).",
+    "",
+    "There is no flag to select the platform, browser, or headless mode for a run—those are [contexts](/docs/test-docs/platforms-and-browsers) defined in your config (`--browser-fallback` only controls what happens when a selected browser can't start). For containerized and headless runs, see [Docker and headless runs](/docs/ci/docker-and-headless).",
+    ""
+  );
+
   // Commands.
   parts.push("## Commands", "");
   parts.push(
@@ -441,8 +477,6 @@ function buildPage(data) {
     "```bash",
     "npx doc-detective --input ./docs",
     "```",
-    "",
-    "The `runTests` alias still works but is hidden from `--help`.",
     ""
   );
 
@@ -485,42 +519,6 @@ function buildPage(data) {
     "```bash",
     "npx doc-detective debug --include-env",
     "```",
-    ""
-  );
-
-  // Run and global flags.
-  parts.push(
-    "## Run and global flags",
-    "",
-    "These flags apply to the default run command. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).",
-    "",
-    runFlagsTable(runFlags, configSchema),
-    ""
-  );
-
-  if (negatable.length > 0) {
-    parts.push(
-      "### Negating boolean flags",
-      "",
-      "Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: " +
-        serialJoin(negatable) +
-        ". (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)",
-      ""
-    );
-  }
-
-  // Editorial cross-links and caveats (not derivable from yargs metadata).
-  parts.push(
-    "Notes on individual flags:",
-    "",
-    "- `--reporters`: see [reporters and artifacts](/docs/ci/reporters-and-artifacts) for the `runFolder` reporter and the built-in output formats.",
-    "- `--cache-dir`: see the [cache directory guidance](/reference/cli/install#cache-directory).",
-    "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
-    "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
-    "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
-    "- `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test \"step{1,3}\"` is split into `step{1` and `3}`).",
-    "",
-    "There is no flag to select the platform, browser, or headless mode for a run—those are [contexts](/docs/test-docs/platforms-and-browsers) defined in your config (`--browser-fallback` only controls what happens when a selected browser can't start). For containerized and headless runs, see [Docker and headless runs](/docs/ci/docker-and-headless).",
     ""
   );
 
