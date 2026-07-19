@@ -55,7 +55,7 @@ Point coordinates are pixels from the surface's top-left corner—the app window
 | `distance` | number | How far to swipe, as a fraction (0–1] of the surface's height (up/down) or width (left/right). Default: `0.5`. Directional form only. |
 | `from`, `to` | object | `{ "x": px, "y": px }` pixel coordinates (from the surface's top-left) where the finger presses down and releases. Point-to-point form only—mutually exclusive with `direction`/`distance`. |
 | `duration` | integer | Movement time in milliseconds. Default: `500`. |
-| `surface` | string or object | The browser or app surface to swipe. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted browser tab or app window. App surfaces use the object form (`{ "app": "…" }`). On Windows/macOS, add a `window` selector to swipe a specific window of the app (see [App windows](find#app-windows)). |
+| `surface` | string or object | The browser or app surface to swipe. Omit to act on the active surface (the most recently opened, focused, or explicitly targeted browser tab or app window). App surfaces use the object form (`{ "app": "…" }`). On Windows/macOS, add a `window` selector to swipe a specific window of the app (see [App windows](find#app-windows)). |
 
 See the [swipe schema reference](/reference/schemas/swipe) for the full shapes.
 
