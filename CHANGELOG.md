@@ -1,3 +1,10 @@
+# [4.36.0](https://github.com/doc-detective/doc-detective/compare/v4.35.0...v4.36.0) (2026-07-19)
+
+
+### Features
+
+* **core:** route surface-less steps to the active surface across all surface kinds ([#672](https://github.com/doc-detective/doc-detective/issues/672)) ([f7f13e7](https://github.com/doc-detective/doc-detective/commit/f7f13e7123bfba015aa6939f5c11e9bfc0d9c412)), closes [#671](https://github.com/doc-detective/doc-detective/issues/671)
+
 # [4.35.0](https://github.com/doc-detective/doc-detective/compare/v4.34.0...v4.35.0) (2026-07-17)
 
 
