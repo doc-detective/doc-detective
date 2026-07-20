@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, verifyAppDrivers };
+export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers };
 
 /**
  * A candidate browser app plus the driver binary that must be functional for
@@ -572,9 +572,9 @@ async function setConfig({ config }: any) {
   // the runner paths in tests.ts re-discover apps themselves via
   // getAvailableApps rather than reading this field back — so skipping the
   // detection on a dry run avoids the @puppeteer/browsers load, the
-  // browser-cache scan, and the unbounded `appium driver list` spawn (the work
-  // that pushes dryRun.test.js past its mocha timeout on a starved
-  // windows+node22 runner) with no effect on resolved output or execution.
+  // browser-cache scan, and the driver-presence probing (the work that pushes
+  // dryRun.test.js past its mocha timeout on a starved windows+node22 runner)
+  // with no effect on resolved output or execution.
   config.environment.apps = config.dryRun ? [] : await getAvailableApps({ config });
 
   // Resolve concurrent runners configuration
@@ -664,9 +664,10 @@ function getEnvironment() {
 // config.cacheDir or DOC_DETECTIVE_CACHE_DIR), and lazy-install can
 // materialize new browsers between calls — so a single process-global
 // slot would (a) cross-contaminate different cacheDir values and (b)
-// return stale "no browsers" results after a JIT pre-flight install.
-// Avoids redundant `appium driver list` calls (~17s each) and browser
-// scanning for repeat lookups against the same cache dir.
+// return stale "no browsers" results after a JIT pre-flight install (which now
+// patches this cache in place — see patchAppCache — rather than clearing it).
+// Avoids redundant browser-cache scans and driver-presence probing for repeat
+// lookups against the same cache dir.
 const cachedAppsByDir: Map<string, any[]> = new Map();
 
 function cacheKeyFor(config: any): string {
@@ -684,14 +685,142 @@ function clearAppCache(config?: any) {
   cachedAppsByDir.delete(cacheKeyFor(config));
 }
 
+/**
+ * A browser the JIT preflight just installed, described by the paths/versions
+ * `ensureBrowserInstalled` already resolved. Enough to rebuild the same app
+ * descriptor `getAvailableApps` would, without re-scanning the browsers cache.
+ */
+interface InstalledBrowserDescriptor {
+  name: string; // "chrome" | "firefox"
+  version?: string;
+  path?: string;
+  driverPath?: string; // chromedriver / geckodriver binary
+}
+
+/**
+ * Patch the module-level available-apps cache for `config`'s cache dir with the
+ * browsers a JIT preflight just installed, so the *next* `getAvailableApps`
+ * call is a cache HIT and skips a full re-probe (browser scan + driver-presence
+ * + `verifyDriverBinary`) — replacing the previous `clearAppCache` +
+ * lazy-re-probe.
+ *
+ * Correctness: driver *presence* discovery (which appium-*-driver packages are
+ * on disk) did not change across the install — only the browser binary arrived
+ * — so each descriptor is rebuilt from the install results and gated on the
+ * SAME two checks `getAvailableApps` uses: the matching appium-*-driver package
+ * present (presence) AND `verifyDriverBinary` (Layer 2, functional). A browser
+ * that fails either gate is left out — matching `getAvailableApps`, which would
+ * also exclude it — so a later cache hit reports exactly what a fresh probe
+ * would.
+ *
+ * Fail-open: on any error, or when there is nothing to add, we DELETE the cache
+ * entry so the next `getAvailableApps` re-probes from scratch — never a stale
+ * or partial hit. `verify`/`detectDrivers` are injectable for hermetic tests.
+ */
+async function patchAppCache(
+  config: any,
+  installed: InstalledBrowserDescriptor[],
+  deps: {
+    verify?: (
+      driverName: string,
+      driverPath: string
+    ) => Promise<{ ok: boolean; error?: string }>;
+    detectDrivers?: (config: any) => {
+      chromium: boolean;
+      gecko: boolean;
+      safari: boolean;
+    };
+  } = {}
+): Promise<void> {
+  const key = cacheKeyFor(config);
+  try {
+    const verify = deps.verify ?? verifyDriverBinary;
+    const drivers = (deps.detectDrivers ?? detectInstalledBrowserDrivers)(
+      config
+    );
+    const descriptors: AppDriverDescriptor[] = [];
+    for (const b of installed ?? []) {
+      if (b.name === "chrome" && b.path && b.driverPath && drivers.chromium) {
+        descriptors.push({
+          app: {
+            name: "chrome",
+            version: b.version,
+            path: b.path,
+            driver: b.driverPath,
+          },
+          driverName: "chromedriver",
+          driverPath: b.driverPath,
+        });
+      } else if (b.name === "firefox" && b.path && drivers.gecko) {
+        // Mirror getAvailableApps: firefox passes through even without a
+        // resolvable driver path (Layer 4 runtime fallback), but verifies it
+        // when present.
+        descriptors.push({
+          app: { name: "firefox", version: b.version, path: b.path },
+          driverName: b.driverPath ? "geckodriver" : undefined,
+          driverPath: b.driverPath,
+        });
+      }
+    }
+    if (descriptors.length === 0) {
+      // Nothing rebuildable — invalidate so the next call re-probes.
+      cachedAppsByDir.delete(key);
+      return;
+    }
+    const verifiedApps = await verifyAppDrivers(descriptors, {
+      verify: (driverName, driverPath) => verify(driverName, driverPath),
+      logger: (msg, level) => log(config, level ?? "warning", msg),
+    });
+    const existing = cachedAppsByDir.get(key) ?? [];
+    const existingNames = new Set(existing.map((a: any) => a?.name));
+    const additions = verifiedApps.filter(
+      (a: any) => !existingNames.has(a?.name)
+    );
+    cachedAppsByDir.set(key, [...existing, ...additions]);
+  } catch {
+    // Fail-open: never leave a stale/incorrect hit behind.
+    cachedAppsByDir.delete(key);
+  }
+}
+
+/**
+ * Which managed Appium browser drivers are present on disk, by package name.
+ *
+ * Presence discovery is a filesystem question — the same `resolveHeavyDepPath`
+ * check `getBrowserDiagnostics` (and `ensureRuntimeInstalled`) already use — so
+ * we no longer spawn `node <appium> driver list` (~17s by its own comment) to
+ * learn what a package lookup answers instantly. Each key maps to exactly the
+ * driver the old `appium driver list` table-regex recognized:
+ *   chromium → appium-chromium-driver  (was /chromium.*installed \(npm\)/)
+ *   gecko    → appium-geckodriver      (was /gecko.*installed \(npm\)/)
+ *   safari   → appium-safari-driver    (was /safari.*installed \(npm\)/)
+ *
+ * IMPORTANT: presence (package on disk) is necessary but NOT sufficient. The
+ * functional Layer 2 gate (`verifyDriverBinary`, run inside `verifyAppDrivers`)
+ * still executes each driver's binary before a browser is reported available —
+ * only the *presence-discovery* mechanism changed here, never the functional
+ * check. `isInstalled` is injectable so this maps hermetically in unit tests.
+ */
+function detectInstalledBrowserDrivers(
+  config: any,
+  isInstalled: (name: string) => boolean = (name) =>
+    Boolean(resolveHeavyDepPath(name, { cacheDir: config?.cacheDir }))
+): { chromium: boolean; gecko: boolean; safari: boolean } {
+  return {
+    chromium: isInstalled("appium-chromium-driver"),
+    gecko: isInstalled("appium-geckodriver"),
+    safari: isInstalled("appium-safari-driver"),
+  };
+}
+
 // Live browser/driver probing for `getAvailableApps` — the runtime gate
 // that decides whether a real run can launch a browser right now.
 //
-// Returns the raw `@puppeteer/browsers` install list and the combined
-// `appium driver list` output, plus a `browserDetectionFailed` flag set
-// only on an *unexpected* failure (the dep is present but fails to
-// load/scan) so callers can skip caching. A simply-absent dep (lean
-// install) is the normal "nothing installed" case, not a failure.
+// Returns the raw `@puppeteer/browsers` install list and the set of managed
+// Appium browser drivers present on disk (chromium/gecko/safari), plus a
+// `browserDetectionFailed` flag set only on an *unexpected* failure (the dep is
+// present but fails to load/scan) so callers can skip caching. A simply-absent
+// dep (lean install) is the normal "nothing installed" case, not a failure.
 //
 // Note: the diagnostic dump uses `getBrowserDiagnostics` instead, which
 // reads doc-detective's `installed.json` record so it reports the same
@@ -701,7 +830,7 @@ async function probeBrowserEnvironment({
   browsersDir,
 }: any): Promise<{
   installedBrowsers: any[];
-  appiumDriverOutput: string;
+  installedDrivers: { chromium: boolean; gecko: boolean; safari: boolean };
   browserDetectionFailed: boolean;
 }> {
   setAppiumHome({ cacheDir: config?.cacheDir });
@@ -709,7 +838,7 @@ async function probeBrowserEnvironment({
   process.chdir(path.join(__dirname, "../.."));
   let installedBrowsers: any[] = [];
   let browserDetectionFailed = false;
-  let appiumDriverOutput = "";
+  let installedDrivers = { chromium: false, gecko: false, safari: false };
   try {
     // Detect installed browsers read-only: autoInstall=false so config
     // resolution never triggers a heavy @puppeteer/browsers install (which
@@ -742,69 +871,17 @@ async function probeBrowserEnvironment({
         installedBrowsers = [];
       }
     }
-    // Resolve appium's JS entry directly (shim first, then cache)
-    // and spawn `node <entry> driver list`. Bypasses `.cmd` shims,
-    // `npm exec`, and shell:true — the same pattern as the Appium
-    // spawns in src/core/tests.ts.
-    const appiumEntry = resolveHeavyDepPath("appium", {
-      cacheDir: config?.cacheDir,
-    });
-    const installedAppiumDrivers = await new Promise<{
-      stdout: string;
-      stderr: string;
-      exitCode: number;
-    }>((resolve) => {
-      if (!appiumEntry) {
-        resolve({
-          stdout: "",
-          stderr: "appium is not installed; driver list unavailable",
-          exitCode: 1,
-        });
-        return;
-      }
-      const child = spawnChild(
-        process.execPath,
-        [appiumEntry, "driver", "list"],
-        { env: process.env }
-      );
-      let stdout = "";
-      let stderr = "";
-      child.stdout?.on("data", (c: Buffer | string) => {
-        stdout += typeof c === "string" ? c : c.toString("utf8");
-      });
-      child.stderr?.on("data", (c: Buffer | string) => {
-        stderr += typeof c === "string" ? c : c.toString("utf8");
-      });
-      // Treat a spawn error (ENOENT, EACCES) as exitCode 1 with the
-      // message in stderr so the downstream driver-presence regex
-      // checks degrade to "no drivers detected" rather than aborting
-      // the run.
-      child.on("error", (err) => {
-        resolve({
-          stdout: stdout.replace(/\n$/, ""),
-          stderr: (stderr + String(err)).replace(/\n$/, ""),
-          exitCode: 1,
-        });
-      });
-      child.on("close", (code: number | null) => {
-        resolve({
-          stdout: stdout.replace(/\n$/, ""),
-          stderr: stderr.replace(/\n$/, ""),
-          exitCode: code ?? 1,
-        });
-      });
-    });
-
-    // `appium driver list` writes its formatted table to stdout; combine both
-    // streams so detection works regardless of which version uses which stream.
-    appiumDriverOutput =
-      installedAppiumDrivers.stdout + "\n" + installedAppiumDrivers.stderr;
+    // Managed Appium browser-driver presence, resolved directly from disk
+    // (no child process). This replaces the old `node <appium> driver list`
+    // spawn + table-regex parse: the drivers are npm packages, so a
+    // `resolveHeavyDepPath` lookup answers "installed?" instantly and offline.
+    installedDrivers = detectInstalledBrowserDrivers(config);
   } finally {
     // Always restore the original working directory
     process.chdir(cwd);
   }
 
-  return { installedBrowsers, appiumDriverOutput, browserDetectionFailed };
+  return { installedBrowsers, installedDrivers, browserDetectionFailed };
 }
 
 async function getAvailableApps({ config }: any) {
@@ -820,7 +897,7 @@ async function getAvailableApps({ config }: any) {
   const hit = cachedAppsByDir.get(key);
   if (hit) return hit;
 
-  const { installedBrowsers, appiumDriverOutput, browserDetectionFailed } =
+  const { installedBrowsers, installedDrivers, browserDetectionFailed } =
     await probeBrowserEnvironment({ config, browsersDir });
 
   // Note: Edge/Microsoft Edge detection is intentionally excluded
@@ -828,8 +905,9 @@ async function getAvailableApps({ config }: any) {
   //
   // Build candidate apps with the driver binary each needs, then gate them on
   // the driver actually executing (Layer 2). Presence in `installed.json` /
-  // `appium driver list` is necessary but not sufficient — a partially
-  // downloaded driver passes presence checks yet can't start a session.
+  // the appium-*-driver package on disk is necessary but not sufficient — a
+  // partially downloaded driver passes presence checks yet can't start a
+  // session.
   const descriptors: AppDriverDescriptor[] = [];
 
   // Detect Chrome
@@ -840,9 +918,7 @@ async function getAvailableApps({ config }: any) {
   const chromedriver = installedBrowsers.find(
     (browser: any) => browser.browser === "chromedriver"
   );
-  const appiumChromium = appiumDriverOutput.match(
-    /\n.*chromium.*installed \(npm\).*\n/
-  );
+  const appiumChromium = installedDrivers.chromium;
 
   if (chrome && chromedriver && appiumChromium) {
     descriptors.push({
@@ -861,9 +937,7 @@ async function getAvailableApps({ config }: any) {
   const firefox = installedBrowsers.find(
     (browser: any) => browser.browser === "firefox"
   );
-  const appiumFirefox = appiumDriverOutput.match(
-    /\n.*gecko.*installed \(npm\).*\n/
-  );
+  const appiumFirefox = installedDrivers.gecko;
 
   if (firefox && appiumFirefox) {
     // Resolve the geckodriver binary so Layer 2 can execute it. Best-effort:
@@ -889,9 +963,7 @@ async function getAvailableApps({ config }: any) {
     const safariVersion = await spawnCommand(
       "defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString"
     );
-    const appiumSafari = appiumDriverOutput.match(
-      /\n.*safari.*installed \(npm\).*\n/
-    );
+    const appiumSafari = installedDrivers.safari;
 
     if (safariVersion.exitCode === 0 && appiumSafari) {
       // safaridriver ships with macOS at a fixed path; verifying it executes

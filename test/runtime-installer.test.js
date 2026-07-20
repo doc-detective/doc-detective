@@ -303,6 +303,33 @@ describe("runtime/installer", function () {
       expect(reports[0].action).to.equal("forced");
       expect(reports[0].installedVersion).to.equal("121.0.0");
     });
+
+    it("a browser asset failing to install does not abort the batch; it's reported skipped", async function () {
+      // Mirrors installRuntime's BEST_EFFORT_NPM_DEPS tolerance (ADR 01053):
+      // e.g. chromedriver has no native linux-arm64 build, so
+      // ensureBrowserInstalled throws there. That must not prevent other
+      // requested assets (e.g. firefox) from installing.
+      const browsersModule = makeFakeBrowsersModule({ latest: "121.0.0" });
+      browsersModule.install = async ({ browser }) => {
+        if (browser === "chromedriver") {
+          throw new Error(
+            "chromedriver 121.0.0 is present but non-functional after a reinstall"
+          );
+        }
+      };
+      const reports = await installBrowsers({
+        names: ["chromedriver", "firefox"],
+        deps: {
+          logger: () => {},
+          browserDeps: { browsersModule },
+        },
+      });
+      const byId = Object.fromEntries(reports.map((r) => [r.assetId, r]));
+      expect(byId.chromedriver.action).to.equal("skipped");
+      expect(byId.chromedriver.notes[0]).to.match(/failed to install and was skipped/);
+      expect(byId.firefox.action).to.equal("installed");
+      expect(byId.firefox.installedVersion).to.equal("121.0.0");
+    });
   });
 
   describe("status", function () {

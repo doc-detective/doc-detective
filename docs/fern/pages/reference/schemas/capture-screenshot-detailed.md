@@ -14,12 +14,13 @@ description: "Reference for the `Capture screenshot (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form (&#123; "app": … &#125;). App captures don't support `crop` yet. | 
-path | string | Optional. File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.<br/><br/>Pattern: `^(?:https?:\/\/.+\.(?:png|PNG)(?:\?.*)?|[A-Za-z]:[\/\\].*\.(?:png|PNG)|[\/\\]?[A-Za-z0-9_.\/\\-]*\.(?:png|PNG)|\$[A-Za-z0-9_]+)$` | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form (&#123; "app": … &#125;). App captures don't support `crop` yet. | 
+path | string | Optional. File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.<br/><br/>Pattern: `^(?:https?:\/\/.+\.(?:png|PNG)(?:\?.*)?|.*\.(?:png|PNG)|\$[A-Za-z0-9_]+)$` | 
 directory | string | Optional. Directory of the PNG file. If the directory doesn't exist, creates the directory. | 
 maxVariation | number | Optional. Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.<br/><br/>Minimum: 0. Maximum: 1 | `0.05`
 overwrite | string | Optional. If `true`, overwrites the existing screenshot at `path` if it exists.<br/>If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
 crop | one of:<br/>- string<br/>- object([Crop by element (detailed)](/reference/schemas/crop-by-element-detailed)) | Optional. No description provided. | 
+annotations | array of unknown | Optional. Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead. | 
 sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegration)) | Optional. Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations. | 
 
 ## Examples
@@ -32,6 +33,7 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
   "maxVariation": 0.05,
   "overwrite": "aboveVariation",
   "crop": "example",
+  "annotations": [],
   "sourceIntegration": {
     "type": "heretto",
     "integrationName": "example"

@@ -55,6 +55,27 @@ record | one of:<br/>- string<br/>- object([Record (detailed)](/reference/schema
 {
   "record": {
     "path": "results.mp4",
+    "checkpoints": true
+  }
+}
+```
+
+```json
+{
+  "record": {
+    "path": "results.mp4",
+    "checkpoints": {
+      "maxVariation": 0.02,
+      "directory": "baselines/results"
+    }
+  }
+}
+```
+
+```json
+{
+  "record": {
+    "path": "results.mp4",
     "engine": {
       "name": "ffmpeg",
       "target": "window",

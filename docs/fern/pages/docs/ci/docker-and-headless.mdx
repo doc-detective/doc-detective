@@ -46,6 +46,12 @@ doc-detective install all --yes
 
 On a fresh `npm install`, Doc Detective also pre-warms these assets automatically. To skip that step—for example, to control exactly when assets download in CI—set `DOC_DETECTIVE_AUTOINSTALL=0`. The official container ships with assets already warmed, so you don't need this step inside it.
 
+Whatever the cache is missing, each run front-loads for itself: before executing tests, Doc Detective plans the installs, device boots, and downloads its tests need and runs them concurrently as a warm phase. With a persisted cache the phase completes in milliseconds. On a cold cache it overlaps the downloads instead of paying them one test at a time. The per-task timings land in the JSON results—see [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
+
+<Note>
+`docdetective/docdetective:linux` is a multi-arch image (`linux/amd64` and `linux/arm64`), but Chrome and ChromeDriver have no native `linux/arm64` build upstream—Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome/ChromeDriver pre-warming is skipped rather than failing the image; if you need Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead.
+</Note>
+
 For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-action#runtime-caching).
 
 ## Step 4: Run headless in CI

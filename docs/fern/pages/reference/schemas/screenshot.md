@@ -46,6 +46,12 @@ screenshot | one of:<br/>- string<br/>- object([Capture screenshot (detailed)](/
 
 ```json
 {
+  "screenshot": "/Users/jane doe/projects/my docs (v2)/static/images/image.png"
+}
+```
+
+```json
+{
   "screenshot": "https://example.com/static/images/image.png"
 }
 ```
@@ -100,6 +106,34 @@ screenshot | one of:<br/>- string<br/>- object([Capture screenshot (detailed)](/
         "left": 0
       }
     }
+  }
+}
+```
+
+```json
+{
+  "screenshot": {
+    "path": "login.png",
+    "directory": "static/images",
+    "annotations": [
+      {
+        "badge": "#username",
+        "label": "1"
+      },
+      {
+        "callout": {
+          "elementTestId": "submit"
+        },
+        "label": "Sends a one-time code",
+        "position": "right"
+      },
+      {
+        "blur": {
+          "selector": ".account-id"
+        },
+        "all": true
+      }
+    ]
   }
 }
 ```

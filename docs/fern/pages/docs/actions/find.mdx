@@ -13,13 +13,32 @@ You can specify the target element directly using a string (for basic text or se
 - **String Shorthand:** Provide the display text or CSS/XPath selector directly as the value for the `find` key. If elements are found by both text and selector, the element found by matching text is used.
   - Example: `"find": "Login"` or `"find": "#username"`.
 - **Object Format:** Use an object with the following properties:
-  - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both.
+  - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
   - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
   - `moveTo`: (Optional) Move the cursor to the element. If the element isn't visible, it's scrolled into view (default: `true`).
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).
   - `type`: (Optional) Type keys after finding the element. Requires the element to be made active first (for example, by using `click: true`). Accepts a string or an object like `{ "keys": "my text", "inputDelay": 100 }`. See [`type`](type) for details.
-  - `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`, or the [native app surface](/docs/actions/startsurface) it lives in, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit to act on the active browser tab or app window. The targeted surface stays focused afterward. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls, and `selector` accepts a native locator (XPath or a `~`-prefixed accessibility ID) instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](#app-windows) below.
+  - `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`, or the [native app surface](/docs/actions/startsurface) it lives in, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit to act on the active surface (the most recently opened, focused, or explicitly targeted surface, whether that's a browser tab or an app window). Specifying a surface switches the active surface for the steps that follow. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls, and `selector` accepts a native locator (XPath or a `~`-prefixed accessibility ID) instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](#app-windows) below.
+
+## How text matching works
+
+`elementText` (and the string shorthand's text form) matches an element's
+**full visible text** with whitespace normalized. Doc Detective trims leading and
+trailing whitespace and collapses internal runs of spaces, tabs, and newlines to a
+single space. Two consequences follow from this:
+
+- **Framework-rendered text just works.** Frameworks like React and Svelte often
+  split an element's text across several DOM text nodes (sometimes with an empty
+  leading node). Because the match uses the element's whole text, a heading like
+  `Garden companion API` matches even when it isn't a single, tidy text node, and
+  the result stays the same on Chrome and Firefox no matter how each browser's
+  driver reports whitespace.
+- **It's a whole-element match, not a substring.** `elementText` matches an element
+  whose *entire* normalized text equals your string, so a broad `selector` like
+  `body` combined with `elementText` won't match (the body's text is the whole
+  page). Target a tighter element, or match a substring with
+  a regular expression by wrapping the value in slashes: `"elementText": "/Garden companion API/"`.
 
 ## App windows
 
@@ -48,6 +67,8 @@ Here are a few ways you might use the `find` action:
 
 ### Find an element by its text (string shorthand)
 
+{/* test {"testId":"find-by-text","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -63,7 +84,13 @@ Here are a few ways you might use the `find` action:
 }
 ```
 
+{/* step {"stepId":"goto-find-text","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-text","description":"Find a button by its display text","find":"Standard Button"} */}
+{/* test end */}
+
 ### Find an element by its selector (string shorthand)
+
+{/* test {"testId":"find-by-selector","detectSteps":false} */}
 
 ```json
 {
@@ -80,7 +107,13 @@ Here are a few ways you might use the `find` action:
 }
 ```
 
+{/* step {"stepId":"goto-find-selector","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-selector","description":"Find an input by its CSS selector","find":"#text-input"} */}
+{/* test end */}
+
 ### Find an element by selector and click it (object format)
+
+{/* test {"testId":"find-selector-click","detectSteps":false} */}
 
 ```json
 {
@@ -100,7 +133,14 @@ Here are a few ways you might use the `find` action:
 }
 ```
 
+{/* step {"stepId":"goto-find-click","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"find-click","description":"Find a button by selector and click it","find":{"selector":"#reveal-by-selector","click":true}} */}
+{/* step {"stepId":"verify-find-click","description":"The button appends a message only when actually clicked","find":"Selector click landed"} */}
+{/* test end */}
+
 ### Find an element by selector, click it, and type into it (object format)
+
+{/* test {"testId":"find-selector-click-type","detectSteps":false} */}
 
 ```json
 {
@@ -121,7 +161,14 @@ Here are a few ways you might use the `find` action:
 }
 ```
 
+{/* step {"stepId":"goto-find-type","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"find-click-type","description":"Find the input by selector, click, and type into it","find":{"selector":"#type-input","click":true,"type":"find action"}} */}
+{/* step {"stepId":"verify-find-type","description":"The input echoes its value only when text is actually typed","find":"find action"} */}
+{/* test end */}
+
 ### Find an element combining selector and text with a timeout
+
+{/* test {"testId":"find-selector-and-text","detectSteps":false} */}
 
 ```json
 {
@@ -141,6 +188,10 @@ Here are a few ways you might use the `find` action:
   ]
 }
 ```
+
+{/* step {"stepId":"goto-find-nav","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-nav-link","description":"Find a nav link matching both selector and text","find":{"selector":"nav > ul > li > a","elementText":"Buttons","timeout":10000}} */}
+{/* test end */}
 
 ### Find an element and right-click it
 

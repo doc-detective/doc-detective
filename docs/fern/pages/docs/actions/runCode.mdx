@@ -8,12 +8,14 @@ The `runCode` action executes a code snippet in a specified language (like JavaS
 
 `runCode` executes the code using the appropriate interpreter available on the machine.
 
+Because `runCode` writes your snippet to a temporary file and runs it with the interpreter directly, you avoid the shell-quoting problems that come from embedding code in a [`runShell`](/docs/actions/runshell) command. Your snippet's contents never pass through a shell-quoting step, so nested quotes and parentheses stay intact. For a JavaScript, Python, or Bash snippet with nested quotes, parentheses, or multiple lines, reach for `runCode` instead of a `runShell` one-liner like `node -e "..."`.
+
 You must specify the `runCode` action using an object format with the following properties:
 
 - **Object Format:**
   - `language`: (Required) The programming language of the code snippet (`javascript`, `python`, `bash`).
 
-    > Note: `bash` isn't currently supported on Windows.
+    > Note: `bash` works on every platform, including Windows—Doc Detective uses Git Bash there, downloading a portable copy into its cache the first time a test needs it if Git for Windows isn't installed. See [Shell selection](/docs/actions/runshell#shell-selection).
 
   - `code`: (Required) The code snippet to execute as a string.
   - `workingDirectory`: (Optional) The directory in which to run the code.
@@ -79,6 +81,8 @@ Here are a few ways you might use the `runCode` action:
 
 This example prints "hello world" using Python.
 
+{/* test {"testId":"runcode-python-basic","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -97,9 +101,14 @@ This example prints "hello world" using Python.
 }
 ```
 
+{/* step {"stepId":"runcode-python","description":"Run a basic Python script and verify its output","runCode":{"language":"python","code":"print('hello world')","stdio":"hello world"}} */}
+{/* test end */}
+
 ### Run JavaScript code with expected output validation
 
 This example runs a simple Node.js script and checks the output.
+
+{/* test {"testId":"runcode-javascript-stdio","detectSteps":false} */}
 
 ```json
 {
@@ -120,9 +129,14 @@ This example runs a simple Node.js script and checks the output.
 }
 ```
 
+{/* step {"stepId":"runcode-js","description":"Run JS code and check the output","runCode":{"language":"javascript","code":"console.log('Hello from Node!');","stdio":"Hello from Node!"}} */}
+{/* test end */}
+
 ### Test a failure condition using exit codes (Bash)
 
 This example runs a Bash command (`false`) via `runCode` and checks that the exit code is `1`. Because the command is expected to fail with exit code 1, the step passes.
+
+{/* test {"testId":"runcode-bash-exitcode","detectSteps":false} */}
 
 ```json
 {
@@ -143,9 +157,14 @@ This example runs a Bash command (`false`) via `runCode` and checks that the exi
 }
 ```
 
+{/* step {"stepId":"runcode-bash-exit","description":"Run a failing Bash command and expect exit code 1","runCode":{"language":"bash","code":"false","exitCodes":[1]}} */}
+{/* test end */}
+
 ### Set a variable based on code output (Python)
 
 The first step runs Python code to print "setup", validates the output using a regex, and captures the full stdout into a variable named `SETUP_VAL`. The second step uses Bash via `runCode` to echo the content of the `SETUP_VAL` variable and validates that the output is indeed "setup".
+
+{/* test {"testId":"runcode-variable-capture","detectSteps":false} */}
 
 ```json
 {
@@ -177,9 +196,15 @@ The first step runs Python code to print "setup", validates the output using a r
 }
 ```
 
+{/* step {"stepId":"runcode-set-var","description":"Set a variable based on Python output","runCode":{"language":"python","code":"import sys; sys.stdout.write('setup')","stdio":"/.+/"},"variables":{"SETUP_VAL":"$$stdio.stdout"}} */}
+{/* step {"stepId":"runcode-use-var","description":"Echo and validate the variable using Bash","runCode":{"language":"bash","code":"echo $SETUP_VAL","stdio":"setup"}} */}
+{/* test end */}
+
 ### Start a background server and stop it later
 
 This example starts a Node.js HTTP server in the background, waits until port `8088` accepts connections, and then stops the server with a [`closeSurface`](/docs/actions/closesurface) step.
+
+{/* test {"testId":"runcode-background-server","detectSteps":false} */}
 
 ```json
 {
@@ -209,5 +234,10 @@ This example starts a Node.js HTTP server in the background, waits until port `8
   ]
 }
 ```
+
+{/* step {"stepId":"runcode-start-server","description":"Start an HTTP server in the background","runCode":{"language":"javascript","code":"require('http').createServer((req, res) => res.end('ok')).listen(8088);","background":{"name":"runcode-api","waitUntil":{"port":8088}},"timeout":15000}} */}
+{/* step {"stepId":"runcode-verify-server","description":"Confirm the server actually responds on the port it claimed to be ready on","httpRequest":{"url":"http://localhost:8088","response":{"body":"ok"}}} */}
+{/* step {"stepId":"runcode-stop-server","description":"Stop the server","closeSurface":"runcode-api"} */}
+{/* test end */}
 
 

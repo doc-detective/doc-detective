@@ -12,6 +12,7 @@ import {
   getLineNumber,
   getLineStarts,
   contentHash,
+  safeRegExp,
 } from "../dist/detectTests.js";
 import { detectFileTypeFromContent, defaultFileTypes } from "../dist/fileTypes.js";
 
@@ -692,6 +693,76 @@ function readFixture(filename) {
         });
         expect(result).to.have.lengthOf(1);
         expect(result[0].steps).to.have.lengthOf(1);
+      });
+
+      it("should upgrade a legacy v2 step inline statement to v3", async function () {
+        // Regression: `location` used to be attached to the parsed step BEFORE
+        // validation. The v2 action schemas are `additionalProperties: false`,
+        // so the extra property defeated validate()'s v2 -> v3 fallback and the
+        // step was silently dropped ("isn't a valid step. Skipping.").
+        const content =
+          '<!-- test {"steps": []} -->\n' +
+          '<!-- step {"action": "checkLink", "url": "https://example.com"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].steps).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        // Transformed into the v3 action-as-key shape...
+        expect(step.checkLink.url).to.equal("https://example.com");
+        expect(step).to.not.have.property("action");
+        // ...and the source location still rides along.
+        expect(step.location).to.include({ line: 2 });
+      });
+
+      it("should upgrade a legacy v2 find step inline statement to v3", async function () {
+        const content =
+          '<!-- test {"steps": []} -->\n' +
+          '<!-- step {"action": "find", "selector": "h2#fields", "matchText": "Fields"} -->';
+        const result = await parseContent({
+          config: {},
+          content,
+          filePath: "test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].steps).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step.find.selector).to.equal("h2#fields");
+        expect(step.find.elementText).to.equal("Fields");
+        expect(step).to.not.have.property("action");
+        // Location preservation is the actual regression being guarded here
+        // (see the checkLink test above); assert it symmetrically.
+        expect(step.location).to.include({ line: 2 });
+      });
+
+      it("should attach Heretto sourceIntegration to a legacy v2 saveScreenshot inline step", async function () {
+        // Regression: the Heretto sourceIntegration check ran only BEFORE
+        // validation, keyed off the v3 `screenshot` property. A v2
+        // `saveScreenshot` step (action-keyed) doesn't have that property
+        // until validate() upgrades it, so it silently never got Heretto
+        // integration attached.
+        const content =
+          '<!-- test {"steps": []} -->\n' +
+          '<!-- step {"action": "saveScreenshot", "path": "shot.png"} -->';
+        const result = await parseContent({
+          config: { _herettoPathMapping: { "docs/": "my-integration" } },
+          content,
+          filePath: "docs/test.md",
+          fileType: markdownFileType,
+        });
+        expect(result[0].steps).to.have.lengthOf(1);
+        const step = result[0].steps[0];
+        expect(step.screenshot.path).to.equal("shot.png");
+        expect(step.screenshot.sourceIntegration).to.deep.equal({
+          type: "heretto",
+          integrationName: "my-integration",
+          filePath: "shot.png",
+          contentPath: "docs/test.md",
+        });
       });
 
       it("should skip invalid step statements", async function () {
@@ -3114,3 +3185,53 @@ function readFixture(filename) {
       });
     });
   });
+
+// Phase 1.7: safeRegExp compiles each (pattern, flags) once and reuses it —
+// parseContent re-derives the same file-type regexes for every scanned file
+// (~36 per markdown file), so caching removes almost all RegExp construction.
+describe("safeRegExp (compiled-pattern cache)", function () {
+  it("returns a working RegExp for a valid pattern", function () {
+    const re = safeRegExp("\\d+", "g");
+    expect(re).to.be.instanceOf(RegExp);
+    expect(re.source).to.equal("\\d+");
+    expect(re.flags).to.equal("g");
+    expect([..."a12b34".matchAll(re)].length).to.equal(2);
+  });
+
+  it("returns the SAME instance on a cache hit (same pattern + flags)", function () {
+    const first = safeRegExp("\\w+foo", "g");
+    const second = safeRegExp("\\w+foo", "g");
+    expect(first).to.equal(second);
+  });
+
+  it("keys the cache on flags too (different flags → different instance)", function () {
+    const g = safeRegExp("abc", "g");
+    const gi = safeRegExp("abc", "gi");
+    expect(g).to.not.equal(gi);
+    expect(gi.flags).to.equal("gi");
+  });
+
+  it("reusing a cached /g regex via matchAll stays correct (no lastIndex leak)", function () {
+    const re = safeRegExp("x", "g");
+    expect([..."xxx".matchAll(re)].length).to.equal(3);
+    // Second use of the SAME cached instance must still find all matches.
+    expect([..."xx".matchAll(re)].length).to.equal(2);
+  });
+
+  it("returns null for empty or non-string patterns", function () {
+    expect(safeRegExp("", "g")).to.equal(null);
+    expect(safeRegExp(undefined, "g")).to.equal(null);
+    expect(safeRegExp(123, "g")).to.equal(null);
+  });
+
+  it("returns null for an excessively long pattern (ReDoS guard)", function () {
+    expect(safeRegExp("a".repeat(1501), "g")).to.equal(null);
+  });
+
+  it("caches the null outcome for an invalid pattern", function () {
+    const first = safeRegExp("(", "g"); // unbalanced group → invalid
+    const second = safeRegExp("(", "g");
+    expect(first).to.equal(null);
+    expect(second).to.equal(null);
+  });
+});

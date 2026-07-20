@@ -169,6 +169,21 @@ navigation:
               - page: Multiple tabs, windows & browsers
                 path: pages/tutorials/multiple-tabs-and-windows.mdx
                 slug: multiple-tabs-and-windows
+              - section: Native & mobile apps (experimental)
+                skip-slug: true
+                contents:
+                  - page: Native Windows apps
+                    path: pages/docs/test-docs/native-apps/windows.mdx
+                    slug: native-windows-apps
+                  - page: Native macOS apps
+                    path: pages/docs/test-docs/native-apps/macos.mdx
+                    slug: native-macos-apps
+                  - page: Android apps
+                    path: pages/docs/test-docs/native-apps/android.mdx
+                    slug: android-apps
+                  - page: iOS apps
+                    path: pages/docs/test-docs/native-apps/ios.mdx
+                    slug: ios-apps
           - section: CLI, code & APIs
             skip-slug: true
             contents:
@@ -295,7 +310,7 @@ navigation:
           - page: Expressions
             path: pages/reference/expressions.mdx
             slug: expressions
-          - page: CLI commands & flags
+          - page: CLI commands and flags
             path: pages/reference/cli.mdx
             slug: cli
           - section: CLI

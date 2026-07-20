@@ -6,13 +6,16 @@ description: Perform a native shell command.
 
 The `runShell` action runs a shell command or script on the local machine and evaluates the results, extending Doc Detective's testing capabilities to anything you can script.
 
-`runShell` uses your device's native shell (`cmd` on Windows, `bash` or other default shell on macOS/Linux) to execute the command in the context of the current user.
+`runShell` runs the command in `bash` by default on every platform—including Windows—so the same command behaves the same everywhere. To use a Windows shell instead, set the `shell` property. See [Shell selection](#shell-selection).
+
+Even with the consistent `bash` default, embedding a code snippet in a `runShell` command still sends it through the shell's quoting and escaping rules, where the nested quotes and parentheses in a one-liner like `node -e "..."` are a common source of errors. For a JavaScript, Python, or Bash snippet with nested quotes, parentheses, or multiple lines, use [`runCode`](/docs/actions/runcode) instead. It writes the code to a temporary file and runs it directly, so there's no shell-quoting step to trip over.
 
 You can specify the command directly as a string or use an object for more options:
 
 - **String Shorthand:** Provide the command string directly as the value for the `runShell` key.
 - **Object Format:** Use an object with the following properties:
   - `command`: (Required) The command or script to execute.
+  - `shell`: (Optional) The shell to run the command in: `bash` (default), `cmd`, or `powershell`. `cmd` and `powershell` only work on Windows. If unset, uses the config-level `shell` setting, which defaults to `bash`.
   - `args`: (Optional) An array of arguments to pass to the command.
   - `workingDirectory`: (Optional) The directory in which to run the command.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the command to complete.
@@ -35,6 +38,36 @@ This lets tests continue executing while flagging output changes that exceed you
 **Setting Variables:** To capture output into variables for later steps, use the step-level `variables` object. You can assign values based on the command's output using expressions like `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`. When you set `stdio`, the action also exposes `$$stdioMatched`, a boolean indicating whether the expected output was found in stdout or stderr. When you save output with `path` and a reference file already exists, the action exposes `$$variation`, the fractional difference between the new output and the reference file.
 
 > For comprehensive options, see the [`runShell`](/reference/schemas/runshell) reference.
+
+## Shell selection
+
+Commands run in `bash` on every platform by default, so POSIX syntax—quoting, pipes, `&&`, `$()`—works identically in your tests on Windows, macOS, and Linux.
+
+- **On macOS and Linux**, Doc Detective uses the `bash` on your `PATH`.
+- **On Windows**, Doc Detective uses Git Bash. If you have [Git for Windows](https://gitforwindows.org/) installed, it uses that; otherwise it downloads a portable copy (MinGit, about 40 MB) into its cache the first time a test needs it. You can pre-install it with [`doc-detective install bash`](/reference/cli/install). The bundled toolbox covers the common utilities (`grep`, `sed`, `awk`, `find`, and friends); if your commands need more, install the full Git for Windows.
+
+To run a command in a Windows shell instead, set `shell` to `cmd` or `powershell` on the step:
+
+```json
+{
+  "runShell": {
+    "command": "echo %USERNAME%",
+    "shell": "cmd"
+  }
+}
+```
+
+To change the default for a whole project, set `shell` in your config file:
+
+```json
+{
+  "shell": "powershell"
+}
+```
+
+A step-level `shell` always wins over the config-level default. `cmd` and `powershell` steps fail on macOS and Linux—gate them to Windows with `runOn` if your spec runs on multiple platforms. Background processes started with [`startSurface`](/docs/actions/startsurface) process descriptors use the config-level default too.
+
+> **PowerShell notes:** Windows PowerShell doesn't support `&&` chaining—use `;` there, or use the default `bash`. PowerShell also doesn't propagate a native command's exit code unless the command ends with `exit $LASTEXITCODE`, so `exitCodes` assertions beyond `[0, 1]` are unreliable under `shell: "powershell"`; prefer `bash` or `cmd` when asserting specific exit codes.
 
 ## Background processes
 
@@ -81,6 +114,8 @@ Here are a few ways you might use the `runShell` action:
 
 This example prints "hello world" to the output.
 
+{/* test {"testId":"runshell-string-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -88,7 +123,7 @@ This example prints "hello world" to the output.
       "steps": [
         {
           "description": "Run a basic command.",
-          "runShell": "echo 'hello world'"
+          "runShell": "echo hello world"
         }
       ]
     }
@@ -96,7 +131,14 @@ This example prints "hello world" to the output.
 }
 ```
 
+Because `runShell` uses `bash` on every platform by default, POSIX quoting works the same everywhere—`echo 'hello world'` prints without the quotes on Windows too. Only steps that opt into `shell: "cmd"` or `shell: "powershell"` need Windows-specific syntax.
+
+{/* step {"stepId":"runshell-echo-string","description":"Run a basic command","runShell":{"command":"echo hello world","stdio":"hello world"}} */}
+{/* test end */}
+
 ### Run a command with arguments (object format)
+
+{/* test {"testId":"runshell-object-args","detectSteps":false} */}
 
 ```json
 {
@@ -115,6 +157,9 @@ This example prints "hello world" to the output.
   ]
 }
 ```
+
+{/* step {"stepId":"runshell-echo-args","description":"Run echo with arguments","runShell":{"command":"echo","args":["hello","world"],"stdio":"hello world"}} */}
+{/* test end */}
 
 ### Run a command with expected output validation
 
@@ -140,7 +185,9 @@ This example runs a Docker container and checks the output for a specific string
 
 ### Test a failure condition using exit codes
 
-This example runs a failing command (`false`) and checks that the exit code is `1`. Because the command is expected to fail with exit code 1, the step passes.
+This example runs a command that exits with code `1` and checks for that exit code. Because `exitCodes` lists code 1, the step passes.
+
+{/* test {"testId":"runshell-exitcode","detectSteps":false} */}
 
 ```json
 {
@@ -150,7 +197,7 @@ This example runs a failing command (`false`) and checks that the exit code is `
         {
           "description": "Run a failing command and expect exit code 1.",
           "runShell": {
-            "command": "false",
+            "command": "exit 1",
             "exitCodes": [1]
           }
         }
@@ -160,9 +207,14 @@ This example runs a failing command (`false`) and checks that the exit code is `
 }
 ```
 
+{/* step {"stepId":"runshell-exit","description":"Run a command that exits 1 and expect exit code 1","runShell":{"command":"exit 1","exitCodes":[1]}} */}
+{/* test end */}
+
 ### Set a variable based on command output
 
 The first step echoes "setup", validates the output using a regex, and captures the full stdout into a variable named `TEST`. The second step echoes the content of the `TEST` variable and validates that the output is indeed "setup".
+
+{/* test {"testId":"runshell-variable-capture","detectSteps":false} */}
 
 ```json
 {
@@ -191,6 +243,10 @@ The first step echoes "setup", validates the output using a regex, and captures 
   ]
 }
 ```
+
+{/* step {"stepId":"runshell-set-var","description":"Set a variable based on command output","runShell":{"command":"echo setup","stdio":"/.+/"},"variables":{"TEST":"$$stdio.stdout"}} */}
+{/* step {"stepId":"runshell-use-var","description":"Echo and validate the variable","runShell":{"command":"echo $TEST","stdio":"setup"}} */}
+{/* test end */}
 
 ### Start a background process and stop it later
 

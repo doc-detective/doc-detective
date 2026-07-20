@@ -136,6 +136,10 @@ You can specify browser window dimensions, viewport dimensions, and visibility (
 }
 ```
 
+<Note>
+Doc Detective sizes the `viewport` by resizing the browser window, so the browser/OS **minimum window size** applies. Desktop Chrome, for example, can't render a viewport narrower than about 500px, and this floor applies in headless mode too. When a requested `viewport` is smaller than that floor, the page renders at the larger, realized size. The run still passes (the constraint is external, not a test error), but Doc Detective logs a `warning` naming the requested and rendered dimensions, and the [`startSurface`](/docs/actions/startSurface) action reports the realized size in its `viewport` output as `{ requested, actual }`. Screenshots and measurements then reflect the size the page actually rendered rather than the size you asked for. To capture true sub-500px widths (a 375px phone, say), run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
+</Note>
+
 ### Firefox (`firefox`)
 
 Available on Windows, macOS, and Linux.

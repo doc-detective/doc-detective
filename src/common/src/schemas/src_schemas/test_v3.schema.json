@@ -29,6 +29,10 @@
       "type": "boolean",
       "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
     },
+    "annotationDefaults": {
+      "description": "Default visual theme for annotations in this test. Overrides `annotationDefaults` set at the spec or config level. When unset, defers to the spec level, then the config level.",
+      "$ref": "annotationDefaults_v3.schema.json#"
+    },
     "runOn": {
       "type": "array",
       "description": "Contexts to run the test in. Overrides contexts defined at the config and spec levels.",
@@ -126,10 +130,14 @@
   },
   "anyOf": [
     {
-      "required": ["steps"]
+      "required": [
+        "steps"
+      ]
     },
     {
-      "required": ["contexts"]
+      "required": [
+        "contexts"
+      ]
     }
   ],
   "additionalProperties": false,
@@ -145,9 +153,14 @@
             {
               "type": "object",
               "not": {
-                "required": ["operationId"]
+                "required": [
+                  "operationId"
+                ]
               },
-              "required": ["name", "descriptionPath"],
+              "required": [
+                "name",
+                "descriptionPath"
+              ],
               "title": "OpenAPI description (test)"
             }
           ]
@@ -175,7 +188,10 @@
             "selector": "[title=Search]",
             "click": true,
             "type": {
-              "keys": ["shorthair cats", "$ENTER$"]
+              "keys": [
+                "shorthair cats",
+                "$ENTER$"
+              ]
             }
           }
         }
@@ -188,7 +204,9 @@
       "after": "cleanup.json",
       "runOn": [
         {
-          "platforms": ["linux"],
+          "platforms": [
+            "linux"
+          ],
           "browsers": {
             "name": "firefox",
             "window": {},
@@ -203,7 +221,9 @@
         {
           "runShell": {
             "command": "echo",
-            "args": ["$USER"],
+            "args": [
+              "$USER"
+            ],
             "maxVariation": 0,
             "overwrite": "aboveVariation"
           },
@@ -230,7 +250,10 @@
                 "job": "leader"
               }
             },
-            "statusCodes": [200, 201],
+            "statusCodes": [
+              200,
+              201
+            ],
             "maxVariation": 0,
             "overwrite": "aboveVariation"
           },
@@ -249,14 +272,18 @@
             "moveTo": true,
             "click": true,
             "type": {
-              "keys": ["shorthair cat"]
+              "keys": [
+                "shorthair cat"
+              ]
             }
           },
           "variables": {}
         },
         {
           "type": {
-            "keys": ["$ENTER$"]
+            "keys": [
+              "$ENTER$"
+            ]
           }
         },
         {
@@ -302,6 +329,28 @@
         }
       ],
       "detectSteps": true
+    },
+    {
+      "annotationDefaults": {
+        "color": "#E11D48",
+        "strokeWidth": 3,
+        "badge": {
+          "background": "#E11D48",
+          "color": "#FFFFFF"
+        }
+      },
+      "steps": [
+        {
+          "screenshot": {
+            "path": "a.png",
+            "annotations": [
+              {
+                "outline": "#submit"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

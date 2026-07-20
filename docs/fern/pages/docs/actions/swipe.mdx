@@ -13,15 +13,31 @@ The `swipe` action moves a virtual finger (or pointer) across a browser or app s
 
 **String shorthand**—swipe up on the active browser tab:
 
+{/* test {"testId":"swipe-string-shorthand","detectSteps":false} */}
+
 ```json
 { "swipe": "up" }
 ```
 
+{/* step {"stepId":"swipe-goto-string","description":"Open a page with scrollable content","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"swipe-check-initial-scroll","description":"Confirm the page starts unscrolled (an equality check, not a bare number, since output matching is substring/regex and \"0\" would also match a scrolled value like \"10\")","runBrowserScript":{"script":"return window.scrollY === 0;","output":"true"}} */}
+{/* step {"stepId":"swipe-up-string","description":"Swipe up (string shorthand)","swipe":"up"} */}
+{/* step {"stepId":"swipe-verify-string","description":"Confirm the swipe actually scrolled the page down","runBrowserScript":{"script":"return window.scrollY > 0;","output":"true"}} */}
+{/* test end */}
+
 **Directional**—swipe 80% of the app window's height:
+
+{/* test {"testId":"swipe-directional","detectSteps":false} */}
 
 ```json
 { "swipe": { "direction": "up", "distance": 0.8, "surface": { "app": "myapp" } } }
 ```
+
+{/* step {"stepId":"swipe-goto-directional","description":"Open a page with scrollable content","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"swipe-check-initial-scroll-directional","description":"Confirm the page starts unscrolled (an equality check, not a bare number, since output matching is substring/regex and \"0\" would also match a scrolled value like \"10\")","runBrowserScript":{"script":"return window.scrollY === 0;","output":"true"}} */}
+{/* step {"stepId":"swipe-directional-up","description":"Swipe up 80% of the viewport height (a browser surface here, since the app-surface form needs a native app driver)","swipe":{"direction":"up","distance":0.8}} */}
+{/* step {"stepId":"swipe-verify-directional","description":"Confirm the swipe actually scrolled the page down","runBrowserScript":{"script":"return window.scrollY > 0;","output":"true"}} */}
+{/* test end */}
 
 **Point-to-point**—drag from one point to another:
 
@@ -39,7 +55,7 @@ Point coordinates are pixels from the surface's top-left corner—the app window
 | `distance` | number | How far to swipe, as a fraction (0–1] of the surface's height (up/down) or width (left/right). Default: `0.5`. Directional form only. |
 | `from`, `to` | object | `{ "x": px, "y": px }` pixel coordinates (from the surface's top-left) where the finger presses down and releases. Point-to-point form only—mutually exclusive with `direction`/`distance`. |
 | `duration` | integer | Movement time in milliseconds. Default: `500`. |
-| `surface` | string or object | The browser or app surface to swipe. Omit to act on the active browser tab. App surfaces use the object form (`{ "app": "…" }`). On Windows/macOS, add a `window` selector to swipe a specific window of the app (see [App windows](find#app-windows)). |
+| `surface` | string or object | The browser or app surface to swipe. Omit to act on the active surface (the most recently opened, focused, or explicitly targeted browser tab or app window). App surfaces use the object form (`{ "app": "…" }`). On Windows/macOS, add a `window` selector to swipe a specific window of the app (see [App windows](find#app-windows)). |
 
 See the [swipe schema reference](/reference/schemas/swipe) for the full shapes.
 

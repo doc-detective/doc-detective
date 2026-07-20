@@ -92,7 +92,7 @@ When `validate()` is called:
 1. Edit source schema in `src/schemas/src_schemas/`
 2. Add/update `examples` array (required for tests)
 3. If adding new file, add to `files` array in `dereferenceSchemas.js`
-4. Run `npm run build` (runs `dereferenceSchemas` + tests)
+4. Run `npm run build` (`dereferenceSchemas` + `generate:types` + `compile`; it does NOT run tests — run `npm run test:coverage` separately, per ADR 01057)
 5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)

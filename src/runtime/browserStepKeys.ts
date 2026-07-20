@@ -16,6 +16,7 @@
  * forward-compatibility and are inert.
  */
 export const BROWSER_STEP_KEYS = [
+  "annotate",
   "click",
   "dragAndDrop",
   "find",
@@ -93,5 +94,88 @@ export function stepOpensBrowserSurface(step: any): boolean {
 export function stepOpensAppSurface(step: any): boolean {
   return startSurfaceDescriptors(step).some(
     (d: any) => d && typeof d === "object" && typeof d.app === "string"
+  );
+}
+
+/**
+ * True when the step's startSurface opens at least one background PROCESS
+ * surface. Part of the non-browser-surface signal below (ADR 01081).
+ */
+export function stepOpensProcessSurface(step: any): boolean {
+  return startSurfaceDescriptors(step).some(
+    (d: any) => d && typeof d === "object" && typeof d.process === "string"
+  );
+}
+
+/**
+ * True when any action payload in the step names a background process with
+ * the object form (`surface: { process: … }`). Such a step writes to the
+ * process's stdin — it never needs a browser. The bare-string form stays
+ * identity-only, same as stepTargetsAppSurface.
+ */
+export function stepTargetsProcessSurface(step: any): boolean {
+  if (!step || typeof step !== "object") return false;
+  return Object.values(step).some(
+    (payload: any) =>
+      payload &&
+      typeof payload === "object" &&
+      payload.surface &&
+      typeof payload.surface === "object" &&
+      typeof payload.surface.process === "string"
+  );
+}
+
+/**
+ * The step keys whose actions act on a surface and route through the
+ * active-surface resolver (ADR 01081): omitted `surface` targets the most
+ * recently active surface of ANY kind. Deliberately narrower than
+ * BROWSER_STEP_KEYS — `annotate`, cookies, `goTo`, `record`, etc. are
+ * browser-only by design and always imply a browser.
+ */
+export const SURFACE_SENSITIVE_STEP_KEYS = [
+  "click",
+  "find",
+  "screenshot",
+  "swipe",
+  "type",
+] as const;
+
+/**
+ * True when the step performs a surface-sensitive action WITHOUT an explicit
+ * `surface` reference — the payload shapes without one include the string /
+ * boolean / array shorthands (`find: "text"`, `screenshot: true`,
+ * `type: ["hi"]`). Such a step routes to the active surface at runtime, so
+ * browser-need classification must not unconditionally count it as a browser
+ * step (see testHasNonBrowserSurfaceSignal).
+ */
+export function stepIsSurfacelessInteraction(step: any): boolean {
+  if (!step || typeof step !== "object") return false;
+  return SURFACE_SENSITIVE_STEP_KEYS.some((key) => {
+    if (typeof step[key] === "undefined") return false;
+    const payload = step[key];
+    const hasExplicitSurface =
+      payload &&
+      typeof payload === "object" &&
+      !Array.isArray(payload) &&
+      payload.surface !== undefined;
+    return !hasExplicitSurface;
+  });
+}
+
+/**
+ * True when any step in the test opens or explicitly targets a NON-browser
+ * surface (an app or a background process). In such a test, a surface-less
+ * interaction step is routed to the active surface at runtime and must not
+ * force browser provisioning; a test with no such signal keeps the browser
+ * default (byte-compatible with pre-ADR-01081 classification).
+ */
+export function testHasNonBrowserSurfaceSignal(steps: any): boolean {
+  if (!Array.isArray(steps)) return false;
+  return steps.some(
+    (step: any) =>
+      stepOpensAppSurface(step) ||
+      stepOpensProcessSurface(step) ||
+      stepTargetsAppSurface(step) ||
+      stepTargetsProcessSurface(step)
   );
 }

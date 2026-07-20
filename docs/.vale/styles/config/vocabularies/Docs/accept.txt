@@ -77,6 +77,9 @@ PAUSE
 PASS
 PNG
 Prepended
+prebuild
+prebuilds
+prebuilt
 prepended
 prepends
 querySelector
@@ -232,6 +235,7 @@ SSRF
 WebDriverAgent
 WDA
 xcodebuild
+prebuilding
 dialog
 dialogs
 dialog's
@@ -241,3 +245,8 @@ passthrough
 TUIs
 metacharacter
 metacharacters
+AXIdentifier
+AXRole
+AXTitle
+AXValue
+AXDescription

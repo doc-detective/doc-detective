@@ -29,11 +29,30 @@ export interface InstalledAndroid {
   installedAt: string;
 }
 
+// What the WebDriverAgent prebuild in `doc-detective install ios` built.
+// Keys are additive (one per Xcode × driver toolchain); the installer's
+// prune pass rewrites the list so it never references a deleted key dir.
+export interface InstalledIos {
+  wdaKeys: string[];
+  updatedAt: string;
+}
+
+// Non-npm, non-browser tool downloads (e.g. `git-bash` — the MinGit portable
+// that backs runShell's `bash` shell on Windows).
+export interface InstalledTool {
+  installedVersion: string;
+  installedAt: string;
+}
+
 export interface InstalledRecord {
   npmPackages: Record<string, InstalledNpmPackage>;
   browsers: Record<string, InstalledBrowser>;
   // Optional so pre-A3 records (and runs that never touched android) stay lean.
   android?: InstalledAndroid;
+  // Optional for the same reason: only present once a WDA prebuild ran.
+  ios?: InstalledIos;
+  // Optional for the same reason: only present once a tool was installed.
+  tools?: Record<string, InstalledTool>;
 }
 
 export interface CacheDirContext {
@@ -209,6 +228,10 @@ export function readInstalledRecord(ctx: CacheDirContext = {}): InstalledRecord 
     // absent on pre-A3 records). A non-object value is dropped rather than
     // carried through, mirroring the coercion above.
     if (isPlainObject(parsed?.android)) record.android = parsed.android;
+    // Same treatment for the optional ios (WDA prebuild) slot.
+    if (isPlainObject(parsed?.ios)) record.ios = parsed.ios;
+    // Same treatment for the optional tools slot (git-bash etc.).
+    if (isPlainObject(parsed?.tools)) record.tools = parsed.tools;
     return record;
   } catch {
     return emptyRecord();

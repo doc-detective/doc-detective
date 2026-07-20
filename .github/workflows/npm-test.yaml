@@ -35,6 +35,9 @@ on:
       - '.mocharc.yml'
       - '.github/workflows/npm-test.yaml'
       - '.github/workflows/test.yml'
+      # The fixture matrix is half the PR gate; a change to it must run it.
+      # Without this entry a fixtures.yml-only PR merges unexercised.
+      - '.github/workflows/fixtures.yml'
   workflow_dispatch:
 
 concurrency:
@@ -43,6 +46,10 @@ concurrency:
 
 permissions:
   contents: read
+  # Granted so the reusable fixtures workflow's `select` job can read the PR's
+  # changed files to narrow its matrix (ADR 01055). A reusable workflow can't
+  # hold a permission the caller doesn't grant, so it lives here.
+  pull-requests: read
 
 jobs:
   # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
@@ -57,7 +64,9 @@ jobs:
       HERETTO_USERNAME: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_USERNAME || '' }}
       HERETTO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.HERETTO_TOKEN || '' }}
 
-  # Per-feature Doc Detective fixtures, fanned out one small job per (group x OS)
-  # so no single job is a 90-minute monolith. Runs the PR's own build.
+  # Per-feature Doc Detective fixtures, fanned out one small job per (bundle x
+  # OS) so no single job is a 90-minute monolith. Runs the PR's own build. The
+  # reusable workflow computes its own matrix (its `select` job), narrowed to
+  # the bundles the PR's change set can affect (ADR 01055).
   fixtures:
     uses: ./.github/workflows/fixtures.yml

@@ -11,6 +11,7 @@ import {
   resolveHeavyDepPath,
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
+import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -20,6 +21,7 @@ export {
   outputResults,
   loadEnvs,
   log,
+  logLevelEnabled,
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
@@ -28,6 +30,9 @@ export {
   spawnCommand,
   spawnBackgroundCommand,
   spawnPtyBackgroundCommand,
+  resolveShellName,
+  resolveShellExecutable,
+  shellSpawnEnv,
   waitForReady,
   waitForPort,
   waitForHttp,
@@ -41,11 +46,14 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  isDeviceWebContext,
+  computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
   findFreePort,
@@ -58,7 +66,7 @@ export {
   evaluateContextRequirements,
 };
 
-export type { BackgroundProcess };
+export type { BackgroundProcess, ResourceRegistry };
 
 // A fixed set of Appium server ports shared by concurrent runners. `acquire()`
 // hands out a free port, waiting if every port is checked out; `release()`
@@ -294,9 +302,13 @@ function spawnBackgroundCommand(
   args: string[] = [],
   options: any = {}
 ): BackgroundProcess {
-  const spawnOptions: any = { shell: true };
+  // `options.shell` carries a resolved shell executable (runShell's `shell`
+  // field); absent, keep the historical platform default.
+  const spawnOptions: any = { shell: options.shell || true };
   if (process.platform === "win32") spawnOptions.windowsHide = true;
   if (options.cwd) spawnOptions.cwd = options.cwd;
+  const bgShellEnv = shellSpawnEnv(options.shell);
+  if (bgShellEnv) spawnOptions.env = bgShellEnv;
 
   // `shell: true` is intentional and by design. `runShell` (and `runCode`'s
   // shell backend) exist to execute the exact shell command an author writes in
@@ -360,17 +372,37 @@ function spawnBackgroundCommand(
   };
 }
 
-// Quote a single command-line argument so the platform shell treats it as one
+// Quote a single command-line argument so the target shell treats it as one
 // token (so the `args` field keeps working when we append it to the command
-// string for the shell). Wraps in double quotes and escapes embedded double
-// quotes; mirrors how `shell:true` would pass each arg.
-function quoteShellArg(arg: string): string {
-  if (process.platform === "win32") {
+// string for the shell). `style` selects the quoting dialect: `cmd` doubles
+// embedded double quotes; `powershell` single-quotes with `''` doubling
+// (PS interpolates `$` and backticks inside DOUBLE quotes, so the cmd
+// dialect would corrupt args there); `posix` single-quotes (bash/sh —
+// including Git Bash on Windows). Defaults to the platform shell for
+// callers that don't thread a resolved shell.
+function quoteShellArg(
+  arg: string,
+  style?: "cmd" | "powershell" | "posix"
+): string {
+  const resolvedStyle =
+    style ?? (process.platform === "win32" ? "cmd" : "posix");
+  if (resolvedStyle === "cmd") {
     // cmd.exe: escape embedded quotes by doubling them, then wrap.
     return `"${arg.replace(/"/g, '""')}"`;
   }
+  if (resolvedStyle === "powershell") {
+    // PowerShell: single quotes are literal; escape embedded ones by doubling.
+    return `'${arg.replace(/'/g, "''")}'`;
+  }
   // POSIX sh: single-quote and escape any embedded single quote.
   return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+// True when a resolved shell executable is cmd.exe (vs bash/powershell), which
+// decides both the PTY `-c` vs `/d /s /c` invocation and the arg-quoting
+// dialect. Mirrors Node's own cmd detection for `shell: <string>`.
+function isCmdShellExecutable(shellExecutable: string): boolean {
+  return /(^|[\\/])cmd(\.exe)?$/i.test(shellExecutable);
 }
 
 // PTY-backed sibling of spawnBackgroundCommand: starts a process under a real
@@ -450,15 +482,30 @@ async function spawnPtyBackgroundCommand(
   // to the direct spawn below, so the happy path can never regress.
   await assertConptyAllocatable({ ptyModulePath });
 
-  const argstr = args.length ? " " + args.map(quoteShellArg).join(" ") : "";
-  const fullCommand = cmd + argstr;
   const isWin = process.platform === "win32";
-  // Match Node's `{ shell: true }` invocation exactly so a `tty` process behaves
-  // identically to the pipe path: cmd.exe with `/d /s /c` on Windows (disable
-  // AutoRun, treat the whole string as one quoted command), `/bin/sh -c` on POSIX
-  // (NOT $SHELL, which may be a non-POSIX shell).
-  const shell = isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh";
-  const shellArgs = isWin
+  // Match Node's `{ shell: ... }` invocation exactly so a `tty` process behaves
+  // identically to the pipe path. `options.shell` carries the resolved shell
+  // executable from runShell's `shell` field; absent, fall back to the
+  // platform default: cmd.exe with `/d /s /c` on Windows (disable AutoRun,
+  // treat the whole string as one quoted command), `/bin/sh -c` on POSIX (NOT
+  // $SHELL, which may be a non-POSIX shell).
+  const shell =
+    options.shell || (isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh");
+  const isCmdShell = isCmdShellExecutable(shell);
+  // Quote args in the dialect of the shell that will parse the command string:
+  // double-quote doubling for cmd.exe, literal single quotes for powershell
+  // (double quotes would interpolate `$`/backticks), POSIX single quotes for
+  // bash/sh (including Git Bash on Windows).
+  const quoteStyle: "cmd" | "powershell" | "posix" = isCmdShell
+    ? "cmd"
+    : /powershell(\.exe)?$/i.test(shell)
+    ? "powershell"
+    : "posix";
+  const argstr = args.length
+    ? " " + args.map((arg) => quoteShellArg(arg, quoteStyle)).join(" ")
+    : "";
+  const fullCommand = cmd + argstr;
+  const shellArgs = isCmdShell
     ? ["/d", "/s", "/c", fullCommand]
     : ["-c", fullCommand];
 
@@ -472,7 +519,7 @@ async function spawnPtyBackgroundCommand(
       cols: 120,
       rows: 30,
       cwd: options.cwd || process.cwd(),
-      env: process.env,
+      env: shellSpawnEnv(options.shell) ?? process.env,
     });
   } catch (error: any) {
     // node-pty loaded but couldn't create a PTY here (e.g. a prebuilt
@@ -776,6 +823,43 @@ function isRetryableSessionError(
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
+// Windows NTSTATUS exit codes for a process that died *during initialization*
+// under concurrent-spawn contention — the process-surface analogue of the
+// driver-start transient session races above (ADR 01042). At
+// `concurrentRunners > 1` a startSurface that opens many process/PTY children
+// at once can transiently exhaust a Windows loader/console limit so one child
+// crashes before it can signal ready:
+//   • 0xC0000142 (-1073741502) STATUS_DLL_INIT_FAILED — the loader couldn't
+//     initialize a DLL for the child (classic heavy-concurrent-spawn failure).
+//   • 0xC000013A (-1073741510) STATUS_CONTROL_C_EXIT — a spurious console-control
+//     termination delivered to a just-spawned console/ConPTY child during
+//     startup; observed in CI on `p6-tty` at concurrentRunners 2.
+// Both clear on a fresh spawn in practice, so a bounded retry recovers.
+// Windows-only: these are NTSTATUS values, meaningless on POSIX (where the same
+// decimals would be ordinary signal/exit codes), so the guard never fires off
+// win32 and `concurrentRunners: 1` behavior is byte-identical.
+const TRANSIENT_PROCESS_INIT_EXIT_CODES = new Set([
+  -1073741502, // 0xC0000142 STATUS_DLL_INIT_FAILED
+  -1073741510, // 0xC000013A STATUS_CONTROL_C_EXIT
+]);
+
+function isTransientProcessInitError(
+  message: string | undefined,
+  platform: string = process.platform
+): boolean {
+  if (platform !== "win32") return false;
+  if (typeof message !== "string" || !message) return false;
+  // waitForReady's early-exit rejection is
+  // `Process exited before becoming ready (exit code <n>).` — pull the code and
+  // match it against the transient NTSTATUS set. Only the early-exit shape is
+  // retryable; a readiness *timeout* (a genuinely stuck process) is not.
+  const match = message.match(
+    /exited before becoming ready \(exit code (-?\d+)\)/
+  );
+  if (!match) return false;
+  return TRANSIENT_PROCESS_INIT_EXIT_CODES.has(Number(match[1]));
+}
+
 function compileFilter(patterns?: string[] | unknown): RegExp[] {
   if (!Array.isArray(patterns) || patterns.length === 0) return [];
   // Trim each pattern before compiling so config / env / CLI inputs all
@@ -826,6 +910,40 @@ function isRelativeUrl(url: string) {
     // If URL constructor throws an error, it's a relative URL
     return true;
   }
+}
+
+// Is this WebdriverIO session a DEVICE (iOS/Android) session running in a WEB
+// (browser) context? This is the tight gate for the post-navigation settle in
+// goTo (ADR 01047): the settle exists only to absorb the freshly-built-WDA
+// window where an iOS Safari (XCUITest web context) element tree is momentarily
+// empty right after navigation while readyState already reports complete.
+//
+// - `isMobile` is WebdriverIO's own device flag (true when platformName is
+//   iOS/Android or Appium caps are present) — desktop browser sessions have it
+//   falsy, so desktop keeps a byte-identical control path (no settle).
+// - `capabilities.browserName` distinguishes a mobile-WEB session (Safari on
+//   iOS, Chrome on Android) from a native-app session (no browserName). A
+//   native-app context never reaches goTo, but gating on browserName keeps the
+//   predicate honest and self-describing.
+function isDeviceWebContext(driver: any): boolean {
+  if (!driver) return false;
+  const isMobile = driver.isMobile === true;
+  const browserName = driver.capabilities?.browserName;
+  return isMobile && typeof browserName === "string" && browserName.length > 0;
+}
+
+// Ceiling (ms) for the device-web post-navigation settle in goTo: whatever of
+// the goTo timeout remains after the readiness gate, capped at 3s and floored
+// at 0. A non-positive result means "no budget left" — goTo's `> 0` guard then
+// skips the settle entirely. Pure so the guard's arithmetic is tested directly,
+// without racing wall-clock timing through the runner.
+const SETTLE_CEILING_MAX_MS = 3000;
+/**
+ * @internal Implementation detail of goTo's device-web settle, exported only so
+ * the unit tests can exercise it. Not a public API; do not rely on it externally.
+ */
+function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
+  return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));
 }
 
 function appendQueryParams(
@@ -890,6 +1008,9 @@ const PRESERVED_TEMP_ENTRIES = new Set([
   "browsers",
   "runtime",
   "installed.json",
+  // Tool downloads (git-bash — the MinGit backing runShell's Windows `bash`
+  // shell). Wiping it would force a ~40 MB re-download on every run.
+  "tools",
 ]);
 
 function cleanTemp() {
@@ -1168,34 +1289,206 @@ async function loadEnvs(envsFile: string) {
   }
 }
 
+// Pure predicate: would `log(config, level, ...)` actually print at this
+// config.logLevel? Exported so hot call sites can GUARD expensive message
+// construction (e.g. `JSON.stringify(bigObject, null, 2)`) behind a cheap
+// check — the stringify then only runs when the message would be printed.
+// `log` itself delegates to this so the level policy has a single source of
+// truth and can never drift from the guard.
+function logLevelEnabled(config: any, level: string): boolean {
+  // Default an undefined/empty logLevel to "info" (parity with src/utils.ts#log,
+  // which already defaults to info). Without this fallback none of the branches
+  // below match an undefined logLevel, so the 2-arg `log(message, level)` form —
+  // which resets config to {} — silently dropped EVERY message, swallowing the
+  // error/warning logs emitted at 2-arg call sites in expressions.ts. An explicit
+  // level such as "silent" is preserved, so intentional silencing still
+  // suppresses all output. Defaulting here (rather than in `log`) keeps the guard
+  // predicate and `log` as a single source of truth for the level policy.
+  const currentLevel = config.logLevel || "info";
+  if (currentLevel === "error" && level === "error") return true;
+  if (
+    currentLevel === "warning" &&
+    (level === "error" || level === "warning")
+  )
+    return true;
+  if (
+    currentLevel === "info" &&
+    (level === "error" || level === "warning" || level === "info")
+  )
+    return true;
+  if (
+    currentLevel === "debug" &&
+    (level === "error" ||
+      level === "warning" ||
+      level === "info" ||
+      level === "debug")
+  )
+    return true;
+  return false;
+}
+
+/**
+ * Benign viewport delta (px) that must not raise a mismatch warning. A vertical
+ * scrollbar appearing/disappearing after a resize shifts the content width by
+ * ~15px on desktop; this absorbs that so only a meaningful floor (e.g. a mobile
+ * width clamped up by a hundred-plus pixels) is flagged.
+ */
+export const VIEWPORT_TOLERANCE_PX = 16;
+
+/**
+ * Compare a requested browser viewport against the viewport the page actually
+ * rendered (window.innerWidth/innerHeight read back after a resize) and produce
+ * a warning when they diverge.
+ *
+ * Browsers and the host OS enforce a minimum window size, so a requested
+ * viewport — a 375px mobile width, say — can be silently floored to a larger
+ * size with no error and no failing step (the "the browser had a floor I didn't
+ * know about" case). This surfaces that gap so the rendered size is honest
+ * rather than assumed.
+ *
+ * Only dimensions the caller actually requested (a positive number) are
+ * compared, so a width-only request is never warned about an unrequested
+ * height. A requested dimension that couldn't be read back (non-finite actual)
+ * is treated as a mismatch — an unconfirmed size is not a matched size.
+ * `tolerance` (px) absorbs benign deltas such as a scrollbar's width. Returns
+ * null when every requested dimension landed within tolerance.
+ */
+export function viewportMismatchWarning(
+  requested: { width?: number; height?: number } | undefined,
+  actual: { width?: number; height?: number } | undefined,
+  tolerance = 0
+): string | null {
+  const parts: string[] = [];
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(requested?.[dim]);
+    if (!(req > 0)) continue; // only compare dimensions the caller requested
+    const act = Number(actual?.[dim]);
+    if (!Number.isFinite(act)) {
+      parts.push(`${dim} requested ${req}px, rendered unknown`);
+    } else if (Math.abs(act - req) > tolerance) {
+      parts.push(`${dim} requested ${req}px, rendered ${act}px`);
+    }
+  }
+  if (parts.length === 0) return null;
+  return `Requested viewport not fully realized — the browser or OS enforces a minimum window size: ${parts.join(
+    "; "
+  )}. Screenshots and measurements reflect the rendered size, not the requested size.`;
+}
+
+/**
+ * True when the browser FLOORED a requested viewport — the realized size came
+ * back LARGER than requested by more than `tolerance`, i.e. the window refused
+ * to shrink past its minimum. A smaller-than-requested render is not a floor.
+ *
+ * Distinct from `viewportMismatchWarning`, which flags any divergence (either
+ * direction, plus unreadable dimensions). This is the narrower "the user asked
+ * for a phone-sized viewport and couldn't get it" signal.
+ */
+export function isViewportFloored(
+  requested: { width?: number; height?: number } | undefined,
+  actual: { width?: number; height?: number } | undefined,
+  tolerance = VIEWPORT_TOLERANCE_PX
+): boolean {
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(requested?.[dim]);
+    const act = Number(actual?.[dim]);
+    if (!(req > 0) || !Number.isFinite(act)) continue;
+    if (act - req > tolerance) return true;
+  }
+  return false;
+}
+
+/**
+ * Resolve the concrete target the viewport should be set to. A request may name
+ * only one dimension (width OR height); the other is filled from the current
+ * viewport so the unrequested dimension is left as-is. Non-positive/absent
+ * values fall back to the current size.
+ */
+export function resolveViewportTarget(
+  requested: { width?: number; height?: number } | undefined,
+  current: { width?: number; height?: number } | undefined
+): { width: number; height: number } {
+  const w = Number(requested?.width);
+  const h = Number(requested?.height);
+  return {
+    width: w > 0 ? w : Number(current?.width),
+    height: h > 0 ? h : Number(current?.height),
+  };
+}
+
+async function readViewport(
+  driver: any
+): Promise<{ width: number; height: number }> {
+  const v = await driver.execute(
+    "return { width: window.innerWidth, height: window.innerHeight }",
+    []
+  );
+  return { width: Number(v?.width), height: Number(v?.height) };
+}
+
+/**
+ * Realize a requested browser viewport by resizing the OS window, then read the
+ * viewport back and return the size the page actually rendered.
+ *
+ * The window is grown/shrunk by the delta between the requested and current
+ * viewport. This is subject to the browser/OS minimum *window* size, so a small
+ * mobile width (375px) can be floored to a larger size; the realized size is
+ * read back and a warning is emitted when the request wasn't met, since the size
+ * the page rendered — not the size requested — is ground truth.
+ *
+ * True viewport *emulation* (`driver.setViewport`, setting the content size
+ * below the window floor) was evaluated and rejected: it needs a WebDriver BiDi
+ * socket, which crashed headed recording contexts with a stack overflow and
+ * flaked geckodriver startup — the cross-driver instability ADR 00132 documented.
+ * See [ADR 01072] (rejected). This resize-and-warn path is the shipped behavior.
+ *
+ * Only meaningful when at least one dimension was requested; callers guard that.
+ */
+export async function realizeViewport(
+  driver: any,
+  requested: { width?: number; height?: number },
+  config: any = {},
+  label?: string
+): Promise<{ width: number; height: number }> {
+  const current = await readViewport(driver);
+  const target = resolveViewportTarget(requested, current);
+
+  const windowSize = await driver.getWindowSize();
+  // If the viewport read-back failed (non-finite current/target), keep the
+  // window as-is for that axis rather than passing NaN to setWindowSize (which
+  // some drivers reject). Round to integers — drivers expect whole pixels.
+  const deltaWidth =
+    Number.isFinite(current.width) && Number.isFinite(target.width)
+      ? target.width - current.width
+      : 0;
+  const deltaHeight =
+    Number.isFinite(current.height) && Number.isFinite(target.height)
+      ? target.height - current.height
+      : 0;
+  await driver.setWindowSize(
+    Math.round(windowSize.width + deltaWidth),
+    Math.round(windowSize.height + deltaHeight)
+  );
+
+  const actual = await readViewport(driver);
+  const warning = viewportMismatchWarning(
+    requested,
+    actual,
+    VIEWPORT_TOLERANCE_PX
+  );
+  if (warning) {
+    await log(config, "warning", label ? `${label}: ${warning}` : warning);
+  }
+  return actual;
+}
+
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)
     message = config;
     config = {};
   }
-  let logLevelMatch = false;
-  if (config.logLevel === "error" && level === "error") {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "warning" &&
-    (level === "error" || level === "warning")
-  ) {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "info" &&
-    (level === "error" || level === "warning" || level === "info")
-  ) {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "debug" &&
-    (level === "error" ||
-      level === "warning" ||
-      level === "info" ||
-      level === "debug")
-  ) {
-    logLevelMatch = true;
-  }
+  const logLevelMatch = logLevelEnabled(config, level);
 
   if (logLevelMatch) {
     if (typeof message === "string") {
@@ -1338,6 +1631,18 @@ function evaluateContextRequirements({
   return { met: missing.length === 0, missing };
 }
 
+// Env-var reference matcher for replaceEnvs, hoisted to module scope so it is
+// compiled ONCE rather than per string node on every recursive walk. The
+// trailing `(?![a-zA-Z0-9_$])` guard means a `$NAME$` token (a dollar on BOTH
+// sides — the `$KEY$` special-key / device-key sentinel vocabulary, e.g.
+// `$HOME$`, `$ENTER$`) is never treated as an env-var reference. Without it,
+// `$HOME$` matched the `$HOME` prefix and — on any host where $HOME is set
+// (every Unix box) — got rewritten to the home path, corrupting the sentinel.
+// A real env ref is `$NAME` NOT followed by another `$` (or word char).
+// Safe to share: used only via `String.prototype.match`, which does not rely
+// on or leave mutated `lastIndex` state.
+const ENV_VAR_REGEX = /\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/g;
+
 function replaceEnvs(stringOrObject: any): any {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
@@ -1348,15 +1653,7 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
-    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
-    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
-    // treated as an env-var reference. Without it, `$HOME$` matched the
-    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
-    // got rewritten to the home path, corrupting the sentinel. A real env ref
-    // is `$NAME` NOT followed by another `$` (or word char).
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
-    const matches = stringOrObject.match(variableRegex);
+    const matches = stringOrObject.match(ENV_VAR_REGEX);
     // If no matches, return string
     if (!matches) return stringOrObject;
     // Iterate matches
@@ -1531,6 +1828,149 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   );
 }
 
+// Shells a runShell step can execute through. `cmd` and `powershell` are
+// Windows-only; `bash` is the default everywhere and resolves to Git Bash on
+// Windows (lazy-installed into the cache when absent).
+type ShellName = "bash" | "cmd" | "powershell";
+
+// Resolve which shell a runShell step runs in. Precedence mirrors
+// resolveAutoScreenshot / resolveAutoRecord: an unset level defers down the
+// chain (step > config > built-in `bash`). The config-level default is also
+// declared in config_v3 (`shell`, default `bash`); the step schema
+// deliberately has NO default so an unset step can defer here.
+function resolveShellName({
+  config,
+  step,
+}: { config?: any; step?: any } = {}): ShellName {
+  return step?.runShell?.shell ?? config?.shell ?? "bash";
+}
+
+// Injectable seams so unit tests can exercise every platform branch without
+// touching the real OS or triggering a real Git Bash install.
+interface ResolveShellDeps {
+  platform?: string;
+  env?: Record<string, string | undefined>;
+  cacheDir?: string;
+  resolveWindowsBash?: (options?: { cacheDir?: string }) => Promise<string>;
+  probePosixBash?: () => Promise<boolean>;
+}
+
+// Memoized "is bash runnable on this POSIX system" probe. POSIX only
+// guarantees /bin/sh; minimal images (Alpine/BusyBox, debian-slim) may lack
+// bash entirely, and without this check the spawn's ENOENT surfaces as a
+// meaningless "exit code null" step failure. One probe per process — the
+// answer can't change mid-run.
+let posixBashProbe: Promise<boolean> | undefined;
+function defaultProbePosixBash(): Promise<boolean> {
+  if (!posixBashProbe) {
+    posixBashProbe = new Promise<boolean>((resolve) => {
+      let child: ChildProcess;
+      try {
+        child = spawn("bash", ["--version"]);
+      } catch {
+        resolve(false);
+        return;
+      }
+      child.on("error", () => resolve(false));
+      child.on("close", (code) => resolve(code === 0));
+    });
+  }
+  return posixBashProbe;
+}
+
+// Map a shell name to the executable `spawn`'s `shell` option should use.
+// Throws (with an actionable message) for Windows-only shells off Windows and
+// when Git Bash can't be resolved or installed on Windows; runShell converts
+// the throw into a FAILed step.
+async function resolveShellExecutable(
+  shellName: string,
+  deps: ResolveShellDeps = {}
+): Promise<string> {
+  const platform = deps.platform ?? process.platform;
+  const env = deps.env ?? process.env;
+  switch (shellName) {
+    case "bash": {
+      if (platform === "win32") {
+        // Git Bash, never `System32\bash.exe` (the WSL launcher).
+        const resolveBash = deps.resolveWindowsBash ?? defaultResolveWindowsBash;
+        return await resolveBash({ cacheDir: deps.cacheDir });
+      }
+      // POSIX: let spawn's PATH lookup find bash (macOS ships it in /bin,
+      // Linux distros vary between /bin and /usr/bin) — but verify it exists
+      // first so a bash-less minimal image gets an actionable error instead
+      // of a swallowed ENOENT and a cryptic exit-code failure.
+      const probe = deps.probePosixBash ?? defaultProbePosixBash;
+      if (!(await probe())) {
+        throw new Error(
+          "The default `bash` shell isn't available on this system. Install bash (e.g. `apk add bash` on Alpine, `apt-get install bash` on Debian slim images) to run shell steps."
+        );
+      }
+      return "bash";
+    }
+    case "cmd": {
+      if (platform !== "win32") {
+        throw new Error(
+          "The `cmd` shell is only supported on Windows. Use `bash` (the default) or gate the step with `runOn`."
+        );
+      }
+      return env.ComSpec || "cmd.exe";
+    }
+    case "powershell": {
+      if (platform !== "win32") {
+        throw new Error(
+          "The `powershell` shell is only supported on Windows. Use `bash` (the default) or gate the step with `runOn`."
+        );
+      }
+      return "powershell.exe";
+    }
+    default:
+      // Schema-validated steps can't reach this; guards programmatic callers.
+      throw new Error(
+        `Unsupported shell: ${shellName}. Supported shells: bash, cmd, powershell.`
+      );
+  }
+}
+
+// On Windows, a bash resolved to an absolute path may be a bare MinGit
+// install from the cache, which (unlike full Git for Windows' `bin\bash.exe`
+// wrapper) does NOT put its own `usr/bin` on PATH — so `echo x | grep x`
+// would die with `grep: command not found`. Prepending the bash binary's own
+// directory to the child's PATH restores the expected toolbox (grep, sed,
+// awk, …) and is harmless for a full Git install. Returns undefined when no
+// adjustment is needed (non-Windows, non-bash shells, bare PATH lookups).
+function shellSpawnEnv(
+  shellExecutable: string | undefined,
+  deps: {
+    platform?: string;
+    env?: Record<string, string | undefined>;
+  } = {}
+): Record<string, string | undefined> | undefined {
+  const platform = deps.platform ?? process.platform;
+  const env = deps.env ?? process.env;
+  if (platform !== "win32" || !shellExecutable) return undefined;
+  if (!/bash(\.exe)?$/i.test(shellExecutable)) return undefined;
+  // shellExecutable is always a Windows-style path on this branch (only ever
+  // reached for the win32 platform), regardless of which OS actually runs
+  // this code (unit tests exercise it from any CI runner). Force
+  // `path.win32` rather than the ambient `path` module, which resolves
+  // POSIX semantics on non-Windows hosts and silently mis-parses backslash
+  // paths (`path.dirname` on a separator-less-under-POSIX string returns
+  // "."). On real Windows execution `path.win32 === path`, so production
+  // behavior is unchanged.
+  const dir = path.win32.dirname(shellExecutable);
+  // A bare `bash` PATH lookup has nothing to prepend.
+  if (!path.win32.isAbsolute(dir)) return undefined;
+  // Windows env vars are case-insensitive; preserve whichever casing exists.
+  const pathKey =
+    Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "Path";
+  const existing = env[pathKey];
+  return {
+    ...env,
+    // No trailing delimiter (an empty PATH segment) when PATH was unset.
+    [pathKey]: existing ? `${dir}${path.win32.delimiter}${existing}` : dir,
+  };
+}
+
 // Perform a native command in the current working directory.
 /**
  * Executes a command in a child process using the `spawn` function from the `child_process` module.
@@ -1542,9 +1982,12 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
  * @returns {Promise<object>} A promise that resolves to an object containing the stdout, stderr, and exit code of the command.
  */
 async function spawnCommand(cmd: string, args: string[] = [], options: any = {}) {
-  // Set spawnOptions based on OS
+  // Set spawnOptions based on OS. `options.shell` (a resolved shell
+  // executable from resolveShellExecutable) overrides the platform default so
+  // runShell's `shell` field reaches the spawn; internal probes that don't
+  // pass it keep the historical `shell: true` behavior.
   const spawnOptions: any = {
-    shell: true,
+    shell: options.shell || true,
   };
   if (process.platform === "win32") {
     spawnOptions.windowsHide = true;
@@ -1552,6 +1995,8 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   if (options.cwd) {
     spawnOptions.cwd = options.cwd;
   }
+  const shellEnv = shellSpawnEnv(options.shell);
+  if (shellEnv) spawnOptions.env = shellEnv;
 
   // `shell: true` is intentional and by design (see spawnBackgroundCommand for
   // the full rationale). `spawnCommand` runs the exact shell command an author

@@ -100,6 +100,12 @@ export interface HintContext {
   /** True if any step produced a screenshot. */
   producedScreenshots: boolean;
   /**
+   * True if any screenshot step declared `annotations`. Annotations are an
+   * option on `screenshot` rather than a step type, so `usedStepTypes` can't
+   * see them — the discovery hint needs its own "already using it?" gate.
+   */
+  usedAnnotations: boolean;
+  /**
    * True if any step produced an auto screenshot (the `--auto-screenshot` /
    * config/spec/test `autoScreenshot` feature), which lands in the separate
    * `step.autoScreenshot` result field rather than `step.screenshot`.
@@ -194,6 +200,59 @@ export interface HintContext {
    * checkLink).
    */
   failedTransientRequest: boolean;
+  /**
+   * True if any runShell step FAILed without an explicit `shell` field —
+   * on Windows that's often a cmd-flavored command now running under the
+   * cross-platform `bash` default. Powers `setRunShellShell`. Sourced from
+   * the `walkResults` step pass.
+   */
+  failedRunShellWithoutShell: boolean;
+  /**
+   * True if any context in this run resolved to an iOS device
+   * (`context.device.platform === "ios"`). Powers `prebuildWebDriverAgent`.
+   * Sourced from the `walkResults` context pass.
+   */
+  ranIosContexts: boolean;
+  /**
+   * True if any step report carried `outputs.stale === true` — a phantom
+   * recording span (ADR 01079: headless run of a checkpointed or
+   * `overwrite: "aboveVariation"` record step) found the committed
+   * recording's checkpoint baselines no longer match the current content.
+   * Powers `refreshStaleRecording`. Sourced from the `walkResults` step pass.
+   */
+  hasStaleRecordings: boolean;
+  /**
+   * True when the managed WebDriverAgent cache (`<cacheDir>/ios/wda/`)
+   * contains at least one completed, VALID prebuild (same
+   * `readProductsMarker` validity the session locator uses) — i.e. the user
+   * already runs `install ios`. One readdir under the resolved cache root
+   * capped at 100 entries, plus a marker read per entry; false on any error.
+   */
+  hasManagedWdaProducts: boolean;
+  /**
+   * True if any startSurface step reported a viewport the browser FLOORED —
+   * i.e. `outputs.viewport.actual` came back wider/taller than
+   * `outputs.viewport.requested` by more than `VIEWPORT_FLOOR_TOLERANCE_PX`.
+   * A desktop browser can't shrink its window below ~500px, so a requested
+   * phone width renders larger. Powers `useMobilePlatforms`. Sourced from the
+   * `walkResults` step pass (covers both the single-surface `outputs.viewport`
+   * and the array form's `outputs.surfaces[].outputs.viewport`).
+   */
+  viewportFloored: boolean;
+  /**
+   * True if any context in this run resolved to a mobile device
+   * (`context.device.platform` of `android` or `ios`) — i.e. the user already
+   * tests on a real mobile screen. Gates `useMobilePlatforms` off. Sourced from
+   * the `walkResults` context pass.
+   */
+  ranMobileContexts: boolean;
+  /**
+   * True when three or more surface-sensitive steps in this run explicitly
+   * referenced the SAME app surface (`surface: { app: … }`) — repetition the
+   * active-surface default (ADR 01081) makes redundant. Powers
+   * `omitSurfaceForActiveApp`. Sourced from the `walkResults` step pass.
+   */
+  repeatedAppSurfaceRefs: boolean;
 }
 
 export interface Hint {

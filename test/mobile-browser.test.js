@@ -310,6 +310,9 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
       platform: "ios",
       udid: "SIM-UDID-1234",
       cacheDir: "/tmp/dd-cache",
+      // Hermeticity: never let a unit test fall through to the real
+      // managed-WDA locator (test/AGENTS.md stubbing rule).
+      locateWda: () => null,
     });
     expect(capabilities.platformName).to.equal("iOS");
     expect(capabilities["appium:automationName"]).to.equal("XCUITest");
@@ -330,6 +333,7 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
       udid: "SIM-UDID-1234",
       cacheDir: "/tmp/dd-cache",
       timeout: 30000,
+      locateWda: () => null,
     });
     expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(120000);
     expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(120000);
@@ -343,8 +347,61 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
         platform: "ios",
         udid: "SIM-UDID-1234",
         cacheDir: "/tmp/dd-cache",
+        // Env override wins, unchanged — the managed locator is not consulted.
+        locateWda: () => {
+          throw new Error("managed locator must not be consulted under the env override");
+        },
       });
       expect(capabilities["appium:derivedDataPath"]).to.equal("/tmp/wda-dd");
+      expect(capabilities["appium:usePrebuiltWDA"]).to.equal(undefined);
+    } finally {
+      if (prior === undefined) {
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      } else {
+        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prior;
+      }
+    }
+  });
+
+  it("consumes managed prebuilt WDA products when the locator hits (no env override)", function () {
+    const prior = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    try {
+      const capabilities = buildMobileBrowserCapabilities({
+        platform: "ios",
+        udid: "SIM-UDID-1234",
+        cacheDir: "/tmp/dd-cache",
+        locateWda: () => ({
+          key: "xcode-16.4-16F6-driver-10.8.1",
+          derivedDataPath:
+            "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",
+        }),
+      });
+      expect(capabilities["appium:derivedDataPath"]).to.equal(
+        "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData"
+      );
+      expect(capabilities["appium:usePrebuiltWDA"]).to.equal(true);
+    } finally {
+      if (prior === undefined) {
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      } else {
+        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prior;
+      }
+    }
+  });
+
+  it("changes nothing when the managed locator misses", function () {
+    const prior = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    try {
+      const capabilities = buildMobileBrowserCapabilities({
+        platform: "ios",
+        udid: "SIM-UDID-1234",
+        cacheDir: "/tmp/dd-cache",
+        locateWda: () => null,
+      });
+      expect(capabilities["appium:derivedDataPath"]).to.equal(undefined);
+      expect(capabilities["appium:usePrebuiltWDA"]).to.equal(undefined);
     } finally {
       if (prior === undefined) {
         delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;

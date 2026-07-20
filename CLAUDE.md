@@ -39,6 +39,21 @@ Don't reach for `--no-verify` when a husky hook fails for a missing dependency �
 instead. Verify runnable changes against the real toolchain (e.g. run a doc's inline tests with
 `doc-detective runTests --input <file>`) rather than guessing at CI behavior.
 
+## Don't rewrite whole files with scripts (CRLF landmine)
+
+Some tracked files are committed with **CRLF** ([src/core/tests.ts](src/core/tests.ts) is the
+notable one) while most are LF, and `core.autocrlf=input` re-normalizes on `git add`. A script that
+reads and rewrites a whole file (`python`'s `io.open(...).read()` / `write()`, or any
+read-modify-write helper) silently converts CRLF → LF, turning a one-line change into a
+**whole-file diff** that buries the real change and rewrites `git blame`.
+
+- Prefer the **Edit tool** for source changes — it preserves the file's existing endings.
+- After any scripted rewrite, check `git diff --numstat <file>`: a line count near the file's total
+  means the endings flipped. Confirm with `git diff --ignore-cr-at-eol --numstat <file>` (the real
+  delta) and compare `git show <ref>:<file>` against the working copy.
+- To restore, convert the working copy back (`d.replace(b"\n", b"\r\n")` in binary mode) and stage
+  it with `git -c core.autocrlf=false add <file>` — a plain `git add` re-strips the CRs.
+
 ## Persistent knowledge: repo instructions, not Claude memory (required)
 
 Do **not** use Claude Code's auto-memory feature (the per-project `~/.claude/projects/**/memory/`
@@ -112,11 +127,12 @@ Unit tests are necessary but not sufficient. When you add or change a **user-fac
 - The interaction with related features (overlap, fallback, conflict, skip paths).
 - The graceful-degradation / guard paths (unsupported platform, headless, missing dependency).
 
-Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` files, organized into **per-feature subdirectories** (`navigation/`, `interactions/`, `capture/`, `recording/`, `routing/`, `guards/`, `http/`, `process/`, `sessions/`). Each subdirectory runs as its own CI job — one job per (group × OS) — via the reusable [.github/workflows/fixtures.yml](.github/workflows/fixtures.yml) (see [ADR 01022](adrs/01022-parallel-feature-fixture-jobs.md)). Each job builds the PR, `npm link`s it, and runs its group through the [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) with `version: ''` (bare `npx doc-detective` → the linked local build), then fails on any FAILed or zero-spec run via [scripts/check-fixture-results.cjs](scripts/check-fixture-results.cjs). So every fixture must resolve to **PASS** or **SKIPPED** (never FAIL):
+Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` files, organized into **per-feature subdirectories** (`navigation/`, `interactions/`, `capture/`, `recording/`, `routing/`, `guards/`, `http/`, `process/`, `sessions/`). In CI the subdirectories run grouped into **bundles** — one job per (bundle × OS) — via the reusable [.github/workflows/fixtures.yml](.github/workflows/fixtures.yml): heavy or special-cased groups get a job to themselves, fast groups share a job through a comma-joined `input` (see [ADR 01022](adrs/01022-parallel-feature-fixture-jobs.md) for the fan-out and [ADR 01048](adrs/01048-reduce-pr-gate-latency.md) for the bundling that amends it). Each job builds the PR, `npm link`s it, and runs its bundle through the [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) with `version: ''` (bare `npx doc-detective` → the linked local build), then fails on any FAILed or zero-spec run via [scripts/check-fixture-results.cjs](scripts/check-fixture-results.cjs). So every fixture must resolve to **PASS**, **SKIPPED**, or — only for features whose designed signal *is* a warning (e.g. recording staleness detection, screenshot variation) — a deterministic **WARNING**; never FAIL. The gate fails a job only on FAILed specs or a fully empty run:
 
-- **Put a new fixture in the subdirectory for its feature area.** If it's a genuinely new area, create a new `<group>/` directory **and add that group to the matrix in [.github/workflows/fixtures.yml](.github/workflows/fixtures.yml)** — an empty or mistyped group fails its own job (`check-fixture-results.cjs` treats a zero-spec run as a failure), so it can't pass silently.
+- **Put a new fixture in the subdirectory for its feature area.** If it's a genuinely new area, create a new `<group>/` directory **and add it to a bundle's `input` in [.github/workflows/fixtures.yml](.github/workflows/fixtures.yml)** — join an existing bundle when the group is fast (keep the bundle's worst leg, cold-cache Windows, well under its timeout), or add a new solo entry when it's heavy, iOS-flavored (the action's `ios: auto` scan can't see into comma-joined inputs), or needs its own gating env. **Caution:** the zero-spec guard only fails a *fully* empty run — in a multi-directory bundle a typo'd directory contributes zero specs while the others still produce results, so double-check `input` paths in review (the fixture-output artifact shows which spec files actually ran).
 - Gate display/engine-specific permutations with `runOn` (platforms + headed/headless) so each runs only where it can succeed, and lands as `SKIPPED` elsewhere. Recording fixtures are the worked example: ffmpeg permutations run on Windows/macOS/Linux headed; browser-engine permutations only on headed Chrome (Windows/macOS). Headless Linux jobs skip the headed recording permutations — that's expected and passes the gate.
 - Permutations that are *meant* to be skipped or guarded (headless skip, name conflict, `record: false`) belong in fixtures too — assert the SKIPPED behavior, don't omit it.
+- When a fixture asserts on captured step outputs, read them in `runShell` via `process.env.MY_VAR` (step `variables` export to the environment), **not** textual `$MY_VAR` substitution — substitution splices raw values into the command string, where Windows paths' backslashes become JS escape sequences and quoting breaks. See [recording/recording-outputs.spec.json](test/core-artifacts/recording/recording-outputs.spec.json) for the pattern.
 - Shared state is provisioned per job: browser/http groups rely on the test servers the job starts (8092/8093 via [test/server/start.js](test/server/start.js)); specs that need the `env` variables load them with `loadVariables: "../env"` (single `env` at the artifacts root). Group jobs use the lean [config.groups.json](test/core-artifacts/config.groups.json) (no live external integrations).
 - When a behavior needs a precise assertion the "no spec fails" gate can't express (e.g. a preflight that must skip a test for a specific reason), add a focused `it(...)` in [test/core-core.test.js](test/core-core.test.js) — which also runs the broad `test.spec.json` **smoke** under mocha and keeps all the programmatic control-flow assertions.
 
@@ -239,14 +255,25 @@ npx commitlint --from HEAD~1 --to HEAD --verbose
 
 ## Testing behavior
 
+**Keep transient files inside the worktree, never in system temp directories.** Scratch output
+files, throwaway `--cache-dir` targets, downloaded archives for inspection — put them all under
+`.tmp/` at the repo root (gitignored), so they're visible in the worktree, cleaned up with it, and
+never orphaned in `%TEMP%`/`/tmp`.
+
+This rule governs **files you create to inspect during a task**. It is *not* about a test's own
+scratch directories: mocha suites create theirs with `fs.mkdtempSync(path.join(os.tmpdir(), …))`
+and remove them in `after`/`afterEach` — uniquely named, never read by a human, cleaned up by the
+test that made them. That's the suite-wide convention (150+ call sites); follow it in new tests
+rather than reinventing a `.tmp/` variant for one file.
+
 Running tests is time-intensive. Instead of running a test multiple times to check for different behaviors (such as looking at tail for output verification), save output to a file and inspect that file:
 
 ```bash
 # Run a test and save both stdout and stderr to a file (mocha and node write
 # diagnostics, including failures, to stderr — `2>&1` captures both).
-npm test -- --test "my test name" > output.txt 2>&1
+mkdir -p .tmp && npm test -- --test "my test name" > .tmp/output.txt 2>&1
 # Inspect the output file
-cat output.txt
+cat .tmp/output.txt
 ```
 
 ## CLI flags ↔ config (required pattern)

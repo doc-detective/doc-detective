@@ -20,7 +20,7 @@ doc-detective install <subcommand> [options]
 
 ### `install all`
 
-Install the lazy-installed runtime assets: npm packages and browser binaries.
+Install the lazy-installed runtime assets: npm packages, browser binaries, and (on Windows) Git Bash.
 
 ```bash
 doc-detective install all [options]
@@ -87,6 +87,22 @@ doc-detective install browsers chrome chromedriver
 
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 
+<Note>
+An asset with no installable build for the current platform/architecture (for example, Chrome and ChromeDriver on `linux/arm64`, which Google's Chrome for Testing doesn't publish natively) is skipped rather than failing the whole command—the report shows it as `skipped`. Run `doc-detective install status` to see what actually installed.
+</Note>
+
+### `install bash`
+
+Install Git Bash on Windows hosts. [`runShell`](/docs/actions/runshell) runs commands in `bash` by default on every platform (see [Shell selection](/docs/actions/runshell#shell-selection)), and this command provisions the bash that backs it on Windows.
+
+```bash
+doc-detective install bash [options]
+```
+
+If Git for Windows is already installed, the command reports it and downloads nothing. Otherwise it downloads a portable MinGit (about 40 MB, checksum-verified) into `<cacheDir>/tools/git-bash`. On macOS and Linux the command is a no-op—those platforms use the `bash` on your `PATH`.
+
+**Running this ahead of time is optional.** The first test run that needs bash on a Git-less Windows host installs it lazily, so this command just pre-warms the cache (ideal for CI images). Doc Detective verifies the install by running `bash --version` and repairs a corrupted copy automatically. Use `--force` to reinstall manually.
+
 ### `install android`
 
 Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run — both native Android app tests (native app phase A3) and mobile web tests in the device's Chrome (phase A5). The system images it installs are the `google_apis` kind, which include Chrome; an emulator created from an image without Chrome skips mobile web tests with a pointer back to this command.
@@ -120,13 +136,19 @@ Google's SDK repository occasionally serves a corrupt or truncated package. `ins
 
 ### `install ios`
 
-Check the iOS simulator prerequisites on a macOS host, so tests that target the `ios` platform can run. Required context for native iOS app testing (native app phase A4).
+Prepare a macOS host for tests that target the `ios` platform: verify the simulator prerequisites, install the XCUITest driver, and **prebuild WebDriverAgent** so your first iOS test session doesn't spend ~10 minutes compiling it.
 
 ```bash
 doc-detective install ios --yes
 ```
 
-Unlike `install android`, this command **downloads nothing** — iOS tooling ships with Xcode. It verifies that the Xcode command-line tools are configured (`xcode-select -p`) and that the iOS Simulator control tool is available (`xcrun simctl`), and prints actionable guidance when either is missing. Preview the checks on any host (including Windows/Linux, where it reports that iOS is macOS-only) with `--dry-run`:
+The command runs these steps and reports each individually. None of them fail the command—a step that can't run reports `skipped` with guidance:
+
+1. **Prerequisite checks**—verifies that the Xcode command-line tools resolve (`xcode-select -p`) and that the iOS Simulator control tool responds (`xcrun simctl`), with actionable guidance when either is missing.
+2. **Driver install**—installs `appium-xcuitest-driver` into the Doc Detective cache if it isn't already present (the same install a first test run performs lazily).
+3. **WebDriverAgent prebuild**—when full Xcode 14+ is present, compiles the WebDriverAgent that ships inside the driver once for the iOS Simulator and stores it in the cache, keyed by your Xcode version and driver version (`<cacheDir>/ios/wda/…`). If a build for the current key already exists, the step is a fast check-and-skip. Test sessions then use these build products automatically and read-only—concurrent runs can safely share one cache—and any session that finds no matching products just builds WebDriverAgent itself, exactly as before.
+
+Preview the plan on any host (including Windows/Linux, where it reports that iOS is macOS-only) with `--dry-run`:
 
 ```bash
 doc-detective install ios --dry-run
@@ -134,7 +156,9 @@ doc-detective install ios --dry-run
 
 <Note>
 
-The `appium-xcuitest-driver` and the simulator itself are provisioned automatically at test time: a run that targets `ios` on a capable macOS host lazily installs the driver, then resolves and boots a simulator via `simctl` (the newest installed iPhone by default, or a device named in your `device` descriptor, creating it if needed). `install ios` is **not** part of `install all` — iOS preparation is macOS-only. On a non-macOS host, or a macOS host without Xcode/`simctl`, an `ios` context SKIPs with a pointer back to this command rather than failing.
+The simulator itself is provisioned automatically at test time: a run that targets `ios` on a capable macOS host resolves and boots a simulator via `simctl` (the newest installed iPhone by default, or a device named in your `device` descriptor, creating it if needed). `install ios` is **not** part of `install all`—iOS preparation is macOS-only. On a non-macOS host, or a macOS host without Xcode/`simctl`, an `ios` context SKIPs with a pointer back to this command rather than failing.
+
+**Running this ahead of time is optional but recommended for CI.** Persist the cache directory across runs (see [Cache directory](#cache-directory)) and run `install ios --yes` when preparing the environment: the first run pays the WebDriverAgent build once, and every later run—and every parallel job sharing the cache—skips it. A driver or Xcode update produces a new key: the next `install ios` builds it, and in the meantime sessions fall back to building in-session. If you manage WebDriverAgent build products yourself, setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` still overrides everything, unchanged.
 
 </Note>
 

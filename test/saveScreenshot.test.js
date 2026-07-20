@@ -35,10 +35,15 @@ async function makePngBuffer(width, height, { r, g, b } = { r: 255, g: 0, b: 0 }
     .toBuffer();
 }
 
-// A fake WebDriver whose saveScreenshot writes a chosen PNG buffer to the
-// target path. No crop -> execute()/pause() are never called.
+// A fake WebDriver whose takeScreenshot returns a chosen PNG buffer as base64
+// (the in-memory capture path saveScreenshot now uses). `saveScreenshot` is
+// retained for parity with the real WebdriverIO surface. No crop ->
+// execute()/pause() are never called.
 function fakeDriver(buffer) {
   return {
+    async takeScreenshot() {
+      return buffer.toString("base64");
+    },
     async saveScreenshot(filePath) {
       fs.writeFileSync(filePath, buffer);
     },
@@ -189,6 +194,26 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.equal(result.outputs.screenshotPath, target);
     assert.equal(result.outputs.changed, true);
     assert.ok(fs.existsSync(target));
+  });
+
+  it("no-crop write is byte-identical to the captured buffer (no re-encode)", async function () {
+    // The in-memory pipeline must write the RAW captured PNG bytes for the
+    // no-crop path — decoding + re-encoding through sharp/PNG would change the
+    // on-disk bytes. Assert the written file equals the exact buffer the fake
+    // driver's takeScreenshot() returned.
+    const target = path.join(tmpDir, "byte-equal.png");
+    const buf = await makePngBuffer(120, 90, { r: 12, g: 34, b: 56 });
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "be1", screenshot: { path: target } },
+      driver: fakeDriver(buf),
+    });
+    assert.equal(result.status, "PASS");
+    const written = fs.readFileSync(target);
+    assert.ok(
+      written.equals(buf),
+      "written file bytes must equal the captured buffer verbatim",
+    );
   });
 
   it("within-variation (identical reference) -> PASS with a passing variation assertion", async function () {

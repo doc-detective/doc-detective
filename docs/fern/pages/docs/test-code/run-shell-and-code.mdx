@@ -12,7 +12,7 @@ Use `runShell` for native shell commands, `runCode` for inline snippets in JavaS
 Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
-- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and a Bash shell for `bash`. (`bash` isn't supported on Windows.)
+- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and Bash for `bash`. On Windows, Doc Detective runs `bash` steps through Git Bash and downloads a portable copy the first time a test needs one, so you don't have to install Bash yourself.
 - A directory where you can create a `.spec.json` file.
 
 ## Step 1: Test a documented command
@@ -20,6 +20,8 @@ Make sure you have the following:
 Start with a command your docs ask the reader to run. Add a `runShell` step that runs it and confirms it exits cleanly.
 
 Create a file named `commands.spec.json` and add the following test:
+
+{/* test {"testId":"runcode-guide-basic-command","detectSteps":false} */}
 
 ```json title="commands.spec.json"
 {
@@ -35,6 +37,9 @@ Create a file named `commands.spec.json` and add the following test:
   ]
 }
 ```
+
+{/* step {"stepId":"runcode-guide-node-version","description":"Check the installed Node.js version","runShell":"node --version"} */}
+{/* test end */}
 
 By default, `runShell` passes only when the command exits with code `0`. If your docs intentionally show a command that should fail, list the codes you expect with `exitCodes`:
 
@@ -52,6 +57,8 @@ By default, `runShell` passes only when the command exits with code `0`. If your
 
 A command that exits cleanly can still print the wrong thing. Use `stdio` to check the command's combined stdout and stderr against a string or a regular expression. To match a regular expression, wrap the pattern in forward slashes.
 
+{/* test {"testId":"runcode-guide-stdio-assert","detectSteps":false} */}
+
 ```json
 {
   "description": "Confirm the CLI reports a version string.",
@@ -64,9 +71,14 @@ A command that exits cleanly can still print the wrong thing. Use `stdio` to che
 
 If the output doesn't contain the expected text, the step fails. This is what turns a copy-paste command in your docs into a real assertion.
 
+{/* step {"stepId":"runcode-guide-stdio","description":"Confirm the CLI reports a version string","runShell":{"command":"node --version","stdio":"/^v\\d+\\./"}} */}
+{/* test end */}
+
 ## Step 3: Test a documented code snippet
 
 When your docs embed a code sample instead of a shell command, use `runCode`. Set the `language` and pass the snippet as a string in `code`. The same `exitCodes` and `stdio` assertions apply.
+
+{/* test {"testId":"runcode-guide-python-snippet","detectSteps":false} */}
 
 ```json
 {
@@ -81,9 +93,14 @@ When your docs embed a code sample instead of a shell command, use `runCode`. Se
 
 `runCode` supports `javascript`, `python`, and `bash`, each run with the interpreter installed on the machine.
 
+{/* step {"stepId":"runcode-guide-python","description":"Run the documented Python snippet and check its output","runCode":{"language":"python","code":"print('hello from the docs')","stdio":"hello from the docs"}} */}
+{/* test end */}
+
 ## Step 4: Carry a value into the next step
 
 To reuse a command's output later in the test, capture it with the step-level `variables` object. Assign a runtime expression such as `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`, then reference the variable in a later step with `$NAME`.
+
+{/* test {"testId":"runcode-guide-carry-value","detectSteps":false} */}
 
 ```json
 {
@@ -112,6 +129,10 @@ To reuse a command's output later in the test, capture it with the step-level `v
   ]
 }
 ```
+
+{/* step {"stepId":"runcode-guide-capture-sha","description":"Capture the current commit SHA (this repo is a git checkout, so this resolves for real)","runShell":{"command":"git rev-parse --short HEAD","stdio":"/.+/"},"variables":{"COMMIT":"$$stdio.stdout"}} */}
+{/* step {"stepId":"runcode-guide-use-sha","description":"Use the captured SHA and confirm it was genuinely substituted: a literal, un-substituted '$COMMIT' contains letters outside [0-9a-f] and wouldn't match this pattern","runShell":{"command":"echo Testing against $COMMIT","stdio":"/Testing against [0-9a-f]+/"}} */}
+{/* test end */}
 
 For more on expressions and where variables come from, see [Expressions](/reference/expressions) and the [`runShell`](/docs/actions/runshell) reference.
 
@@ -152,11 +173,11 @@ Some docs ask the reader to start a server or container and leave it running whi
 
 **Solution:** Reference values explicitly with environment variables and [`loadVariables`](/docs/actions/loadvariables), or set `workingDirectory` so the command runs where it expects to.
 
-### A `bash` `runCode` step is skipped on Windows
+### A `bash` step behaves differently on Windows
 
-**Cause:** `runCode` with `language: bash` isn't supported on Windows.
+**Cause:** `runShell` and `runCode` run in Bash on every platform, including Windows, where Doc Detective uses Git Bash. If Git for Windows isn't installed, the first `bash` step downloads a portable copy (MinGit, about 40 MB). This adds a one-time delay, and MinGit bundles only a subset of the usual command-line tools (for example, it omits `curl`, `seq`, and `sleep`).
 
-**Solution:** Use `runShell` with a Windows-native command, or gate the test to non-Windows platforms with [contexts](/docs/test-docs/platforms-and-browsers).
+**Solution:** To skip the download, pre-provision Bash (for example, in a CI image) with [`doc-detective install bash`](/reference/cli/install), or install the full [Git for Windows](https://gitforwindows.org/) if your commands need more tools. To run a command in a Windows shell instead, set `shell` to `cmd` or `powershell`. See [Shell selection](/docs/actions/runshell#shell-selection).
 
 ## What's next
 

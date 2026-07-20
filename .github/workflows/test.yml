@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   test:
-    name: Test (${{ matrix.os }}, node ${{ matrix.node }})
+    name: Test (${{ matrix.os }}, node ${{ matrix.node }}, shard ${{ matrix.shard }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
@@ -43,10 +43,31 @@ jobs:
         # node 20 reached EOL 2026-04-30 and is unsupported by this repo's
         # release tooling (semantic-release@25 requires ^22.14 || >=24.10) and
         # by @puppeteer/browsers@3 (engines >=22.12, needed for node 24
-        # browser installs). Test the supported lines only.
+        # browser installs). Node-line behavior is OS-independent (the fixture
+        # jobs pin node 24 for the same reason — see fixtures.yml), so the full
+        # OS grid runs on node 24 only, plus a single ubuntu node-22 cell to
+        # keep the older supported line exercised. This halves the two slowest
+        # cells' worth of matrix time (Windows/macOS node 22).
         node:
-          - 22
           - 24
+        # Each cell's mocha suite is split into two parallel shard jobs by
+        # scripts/run-test-shard.cjs (deterministic weighted partition of
+        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the 8092/
+        # 8093 test servers per mocha process, so each shard self-provisions;
+        # the coverage-merge job unions the shards' raw-coverage artifacts, and
+        # the union equals the unsharded suite's coverage.
+        shard:
+          - 1
+          - 2
+        # `include` entries only extend existing combinations when every listed
+        # key matches one, so the node-22 cell must spell out both shards.
+        include:
+          - os: ubuntu-latest
+            node: 22
+            shard: 1
+          - os: ubuntu-latest
+            node: 22
+            shard: 2
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -57,6 +78,16 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
           cache-dependency-path: package-lock.json
+
+      # Restore/save the Doc Detective install cache (browsers, drivers,
+      # heavy runtime deps, git-bash) via the shared composite action — the
+      # single home for the junction + weekly-key mechanics, shared with
+      # fixtures.yml and the Sunday cache warmer so the key cannot drift
+      # between producers and consumers. Design + repair recipes:
+      # docs/maintenance/ci-cache-warming.md.
+      - uses: ./.github/actions/dd-cache
+        with:
+          node: ${{ matrix.node }}
 
       - run: npm ci
       - run: npm run build
@@ -74,14 +105,24 @@ jobs:
       # every node subprocess it spawns) into coverage/tmp — the matrix cells
       # double as cross-platform coverage collectors so no separate full-suite
       # run is needed. An absolute path keeps subprocesses with a different cwd
-      # writing to the same directory.
-      - run: npm test
+      # writing to the same directory. The shard runner replaces `npm test`'s
+      # mocha half: it runs this shard's deterministic slice of test/*.test.js
+      # (the two slices union to exactly the full glob — asserted by
+      # test/run-test-shard.test.js).
+      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} 2
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
           HERETTO_TOKEN: ${{ secrets.HERETTO_TOKEN }}
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
           NODE_V8_COVERAGE: ${{ github.workspace }}/coverage/tmp
+
+      # The src/common unit suite (the second half of `npm test`) is fast,
+      # server-free, and coverage-neutral for the root union (prune-coverage
+      # drops dist/common/**; the coverage-ratchet job measures it separately),
+      # so one shard per cell is enough to keep it exercised cross-OS/node.
+      - run: npm run test:common
+        if: matrix.shard == 1
 
       # Shrink the raw V8 coverage to the repo's own dist entries and rewrite
       # their paths to be OS-agnostic, so the coverage-merge job can re-root and
@@ -93,7 +134,10 @@ jobs:
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: raw-coverage-${{ matrix.os }}-node${{ matrix.node }}
+          # upload-artifact v4 needs unique names; the shard suffix provides
+          # that, and coverage-merge downloads by the `raw-coverage-*` pattern
+          # so it unions shards with no change.
+          name: raw-coverage-${{ matrix.os }}-node${{ matrix.node }}-shard${{ matrix.shard }}
           path: coverage/tmp
           retention-days: 3
           if-no-files-found: warn
@@ -121,9 +165,13 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - run: npm ci
-      # build:common compiles dist and runs `c8 mocha`, writing
-      # src/common/coverage/coverage-summary.json that the ratchet reads.
       - run: npm run build:common
+      # build:common no longer runs the suite (it builds artifacts only, so the
+      # ~40 fixture/shard jobs that just need dist do not pay for — or flake on —
+      # the src/common tests; see ADR 01057). This job runs them explicitly to
+      # produce src/common/coverage/coverage-summary.json for the ratchet.
+      - run: npm run test:coverage
+        working-directory: src/common
       - run: npm run test:coverage:ratchet
         working-directory: src/common
 

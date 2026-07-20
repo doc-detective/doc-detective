@@ -49,6 +49,46 @@ export interface Report {
    * @minItems 1
    */
   specs: [Specification, ...Specification[]];
+  /**
+   * Results of the run's inline warm phase — the always-on, best-effort provisioning pass (dependency installs, device boots, session probes) performed between test resolution and test execution. A failed task never gates the run; the per-context paths retry or skip with their normal semantics. Absent when the run ended before the phase (for example, when no specs matched). System-populated.
+   */
+  warm?: {
+    /**
+     * Wall-clock duration of the warm phase in milliseconds. Tasks overlap, so this is less than the sum of the per-task durations.
+     */
+    durationMs: number;
+    /**
+     * One entry per executed warm task.
+     */
+    tasks: {
+      /**
+       * Task identity, e.g. `browser-install:chrome` or `device-boot:android:<default>:<latest>`.
+       */
+      name: string;
+      /**
+       * What the task pre-pays: a native app driver install, a browser install, a simulator/emulator boot, the managed WebDriverAgent availability check, the concurrent-run driver session probe, or the android mobile-web chromedriver download.
+       */
+      kind:
+        | "driver-install"
+        | "browser-install"
+        | "device-boot"
+        | "wda-check"
+        | "session-probe"
+        | "chromedriver-prefetch";
+      /**
+       * `warmed` — the work was performed (for device boots, the boot was initiated); `skipped` — nothing to do or the environment isn't ready (the consuming context handles it as usual); `failed` — the attempt failed (logged as a warning; never fails the run).
+       */
+      outcome: "warmed" | "skipped" | "failed";
+      /**
+       * Wall-clock duration of this task in milliseconds.
+       */
+      durationMs: number;
+      /**
+       * Human-readable detail about the outcome.
+       */
+      note?: string;
+    }[];
+  };
   [k: string]: unknown;
 }
 export interface Specification {
@@ -86,6 +126,7 @@ export interface Specification {
    * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
    */
   autoRecord?: boolean;
+  annotationDefaults?: AnnotationDefaults;
   /**
    * [Tests](test) to perform.
    *
@@ -278,4 +319,343 @@ export interface DeviceDescriptor {
 }
 export interface OpenAPIDescriptionTest {
   [k: string]: unknown;
+}
+/**
+ * Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.
+ */
+export interface AnnotationDefaults {
+  /**
+   * Default foreground color for every annotation type.
+   */
+  color?: string;
+  /**
+   * Default background color for text-bearing annotations.
+   */
+  background?: string;
+  /**
+   * Default line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Default font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Default font family.
+   */
+  fontFamily?: string;
+  /**
+   * Default opacity, from 0 to 1.
+   */
+  opacity?: number;
+  /**
+   * Default corner radius in pixels.
+   */
+  radius?: number;
+  /**
+   * Default padding in pixels.
+   */
+  padding?: number;
+  /**
+   * Default maximum text width in pixels.
+   */
+  maxWidth?: number;
+  /**
+   * Default blur strength.
+   */
+  intensity?: number;
+  outline?: AnnotationStyle;
+  arrow?: AnnotationStyle1;
+  badge?: AnnotationStyle2;
+  callout?: AnnotationStyle3;
+  blur?: AnnotationStyle4;
+  text?: AnnotationStyle5;
+  transition?: AnnotationTransition;
+}
+/**
+ * Style overrides applied to every `outline` annotation.
+ */
+export interface AnnotationStyle {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `arrow` annotation.
+ */
+export interface AnnotationStyle1 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `badge` annotation.
+ */
+export interface AnnotationStyle2 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `callout` annotation.
+ */
+export interface AnnotationStyle3 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `blur` annotation.
+ */
+export interface AnnotationStyle4 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `text` annotation.
+ */
+export interface AnnotationStyle5 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Default transition for annotations that don't set their own.
+ */
+export interface AnnotationTransition {
+  /**
+   * How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.
+   */
+  enter?: "none" | "fade" | "pop" | "draw";
+  /**
+   * How the annotation disappears.
+   */
+  exit?: "none" | "fade";
+  /**
+   * Length of the enter and exit animations, in milliseconds.
+   */
+  durationMs?: number;
 }

@@ -20,9 +20,43 @@ The same untargeted and named forms stop recordings of every kind—browser, des
 >
 > For comprehensive options, see the [`stopRecord`](/reference/schemas/stoprecord) reference.
 
+**Outputs:** when a recording saves, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Metadata fields are best-effort—if Doc Detective can't read the saved file's metadata, it omits those fields without failing the step:
+
+- `$$recordingPath`: the absolute path of the saved video file.
+- `$$format`: the saved file's format (`mp4`, `webm`, or `gif`).
+- `$$duration`: the video's duration in seconds.
+- `$$width` and `$$height`: the video's dimensions in pixels, after any window or viewport crop.
+- `$$fps`: the video's frame rate.
+
+When the recording ran with [checkpoints](record#recording-checkpoints) enabled, the outputs also include:
+
+- `$$checkpoints`: per-checkpoint results (file name, variation, whether the baseline was missing).
+- `$$maxCheckpointVariation`: the highest variation across the span's checkpoints. Beyond the configured `maxVariation`, the step returns WARNING.
+- `$$seededBaselines`: how many baselines this stop seeded (first run only; `0` when every checkpoint compared against an existing baseline).
+- `$$checkpointErrors`: how many checkpoints couldn't be captured or compared (for example, an aspect-ratio mismatch against the baseline). Any errors also return WARNING—an incomparable checkpoint is a drift signal, not a clean pass.
+
+With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automatically):
+
+- `$$changed`: whether the span meaningfully changed and the recording (plus its baselines) was refreshed. `false` means the fresh capture was discarded and the existing file kept.
+- `$$changeReasons`: why the recording refreshed (drift, added/removed steps, missing file). Present only when `changed` is `true`.
+- `$$baselineFailures`: how many checkpoint baselines Doc Detective couldn't write during a refresh. Present only when at least one failed—the video refreshed but its baselines didn't fully follow, so the next run treats the mismatch as drift and refreshes both again.
+
+With [`verify` guards](record#verifying-the-video-file-itself):
+
+- `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
+- `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
+
+In a headless run of an `aboveVariation` or checkpointed span (the recording itself is skipped):
+
+- `$$stale`: whether the committed recording appears stale—its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint suggesting a headed re-run.
+
+A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
+
 ## Examples
 
 This example starts recording, performs an action, and then stops the recording.
+
+{/* test {"testId":"stoprecord-basic","detectSteps":false} */}
 
 ```json
 {
@@ -47,7 +81,14 @@ This example starts recording, performs an action, and then stops the recording.
 }
 ```
 
+{/* step {"stepId":"stoprecord-record","description":"Start recording, directed at a gitignored output folder (on this headless docs-test runner, with no virtual display, the record step SKIPS rather than fails)","record":"./.dd-output/session_video.mp4"} */}
+{/* step {"stepId":"stoprecord-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"stoprecord-stop","description":"Stop the recording","stopRecord":true} */}
+{/* test end */}
+
 This example stops a specific recording by name while another recording is still running.
+
+{/* test {"testId":"stoprecord-by-name","detectSteps":false} */}
 
 ```json
 {
@@ -74,5 +115,10 @@ This example stops a specific recording by name while another recording is still
   ]
 }
 ```
+
+{/* step {"stepId":"stoprecord-named-record","description":"Start the login clip, directed at a gitignored output folder","record":{"path":"login.mp4","directory":"./.dd-output","name":"stoprecord-login"}} */}
+{/* step {"stepId":"stoprecord-named-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"stoprecord-named-stop","description":"Stop the login clip by name","stopRecord":"stoprecord-login"} */}
+{/* test end */}
 
 

@@ -200,9 +200,16 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       headers: {},
       body: {},
     },
+    // NOTE: `body` is deliberately NOT defaulted here (unlike `headers`/
+    // `required`). Defaulting it to `{}` used to make the body-match check
+    // below run unconditionally -- even when the step never asked for a body
+    // assertion -- and silently required the response to be a JSON object,
+    // failing any non-JSON (or empty) response. Leaving `body` genuinely
+    // `undefined` when unset lets the existing `typeof !== "undefined"` guard
+    // skip the check entirely, matching the documented "$$bodyMatches ...
+    // when response.body is set" contract. See ADR on this fix.
     response: {
       headers: {},
-      body: {},
       required: [],
       ...(step.httpRequest.response || {}),
     },

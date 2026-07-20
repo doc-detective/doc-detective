@@ -10,7 +10,11 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import sinon from "sinon";
 import { PostHog } from "posthog-node";
-import { telemetryNotice, sendTelemetry } from "../dist/core/telem.js";
+import {
+  telemetryNotice,
+  sendTelemetry,
+  awaitTelemetryFlush,
+} from "../dist/core/telem.js";
 
 const config = { logLevel: "silent" };
 
@@ -26,11 +30,16 @@ describe("telem coverage: telemetryNotice", function () {
 
 describe("telem coverage: sendTelemetry", function () {
   let captureStub;
+  let shutdownStub;
   beforeEach(function () {
     captureStub = sinon.stub(PostHog.prototype, "capture").callsFake(() => {});
-    sinon.stub(PostHog.prototype, "shutdown").callsFake(async () => {});
+    shutdownStub = sinon
+      .stub(PostHog.prototype, "shutdown")
+      .callsFake(async () => {});
   });
-  afterEach(function () {
+  afterEach(async function () {
+    // Drain any flush this test kicked off before restoring the stubs.
+    await awaitTelemetryFlush();
     sinon.restore();
     delete process.env.DOC_DETECTIVE_META;
   });
@@ -84,5 +93,47 @@ describe("telem coverage: sendTelemetry", function () {
     sendTelemetry({ ...config }, "someCommand", {});
     const event = captureStub.firstCall.args[0];
     assert.equal(event.properties.core_platform, "freebsd");
+  });
+
+  // Phase 1.6: the flush is kicked off inside sendTelemetry (bounded, not
+  // awaited there) and joined later via awaitTelemetryFlush, so the PostHog
+  // round-trip overlaps reporter/hint I/O instead of hanging off the tail.
+  it("kicks off a BOUNDED shutdown flush (2000ms), not an unbounded one", function () {
+    sendTelemetry({ ...config }, "someCommand", {});
+    assert.equal(shutdownStub.calledOnce, true);
+    assert.equal(shutdownStub.firstCall.args[0], 2000);
+  });
+
+  it("awaitTelemetryFlush joins the in-flight flush kicked off by sendTelemetry", async function () {
+    let flushResolved = false;
+    shutdownStub.callsFake(
+      () =>
+        new Promise((resolve) =>
+          setImmediate(() => {
+            flushResolved = true;
+            resolve();
+          })
+        )
+    );
+    sendTelemetry({ ...config }, "someCommand", {});
+    // Flush hasn't completed synchronously — awaitTelemetryFlush must wait.
+    assert.equal(flushResolved, false);
+    await awaitTelemetryFlush();
+    assert.equal(flushResolved, true);
+  });
+
+  it("awaitTelemetryFlush is a no-op when telemetry is disabled (no flush pending)", async function () {
+    await awaitTelemetryFlush(); // drain anything prior
+    sendTelemetry({ ...config, telemetry: { send: false } }, "runTests", {});
+    assert.equal(shutdownStub.called, false);
+    await awaitTelemetryFlush(); // resolves immediately, does not throw
+  });
+
+  it("awaitTelemetryFlush swallows a shutdown rejection (telemetry never fails a run)", async function () {
+    shutdownStub.callsFake(async () => {
+      throw new Error("network down");
+    });
+    sendTelemetry({ ...config }, "someCommand", {});
+    await awaitTelemetryFlush(); // must not throw
   });
 });

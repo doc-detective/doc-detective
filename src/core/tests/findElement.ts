@@ -1,10 +1,13 @@
 import { validate } from "../../common/src/validate.js";
 import { switchToSurface } from "./browserSurface.js";
 import {
-  resolveAppSurfaceRef,
   findAppElement,
   ensureAppForeground,
 } from "./appSurface.js";
+import {
+  resolveTargetSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 import {
   resolveAppWindow,
   activeAppWindow,
@@ -56,7 +59,7 @@ async function finalizeFound({ result }: { result: any }) {
 }
 
 // Find a single element
-async function findElement({ config, step, driver, click, appSession }: { config: any; step: any; driver: any; click?: any; appSession?: any }) {
+async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker }) {
   let result: any = {
     status: "PASS",
     description: "Found an element matching selector.",
@@ -73,17 +76,40 @@ async function findElement({ config, step, driver, click, appSession }: { config
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Native app surfaces (phase A1): a find whose surface names an app runs on
-  // the app session's driver via the platform's semantic-locator mapping.
-  // click delegates here, so app clicks ride the same path.
-  if (typeof step.find === "object" && step.find.surface !== undefined) {
-    const appRef = resolveAppSurfaceRef(step.find.surface, appSession);
-    if (appRef) {
-      if (appRef.error) {
-        result.status = "FAIL";
-        result.description = appRef.error;
-        return result;
-      }
+  // Uniform surface routing (ADR 01081): classify the step's target — the
+  // explicit `surface` reference, or the context's active surface — before
+  // any execution. Every kind resolves through the same rule; only the
+  // execution below differs per kind.
+  const target = resolveTargetSurface({
+    surface: typeof step.find === "object" && step.find !== null ? step.find.surface : undefined,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "error") {
+    result.status = "FAIL";
+    result.description = target.message;
+    return result;
+  }
+  if (target.kind === "process") {
+    // A background process has no elements to locate or click — a capability
+    // gap, not a reroute.
+    result.status = "FAIL";
+    result.description = `The resolved surface is the background process "${target.name}", which doesn't support find or click steps. Target a browser or app surface with \`surface\`, or send input with a type step.`;
+    return result;
+  }
+
+  // Native app surfaces (phase A1): a find that resolves to an app surface
+  // runs on the app session's driver via the platform's semantic-locator
+  // mapping. click delegates here, so app clicks ride the same path.
+  if (target.kind === "app") {
+    const appRef = { entry: target.entry, window: target.window };
+    // The browser shorthand string maps to the app column's nearest
+    // equivalent: the element's text.
+    const findSpec: any =
+      typeof step.find === "string" ? { elementText: step.find } : step.find;
+    {
       // Window selectors (ADR 01036): resolve to a real window — Windows
       // re-roots the session (sticky), macOS holds the window element and
       // scopes the find under it. Without a selector, macOS steps keep
@@ -93,7 +119,7 @@ async function findElement({ config, step, driver, click, appSession }: { config
         const resolved = await resolveAppWindow({
           entry: appRef.entry!,
           selector: appRef.window,
-          timeoutMs: step.find.timeout ?? 5000,
+          timeoutMs: findSpec.timeout ?? 5000,
         });
         if (!resolved.ok) {
           result.status = "FAIL";
@@ -105,7 +131,9 @@ async function findElement({ config, step, driver, click, appSession }: { config
         windowTarget = await activeAppWindow(appRef.entry!);
       }
       // Activate this app on its shared Android device session (no-op on
-      // desktop / when already foreground) before locating.
+      // desktop / when already foreground) before locating. Also moves the
+      // ACTIVE-SURFACE pointer, so an explicit reference persists for later
+      // surface-less steps.
       const switched = await ensureAppForeground(appRef.entry!, appSession);
       if (switched.error) {
         result.status = "FAIL";
@@ -115,10 +143,10 @@ async function findElement({ config, step, driver, click, appSession }: { config
       const appDriver = appRef.entry!.driver;
       const found = await findAppElement({
         driver: appDriver,
-        criteria: step.find,
+        criteria: findSpec,
         // ?? so an explicit `timeout: 0` (schema minimum) stays an
         // immediate check instead of being clobbered to the default.
-        timeout: step.find.timeout ?? 5000,
+        timeout: findSpec.timeout ?? 5000,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
       });
@@ -128,26 +156,32 @@ async function findElement({ config, step, driver, click, appSession }: { config
         return await finalizeFound({ result });
       }
       result.outputs.found = true;
+      // Expose the driver handle the same way the browser path does (via
+      // setElementOutputs), so callers that need real geometry — screenshot
+      // annotations reading getElementRect — can work on app surfaces too.
+      // runStep strips `rawElement` from the result after every step, so it
+      // never reaches a report.
+      result.outputs.rawElement = found.element;
       try {
         result.outputs.element = { text: await found.element.getText() };
       } catch {
         // Text extraction is best-effort on native elements.
       }
       await finalizeFound({ result });
-      if (step.find.moveTo || step.find.type) {
+      if (findSpec.moveTo || findSpec.type) {
         result.status = "FAIL";
         result.description +=
           " The moveTo/type sub-effects aren't supported on app surfaces; use a separate `type` step targeting the app surface.";
         return result;
       }
-      if (click || step.find.click) {
-        const clickSpec = step.find.click;
+      if (click || findSpec.click) {
+        const clickSpec = findSpec.click;
         const button =
           typeof clickSpec === "string" &&
           ["left", "right", "middle"].includes(clickSpec)
             ? clickSpec
             : clickSpec?.button || "left";
-        const duration = step.find.click?.duration;
+        const duration = findSpec.click?.duration;
         const gestures =
           APP_GESTURES[appRef.entry!.platform ?? "windows"];
         if (duration && button !== "left") {
@@ -207,12 +241,13 @@ async function findElement({ config, step, driver, click, appSession }: { config
     }
   }
 
-  // Multi-surface Phase 3/4: focus the requested session + window/tab first.
-  // The surface stays active afterward (active = most recently focused).
-  // click delegates here, so its `surface` rides along in the constructed
-  // find step. A cross-session reference resolves to that session's driver.
-  if (typeof step.find === "object" && step.find.surface !== undefined) {
-    const switched = await switchToSurface(driver, step.find.surface);
+  // Browser execution path. An explicit reference focuses the requested
+  // session + window/tab first, and the surface stays active afterward
+  // (active = most recently focused). click delegates here, so its `surface`
+  // rides along in the constructed find step. A cross-session reference
+  // resolves to that session's driver.
+  if (target.surface !== undefined) {
+    const switched = await switchToSurface(driver, target.surface);
     if (!switched.ok) {
       result.status = "FAIL";
       result.description = switched.message;
