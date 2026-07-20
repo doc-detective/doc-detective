@@ -10,6 +10,7 @@ import {
   type CacheDirContext,
 } from "./cacheDir.js";
 import { detectAndroidSdk, type AndroidSdk } from "./androidSdk.js";
+import { downloadFile, extractZip } from "./archiveUtils.js";
 import type { Logger } from "./loader.js";
 
 // `doc-detective install android` — the ONE explicit, opt-in place where the
@@ -1062,74 +1063,4 @@ async function realBootstrap(url: string, destSdkRoot: string): Promise<void> {
   }
 }
 
-// Download a URL to a file, following redirects (dl.google.com redirects to a
-// CDN). Fails on any non-2xx final status.
-async function downloadFile(
-  url: string,
-  dest: string,
-  redirects = 0
-): Promise<void> {
-  if (redirects > 10) throw new Error(`too many redirects fetching ${url}`);
-  await new Promise<void>((resolve, reject) => {
-    const req = https.get(url, (res) => {
-      const status = res.statusCode ?? 0;
-      if (status >= 300 && status < 400 && res.headers.location) {
-        res.resume();
-        downloadFile(res.headers.location, dest, redirects + 1).then(
-          resolve,
-          reject
-        );
-        return;
-      }
-      if (status !== 200) {
-        res.resume();
-        reject(new Error(`download failed (HTTP ${status}) for ${url}`));
-        return;
-      }
-      const file = fs.createWriteStream(dest);
-      res.pipe(file);
-      file.on("finish", () => file.close(() => resolve()));
-      file.on("error", reject);
-    });
-    // Fail a stalled connection rather than hanging installAndroid forever: 60s
-    // to first response, and an idle-socket timeout once streaming.
-    req.setTimeout(60000, () => req.destroy(new Error(`download timed out: ${url}`)));
-    req.on("error", reject);
-  });
-}
-
-// Extract a .zip cross-platform, trying the extractors likely to be present:
-// unzip / bsdtar on POSIX, bsdtar / PowerShell Expand-Archive on Windows.
-async function extractZip(zipPath: string, destDir: string): Promise<void> {
-  const attempts: [string, string[]][] =
-    process.platform === "win32"
-      ? [
-          ["tar", ["-xf", zipPath, "-C", destDir]],
-          [
-            "powershell",
-            [
-              "-NoProfile",
-              "-NonInteractive",
-              "-Command",
-              `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${destDir}' -Force`,
-            ],
-          ],
-        ]
-      : [
-          ["unzip", ["-q", "-o", zipPath, "-d", destDir]],
-          ["tar", ["-xf", zipPath, "-C", destDir]],
-        ];
-  let lastError: any;
-  for (const [cmd, args] of attempts) {
-    try {
-      await realRun(cmd, args);
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw new Error(
-    `couldn't extract ${zipPath}: no working zip extractor found (${lastError?.message ?? lastError})`
-  );
-}
 /* c8 ignore stop */

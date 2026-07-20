@@ -7,11 +7,20 @@ import {
 } from "./appSurface.js";
 import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } from "./processSurface.js";
 import {
+  resolveShellName,
+  resolveShellExecutable,
+  realizeViewport,
+} from "../utils.js";
+import {
   openSession,
   activateSession,
   normalizeEngine,
   type BrowserSessionRegistry,
 } from "./browserSessions.js";
+import {
+  activateSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 
 export { startSurfaceStep };
 
@@ -77,6 +86,7 @@ async function startSurfaceStep({
   driver,
   processRegistry,
   appSession,
+  surfaceTracker,
   serverDeps,
   deps,
 }: {
@@ -86,6 +96,7 @@ async function startSurfaceStep({
   driver?: any;
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
+  surfaceTracker?: ActiveSurfaceTracker;
   serverDeps?: any;
   // Injected for unit tests; defaults to the real lane implementations.
   deps?: {
@@ -188,31 +199,64 @@ async function startSurfaceStep({
     // window to a degenerate content area) rather than trusting truthiness.
     const vw = Number(d.viewport?.width);
     const vh = Number(d.viewport?.height);
+    let viewportOutput: any;
     if (vw > 0 || vh > 0) {
+      // Realize the viewport via emulation (exact size, no window floor) with a
+      // window-resize fallback that warns if the size is floored. Ground truth
+      // (the size the page actually rendered) rides in outputs.viewport.
+      const requested = {
+        ...(vw > 0 ? { width: vw } : {}),
+        ...(vh > 0 ? { height: vh } : {}),
+      };
+      let rendered: { width: number; height: number };
       try {
-        await applyViewport(opened.driver, d.viewport);
+        rendered = await realizeViewport(
+          opened.driver,
+          requested,
+          config,
+          `startSurface "${opened.name}"`
+        );
       } catch (error: any) {
         return {
           status: "FAIL",
           description: `Opened browser surface "${opened.name}" but couldn't apply the viewport: ${error?.message ?? error}`,
         };
       }
+      viewportOutput = { requested, actual: rendered };
     }
     return {
       status: "PASS",
       description: `Opened browser surface "${opened.name}" (${engine}).`,
-      outputs: { name: opened.name, engine },
+      outputs: {
+        name: opened.name,
+        engine,
+        ...(viewportOutput ? { viewport: viewportOutput } : {}),
+      },
     };
   };
 
-  const runProcessDescriptor = async (d: any): Promise<any> =>
-    startProcess({
+  const runProcessDescriptor = async (d: any): Promise<any> => {
+    // startSurface process descriptors go through the same launcher as
+    // runShell's `background`, so they honor the same shell contract: the
+    // config-level `shell` default (bash when unset). Process descriptors
+    // have no per-step `shell` field, so only the config level applies.
+    let shellExecutable: string;
+    try {
+      shellExecutable = await resolveShellExecutable(
+        resolveShellName({ config }),
+        { cacheDir: config?.cacheDir }
+      );
+    } catch (error: any) {
+      return { status: "FAIL", description: error.message };
+    }
+    const started = await startProcess({
       config,
       descriptor: {
         command: d.process,
         name: d.name,
         args: d.args,
         workingDirectory: d.workingDirectory,
+        shell: shellExecutable,
         tty: d.tty,
         waitUntil: d.waitUntil,
         timeout: d.timeout,
@@ -220,6 +264,15 @@ async function startSurfaceStep({
       processRegistry,
       driver,
     });
+    // A process opened via startSurface becomes the active surface (ADR
+    // 01081), like the app and browser lanes. A process registered as a side
+    // effect of runShell/runCode `background:` deliberately does NOT — those
+    // are shell steps, not surface steps.
+    if (started.status === "PASS") {
+      activateSurface(surfaceTracker, { kind: "process", name: d.name });
+    }
+    return started;
+  };
 
   // --- Single-object form: dispatch directly; the app branch returns its
   // handler result verbatim (byte-compatible with pre-Phase 6 behavior). ---
@@ -327,6 +380,28 @@ async function startSurfaceStep({
       }
     }
   }
+  // Cross-kind re-assert (ADR 01081): the lanes above activated in per-kind
+  // completion/serial order, so the CROSS-kind MRU may not end on the last
+  // authored descriptor. Re-activate every successful surface in authored
+  // order so the array's last authored success is the context's active
+  // surface, regardless of kind or completion order.
+  for (const slot of indexed) {
+    if (results[slot.i]?.status !== "PASS") continue;
+    const name = results[slot.i].outputs?.name ?? slot.name;
+    if (slot.kind === "app") {
+      activateSurface(appSession?.tracker ?? surfaceTracker, {
+        kind: "app",
+        name,
+      });
+    } else if (slot.kind === "browser") {
+      activateSurface(browserRegistry?.tracker ?? surfaceTracker, {
+        kind: "browser",
+        name,
+      });
+    } else {
+      activateSurface(surfaceTracker, { kind: "process", name });
+    }
+  }
 
   // Roll-up: FAIL > SKIPPED > PASS.
   const statuses = results.map((r) => r?.status ?? "FAIL");
@@ -353,22 +428,3 @@ async function startSurfaceStep({
   };
 }
 
-// Grow/shrink the window so the page viewport hits the requested dimensions —
-// the same delta math the context-level viewport sizing uses.
-async function applyViewport(
-  driver: any,
-  viewport: { width?: number; height?: number }
-): Promise<void> {
-  const viewportSize = await driver.execute(
-    "return { width: window.innerWidth, height: window.innerHeight }",
-    []
-  );
-  const windowSize = await driver.getWindowSize();
-  const deltaWidth = (viewport.width || viewportSize.width) - viewportSize.width;
-  const deltaHeight =
-    (viewport.height || viewportSize.height) - viewportSize.height;
-  await driver.setWindowSize(
-    windowSize.width + deltaWidth,
-    windowSize.height + deltaHeight
-  );
-}

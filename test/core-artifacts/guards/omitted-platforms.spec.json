@@ -1,0 +1,53 @@
+{
+  "specId": "omitted-platforms",
+  "description": "Bug #1 regression (reported externally: a runOn/context entry that omits the optional `platforms` field once crashed context resolution with `Cannot read properties of undefined (reading 'forEach')`). These permutations exercise the omitted-`platforms` resolution path end-to-end through the real runner: an entry with no `platforms` must expand and run on the host platform, not crash. All steps are non-driver (shell echo) so every permutation PASSes deterministically on Windows, macOS, and Linux. The unit-level guard lives in test/context-resolution.test.js (\"resolveContexts with platform-less runOn entries\").",
+  "tests": [
+    {
+      "testId": "omitted-platforms-bare",
+      "description": "A bare runOn entry with no `platforms` (and no other gate) expands to the host platform and runs.",
+      "runOn": [
+        {}
+      ],
+      "steps": [
+        {
+          "runShell": "echo omitted-platforms-bare"
+        }
+      ]
+    },
+    {
+      "testId": "omitted-platforms-with-requires",
+      "description": "A runOn entry that omits `platforms` but carries a `requires` gate (met) — the exact shape whose omitted `platforms` once crashed resolution.",
+      "runOn": [
+        {
+          "requires": "node"
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo omitted-platforms-with-requires"
+        }
+      ]
+    },
+    {
+      "testId": "omitted-platforms-mixed-array",
+      "description": "A mixed runOn array: one entry names platforms, another omits them. Both must resolve without crashing; the platform-less entry runs on the host.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ]
+        },
+        {
+          "requires": "node"
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo omitted-platforms-mixed-array"
+        }
+      ]
+    }
+  ]
+}

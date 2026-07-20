@@ -17,7 +17,7 @@ You can specify the recording action in several ways:
 - **Object Format:** Use an object for more control over the output file:
   - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
   - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
-  - `overwrite`: (Optional) Set to `true` to overwrite an existing file at the target path. Defaults to `false`.
+  - `overwrite`: (Optional) Set to the string `"true"` to overwrite an existing file at the target path. Defaults to `"false"`.
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
   - `surface`: (Optional) The surface to record. For browsers, a session, window, or tab reference, for example `{ "browser": "chrome", "tab": "demo" }`; omit to record the active tab. The recorder's own internal tab is never addressable by window/tab selectors. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows). For native apps, the object form `{ "app": "<surface name>" }` records that app, cropped to its window by default. See [Recording app surfaces](#recording-app-surfaces).
@@ -65,6 +65,8 @@ App-surface recordings use the `ffmpeg` engine with a `window` target by default
 To record a specific window of the app—a dialog, or one of several document windows—add a `window` selector: `{ "app": "notepad", "window": { "title": "/Open/" } }`. The crop then bounds that window. See [App windows](find#app-windows) for the selector grammar.
 
 App-surface recordings join the same display serialization as other FFmpeg recordings, and the same overlapping/named-stop rules apply.
+
+Native macOS and Windows app contexts add a second layer of serialization. Each host has a single app driver, and two native app contexts can't run against it at once without overwriting each other's session. So Doc Detective serializes native app contexts on that shared driver: a recording app context takes its turn alongside every other native app context on the host, whether or not that other context records. This keeps recording a native app surface safe under `concurrentRunners` greater than 1—the recording context queues for the driver instead of colliding with a concurrent app context. Contexts that don't drive a native app driver or the display, such as `httpRequest` and `runShell` steps, keep running in parallel.
 
 <Note>
 Desktop screen capture records whatever is visible in the captured region. If another window overlaps the app during the recording, it appears in the video—Doc Detective doesn't hide or minimize other windows. On a dedicated CI runner this rarely matters. On a shared desktop, keep the recorded app in the foreground.
@@ -147,6 +149,95 @@ An automatic recording coexists with any explicit `record` and `stopRecord` step
 On Linux, each runner records its own virtual display with Xvfb, so automatic recordings stay isolated even when runs are concurrent. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
 </Note>
 
+## Recording checkpoints
+
+A recording documents a flow, but the steps can keep passing while the recorded content quietly drifts—a redesigned page, a moved button, changed copy. To detect that drift, enable `checkpoints` on a `record` step:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "checkpoints": true
+  }
+}
+```
+
+While the recording is active, Doc Detective captures a screenshot after every step (the `record` step's own capture is the opening bookend) and compares each against a persistent baseline stored beside the recording—`signup-flow.mp4.checkpoints/` by default. On the first run, the baselines don't exist yet, so `stopRecord` seeds them from the captures. Commit the baseline folder alongside your recording. On every later run, each checkpoint compares against its baseline:
+
+- Variation within `maxVariation` (default `0.05`): the step passes.
+- Variation beyond `maxVariation`: the `stopRecord` step returns WARNING—the recorded flow's content has probably changed since the recording was captured. Baselines are never modified by a checkpoint comparison.
+
+Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists—which, once you commit the recording, is every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift, so you keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
+
+The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord#outputs): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
+
+Tune or relocate the comparison with the object form:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "checkpoints": {
+      "maxVariation": 0.1,
+      "directory": "baselines/signup-flow"
+    }
+  }
+}
+```
+
+A relative `directory` resolves beside the recording. Raise `maxVariation` (or disable checkpoints) for spans that show dynamic content—animations, ads, clocks—which otherwise produce WARNING noise. Checkpoints apply only to explicit `record` steps ([automatic recordings](#automatic-recordings) save to per-run folders, where baselines couldn't persist), and each checkpoint costs one extra screenshot per step while the span is active.
+
+### Refreshing stale recordings automatically
+
+Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this setting, the span always records, but the new video replaces the existing file **only when the span meaningfully changed**—checkpoint drift beyond `maxVariation`, an added, removed, or edited step, or a missing recording file. Otherwise Doc Detective discards the fresh capture and leaves the recording and its baselines byte-untouched, so unchanged recordings stay stable across runs:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+`aboveVariation` requires checkpoints, so it enables them automatically—including over an explicit `checkpoints: false`, which this mode overrides (a verdict with no evidence could never refresh a drifted recording). Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it in the same step, so they describe the video you have. If a run is interrupted partway through that update, the next run sees the mismatch as drift and refreshes both again—it repairs itself rather than leaving you to notice. The `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
+
+### Verifying the video file itself
+
+Checkpoints validate the scene a recording shows, while `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are an all-black video, a wrong-sized crop, or a truncated clip:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "verify": {
+      "minDuration": 2,
+      "resolution": true,
+      "notBlack": true
+    }
+  }
+}
+```
+
+Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord` step—these are properties you explicitly demand of the artifact:
+
+- `minDuration` / `maxDuration`: the video's length in seconds. Allow about half a second of slop for `.gif` targets, whose duration reporting is imprecise.
+- `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation—the crop rectangle for `window`/`viewport` targets, else the capture frame size (skipped when the engine reports no expectation). Pass `{ "width": …, "height": … }` to compare literal dimensions.
+- `notBlack`: fails when black frames cover 95% or more of the video—the symptom of a broken screen capture.
+
+The measured values land in the [`stopRecord` outputs](stopRecord#outputs) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
+
+### Detecting staleness without re-recording
+
+Doc Detective skips the capture in two situations: a headless run (recording needs a visible display), and a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale—the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
+
+The fix depends on which skip you hit, and the `stopRecord` step's description names it:
+
+- **Headless run:** re-run the test on a headed context to refresh the recording.
+- **Target already exists:** set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file. With `aboveVariation`, the recording refreshes itself the moment it drifts, so this never comes up.
+
+Either way, detection is cheap and continuous—your headless CI watches recording freshness on every run, and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
+
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 
 ## Examples
@@ -156,6 +247,8 @@ Here are a few ways you might use the `record` and `stopRecord` actions:
 ### Basic recording (boolean shorthand)
 
 Starts recording to a default path like `output/record_1745032062266.mp4` and stops later.
+
+{/* test {"testId":"record-boolean-shorthand","detectSteps":false} */}
 
 ```json
 {
@@ -180,9 +273,16 @@ Starts recording to a default path like `output/record_1745032062266.mp4` and st
 }
 ```
 
+{/* step {"stepId":"record-start-boolean","description":"Start recording, directed at a gitignored output folder instead of the default path (on this headless docs-test runner, with no virtual display, this step SKIPS rather than fails -- see PR notes)","record":{"path":"record_boolean.mp4","directory":"./.dd-output"}} */}
+{/* step {"stepId":"record-action-boolean","description":"Perform some actions","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-stop-boolean","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
 ### Recording to a specific path (string shorthand)
 
 Records to `./output/media/login_flow.webm`.
+
+{/* test {"testId":"record-string-shorthand","detectSteps":false} */}
 
 ```json
 {
@@ -207,9 +307,17 @@ Records to `./output/media/login_flow.webm`.
 }
 ```
 
+{/* step {"stepId":"record-goto-string","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"record-string","description":"Start recording (string shorthand)","record":"./.dd-output/login_flow.webm"} */}
+{/* step {"stepId":"record-find-string","description":"Locate an element on the page","find":"Reveal by text"} */}
+{/* step {"stepId":"record-stop-string","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
 ### Recording with object format (overwrite enabled)
 
 Records to `test_video.gif` in the `output/gifs` directory, overwriting if it exists.
+
+{/* test {"testId":"record-object-overwrite","detectSteps":false} */}
 
 ```json
 {
@@ -221,7 +329,7 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
           "record": {
             "path": "test_video.gif",
             "directory": "./output/gifs",
-            "overwrite": true
+            "overwrite": "true"
           }
         },
         {
@@ -237,6 +345,12 @@ Records to `test_video.gif` in the `output/gifs` directory, overwriting if it ex
   ]
 }
 ```
+
+{/* step {"stepId":"record-goto-gif","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-gif","description":"Start recording a GIF, overwriting if necessary, directed at a gitignored output folder","record":{"path":"test_video.gif","directory":"./.dd-output","overwrite":"true"}} */}
+{/* step {"stepId":"record-wait-gif","description":"Wait briefly","wait":1000} */}
+{/* step {"stepId":"record-stop-gif","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 
 ### Pinning the browser engine
 
@@ -302,6 +416,8 @@ Records the screen with FFmpeg so the recording isn't limited to Chrome.
 
 Captures a full session while also recording a shorter clip of one step, stopping each by name.
 
+{/* test {"testId":"record-overlapping-named","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -343,6 +459,15 @@ Captures a full session while also recording a shorter clip of one step, stoppin
 }
 ```
 
+{/* step {"stepId":"record-goto-overlap","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"record-session","description":"Start recording the full session","record":{"path":"session.mp4","directory":"./.dd-output","name":"record-session"}} */}
+{/* step {"stepId":"record-login-clip","description":"Start a clip of one step","record":{"path":"clip.mp4","directory":"./.dd-output","name":"record-clip"}} */}
+{/* step {"stepId":"record-find-overlap","description":"Locate an element on the page","find":"Reveal by text"} */}
+{/* step {"stepId":"record-stop-clip","description":"Stop the clip","stopRecord":"record-clip"} */}
+{/* step {"stepId":"record-goto-overlap2","description":"Navigate to another page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-stop-session","description":"Stop the full session","stopRecord":{"name":"record-session"}} */}
+{/* test end */}
+
 ### Recording a native app window
 
 Records the app's window (the default crop for app surfaces). On an Android or iOS context, the same step shape records the device screen instead.
@@ -381,6 +506,8 @@ Records the app's window (the default crop for app surfaces). On an Android or i
 
 Records the active window at 60 fps with FFmpeg.
 
+{/* test {"testId":"record-ffmpeg-detailed","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -411,4 +538,9 @@ Records the active window at 60 fps with FFmpeg.
 }
 ```
 
+{/* step {"stepId":"record-goto-ffmpeg","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-ffmpeg-window","description":"Start recording the active window at 60 fps with FFmpeg, directed at a gitignored output folder","record":{"path":"ffmpeg_window.mp4","directory":"./.dd-output","engine":{"name":"ffmpeg","target":"window","fps":60}}} */}
+{/* step {"stepId":"record-wait-ffmpeg","description":"Wait briefly","wait":1000} */}
+{/* step {"stepId":"record-stop-ffmpeg","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
 

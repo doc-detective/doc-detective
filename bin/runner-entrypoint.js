@@ -610,8 +610,23 @@ async function main() {
 	};
 	process.on('SIGTERM', onPreSpawnSigterm);
 
-	// Step 1: fetch spec.
-	const { canceled, spec } = await fetchSpec(apiBase, runId, token);
+	// Step 1: fetch spec. See ADR 01045 — an uncaught failure here used
+	// to crash silently, leaving Sweep A's generic 'cold_start_exceeded'
+	// as the only signal.
+	let canceled, spec;
+	try {
+		({ canceled, spec } = await fetchSpec(apiBase, runId, token));
+	} catch (e) {
+		localLog('error', 'spec fetch failed', { err: String(e) });
+		// Best-effort (see postFinalize) — surfaces the real cause instead
+		// of disappearing into Sweep A's generic reap message.
+		await postFinalize(apiBase, runId, token, {
+			status: 'failed',
+			exit_code: 1,
+			summary: { reason: 'spec_fetch_failed', error: String(e) }
+		});
+		return 1;
+	}
 	if (canceled) {
 		localLog('info', 'run canceled before spec fetch (410); exiting cleanly');
 		// Nothing to finalize — the row is already terminal on the server.

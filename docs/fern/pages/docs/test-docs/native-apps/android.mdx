@@ -1,0 +1,186 @@
+---
+title: Test Android apps (experimental)
+sidebar-title: Android apps
+description: Open and test an Android app on an emulator with Doc Detective.
+---
+
+Doc Detective can open and drive Android apps on a managed emulator as part of a test. This experimental workflow launches an app with [`startSurface`](/docs/actions/startsurface), acts on it with the same `find`, `click`, and `type` steps you already use in the browser, and closes it with [`closeSurface`](/docs/actions/closesurface).
+
+<Info>
+
+**Experimental**: Native and mobile app testing is experimental and subject to change.
+
+</Info>
+
+## Before you begin
+
+Android app tests run on an emulator that Doc Detective manages for you, and the emulator needs **hardware acceleration** (KVM on Linux, HVF on macOS, or WHPX on Windows). A host without it can't run the emulator, so Doc Detective skips the test with a reason rather than failing it, keeping a mixed-platform spec green. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator).
+
+Android also needs the Android SDK toolchain. Install it ahead of time:
+
+```bash
+doc-detective install android --yes
+```
+
+This installs the SDK, a system image, and the emulator. The download is multi-GB and opt-in, so it isn't part of `install all`. On a capable host, the toolchain installs on demand the first time a run needs it, and the automation driver installs lazily on first use. See [`install android`](/reference/cli/install#install-android).
+
+## Run your first Android test
+
+This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, opens a settings category, confirms the screen opened, takes a screenshot of the window, returns to the top-level screen, and closes the app. Settings ships with Android, so the test needs nothing else installed.
+
+{/* test {"testId":"android-app-settings","detectSteps":false,"runOn":[{"platforms":["android"]}]} */}
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["android"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch the app and wait until it's ready.",
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": { "elementText": "Network & internet" }
+            }
+          }
+        },
+        {
+          "description": "Open a settings category.",
+          "click": {
+            "elementText": "Network & internet"
+          }
+        },
+        {
+          "description": "Confirm the category screen opened.",
+          "find": {
+            "elementText": "Internet"
+          }
+        },
+        {
+          "description": "Take a screenshot of the window.",
+          "screenshot": {
+            "path": "android-settings.png"
+          }
+        },
+        {
+          "description": "Return to the top-level Settings screen.",
+          "type": {
+            "keys": ["$BACK$"]
+          }
+        },
+        {
+          "description": "Close the app.",
+          "closeSurface": { "app": "settings" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"android-settings-start","description":"Launch the app and wait until it's ready","startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Network & internet"}}}} */}
+{/* step {"stepId":"android-settings-click","description":"Open a settings category","click":{"elementText":"Network & internet"}} */}
+{/* step {"stepId":"android-settings-find","description":"Confirm the category screen opened","find":{"elementText":"Internet"}} */}
+{/* step {"stepId":"android-settings-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"android-settings.png"}} */}
+{/* step {"stepId":"android-settings-type","description":"Return to the top-level Settings screen","type":{"keys":["$BACK$"]}} */}
+{/* step {"stepId":"android-settings-close","description":"Close the app","closeSurface":{"app":"settings"}} */}
+{/* test end */}
+
+To run this test, save it to a spec file and pass it to Doc Detective:
+
+```bash
+doc-detective --input android-app.spec.json
+```
+
+A few things to notice:
+
+- The generous `timeout` (180,000 ms) leaves room for a cold emulator to boot and the app to launch. The toolchain and automation driver must be in place before the first step runs. Install them ahead of time with `doc-detective install android`, or let a capable host install them lazily on the first run that needs them.
+- `waitUntil.find` gates readiness: the step holds until the **Network & internet** entry exists, so the next step never runs against a screen that hasn't drawn its controls yet. Gate readiness on an element the test actually uses—here the same entry the next `click` targets—rather than on a screen title or heading that can appear before the list below it has drawn, which would let the test race ahead to a control that isn't there yet.
+- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows. If you change the category, also update the `waitUntil.find` gate and the following `find` (here `Internet`) to labels the new screens display.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. The example sets `"name": "settings"` on `startSurface`; pass an explicit `surface` on a step—for example `{ "app": "settings" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "settings" }`) because it's a lifecycle step, not an interaction on the active surface. If you omit `name`, Doc Detective derives the same `settings` default from the final dot-segment of the package name; set it explicitly when you want a name of your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. The example uses a standalone `find` to confirm the category screen opened, and a `type` step that sends the `$BACK$` [device key](/docs/actions/type#device-keys-mobile-app-surfaces) to return to the top level. Used for text entry, `type` sends text to the focused control on Android, so tap a field first (for example, the Settings search box) and then type into it.
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
+
+To test an app that isn't already on the emulator, point `install` at an `.apk` and name the `activity` to launch:
+
+```json
+{
+  "startSurface": {
+    "app": "io.appium.android.apis",
+    "install": "./sample.apk",
+    "activity": ".ApiDemos"
+  }
+}
+```
+
+See the [app descriptor](/reference/schemas/app-descriptor) reference for the `install` and `activity` fields.
+
+## Choose the device or device type
+
+By default, an Android app runs on the context's default emulator, which Doc Detective creates on first use. To run on a specific device instead, set `device` on the context or the `startSurface` step: name a device, or refine it by `deviceType` (phone or tablet) and `osVersion`. See [Choose the emulator](/docs/actions/startsurface#choose-the-emulator) and the [device descriptor](/reference/schemas/device-descriptor) reference for the full list of fields.
+
+## Target only Android
+
+Because an app targets one platform, gate the test with a [context](/docs/test-docs/platforms-and-browsers) so it runs only where it can:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["android"]
+    }
+  ]
+}
+```
+
+On a host that can't run an Android emulator, the test skips with a reason rather than failing. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
+
+## Troubleshooting
+
+**Element not found**
+
+- **Cause:** Android exposes controls through UiAutomator2, so element criteria map onto its attributes: `elementText` matches a widget's text, `elementId` and `elementTestId` match its resource ID, and `elementAria` matches its widget class (and its content description as the accessible name). A criterion that doesn't line up with those attributes won't match.
+- **Solution:** Match against the attribute that carries the value you want. Unlike Windows, macOS, and iOS, Android keeps text and content description as separate attributes, so `elementText` and `elementAria` don't collide, and you can set both on one step. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
+
+**The app can't reach a server on your machine**
+
+- **Cause:** The emulator is a separate device, so `localhost` points at the emulator itself, not your host.
+- **Solution:** Reach a service on your host from the emulator at `10.0.2.2`. See [Mobile browsers (Android and iOS)](/docs/test-docs/platforms-and-browsers#mobile-browsers-android-and-ios) for emulator networking.
+
+**A permission dialog blocks the test**
+
+- **Cause:** Android shows a runtime permission dialog that sits in front of the app.
+- **Solution:** Treat the dialog as an element and click it (for example, `click` on `elementText` `"Allow"`), or suppress dialogs by setting `driverOptions` to `{ "appium:autoGrantPermissions": true }` on the surface. See [Mobile app surfaces](/docs/actions/click#mobile-app-surfaces).
+
+**An element is off-screen**
+
+- **Cause:** The control you want isn't in the visible viewport yet.
+- **Solution:** Nothing extra: mobile `find` auto-scrolls toward an off-screen element (up to five steps within the step's timeout) before giving up.
+
+**Pressing a hardware key**
+
+- **Cause:** Android hardware keys (Back, Home, and so on) aren't on-screen elements.
+- **Solution:** Send a device-key token with [`type`](/docs/actions/type#device-keys-mobile-app-surfaces): `$BACK$`, `$HOME$`, `$APP_SWITCH$`, `$VOLUME_UP$`, or `$VOLUME_DOWN$`.
+
+**Performing a gesture**
+
+- **Cause:** Swipes and scrolls aren't clicks.
+- **Solution:** Use the [`swipe`](/docs/actions/swipe) action, which drives Android gestures.
+
+You can drive several apps in one test: apps on one emulator share a single session, so a later `startSurface` brings another app to the foreground on the same device and makes it the active surface. Pass an explicit `surface` on a step to act on the earlier app again.
+
+## What's next
+
+- [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator): host requirements and device management.
+- [`swipe`](/docs/actions/swipe): perform mobile gestures.
+- [Device keys on mobile app surfaces](/docs/actions/type#device-keys-mobile-app-surfaces): press hardware keys.
+- [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers): gate tests by platform.
+- [Inline tests](/docs/test-docs/inline) and [Detected tests](/docs/test-docs/detected): author these startSurface, click, screenshot, and closeSurface steps inline in a doc source file instead of a standalone spec.
+- [Docker and headless](/docs/ci/docker-and-headless): run app tests in CI.

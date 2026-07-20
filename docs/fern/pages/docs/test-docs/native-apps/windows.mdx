@@ -1,0 +1,135 @@
+---
+title: Test native Windows apps (experimental)
+sidebar-title: Native Windows apps
+description: Open and test a native Windows desktop app with Doc Detective.
+---
+
+Doc Detective can open and drive native Windows desktop apps as part of a test. This experimental workflow launches an app with [`startSurface`](/docs/actions/startsurface), acts on it with the same `find`, `click`, and `type` steps you already use in the browser, and closes it with [`closeSurface`](/docs/actions/closesurface).
+
+<Info>
+
+**Experimental**: Native and mobile app testing is experimental and subject to change.
+
+</Info>
+
+## Before you begin
+
+Windows app tests run only on a **Windows host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green.
+
+Doc Detective drives Windows apps through an automation driver that installs automatically the first time a Windows app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
+
+## Run your first Windows test
+
+This test targets the `windows` platform, launches Character Map by its executable path, waits until the window is interactive, clicks a control, and closes the app. Character Map ships with Windows, so the test needs nothing else installed.
+
+{/* test {"testId":"windows-app-charmap","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch the app and wait until it's ready.",
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": { "elementText": "Select" }
+            }
+          }
+        },
+        {
+          "description": "Click a control.",
+          "click": {
+            "elementText": "Select"
+          }
+        },
+        {
+          "description": "Take a screenshot of the window.",
+          "screenshot": {
+            "path": "charmap.png"
+          }
+        },
+        {
+          "description": "Close the app.",
+          "closeSurface": { "app": "charmap" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"windows-charmap-start","description":"Launch Character Map and wait until it's ready","startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} */}
+{/* step {"stepId":"windows-charmap-click","description":"Click a control","click":{"elementText":"Select"}} */}
+{/* step {"stepId":"windows-charmap-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"charmap.png"}} */}
+{/* step {"stepId":"windows-charmap-close","description":"Close the app","closeSurface":{"app":"charmap"}} */}
+{/* test end */}
+
+To run this test, save it to a spec file and pass it to Doc Detective:
+
+```bash
+doc-detective --input windows-app.spec.json
+```
+
+A few things to notice:
+
+- The generous `timeout` (120,000 ms) leaves room for the driver to install on a first run and for the app to launch.
+- `waitUntil.find` gates readiness: the step holds until an element with the text `Select` exists, so the next step never runs against a window that hasn't drawn its controls yet.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. Pass an explicit `surface` on a step—for example `{ "app": "charmap" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "charmap" }`) because it's a lifecycle step, not an interaction on the active surface. Doc Detective derives the default name `charmap` from the executable file name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
+
+To launch a packaged (UWP) app instead of an executable, set `app` to its AppUserModelID, such as `"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.
+
+## Target only Windows
+
+Because an app targets one platform, gate the test with a [context](/docs/test-docs/platforms-and-browsers) so it runs only where it can:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["windows"]
+    }
+  ]
+}
+```
+
+On a host that isn't Windows, the test skips with a reason rather than failing. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
+
+## Troubleshooting
+
+**Element not found**
+
+- **Cause:** Windows exposes controls through UI Automation, so element criteria map onto UIA properties: `elementText` matches a control's Name, `elementId` and `elementTestId` match its AutomationId, and `elementAria` matches its control type. A criterion that doesn't line up with those properties won't match.
+- **Solution:** Match against the UIA property that carries the value you're looking for. Desktop finds don't auto-scroll, because UI Automation exposes off-screen controls directly; a control that isn't visible is still findable, but one that genuinely isn't in the tree won't match. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
+
+**Launch arguments don't reach the app**
+
+- **Cause:** On Windows, the driver takes launch arguments as a single command string. An `args` entry that contains spaces gets split unless it carries its own quotes.
+- **Solution:** Join your arguments into one string and quote any argument that contains spaces. See the [app descriptor](/reference/schemas/app-descriptor) reference.
+
+**Doc Detective targets the wrong window**
+
+- **Cause:** An app with more than one window defaults to its main window.
+- **Solution:** Reintroduce an explicit `surface` on the step and add a `window` selector to it—for example `"surface": { "app": "charmap", "window": -1 }`, where `-1` is the newest window; a title or object form also works—to address a specific window. See [App windows](/docs/actions/find#app-windows).
+
+**Doc Detective rejects a working directory setting elsewhere**
+
+- **Cause:** Doc Detective supports `workingDirectory` on Windows only. On other platforms, setting it fails the step.
+- **Solution:** Keep `workingDirectory` in Windows-only specs. See the [app descriptor](/reference/schemas/app-descriptor) reference.
+
+## What's next
+
+- [`startSurface`](/docs/actions/startsurface): open an app, browser, or process surface.
+- [App windows](/docs/actions/find#app-windows): address a specific window on a desktop app.
+- [`closeSurface`](/docs/actions/closesurface): close a surface by name.
+- [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers): gate tests by platform.
+- [Inline tests](/docs/test-docs/inline) and [Detected tests](/docs/test-docs/detected): author these startSurface, click, screenshot, and closeSurface steps inline in a doc source file instead of a standalone spec.
+- [Docker and headless](/docs/ci/docker-and-headless): run app tests in CI.

@@ -14,12 +14,14 @@ description: "Reference for the `Record (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default. | 
+surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form (&#123; "app": … &#125;) and are captured via the `ffmpeg` engine, cropped to the app window by default. | 
 path | string | Optional. File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.<br/><br/>Pattern: `([A-Za-z0-9_-]*\.(mp4|webm|gif)$|\$[A-Za-z0-9_]+)` | 
 directory | string | Optional. Directory of the file. If the directory doesn't exist, creates the directory. | 
-overwrite | string | Optional. If `true`, overwrites the existing recording at `path` if it exists.<br/><br/>Accepted values: `true`, `false` | 
+overwrite | string | Optional. If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — requires `checkpoints`, so it turns them on with defaults when `checkpoints` is omitted or `false`; set `checkpoints` to an object to tune `maxVariation` or `directory`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | 
 name | string | Optional. Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.<br/><br/>Pattern: `\S` | 
 engine | one of:<br/>- string<br/>- object([Recording engine (detailed)](/reference/schemas/recording-engine-detailed)) | Optional. Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise. | 
+verify | object([Recording verify guards](/reference/schemas/recording-verify-guards)) | Optional. Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact. | 
+checkpoints | one of:<br/>- boolean<br/>- object([Recording checkpoints (detailed)](/reference/schemas/recording-checkpoints-detailed)) | Optional. Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured. | 
 
 ## Examples
 
@@ -30,6 +32,7 @@ engine | one of:<br/>- string<br/>- object([Recording engine (detailed)](/refere
   "directory": "example",
   "overwrite": "true",
   "name": "example",
-  "engine": "browser"
+  "engine": "browser",
+  "checkpoints": true
 }
 ```

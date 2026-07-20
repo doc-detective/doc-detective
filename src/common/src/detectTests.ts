@@ -9,25 +9,38 @@ import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
 
+// Cache of compiled patterns, keyed by `pattern + ' ' + flags`. parseContent
+// re-derives the same handful of file-type regexes for EVERY file it scans
+// (~36 per markdown file), so compiling each pattern once and reusing it
+// removes almost all of that RegExp construction. Both the compiled RegExp and
+// the `null` (invalid/unsafe) outcome are cached. Safe to share the returned
+// instance: callers only use it via `String.prototype.matchAll`, which clones
+// the regexp internally and so never mutates the cached object's `lastIndex`.
+const compiledRegExpCache = new Map<string, RegExp | null>();
+
 /**
  * Creates a RegExp from a pattern string with safety checks against ReDoS.
- * Returns null if the pattern is invalid or potentially unsafe.
+ * Returns null if the pattern is invalid or potentially unsafe. Results are
+ * memoized per `(pattern, flags)` for the lifetime of the process.
  *
- * The pattern is reconstructed character-by-character to establish a
- * sanitization boundary, since these patterns come from trusted file type
- * configuration rather than arbitrary user input.
+ * These patterns come from trusted file type configuration rather than
+ * arbitrary user input.
  */
-function safeRegExp(pattern: string, flags: string): RegExp | null {
+export function safeRegExp(pattern: string, flags: string): RegExp | null {
   if (typeof pattern !== 'string' || pattern.length === 0) return null;
   // Reject excessively long patterns
   if (pattern.length > 1500) return null;
-  // Reconstruct pattern to establish sanitization boundary
-  const sanitized = Array.from(pattern, c => String.fromCharCode(c.charCodeAt(0))).join('');
+  const cacheKey = pattern + ' ' + flags;
+  const cached = compiledRegExpCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+  let compiled: RegExp | null;
   try {
-    return new RegExp(sanitized, flags);
+    compiled = new RegExp(pattern, flags);
   } catch {
-    return null;
+    compiled = null;
   }
+  compiledRegExpCache.set(cacheKey, compiled);
+  return compiled;
 }
 
 // Keys excluded when hashing a test/step definition for an ID: IDs are what
@@ -693,7 +706,49 @@ export async function parseContent({
 
         let step = parsedStep;
 
-        // Attach source location
+        // Attach Heretto sourceIntegration to a v3-shaped screenshot step.
+        // Called both before and after validation below:
+        //  - Before: so the helper's string/array/null normalization runs
+        //    ahead of the schema check — an array-shaped `screenshot` isn't
+        //    valid v3 on its own, and existing behavior relies on this call
+        //    resetting it to `{}` first so the step still validates.
+        //  - After: a legacy v2 `saveScreenshot` step (action-keyed, no
+        //    `screenshot` property yet) only becomes screenshot-shaped once
+        //    validate() upgrades it below, so it's invisible to the "before"
+        //    call and needs this second pass to get its sourceIntegration.
+        // The sourceIntegration guard makes the second call a no-op for a
+        // step the first call already handled.
+        const maybeAttachHeretto = (s: Record<string, any>) => {
+          if (!s.screenshot || s.screenshot.sourceIntegration || !config._herettoPathMapping) {
+            return;
+          }
+          const herettoIntegration = findHerettoIntegration(config, filePath);
+          if (herettoIntegration) {
+            attachHerettoScreenshotSourceIntegration(s, herettoIntegration, filePath);
+          }
+        };
+        maybeAttachHeretto(step);
+
+        // Validate before attaching `location`. A legacy v2 step (one that
+        // names its action in an `action` property) is upgraded to the v3
+        // action-as-key form here, via validate()'s compatibleSchemas fallback.
+        // Attaching `location` up front would add a property the v2 action
+        // schemas reject (they set `additionalProperties: false`), so the
+        // fallback would never match and every v2 inline step would be dropped.
+        const validation = validate({
+          schemaKey: "step_v3" as SchemaKey,
+          object: step,
+          addDefaults: false,
+        });
+        /* c8 ignore next 3 - V8 phantom branch on if-else/switch-case */
+        if (!validation.valid) {
+          log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
+          return;
+        }
+        step = validation.object;
+        maybeAttachHeretto(step);
+
+        // Attach source location to the validated (v3) step.
         if (typeof statement._startIndex === 'number') {
           step.location = {
             line: statement._line,
@@ -702,28 +757,8 @@ export async function parseContent({
           };
         }
 
-        // Attach sourceIntegration for Heretto on screenshot steps
-        if (step.screenshot && config._herettoPathMapping) {
-          const herettoIntegration = findHerettoIntegration(config, filePath);
-          if (herettoIntegration) {
-            attachHerettoScreenshotSourceIntegration(step, herettoIntegration, filePath);
-          }
-        }
-
-        const validation = validate({
-          schemaKey: "step_v3" as SchemaKey,
-          object: step,
-          addDefaults: false,
-        });
-        /* c8 ignore start - V8 phantom branch on if-else/switch-case */
-        if (!validation.valid) {
-          log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
-          return;
-        }
-        step = validation.object;
         test.steps.push(step);
         break;
-        /* c8 ignore stop */
       }
 
       /* c8 ignore next 2 - all statement types are handled above */

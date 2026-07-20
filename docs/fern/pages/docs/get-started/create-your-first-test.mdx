@@ -31,7 +31,9 @@ To create your first test, follow these steps:
     cd /path/to/your/project
     ```
 
+    {/* test ignore start */}
     {/* step {"stepId":"navigate-to-project","description":"Navigate to project directory","runShell":{"command":"cd /path/to/your/project"}} */}
+    {/* test ignore end */}
 
 2.  Create a new test file named `homepage-check.spec.json`:
 
@@ -71,7 +73,7 @@ To create your first test, follow these steps:
     ```
 
     This test uses the following actions:
-    - [`goTo`](/docs/actions/go-to): Navigates to the specified URL, https://example.com, to start the test flow.
+    - [`goTo`](/docs/actions/goto): Navigates to the specified URL, https://example.com, to start the test flow.
     - [`find`](/docs/actions/find): Locates elements on the page using CSS selectors such as HTML tags like `h1` or `a`, and validates their presence and text content.
     - [`click`](/docs/actions/click): Clicks on the specified element, in this case, the `Learn more` link.
     - [`screenshot`](/docs/actions/screenshot): Captures a screenshot of the current page and saves it to the specified path.
@@ -88,11 +90,15 @@ To create your first test, follow these steps:
       npx doc-detective --input homepage-check.spec.json
       ```
 
+      {/* Illustrative CLI invocation; not run in the docs gate — it runs a nested Doc Detective against the empty homepage-check.spec.json created above, which would fail and could trigger a browser run. */}
+      {/* test ignore start */}
       {/* step {"stepId":"run-test-npx","description":"Run test with NPX","runShell":{"command":"npx doc-detective --input homepage-check.spec.json"}} */}
+      {/* test ignore end */}
 
       </Tab>
       {/* test end */}
 
+      {/* test ignore start */}
       {/* test {"testId":"create-first-test-docker-flow","detectSteps":false} */}
       <Tab title="Docker" language="docker">
 
@@ -110,6 +116,7 @@ To create your first test, follow these steps:
 
       </Tab>
       {/* test end */}
+      {/* test ignore end */}
     </Tabs>
 
 By default, Doc Detective scans the current directory for valid tests, but you can specify your test file using the `--input` argument. For more information, see [Run tests](/docs/get-started/sample-tests#run-tests).

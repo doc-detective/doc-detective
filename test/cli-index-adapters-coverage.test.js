@@ -435,6 +435,77 @@ describe("core/index.ts — runTests offline branches", function () {
       }
     }
   });
+
+  // 2.3: the CLI starts the self-update registry check concurrently with
+  // detection/resolution and hands runTests an `updateJoin` that runTests must
+  // await BEFORE any test runs or any dry-run output is emitted — preserving
+  // the "update before the run" guarantee while hiding the registry latency.
+  it("awaits options.updateJoin before dry-run output / test execution", async function () {
+    const spec = path.join(tmpDir, "u.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    captured.length = 0;
+
+    let calls = 0;
+    let capturedLenAtJoin = -1;
+    const updateJoin = async () => {
+      calls += 1;
+      // At join time no dry-run stdout has been emitted yet (join precedes the
+      // dry-run JSON print, and thus any test execution).
+      capturedLenAtJoin = captured.length;
+    };
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: JSON.parse(JSON.stringify(seed)), updateJoin }
+    );
+    assert.equal(calls, 1, "updateJoin must be awaited exactly once");
+    assert.equal(
+      capturedLenAtJoin,
+      0,
+      "updateJoin must run before the dry-run stdout (and before execution)"
+    );
+    assert.ok(result.resolvedTestsId, "dry-run still returns the resolved tests");
+  });
+
+  // 2.4(a): the full results tree is demoted from info to debug. At the default
+  // info level the reporters render results; the raw tree dump must not flood
+  // the terminal. A wait-only spec executes fully offline (no browser/driver).
+  it("does not dump the full results tree at info level, but does at debug", async function () {
+    const spec = path.join(tmpDir, "r.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+
+    const runAt = async (logLevel) => {
+      captured.length = 0;
+      const res = await runTests({
+        input: [spec],
+        output: tmpDir,
+        logLevel,
+        telemetry: { send: false },
+        reporters: [],
+      });
+      assert.ok(res && res.summary, `expected the wait spec to execute at ${logLevel}`);
+      return captured.join("\n");
+    };
+
+    const infoOut = await runAt("info");
+    assert.ok(
+      !infoOut.includes("RESULTS:"),
+      "the results-tree dump must be absent at info level"
+    );
+
+    const debugOut = await runAt("debug");
+    assert.ok(
+      debugOut.includes("RESULTS:"),
+      "the results-tree dump must still be available at debug level"
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

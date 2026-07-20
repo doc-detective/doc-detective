@@ -420,6 +420,18 @@ describe("getDriverCapabilities", function () {
     assert.equal(caps.browserName, "chrome");
   });
 
+  it("keeps chrome on classic WebDriver with no BiDi socket", function () {
+    // ADR 01072 (rejected): a BiDi `webSocketUrl` socket for viewport emulation
+    // crashed headed recording contexts, so chrome stays classic with no socket.
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options,
+    });
+    assert.equal(caps["wdio:enforceWebDriverClassic"], true);
+    assert.equal(caps["webSocketUrl"], undefined);
+  });
+
   it("builds safari capabilities for the webkit alias", function () {
     // resolveContexts rewrites `safari` -> `webkit`, so the runtime name is
     // `webkit`. It must still map to Safari capabilities.

@@ -33,6 +33,8 @@ Here are a few ways you might use the `checkLink` action:
 
 ### Check if a link is valid (string shorthand)
 
+{/* test {"testId":"checklink-string-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -48,7 +50,12 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-string","description":"Check a URL that returns 200 (string shorthand)","checkLink":"http://localhost:8092/status/200"} */}
+{/* test end */}
+
 ### Check if a link is valid (object format)
+
+{/* test {"testId":"checklink-object-format","detectSteps":false} */}
 
 ```json
 {
@@ -67,7 +74,12 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-object","description":"Check a URL that returns 200 (object format)","checkLink":{"url":"http://localhost:8092/status/200"}} */}
+{/* test end */}
+
 ### Check for a specific status code response
+
+{/* test {"testId":"checklink-specific-status","detectSteps":false} */}
 
 ```json
 {
@@ -87,7 +99,12 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-specific","description":"Check a URL expecting only 200","checkLink":{"url":"http://localhost:8092/status/200","statusCodes":200}} */}
+{/* test end */}
+
 ### Check for one of a set of status code responses
+
+{/* test {"testId":"checklink-status-set","detectSteps":false} */}
 
 ```json
 {
@@ -107,9 +124,16 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-set","description":"Check a URL returning 201 against a set of acceptable codes","checkLink":{"url":"http://localhost:8092/status/201","statusCodes":[200,201,202]}} */}
+{/* test end */}
+
 ### Accept non-2xx status codes
 
 Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail. This is useful for testing endpoints that return rate limiting (`429`), authentication errors (`403`), or other expected non-success responses.
+
+Doc Detective's retry-with-backoff and HEAD-fallback logic (described above in [Behavior](#behavior)) only runs while the response code isn't yet accepted. As soon as a response matches `statusCodes`—including on the very first `GET`, as in the example below—Doc Detective stops immediately and passes. It doesn't retry or fall back to `HEAD` just because the code happens to be `429` or `403`.
+
+{/* test {"testId":"checklink-non-2xx","detectSteps":false} */}
 
 ```json
 {
@@ -129,7 +153,12 @@ Include non-2xx status codes in `statusCodes` to accept responses that would oth
 }
 ```
 
+{/* step {"stepId":"checklink-429","description":"Check a URL that always returns 429; because 429 is already accepted, this passes on the first GET with no retries or HEAD fallback","checkLink":{"url":"http://localhost:8092/status/429","statusCodes":[200,429]}} */}
+{/* test end */}
+
 ### Check a link with a separate origin and URL path
+
+{/* test {"testId":"checklink-origin-path","detectSteps":false} */}
 
 ```json
 {
@@ -149,9 +178,14 @@ Include non-2xx status codes in `statusCodes` to accept responses that would oth
 }
 ```
 
+{/* step {"stepId":"checklink-origin","description":"Check a path against a specific origin","checkLink":{"url":"/status/200","origin":"http://localhost:8092"}} */}
+{/* test end */}
+
 ### Pass custom headers (allowlist or bypass)
 
 Use the `headers` field to send additional HTTP headers on top of Doc Detective's browser-mimicking defaults. This is useful for sites that allowlist a shared secret or require a bypass token.
+
+{/* test {"testId":"checklink-headers-object","detectSteps":false} */}
 
 ```json
 {
@@ -173,7 +207,12 @@ Use the `headers` field to send additional HTTP headers on top of Doc Detective'
 }
 ```
 
+{/* step {"stepId":"checklink-headers-obj","description":"Check a URL with a custom header (object format)","checkLink":{"url":"http://localhost:8092/status/200","headers":{"X-Doc-Detective-Check":"shared-secret"}}} */}
+{/* test end */}
+
 `headers` also accepts a newline-separated string, which is convenient for multi-header strings loaded from environment variables:
+
+{/* test {"testId":"checklink-headers-string","detectSteps":false} */}
 
 ```json
 {
@@ -183,6 +222,9 @@ Use the `headers` field to send additional HTTP headers on top of Doc Detective'
   }
 }
 ```
+
+{/* step {"stepId":"checklink-headers-str","description":"Check a URL with custom headers as a newline-separated string","checkLink":{"url":"http://localhost:8092/status/200","headers":"X-Api-Key: abc123\nX-Doc-Detective-Check: shared-secret"}} */}
+{/* test end */}
 
 ### Check a relative link using global origin
 
@@ -220,6 +262,8 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 
 ### Check a link with query parameters
 
+{/* test {"testId":"checklink-query-params","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -240,6 +284,9 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
   ]
 }
 ```
+
+{/* step {"stepId":"checklink-params","description":"Check a URL with query parameters appended","checkLink":{"url":"/status/200","origin":"http://localhost:8092","params":{"token":"test-value"}}} */}
+{/* test end */}
 
 ## Troubleshooting
 

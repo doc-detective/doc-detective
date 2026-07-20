@@ -1,3 +1,194 @@
+# [4.36.0](https://github.com/doc-detective/doc-detective/compare/v4.35.0...v4.36.0) (2026-07-19)
+
+
+### Features
+
+* **core:** route surface-less steps to the active surface across all surface kinds ([#672](https://github.com/doc-detective/doc-detective/issues/672)) ([f7f13e7](https://github.com/doc-detective/doc-detective/commit/f7f13e7123bfba015aa6939f5c11e9bfc0d9c412)), closes [#671](https://github.com/doc-detective/doc-detective/issues/671)
+
+# [4.35.0](https://github.com/doc-detective/doc-detective/compare/v4.34.0...v4.35.0) (2026-07-17)
+
+
+### Features
+
+* **annotate:** persistent annotations for recordings ([#666](https://github.com/doc-detective/doc-detective/issues/666)) ([60e8f7f](https://github.com/doc-detective/doc-detective/commit/60e8f7f80019b2994cb2855bc735aa91c06d1551)), closes [#662](https://github.com/doc-detective/doc-detective/issues/662)
+* **hints:** recommend mobile platforms when a browser floors a viewport ([#657](https://github.com/doc-detective/doc-detective/issues/657)) ([7121df3](https://github.com/doc-detective/doc-detective/commit/7121df33ab369e97799cd02aba5387a8d97bcd86))
+* **screenshot:** declarative screenshot annotations ([978eeef](https://github.com/doc-detective/doc-detective/commit/978eeef8cb41e56101de39d8251fe578f75b5b98))
+
+# [4.34.0](https://github.com/doc-detective/doc-detective/compare/v4.33.0...v4.34.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **record:** don't let a failed promote mask a verify FAIL ([3db1a84](https://github.com/doc-detective/doc-detective/commit/3db1a8428bb9924705f20e6efd95c50f087fa1bf))
+* **record:** don't let verify guards report verdicts without evidence ([b753a71](https://github.com/doc-detective/doc-detective/commit/b753a7184f4c128ee7544b0d49fe60edf06d1da2))
+
+
+### Features
+
+* **record:** structural verify guards for the produced video ([7dc8205](https://github.com/doc-detective/doc-detective/commit/7dc8205ea6c875a5f506c3c7b335791ab4e9693b))
+
+# [4.33.0](https://github.com/doc-detective/doc-detective/compare/v4.32.0...v4.33.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **hints:** correct refreshStaleRecording URL (drop spurious get-started/ segment) ([2391e3d](https://github.com/doc-detective/doc-detective/commit/2391e3d503fc4d8bc1cf5151855927202d586aa2))
+* **record:** address review — multi-session checkpoints, seed safety, ADR accuracy ([28d92bf](https://github.com/doc-detective/doc-detective/commit/28d92bf74d4eadf6d69adfd52b61318aca857b61)), closes [#655](https://github.com/doc-detective/doc-detective/issues/655) [#656](https://github.com/doc-detective/doc-detective/issues/656)
+* **record:** harden checkpoint capture and reporting after review ([e14d6d9](https://github.com/doc-detective/doc-detective/commit/e14d6d9d3efb949966bd308adfc2fb75cb1f648c))
+* **record:** harden span verdicts and promote after review ([3f37bb7](https://github.com/doc-detective/doc-detective/commit/3f37bb76e726d6879a6bc1f62a0a82c27df9c609))
+* **record:** isolate browser recordings per process, not just per context ([54c1c7b](https://github.com/doc-detective/doc-detective/commit/54c1c7ba6e24dac054f693f315d29e86e1c395a4))
+* **record:** keep comparing checkpoints when the capture is skipped ([1ef9996](https://github.com/doc-detective/doc-detective/commit/1ef999612ec0306efbe163ed7e89102e018eaa48))
+* **record:** report promote failures honestly in aboveVariation spans ([0c4f1d5](https://github.com/doc-detective/doc-detective/commit/0c4f1d562a401e7b087295dc1bfcf97b1b6df1fc)), closes [#651](https://github.com/doc-detective/doc-detective/issues/651)
+* **schema:** gate the screenshot path on its extension, not its charset ([30738d2](https://github.com/doc-detective/doc-detective/commit/30738d2a05c69a82e30fa311993601e42ab8aa08))
+
+
+### Features
+
+* **record:** checkpoint config schema and shared artifact naming ([26be0a7](https://github.com/doc-detective/doc-detective/commit/26be0a76848718e02a2aa2c11e29026f8a64069e))
+* **record:** checkpoint screenshots for recording spans ([5a4d3fe](https://github.com/doc-detective/doc-detective/commit/5a4d3fe17681bc06ec3b58c9445068064b38bfb4))
+* **record:** overwrite aboveVariation and headless staleness detection ([9661147](https://github.com/doc-detective/doc-detective/commit/96611474e6ea9d6f2d9b75bba3d01313d27b4c3c))
+
+# [4.32.0](https://github.com/doc-detective/doc-detective/compare/v4.31.0...v4.32.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **record:** clear the metadata probe's watchdog timer on completion ([fd3798b](https://github.com/doc-detective/doc-detective/commit/fd3798bf36dae4915f6cbc4ae487227bc01a82df))
+
+
+### Features
+
+* **record:** report recording metadata outputs from stopRecord ([0fd79c7](https://github.com/doc-detective/doc-detective/commit/0fd79c7d56a78fa93c11ae0b62d901fb8811e863))
+
+# [4.31.0](https://github.com/doc-detective/doc-detective/compare/v4.30.0...v4.31.0) (2026-07-16)
+
+
+### Features
+
+* surface true viewport & screenshot dimensions when a browser floors a request ([#644](https://github.com/doc-detective/doc-detective/issues/644)) ([48dc75e](https://github.com/doc-detective/doc-detective/commit/48dc75e7f4cc826f2e8e94a665dffcfb3f7bd779))
+
+# [4.30.0](https://github.com/doc-detective/doc-detective/compare/v4.29.1...v4.30.0) (2026-07-15)
+
+
+### Features
+
+* **lsp:** Doc Detective language server (DSL/LSP) ([#641](https://github.com/doc-detective/doc-detective/issues/641)) ([346f3be](https://github.com/doc-detective/doc-detective/commit/346f3bef2cda75fd22726027aaf156f85bdf5918))
+
+
+### Performance Improvements
+
+* **core:** in-memory screenshot pipeline (phase 4) ([#639](https://github.com/doc-detective/doc-detective/issues/639)) ([dee71b2](https://github.com/doc-detective/doc-detective/commit/dee71b29256e226ad89bad0279ed4ad32a00e522))
+
+## [4.29.1](https://github.com/doc-detective/doc-detective/compare/v4.29.0...v4.29.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **core:** default log level to info so 2-arg calls stop dropping messages ([#633](https://github.com/doc-detective/doc-detective/issues/633)) ([c07a893](https://github.com/doc-detective/doc-detective/commit/c07a89301d8aa322e9a61adb83744d181b131999)), closes [src/utils.ts#log](https://github.com/src/utils.ts/issues/log)
+* **core:** match find elementText against whole element text ([#634](https://github.com/doc-detective/doc-detective/issues/634)) ([f2173b2](https://github.com/doc-detective/doc-detective/commit/f2173b2944d2daf87645396c94fe728b018b1140))
+
+
+### Performance Improvements
+
+* **core:** resolution & validation efficiency (phase 3) ([#638](https://github.com/doc-detective/doc-detective/issues/638)) ([78c9986](https://github.com/doc-detective/doc-detective/commit/78c99868d79542f71b9f6fcaba06ef026ebf3a5f))
+* **core:** startup-path latency removal (phase 2) ([#635](https://github.com/doc-detective/doc-detective/issues/635)) ([ecb27ea](https://github.com/doc-detective/doc-detective/commit/ecb27eaaf59bdf24cd63fdd2933925277a04c0d5))
+
+# [4.29.0](https://github.com/doc-detective/doc-detective/compare/v4.28.0...v4.29.0) (2026-07-14)
+
+
+### Features
+
+* **core:** inline always-on warm phase (resolve → warm → run → sweep) ([#628](https://github.com/doc-detective/doc-detective/issues/628)) ([e5a9449](https://github.com/doc-detective/doc-detective/commit/e5a94498d54482507e0b0505a088d0f112630db2))
+
+
+### Performance Improvements
+
+* **core:** eliminate per-run/step/file waste (phase 1) ([#632](https://github.com/doc-detective/doc-detective/issues/632)) ([12a2312](https://github.com/doc-detective/doc-detective/commit/12a2312e8264b299b7cbe180c03b0a7c696cd5be))
+
+# [4.28.0](https://github.com/doc-detective/doc-detective/compare/v4.27.0...v4.28.0) (2026-07-14)
+
+
+### Bug Fixes
+
+* **container:** align smoke-test fixture with runShell's bash default ([#624](https://github.com/doc-detective/doc-detective/issues/624)) ([e7aaf1c](https://github.com/doc-detective/doc-detective/commit/e7aaf1c35ef750b27abe51e8ecca50ef4c72ccd9)), closes [#610](https://github.com/doc-detective/doc-detective/issues/610)
+
+
+### Features
+
+* **ios:** managed WebDriverAgent prebuild in install ios, auto-consumed by sessions ([#626](https://github.com/doc-detective/doc-detective/issues/626)) ([52a96a3](https://github.com/doc-detective/doc-detective/commit/52a96a32949fd4fd4f2cdb3733eacc8b32ecf8fd))
+
+# [4.27.0](https://github.com/doc-detective/doc-detective/compare/v4.26.8...v4.27.0) (2026-07-13)
+
+
+### Bug Fixes
+
+* **runtime:** make browser/driver install best-effort like BEST_EFFORT_NPM_DEPS ([#611](https://github.com/doc-detective/doc-detective/issues/611)) ([f2a0ea8](https://github.com/doc-detective/doc-detective/commit/f2a0ea833967173d09cb106254332bf5937a6f28))
+
+
+### Features
+
+* **runShell:** add shell parameter with cross-platform bash default ([#610](https://github.com/doc-detective/doc-detective/issues/610)) ([7aad08d](https://github.com/doc-detective/doc-detective/commit/7aad08d822999cafc009f363f14846d1a36476a4))
+
+## [4.26.8](https://github.com/doc-detective/doc-detective/compare/v4.26.7...v4.26.8) (2026-07-12)
+
+
+### Bug Fixes
+
+* **expressions:** quote bare words inside a oneOf array literal ([#609](https://github.com/doc-detective/doc-detective/issues/609)) ([34ce367](https://github.com/doc-detective/doc-detective/commit/34ce3678662b0d481eb22eeeaaeb6a720c95b1c8)), closes [#585](https://github.com/doc-detective/doc-detective/issues/585)
+
+## [4.26.7](https://github.com/doc-detective/doc-detective/compare/v4.26.6...v4.26.7) (2026-07-12)
+
+
+### Bug Fixes
+
+* **files:** resolve string-shorthand screenshot/record paths via relativePathBase ([#604](https://github.com/doc-detective/doc-detective/issues/604)) ([fa41a71](https://github.com/doc-detective/doc-detective/commit/fa41a711d5b80cf4b176d562af489fe50e1e9b1c))
+* **httpRequest:** stop implicitly asserting a JSON-object response body ([#607](https://github.com/doc-detective/doc-detective/issues/607)) ([eb99a88](https://github.com/doc-detective/doc-detective/commit/eb99a88b4e379782853dfcd9c8afc1305ed9ea4b)), closes [#576](https://github.com/doc-detective/doc-detective/issues/576)
+
+## [4.26.6](https://github.com/doc-detective/doc-detective/compare/v4.26.5...v4.26.6) (2026-07-11)
+
+
+### Bug Fixes
+
+* **runtime:** return null instead of throwing on an unusable cacheDir ([#596](https://github.com/doc-detective/doc-detective/issues/596)) ([5df3400](https://github.com/doc-detective/doc-detective/commit/5df3400a787f8b768b3fdd42e75479dd32e693a7))
+
+## [4.26.5](https://github.com/doc-detective/doc-detective/compare/v4.26.4...v4.26.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* **detect:** stop dropping legacy v2 inline steps ([#595](https://github.com/doc-detective/doc-detective/issues/595)) ([115985c](https://github.com/doc-detective/doc-detective/commit/115985ce6ca5c3321150fc717319f39a3f32bcd0))
+
+## [4.26.4](https://github.com/doc-detective/doc-detective/compare/v4.26.3...v4.26.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* **core:** process-surface teardown is best-effort and always deregisters ([#599](https://github.com/doc-detective/doc-detective/issues/599)) ([3b108c5](https://github.com/doc-detective/doc-detective/commit/3b108c5e614ad8a7d2fbd51b320b7cfe28aaaa1a))
+* **core:** retry process-surface init crash under concurrent startup ([#547](https://github.com/doc-detective/doc-detective/issues/547)) ([c65d8c3](https://github.com/doc-detective/doc-detective/commit/c65d8c396bb3424647bd1c972da0cfdd7e958ee1)), closes [#532](https://github.com/doc-detective/doc-detective/issues/532)
+* **core:** settle device web element tree after goTo before find ([#545](https://github.com/doc-detective/doc-detective/issues/545)) ([657daa3](https://github.com/doc-detective/doc-detective/commit/657daa31d710af05483f3c5284495820b9c81751)), closes [#547](https://github.com/doc-detective/doc-detective/issues/547)
+
+## [4.26.3](https://github.com/doc-detective/doc-detective/compare/v4.26.2...v4.26.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* **ci:** stop docker-build.yml app-image jobs from skipping on release chain ([#579](https://github.com/doc-detective/doc-detective/issues/579)) ([2996204](https://github.com/doc-detective/doc-detective/commit/2996204f147c0d53d5319af9e52c94305e2ed270))
+
+## [4.26.2](https://github.com/doc-detective/doc-detective/compare/v4.26.1...v4.26.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* **platform:** surface /spec fetch failures in finalize instead of an uncaught crash ([#560](https://github.com/doc-detective/doc-detective/issues/560)) ([46c0235](https://github.com/doc-detective/doc-detective/commit/46c0235e45e917b8435df7bf52c91febea600312))
+
+## [4.26.1](https://github.com/doc-detective/doc-detective/compare/v4.26.0...v4.26.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **core:** resolve OpenAPI descriptions at runtime for httpRequest steps ([#550](https://github.com/doc-detective/doc-detective/issues/550)) ([315a62c](https://github.com/doc-detective/doc-detective/commit/315a62c581c92309cb1cd126d8fef77a48689323))
+* repair broken goTo/closeSurface action links ([#481](https://github.com/doc-detective/doc-detective/issues/481)) ([beb6d85](https://github.com/doc-detective/doc-detective/commit/beb6d853852273c9f2e55605198cd05f9816f9f7))
+
 # [4.26.0](https://github.com/doc-detective/doc-detective/compare/v4.25.1...v4.26.0) (2026-07-08)
 
 

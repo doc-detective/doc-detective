@@ -21,6 +21,7 @@ export {
   setMeta,
   getVersionData,
   log,
+  logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
   reporters,
@@ -43,14 +44,22 @@ function isDebugRequested(): boolean {
 }
 
 // Log function that respects logLevel
-function log(message: any, level: string = "info", config: any = {}) {
+// Pure predicate: would `log(message, level, config)` actually print at this
+// config.logLevel? Exported so CLI call sites can GUARD expensive message
+// construction (e.g. `JSON.stringify(config, null, 2)`) behind a cheap check —
+// the stringify then only runs when the message would be printed. `log`
+// delegates to this so the level policy has a single source of truth.
+function logLevelEnabled(level: string, config: any = {}): boolean {
   const logLevels = ["silent", "error", "warning", "info", "debug"];
   const currentLevel = config.logLevel || "info";
   const currentLevelIndex = logLevels.indexOf(currentLevel);
   const messageLevelIndex = logLevels.indexOf(level);
+  return currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0;
+}
 
+function log(message: any, level: string = "info", config: any = {}) {
   // Only log if the message level is at or above the current log level
-  if (currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0) {
+  if (logLevelEnabled(level, config)) {
     if (level === "error") {
       console.error(message);
     } else {
@@ -150,6 +159,11 @@ function buildYargs(args: any): any {
     .option("browser-fallback", {
       description:
         "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
+      type: "string",
+    })
+    .option("shell", {
+      description:
+        "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
       type: "string",
     })
     .version(require("../package.json").version)
@@ -432,6 +446,22 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       );
     }
   }
+  if (typeof args.shell === "string" && args.shell.length > 0) {
+    // Same rationale as --browser-fallback: schema validation runs before
+    // this block, so a bad CLI value would reach the runner unvalidated —
+    // drop unknown shells and keep the validated config value (default
+    // "bash") instead.
+    const shell = args.shell.trim().toLowerCase();
+    if (shell === "bash" || shell === "cmd" || shell === "powershell") {
+      config.shell = shell;
+    } else {
+      log(
+        `Ignoring invalid --shell value '${args.shell}'. Expected one of: bash, cmd, powershell.`,
+        "warning",
+        config
+      );
+    }
+  }
   if (typeof args.concurrentRunners === "string") {
     // The bare flag ("" after yargs string parsing) and an explicit "true"
     // select CPU-count mode; anything else must parse as a positive integer.
@@ -515,7 +545,13 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // Normalize output path
     outputPath = path.resolve(outputPath);
 
-    const data = JSON.stringify(results, null, 2);
+    // Reuse the results JSON serialized once by outputResults when present
+    // (byte-identical to serializing `results` here); fall back for direct
+    // callers that don't pass it.
+    const data =
+      typeof options.resultsJson === "string"
+        ? options.resultsJson
+        : JSON.stringify(results, null, 2);
     let outputFile = "";
     let outputDir = "";
     let reportType = "doc-detective-results";
@@ -626,11 +662,19 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
           // The run folder name IS the runId under the `runs/<id>` layout.
           runId: path.basename(runDir),
         };
+    // When we archive the unmodified `results` (stamped-runDir case), reuse the
+    // JSON outputResults already serialized. When we rewrote runId/runDir into a
+    // fresh copy, that object differs from `results`, so serialize it directly —
+    // keeping the written file byte-identical to before this optimization.
+    const persistedJson =
+      useStampedRunDir && typeof options.resultsJson === "string"
+        ? options.resultsJson
+        : JSON.stringify(persistedResults, null, 2);
     const outputFile = path.resolve(runDir, `${reportType}.json`);
 
     try {
       fs.mkdirSync(runDir, { recursive: true });
-      fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
+      fs.writeFileSync(outputFile, persistedJson);
 
       // Archive a human-readable HTML report beside the JSON, so the run folder
       // is a complete shareable artifact without the standalone `html` reporter.
@@ -1152,8 +1196,6 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
     const url = `${apiConfig.url}/contexts`;
     const payload = { contexts };
 
-    console.log(payload);
-
     const response = await axios.post(url, payload, {
       headers: {
         "x-runner-token": apiConfig.token,
@@ -1202,14 +1244,30 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
     });
   }
 
+  // Serialize the canonical results tree ONCE and share the string with the
+  // JSON-writing reporters (json + runFolder) instead of each calling
+  // JSON.stringify on the full tree independently. Only computed when a
+  // JSON-writing reporter is actually active, so a terminal-only run pays
+  // nothing. Each reporter still falls back to serializing itself when the
+  // shared string is absent (so they stay correct if called directly), and
+  // runFolder only reuses it when it archives the unmodified `results` (the
+  // stamped-runDir case) — a rewritten runId/runDir copy is serialized fresh,
+  // keeping every written file byte-identical to before.
+  const writesJson =
+    activeReporters.includes("jsonReporter") ||
+    activeReporters.includes("runFolderReporter");
+  const reporterOptions = writesJson
+    ? { ...options, resultsJson: JSON.stringify(results, null, 2) }
+    : options;
+
   // Execute each reporter
   const reporterPromises = activeReporters.map((reporter: any) => {
     if (typeof reporter === "function") {
       // Direct function reference
-      return reporter(config, outputPath, results, options);
+      return reporter(config, outputPath, results, reporterOptions);
     } else if (typeof reporter === "string" && reporters[reporter]) {
       // String reference to built-in or registered reporter
-      return reporters[reporter](config, outputPath, results, options);
+      return reporters[reporter](config, outputPath, results, reporterOptions);
     } else if (typeof reporter === "string" && !reporters[reporter]) {
       console.error(
         `Reporter "${reporter}" not found. Available reporters: ${Object.keys(

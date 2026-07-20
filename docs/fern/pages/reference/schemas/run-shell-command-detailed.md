@@ -15,7 +15,8 @@ description: "Reference for the `Run shell command (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-command | string | Required. Command to perform in the machine's default shell. | 
+command | string | Required. Command to perform in the selected shell (see `shell`; defaults to `bash` on every platform). | 
+shell | string | Optional. Shell to run the command in. If unset, uses the config-level `shell` setting, which defaults to `bash`. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.<br/><br/>Accepted values: `bash`, `cmd`, `powershell` | 
 args | array of string | Optional. Arguments for the command. | ``[]``
 workingDirectory | string | Optional. Working directory for the command. | `.`
 exitCodes | array of integer | Optional. Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails. | ``[0]``
@@ -32,6 +33,7 @@ background | object | Optional. Start the command as a long-running background p
 ```json
 {
   "command": "example",
+  "shell": "bash",
   "args": [],
   "workingDirectory": ".",
   "exitCodes": [

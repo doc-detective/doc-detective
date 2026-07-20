@@ -1,9 +1,14 @@
 # Design: multi-surface targeting
 
-Status: **proposed (schema-only)** — this records the long-term target shape so the
-near-term `type`→process work and any future multi-window/-app work slot in
-without breaking refactors. Functionality is built incrementally; the **schema**
-is designed up front.
+Status: **delivered through Phase 6** — Phase 1 process surfaces
+([#386](https://github.com/doc-detective/doc-detective/pull/386)), Phase 2 `background.tty`
+(ADR 01004), Phase 3 browser window/tab selectors (ADR 01016), Phase 4 multi-session browser
+registry ([#483](https://github.com/doc-detective/doc-detective/pull/483), ADR 01019), Phase 5
+native apps (see [native-app-surfaces.md](native-app-surfaces.md) for the A1–A8 breakdown and
+status), and Phase 6 generic + parallel `startSurface`
+([#539](https://github.com/doc-detective/doc-detective/pull/539), ADR 01039). This document
+remains the reference for the target shape and semantics; per-phase detail lives in the PRs and
+ADRs.
 
 ## Problem
 
@@ -26,9 +31,14 @@ kind lands. So we fix the **addressing model** now and reuse it everywhere.
 - **Surface registry** — `name → { kind, handle, windows }`, the generalization of
   today's run-scoped `processRegistry`. Created by **opener** steps, addressed by
   the **`surface`** field, torn down by `closeSurface` or the run/context sweep.
-- **Active surface / active window** — the most recently opened or focused one.
-  Omitting `surface` acts on it. With a single browser (today's norm) it is always
-  that browser, so every existing test keeps working unchanged.
+- **Active surface / active window** — the most recently opened, focused, or
+  explicitly targeted one. Omitting `surface` acts on it. With a single browser
+  (today's norm) it is always that browser, so every existing test keeps working
+  unchanged. **Implemented across all three kinds** (ADR 01081): one per-context
+  MRU tracker spans browser sessions, app surfaces, and background processes; an
+  explicit `surface` reference switches the active surface for the surface-less
+  steps that follow, and closing the active surface falls through to the next
+  live one.
 
 ## Design ethos: progressive disclosure + sane defaults
 

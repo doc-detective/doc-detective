@@ -1,0 +1,137 @@
+---
+title: Test native macOS apps (experimental)
+sidebar-title: Native macOS apps
+description: Open and test a native macOS app with Doc Detective.
+---
+
+Doc Detective can open and drive native macOS apps as part of a test. This experimental workflow launches an app with [`startSurface`](/docs/actions/startsurface), acts on it with the same `find`, `click`, and `type` steps you already use in the browser, and closes it with [`closeSurface`](/docs/actions/closesurface).
+
+<Info>
+
+**Experimental**: Native and mobile app testing is experimental and subject to change.
+
+</Info>
+
+## Before you begin
+
+macOS app tests run only on a **macOS host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green.
+
+Doc Detective drives macOS apps through an automation driver that installs automatically the first time a macOS app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
+
+One requirement matters before your first run: the process that runs Doc Detective (your terminal, IDE, or CI runner process) needs macOS **Accessibility (TCC) permission**, or the driver can't drive apps and the test skips with a walkthrough. Grant it under **System Settings** before you run. For the step-by-step walkthrough, see [Grant Accessibility permission on macOS](/docs/actions/startsurface#grant-accessibility-permission-on-macos).
+
+## Run your first macOS test
+
+This test targets the `mac` platform, launches Calculator by its `.app` path, waits until a digit button exists, clicks it, and closes the app. Calculator ships with macOS, so the test needs nothing else installed.
+
+{/* test {"testId":"macos-app-calculator","detectSteps":false,"runOn":[{"platforms":["mac"]}]} */}
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["mac"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch the app and wait until it's ready.",
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": { "elementAria": "1" }
+            }
+          }
+        },
+        {
+          "description": "Click a control.",
+          "click": {
+            "elementAria": "1"
+          }
+        },
+        {
+          "description": "Take a screenshot of the window.",
+          "screenshot": {
+            "path": "calculator.png"
+          }
+        },
+        {
+          "description": "Close the app.",
+          "closeSurface": { "app": "Calculator" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"macos-calculator-start","description":"Launch Calculator and wait until it's ready","startSurface":{"app":"/System/Applications/Calculator.app","timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}} */}
+{/* step {"stepId":"macos-calculator-click","description":"Click a control","click":{"elementAria":"1"}} */}
+{/* step {"stepId":"macos-calculator-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"calculator.png"}} */}
+{/* step {"stepId":"macos-calculator-close","description":"Close the app","closeSurface":{"app":"Calculator"}} */}
+{/* test end */}
+
+To run this test, save it to a spec file and pass it to Doc Detective:
+
+```bash
+doc-detective --input macos-app.spec.json
+```
+
+A few things to notice:
+
+- The generous `timeout` (180,000 ms) leaves room for the first-run WebDriverAgentMac build and for the driver to install.
+- `waitUntil.find` gates readiness: the step holds until a digit button (matched by `elementAria`) exists, so the next step never runs against a window that hasn't drawn its controls yet.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. Pass an explicit `surface` on a step—for example `{ "app": "Calculator" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "Calculator" }`) because it's a lifecycle step, not an interaction on the active surface. Doc Detective derives the default name `Calculator` from the `.app` base name; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
+
+To launch an app by its bundle ID instead of a `.app` path, set `app` to the identifier, such as `"com.apple.TextEdit"`. See the [app descriptor](/reference/schemas/app-descriptor) reference for the identifier syntax.
+
+## Target only macOS
+
+Because an app targets one platform, gate the test with a [context](/docs/test-docs/platforms-and-browsers) so it runs only where it can:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["mac"]
+    }
+  ]
+}
+```
+
+Doc Detective maps the host's `darwin` platform to `mac`, so a macOS runner matches this context. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
+
+## Troubleshooting
+
+**macOS app tests skip instead of running**
+
+- **Cause:** The process that runs Doc Detective doesn't have Accessibility (TCC) permission, so the driver can't control apps.
+- **Solution:** Grant the permission to your terminal, IDE, or CI runner process, then rerun. See [Grant Accessibility permission on macOS](/docs/actions/startsurface#grant-accessibility-permission-on-macos).
+
+**The first app launch is slow**
+
+- **Cause:** The first app surface of a run builds the automation agent (WebDriverAgentMac) with Xcode, which can take several minutes on a cold machine.
+- **Solution:** Give the first surface a generous `timeout` (the default is 60,000 ms). Doc Detective already raises its own server-startup ceiling for that first build, but a higher `timeout` keeps the step from aborting early.
+
+**Element not found**
+
+- **Cause:** macOS exposes controls through the accessibility (AX) tree, so element criteria map onto AX properties: `elementText` matches a control's title, label, or value; `elementId` matches its AXIdentifier; and `elementAria` matches its AXRole, and its accessible name when you provide one (the worked example above matches the `1` button by its accessible name). `elementText` and `elementAria` collide when a control's accessible name is the same for both, so setting the two fields with different values on one step fails.
+- **Solution:** Match against the AX property that carries the value you want, and specify only one of `elementText` or `elementAria` when they'd target the same accessible name. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
+
+**Launch arguments or environment variables aren't applied**
+
+- **Cause:** On macOS, `args` reaches the app as a real argument array, and Doc Detective supports `env` only on macOS. Elsewhere, `env` fails the step.
+- **Solution:** Pass `args` as an array and set `env` only in macOS specs. See the [app descriptor](/reference/schemas/app-descriptor) reference.
+
+## What's next
+
+- [`startSurface`](/docs/actions/startsurface): open an app, browser, or process surface.
+- [`find`](/docs/actions/find): locate elements on an app surface.
+- [`closeSurface`](/docs/actions/closesurface): close a surface by name.
+- [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers): gate tests by platform.
+- [Inline tests](/docs/test-docs/inline) and [Detected tests](/docs/test-docs/detected): author these startSurface, click, screenshot, and closeSurface steps inline in a doc source file instead of a standalone spec.
+- [Docker and headless](/docs/ci/docker-and-headless): run app tests in CI.

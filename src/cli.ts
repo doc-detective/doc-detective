@@ -1,4 +1,4 @@
-import { runTests } from "./core/index.js";
+import { runTests, awaitTelemetryFlush } from "./core/index.js";
 import {
   buildYargs,
   setConfig,
@@ -6,6 +6,7 @@ import {
   setMeta,
   getVersionData,
   log,
+  logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
   isDebugRequested,
@@ -13,6 +14,7 @@ import {
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
 import { installCommand } from "./runtime/installCommand.js";
+import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
 import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
@@ -56,6 +58,7 @@ async function main(argv: string[]) {
     // to the same implementation as `doc-detective install agents`.
     .command({ ...installAgentsCommand, describe: false } as any)
     .command(installCommand as any)
+    .command(lspCommand as any)
     .command(debugCommand)
     .strict()
     .demandCommand(0)
@@ -142,60 +145,84 @@ async function runTestsHandler(args: any) {
     return;
   }
 
-  log(
-    `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
-    "debug",
-    config
-  );
-  log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+  // Guard the pretty-print dumps behind a cheap level check so the (large)
+  // JSON.stringify only runs when the debug message would actually print.
+  if (logLevelEnabled("debug", config)) {
+    log(
+      `CLI:VERSION INFO:\n${JSON.stringify(getVersionData(), null, 2)}`,
+      "debug",
+      config
+    );
+    log(`CLI:CONFIG:\n${JSON.stringify(config, null, 2)}`, "debug", config);
+  }
 
   // Self-update on startup. Honors config.autoUpdate (schema default true),
   // DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 (set by the re-execed child to prevent
   // loops, and by Docker images), and process.env.CI (CI environments
   // should pin their version explicitly — surprise updates in CI are bad).
   //
-  // The `if` condition itself is exercised offline (every combination of the
-  // three guards short-circuiting false — see the "cli.ts — runTestsHandler
-  // branches" describe in test/cli-index-adapters-coverage.test.js, including
-  // a dedicated case that reaches the third (`!process.env.CI`) term). Only
-  // the block BODY needs a real network/exec dependency: `checkForUpdate`
-  // hits a real npm/GitHub registry, and `selfUpdate` re-execs the process via
-  // `process.exit` on a newer version. Neither has an injectable seam at this
-  // call site (the seam is one level down, in runtime/selfUpdate.ts's own
-  // exported functions, which are network/exec bound themselves) — forcing it
-  // here would either hit a real registry or replace the body with a no-op
-  // stub that proves nothing beyond "the dynamic import resolved". See
-  // runtime/selfUpdate.ts for that module's own (separately covered) tests.
+  // The registry check (`checkForUpdate`, up to a 3s round-trip) is STARTED
+  // here but not awaited: it runs concurrently with input detection /
+  // resolution (which execute no tests) so its latency is hidden behind work
+  // that has to happen anyway. `updateJoin` is handed to runTests, which awaits
+  // it AFTER resolution but BEFORE the first test (or any dry-run output) — so
+  // `selfUpdate` still re-execs the process before the run, preserving the
+  // "update before the run" guarantee (ADR 01063). Only the deferred decision
+  // (re-exec on a newer version) is joined; the check itself already overlapped.
+  //
+  // The `if` condition is exercised offline (every combination of the three
+  // guards short-circuiting false — see the "cli.ts — runTestsHandler branches"
+  // describe in test/cli-index-adapters-coverage.test.js). Only the block BODY
+  // needs a real network/exec dependency: `checkForUpdate` hits a real npm
+  // registry and `selfUpdate` re-execs the process via `process.exit` on a
+  // newer version. Neither has an injectable seam at this call site (the seam
+  // is one level down, in runtime/selfUpdate.ts's own exported functions, which
+  // are network/exec bound themselves). See runtime/selfUpdate.ts for that
+  // module's own (separately covered) tests. The join-inside-runTests seam is
+  // covered directly in test/cli-index-adapters-coverage.test.js.
+  let updateJoin: (() => Promise<void>) | undefined;
   if (
     config.autoUpdate !== false &&
     !process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE &&
     !process.env.CI
   ) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
-    try {
-      const { checkForUpdate, detectInstallMode, selfUpdate } = await import(
-        "./runtime/selfUpdate.js"
-      );
-      const currentVersion: string = cliRequire("../package.json").version;
-      // Route the self-update module's logs through the CLI's existing
-      // log() helper so config.logLevel is respected (transient registry
-      // failures should not flood stdout at the default level). Map
-      // "warn" → "warning" since core/utils.ts uses the latter.
-      const cliLogger = (msg: string, level: string = "info") => {
-        const mapped = level === "warn" ? "warning" : level;
-        log(msg, mapped, config);
-      };
-      const { latest, newer } = await checkForUpdate(currentVersion, {
-        logger: cliLogger,
-      });
-      if (newer && latest) {
-        await selfUpdate(latest, detectInstallMode(), { logger: cliLogger });
+    // Route the self-update module's logs through the CLI's existing log()
+    // helper so config.logLevel is respected. Map "warn" → "warning".
+    const cliLogger = (msg: string, level: string = "info") => {
+      const mapped = level === "warn" ? "warning" : level;
+      log(msg, mapped, config);
+    };
+    const currentVersion: string = cliRequire("../package.json").version;
+    // Kick off the registry check now, concurrently with the detection /
+    // resolution work that runTests is about to do. Self-contained error
+    // handling so a rejected promise never becomes an unhandled rejection.
+    const updateCheck = (async () => {
+      try {
+        const { checkForUpdate } = await import("./runtime/selfUpdate.js");
+        return await checkForUpdate(currentVersion, { logger: cliLogger });
+      } catch (err) {
+        log(`Self-update check skipped: ${String(err)}`, "debug", config);
+        return { latest: null as string | null, newer: false };
       }
-    } catch (err) {
-      log(`Self-update check skipped: ${String(err)}`, "debug", config);
-    }
+    })();
+    // Deferred join: awaited by runTests once resolution is done and before the
+    // first test. On a newer version, selfUpdate re-execs (process.exit) here.
+    updateJoin = async () => {
+      try {
+        const { latest, newer } = await updateCheck;
+        if (newer && latest) {
+          const { detectInstallMode, selfUpdate } = await import(
+            "./runtime/selfUpdate.js"
+          );
+          await selfUpdate(latest, detectInstallMode(), { logger: cliLogger });
+        }
+      } catch (err) {
+        log(`Self-update check skipped: ${String(err)}`, "debug", config);
+      }
+    };
+    /* c8 ignore stop */
   }
-  /* c8 ignore stop */
 
   // Check for DOC_DETECTIVE_API environment variable
   const api = await getResolvedTestsFromEnv(config);
@@ -205,8 +232,8 @@ async function runTestsHandler(args: any) {
   // Run tests
   const output = config.output;
   const results = resolvedTests
-    ? await runTests(config, { resolvedTests })
-    : await runTests(config);
+    ? await runTests(config, { resolvedTests, updateJoin })
+    : await runTests(config, { updateJoin });
 
   // Dry-run already emitted the resolved-tests JSON inside runTests().
   // Skip both reporters (which assume executed-result shape) and the
@@ -238,4 +265,10 @@ async function runTestsHandler(args: any) {
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
+
+  // Join the telemetry flush started inside runTests. Awaited only NOW — after
+  // reporters + hint — so the PostHog round-trip overlaps that I/O instead of
+  // hanging off the tail of the process. Bounded + non-throwing; a no-op when
+  // telemetry is disabled or already flushed.
+  await awaitTelemetryFlush();
 }

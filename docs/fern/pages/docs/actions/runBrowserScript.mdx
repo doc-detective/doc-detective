@@ -36,6 +36,8 @@ Here are a few ways you might use the `runBrowserScript` action:
 
 This example navigates to a page and returns its title.
 
+{/* test {"testId":"runbrowserscript-read-value","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -52,9 +54,15 @@ This example navigates to a page and returns its title.
 }
 ```
 
+{/* step {"stepId":"goto-runbrowserscript-read","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"runbrowserscript-read","description":"Read the page title and assert its exact value","runBrowserScript":{"script":"return document.title;","output":"Basic HTML Elements Demo"}} */}
+{/* test end */}
+
 ### Assert on the return value
 
 This example checks that the current URL uses HTTP(S) via a regular expression.
+
+{/* test {"testId":"runbrowserscript-assert-output","detectSteps":false} */}
 
 ```json
 {
@@ -75,9 +83,15 @@ This example checks that the current URL uses HTTP(S) via a regular expression.
 }
 ```
 
+{/* step {"stepId":"goto-runbrowserscript-assert","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"runbrowserscript-assert","description":"Validate the page URL","runBrowserScript":{"script":"return window.location.href;","output":"/^https?:\\/\\//"}} */}
+{/* test end */}
+
 ### Pass arguments into the script
 
 The script reads values from `args` through the `arguments` object.
+
+{/* test {"testId":"runbrowserscript-args","detectSteps":false} */}
 
 ```json
 {
@@ -99,9 +113,15 @@ The script reads values from `args` through the `arguments` object.
 }
 ```
 
+{/* step {"stepId":"goto-runbrowserscript-args","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"runbrowserscript-concat","description":"Concatenate two arguments in the page","runBrowserScript":{"script":"return arguments[0] + arguments[1];","args":["foo","bar"],"output":"foobar"}} */}
+{/* test end */}
+
 ### Capture the return value into a variable
 
-The first step captures the return value into a `TOKEN` variable. The second step substitutes it into `args` and validates it round-trips through the page.
+After navigating to the page, this example runs three `runBrowserScript` steps. The first seeds a value into `localStorage`, purely as a test fixture, so this standalone example has something to read. In a real test you wouldn't seed the value yourself. Instead, you'd capture something the product under test had already written, such as an auth token the application stored in `localStorage`. The second step reads that value and stores it in a `TOKEN` variable, and the third passes the variable through `args` to assert that it round-trips through the page unchanged.
+
+{/* test {"testId":"runbrowserscript-variable-capture","detectSteps":false} */}
 
 ```json
 {
@@ -110,6 +130,10 @@ The first step captures the return value into a `TOKEN` variable. The second ste
       "steps": [
         { "goTo": "https://example.com" },
         {
+          "description": "Seed a value to capture.",
+          "runBrowserScript": "window.localStorage.setItem('token', 'abc123');"
+        },
+        {
           "description": "Read a value and store it in a variable.",
           "runBrowserScript": "return window.localStorage.getItem('token');",
           "variables": {
@@ -117,10 +141,11 @@ The first step captures the return value into a `TOKEN` variable. The second ste
           }
         },
         {
-          "description": "Reuse the captured value.",
+          "description": "Reuse the captured value and assert it round-trips.",
           "runBrowserScript": {
             "script": "return arguments[0];",
-            "args": ["$TOKEN"]
+            "args": ["$TOKEN"],
+            "output": "abc123"
           }
         }
       ]
@@ -128,3 +153,9 @@ The first step captures the return value into a `TOKEN` variable. The second ste
   ]
 }
 ```
+
+{/* step {"stepId":"goto-runbrowserscript-var","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"runbrowserscript-seed","description":"Seed localStorage with a real value, since a fresh page load has none to capture","runBrowserScript":"window.localStorage.setItem('token', 'abc123');"} */}
+{/* step {"stepId":"runbrowserscript-capture","description":"Read the value and store it in a variable","runBrowserScript":"return window.localStorage.getItem('token');","variables":{"TOKEN":"$$result"}} */}
+{/* step {"stepId":"runbrowserscript-reuse","description":"Reuse the captured value and assert it round-tripped correctly","runBrowserScript":{"script":"return arguments[0];","args":["$TOKEN"],"output":"abc123"}} */}
+{/* test end */}

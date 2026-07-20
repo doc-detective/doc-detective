@@ -25,7 +25,9 @@ Tests tell Doc Detective what actions to perform, how, and where. Tests are made
   - [**runShell**](/docs/actions/runshell): Perform a native shell command.
   - [**runBrowserScript**](/docs/actions/runbrowserscript): Run JavaScript in the browser page context and capture its return value.
   - [**screenshot**](/docs/actions/screenshot): Take a screenshot in PNG format.
-  - [**closeSurface**](/docs/actions/close-surface): Close a surface, such as a background process started by `runShell` or `runCode`.
+  - [**startSurface**](/docs/actions/startsurface): Open a surface—a native app, browser session, or background process—and register it by name, or open several concurrently with an array.
+  - [**closeSurface**](/docs/actions/closesurface): Close a surface, such as a background process started by `runShell` or `runCode`.
+  - [**swipe**](/docs/actions/swipe): Swipe or scroll a surface in a direction or between two points.
   - [**type**](/docs/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key's enum. For example, to type the Escape key, enter `$ESCAPE$`.
   - [**wait**](/docs/actions/wait): Pause before performing the next action.
 
@@ -169,6 +171,8 @@ Every step is already an implicit assertion: if its action fails, the step fails
 
 An assertion is a condition expression that resolves to true or false. Set `assertions` to a single expression or to an array of expressions. When you provide an array, every expression must pass (logical AND):
 
+{/* test {"testId":"overview-custom-assertions","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -190,6 +194,9 @@ An assertion is a condition expression that resolves to true or false. Set `asse
 }
 ```
 
+{/* step {"stepId":"overview-assertions-step","description":"Run the doc's exact example command and assertions","runShell":{"command":"node -e \"console.log('hello world')\""},"assertions":["$$outputs.exitCode == 0","$$outputs.stdio.stdout contains \"hello\""]} */}
+{/* test end */}
+
 ### Reference the step's outputs
 
 Custom assertions read the current step's outputs through the `$$outputs.*` namespace, plus `$$platform` for the current operating system (`linux`, `mac`, or `windows`). The available outputs depend on the action. For example, `runShell` and `runCode` expose `$$outputs.exitCode` and `$$outputs.stdio`, while `checkLink` exposes `$$outputs.statusCode`. To find out what an action produces, see its reference.
@@ -204,6 +211,10 @@ Expressions support the comparison operators `==`, `!=`, `>`, `>=`, `<`, and `<=
   ]
 }
 ```
+
+{/* test {"testId":"overview-oneof-assertions","detectSteps":false} */}
+{/* step {"stepId":"overview-oneof-step","description":"Exercise the oneOf word operator on both exitCode and platform (adapted from the doc's '!= windows', which would fail this assertion on a Windows runner, to a platform-agnostic oneOf check; array values can be written bare, since Doc Detective treats each one as a string literal unless it needs to look like a number, true, false, or null)","runShell":{"command":"node -e \"process.exit(0)\""},"assertions":["$$outputs.exitCode oneOf [0, 1]","$$platform oneOf [linux, mac, windows]"]} */}
+{/* test end */}
 
 <Note>
 Custom assertions use the `$$outputs.*` namespace, which is distinct from the bare `$$name` expressions you use to set the step-level `variables` and `outputs` objects.
@@ -229,6 +240,8 @@ An `if` condition uses the same condition expressions as [custom assertions](#cu
 
 The following step runs only on Linux and macOS. On Windows, Doc Detective skips it before its action runs:
 
+{/* test {"testId":"overview-conditional-execution","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -243,6 +256,10 @@ The following step runs only on Linux and macOS. On Windows, Doc Detective skips
 }
 ```
 
+{/* step {"stepId":"overview-if-false","description":"A step whose if condition is guaranteed false (adapted from the doc's platform-dependent './install.sh', which isn't available in this fixture, to a deterministic false condition), so it's marked SKIPPED and never runs its action","if":"$$platform == doesnotexist","runShell":"echo should not run"} */}
+{/* step {"stepId":"overview-if-continues","description":"Confirm the skipped step above didn't stop the test","runShell":{"command":"node -e \"console.log('reached after skip')\"","stdio":"reached after skip"}} */}
+{/* test end */}
+
 `if` decides whether a unit runs—it never changes a verdict. A skipped unit is SKIPPED, a reached-but-skipped status that's distinct from FAIL. A skipped step also doesn't stop the test, so the steps after it still run.
 
 ### Reference values in conditions
@@ -250,6 +267,8 @@ The following step runs only on Linux and macOS. On Windows, Doc Detective skips
 Spec- and test-level conditions can reference `$$platform` for the current operating system (`linux`, `mac`, or `windows`).
 
 Step-level conditions can also read earlier steps' outputs through the `$$steps.<stepId>.outputs.*` namespace, so you can gate a step on what a previous step produced. Give the earlier step a `stepId` to reference it:
+
+{/* test {"testId":"overview-steps-reference","detectSteps":false} */}
 
 ```json
 {
@@ -270,6 +289,10 @@ Step-level conditions can also read earlier steps' outputs through the `$$steps.
   ]
 }
 ```
+
+{/* step {"stepId":"overview-check","description":"A preflight step that succeeds (adapted from ./preflight.sh, which doesn't exist in this fixture)","runShell":"node -e \"process.exit(0)\""} */}
+{/* step {"stepId":"overview-deploy","description":"Run only because the preflight step above exited 0 (adapted from ./deploy.sh)","if":"$$steps.overview-check.outputs.exitCode == 0","runShell":{"command":"node -e \"console.log('deploy ran')\"","stdio":"deploy ran"}} */}
+{/* test end */}
 
 A step-level condition can't read its own step's `$$outputs.*`, because Doc Detective evaluates `if` before the step's action runs.
 
@@ -376,6 +399,8 @@ When the result matches, Doc Detective re-runs the whole step—including its as
 
 The following step retries a flaky command up to three times, waiting one second between attempts:
 
+{/* test {"testId":"overview-retry-until-success","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -396,6 +421,10 @@ The following step retries a flaky command up to three times, waiting one second
   ]
 }
 ```
+
+{/* step {"stepId":"overview-retry-reset","description":"Clear the marker file from any previous run so the flaky step below deterministically fails once, then succeeds on retry","runShell":"node -e \"try{require('fs').unlinkSync('.dd-output/retry-marker')}catch(e){}\""} */}
+{/* step {"stepId":"overview-retry-flaky","description":"A command that fails on its first attempt (creating a marker file) and succeeds on retry once the marker exists (adapted from ./flaky-check.sh into a deterministic, self-contained flaky command, since a real flaky script isn't available in this fixture)","runShell":{"command":"node -e \"const fs=require('fs');fs.mkdirSync('.dd-output',{recursive:true});const p='.dd-output/retry-marker';if(fs.existsSync(p)){process.exit(0)}else{fs.writeFileSync(p,'1');process.exit(1)}\""},"onFail":[{"retry":{"limit":3,"delay":1000}}]} */}
+{/* test end */}
 
 Once the retries are used up and the step still matches the handler, Doc Detective resolves routing again with `retry` entries skipped to find the terminal action. The step falls through to the next matching entry, or to the default for its result if no other entry matches. For example:
 
@@ -440,6 +469,8 @@ A forward jump skips every step between the current step and the target: the ski
 
 The following passing step jumps ahead to a cleanup step, skipping the steps in between:
 
+{/* test {"testId":"overview-goto-step","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -469,6 +500,11 @@ The following passing step jumps ahead to a cleanup step, skipping the steps in 
   ]
 }
 ```
+
+{/* step {"stepId":"overview-create-resource","description":"A passing step that jumps straight to cleanup (adapted from ./create-resource.sh)","runShell":"node -e \"process.exit(0)\"","onPass":[{"goToStep":"overview-cleanup"}]} */}
+{/* step {"stepId":"overview-extra-checks","description":"Deliberately fails if reached, to prove the jump above genuinely skips it rather than just passing coincidentally (adapted from ./extra-checks.sh)","runShell":"node -e \"process.exit(1)\""} */}
+{/* step {"stepId":"overview-cleanup","description":"The jump target (adapted from ./cleanup.sh)","runShell":{"command":"node -e \"console.log('cleanup ran')\"","stdio":"cleanup ran"}} */}
+{/* test end */}
 
 As with every routing action, `goToStep` controls flow only and never changes a step's result. A step that fails and routes `goToStep` stays FAIL, the jump still happens, and the test still rolls up to FAIL. An `onSkip` handler can use `goToStep` too, so a step that's reached but skipped can still jump.
 
@@ -814,11 +850,12 @@ You can also set this in your configuration file using the `concurrentRunners` p
 Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners.
 
 <Warning>
-Parallel execution has limitations:
-
-- **Cross-context variables**: Tests that share variables via `loadVariables` or `variables` steps between contexts won't work correctly with concurrent runners, as variables write to `process.env` shared across all contexts.
-- **Recording steps**: Concurrent screen recordings can capture the wrong browser window, and output files may overwrite each other if contexts share the same recording path. Keep `concurrentRunners` at `1` for tests that include `record` steps.
+**Cross-context variables**: Tests that share variables via `loadVariables` or `variables` steps between contexts won't work correctly with concurrent runners, as variables write to `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.
 </Warning>
+
+<Note>
+Recordings are safe to run concurrently, so you no longer need to keep `concurrentRunners` at `1` to record. The `browser` engine records each context's own window, Doc Detective automatically serializes `ffmpeg` recordings with other browser-based tests, and Android and iOS device recordings capture the device screen and run fully concurrently because they never touch the shared display. See [`record`](/docs/actions/record) for details.
+</Note>
 
 ## Read the results
 

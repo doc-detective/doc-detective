@@ -20,6 +20,7 @@ import sinon from "sinon";
 import axios from "axios";
 import {
   log,
+  logLevelEnabled,
   setConfig,
   outputResults,
   reporters,
@@ -156,6 +157,33 @@ describe("utils.ts coverage", function () {
       const cap = captureConsole(sandbox);
       log("detail", "debug", { logLevel: "debug" });
       assert.ok(cap.log.includes("detail"));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // logLevelEnabled (lazy-log gate for CLI dumps) — signature is
+  // logLevelEnabled(level, config), mirroring log(message, level, config)
+  // ---------------------------------------------------------------------------
+  describe("logLevelEnabled", function () {
+    it("defaults to 'info' when config.logLevel is absent", function () {
+      assert.equal(logLevelEnabled("info"), true);
+      assert.equal(logLevelEnabled("debug"), false);
+    });
+    it("gates debug output on logLevel === 'debug'", function () {
+      assert.equal(logLevelEnabled("debug", { logLevel: "info" }), false);
+      assert.equal(logLevelEnabled("debug", { logLevel: "debug" }), true);
+    });
+    it("never enables the 'silent' level (index must be > 0)", function () {
+      assert.equal(logLevelEnabled("silent", { logLevel: "debug" }), false);
+    });
+    it("agrees with log(): guarding a dump prints iff enabled", function () {
+      const cap = captureConsole(sandbox);
+      const cfg = { logLevel: "info" };
+      if (logLevelEnabled("debug", cfg)) log("DUMP", "debug", cfg);
+      assert.equal(cap.log, "");
+      const dbg = { logLevel: "debug" };
+      if (logLevelEnabled("debug", dbg)) log("DUMP", "debug", dbg);
+      assert.ok(cap.log.includes("DUMP"));
     });
   });
 
@@ -417,6 +445,31 @@ describe("utils.ts coverage", function () {
       assert.equal(out, null);
       assert.ok(cap.error.includes("Error writing results"));
     });
+
+    // 2.4(b): reuse the results JSON serialized once by outputResults instead
+    // of re-stringifying the tree in every JSON-writing reporter.
+    it("writes options.resultsJson verbatim when provided (shared serialization)", async function () {
+      captureConsole(sandbox);
+      const dir = makeTmpDir();
+      const file = path.join(dir, "shared.json");
+      const marker = '{"shared":"MARKER"}';
+      const out = await reporters.jsonReporter({}, file, { a: 1 }, {
+        resultsJson: marker,
+      });
+      assert.equal(fs.readFileSync(out, "utf8"), marker);
+    });
+
+    it("falls back to serializing results when no shared string is passed", async function () {
+      captureConsole(sandbox);
+      const dir = makeTmpDir();
+      const file = path.join(dir, "fallback.json");
+      const results = { a: 1, nested: { b: 2 } };
+      const out = await reporters.jsonReporter({}, file, results, {});
+      assert.equal(
+        fs.readFileSync(out, "utf8"),
+        JSON.stringify(results, null, 2)
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -480,6 +533,44 @@ describe("utils.ts coverage", function () {
       const dir = makeTmpDir();
       const outPath = await reporters.runFolderReporter({}, dir, { specs: [] }, {});
       assert.ok(outPath.endsWith("doc-detective-results.json"));
+    });
+
+    // 2.4(b): the shared JSON string is reused ONLY when the reporter archives
+    // the unmodified `results` (stamped-runDir case). A rewritten runId/runDir
+    // copy differs from `results`, so it must be serialized fresh — never the
+    // shared string — keeping the written file byte-identical to before.
+    it("reuses options.resultsJson only for the stamped runDir it archives verbatim", async function () {
+      captureConsole(sandbox);
+      const dir = makeTmpDir();
+      const runDir = path.join(dir, ".doc-detective", "runs", "run-123");
+      fs.mkdirSync(runDir, { recursive: true });
+      const results = { runDir, specs: [], summary: {} };
+      const marker = '{"shared":"STAMPED_MARKER"}';
+      const outPath = await reporters.runFolderReporter({}, dir, results, {
+        command: "runTests",
+        resultsJson: marker,
+      });
+      assert.equal(path.dirname(outPath), runDir, "should archive in the stamped runDir");
+      assert.equal(fs.readFileSync(outPath, "utf8"), marker);
+    });
+
+    it("ignores the shared string when it rewrites runId/runDir (fresh serialization)", async function () {
+      captureConsole(sandbox);
+      const dir = makeTmpDir();
+      // No stamped runDir → the reporter derives a fresh folder and rewrites
+      // runId/runDir, so the persisted object differs from `results` and the
+      // shared marker must NOT be used.
+      const results = { specs: [], summary: {} };
+      const marker = '{"shared":"SHOULD_NOT_APPEAR"}';
+      const outPath = await reporters.runFolderReporter({}, dir, results, {
+        command: "runTests",
+        resultsJson: marker,
+      });
+      const written = fs.readFileSync(outPath, "utf8");
+      assert.notEqual(written, marker);
+      const parsed = JSON.parse(written);
+      assert.equal(parsed.runDir, path.dirname(outPath));
+      assert.equal(typeof parsed.runId, "string");
     });
 
     it("returns null and logs an error when the JSON write fails", async function () {
@@ -602,6 +693,28 @@ describe("utils.ts coverage", function () {
       const cap = captureConsole(sandbox);
       await outputResults({ reporters: [42] }, "out", { x: 1 }, {});
       assert.ok(cap.error.includes("Invalid reporter"));
+    });
+
+    // 2.4(b): outputResults serializes the results tree ONCE and hands the
+    // shared string to the JSON-writing reporters via options.resultsJson.
+    it("serializes results once and shares it with JSON-writing reporters", async function () {
+      captureConsole(sandbox);
+      const results = { summary: {}, specs: [{ specId: "s1" }] };
+      const jsonStub = sandbox.stub(reporters, "jsonReporter").resolves();
+      await outputResults({ reporters: ["json"] }, "out", results, {});
+      assert.ok(jsonStub.calledOnce);
+      const passedOptions = jsonStub.firstCall.args[3];
+      assert.equal(passedOptions.resultsJson, JSON.stringify(results, null, 2));
+    });
+
+    it("does not serialize the tree for a terminal-only run", async function () {
+      captureConsole(sandbox);
+      const results = { summary: {}, specs: [] };
+      const terminalStub = sandbox.stub(reporters, "terminalReporter").resolves();
+      await outputResults({ reporters: ["terminal"] }, "out", results, {});
+      assert.ok(terminalStub.calledOnce);
+      const passedOptions = terminalStub.firstCall.args[3];
+      assert.equal(passedOptions.resultsJson, undefined);
     });
   });
 
@@ -732,6 +845,18 @@ describe("utils.ts coverage", function () {
       const cfg = await setConfig({ args: { browserFallback: "bogus" } });
       assert.equal(cfg.browserFallback, "auto");
       assert.ok(cap.log.includes("Ignoring invalid --browser-fallback"));
+    });
+
+    it("overrides the config shell from --shell (normalized lower-case)", async function () {
+      const cfg = await setConfig({ args: { shell: "CMD" } });
+      assert.equal(cfg.shell, "cmd");
+    });
+
+    it("ignores an invalid --shell and keeps the default", async function () {
+      const cap = captureConsole(sandbox);
+      const cfg = await setConfig({ args: { shell: "zsh" } });
+      assert.equal(cfg.shell, "bash");
+      assert.ok(cap.log.includes("Ignoring invalid --shell"));
     });
 
     it("ignores an invalid concurrentRunners and keeps the default", async function () {

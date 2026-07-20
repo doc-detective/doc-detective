@@ -53,6 +53,8 @@ Here are several ways you might use the `dragAndDrop` action:
 
 ### Drag and drop using selectors or element text
 
+{/* test {"testId":"dragdrop-selector-text","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -71,7 +73,13 @@ Here are several ways you might use the `dragAndDrop` action:
 }
 ```
 
+{/* step {"stepId":"goto-dragdrop-text","description":"Open the drag and drop test page","goTo":"http://localhost:8092/drag-drop-test.html"} */}
+{/* step {"stepId":"dragdrop-text","description":"Drag a widget by selector and drop it onto a zone by text","dragAndDrop":{"source":".draggable[data-widget='text']","target":"Drop Zone 1"}} */}
+{/* test end */}
+
 ### Drag and drop with detailed element objects
+
+{/* test {"testId":"dragdrop-detailed-objects","detectSteps":false} */}
 
 ```json
 {
@@ -96,6 +104,10 @@ Here are several ways you might use the `dragAndDrop` action:
   ]
 }
 ```
+
+{/* step {"stepId":"goto-dragdrop-object","description":"Open the drag and drop test page","goTo":"http://localhost:8092/drag-drop-test.html"} */}
+{/* step {"stepId":"dragdrop-object","description":"Drag and drop using detailed source and target objects","dragAndDrop":{"source":{"selector":".draggable","elementText":"Widget Item 1"},"target":{"selector":".drop-zone","elementText":"Drop Zone 2"}}} */}
+{/* test end */}
 
 ## Related actions
 

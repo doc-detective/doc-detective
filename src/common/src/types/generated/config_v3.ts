@@ -22,7 +22,7 @@ export type FileTypeCustom =
  */
 export type RunShell = RunShellCommandSimple | RunShellCommandDetailed;
 /**
- * Command to perform in the machine's default shell.
+ * Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).
  */
 export type RunShellCommandSimple = string;
 /**
@@ -151,6 +151,7 @@ export interface Config {
    * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
    */
   autoScreenshot?: boolean;
+  annotationDefaults?: AnnotationDefaults;
   /**
    * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
    */
@@ -159,6 +160,10 @@ export interface Config {
    * If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only — local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.
    */
   autoUpdate?: boolean;
+  /**
+   * Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
+   */
+  shell?: "bash" | "cmd" | "powershell";
   /**
    * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., baked container images where temp gets cleared on reboot).
    */
@@ -363,9 +368,13 @@ export interface FileTypeExecutable {
 }
 export interface RunShellCommandDetailed {
   /**
-   * Command to perform in the machine's default shell.
+   * Command to perform in the selected shell (see `shell`; defaults to `bash` on every platform).
    */
   command: string;
+  /**
+   * Shell to run the command in. If unset, uses the config-level `shell` setting, which defaults to `bash`. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
+   */
+  shell?: "bash" | "cmd" | "powershell";
   /**
    * Arguments for the command.
    */
@@ -566,4 +575,343 @@ export interface EnvironmentDetails {
    * The processor architecture of the system running Doc Detective.
    */
   arch?: "arm32" | "arm64" | "x32" | "x64";
+}
+/**
+ * Default visual theme for screenshot and recording annotations. Specs and tests can override this value with their own `annotationDefaults` fields (test level wins over spec level, which wins over config level), and an individual annotation's `style` wins over all of them. Fields left unset fall back to Doc Detective's built-in theme. Setting a theme here keeps every annotated image in a doc set visually consistent.
+ */
+export interface AnnotationDefaults {
+  /**
+   * Default foreground color for every annotation type.
+   */
+  color?: string;
+  /**
+   * Default background color for text-bearing annotations.
+   */
+  background?: string;
+  /**
+   * Default line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Default font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Default font family.
+   */
+  fontFamily?: string;
+  /**
+   * Default opacity, from 0 to 1.
+   */
+  opacity?: number;
+  /**
+   * Default corner radius in pixels.
+   */
+  radius?: number;
+  /**
+   * Default padding in pixels.
+   */
+  padding?: number;
+  /**
+   * Default maximum text width in pixels.
+   */
+  maxWidth?: number;
+  /**
+   * Default blur strength.
+   */
+  intensity?: number;
+  outline?: AnnotationStyle;
+  arrow?: AnnotationStyle1;
+  badge?: AnnotationStyle2;
+  callout?: AnnotationStyle3;
+  blur?: AnnotationStyle4;
+  text?: AnnotationStyle5;
+  transition?: AnnotationTransition;
+}
+/**
+ * Style overrides applied to every `outline` annotation.
+ */
+export interface AnnotationStyle {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `arrow` annotation.
+ */
+export interface AnnotationStyle1 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `badge` annotation.
+ */
+export interface AnnotationStyle2 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `callout` annotation.
+ */
+export interface AnnotationStyle3 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `blur` annotation.
+ */
+export interface AnnotationStyle4 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Style overrides applied to every `text` annotation.
+ */
+export interface AnnotationStyle5 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * Default transition for annotations that don't set their own.
+ */
+export interface AnnotationTransition {
+  /**
+   * How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.
+   */
+  enter?: "none" | "fade" | "pop" | "draw";
+  /**
+   * How the annotation disappears.
+   */
+  exit?: "none" | "fade";
+  /**
+   * Length of the enter and exit animations, in milliseconds.
+   */
+  durationMs?: number;
 }

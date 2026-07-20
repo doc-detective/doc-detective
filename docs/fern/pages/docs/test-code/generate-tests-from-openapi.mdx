@@ -1,0 +1,252 @@
+---
+title: Generate requests from OpenAPI
+description: Drive httpRequest steps from an OpenAPI description, seed them with examples, and override the Authorization header.
+---
+
+When you already have an OpenAPI description for an API, you don't have to hand-write the URL, method, and path for every `httpRequest` step. Point a step at an operation by its `operationId`, and Doc Detective builds the request from the description, validates the response against the operation's schema, and fills in example data when you ask it to. This guide walks you through registering a description, referencing operations from your steps, and overriding the `Authorization` header so the requests authenticate.
+
+This guide builds on [Test HTTP and APIs](/docs/test-docs/http-and-api), which covers hand-written `httpRequest` steps. For the full set of `openApi` fields, see the [`openApi`](/reference/schemas/openapi) and [`httpRequest`](/reference/schemas/httprequest) references.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- An OpenAPI 3.x description for the API you want to test, reachable as a URL or a local file path. The examples below use a `reqres.openapi.json` description for the public [reqres.in](https://reqres.in) test API, with operations such as `getUserById` and `createUser`.
+- A directory where you can create a `.spec.json` file.
+
+## Step 1: Register the OpenAPI description
+
+Register the description once under `integrations.openApi` in your `.doc-detective.json` config, then reference it by `name` from any step. Each registered entry needs a `name` and a `descriptionPath`:
+
+```json title=".doc-detective.json"
+{
+  "integrations": {
+    "openApi": [
+      {
+        "name": "reqres",
+        "descriptionPath": "./reqres.openapi.json"
+      }
+    ]
+  }
+}
+```
+
+`descriptionPath` accepts a local path or a URL, and Doc Detective resolves any `$ref`s in the description when it loads it. A config-level entry applies to every test in the run, so this is the best place to declare a description you reuse across specs.
+
+If you'd rather keep everything in one file, skip the config and load the description directly from the step instead. See [Step 2](#step-2-reference-an-operation-from-a-step).
+
+## Step 2: Reference an operation from a step
+
+In a step, set `httpRequest.openApi` to the operation you want to call. There are three ways to do it:
+
+{/* test {"testId":"generate-tests-from-openapi","detectSteps":false,"openApi":[{"name":"reqres","descriptionPath":"./reqres.openapi.json","server":"http://localhost:8092/api","mockResponse":true}]} */}
+
+- **By `operationId` only (string shorthand).** Provide the operation ID as the value of `openApi`. Doc Detective searches every registered description and uses the first operation whose ID matches. Because it stops at the first match, the shorthand only targets the operation you mean when that ID is unique across your registered descriptions. If the same ID appears in more than one description, pin the lookup with a registered `name` and the object form instead (see below).
+
+  ```json
+  {
+    "description": "Get a user by ID.",
+    "httpRequest": {
+      "openApi": "getUserById",
+      "request": {
+        "parameters": { "id": 2 }
+      }
+    }
+  }
+  ```
+
+  {/* step {"stepId":"openapi-shorthand","description":"Resolve getUserById via the string shorthand","httpRequest":{"openApi":"getUserById","request":{"parameters":{"id":2}},"response":{}}} */}
+
+- **By registered `name` and `operationId`.** Pin the lookup to one registered description. This is useful when the same operation ID exists in more than one description.
+
+  ```json
+  {
+    "description": "Get a user by ID from the reqres description.",
+    "httpRequest": {
+      "openApi": {
+        "name": "reqres",
+        "operationId": "getUserById"
+      },
+      "request": {
+        "parameters": { "id": 2 }
+      }
+    }
+  }
+  ```
+
+  {/* step {"stepId":"openapi-name-operationid","description":"Resolve getUserById via name + operationId","httpRequest":{"openApi":{"name":"reqres","operationId":"getUserById"},"request":{"parameters":{"id":2}},"response":{}}} */}
+
+- **By inline `descriptionPath` and `operationId`.** Load a description straight from the step, with no config entry.
+
+  ```json
+  {
+    "description": "Get a user by ID from a local description file.",
+    "httpRequest": {
+      "openApi": {
+        "descriptionPath": "./reqres.openapi.json",
+        "operationId": "getUserById"
+      },
+      "request": {
+        "parameters": { "id": 3 }
+      }
+    }
+  }
+  ```
+
+  {/* step {"stepId":"openapi-descriptionpath","description":"Resolve getUserById via inline descriptionPath","httpRequest":{"openApi":{"descriptionPath":"./reqres.openapi.json","operationId":"getUserById","mockResponse":true},"request":{"parameters":{"id":3}},"response":{}}} */}
+
+Doc Detective derives the URL and method from the operation and substitutes path parameters (such as `{id}`) from the values you pass in `request.parameters`. You can still set `request.headers`, `request.parameters`, `request.body`, and `response` expectations on the step, and they layer on top of whatever the description provides.
+
+## Step 3: Override the Authorization header
+
+OpenAPI security schemes don't authenticate the request on their own. Doc Detective doesn't read `security` or `securitySchemes` from the description or inject credentials from them, so you supply the `Authorization` header yourself. You can set it in two places.
+
+To authenticate every request built from one description, set `openApi.headers`. This is the right place for a credential the whole description shares:
+
+```json
+{
+  "description": "Get a user, authenticated for the whole description.",
+  "httpRequest": {
+    "openApi": {
+      "name": "reqres",
+      "operationId": "getUserById",
+      "headers": {
+        "Authorization": "Bearer $TOKEN"
+      }
+    },
+    "request": {
+      "parameters": { "id": 2 }
+    }
+  }
+}
+```
+
+{/* step {"stepId":"openapi-headers-auth","description":"Authenticate the whole description via openApi.headers","httpRequest":{"openApi":{"name":"reqres","operationId":"getUserById","headers":{"Authorization":"Bearer $TOKEN"}},"request":{"parameters":{"id":2}},"response":{}}} */}
+
+To override the header for a single request, set `request.headers.Authorization`. A header in `request.headers` wins over the same header from `openApi.headers`, so use it to swap credentials for one step:
+
+```json
+{
+  "description": "Override the Authorization header for this request only.",
+  "httpRequest": {
+    "openApi": {
+      "name": "reqres",
+      "operationId": "getUserById"
+    },
+    "request": {
+      "headers": {
+        "Authorization": "Bearer $ADMIN_TOKEN"
+      },
+      "parameters": { "id": 2 }
+    }
+  }
+}
+```
+
+{/* step {"stepId":"openapi-request-header-override","description":"Override Authorization for one request via request.headers","httpRequest":{"openApi":{"name":"reqres","operationId":"getUserById"},"request":{"headers":{"Authorization":"Bearer $ADMIN_TOKEN"},"parameters":{"id":2}},"response":{}}} */}
+
+When the same header is set in more than one place, the most specific value wins. From lowest to highest precedence: a header from an example (see [Step 4](#step-4-seed-requests-with-example-data)), then a config-level `openApi.headers`, then a step-level `openApi.headers`, then `request.headers`.
+
+To keep credentials out of your specs, store the token in an environment variable and reference it with `$VARIABLE_NAME`. Doc Detective substitutes `$TOKEN` and `$ADMIN_TOKEN` from the environment when it runs the step, so `"Bearer $TOKEN"` becomes the resolved value before the request is sent. See [Load variables](/docs/actions/loadvariables) for how Doc Detective reads variables from a `.env` file.
+
+## Step 4: Seed requests with example data
+
+OpenAPI descriptions often include example requests and responses. Set `useExample` to fill the request, validate the response, or both from those examples instead of writing the data by hand:
+
+- `request` seeds the request body, parameters, and headers from the operation's example.
+- `response` uses the example response for validation.
+- `both` does both.
+- `none` (the default) ignores examples.
+
+```json
+{
+  "description": "Create a user from the operation's example request.",
+  "httpRequest": {
+    "openApi": {
+      "name": "reqres",
+      "operationId": "createUser",
+      "useExample": "request"
+    }
+  }
+}
+```
+
+{/* step {"stepId":"openapi-useexample","description":"Seed the createUser request from the operation example","httpRequest":{"openApi":{"name":"reqres","operationId":"createUser","useExample":"request"},"response":{}}} */}
+
+When an operation defines more than one example, set `exampleKey` to choose which one to use. Anything you set in `request` still overrides the matching part of the example, so you can seed most of the request and adjust a single field.
+
+## Step 5: Validate the response and mock unfinished endpoints
+
+By default, Doc Detective validates both the request and the response against the operation's schema (`validateAgainstSchema` defaults to `both`). When the response doesn't match the schema, the step fails and exposes the result as `$$responseSchemaValid`. To narrow or turn off that check, set `validateAgainstSchema` to `request`, `response`, or `none`.
+
+If the endpoint isn't built yet, set `mockResponse` to `true`. Doc Detective skips the network call and returns the operation's example or schema as the response, so you can write and run tests before the API exists:
+
+```json
+{
+  "description": "Mock the createUser response from the description.",
+  "httpRequest": {
+    "openApi": {
+      "name": "reqres",
+      "operationId": "createUser",
+      "mockResponse": true,
+      "statusCode": 201
+    }
+  }
+}
+```
+
+{/* step {"stepId":"openapi-mockresponse","description":"Mock the createUser response from the description","httpRequest":{"openApi":{"name":"reqres","operationId":"createUser","mockResponse":true,"statusCode":201,"useExample":"request"},"response":{}}} */}
+
+{/* test end */}
+
+## Step 6: Run the test
+
+Run the spec and read the result.
+
+<Tabs>
+  <Tab title="NPX" language="npx">
+
+  ```bash
+  npx doc-detective --input openapi.spec.json
+  ```
+
+  </Tab>
+  <Tab title="Docker" language="docker">
+
+  ```bash
+  docker run -v .:/app docdetective/docdetective:linux --input /app/openapi.spec.json
+  ```
+
+  </Tab>
+</Tabs>
+
+## Verify it works
+
+Each step that resolved its operation, sent the request (or returned a mock), and matched its schema and response expectations reports `PASS`. A request that fails schema validation reports `FAIL` with the validation error. To see where results land, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Troubleshooting
+
+### The step fails with "OpenAPI integration not found"
+
+**Cause:** The `name` in the step doesn't match any registered description, or no description is registered.
+
+**Solution:** Confirm the `name` matches an entry under `integrations.openApi` in your config, or load the description from the step with `descriptionPath` instead.
+
+### The step fails because the request isn't authenticated
+
+**Cause:** The OpenAPI description's security scheme doesn't add the `Authorization` header for you, because Doc Detective doesn't read security schemes.
+
+**Solution:** Set `Authorization` yourself, either in `openApi.headers` for every request from the description or in `request.headers` for a single step, and supply the token through an environment variable such as `$TOKEN`.
+
+### The response fails schema validation unexpectedly
+
+**Cause:** `validateAgainstSchema` defaults to `both`, so a response that doesn't match the operation's schema fails the step.
+
+**Solution:** Confirm the response matches the schema, or set `validateAgainstSchema` to `request` or `none` to narrow the check when the description is stricter than the live API.
+
+## What's next
+
+- [Test HTTP and APIs](/docs/test-docs/http-and-api) for hand-written `httpRequest` steps, response assertions, and chaining calls with captured values.
+- [`httpRequest` action reference](/docs/actions/httprequest) and the [`openApi`](/reference/schemas/openapi) schema for every field.
+- [Run in CI and at scale](/docs/ci/overview) to gate your build on these tests.

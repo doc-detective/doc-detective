@@ -20,7 +20,9 @@ import {
   getEnvironment,
   resolveConcurrentRunners,
   clearAppCache,
+  patchAppCache,
   verifyAppDrivers,
+  detectInstalledBrowserDrivers,
 } from "../dist/core/config.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
@@ -169,6 +171,121 @@ describe("config.ts — clearAppCache", function () {
     clearAppCache(config);
     const afterClear = await getAvailableApps({ config });
     assert.notStrictEqual(afterClear, first);
+  });
+});
+
+// 2.1: driver presence is a filesystem question, not an `appium driver list`
+// spawn. detectInstalledBrowserDrivers maps each managed browser driver to its
+// npm package name — the coverage the old table-regex parsing recognized.
+describe("config.ts — detectInstalledBrowserDrivers (2.1)", function () {
+  it("maps chromium/gecko/safari to their appium-*-driver packages", function () {
+    const probed = [];
+    const drivers = detectInstalledBrowserDrivers({ cacheDir: "/nonexistent" }, (name) => {
+      probed.push(name);
+      return name === "appium-chromium-driver";
+    });
+    assert.deepEqual(drivers, { chromium: true, gecko: false, safari: false });
+    assert.deepEqual(
+      probed.slice().sort(),
+      ["appium-chromium-driver", "appium-geckodriver", "appium-safari-driver"]
+    );
+  });
+
+  it("reports gecko and safari present when their packages resolve", function () {
+    const drivers = detectInstalledBrowserDrivers({}, (name) => name !== "appium-chromium-driver");
+    assert.deepEqual(drivers, { chromium: false, gecko: true, safari: true });
+  });
+
+  it("reports all absent when nothing resolves", function () {
+    const drivers = detectInstalledBrowserDrivers({}, () => false);
+    assert.deepEqual(drivers, { chromium: false, gecko: false, safari: false });
+  });
+});
+
+// 2.2: after a JIT preflight install, patch the app cache with the just-installed
+// descriptors so the next getAvailableApps() is a cache HIT (no re-probe). The
+// functional verifyDriverBinary (Layer 2) gate is preserved; fail-open on error.
+describe("config.ts — patchAppCache (2.2)", function () {
+  this.timeout(30000);
+
+  const chromeDesc = {
+    name: "chrome",
+    version: "123",
+    path: "/fake/chrome",
+    driverPath: "/fake/chromedriver",
+  };
+
+  it("adds a verified just-installed chrome so getAvailableApps hits the patched cache", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "windows" } };
+    // Pre-install probe result (empty) is cached first.
+    assert.deepEqual(await getAvailableApps({ config }), []);
+    await patchAppCache(config, [chromeDesc], {
+      verify: async () => ({ ok: true }),
+      detectDrivers: () => ({ chromium: true, gecko: false, safari: false }),
+    });
+    const after = await getAvailableApps({ config });
+    assert.equal(after.length, 1);
+    assert.equal(after[0].name, "chrome");
+    assert.equal(after[0].version, "123");
+    assert.equal(after[0].driver, "/fake/chromedriver");
+  });
+
+  it("excludes a browser whose driver fails the functional gate (Layer 2 preserved)", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "windows" } };
+    await getAvailableApps({ config });
+    await patchAppCache(config, [chromeDesc], {
+      verify: async () => ({ ok: false, error: "did not validate" }),
+      detectDrivers: () => ({ chromium: true, gecko: false, safari: false }),
+    });
+    assert.deepEqual(await getAvailableApps({ config }), []);
+  });
+
+  it("skips a browser whose appium driver package is absent (presence gate)", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "windows" } };
+    await getAvailableApps({ config });
+    await patchAppCache(config, [chromeDesc], {
+      verify: async () => ({ ok: true }),
+      detectDrivers: () => ({ chromium: false, gecko: false, safari: false }),
+    });
+    assert.deepEqual(await getAvailableApps({ config }), []);
+  });
+
+  it("fails open (invalidates the cache) when verification throws", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "windows" } };
+    const primed = await getAvailableApps({ config });
+    // Confirm the entry is cached (same reference on a hit).
+    assert.strictEqual(await getAvailableApps({ config }), primed);
+    await patchAppCache(config, [chromeDesc], {
+      verify: async () => {
+        throw new Error("boom");
+      },
+      detectDrivers: () => ({ chromium: true, gecko: false, safari: false }),
+    });
+    // The entry was deleted → next call re-probes into a NEW array.
+    const after = await getAvailableApps({ config });
+    assert.notStrictEqual(after, primed);
+    assert.deepEqual(after, []);
+  });
+
+  it("merges into the existing cache entry without duplicating browsers", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "windows" } };
+    await getAvailableApps({ config });
+    await patchAppCache(config, [chromeDesc], {
+      verify: async () => ({ ok: true }),
+      detectDrivers: () => ({ chromium: true, gecko: false, safari: false }),
+    });
+    // A second patch for the same browser must not add a duplicate entry.
+    await patchAppCache(config, [chromeDesc], {
+      verify: async () => ({ ok: true }),
+      detectDrivers: () => ({ chromium: true, gecko: false, safari: false }),
+    });
+    const after = await getAvailableApps({ config });
+    assert.equal(after.filter((a) => a.name === "chrome").length, 1);
   });
 });
 

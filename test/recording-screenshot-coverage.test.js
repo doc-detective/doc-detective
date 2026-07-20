@@ -79,11 +79,16 @@ function makeFakeElement({ location = { x: 0, y: 0 }, size = { width: 10, height
   };
 }
 
-// A fake WebDriver whose saveScreenshot writes a chosen PNG buffer to the
-// target path. Optional overrides let individual tests supply crop-related
-// hooks (execute/getLocation/getSize/pause) without a real browser.
+// A fake WebDriver whose takeScreenshot returns a chosen PNG buffer as base64
+// (the in-memory capture path saveScreenshot now uses). `saveScreenshot` is
+// retained for parity with the real WebdriverIO surface. Optional overrides let
+// individual tests supply crop-related hooks (execute/getLocation/getSize/
+// pause) — or a throwing takeScreenshot — without a real browser.
 function fakeDriver(buffer, overrides = {}) {
   return {
+    async takeScreenshot() {
+      return buffer.toString("base64");
+    },
     async saveScreenshot(filePath) {
       fs.writeFileSync(filePath, buffer);
     },
@@ -228,6 +233,22 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     assert.ok(fs.existsSync(target));
   });
 
+  it("reports the saved screenshot's rendered dimensions in outputs (ground truth)", async function () {
+    // The article's workaround was captioning screenshots with the size the
+    // page actually rendered. saveScreenshot now reports that size directly, so
+    // a floored/emulated viewport is reconcilable against the file.
+    const target = path.join(tmpDir, "dims.png");
+    const buf = await makePngBuffer(375, 812);
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "dims1", screenshot: target },
+      driver: fakeDriver(buf),
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.width, 375);
+    assert.equal(result.outputs.height, 812);
+  });
+
   it("new capture (no reference) preserves sourceIntegration on the output", async function () {
     const target = path.join(tmpDir, "new-si.png");
     const buf = await makePngBuffer(24, 18);
@@ -285,19 +306,21 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     assert.equal(typeof result.outputs.variation, "number");
   });
 
-  it("FAILs when driver.saveScreenshot throws (capture error, no assertions)", async function () {
+  it("FAILs when driver.takeScreenshot throws (capture error, no assertions)", async function () {
     const target = path.join(tmpDir, "boom.png");
     const result = await saveScreenshot({
       config,
       step: { stepId: "boom", screenshot: { path: target } },
       driver: {
-        async saveScreenshot() {
+        async takeScreenshot() {
           throw new Error("device lost");
         },
       },
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Couldn't save screenshot/);
+    // Nothing should have been written to disk on a capture failure.
+    assert.equal(fs.existsSync(target), false);
   });
 
   it("FAILs to fetch a private/unreachable URL reference (offline SSRF guard)", async function () {
@@ -647,6 +670,62 @@ describe("startRecording: guards + browser engine", function () {
     });
     assert.equal(result.status, "SKIPPED");
     assert.match(result.description, /File already exists/);
+  });
+
+  // ADR 01079: an existing target skips the *video*, but checkpoints are a
+  // separate concern — the span still compares read-only, or `checkpoints: true`
+  // would seed baselines on the first run and never compare again.
+  it("existing target file + checkpoints -> SKIPPED with a phantom span", async function () {
+    const target = path.join(tmpDir, "exists.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: {
+        stepId: "x",
+        record: { path: target, overwrite: "false", checkpoints: true },
+      },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /checkpoint comparisons only/);
+    assert.equal(result.recording?.type, "phantom");
+    assert.equal(result.recording?.targetPath, target);
+  });
+
+  it("existing target file + aboveVariation -> records (never skips)", async function () {
+    const target = path.join(tmpDir, "av.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: {
+        stepId: "x",
+        record: { path: target, overwrite: "aboveVariation" },
+      },
+      driver: {},
+    });
+    // Must not hit the existing-file skip: aboveVariation always records, then
+    // decides at stopRecord whether the capture replaces the target.
+    assert.ok(
+      !/File already exists/.test(String(result.description)),
+      `aboveVariation must not skip an existing target, got: ${result.description}`
+    );
+  });
+
+  it("existing target file + overwrite:false, no checkpoints -> plain SKIPPED, no phantom", async function () {
+    const target = path.join(tmpDir, "plain.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: { stepId: "x", record: { path: target, overwrite: "false" } },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /File already exists/);
+    assert.equal(result.recording, undefined);
   });
 
   it("target already claimed by an active recording -> SKIPPED", async function () {

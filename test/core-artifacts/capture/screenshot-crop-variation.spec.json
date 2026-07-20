@@ -1,0 +1,46 @@
+{
+  "specId": "screenshot-crop-variation",
+  "description": "Crop + variation-compare together — the worst-case path the in-memory screenshot pipeline touches most. The first step captures and crops an element into a reference; the second captures and crops the same element again and compares it against that reference within maxVariation (buffer capture -> in-memory crop -> decoded-buffer compare -> single write). Headed Chrome only (Windows/macOS), like the other browser-engine capture permutations, so it lands SKIPPED on headless/Linux.",
+  "tests": [
+    {
+      "testId": "crop-then-variation-compare",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "stepId": "crop-variation-seed",
+          "screenshot": {
+            "path": "crop-variation.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation",
+            "crop": "#text-input"
+          }
+        },
+        {
+          "stepId": "crop-variation-compare",
+          "screenshot": {
+            "path": "crop-variation.png",
+            "directory": "static/images",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation",
+            "crop": "#text-input"
+          }
+        }
+      ]
+    }
+  ]
+}

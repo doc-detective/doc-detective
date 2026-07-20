@@ -53,8 +53,15 @@ async function setElementOutputs({ element }: { element: any }) {
 
 async function findElementByRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
   await driver.pause(timeout);
-  // Find an element based on a regex pattern in text
-  const elements = await driver.$$("//*[normalize-space(text())]");
+  // Find an element based on a regex pattern in text. Candidates are elements
+  // with a non-empty DIRECT text node (`text()[normalize-space()]`), i.e. that
+  // contribute their own text. This includes framework-fragmented elements
+  // whose content lives in a non-first text node (`["", "Title", ""]`), which
+  // the old first-text-node predicate `normalize-space(text())` missed, while
+  // still excluding pure containers like `<body>` — matching on `.`/whole
+  // subtree text would make the substring regex match `<body>` (the first
+  // element in document order) instead of the real target (ADR 01061).
+  const elements = await driver.$$("//*[text()[normalize-space()]]");
   for (const element of elements) {
     const text = await element.getText();
     if (text.match(pattern)) {
@@ -168,8 +175,17 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
     })
     .catch(() => null);
 
+  const textLiteral = xpathLiteral(normalizeText(string));
   const textPromise = driver
-    .$(`//*[normalize-space(text())="${string}"]`)
+    // Match the element's FULL normalized text, not its first text node — a
+    // framework-fragmented heading (e.g. text nodes ["", "Title", ""]) has an
+    // empty first node and would never match `normalize-space(text())` (ADR 01061).
+    // `not(.//*[…])` keeps the INNERMOST match: a wrapping ancestor whose whole
+    // text also equals the string (a single-child container) must not shadow the
+    // leaf, or clicks/`outputs.element` would target the container.
+    .$(
+      `//*[normalize-space(.)=${textLiteral} and not(.//*[normalize-space(.)=${textLiteral}])]`
+    )
     .then(async (el: any) => {
       await el.waitForExist({ timeout });
       return el;
@@ -271,7 +287,10 @@ async function findElementBySelectorAndText({
         if (!pattern.test(elementText)) {
           continue;
         }
-      } else if (elementText !== text) {
+      } else if (normalizeText(elementText) !== normalizeText(text)) {
+        // Whitespace-insensitive text match (ADR 01061): trim + collapse so a
+        // driver's surrounding/collapsed whitespace can't reject an identical
+        // on-screen string.
         continue;
       }
       elements.push(el);
@@ -293,6 +312,37 @@ async function findElementBySelectorAndText({
 // Helper function to check if a string is a regex pattern
 function isRegexPattern(str: any) {
   return typeof str === "string" && str.startsWith("/") && str.endsWith("/");
+}
+
+// Collapse every run of whitespace (spaces, tabs, newlines) to a single space
+// and trim the ends — XPath `normalize-space` semantics. Used to compare
+// on-screen text so driver-specific whitespace in `getText()` (geckodriver keeps
+// surrounding newlines that chromedriver strips) doesn't decide a match. See
+// ADR 01061.
+function normalizeText(value: any) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+// Quote a string as an XPath 1.0 string literal. XPath 1.0 has no escape
+// mechanism, so a value containing both quote kinds must be assembled with
+// concat(). Used to embed author-supplied text safely into a match expression.
+function xpathLiteral(value: string) {
+  if (!value.includes('"')) return `"${value}"`;
+  if (!value.includes("'")) return `'${value}'`;
+  const parts = value.split('"').map((p) => `"${p}"`);
+  return `concat(${parts.join(', \'"\', ')})`;
+}
+
+// Match a driver-reported TEXT value (element text or accessible name) against a
+// criterion. A `/regex/` criterion tests the raw value (so patterns that
+// intentionally include whitespace keep working); a plain string is compared
+// after normalizing whitespace on both operands.
+function matchesText(value: any, pattern: any) {
+  if (isRegexPattern(pattern)) {
+    const regex = new RegExp(pattern.slice(1, -1));
+    return regex.test(String(value ?? ""));
+  }
+  return normalizeText(value) === normalizeText(pattern);
 }
 
 // Helper function to match a value against a pattern (string or regex)
@@ -369,6 +419,7 @@ async function findElementByCriteria({
   elementAria,
   timeout = 5000,
   driver,
+  all = false,
 }: {
   selector?: any;
   elementText?: any;
@@ -379,6 +430,12 @@ async function findElementByCriteria({
   elementAria?: any;
   timeout?: number;
   driver: any;
+  // Collect EVERY matching element instead of stopping at the first. Used by
+  // annotations' `all` option, where redacting only the first match would
+  // leave the rest of the sensitive content visible. Callers that don't pass
+  // it keep the original first-match-and-stop behavior; `elements` is always
+  // populated, so `element` stays the first match either way.
+  all?: boolean;
 }) {
   // Validate at least one criterion is provided
   if (
@@ -466,9 +523,28 @@ async function findElementByCriteria({
           }
         }
 
-        // Add text condition (check for text content existence)
-        if (elementText) {
-          xpathConditions.push(`normalize-space(text())`);
+        // Add text condition. Match on the element's FULL normalized text
+        // (`normalize-space(.)`), not its first text node
+        // (`normalize-space(text())`) which frameworks routinely leave empty by
+        // fragmenting text into multiple nodes (ADR 01061). For a plain string
+        // we narrow directly to an exact whole-text match — efficient and
+        // churn-safe on reactive pages; the per-candidate getText check below
+        // (whitespace-normalized) confirms it. A regex can't be expressed in
+        // XPath, so collect every text-bearing element and filter in JS.
+        if (elementText && !isRegexPattern(elementText)) {
+          // `not(.//*[…])` keeps the INNERMOST match so a single-child wrapper
+          // whose whole text also equals the string doesn't shadow the leaf
+          // (which would mis-target click/type sub-effects and outputs.element).
+          const lit = xpathLiteral(normalizeText(elementText));
+          xpathConditions.push(
+            `(normalize-space(.)=${lit} and not(.//*[normalize-space(.)=${lit}]))`
+          );
+        } else if (elementText) {
+          // Regex can't be expressed in XPath: collect elements with a non-empty
+          // DIRECT text node (includes framework-fragmented elements, excludes
+          // pure containers like `<body>` so the JS substring regex below can't
+          // match the whole page) and filter in JS.
+          xpathConditions.push(`text()[normalize-space()]`);
         }
 
         // Build final XPath
@@ -493,15 +569,16 @@ async function findElementByCriteria({
       }
 
       // Filter candidates by all criteria - check elements sequentially to avoid hangs
-      let matchedElement: any = null;
+      const matchedElements: any[] = [];
       let matchedCriteria: string[] = [];
 
       for (const element of candidates) {
         if (!elementText && !elementId && !elementTestId && !elementClass && !elementAttribute && !elementAria) {
           // No criteria to check, should happen if only selector was used
-          matchedElement = element;
+          matchedElements.push(element);
           matchedCriteria = ["selector"];
-          break;
+          if (!all) break;
+          continue;
         }
         try {
           // Check if element is valid and exists in DOM
@@ -581,11 +658,18 @@ async function findElementByCriteria({
               }
               elementCriteriaUsed.push(checkType.type);
             } else {
-              // Text/aria/id/testId checks need pattern matching
-              if (
-                !actualValue ||
-                !matchesPattern(actualValue, checkType.value)
-              ) {
+              // Text/aria/id/testId checks need pattern matching. Text values
+              // (elementText / elementAria) match after whitespace normalization
+              // so a driver's surrounding/collapsed whitespace can't reject an
+              // otherwise-identical on-screen string (ADR 01061); ids/testIds
+              // stay exact.
+              const isTextCriterion =
+                checkType.type === "elementText" ||
+                checkType.type === "elementAria";
+              const matched = isTextCriterion
+                ? matchesText(actualValue, checkType.value)
+                : matchesPattern(actualValue, checkType.value);
+              if (!actualValue || !matched) {
                 allChecksPassed = false;
                 break;
               }
@@ -595,9 +679,11 @@ async function findElementByCriteria({
 
           // If all checks passed, we found our element
           if (allChecksPassed) {
-            matchedElement = element;
-            matchedCriteria = elementCriteriaUsed;
-            break; // Found a match, stop searching
+            matchedElements.push(element);
+            // `foundBy` describes the FIRST match, so it means the same thing
+            // whether or not `all` was set — later matches must not rewrite it.
+            if (matchedElements.length === 1) matchedCriteria = elementCriteriaUsed;
+            if (!all) break; // Found a match, stop searching
           }
         } catch {
           // Element might have become stale, skip it
@@ -606,12 +692,13 @@ async function findElementByCriteria({
       }
 
       // Check if we found a match
-      if (matchedElement) {
+      if (matchedElements.length > 0) {
         const allCriteria = selector
           ? ["selector", ...matchedCriteria]
           : matchedCriteria;
         return {
-          element: matchedElement,
+          element: matchedElements[0],
+          elements: matchedElements,
           foundBy: allCriteria,
           error: null,
         };
@@ -627,6 +714,7 @@ async function findElementByCriteria({
   // Timeout reached, return error
   return {
     element: null,
+    elements: [],
     foundBy: null,
     error: "Element not found within timeout",
   };

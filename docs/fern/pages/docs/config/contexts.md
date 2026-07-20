@@ -136,6 +136,10 @@ You can specify browser window dimensions, viewport dimensions, and visibility (
 }
 ```
 
+<Note>
+Doc Detective sizes the `viewport` by resizing the browser window, so the browser/OS **minimum window size** applies. Desktop Chrome, for example, can't render a viewport narrower than about 500px, and this floor applies in headless mode too. When a requested `viewport` is smaller than that floor, the page renders at the larger, realized size. The run still passes (the constraint is external, not a test error), but Doc Detective logs a `warning` naming the requested and rendered dimensions, and the [`startSurface`](/docs/actions/startSurface) action reports the realized size in its `viewport` output as `{ requested, actual }`. Screenshots and measurements then reflect the size the page actually rendered rather than the size you asked for. To capture true sub-500px widths (a 375px phone, say), run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
+</Note>
+
 ### Firefox (`firefox`)
 
 Available on Windows, macOS, and Linux.
@@ -259,6 +263,8 @@ Doc Detective can run tests targeting the following platforms:
 When you specify a desktop platform (or multiple platforms) in a context, Doc Detective attempts to run the associated tests only when executed on a matching operating system. If `platforms` is omitted, it defaults to the current platform.
 
 Mobile platforms name the **target** the test runs against, not the host: an `android` context runs on any host capable of running the emulator, and an `ios` context on any macOS host with Xcode. Incapable hosts skip the context with guidance instead of failing.
+
+The desktop platforms (`windows`, `mac`, and `linux`) run browser tests and, on Windows and macOS, [native desktop app tests](/docs/actions/startsurface). The mobile platforms drive native apps rather than a browser, with their default device set by the context's `device` field: `android` runs native Android app tests on a managed emulator (see [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator)), and `ios` runs native iOS app tests on a managed simulator (see [Run on an iOS simulator](/docs/actions/startsurface#run-on-an-ios-simulator)). iOS app tests run only on a macOS host. An `ios` context on Windows or Linux skips with a reason. Mobile browser testing isn't available yet, so a mobile context with a browser step skips.
 
 For example, this context targets only macOS:
 

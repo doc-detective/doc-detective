@@ -41,7 +41,46 @@ describe("Run tests successfully", function () {
         0,
         `${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
       );
+      // The inline warm phase ran before Phase 2 and reported its tasks: a
+      // browser run at concurrentRunners 2 always plans the browser install
+      // (skipped when already available) and the session probe. Enum
+      // membership (kind/outcome values) is the report_v3 schema's contract,
+      // policed by src/common/test/validate.test.js — this smoke asserts the
+      // shape and the browser tasks only.
+      assert.ok(result.warm, "report.warm missing");
+      assert.equal(typeof result.warm.durationMs, "number");
+      assert.ok(Array.isArray(result.warm.tasks));
+      for (const task of result.warm.tasks) {
+        assert.equal(typeof task.name, "string");
+        assert.equal(typeof task.kind, "string");
+        assert.equal(typeof task.outcome, "string");
+        assert.equal(typeof task.durationMs, "number");
+      }
+      assert.ok(
+        result.warm.tasks.some(
+          (t) => t.kind === "browser-install" || t.kind === "session-probe"
+        ),
+        `expected browser warm tasks, got: ${JSON.stringify(result.warm.tasks)}`
+      );
     });
+  });
+
+  it("A run with no provisioning needs reports an empty warm phase", async () => {
+    // Shell-only spec: the warm planner derives nothing, so the phase is a
+    // no-op by construction — baseline latency unchanged. Hermetic on every OS.
+    const shellOnly = {
+      tests: [{ testId: "warm-noop", steps: [{ runShell: "echo warm" }] }],
+    };
+    fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+    const tempFilePath = path.resolve("./.tmp/temp-warm-noop-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(shellOnly, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath });
+      assert.equal(result.summary.specs.fail, 0);
+      assert.deepEqual(result.warm, { durationMs: 0, tasks: [] });
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
   });
 
   it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
@@ -87,6 +126,141 @@ describe("Run tests successfully", function () {
     } finally {
       fs.unlinkSync(tempFilePath);
     }
+  });
+
+  describe("runShell shell selection", function () {
+    // Shell steps run through real spawns; give slow Windows JIT paths room.
+    this.timeout(300000);
+
+    async function runShellSpec(steps, configOverrides = {}) {
+      const spec = { tests: [{ testId: "shell-test", steps }] };
+      // Scratch specs live under the gitignored .tmp/ (see CLAUDE.md
+      // "Testing behavior") so a killed run can't orphan them into a commit.
+      fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+      const tempFilePath = path.resolve(
+        `./.tmp/temp-shell-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
+      );
+      fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+      try {
+        return await runTests({ input: tempFilePath, ...configOverrides });
+      } finally {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+    it("defaults to bash on every platform (bash-only syntax passes)", async function () {
+      // `[[ ]]` is a bashism: it errors under cmd.exe AND under dash (the
+      // /bin/sh of Debian/Ubuntu), so this passing proves the default shell
+      // is genuinely bash — not the old platform default.
+      const result = await runShellSpec([
+        {
+          runShell: {
+            command: '[[ "ok" == o* ]] && echo bash-default-works',
+            stdio: "bash-default-works",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("honors a config-level shell default and a step-level override (Windows)", async function () {
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec(
+        [
+          {
+            // Inherits config.shell = cmd: %VAR% expansion only happens in cmd.
+            runShell: {
+              command: "echo %PROCESSOR_ARCHITECTURE%",
+              stdio: "/^(?!.*%PROCESSOR_ARCHITECTURE%).+/",
+            },
+          },
+          {
+            // Step-level bash wins over the config-level cmd.
+            runShell: {
+              command: '[[ "ok" == o* ]] && echo step-override-works',
+              shell: "bash",
+              stdio: "step-override-works",
+            },
+          },
+        ],
+        { shell: "cmd" }
+      );
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("FAILs cmd and powershell steps off Windows with an actionable message", async function () {
+      if (process.platform === "win32") this.skip();
+      for (const shell of ["cmd", "powershell"]) {
+        const result = await runShellSpec([
+          { runShell: { command: "echo hi", shell } },
+        ]);
+        assert.equal(result.summary.specs.fail, 1);
+        const step = result.specs[0].tests[0].contexts[0].steps[0];
+        assert.equal(step.result, "FAIL");
+        assert.match(step.resultDescription, /only supported on Windows/);
+      }
+    });
+
+    it("runs the powershell shell on Windows", async function () {
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec([
+        {
+          runShell: {
+            command: "echo $PSEdition",
+            shell: "powershell",
+            stdio: "Desktop",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+    });
+
+    it("runCode pins its interpreter shell — a powershell config default can't break it (Windows)", async function () {
+      // Regression: runCode's quoted interpreter path is NOT a valid command
+      // under `powershell -c` (a leading quoted string is a string
+      // expression there), so runCode must pin the shell for the generated
+      // runShell step instead of inheriting the config default.
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec(
+        [
+          {
+            runCode: {
+              language: "bash",
+              code: "echo pinned-shell-ok",
+              stdio: "pinned-shell-ok",
+            },
+          },
+          {
+            runCode: {
+              language: "javascript",
+              code: "console.log('js-pinned-ok')",
+              stdio: "js-pinned-ok",
+            },
+          },
+        ],
+        { shell: "powershell" }
+      );
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("runCode language bash works on every platform, including Windows", async function () {
+      // The historical "runCode doesn't support bash on Windows" guard is
+      // lifted: the interpreter resolves the same lazily-installed Git Bash.
+      const result = await runShellSpec([
+        {
+          runCode: {
+            language: "bash",
+            code: 'echo "hello-from-bash-$((21 * 2))"',
+            stdio: "hello-from-bash-42",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
   });
 
   it("An app-driver test on an unsupported host SKIPs via the app preflight with gating guidance", async function () {
@@ -647,6 +821,39 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("a skipped stopRecord reports no recording outputs", async function () {
+    // stopRecord with no active recording SKIPs deterministically on every
+    // platform, headed or headless. Skip paths must not report `outputs` —
+    // recording metadata (recordingPath, duration, ...) is only set when a
+    // file was actually produced.
+    const spec = {
+      tests: [
+        {
+          testId: "skipped-recording-outputs",
+          steps: [{ goTo: "http://localhost:8092" }, { stopRecord: true }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-skipped-record-outputs.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      const stopStep = steps.find((s) => typeof s.stopRecord !== "undefined");
+      assert.ok(stopStep, "stopRecord step should be reported");
+      assert.equal(stopStep.result, "SKIPPED");
+      assert.equal(
+        stopStep.outputs,
+        undefined,
+        "a skipped stopRecord must not report recording outputs"
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("autoRecord/record name conflict skips the whole test before any step runs", async function () {
     // A `record` step that reuses a recording `name` while one with that name
     // is still active is caught by the static Phase-1 preflight, which skips
@@ -1179,6 +1386,50 @@ describe("browserJobCount() Appium pool sizing", function () {
   it("tolerates stepless or malformed jobs without throwing", function () {
     assert.equal(browserJobCount([]), 0);
     assert.equal(browserJobCount([{ context: {} }, { context: { steps: [] } }, {}]), 0);
+  });
+
+  it("excludes surface-less interaction steps when the test opens a non-browser surface (ADR 01081)", function () {
+    const jobs = [
+      // App-only test with surface-less steps: they route to the active app
+      // at runtime, so no browser pool server is needed.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { find: { elementText: "Select" } },
+            { screenshot: true },
+          ],
+        },
+      },
+      // Process-only test with a surface-less type: routes to the process.
+      {
+        context: {
+          steps: [
+            { startSurface: { process: "node repl.js", name: "repl" } },
+            { type: ["hello"] },
+          ],
+        },
+      },
+      // Explicit process targeting also never needs a browser.
+      {
+        context: {
+          steps: [{ type: { keys: ["hi"], surface: { process: "repl" } } }],
+        },
+      },
+      // Mixed: a goTo still requires the browser even with an app signal.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { goTo: "https://x.test" },
+            { find: "Ready" },
+          ],
+        },
+      },
+      // No non-browser signal: a surface-less find keeps requiring a browser.
+      { context: { steps: [{ find: "Ready" }] } },
+    ];
+    assert.equal(browserJobCount(jobs), 2);
   });
 
   it("counts a context whose only browser touch is a startSurface browser descriptor (Phase 6)", function () {

@@ -16,8 +16,12 @@ import {
   gitignoreCovers,
   parseNodeMajor,
   detectRstFiles,
+  detectManagedWdaProducts,
   runInvokesDocDetective,
+  VIEWPORT_FLOOR_TOLERANCE_PX,
+  SURFACE_SENSITIVE_HINT_KEYS,
 } from "../dist/hints/context.js";
+import { SURFACE_SENSITIVE_STEP_KEYS } from "../dist/runtime/browserStepKeys.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
 import fs from "node:fs";
@@ -419,6 +423,75 @@ describe("hints/context", function () {
   });
 
   describe("walkResults", function () {
+    it("detects iOS device contexts (powers prebuildWebDriverAgent)", function () {
+      const ios = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { device: { platform: "ios", name: "iPhone 16" }, steps: [] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(ios.ranIosContexts).to.equal(true);
+
+      const android = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { device: { platform: "android", name: "Pixel" }, steps: [] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(android.ranIosContexts).to.equal(false);
+
+      expect(walkResults({ specs: [] }).ranIosContexts).to.equal(false);
+    });
+
+    it("sets hasStaleRecordings when a step report carries outputs.stale (phantom span)", function () {
+      const stale = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  {
+                    steps: [
+                      { stopRecord: true, outputs: { stale: true } },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(stale.hasStaleRecordings).to.equal(true);
+      const fresh = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { steps: [{ stopRecord: true, outputs: { stale: false } }] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(fresh.hasStaleRecordings).to.equal(false);
+    });
+
     it("collects step types, browsers, screenshot/recording flags from a typical results shape", function () {
       const data = walkResults({
         specs: [
@@ -465,6 +538,50 @@ describe("hints/context", function () {
         expect(data.producedScreenshots).to.equal(true);
       });
     }
+    it("usedAnnotations is true when a screenshot step declares annotations", function () {
+      const data = walkResults({
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  {
+                    steps: [
+                      {
+                        screenshot: {
+                          path: "x.png",
+                          annotations: [{ outline: "#a" }],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(data.usedAnnotations).to.equal(true);
+    });
+
+    // `screenshot` is boolean | string | object, so the annotations read has to
+    // survive the non-object forms and an empty array.
+    for (const screenshotValue of [
+      true,
+      "home.png",
+      { path: "x.png" },
+      { path: "x.png", annotations: [] },
+    ]) {
+      it(`usedAnnotations is false for ${JSON.stringify(screenshotValue)}`, function () {
+        const data = walkResults({
+          specs: [
+            { tests: [{ contexts: [{ steps: [{ screenshot: screenshotValue }] }] }] },
+          ],
+        });
+        expect(data.usedAnnotations).to.equal(false);
+      });
+    }
+
     for (const recordValue of [true, "run.webm", { path: "x.mp4", directory: "out" }]) {
       it(`producedRecordings is true for ${JSON.stringify(recordValue)}`, function () {
         const data = walkResults({
@@ -716,6 +833,45 @@ describe("hints/context", function () {
       });
       expect(failedShell.failedTransientRequest).to.equal(false);
     });
+
+    it("failedRunShellWithoutShell is true only for a FAILed runShell step with no explicit shell", function () {
+      // FAILed object-form runShell without a shell field -> true.
+      const failedNoShell = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: { command: "dir" }, result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedNoShell.failedRunShellWithoutShell).to.equal(true);
+      // FAILed string-shorthand runShell (no shell possible) -> true.
+      const failedShorthand = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "dir", result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedShorthand.failedRunShellWithoutShell).to.equal(true);
+      // FAILed runShell WITH an explicit shell -> the author already chose;
+      // the hint has nothing to teach.
+      const failedWithShell = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: { command: "dir", shell: "cmd" }, result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(failedWithShell.failedRunShellWithoutShell).to.equal(false);
+      // PASSing runShell -> false.
+      const passed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { runShell: "echo hi", result: "PASS" },
+        ] }] }] }],
+      });
+      expect(passed.failedRunShellWithoutShell).to.equal(false);
+      // FAILed non-runShell step -> false.
+      const other = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { find: "Submit", result: "FAIL" },
+        ] }] }] }],
+      });
+      expect(other.failedRunShellWithoutShell).to.equal(false);
+    });
   });
 
   describe("readNpmScripts", function () {
@@ -837,6 +993,73 @@ describe("hints/context", function () {
         rmTmpDir(root);
         rmTmpDir(elsewhere);
       }
+    });
+  });
+
+  describe("detectManagedWdaProducts", function () {
+    it("true only when a wda key dir holds a VALID products marker", function () {
+      // A real dir (under the gitignored .tmp) because resolving the cache
+      // root mkdirs it; the wda-level reads themselves are faked.
+      const cacheRoot = path.join(process.cwd(), ".tmp", "hints-wda-cache");
+      const wdaRoot = path.join(cacheRoot, "ios", "wda");
+      const key = "xcode-16.4-16F6-driver-10.8.1";
+      const keyDir = path.join(wdaRoot, key);
+      const err = () => Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+
+      const withMarker = {
+        readdirSync: () => [key, ".lock"],
+        readFileSync: (p) => {
+          if (p === path.join(keyDir, "products.json")) {
+            return JSON.stringify({ key, driverVersion: "10.8.1" });
+          }
+          throw err();
+        },
+        // The layout-relative Runner app exists (marker validity requires it).
+        existsSync: (p) => p.startsWith(keyDir + path.sep),
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: withMarker })
+      ).to.equal(true);
+
+      // Marker present but corrupt: must NOT suppress the hint — same
+      // validity rule as the session locator (readProductsMarker).
+      const corruptMarker = {
+        readdirSync: () => [key, ".lock"],
+        readFileSync: (p) => {
+          if (p === path.join(keyDir, "products.json")) return "{not json";
+          throw err();
+        },
+        existsSync: (p) => p.startsWith(keyDir + path.sep),
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: corruptMarker }),
+        "a corrupt marker doesn't count as a completed prebuild"
+      ).to.equal(false);
+
+      const noMarker = {
+        readdirSync: () => ["xcode-junk", ".lock"],
+        readFileSync: () => {
+          throw err();
+        },
+        existsSync: () => false,
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: noMarker })
+      ).to.equal(false);
+
+      const noDir = {
+        readdirSync: () => {
+          throw err();
+        },
+        readFileSync: () => {
+          throw err();
+        },
+        existsSync: () => false,
+      };
+      expect(
+        detectManagedWdaProducts({ cacheDir: cacheRoot }, { fs: noDir }),
+        "missing cache dir degrades to false"
+      ).to.equal(false);
     });
   });
 
@@ -1403,6 +1626,7 @@ function fakeCtx(partial = {}) {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    usedAnnotations: false,
     producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
@@ -1419,6 +1643,12 @@ function fakeCtx(partial = {}) {
     usedCustomAssertions: false,
     usedRetry: false,
     failedTransientRequest: false,
+    failedRunShellWithoutShell: false,
+    ranIosContexts: false,
+    hasManagedWdaProducts: false,
+    hasStaleRecordings: false,
+    viewportFloored: false,
+    ranMobileContexts: false,
     ...partial,
   };
 }
@@ -1428,6 +1658,206 @@ function findHint(id) {
   if (!hint) throw new Error(`hint not found: ${id}`);
   return hint;
 }
+
+describe("useMobilePlatforms hint", function () {
+  // A desktop browser can't shrink its window below ~500px, so a requested
+  // mobile viewport renders wider. The realized size rides in the startSurface
+  // step's `outputs.viewport`, which is the signal here.
+  const floored = {
+    specs: [
+      {
+        tests: [
+          {
+            contexts: [
+              {
+                steps: [
+                  {
+                    startSurface: { browser: "chrome" },
+                    outputs: {
+                      viewport: {
+                        requested: { width: 375, height: 812 },
+                        actual: { width: 501, height: 813 },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("walkResults detects a floored viewport (single-surface form)", function () {
+    expect(walkResults(floored).viewportFloored).to.equal(true);
+  });
+
+  it("walkResults detects a floored viewport in the startSurface array form", function () {
+    const arrayForm = {
+      specs: [
+        {
+          tests: [
+            {
+              contexts: [
+                {
+                  steps: [
+                    {
+                      startSurface: [{ browser: "chrome" }],
+                      outputs: {
+                        surfaces: [
+                          {
+                            outputs: {
+                              viewport: {
+                                requested: { width: 375 },
+                                actual: { width: 501 },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(walkResults(arrayForm).viewportFloored).to.equal(true);
+  });
+
+  it("walkResults does not flag a viewport realized exactly", function () {
+    const exact = JSON.parse(JSON.stringify(floored));
+    exact.specs[0].tests[0].contexts[0].steps[0].outputs.viewport.actual = {
+      width: 375,
+      height: 812,
+    };
+    expect(walkResults(exact).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults does not flag a within-tolerance delta (scrollbar)", function () {
+    const near = JSON.parse(JSON.stringify(floored));
+    near.specs[0].tests[0].contexts[0].steps[0].outputs.viewport.actual = {
+      width: 380,
+      height: 812,
+    };
+    expect(walkResults(near).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults does not flag a viewport that rendered SMALLER than requested", function () {
+    // Only a floor (rendered larger than requested) is the mobile-testing
+    // signal; a smaller render isn't the browser refusing to shrink.
+    const smaller = JSON.parse(JSON.stringify(floored));
+    smaller.specs[0].tests[0].contexts[0].steps[0].outputs.viewport.actual = {
+      width: 300,
+      height: 812,
+    };
+    expect(walkResults(smaller).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults flags a HEIGHT-only floor (the mobile advice applies to either axis)", function () {
+    // A minimum window HEIGHT can floor a short viewport just as a minimum
+    // width floors a narrow one; the hint (test on a mobile platform) applies
+    // either way, so the signal fires for a height-only floor too.
+    const heightFloor = JSON.parse(JSON.stringify(floored));
+    heightFloor.specs[0].tests[0].contexts[0].steps[0].outputs.viewport = {
+      requested: { height: 300 },
+      actual: { height: 500 },
+    };
+    expect(walkResults(heightFloor).viewportFloored).to.equal(true);
+
+    const hint = findHint("useMobilePlatforms");
+    expect(
+      hint.when(fakeCtx({ viewportFloored: true, ranMobileContexts: false }))
+    ).to.equal(true);
+  });
+
+  it("walkResults detects a floored CONTEXT-level viewport via the runner's stamp", function () {
+    // A context-level `browser.viewport` has no step output, so the runner
+    // stamps `context.viewportFloored`. This is the article's own scenario.
+    const stamped = {
+      specs: [
+        {
+          tests: [
+            {
+              contexts: [
+                {
+                  browser: { name: "chrome" },
+                  viewportFloored: true,
+                  steps: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(walkResults(stamped).viewportFloored).to.equal(true);
+  });
+
+  it("walkResults leaves viewportFloored false for an unstamped context", function () {
+    const plain = {
+      specs: [
+        {
+          tests: [{ contexts: [{ browser: { name: "chrome" }, steps: [] }] }],
+        },
+      ],
+    };
+    expect(walkResults(plain).viewportFloored).to.equal(false);
+  });
+
+  it("walkResults detects android and ios device contexts (ranMobileContexts)", function () {
+    const mk = (platform) => ({
+      specs: [
+        {
+          tests: [{ contexts: [{ device: { platform }, steps: [] }] }],
+        },
+      ],
+    });
+    expect(walkResults(mk("android")).ranMobileContexts).to.equal(true);
+    expect(walkResults(mk("ios")).ranMobileContexts).to.equal(true);
+    expect(walkResults(mk("windows")).ranMobileContexts).to.equal(false);
+    expect(walkResults(floored).ranMobileContexts).to.equal(false);
+  });
+
+  it("fires when a viewport was floored and no mobile platform ran", function () {
+    const hint = findHint("useMobilePlatforms");
+    expect(hint.when(fakeCtx({ viewportFloored: true }))).to.equal(true);
+  });
+
+  it("does not fire when no viewport was floored", function () {
+    const hint = findHint("useMobilePlatforms");
+    expect(hint.when(fakeCtx({ viewportFloored: false }))).to.equal(false);
+  });
+
+  it("does not fire when the run already used a mobile platform", function () {
+    const hint = findHint("useMobilePlatforms");
+    expect(
+      hint.when(fakeCtx({ viewportFloored: true, ranMobileContexts: true }))
+    ).to.equal(false);
+  });
+
+  it("is a current-run-problem hint (priority 20)", function () {
+    expect(findHint("useMobilePlatforms").priority).to.equal(20);
+  });
+
+  it("recommends the android/ios platforms in its body", function () {
+    const md = findHint("useMobilePlatforms").markdown;
+    expect(md).to.match(/android/);
+    expect(md).to.match(/ios/);
+  });
+
+  it("uses the same floor tolerance as the runner's viewport warning", async function () {
+    // hints/ deliberately doesn't import core/utils (which pulls axios and the
+    // runtime stack), so the tolerance is duplicated. This test is the guard
+    // against the two drifting apart: the hint must fire exactly when the
+    // runner warned.
+    const { VIEWPORT_TOLERANCE_PX } = await import("../dist/core/utils.js");
+    expect(VIEWPORT_FLOOR_TOLERANCE_PX).to.equal(VIEWPORT_TOLERANCE_PX);
+  });
+});
 
 describe("hints/index pickByPriority + priorityWeight", function () {
   it("returns the only hint when there is exactly one eligible", function () {
@@ -1491,12 +1921,10 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // 33 active hints. `useFileTypesForRst` is commented out in the
-    // registry but the `RST_EXTENSIONS` constant, the
-    // `detectRstFiles` helper, and the `hasRstFiles` context field
-    // are kept in place so the hint can be re-enabled without
-    // re-plumbing.
-    expect(HINTS.length).to.equal(33);
+    // (`useFileTypesForRst` is commented out in the registry but its
+    // `RST_EXTENSIONS` constant, `detectRstFiles` helper, and `hasRstFiles`
+    // context field are kept in place so the hint can be re-enabled without
+    // re-plumbing — so it isn't in HINTS and isn't covered below.)
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -1515,10 +1943,52 @@ describe("hints/hints (registry)", function () {
     }
   });
 
+  it("every registry hint has a dedicated predicate test", function () {
+    // Replaces a hardcoded `expect(HINTS.length).to.equal(N)`. That count was
+    // a magic number that collided across concurrent PRs: two branches that
+    // each add a hint both bump N to the same value and merge without conflict
+    // (identical edits), leaving the registry one ahead of the assertion — a
+    // red main that also fails the release gate. It happened three times while
+    // landing screenshot annotations.
+    //
+    // The count was only ever a weak proxy for the real invariant: every hint
+    // should be exercised by a test. Assert that directly — each registry id
+    // must appear as a `findHint("<id>")` call in this file. Adding a hint now
+    // requires adding its test (no shared number to collide), and it's more
+    // meaningful: an untested hint can't slip in. Accidental *deletion* is
+    // caught independently — each hint's own predicate test calls
+    // `findHint`, which returns undefined for a missing hint and throws.
+    const testSource = fs.readFileSync(__filename).toString();
+    for (const h of HINTS) {
+      expect(
+        testSource.includes(`findHint("${h.id}")`),
+        `hint "${h.id}" has no findHint("${h.id}") test — add one`
+      ).to.equal(true);
+    }
+  });
+
   it("entries are sorted alphabetically by id", function () {
     const ids = HINTS.map((h) => h.id);
     const sorted = [...ids].sort();
     expect(ids).to.deep.equal(sorted);
+  });
+
+  // ----- optimization & advanced (priority 50) -----
+
+  it("prebuildWebDriverAgent: fires when an iOS context ran without managed WDA products", function () {
+    const h = findHint("prebuildWebDriverAgent");
+    expect(h.priority).to.equal(50);
+    expect(
+      h.when(fakeCtx({ ranIosContexts: true, hasManagedWdaProducts: false }))
+    ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ ranIosContexts: true, hasManagedWdaProducts: true })),
+      "already prebuilt — no nudge"
+    ).to.equal(false);
+    expect(
+      h.when(fakeCtx({ ranIosContexts: false, hasManagedWdaProducts: false })),
+      "no iOS contexts this run — no nudge"
+    ).to.equal(false);
   });
 
   // ----- onboarding (priority 10) -----
@@ -1839,6 +2309,44 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
+  it("useAnnotateStepForRecordings: fires for recorders who aren't annotating yet", function () {
+    const h = findHint("useAnnotateStepForRecordings");
+    expect(
+      h.when(
+        fakeCtx({ producedRecordings: true, usedStepTypes: new Set(["record"]) })
+      )
+    ).to.equal(true);
+    // Already using annotate -> don't pitch the feature back at them.
+    expect(
+      h.when(
+        fakeCtx({
+          producedRecordings: true,
+          usedStepTypes: new Set(["record", "annotate"]),
+        })
+      )
+    ).to.equal(false);
+    // No recordings -> the annotate step's main draw doesn't apply, and
+    // useAnnotationsOnScreenshots covers the still-image case.
+    expect(
+      h.when(fakeCtx({ producedRecordings: false, usedStepTypes: new Set() }))
+    ).to.equal(false);
+  });
+
+  it("useAnnotationsOnScreenshots: fires for screenshot users who aren't annotating yet", function () {
+    const h = findHint("useAnnotationsOnScreenshots");
+    expect(
+      h.when(fakeCtx({ producedScreenshots: true, usedAnnotations: false }))
+    ).to.equal(true);
+    // Already annotating -> don't pitch the feature back at them.
+    expect(
+      h.when(fakeCtx({ producedScreenshots: true, usedAnnotations: true }))
+    ).to.equal(false);
+    // No screenshots at all -> useScreenshotStep is the relevant hint.
+    expect(
+      h.when(fakeCtx({ producedScreenshots: false, usedAnnotations: false }))
+    ).to.equal(false);
+  });
+
   it("useScreenshotStep: fires when 3+ tests use a browser but no screenshot was produced", function () {
     const h = findHint("useScreenshotStep");
     expect(
@@ -1963,6 +2471,37 @@ describe("hints/hints (registry)", function () {
     // Negative: no transient request failure (e.g. a 404, or a non-request
     // failure) -> skip.
     expect(h.when(fakeCtx({ failedTransientRequest: false }))).to.equal(false);
+  });
+
+  it("setRunShellShell: fires on a FAILed runShell without an explicit shell on Windows", function () {
+    const h = findHint("setRunShellShell");
+    expect(h.priority).to.equal(20);
+    // Positive: a runShell step FAILed on Windows without choosing a shell —
+    // likely a cmd-flavored command now running under the bash default.
+    expect(
+      h.when(
+        fakeCtx({ platform: "win32", failedRunShellWithoutShell: true })
+      )
+    ).to.equal(true);
+    // Negative: not Windows -> POSIX ran bash before and after; skip.
+    expect(
+      h.when(
+        fakeCtx({ platform: "linux", failedRunShellWithoutShell: true })
+      )
+    ).to.equal(false);
+    // Negative: no shell-less runShell failure -> skip.
+    expect(h.when(fakeCtx({ platform: "win32" }))).to.equal(false);
+    // Negative: a config-level non-bash shell ran the command — the hint's
+    // "bash default" diagnosis would be wrong; skip.
+    expect(
+      h.when(
+        fakeCtx({
+          platform: "win32",
+          failedRunShellWithoutShell: true,
+          config: { shell: "cmd" },
+        })
+      )
+    ).to.equal(false);
   });
 
   it("useRunBrowserScriptStep: fires on browser + find when runBrowserScript isn't used", function () {
@@ -2106,6 +2645,15 @@ describe("hints/hints (registry)", function () {
     expect(h.priority).to.equal(50);
     expect(h.when(fakeCtx({ recordingSerialized: true }))).to.equal(true);
     expect(h.when(fakeCtx({ recordingSerialized: false }))).to.equal(false);
+  });
+
+  it("refreshStaleRecording: fires only when a phantom span flagged a stale recording", function () {
+    const h = findHint("refreshStaleRecording");
+    expect(h.priority).to.equal(20);
+    expect(h.when(fakeCtx({ hasStaleRecordings: true }))).to.equal(true);
+    expect(h.when(fakeCtx({ hasStaleRecordings: false }))).to.equal(false);
+    // The body must point at the fix: a headed re-run.
+    expect(h.markdown).to.match(/headed/i);
   });
 
   it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
@@ -2305,5 +2853,84 @@ describe("hints CLI wiring", function () {
     });
     expect(r.status, `stderr: ${r.stderr}`).to.equal(0);
     expect(r.stdout.trim()).to.match(/^\d+\.\d+\.\d+/);
+  });
+});
+
+// ---------------------------------------------------------------------
+// omitSurfaceForActiveApp (ADR 01081): repeated explicit app-surface
+// references are redundant once the app is the active surface.
+// ---------------------------------------------------------------------
+
+describe("walkResults repeated app-surface references", function () {
+  function specWithSteps(steps) {
+    return { specs: [{ tests: [{ contexts: [{ steps }] }] }] };
+  }
+
+  it("flags three or more surface-sensitive steps naming the same app", function () {
+    const data = walkResults(
+      specWithSteps([
+        { startSurface: { app: "notepad" } },
+        { find: { elementText: "File", surface: { app: "notepad" } } },
+        { click: { elementText: "Save", surface: { app: "notepad" } } },
+        { screenshot: { path: "s.png", surface: { app: "notepad" } } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(true);
+  });
+
+  it("does not flag fewer than three references to one app", function () {
+    const data = walkResults(
+      specWithSteps([
+        { find: { elementText: "File", surface: { app: "notepad" } } },
+        { click: { elementText: "Save", surface: { app: "notepad" } } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(false);
+  });
+
+  it("does not flag references spread across different apps", function () {
+    const data = walkResults(
+      specWithSteps([
+        { find: { elementText: "a", surface: { app: "one" } } },
+        { find: { elementText: "b", surface: { app: "two" } } },
+        { find: { elementText: "c", surface: { app: "three" } } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(false);
+  });
+
+  it("counts only surface-sensitive steps (closeSurface refs don't count)", function () {
+    const data = walkResults(
+      specWithSteps([
+        { closeSurface: { app: "notepad" } },
+        { closeSurface: { app: "notepad" } },
+        { closeSurface: { app: "notepad" } },
+      ])
+    );
+    expect(data.repeatedAppSurfaceRefs).to.equal(false);
+  });
+
+  it("keeps the hint-side key list in sync with the runtime's surface-sensitive list", function () {
+    expect([...SURFACE_SENSITIVE_HINT_KEYS].sort()).to.deep.equal(
+      [...SURFACE_SENSITIVE_STEP_KEYS].sort()
+    );
+  });
+});
+
+describe("omitSurfaceForActiveApp hint", function () {
+  it("is registered at priority 50", function () {
+    const hint = findHint("omitSurfaceForActiveApp");
+    expect(hint).to.not.equal(undefined);
+    expect(hint.priority).to.equal(50);
+  });
+
+  it("fires when a run repeatedly targeted one app explicitly", function () {
+    const hint = findHint("omitSurfaceForActiveApp");
+    expect(hint.when(fakeCtx({ repeatedAppSurfaceRefs: true }))).to.equal(true);
+  });
+
+  it("stays quiet without the repeated-reference signal", function () {
+    const hint = findHint("omitSurfaceForActiveApp");
+    expect(hint.when(fakeCtx({ repeatedAppSurfaceRefs: false }))).to.equal(false);
   });
 });
