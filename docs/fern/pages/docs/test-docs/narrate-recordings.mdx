@@ -1,0 +1,115 @@
+---
+title: Narrate a recording with annotations
+description: Use the annotate action to draw on-screen annotations that stay up across a recording.
+---
+
+Draw annotations into the page and leave them up across steps and navigation, so they appear in the video. The `annotate` action narrates a recorded flow—pointing at fields, numbering steps, and redacting sensitive information as the recording plays. New to recording? Start with [Record video](/docs/test-docs/record-video-guide). The annotation types, targets, `style`, and the `annotationDefaults` theme are defined once on [Annotate screenshots](/docs/test-docs/annotate-screenshots)—this guide covers only what changes in motion.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A directory where you can create a `.spec.json` file.
+- A headed, visible context and a recording span to narrate.
+- A page to draw into. The `annotate` action can't draw on native app surfaces.
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+## Narrate a recording with annotations
+
+The `annotate` action draws annotations into the page and leaves them up across steps and navigation, so they appear in the video. This is the difference from `screenshot.annotations`, which apply to a single still:
+
+| | `screenshot.annotations` | `annotate` |
+|---|---|---|
+| Lifetime | One capture | Until something clears them |
+| Appears in recordings | No | Yes |
+| Works on app surfaces | Yes | No—needs a page to draw into |
+| Touches the page | No | Yes |
+
+Give an `annotate` step at least one of `add` (draw annotations), `update` (change annotations already on screen, matched by `id`), or `clear` (`true` clears everything, or a list of ids clears just those). `clear` runs before `add`, so clearing and adding the same `id` reads as replacing it.
+
+Four fields matter only in motion:
+
+- `id`: a handle, so a later step can update or clear the annotation.
+- `track`: follow the element as the page scrolls or the layout shifts.
+- `transition`: how the annotation enters and leaves. `enter` accepts `none`, `fade`, `pop`, or `draw`; `exit` accepts `none` or `fade`; `durationMs` sets the length.
+- `duration`: milliseconds to stay up before clearing itself, with no paired `clear` step.
+
+This sequence points at one field, moves the annotations to the next, then clears them, all inside a recording span:
+
+{/* test {"testId":"record-guide-narrate","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "record": "sso-setup.webm" },
+        {
+          "description": "Point at the first field.",
+          "annotate": {
+            "add": [
+              { "id": "step", "badge": "#idp", "label": "1" },
+              { "id": "guide", "callout": "#idp", "label": "Pick your provider first", "position": "right", "track": true }
+            ]
+          }
+        },
+        { "click": "#idp" },
+        {
+          "description": "Move the annotations to the next field.",
+          "annotate": {
+            "update": [
+              { "id": "step", "badge": "#metadata-url", "label": "2" },
+              { "id": "guide", "callout": "#metadata-url", "label": "Paste the metadata URL" }
+            ]
+          }
+        },
+        { "annotate": { "clear": true } },
+        { "stopRecord": true }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"record-guide-narrate-goto","description":"Open the enhanced-elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"record-guide-narrate-add","description":"Point at the first field with a tracked callout and a numbered badge","annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"},{"id":"guide","callout":"#username-input","label":"Enter your username first","position":"right","track":true}]}} */}
+{/* step {"stepId":"record-guide-narrate-click","description":"Advance the flow","click":"#username-input"} */}
+{/* step {"stepId":"record-guide-narrate-update","description":"Move the annotations to the submit button","annotate":{"update":[{"id":"step","badge":"#submit-button","label":"2"},{"id":"guide","callout":"#submit-button","label":"Then submit"}]}} */}
+{/* step {"stepId":"record-guide-narrate-clear","description":"Clear every annotation","annotate":{"clear":true}} */}
+{/* test end */}
+
+For a redaction that stays up for a whole recording, set `all: true` with an object target so every match is covered, `track: true` so the blur follows the element, and `transition: { "enter": "none" }` so the blur never fades in—a fading blur leaves the content readable during the animation, and every frame of that is in the video:
+
+```json
+{
+  "annotate": {
+    "add": [
+      {
+        "id": "redact",
+        "blur": { "selector": ".account-id" },
+        "all": true,
+        "track": true,
+        "transition": { "enter": "none" }
+      }
+    ]
+  }
+}
+```
+
+The step exposes `$$annotationCount`, the number of annotations on screen after it runs. The annotation objects themselves—the six types, targets, `style`, and the `annotationDefaults` theme—live in one place, on the screenshot guide. See [Annotate screenshots](/docs/test-docs/annotate-screenshots) and [Annotations](/docs/actions/screenshot#annotations). For the `annotate` fields, see the [`annotate`](/docs/actions/annotate) action reference and the [`annotate`](/reference/schemas/annotate) schema.
+
+## Verify it works
+
+- The `annotate` step exposes `$$annotationCount`, the number of annotations on screen after it runs.
+- The annotations appear in the recording and stay up across steps and navigation until something clears them.
+
+## What's next
+
+- [Record video](/docs/test-docs/record-video-guide) to record a flow, stop it, and choose an engine.
+- [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression) to watch a recording for visual drift.
+- [Record video automatically](/docs/test-docs/automatic-recording) for every driver-based context.
+- Follow the worked [recording example](/docs/test-docs/record-video) end to end.
+- Look up every field in the [`annotate`](/docs/actions/annotate) action reference and the [`annotate`](/reference/schemas/annotate) schema.
+- [Annotate screenshots](/docs/test-docs/annotate-screenshots) for the annotation objects, types, and theme.

@@ -155,8 +155,14 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
 | Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
-| Capture screenshots | W2 | ★ | `screenshot`, auto-screenshot, annotations (types, targets, `annotationDefaults` theme). Annotations live on the `screenshot` action page rather than their own — they're an option of capturing, not a separate journey. |
-| Record video | W2 | | `record`/`stopRecord`, engines, and `annotate` for narrating a recording. The `annotate` action page carries the persistent-annotation content; the annotation objects themselves are documented once on the `screenshot` page, which both actions link to. |
+| Capture screenshots | W2 | ★ | Authored: `/docs/test-docs/capture-screenshots-guide`. Lead guide for the Screenshots sub-section: a single `screenshot` capture (full viewport, cropped element, padding). The topic split into a Screenshots sub-section — visual regression, automatic screenshots, and annotations each moved to their own guide (below). |
+| Screenshot visual regression | W2 | ★ | Authored: `/docs/test-docs/screenshot-visual-regression`. Compare a capture against a committed reference image with `maxVariation`; cloud-storage references and the SSRF guard. |
+| Automatic screenshots | W2 | ★ | Authored: `/docs/test-docs/automatic-screenshots`. `autoScreenshot` captures an image after every browser-driven step; artifact paths. |
+| Annotate screenshots | W2 | ★ | Authored: `/docs/test-docs/annotate-screenshots`. `screenshot.annotations` types, targets, and the `annotationDefaults` theme. |
+| Record video | W2 | | Authored: `/docs/test-docs/record-video-guide`. Lead guide for the Recording sub-section: `record`/`stopRecord` and choosing an engine. Checkpoints, automatic recording, and narration each moved to their own guide (below). |
+| Video visual regression | W2 | ★ | Authored: `/docs/test-docs/video-visual-regression`. `checkpoints` and `verify` guards catch visual drift and structural problems; staleness detection. |
+| Automatic recording | W2 | ★ | Authored: `/docs/test-docs/automatic-recording`. `autoRecord` records every driver-based context end to end with the `ffmpeg` engine. |
+| Narrate recordings | W2 | ★ | Authored: `/docs/test-docs/narrate-recordings`. The `annotate` action draws persistent on-screen annotations that appear in a recording. |
 | Multiple tabs, windows & browsers | W2, W3 | | goTo `newTab`/`newWindow` + browser-session opening, `surface` session/window/tab selectors, whole-browser `closeSurface`. |
 | Test native & mobile apps (experimental) | W2, D1 | | The native-app-surfaces journey, split into four per-platform experimental guides (below) that live under `docs/test-docs/native-apps/`. Each guide covers the platform's setup, one runnable worked example, the platform-specific gotchas, and where to go next — and deep-links into the `startSurface`/`click`/`type`/`find`/`swipe` action pages and the generated reference (app-descriptor, device-descriptor) rather than duplicating them. |
 | Test native Windows apps (experimental) | W2, D1 | | NovaWindows driver, executable/UWP identifiers, `runOn: ["windows"]`, UIA element mapping, window selectors, `workingDirectory`. |

@@ -160,12 +160,42 @@ navigation:
               - page: Fill fields
                 path: pages/tutorials/fill-fields.mdx
                 slug: fill-fields
-              - page: Capture screenshots
-                path: pages/tutorials/capture-screenshot.mdx
-                slug: capture-screenshots
-              - page: Record video
-                path: pages/tutorials/record-video.mdx
-                slug: record-video
+              - section: Screenshots
+                skip-slug: true
+                contents:
+                  - page: Capture screenshots
+                    path: pages/docs/test-docs/capture-screenshots-guide.mdx
+                    slug: capture-screenshots-guide
+                  - page: Screenshot visual regression
+                    path: pages/docs/test-docs/screenshot-visual-regression.mdx
+                    slug: screenshot-visual-regression
+                  - page: Automatic screenshots
+                    path: pages/docs/test-docs/automatic-screenshots.mdx
+                    slug: automatic-screenshots
+                  - page: Annotate screenshots
+                    path: pages/docs/test-docs/annotate-screenshots.mdx
+                    slug: annotate-screenshots
+                  - page: Screenshot example
+                    path: pages/tutorials/capture-screenshot.mdx
+                    slug: capture-screenshots
+              - section: Recording
+                skip-slug: true
+                contents:
+                  - page: Record video
+                    path: pages/docs/test-docs/record-video-guide.mdx
+                    slug: record-video-guide
+                  - page: Video visual regression
+                    path: pages/docs/test-docs/video-visual-regression.mdx
+                    slug: video-visual-regression
+                  - page: Automatic recording
+                    path: pages/docs/test-docs/automatic-recording.mdx
+                    slug: automatic-recording
+                  - page: Narrate recordings
+                    path: pages/docs/test-docs/narrate-recordings.mdx
+                    slug: narrate-recordings
+                  - page: Recording example
+                    path: pages/tutorials/record-video.mdx
+                    slug: record-video
               - page: Multiple tabs, windows & browsers
                 path: pages/tutorials/multiple-tabs-and-windows.mdx
                 slug: multiple-tabs-and-windows
