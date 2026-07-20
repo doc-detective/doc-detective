@@ -1,10 +1,9 @@
 ---
 title: Capture screenshots
-sidebar-title: Screenshots
-description: Capture screenshots, detect visual regressions, automate them, and annotate them.
+description: Capture a screenshot of the full viewport, a cropped element, or an element with padding.
 ---
 
-Doc Detective can capture a screenshot at any point in a test, compare captures against a reference image to catch visual regressions, take one automatically after every step, and mark up an image with annotations. Each is a standalone capability, and this guide covers all four with runnable examples. The [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema are where you look up every field.
+Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section and covers a single capture—the full viewport, a cropped element, or an element with padding. The section's other guides cover the three related capabilities: [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) by comparing a capture against a reference image, [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every step, and [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image. The [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema are where you look up every field. Unlike recording, screenshots capture fine in a headless or CI context.
 
 ## Before you begin
 
@@ -52,7 +51,7 @@ To choose where the image lands, pass a file path as a string:
 }
 ```
 
-By default (`overwrite: "aboveVariation"`), when the target path already holds a file, Doc Detective compares the new capture against it and replaces the file only when the two differ by more than `maxVariation` (default 5%), leaving the existing file in place otherwise (the [Detect visual regressions](#detect-visual-regressions) section covers this behavior in full). Set `"overwrite": "true"` to always replace the file, or `"overwrite": "false"` to keep the existing file and skip the capture (the step reports `SKIPPED`).
+By default (`overwrite: "aboveVariation"`), when the target path already holds a file, Doc Detective compares the new capture against it and replaces the file only when the two differ by more than `maxVariation` (default 5%), leaving the existing file in place otherwise (the [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full). Set `"overwrite": "true"` to always replace the file, or `"overwrite": "false"` to keep the existing file and skip the capture (the step reports `SKIPPED`).
 
 For more control, use the object form. Set `crop` to a CSS selector to capture only that element:
 
@@ -89,202 +88,18 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 
 `padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
 
-## Detect visual regressions
-
-A screenshot becomes a regression test when you compare it against a saved reference image.
-
-Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the maximum acceptable fractional difference between the new capture and the reference at `path`. When the difference exceeds the threshold, the step returns `WARNING`—not `FAIL`—because visual drift is a signal to review, not a hard break:
-
-{/* test {"testId":"capture-guide-regression","detectSteps":false} */}
-
-```json
-{
-  "description": "Compare against the committed reference image.",
-  "screenshot": {
-    "path": "./reference/home.png",
-    "maxVariation": 0.05,
-    "overwrite": "aboveVariation"
-  }
-}
-```
-
-{/* step {"stepId":"capture-guide-regression-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
-{/* step {"stepId":"capture-guide-regression-shot","description":"Capture with a comparison threshold, directed at a fresh gitignored path so the run seeds the reference and passes","screenshot":{"path":"guide_regression.png","directory":"./.dd-output","maxVariation":0.05,"overwrite":"aboveVariation"}} */}
-{/* test end */}
-
-`overwrite` controls when Doc Detective replaces the reference image with the new capture:
-
-- `"false"`: never overwrite.
-- `"true"`: always overwrite.
-- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`.
-
-When a comparison runs, the step exposes `$$variation` (the fractional difference) and `$$aspectRatioMatch` (whether the two images share an aspect ratio). Capture either with the step-level `variables` object. For the full list of outputs, see [Visual regression testing](/docs/actions/screenshot) and the [`screenshot`](/reference/schemas/screenshot) schema.
-
-### Reference images in cloud storage
-
-`path` can be an `http(s)://` URL that ends in `.png`, so a team can keep reference images in cloud storage like S3. Signed-URL query strings are fine. Doc Detective downloads the remote image once per run and uses it as a read-only reference, writes the new capture to `./doc-detective-runs/<run-timestamp>/` for inspection, and ignores `overwrite` because it never mutates remote storage:
-
-```json
-{
-  "description": "Compare against a reference image in S3.",
-  "screenshot": {
-    "path": "https://my-bucket.s3.amazonaws.com/reference-images/home.png",
-    "maxVariation": 0.05
-  }
-}
-```
-
-To guard against server-side request forgery (SSRF), Doc Detective refuses to fetch a reference image from a private, loopback, or link-local address—including its IPv4-mapped IPv6 form—and from the `169.254.169.254` cloud-metadata endpoint. A blocked URL fails the step with a message that starts with `Couldn't fetch remote reference image`. To compare against a reference on an internal address, such as a local development server, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to opt out.
-
-## Capture screenshots automatically
-
-Turn on `autoScreenshot` to build a visual record without adding a `screenshot` step to every part of a test. Doc Detective then captures a screenshot after every browser-driven step. Unlike video recording, screenshots (including `autoScreenshot`) capture fine in a headless or CI context, so this works on a headless runner. Automatic screenshots capture an image after every step but don't compare it against a reference, so to gate on drift you add an explicit `screenshot` step with `maxVariation`, as described in [Detect visual regressions](#detect-visual-regressions).
-
-Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
-
-```json title="config.json"
-{
-  "autoScreenshot": true,
-  "output": "./test-results"
-}
-```
-
-The CLI flag does the same thing for a single run:
-
-{/* test {"testId":"capture-guide-autoscreenshot","detectSteps":false,"autoScreenshot":true} */}
-
-```bash
-doc-detective --auto-screenshot
-```
-
-{/* step {"stepId":"capture-guide-autoscreenshot-goto","description":"Open the local test server; with autoScreenshot on, Doc Detective captures a screenshot after this browser-driven step (screenshots capture fine headless)","goTo":"http://localhost:8092"} */}
-{/* step {"stepId":"capture-guide-autoscreenshot-step","description":"Take another step, which also gets an automatic screenshot","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* test end */}
-
-To scope the behavior more tightly, set `autoScreenshot` on an individual spec or test to override the config:
-
-```json
-{
-  "autoScreenshot": true,
-  "tests": [
-    {
-      "autoScreenshot": false,
-      "steps": []
-    }
-  ]
-}
-```
-
-Auto screenshots land under the per-run artifact tree, on a stable path derived from each step's content:
-
-```
-<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-<hash>.png
-```
-
-Because the IDs come from file paths and content hashes rather than random values, the same step produces the same relative path in every run. You can diff two run folders and spot UI changes over time. Doc Detective skips a step that already defines an explicit `screenshot` (it already produces an image), and it still captures a step that failed—the failure frame is usually the most useful one for debugging.
-
-For where the artifacts land and how to consume them, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts) and the [`config`](/reference/schemas/config) schema. For the automatic-screenshot mechanics, see [Automatic screenshots](/docs/actions/screenshot#automatic-screenshots).
-
-## Annotate screenshots
-
-The `screenshot.annotations` option marks up an image as part of capturing it. Doc Detective composites annotations into the image and never touches the page under test, so an annotated screenshot can't disturb a running test or leak into a recording.
-
-There are six annotation types:
-
-- `outline`: a box around the target.
-- `arrow`: an arrow pointing at the target.
-- `badge`: a small marker showing `label`, for numbered steps.
-- `callout`: a text box with a leader line, showing `label`.
-- `blur`: a blur over the target, to redact sensitive information.
-- `text`: a standalone text box, showing `label`.
-
-Each annotation names one type, and the type's value is its target. A target can be a string (a selector or display text, the same as `crop`), an object (the same element-finding fields as [`find`](/docs/selectors/css)), or a position (a named region like `top-right` or a `{ "x": …, "y": … }` point). Shared options include `label` (the text a `badge`, `callout`, or `text` shows), `position` (where the annotation sits relative to its target), `style` (per-annotation visual overrides), and `all` (annotate every matching element instead of only the first).
-
-This example numbers the fields of a sign-in form and redacts an email address, all in one capture:
-
-{/* test {"testId":"capture-guide-annotated","detectSteps":false} */}
-
-```json
-{
-  "description": "Number the form fields and redact the account email.",
-  "screenshot": {
-    "path": "./output/sign_in.png",
-    "annotations": [
-      { "badge": "#username", "label": "1" },
-      { "badge": "#password", "label": "2" },
-      { "callout": "#submit", "label": "Sends you a one-time code", "position": "right" },
-      { "blur": { "selector": ".account-email" }, "all": true }
-    ]
-  }
-}
-```
-
-{/* step {"stepId":"capture-guide-annotated-goto","description":"Open the enhanced-elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"capture-guide-annotated-shot","description":"Capture an annotated screenshot against selectors that exist on the test page, directed at a gitignored output folder","screenshot":{"path":"guide_annotated.png","directory":"./.dd-output","annotations":[{"badge":"#username-input","label":"1"},{"outline":"#submit-button"},{"blur":"#contact-email"}]}} */}
-{/* test end */}
-
-To redact reliably, set `all: true` with an object target. A bare `blur` selector such as `{ "blur": ".account-email" }` blurs only the first match, so any other matches stay readable in an image that looks redacted.
-
-### Theme every annotation at once
-
-Set `annotationDefaults` to style all annotations consistently across a doc set. Set it on the config, a spec, or a test—a test's theme overrides a spec's, which overrides the config's—and an individual annotation's `style` overrides all of them:
-
-```json
-{
-  "annotationDefaults": {
-    "color": "#E11D48",
-    "strokeWidth": 3,
-    "fontFamily": "Inter, system-ui, sans-serif",
-    "badge": { "background": "#E11D48", "color": "#FFFFFF" },
-    "blur": { "intensity": 14 }
-  }
-}
-```
-
-Base properties apply to every type; a per-type block, such as `badge` or `blur`, overrides them for that type.
-
-Because annotations change an image's pixels, changing a theme or an annotation invalidates any existing reference image you compare against with `maxVariation`. Refresh the reference after changing annotations.
-
-Annotations also work on [native app surfaces](/docs/actions/screenshot#app-surfaces), where the native element lookup limits targets to four fields and doesn't accept `all`—see the reference for that path. To keep annotations up across steps and navigation so they appear in a recording, use the `annotate` action instead, covered in [Record video](/docs/test-docs/record-video-guide#narrate-a-recording-with-annotations). For the full annotation surface, see [Annotations](/docs/actions/screenshot#annotations) and the [`annotation-defaults`](/reference/schemas/annotation-defaults) schema.
-
 ## Verify it works
 
-- A step that captured an image—and, when comparing, stayed within `maxVariation`—reports `PASS`.
-- A comparison that exceeds `maxVariation` reports `WARNING`, so the run continues while flagging the drift for review.
-- An annotation whose target doesn't resolve reports `FAIL`, because the annotation can't be placed.
+- A step that captured an image reports `PASS`.
+- When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
 
-Captures and results land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
-
-## Troubleshooting
-
-### Visual comparison never runs
-
-**Cause:** `maxVariation` isn't set, so the step only captures an image without comparing it.
-
-**Solution:** set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
-
-### A remote reference URL fails with "Refusing to fetch private/loopback address"
-
-**Cause:** the SSRF guard blocks reference URLs that resolve to a private, loopback, or link-local address.
-
-**Solution:** host the reference image on a public address, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to compare against an internal address such as a local development server.
-
-### An annotation turns previously passing comparisons to WARNING
-
-**Cause:** annotations change the image's pixels, so an added or restyled annotation makes the new capture differ from a reference image captured without it.
-
-**Solution:** refresh the reference image after you change annotations or the `annotationDefaults` theme.
-
-### Auto screenshots don't appear for a step
-
-**Cause:** the step already defines an explicit `screenshot` (Doc Detective skips it to avoid a duplicate), or the step isn't browser-driven.
-
-**Solution:** this is expected behavior. Explicit `screenshot` steps produce their own image, and `autoScreenshot` only captures browser-driven steps.
+Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
 ## What's next
 
-- [Record video](/docs/test-docs/record-video-guide) to capture a flow as a video and narrate it.
+- [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) by comparing a capture against a reference image.
+- [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every browser-driven step.
+- [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image.
 - Follow the worked [screenshot example](/docs/test-docs/capture-screenshots) end to end.
-- [Keep tests healthy with self-healing](/ai/self-healing) so small UI churn doesn't constantly break the suite.
-- [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
+- [Record video](/docs/test-docs/record-video-guide) to capture a flow as a video and narrate it.
 - [Run in CI and at scale](/docs/ci/reporters-and-artifacts).
