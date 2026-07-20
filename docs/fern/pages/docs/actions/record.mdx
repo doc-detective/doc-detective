@@ -169,7 +169,7 @@ While the recording is active, Doc Detective captures a screenshot after every s
 
 Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists—which, once you commit the recording, is every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift, so you keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
 
-The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord#outputs): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
+The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
 
 Tune or relocate the comparison with the object form:
 
@@ -225,7 +225,7 @@ Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord`
 - `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation—the crop rectangle for `window`/`viewport` targets, else the capture frame size (skipped when the engine reports no expectation). Pass `{ "width": …, "height": … }` to compare literal dimensions.
 - `notBlack`: fails when black frames cover 95% or more of the video—the symptom of a broken screen capture.
 
-The measured values land in the [`stopRecord` outputs](stopRecord#outputs) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
+The measured values land in the [`stopRecord` outputs](stopRecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
 
 ### Detecting staleness without re-recording
 
