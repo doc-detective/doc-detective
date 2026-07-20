@@ -169,7 +169,7 @@ While the recording is active, Doc Detective captures a screenshot after every s
 
 Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists—which, once you commit the recording, is every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift, so you keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
 
-The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, and `seededBaselines`.
+The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, `seededBaselines`, and `checkpointErrors`.
 
 Tune or relocate the comparison with the object form:
 
