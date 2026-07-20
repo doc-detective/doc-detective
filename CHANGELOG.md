@@ -1,3 +1,53 @@
+# [4.36.0](https://github.com/doc-detective/doc-detective/compare/v4.35.0...v4.36.0) (2026-07-19)
+
+
+### Features
+
+* **core:** route surface-less steps to the active surface across all surface kinds ([#672](https://github.com/doc-detective/doc-detective/issues/672)) ([f7f13e7](https://github.com/doc-detective/doc-detective/commit/f7f13e7123bfba015aa6939f5c11e9bfc0d9c412)), closes [#671](https://github.com/doc-detective/doc-detective/issues/671)
+
+# [4.35.0](https://github.com/doc-detective/doc-detective/compare/v4.34.0...v4.35.0) (2026-07-17)
+
+
+### Features
+
+* **annotate:** persistent annotations for recordings ([#666](https://github.com/doc-detective/doc-detective/issues/666)) ([60e8f7f](https://github.com/doc-detective/doc-detective/commit/60e8f7f80019b2994cb2855bc735aa91c06d1551)), closes [#662](https://github.com/doc-detective/doc-detective/issues/662)
+* **hints:** recommend mobile platforms when a browser floors a viewport ([#657](https://github.com/doc-detective/doc-detective/issues/657)) ([7121df3](https://github.com/doc-detective/doc-detective/commit/7121df33ab369e97799cd02aba5387a8d97bcd86))
+* **screenshot:** declarative screenshot annotations ([978eeef](https://github.com/doc-detective/doc-detective/commit/978eeef8cb41e56101de39d8251fe578f75b5b98))
+
+# [4.34.0](https://github.com/doc-detective/doc-detective/compare/v4.33.0...v4.34.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **record:** don't let a failed promote mask a verify FAIL ([3db1a84](https://github.com/doc-detective/doc-detective/commit/3db1a8428bb9924705f20e6efd95c50f087fa1bf))
+* **record:** don't let verify guards report verdicts without evidence ([b753a71](https://github.com/doc-detective/doc-detective/commit/b753a7184f4c128ee7544b0d49fe60edf06d1da2))
+
+
+### Features
+
+* **record:** structural verify guards for the produced video ([7dc8205](https://github.com/doc-detective/doc-detective/commit/7dc8205ea6c875a5f506c3c7b335791ab4e9693b))
+
+# [4.33.0](https://github.com/doc-detective/doc-detective/compare/v4.32.0...v4.33.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* **hints:** correct refreshStaleRecording URL (drop spurious get-started/ segment) ([2391e3d](https://github.com/doc-detective/doc-detective/commit/2391e3d503fc4d8bc1cf5151855927202d586aa2))
+* **record:** address review — multi-session checkpoints, seed safety, ADR accuracy ([28d92bf](https://github.com/doc-detective/doc-detective/commit/28d92bf74d4eadf6d69adfd52b61318aca857b61)), closes [#655](https://github.com/doc-detective/doc-detective/issues/655) [#656](https://github.com/doc-detective/doc-detective/issues/656)
+* **record:** harden checkpoint capture and reporting after review ([e14d6d9](https://github.com/doc-detective/doc-detective/commit/e14d6d9d3efb949966bd308adfc2fb75cb1f648c))
+* **record:** harden span verdicts and promote after review ([3f37bb7](https://github.com/doc-detective/doc-detective/commit/3f37bb76e726d6879a6bc1f62a0a82c27df9c609))
+* **record:** isolate browser recordings per process, not just per context ([54c1c7b](https://github.com/doc-detective/doc-detective/commit/54c1c7ba6e24dac054f693f315d29e86e1c395a4))
+* **record:** keep comparing checkpoints when the capture is skipped ([1ef9996](https://github.com/doc-detective/doc-detective/commit/1ef999612ec0306efbe163ed7e89102e018eaa48))
+* **record:** report promote failures honestly in aboveVariation spans ([0c4f1d5](https://github.com/doc-detective/doc-detective/commit/0c4f1d562a401e7b087295dc1bfcf97b1b6df1fc)), closes [#651](https://github.com/doc-detective/doc-detective/issues/651)
+* **schema:** gate the screenshot path on its extension, not its charset ([30738d2](https://github.com/doc-detective/doc-detective/commit/30738d2a05c69a82e30fa311993601e42ab8aa08))
+
+
+### Features
+
+* **record:** checkpoint config schema and shared artifact naming ([26be0a7](https://github.com/doc-detective/doc-detective/commit/26be0a76848718e02a2aa2c11e29026f8a64069e))
+* **record:** checkpoint screenshots for recording spans ([5a4d3fe](https://github.com/doc-detective/doc-detective/commit/5a4d3fe17681bc06ec3b58c9445068064b38bfb4))
+* **record:** overwrite aboveVariation and headless staleness detection ([9661147](https://github.com/doc-detective/doc-detective/commit/96611474e6ea9d6f2d9b75bba3d01313d27b4c3c))
+
 # [4.32.0](https://github.com/doc-detective/doc-detective/compare/v4.31.0...v4.32.0) (2026-07-17)
 
 

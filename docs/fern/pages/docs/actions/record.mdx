@@ -202,6 +202,31 @@ Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this se
 
 `aboveVariation` requires checkpoints, so it enables them automatically—including over an explicit `checkpoints: false`, which this mode overrides (a verdict with no evidence could never refresh a drifted recording). Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it in the same step, so they describe the video you have. If a run is interrupted partway through that update, the next run sees the mismatch as drift and refreshes both again—it repairs itself rather than leaving you to notice. The `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
 
+### Verifying the video file itself
+
+Checkpoints validate the scene a recording shows, while `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are an all-black video, a wrong-sized crop, or a truncated clip:
+
+```json
+{
+  "record": {
+    "path": "signup-flow.mp4",
+    "verify": {
+      "minDuration": 2,
+      "resolution": true,
+      "notBlack": true
+    }
+  }
+}
+```
+
+Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord` step—these are properties you explicitly demand of the artifact:
+
+- `minDuration` / `maxDuration`: the video's length in seconds. Allow about half a second of slop for `.gif` targets, whose duration reporting is imprecise.
+- `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation—the crop rectangle for `window`/`viewport` targets, else the capture frame size (skipped when the engine reports no expectation). Pass `{ "width": …, "height": … }` to compare literal dimensions.
+- `notBlack`: fails when black frames cover 95% or more of the video—the symptom of a broken screen capture.
+
+The measured values land in the [`stopRecord` outputs](stopRecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
+
 ### Detecting staleness without re-recording
 
 Doc Detective skips the capture in two situations: a headless run (recording needs a visible display), and a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale—the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.

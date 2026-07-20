@@ -45,7 +45,11 @@
         "type": "string",
         "minLength": 1
       },
-      "default": ["terminal", "json", "runFolder"]
+      "default": [
+        "terminal",
+        "json",
+        "runFolder"
+      ]
     },
     "specFilter": {
       "description": "Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. Each entry must contain at least one non-whitespace character.",
@@ -73,7 +77,10 @@
     "relativePathBase": {
       "description": "Whether paths should be interpreted as relative to the current working directory (`cwd`) or to the file in which they're specified (`file`).",
       "type": "string",
-      "enum": ["cwd", "file"],
+      "enum": [
+        "cwd",
+        "file"
+      ],
       "default": "file"
     },
     "loadVariables": {
@@ -84,7 +91,7 @@
       "type": "string"
     },
     "originParams": {
-      "description": "Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. WARNING: values are embedded in request URLs and appear verbatim in test results, logs, and reports — avoid putting long-lived secrets here.",
+      "description": "Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. WARNING: values are embedded in request URLs and appear verbatim in test results, logs, and reports \u2014 avoid putting long-lived secrets here.",
       "type": "object",
       "additionalProperties": {
         "type": "string"
@@ -149,7 +156,13 @@
     "logLevel": {
       "description": "Amount of detail to output when performing an operation.",
       "type": "string",
-      "enum": ["silent", "error", "warning", "info", "debug"],
+      "enum": [
+        "silent",
+        "error",
+        "warning",
+        "info",
+        "debug"
+      ],
       "default": "info"
     },
     "runOn": {
@@ -157,7 +170,12 @@
     },
     "fileTypes": {
       "description": "Configuration for file types and their markup detection.",
-      "default": ["markdown", "asciidoc", "html", "dita"],
+      "default": [
+        "markdown",
+        "asciidoc",
+        "html",
+        "dita"
+      ],
       "anyOf": [
         {
           "type": "array",
@@ -168,15 +186,28 @@
                 "$comment": "Simple mode: Reference predefined templates by name.",
                 "title": "File type (predefined)",
                 "type": "string",
-                "enum": ["markdown", "asciidoc", "html", "dita"]
+                "enum": [
+                  "markdown",
+                  "asciidoc",
+                  "html",
+                  "dita"
+                ]
               },
               {
                 "$comment": "Custom mode: Extend predefined templates or write whole new ones.",
                 "title": "File type (custom)",
                 "type": "object",
                 "anyOf": [
-                  { "required": ["extensions"] },
-                  { "required": ["extends"] }
+                  {
+                    "required": [
+                      "extensions"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "extends"
+                    ]
+                  }
                 ],
                 "properties": {
                   "name": {
@@ -186,7 +217,11 @@
                   "extends": {
                     "description": "Base template to extend.",
                     "type": "string",
-                    "enum": ["markdown", "asciidoc", "html"]
+                    "enum": [
+                      "markdown",
+                      "asciidoc",
+                      "html"
+                    ]
                   },
                   "extensions": {
                     "description": "File extensions to use with type.",
@@ -213,7 +248,9 @@
                 "title": "File type (executable)",
                 "$comment": "Executable mode: Convert executable inputs directly into tests.",
                 "type": "object",
-                "required": ["extensions"],
+                "required": [
+                  "extensions"
+                ],
                 "properties": {
                   "extensions": {
                     "description": "File extensions to use with type.",
@@ -264,7 +301,12 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["name", "organizationId", "username", "apiToken"],
+            "required": [
+              "name",
+              "organizationId",
+              "username",
+              "apiToken"
+            ],
             "properties": {
               "name": {
                 "type": "string",
@@ -366,7 +408,9 @@
           "type": "string"
         }
       },
-      "required": ["send"],
+      "required": [
+        "send"
+      ],
       "default": {
         "send": true
       },
@@ -383,14 +427,19 @@
           "default": true
         }
       },
-      "required": ["enabled"],
+      "required": [
+        "enabled"
+      ],
       "default": {
         "enabled": true
       },
       "title": "Hints options"
     },
     "concurrentRunners": {
-      "type": ["integer", "boolean"],
+      "type": [
+        "integer",
+        "boolean"
+      ],
       "default": 1,
       "minimum": 1,
       "description": "Number of concurrent test runners. Set to true to use CPU core count (capped at 4).",
@@ -410,7 +459,9 @@
         },
         {
           "type": "string",
-          "enum": ["stepThrough"]
+          "enum": [
+            "stepThrough"
+          ]
         }
       ]
     },
@@ -424,20 +475,28 @@
       "type": "boolean",
       "default": false
     },
+    "annotationDefaults": {
+      "description": "Default visual theme for screenshot and recording annotations. Specs and tests can override this value with their own `annotationDefaults` fields (test level wins over spec level, which wins over config level), and an individual annotation's `style` wins over all of them. Fields left unset fall back to Doc Detective's built-in theme. Setting a theme here keeps every annotated image in a doc set visually consistent.",
+      "$ref": "annotationDefaults_v3.schema.json#"
+    },
     "autoRecord": {
       "description": "If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.",
       "type": "boolean",
       "default": false
     },
     "autoUpdate": {
-      "description": "If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only — local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.",
+      "description": "If `true` (default), the CLI checks for a newer published `doc-detective` on startup and self-updates before running tests. Updates happen for global (`npm i -g`) and `npx` installs only \u2014 local installs (where `doc-detective` is a project dep) get an informational message instead, since auto-updating would mutate the user's lockfile. CI environments and the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` env var also skip the check. Set to `false` to pin to the installed version. Equivalent to `--no-auto-update` on the CLI.",
       "type": "boolean",
       "default": true
     },
     "shell": {
       "description": "Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
       "type": "string",
-      "enum": ["bash", "cmd", "powershell"],
+      "enum": [
+        "bash",
+        "cmd",
+        "powershell"
+      ],
       "default": "bash"
     },
     "cacheDir": {
@@ -447,9 +506,13 @@
       "pattern": "\\S"
     },
     "browserFallback": {
-      "description": "Controls whether a context whose browser cannot start a driver session falls back to another available browser instead of being skipped. Drivers are validated by execution (not just presence) so a present-but-broken driver — for example a partially downloaded geckodriver — no longer silently skips Firefox coverage. `auto` (default): fall back to any other available browser for both auto-selected and explicitly requested browsers; a fallback away from an explicitly requested browser reports the context as `WARNING` rather than `PASS`. `explicit`: fall back only when the browser was auto-selected; an explicitly requested browser whose driver is broken is skipped with a diagnostic reason. `off`: never fall back across browsers (driver validation and diagnostic skip reasons still apply). Equivalent to `--browser-fallback` on the CLI.",
+      "description": "Controls whether a context whose browser cannot start a driver session falls back to another available browser instead of being skipped. Drivers are validated by execution (not just presence) so a present-but-broken driver \u2014 for example a partially downloaded geckodriver \u2014 no longer silently skips Firefox coverage. `auto` (default): fall back to any other available browser for both auto-selected and explicitly requested browsers; a fallback away from an explicitly requested browser reports the context as `WARNING` rather than `PASS`. `explicit`: fall back only when the browser was auto-selected; an explicitly requested browser whose driver is broken is skipped with a diagnostic reason. `off`: never fall back across browsers (driver validation and diagnostic skip reasons still apply). Equivalent to `--browser-fallback` on the CLI.",
       "type": "string",
-      "enum": ["auto", "explicit", "off"],
+      "enum": [
+        "auto",
+        "explicit",
+        "off"
+      ],
       "default": "auto"
     }
   },
@@ -460,7 +523,9 @@
         "description": "Environment information for the system running Doc Detective.",
         "readOnly": true,
         "additionalProperties": false,
-        "required": ["platform"],
+        "required": [
+          "platform"
+        ],
         "properties": {
           "workingDirectory": {
             "description": "The current working directory of the process running Doc Detective.",
@@ -469,12 +534,21 @@
           "platform": {
             "description": "The operating system type running Doc Detective.",
             "type": "string",
-            "enum": ["linux", "mac", "windows"]
+            "enum": [
+              "linux",
+              "mac",
+              "windows"
+            ]
           },
           "arch": {
             "description": "The processor architecture of the system running Doc Detective.",
             "type": "string",
-            "enum": ["arm32", "arm64", "x32", "x64"]
+            "enum": [
+              "arm32",
+              "arm64",
+              "x32",
+              "x64"
+            ]
           }
         },
         "title": "Environment details"
@@ -526,6 +600,7 @@
       "markupActionString": {
         "type": "string",
         "enum": [
+          "annotate",
           "checkLink",
           "click",
           "find",
@@ -616,8 +691,14 @@
       "output": ".",
       "recursive": true,
       "loadVariables": ".env",
-      "fileTypes": ["markdown"],
-      "reporters": ["terminal", "json", "html"]
+      "fileTypes": [
+        "markdown"
+      ],
+      "reporters": [
+        "terminal",
+        "json",
+        "html"
+      ]
     },
     {
       "origin": "https://my-app.com",
@@ -629,7 +710,11 @@
       "fileTypes": [
         {
           "extends": "markdown",
-          "extensions": ["md", "markdown", "mdx"],
+          "extensions": [
+            "md",
+            "markdown",
+            "mdx"
+          ],
           "inlineStatements": {
             "testStart": "<!--\\s*testStart\\s*(.*?)\\s*-->",
             "testEnd": "<!-- testEnd -->",
@@ -724,12 +809,28 @@
       }
     },
     {
-      "testFilter": ["smoke", "login"],
-      "specFilter": ["auth"]
+      "testFilter": [
+        "smoke",
+        "login"
+      ],
+      "specFilter": [
+        "auth"
+      ]
     },
     {
       "autoScreenshot": true,
       "output": "./test-results"
+    },
+    {
+      "input": ".",
+      "annotationDefaults": {
+        "color": "#E11D48",
+        "strokeWidth": 3,
+        "badge": {
+          "background": "#E11D48",
+          "color": "#FFFFFF"
+        }
+      }
     }
   ]
 }

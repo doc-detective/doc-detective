@@ -9,6 +9,8 @@ import fs from "node:fs";
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { resolveTheme } from "./annotations/model.js";
+import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
 import {
   requiredBrowserAssets,
@@ -20,6 +22,9 @@ import {
   BROWSER_STEP_KEYS as driverActions,
   startSurfaceDescriptors,
   stepOpensBrowserSurface,
+  stepTargetsProcessSurface,
+  stepIsSurfacelessInteraction,
+  testHasNonBrowserSurfaceSignal,
 } from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
@@ -39,6 +44,7 @@ import {
   evaluateContextRequirements,
   isRetryableSessionError,
   realizeViewport,
+  isViewportFloored,
 } from "./utils.js";
 import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
@@ -93,6 +99,10 @@ import {
   type AppSessionState,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
+import {
+  createActiveSurfaceTracker,
+  type ActiveSurfaceTracker,
+} from "./tests/activeSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 import {
   mobileBrowserGate,
@@ -646,18 +656,26 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
 }
 
 // Like isDriverRequired, but only counts driver steps that need a BROWSER: a
-// step whose payload targets an app surface (object form) is driven by the
-// app session instead, and the synthetic autoRecord capture is an ffmpeg
-// screen grab — neither may force a default browser into existence (in a
-// browser test the authored steps already require one, so excluding the
-// synthetic step never changes the outcome there).
+// step whose payload targets an app or process surface (object form) is
+// driven by the app session / process registry instead, and the synthetic
+// autoRecord capture is an ffmpeg screen grab — none may force a default
+// browser into existence (in a browser test the authored steps already
+// require one, so excluding the synthetic step never changes the outcome
+// there). Uniform routing (ADR 01081) adds one more exclusion: a
+// surface-less interaction step in a test that opens or targets a
+// non-browser surface routes to the active surface at runtime, so it doesn't
+// force a browser either — a test with no such signal keeps the browser
+// default unchanged.
 function isBrowserRequired({ test }: { test: any }): boolean {
   if (!Array.isArray(test?.steps)) return false;
+  const hasNonBrowserSignal = testHasNonBrowserSurfaceSignal(test.steps);
   return test.steps.some(
     (step: any) =>
       !step?.__autoRecord &&
       ((driverActions.some((action) => typeof step[action] !== "undefined") &&
-        !stepTargetsAppSurface(step)) ||
+        !stepTargetsAppSurface(step) &&
+        !stepTargetsProcessSurface(step) &&
+        !(hasNonBrowserSignal && stepIsSurfacelessInteraction(step))) ||
         // Phase 6: `startSurface: { browser: … }` opens a browser session
         // (the goTo-opener sibling); app/process descriptors don't.
         stepOpensBrowserSurface(step))
@@ -3832,6 +3850,11 @@ async function runContext({
   // context that passes its preflight (phase A3b). Declared here so the mobile
   // branch can set it and fall through to the shared step-execution path.
   let appSession: AppSessionState | undefined;
+  // Cross-kind active-surface tracker (ADR 01081): one MRU per context,
+  // shared by the browser session registry, the app session, and the process
+  // lanes, so surface-less steps route to the most recently active surface
+  // regardless of kind.
+  const surfaceTracker = createActiveSurfaceTracker();
   // Mobile web (phase A5): set when the mobile preflight resolved a device
   // browser for this context. The try block below then opens the browser
   // session on the device (through the app session's Appium server) instead
@@ -3949,6 +3972,9 @@ async function runContext({
     appSession.appiumEntry = preflight.appiumEntry;
     appSession.appiumHome = preflight.appiumHome;
   }
+  // Whichever branch created the app session (android/ios/desktop), it shares
+  // the context's active-surface tracker with the browser registry below.
+  if (appSession) appSession.tracker = surfaceTracker;
 
   // If a driver is required but no browser could be resolved (e.g.
   // getDefaultBrowser found nothing installed, or the context supplied a
@@ -4223,6 +4249,7 @@ async function runContext({
           );
         },
         isNameTaken: (name: string) => !!processRegistry?.has(name),
+        tracker: surfaceTracker,
       });
       registerSession(browserSessions, {
         name: String(mobileWebBrowserName).toLowerCase(),
@@ -4443,6 +4470,7 @@ async function runContext({
             return res.driver;
           },
           isNameTaken: (name: string) => !!processRegistry?.has(name),
+          tracker: surfaceTracker,
         });
         registerSession(browserSessions, {
           name: String(startedName).toLowerCase(),
@@ -4458,7 +4486,22 @@ async function runContext({
       const viewportH = Number(context.browser?.viewport?.height);
       if (viewportW > 0 || viewportH > 0) {
         // Set driver viewport size
-        await setViewportSize(context, driver, config);
+        const realized = await setViewportSize(context, driver, config);
+        // Stamp the context REPORT (not the context object — the report is a
+        // curated copy) when the browser floored the request. A context-level
+        // viewport has no step output to carry the realized size, so this is
+        // the only signal the post-run `useMobilePlatforms` hint can read.
+        if (
+          isViewportFloored(
+            {
+              ...(viewportW > 0 ? { width: viewportW } : {}),
+              ...(viewportH > 0 ? { height: viewportH } : {}),
+            },
+            realized
+          )
+        ) {
+          contextReport.viewportFloored = true;
+        }
       } else if (
         context.browser?.window?.width ||
         context.browser?.window?.height
@@ -4475,6 +4518,15 @@ async function runContext({
 
     // Effective autoScreenshot for this context (test > spec > config).
     const autoScreenshotEnabled = resolveAutoScreenshot({ config, spec, test });
+
+    // Effective annotation theme for this context, same precedence. Resolved
+    // here because spec/test are only in scope at this level; steps get it
+    // through `options` since runStep has no view of the spec or test.
+    const annotationTheme = resolveTheme([
+      config?.annotationDefaults,
+      spec?.annotationDefaults,
+      test?.annotationDefaults,
+    ]);
 
     // Iterates steps
     let stepExecutionFailed = false;
@@ -4720,9 +4772,11 @@ async function runContext({
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
+            annotationTheme,
           },
           processRegistry: processRegistry,
           appSession: appSession,
+          surfaceTracker: surfaceTracker,
         });
         if (logLevelEnabled(config, "debug")) clog(
           "debug",
@@ -5090,6 +5144,7 @@ async function runStep({
   options = {},
   processRegistry,
   appSession,
+  surfaceTracker,
 }: {
   config?: any;
   context?: any;
@@ -5099,6 +5154,7 @@ async function runStep({
   options?: any;
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
+  surfaceTracker?: ActiveSurfaceTracker;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -5109,6 +5165,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
     });
   } else if (typeof step.dragAndDrop !== "undefined") {
     actionResult = await dragAndDropElement({
@@ -5119,7 +5177,7 @@ async function runStep({
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
-    actionResult = await findElement({ config: config, step: step, driver, appSession });
+    actionResult = await findElement({ config: config, step: step, driver, appSession, processRegistry, surfaceTracker });
   } else if (typeof step.stopRecord !== "undefined") {
     actionResult = await stopRecording({
       config: config,
@@ -5193,6 +5251,7 @@ async function runStep({
       // so `null` is the single "disabled" encoding. `overwrite` rides along
       // for stopRecord's aboveVariation staging/promote decision (ADR 01078).
       handle.overwrite = (step.record as any)?.overwrite;
+      handle.verify = (step.record as any)?.verify;
       if (handle.targetPath) {
         handle.checkpoints = resolveCheckpointsConfig({
           record: step.record,
@@ -5241,6 +5300,7 @@ async function runStep({
         appSession,
         driver,
         processRegistry,
+        surfaceTracker,
         platform: context?.platform ?? "",
         serverDeps: {
           startServer: async (appiumEntry: string, appiumHome: string) => {
@@ -5315,6 +5375,16 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
+      annotationTheme: options?.annotationTheme,
+    });
+  } else if (typeof step.annotate !== "undefined") {
+    actionResult = await annotate({
+      config: config,
+      step: step,
+      driver: driver,
+      annotationTheme: options?.annotationTheme,
     });
   } else if (typeof step.swipe !== "undefined") {
     actionResult = await swipeSurface({
@@ -5322,6 +5392,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
     });
   } else if (typeof step.type !== "undefined") {
     actionResult = await typeKeys({
@@ -5330,6 +5402,7 @@ async function runStep({
       driver: driver,
       processRegistry,
       appSession,
+      surfaceTracker,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });
@@ -5339,14 +5412,47 @@ async function runStep({
       description: `Unknown step action: ${JSON.stringify(step)}`,
     };
   }
-  // If recording, wait until browser is loaded, then instantiate cursor.
-  // The `getUrl` guard skips the synthetic-cursor dance when `driver` is the
-  // app session's recordingHost (a bare state holder, not a browser session).
-  if (isRecordingActive(driver) && typeof driver.getUrl === "function") {
+  // Re-inject anything we've drawn into the page after a navigation wiped it.
+  // A fresh document has neither the synthetic cursor nor the annotation
+  // layer, so both are re-mounted here rather than in `goTo` — every step that
+  // can navigate lands on this hook.
+  //
+  // The `getUrl` guard skips the dance when `driver` is the app session's
+  // recordingHost (a bare state holder, not a browser session). The condition
+  // is broader than the recording check it started as: persistent annotations
+  // must survive navigation whether or not a recording is running, since a
+  // screenshot taken after a `goTo` should still show them.
+  const persistedAnnotations: any[] = Array.isArray(driver?.state?.annotations)
+    ? driver.state.annotations
+    : [];
+  const recordingActive = isRecordingActive(driver);
+  if (
+    (recordingActive || persistedAnnotations.length > 0) &&
+    typeof driver?.getUrl === "function"
+  ) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
-      await instantiateCursor(driver);
+      if (recordingActive) await instantiateCursor(driver);
+      if (persistedAnnotations.length > 0) {
+        const kept = pruneExpired(persistedAnnotations, Date.now());
+        driver.state.annotations = kept;
+        try {
+          // Re-mounted annotations are not "new", so they don't replay their
+          // enter transition — a fade-in on every navigation would read as a
+          // glitch in the recording.
+          await renderLayer({
+            config,
+            driver,
+            entries: kept,
+            annotationTheme: options?.annotationTheme,
+          });
+        } catch {
+          // Best-effort: losing the overlay after a navigation shouldn't turn
+          // an otherwise-passing step into a failure. The next annotate step
+          // re-renders from the same state.
+        }
+      }
     }
   }
   // Clean up actionResult outputs

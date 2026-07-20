@@ -22,7 +22,102 @@ You can specify the screenshot action in several ways:
     - `selector`: (Required in object) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text to further specify the element if the selector isn't unique.
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
-  - `surface`: (Optional) The browser (session, window, or tab) to capture, for example `{ "browser": "chrome", "tab": "cart" }`, or the [native app surface](/docs/actions/startsurface) to capture, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }` (on macOS the capture is that window element, on Windows the switched window). Omit to capture the active browser tab or app window. The targeted surface stays focused afterward. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
+  - `surface`: (Optional) The browser (session, window, or tab) to capture, for example `{ "browser": "chrome", "tab": "cart" }`, or the [native app surface](/docs/actions/startsurface) to capture, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }` (on macOS the capture is that window element, on Windows the switched window). Omit to capture the active surface (the most recently opened, focused, or explicitly targeted surface, whether that's a browser tab or an app window). Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
+  - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).
+
+## Annotations
+
+Annotations mark up a screenshot as part of capturing it, so the callouts regenerate with the image instead of drifting from it. Each annotation names exactly one type, and the type's value is what it points at:
+
+```json
+{
+  "screenshot": {
+    "path": "login.png",
+    "annotations": [
+      { "outline": "#username" },
+      { "badge": "#password", "label": "2" },
+      { "blur": ".account-id" }
+    ]
+  }
+}
+```
+
+Doc Detective composites annotations into the image instead of injecting them into the page. It never modifies the page under test, so an annotated screenshot can't disturb a test or leak into a recording that's running at the same time.
+
+### Types
+
+| Type | Draws |
+|---|---|
+| `outline` | A box around the target. |
+| `arrow` | An arrow pointing at the target. |
+| `badge` | A small marker on the target, showing `label`. Use for numbered steps. |
+| `callout` | A text box with a leader line, showing `label`. |
+| `blur` | A blur over the target, to redact sensitive information. |
+| `text` | A standalone text box, showing `label`. |
+
+### Targets
+
+A target can be:
+
+- **A string**, a selector or display text, the same as `crop` accepts. For example, `{ "outline": "#submit" }`.
+- **An object**, using the same element-finding fields as [`find`](/docs/actions/find). For example, `{ "outline": { "elementTestId": "submit" } }`.
+- **A position**, a fixed spot for annotations that aren't tied to an element. For example, `{ "text": { "position": "top-right" }, "label": "Demo data" }`. Accepts a named region (`top`, `bottom`, `left`, `right`, `center`, `top-left`, `top-right`, `bottom-left`, `bottom-right`) or a point (`{ "x": 640, "y": 220 }`).
+
+### Options
+
+- `label`: Text to display. Used by `badge`, `callout`, and `text`.
+- `position`: Where to place the annotation relative to its target. Accepts a named region, a point, or an offset (`{ "offset": { "x": -80, "y": -60 } }`).
+- `style`: Visual overrides for this annotation: `color`, `background`, `strokeWidth`, `fontSize`, `fontFamily`, `opacity`, `radius`, `padding`, `maxWidth`, and `intensity` (blur strength).
+- `all`: Annotate every matching element instead of only the first. Needs an object target, because a string could be a selector or display text.
+
+<Note>
+Use `all` for redaction. `{ "blur": { "selector": ".secret" } }` blurs only the first match. If the page shows several, the rest stay readable in an image that looks redacted.
+</Note>
+
+Annotations resolve after `crop`, so you can crop to a panel and annotate elements inside it. An annotation whose target doesn't resolve fails the step rather than quietly producing an unannotated image.
+
+### App surfaces
+
+Annotations work on [native app surfaces](/docs/actions/startsurface) too, including element-anchored ones. Native surfaces match elements through the platform's accessibility layer rather than the DOM, so only four fields have a native equivalent: `elementText`, `elementId`, `elementTestId`, and `elementAria`. `selector`, `elementClass`, and `elementAttribute` are browser-only, and a bare string target isn't accepted on an app surface. Name the field explicitly instead:
+
+```json
+{
+  "screenshot": {
+    "path": "settings.png",
+    "surface": { "app": "notepad" },
+    "annotations": [
+      { "outline": { "elementText": "Save" } },
+      { "text": { "position": "top-left" }, "label": "Step 1" }
+    ]
+  }
+}
+```
+
+Position-anchored annotations need no element lookup, so they work on every surface.
+
+`all` isn't supported on app surfaces yet, because the native element lookup resolves a single match. Rather than annotate the first match and leave the rest, the step fails. Give each element its own annotation instead.
+
+### Themes
+
+Set `annotationDefaults` to style every annotation at once, so images across a doc set stay consistent. Set it on the config, a spec, or a test. A test's theme overrides a spec's, which overrides the config's, and an individual annotation's `style` overrides all of them.
+
+```json
+{
+  "annotationDefaults": {
+    "color": "#E11D48",
+    "strokeWidth": 3,
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "badge": { "background": "#E11D48", "color": "#FFFFFF" },
+    "blur": { "intensity": 14 }
+  }
+}
+```
+
+Base properties apply to every type. A per-type block, such as `badge` or `callout`, overrides them for that type.
+
+<Warning>
+Annotations change the image's pixels. If you compare against a reference image with `maxVariation`, changing a theme or an annotation invalidates existing reference images.
+</Warning>
 
 **Visual Regression Testing:** If `maxVariation` is set and a reference image exists at the target `path`, the action compares the new screenshot to the reference. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting.
 
@@ -39,6 +134,8 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 - `$$width` / `$$height`: the saved image's actual pixel dimensions, after any crop. When the browser floors a requested viewport, these reflect the size the page rendered, not the size you requested, so a caption or report reconciles against the file. Always present.
 - `$$cropElementFound`: whether the element to crop to was located (when `crop` is set).
 - `$$fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
+- `$$annotationTargetsFound`: whether every annotation's target resolved (when `annotations` is set). The step fails if any target is missing.
+- `$$annotationsInBounds`: whether every annotation landed inside the image (when `annotations` is set). The step returns WARNING if one falls outside, which usually means the crop left it out of frame.
 - `$$aspectRatioMatch`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
 - `$$variation`: the fractional difference between the new capture and the reference image (when comparing against a reference image).
 
@@ -204,6 +301,44 @@ Captures the element with text "Submit Button", adds 10px padding, and compares 
 
 {/* step {"stepId":"goto-screenshot-padding","description":"Open the local test server","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"screenshot-padding","description":"Screenshot a button with padding, directed at a gitignored output folder (visual comparison against a maintained reference image is skipped -- see PR notes)","screenshot":{"path":"standard_button_padded.png","directory":"./.dd-output","crop":{"elementText":"Standard Button","padding":10}}} */}
+{/* test end */}
+
+### Annotated screenshot
+
+Numbers the fields of a form and redacts an email address, all as part of the capture.
+
+{/* test {"testId":"screenshot-annotated","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Capture an annotated screenshot of the sign-in form.",
+          "screenshot": {
+            "path": "sign_in_annotated.png",
+            "directory": "./output/images",
+            "annotations": [
+              { "badge": "#username", "label": "1" },
+              { "badge": "#password", "label": "2" },
+              {
+                "callout": "#submit",
+                "label": "Sends you a one-time code",
+                "position": "right"
+              },
+              { "blur": { "selector": ".account-email" }, "all": true }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-screenshot-annotated","description":"Open the local test server","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"screenshot-annotated-step","description":"Capture an annotated screenshot, directed at a gitignored output folder","screenshot":{"path":"annotated_form.png","directory":"./.dd-output","annotations":[{"badge":"#username-input","label":"1"},{"outline":"#submit-button"},{"blur":"#contact-email"}]}} */}
 {/* test end */}
 
 ## Automatic screenshots

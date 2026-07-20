@@ -287,6 +287,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // omitSurfaceForActiveApp (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "omitSurfaceForActiveApp",
+    priority: 50,
+    markdown: [
+      "Steps that omit `surface` act on the **active surface** — the surface most recently opened, focused, or explicitly targeted. After `startSurface` opens an app it is the active surface, so the repeated `surface: { \"app\": … }` on the steps that follow can be dropped; use `surface` only to switch targets mid-test.",
+      "",
+      "```diff",
+      "  { \"startSurface\": { \"app\": \"notepad\" } },",
+      "- { \"click\": { \"elementText\": \"Save\", \"surface\": { \"app\": \"notepad\" } } }",
+      "+ { \"click\": \"Save\" }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/actions/startsurface](https://doc-detective.com/docs/actions/startsurface#target-an-app-surface)",
+    ].join("\n"),
+    when: (ctx) => ctx.repeatedAppSurfaceRefs,
+  },
+
+  // ------------------------------------------------------------------
   // prebuildWebDriverAgent (optimization & advanced)
   // ------------------------------------------------------------------
   {
@@ -475,6 +495,49 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useAnnotateStepForRecordings (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAnnotateStepForRecordings",
+    priority: 40,
+    markdown: [
+      "Recording a walkthrough? An `annotate` step draws annotations into the page, so they stay on screen across steps and appear in the video.",
+      "",
+      "```json",
+      '{ "record": "walkthrough.webm" },',
+      '{ "annotate": { "add": [{ "id": "tip", "callout": "#submit", "label": "Sends a code" }] } },',
+      '{ "click": "#submit" },',
+      '{ "annotate": { "clear": ["tip"] } }',
+      "```",
+      "",
+      "More: [annotate](https://doc-detective.com/docs/actions/annotate)",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.producedRecordings && !ctx.usedStepTypes.has("annotate"),
+  },
+
+  // ------------------------------------------------------------------
+  // useAnnotationsOnScreenshots (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAnnotationsOnScreenshots",
+    priority: 40,
+    markdown: [
+      "Annotating screenshots by hand? `annotations` draws them as part of the capture, so the callouts regenerate with the image instead of drifting from it.",
+      "",
+      "```json",
+      '{ "screenshot": { "path": "./login.png", "annotations": [',
+      '  { "badge": "#username", "label": "1" },',
+      '  { "blur": { "selector": ".account-id" }, "all": true }',
+      "] } }",
+      "```",
+      "",
+      "More: [screenshot annotations](https://doc-detective.com/docs/actions/screenshot#annotations)",
+    ].join("\n"),
+    when: (ctx) => ctx.producedScreenshots && !ctx.usedAnnotations,
+  },
+
+  // ------------------------------------------------------------------
   // useAssertionsForOutputChecks (feature discovery)
   // ------------------------------------------------------------------
   {
@@ -647,6 +710,26 @@ export const HINTS: Hint[] = [
       ctx.usedStepTypes.has("loadVariables") &&
       ctx.usedStepTypes.has("type") &&
       ctx.usedStepTypes.has("click"),
+  },
+
+  // ------------------------------------------------------------------
+  // useMobilePlatforms (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useMobilePlatforms",
+    priority: 20,
+    markdown: [
+      "A browser floored a viewport this run: desktop browsers enforce a minimum window size (about 500px wide), so a smaller request (a 375px phone width, say) rendered larger. Screenshots and measurements show the size that actually rendered, not the size you asked for.",
+      "",
+      "Resizing a desktop window doesn't emulate a phone. To test a real mobile viewport, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions:",
+      "",
+      "```json",
+      "{ \"runOn\": [{ \"platforms\": \"android\" }] }",
+      "```",
+      "",
+      "More: [doc-detective.com/docs/test-docs/platforms-and-browsers](https://doc-detective.com/docs/test-docs/platforms-and-browsers)",
+    ].join("\n"),
+    when: (ctx) => ctx.viewportFloored && !ctx.ranMobileContexts,
   },
 
   // ------------------------------------------------------------------

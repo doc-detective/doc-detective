@@ -39,6 +39,21 @@ Don't reach for `--no-verify` when a husky hook fails for a missing dependency �
 instead. Verify runnable changes against the real toolchain (e.g. run a doc's inline tests with
 `doc-detective runTests --input <file>`) rather than guessing at CI behavior.
 
+## Don't rewrite whole files with scripts (CRLF landmine)
+
+Some tracked files are committed with **CRLF** ([src/core/tests.ts](src/core/tests.ts) is the
+notable one) while most are LF, and `core.autocrlf=input` re-normalizes on `git add`. A script that
+reads and rewrites a whole file (`python`'s `io.open(...).read()` / `write()`, or any
+read-modify-write helper) silently converts CRLF → LF, turning a one-line change into a
+**whole-file diff** that buries the real change and rewrites `git blame`.
+
+- Prefer the **Edit tool** for source changes — it preserves the file's existing endings.
+- After any scripted rewrite, check `git diff --numstat <file>`: a line count near the file's total
+  means the endings flipped. Confirm with `git diff --ignore-cr-at-eol --numstat <file>` (the real
+  delta) and compare `git show <ref>:<file>` against the working copy.
+- To restore, convert the working copy back (`d.replace(b"\n", b"\r\n")` in binary mode) and stage
+  it with `git -c core.autocrlf=false add <file>` — a plain `git add` re-strips the CRs.
+
 ## Persistent knowledge: repo instructions, not Claude memory (required)
 
 Do **not** use Claude Code's auto-memory feature (the per-project `~/.claude/projects/**/memory/`
@@ -117,6 +132,7 @@ Fixtures live in [test/core-artifacts/](test/core-artifacts) as `*.spec.json` fi
 - **Put a new fixture in the subdirectory for its feature area.** If it's a genuinely new area, create a new `<group>/` directory **and add it to a bundle's `input` in [.github/workflows/fixtures.yml](.github/workflows/fixtures.yml)** — join an existing bundle when the group is fast (keep the bundle's worst leg, cold-cache Windows, well under its timeout), or add a new solo entry when it's heavy, iOS-flavored (the action's `ios: auto` scan can't see into comma-joined inputs), or needs its own gating env. **Caution:** the zero-spec guard only fails a *fully* empty run — in a multi-directory bundle a typo'd directory contributes zero specs while the others still produce results, so double-check `input` paths in review (the fixture-output artifact shows which spec files actually ran).
 - Gate display/engine-specific permutations with `runOn` (platforms + headed/headless) so each runs only where it can succeed, and lands as `SKIPPED` elsewhere. Recording fixtures are the worked example: ffmpeg permutations run on Windows/macOS/Linux headed; browser-engine permutations only on headed Chrome (Windows/macOS). Headless Linux jobs skip the headed recording permutations — that's expected and passes the gate.
 - Permutations that are *meant* to be skipped or guarded (headless skip, name conflict, `record: false`) belong in fixtures too — assert the SKIPPED behavior, don't omit it.
+- When a fixture asserts on captured step outputs, read them in `runShell` via `process.env.MY_VAR` (step `variables` export to the environment), **not** textual `$MY_VAR` substitution — substitution splices raw values into the command string, where Windows paths' backslashes become JS escape sequences and quoting breaks. See [recording/recording-outputs.spec.json](test/core-artifacts/recording/recording-outputs.spec.json) for the pattern.
 - Shared state is provisioned per job: browser/http groups rely on the test servers the job starts (8092/8093 via [test/server/start.js](test/server/start.js)); specs that need the `env` variables load them with `loadVariables: "../env"` (single `env` at the artifacts root). Group jobs use the lean [config.groups.json](test/core-artifacts/config.groups.json) (no live external integrations).
 - When a behavior needs a precise assertion the "no spec fails" gate can't express (e.g. a preflight that must skip a test for a specific reason), add a focused `it(...)` in [test/core-core.test.js](test/core-core.test.js) — which also runs the broad `test.spec.json` **smoke** under mocha and keeps all the programmatic control-flow assertions.
 

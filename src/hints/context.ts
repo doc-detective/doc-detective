@@ -27,6 +27,7 @@ import type { AgentDetection, HintContext } from "./types.js";
 // silently never match real results, so this list must mirror the
 // schema. Order doesn't matter; the consumer is `Set.has()`.
 const STEP_ACTION_KEYS = [
+  "annotate",
   "checkLink",
   "click",
   "closeSurface",
@@ -137,6 +138,7 @@ export async function buildHintContext(
     usedStepTypes: walkData.usedStepTypes,
     usedBrowserContexts: walkData.usedBrowserContexts,
     producedScreenshots: walkData.producedScreenshots,
+    usedAnnotations: walkData.usedAnnotations,
     producedAutoScreenshots: walkData.producedAutoScreenshots,
     producedRecordings: walkData.producedRecordings,
     usedSelectorOnlyFinds: walkData.usedSelectorOnlyFinds,
@@ -148,6 +150,8 @@ export async function buildHintContext(
     failedTransientRequest: walkData.failedTransientRequest,
     failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
     ranIosContexts: walkData.ranIosContexts,
+    viewportFloored: walkData.viewportFloored,
+    ranMobileContexts: walkData.ranMobileContexts,
     hasManagedWdaProducts: detectManagedWdaProducts(config),
     agentDetections,
     hasPackageJson,
@@ -160,6 +164,7 @@ export async function buildHintContext(
     // parallel). Defensive read — results may be partial/absent.
     recordingSerialized: options.results?.recordingSerialized === true,
     hasStaleRecordings: walkData.hasStaleRecordings,
+    repeatedAppSurfaceRefs: walkData.repeatedAppSurfaceRefs,
   };
 }
 
@@ -389,6 +394,7 @@ interface WalkData {
   usedStepTypes: Set<string>;
   usedBrowserContexts: Set<string>;
   producedScreenshots: boolean;
+  usedAnnotations: boolean;
   producedAutoScreenshots: boolean;
   producedRecordings: boolean;
   usedSelectorOnlyFinds: boolean;
@@ -401,6 +407,41 @@ interface WalkData {
   failedRunShellWithoutShell: boolean;
   ranIosContexts: boolean;
   hasStaleRecordings: boolean;
+  viewportFloored: boolean;
+  ranMobileContexts: boolean;
+  // True when >= 3 surface-sensitive steps (find/click/type/screenshot/swipe)
+  // explicitly referenced the SAME app surface — redundant under the
+  // active-surface default (ADR 01081). Powers `omitSurfaceForActiveApp`.
+  repeatedAppSurfaceRefs: boolean;
+  // Internal counter behind `repeatedAppSurfaceRefs`: app name → explicit
+  // reference count, folded by inspectStep, reduced at the end of walkResults.
+  appSurfaceRefCounts: Map<string, number>;
+}
+
+/**
+ * Px delta above which a realized viewport counts as FLOORED by the browser.
+ * Mirrors `VIEWPORT_TOLERANCE_PX` in `src/core/utils.ts` — the threshold the
+ * runner itself uses to warn — so the hint fires exactly when the run warned.
+ * Duplicated rather than imported: `hints/` stays free of the core module graph
+ * (core/utils pulls axios and the runtime stack). `test/hints.test.js` asserts
+ * the two constants stay equal.
+ */
+export const VIEWPORT_FLOOR_TOLERANCE_PX = 16;
+
+/**
+ * True when a realized viewport came back LARGER than requested by more than
+ * the tolerance — the browser refusing to shrink below its minimum window size.
+ * A smaller-than-requested render isn't a floor, so it doesn't count.
+ */
+function isFlooredViewport(viewport: any): boolean {
+  if (!viewport || typeof viewport !== "object") return false;
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(viewport.requested?.[dim]);
+    const act = Number(viewport.actual?.[dim]);
+    if (!(req > 0) || !Number.isFinite(act)) continue;
+    if (act - req > VIEWPORT_FLOOR_TOLERANCE_PX) return true;
+  }
+  return false;
 }
 
 function emptyWalkData(): WalkData {
@@ -408,6 +449,7 @@ function emptyWalkData(): WalkData {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    usedAnnotations: false,
     producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
@@ -420,8 +462,25 @@ function emptyWalkData(): WalkData {
     failedRunShellWithoutShell: false,
     ranIosContexts: false,
     hasStaleRecordings: false,
+    viewportFloored: false,
+    ranMobileContexts: false,
+    repeatedAppSurfaceRefs: false,
+    appSurfaceRefCounts: new Map(),
   };
 }
+
+// The step keys whose actions route through the active-surface resolver
+// (ADR 01081). Mirrors SURFACE_SENSITIVE_STEP_KEYS in
+// `src/runtime/browserStepKeys.ts`; duplicated (like the viewport tolerance
+// above) so `hints/` stays import-light — `test/hints.test.js` asserts the
+// two lists stay equal.
+export const SURFACE_SENSITIVE_HINT_KEYS = [
+  "click",
+  "find",
+  "screenshot",
+  "swipe",
+  "type",
+];
 
 // Test/step routing handler keys.
 const ROUTING_HANDLER_KEYS = ["onPass", "onFail", "onWarning", "onSkip"];
@@ -440,10 +499,21 @@ export function walkResults(results: any): WalkData {
           if (typeof browserName === "string" && browserName.length > 0) {
             data.usedBrowserContexts.add(browserName);
           }
-          // Mobile contexts record the resolved device on the context
-          // report. Powers `prebuildWebDriverAgent`.
-          if (context?.device?.platform === "ios") {
+          // Mobile contexts record the resolved device on the context report.
+          const devicePlatform = context?.device?.platform;
+          // iOS-only, powers `prebuildWebDriverAgent`.
+          if (devicePlatform === "ios") {
             data.ranIosContexts = true;
+          }
+          // Any real mobile screen (android or ios) means the user already
+          // tests mobile — gates `useMobilePlatforms` off.
+          if (devicePlatform === "ios" || devicePlatform === "android") {
+            data.ranMobileContexts = true;
+          }
+          // A context-level `browser.viewport` has no step output to carry the
+          // realized size, so the runner stamps the context when it floors one.
+          if (context?.viewportFloored === true) {
+            data.viewportFloored = true;
           }
           const steps = Array.isArray(context?.steps) ? context.steps : [];
           for (const step of steps) {
@@ -459,6 +529,9 @@ export function walkResults(results: any): WalkData {
   } catch {
     // Defensive: malformed result shape — return whatever we collected.
   }
+  data.repeatedAppSurfaceRefs = [...data.appSurfaceRefCounts.values()].some(
+    (count) => count >= 3
+  );
   return data;
 }
 
@@ -468,6 +541,19 @@ function inspectStep(step: any, data: WalkData): void {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
   }
 
+  // Explicit app-surface references on surface-sensitive steps, counted per
+  // app name. Three or more on one app means the author is repeating a
+  // reference the active-surface default (ADR 01081) makes redundant.
+  for (const key of SURFACE_SENSITIVE_HINT_KEYS) {
+    const appName = step[key]?.surface?.app;
+    if (typeof appName === "string" && appName.length > 0) {
+      data.appSurfaceRefCounts.set(
+        appName,
+        (data.appSurfaceRefCounts.get(appName) ?? 0) + 1
+      );
+    }
+  }
+
   // Stale recordings (ADR 01079): a phantom recording span — a checkpointed or
   // aboveVariation record whose capture was skipped, headless or because the
   // target already exists — sets `outputs.stale: true` on its stopRecord step
@@ -475,6 +561,23 @@ function inspectStep(step: any, data: WalkData): void {
   if (step.outputs?.stale === true) {
     data.hasStaleRecordings = true;
   }
+  // A startSurface step that requested a viewport reports the realized size as
+  // `outputs.viewport` (single-surface form) or under each entry of
+  // `outputs.surfaces[]` (array form). A realized size larger than requested
+  // means the browser floored it. Powers `useMobilePlatforms`.
+  if (!data.viewportFloored) {
+    if (isFlooredViewport(step.outputs?.viewport)) {
+      data.viewportFloored = true;
+    } else if (Array.isArray(step.outputs?.surfaces)) {
+      for (const surface of step.outputs.surfaces) {
+        if (isFlooredViewport(surface?.outputs?.viewport)) {
+          data.viewportFloored = true;
+          break;
+        }
+      }
+    }
+  }
+
   // Custom assertions: under the unified model every step report carries an
   // `assertions` array of records; a `source: "custom"` record means the user
   // authored a `step.assertions` condition (implicit records have
@@ -525,6 +628,13 @@ function inspectStep(step: any, data: WalkData): void {
   // Screenshot / recording outputs.
   if (step.screenshot !== undefined) {
     if (producesOutput(step.screenshot)) data.producedScreenshots = true;
+    // Read defensively: `screenshot` is boolean | string | object.
+    if (
+      Array.isArray((step.screenshot as any)?.annotations) &&
+      (step.screenshot as any).annotations.length > 0
+    ) {
+      data.usedAnnotations = true;
+    }
   }
   // Auto screenshots land in a separate result field (a relative path string),
   // not `step.screenshot`. Track it so the enableAutoScreenshot hint doesn't

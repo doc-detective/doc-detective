@@ -1,0 +1,155 @@
+---
+title: Test iOS apps (experimental)
+sidebar-title: iOS apps
+description: Open and test an iOS app on a simulator with Doc Detective.
+---
+
+Doc Detective can open and drive iOS apps on a managed simulator as part of a test. This experimental workflow launches an app with [`startSurface`](/docs/actions/startsurface), acts on it with the same `find`, `click`, and `type` steps you already use in the browser, and closes it with [`closeSurface`](/docs/actions/closesurface).
+
+<Info>
+
+**Experimental**: Native and mobile app testing is experimental and subject to change.
+
+</Info>
+
+## Before you begin
+
+iOS app tests run only on a **macOS host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green. The host also needs the Xcode command-line tools configured (`xcode-select -p`), the simulator control tool available (`xcrun simctl`), and at least one installed iOS runtime for Doc Detective to boot a simulator against.
+
+Prepare the host ahead of time:
+
+```bash
+doc-detective install ios --yes
+```
+
+This installs the automation driver and prebuilds WebDriverAgent. It's macOS-only and isn't part of `install all`. If you skip it, the driver still installs on demand the first time an iOS app surface starts. See [`install ios`](/reference/cli/install#install-ios).
+
+## Run your first iOS test
+
+This test targets the `ios` platform, launches the Settings app by its bundle ID on the context's default simulator, opens a settings screen, takes a screenshot of the window, and closes the app. Settings ships with iOS, so the test needs nothing else installed.
+
+{/* test {"testId":"ios-app-settings","detectSteps":false,"runOn":[{"platforms":["ios"]}]} */}
+
+```json
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["ios"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Launch the app and wait until it's ready.",
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": { "elementText": "Settings" }
+            }
+          }
+        },
+        {
+          "description": "Open a settings screen.",
+          "click": {
+            "elementText": "General"
+          }
+        },
+        {
+          "description": "Take a screenshot of the window.",
+          "screenshot": {
+            "path": "ios-settings.png"
+          }
+        },
+        {
+          "description": "Close the app.",
+          "closeSurface": { "app": "Preferences" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"ios-settings-start","description":"Launch the Settings app and wait until it's ready","startSurface":{"app":"com.apple.Preferences","timeout":180000,"waitUntil":{"find":{"elementText":"Settings"}}}} */}
+{/* step {"stepId":"ios-settings-click","description":"Open a settings screen","click":{"elementText":"General"}} */}
+{/* step {"stepId":"ios-settings-screenshot","description":"Take a screenshot of the window","screenshot":{"path":"ios-settings.png"}} */}
+{/* step {"stepId":"ios-settings-close","description":"Close the app","closeSurface":{"app":"Preferences"}} */}
+{/* test end */}
+
+To run this test, save it to a spec file and pass it to Doc Detective:
+
+```bash
+doc-detective --input ios-app.spec.json
+```
+
+A few things to notice:
+
+- The generous `timeout` (180,000 ms) leaves room for a cold simulator boot and the first-run WebDriverAgent build.
+- `waitUntil.find` gates readiness: the step holds until an element with the text `Settings` exists, so the next step never runs against a screen that hasn't drawn its controls yet.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. Pass an explicit `surface` on a step—for example `{ "app": "Preferences" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "Preferences" }`) because it's a lifecycle step, not an interaction on the active surface. Doc Detective derives the default name `Preferences` from the final dot-segment of the bundle ID; pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
+
+To test an app that isn't already on the simulator, point `install` at an `.app` or `.ipa` bundle. See the [app descriptor](/reference/schemas/app-descriptor) reference for the `install` field.
+
+## Choose the simulator
+
+Without a `device`, an iOS app runs on the context's default simulator, which Doc Detective boots or creates on first use. Set `device` on the context or the `startSurface` step to name a simulator or refine it by `deviceType` (phone or tablet) and `osVersion`. See [Choose the simulator](/docs/actions/startsurface#choose-the-simulator) and the [device descriptor](/reference/schemas/device-descriptor) reference for the full list of fields.
+
+## Target only iOS
+
+Because an app targets one platform, gate the test with a [context](/docs/test-docs/platforms-and-browsers) so it runs only where it can:
+
+```json
+{
+  "runOn": [
+    {
+      "platforms": ["ios"]
+    }
+  ]
+}
+```
+
+On a host that isn't macOS, the test skips with a reason rather than failing. See [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers) for the full context grammar.
+
+## Troubleshooting
+
+**The first app launch is slow**
+
+- **Cause:** The first app surface of a run builds WebDriverAgent for the simulator, which can take several minutes on a cold machine.
+- **Solution:** Give the first surface a generous `timeout`. Running [`doc-detective install ios`](/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent so that cost disappears from the run.
+
+**Element not found**
+
+- **Cause:** iOS mirrors macOS: element criteria map onto accessibility properties, where `elementText` matches a control's title, label, or value; `elementId` matches its AXIdentifier; and `elementAria` matches its XCUIElementType, and its accessible name when you provide one. `elementText` and `elementAria` collide when a control's accessible name is the same for both, so setting the two fields with different values on one step fails.
+- **Solution:** Match against the property that carries the value you want, and specify only one of `elementText` or `elementAria` when they'd target the same accessible name. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
+
+**An element is off-screen**
+
+- **Cause:** The control you want isn't in the visible viewport yet.
+- **Solution:** Nothing extra: mobile `find` auto-scrolls toward an off-screen element (up to five steps within the step's timeout) before giving up.
+
+**Pressing a hardware key**
+
+- **Cause:** iOS hardware keys aren't on-screen elements, and not every token works on iOS.
+- **Solution:** Send a device-key token with [`type`](/docs/actions/type#device-keys-mobile-app-surfaces): `$HOME$`, `$VOLUME_UP$`, and `$VOLUME_DOWN$` work on iOS. `$BACK$` and `$APP_SWITCH$` fail on iOS; there's no equivalent key.
+
+**A permission dialog blocks the test**
+
+- **Cause:** iOS shows a runtime permission dialog that sits in front of the app.
+- **Solution:** Treat the dialog as an element and click it. See [Mobile app surfaces](/docs/actions/click#mobile-app-surfaces).
+
+**Performing a gesture**
+
+- **Cause:** Swipes and scrolls aren't clicks.
+- **Solution:** Use the [`swipe`](/docs/actions/swipe) action, which drives iOS gestures.
+
+## What's next
+
+- [Run on an iOS simulator](/docs/actions/startsurface#run-on-an-ios-simulator): host requirements and device management.
+- [`swipe`](/docs/actions/swipe): perform mobile gestures.
+- [Device keys on mobile app surfaces](/docs/actions/type#device-keys-mobile-app-surfaces): press hardware keys.
+- [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers): gate tests by platform.
+- [Inline tests](/docs/test-docs/inline) and [Detected tests](/docs/test-docs/detected): author these startSurface, click, screenshot, and closeSurface steps inline in a doc source file instead of a standalone spec.
+- [Docker and headless](/docs/ci/docker-and-headless): run app tests in CI.

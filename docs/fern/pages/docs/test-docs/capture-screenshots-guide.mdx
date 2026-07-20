@@ -1,0 +1,105 @@
+---
+title: Capture screenshots
+description: Capture a screenshot of the full viewport, a cropped element, or an element with padding.
+---
+
+Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section and covers a single capture—the full viewport, a cropped element, or an element with padding. The section's other guides cover the three related capabilities: [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) by comparing a capture against a reference image, [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every step, and [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image. The [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema are where you look up every field. Unlike recording, screenshots capture fine in a headless or CI context.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A page or site to capture. The examples below capture a local page.
+- A directory where you can create a `.spec.json` file.
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+## Capture a screenshot
+
+The `screenshot` action takes three shapes, from simplest to most controlled.
+
+Set `screenshot: true` to capture the full viewport with default settings:
+
+{/* test {"testId":"capture-guide-boolean","detectSteps":false} */}
+
+```json title="capture.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Capture the full viewport.",
+          "screenshot": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"capture-guide-boolean-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-boolean-shot","description":"Capture the full viewport, directed at a gitignored output folder instead of the default path","screenshot":{"path":"guide_boolean.png","directory":"./.dd-output"}} */}
+{/* test end */}
+
+To choose where the image lands, pass a file path as a string:
+
+```json
+{
+  "description": "Save the capture to a specific file.",
+  "screenshot": "./output/login.png"
+}
+```
+
+By default (`overwrite: "aboveVariation"`), when the target path already holds a file, Doc Detective compares the new capture against it and replaces the file only when the two differ by more than `maxVariation` (default 5%), leaving the existing file in place otherwise (the [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full). Set `"overwrite": "true"` to always replace the file, or `"overwrite": "false"` to keep the existing file and skip the capture (the step reports `SKIPPED`).
+
+For more control, use the object form. Set `crop` to a CSS selector to capture only that element:
+
+{/* test {"testId":"capture-guide-crop","detectSteps":false} */}
+
+```json
+{
+  "description": "Capture only the login form.",
+  "screenshot": {
+    "path": "./output/login.png",
+    "crop": "#login-form"
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-crop-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-crop-shot","description":"Capture only the buttons section (a selector that fits the viewport), directed at a gitignored output folder","screenshot":{"path":"guide_crop.png","directory":"./.dd-output","crop":"#buttons"}} */}
+{/* test end */}
+
+`crop` accepts the same selector grammar as `find`—a [CSS](/docs/selectors/css) or [XPath](/docs/selectors/xpath) selector. To disambiguate a selector by its visible text or add breathing room, use the object form of `crop`:
+
+```json
+{
+  "description": "Capture the Submit button with padding.",
+  "screenshot": {
+    "path": "./output/submit.png",
+    "crop": {
+      "elementText": "Submit",
+      "padding": 10
+    }
+  }
+}
+```
+
+`padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
+
+## Verify it works
+
+- A step that captured an image reports `PASS`.
+- When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
+
+Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## What's next
+
+- [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) by comparing a capture against a reference image.
+- [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every browser-driven step.
+- [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image.
+- Follow the worked [screenshot example](/docs/test-docs/capture-screenshots) end to end.
+- [Record video](/docs/test-docs/record-video-guide) to capture a flow as a video and narrate it.
+- [Run in CI and at scale](/docs/ci/reporters-and-artifacts).

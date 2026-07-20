@@ -1,0 +1,65 @@
+---
+title: Record video automatically
+description: Turn on autoRecord to record every driver-based context from start to finish.
+---
+
+Record every driver-based context end to end without adding explicit `record` steps. Automatic recording is useful for a video archive or for replaying exactly what happened when a test fails. New to recording? Start with [Record video](/docs/test-docs/record-video-guide).
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A directory where you can create a `.spec.json` file.
+- A visible display, or, on Linux and in CI, the `ffmpeg` engine's Xvfb virtual display. Automatic recording uses the [`ffmpeg` engine](/docs/test-docs/record-video-guide#choose-a-recording-engine), which needs a display to capture (see [Docker and headless](/docs/ci/docker-and-headless)).
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+## Record video automatically
+
+Turn on `autoRecord` to record every driver-based context from start to finish without explicit `record` steps. Doc Detective captures each context end to end, which is useful for a video archive or for replaying exactly what happened when a test fails.
+
+Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+
+```json title="config.json"
+{
+  "autoRecord": true,
+  "output": "./test-results"
+}
+```
+
+The CLI flag does the same for a single run; use `--no-auto-record` to override a config file that enables it:
+
+{/* test {"testId":"record-guide-autorecord","detectSteps":false,"autoRecord":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false}}]} */}
+
+```bash
+doc-detective --auto-record
+```
+
+{/* step {"stepId":"record-guide-autorecord-goto","description":"Open the local test server; with autoRecord on, Doc Detective records this context end to end. This test is gated to headed Chrome via runOn (autoRecord uses the ffmpeg engine, which needs a visible display), so the whole test is SKIPPED on the headless docs-test runner and runs only on a headed runner","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-autorecord-step","description":"Take another step in the same context","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* test end */}
+
+Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree, so the same context lands on the same relative path in every run:
+
+```
+<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
+```
+
+An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+
+For where the artifacts land, see [Automatic recordings](/docs/actions/record#automatic-recordings), the [`config`](/reference/schemas/config) schema, and [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Verify it works
+
+- An automatic recording saves per driver-based context, on a stable path in the per-run artifact tree.
+- A headless run with no display skips the automatic recording. Run headed, or on Linux use the `ffmpeg` engine's Xvfb virtual display—see [Docker and headless](/docs/ci/docker-and-headless).
+- On Windows and macOS, Doc Detective warns when a run records concurrently, because the recordings share the same physical display and overlap. See [Two concurrent recordings overlap on Windows or macOS](/docs/test-docs/record-video-guide#two-concurrent-recordings-overlap-on-windows-or-macos).
+
+## What's next
+
+- [Record video](/docs/test-docs/record-video-guide) to record a flow, stop it, and choose an engine.
+- [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression) to watch a recording for visual drift.
+- [Narrate a recording with annotations](/docs/test-docs/narrate-recordings) that stay up across the flow.
+- Follow the worked [recording example](/docs/test-docs/record-video) end to end.
+- Look up automatic-recording fields in [Automatic recordings](/docs/actions/record#automatic-recordings) and the [`config`](/reference/schemas/config) schema.

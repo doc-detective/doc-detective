@@ -25,6 +25,9 @@ export {
   parseCaptureFrameSize,
   parseMediaProbeStderr,
   probeVideoMetadata,
+  parseBlackdetect,
+  createMatchingLineCollector,
+  detectAllBlack,
   deriveCropScale,
   detectDisplayPointSize,
   jobIsFfmpegRecording,
@@ -577,6 +580,146 @@ async function probeVideoMetadata({
     });
     if (stderr === null) return null;
     return parseMediaProbeStderr(stderr);
+  } catch {
+    return null;
+  }
+}
+
+// Parse ffmpeg blackdetect stderr lines and decide whether the detected
+// black intervals cover the clip. blackdetect emits one line per interval:
+// "[blackdetect @ 0x...] black_start:0 black_end:2.04 black_duration:2.04".
+// Coverage is the sum of reported durations — good enough for the all-black
+// failure mode this guards against (ADR 01080).
+//
+// Two allowances, both measured against real ffmpeg output:
+// - An interval ends at the last black FRAME's timestamp, not the clip end,
+//   so a fully-black clip under-reports by up to one frame interval (a 0.5s
+//   10fps black clip reports black_duration:0.4). `fps` sizes that tolerance;
+//   without it the gap can't be told from real content, so we don't guess.
+// - 5% slack on top, for encoders that shade the first/last frame.
+// Unknown/zero duration can't be judged -> false (not provably black).
+
+// Collect only the lines containing `needle` from a chunked stream, bounded so
+// progress spam from a long decode can't evict them.
+//
+// Filtering must happen per LINE, not per chunk. Stream chunks split wherever
+// the pipe flushes, with no regard for newlines, so a `black_duration:0.4` can
+// straddle two chunks — and then NEITHER chunk contains `black_`, the interval
+// is silently dropped, and an all-black video passes `notBlack`. That failure
+// mode is invisible on the short clips the tests generate (one chunk) and
+// shows up on exactly the long recordings the guard exists to protect.
+//
+// `push` keeps the trailing partial line back for the next chunk; `flush`
+// returns the collected text and consumes any final unterminated line, since
+// ffmpeg's last write may not end in a newline.
+function createMatchingLineCollector(needle: string, limit = 65536) {
+  let partial = "";
+  let collected = "";
+  const keep = (lines: string[]) => {
+    for (const line of lines) {
+      if (line.includes(needle) && collected.length < limit) {
+        collected = (collected + line + "\n").slice(0, limit);
+      }
+    }
+  };
+  return {
+    push(text: string) {
+      partial += text;
+      const lines = partial.split(/\r?\n/);
+      partial = lines.pop() ?? "";
+      keep(lines);
+    },
+    flush(): string {
+      if (partial) {
+        keep([partial]);
+        partial = "";
+      }
+      return collected;
+    },
+  };
+}
+
+function parseBlackdetect(
+  stderr: string,
+  duration?: number,
+  fps?: number
+): boolean {
+  if (typeof duration !== "number" || !(duration > 0)) return false;
+  let covered = 0;
+  const re = /black_duration:([\d.]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(stderr ?? "")) !== null) {
+    const d = Number(m[1]);
+    if (Number.isFinite(d)) covered += d;
+  }
+  const frameInterval =
+    typeof fps === "number" && fps > 0 ? 1 / fps : 0;
+  return covered >= (duration - frameInterval) * 0.95;
+}
+
+// Run a bounded ffmpeg blackdetect pass over a produced recording and report
+// whether it is (essentially) all black. Returns null when the analysis
+// couldn't run (missing binary, spawn error, timeout) — the caller skips the
+// guard rather than guessing. Bounded like probeVideoMetadata: no JIT
+// install, and a kill timer sized for a real decode pass (30s — doc
+// recordings are short).
+async function detectAllBlack({
+  cacheDir,
+  filePath,
+  duration,
+  fps,
+}: {
+  cacheDir?: string;
+  filePath: string;
+  duration?: number;
+  fps?: number;
+}): Promise<boolean | null> {
+  try {
+    const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
+    const stderr = await new Promise<string | null>((resolve) => {
+      let settled = false;
+      let proc: any = null;
+      let timer: NodeJS.Timeout | undefined;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        try {
+          proc?.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(v);
+      };
+      try {
+        proc = spawn(
+          ffmpegPath,
+          [
+            "-hide_banner",
+            "-i",
+            filePath,
+            "-vf",
+            "blackdetect=d=0.1:pix_th=0.10",
+            "-an",
+            "-f",
+            "null",
+            "-",
+          ],
+          { stdio: ["ignore", "ignore", "pipe"] }
+        );
+        const lines = createMatchingLineCollector("black_");
+        proc.stderr?.on("data", (chunk: Buffer) => lines.push(chunk.toString()));
+        proc.on("error", () => done(null));
+        proc.on("close", (code: number | null) =>
+          done(code === 0 ? lines.flush() : null)
+        );
+        timer = setTimeout(() => done(null), 30000);
+      } catch {
+        done(null);
+      }
+    });
+    if (stderr === null) return null;
+    return parseBlackdetect(stderr, duration, fps);
   } catch {
     return null;
   }

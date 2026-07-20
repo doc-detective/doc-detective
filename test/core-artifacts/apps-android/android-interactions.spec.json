@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "android-find-longpress-swipe-back",
-      "description": "From the fresh Settings list: auto-scroll-find 'System' (below the fold), long-press it (mobile: longClickGesture — Settings ignores long-clicks, so the list stays put), then exercise the directional and point-to-point swipe forms (pure gestures, no assertion), screenshot, and press the device Back key with no element criteria. The bare-string swipe form is exercised on browser surfaces, where a surface-less step has an active tab to act on.",
+      "description": "From the fresh Settings list: auto-scroll-find 'System' (below the fold), long-press it (mobile: longClickGesture — Settings ignores long-clicks, so the list stays put), then exercise the directional and point-to-point swipe forms (pure gestures, no assertion), screenshot, and press the device Back key with no element criteria. The directional-down swipe and the $BACK$ press deliberately omit `surface` (ADR 01081 active-surface parity on Android): both are position-independent effects that route to the active app surface — the Settings app startSurface opened — in a context with no browser to fall through to.",
       "runOn": [
         {
           "platforms": "android"
@@ -49,10 +49,7 @@
         {
           "swipe": {
             "direction": "down",
-            "distance": 0.3,
-            "surface": {
-              "app": "settings"
-            }
+            "distance": 0.3
           }
         },
         {
@@ -84,10 +81,7 @@
           "type": {
             "keys": [
               "$BACK$"
-            ],
-            "surface": {
-              "app": "settings"
-            }
+            ]
           }
         },
         {

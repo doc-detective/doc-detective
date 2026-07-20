@@ -1,0 +1,122 @@
+---
+title: Record video
+description: Record a flow as a video, stop it, and choose the right capture engine.
+---
+
+Doc Detective can record a test as a video and pick the right capture engine for you. This guide is the entry point to the Recording section and covers recording a flow, stopping it, and choosing an engine. The section's other guides cover the related capabilities: [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression), [Record video automatically](/docs/test-docs/automatic-recording), and [Narrate a recording with annotations](/docs/test-docs/narrate-recordings). The [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the generated [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas are where you look up every field.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A visible display. Recording captures a headed context; headless caveats come later in this guide.
+- A directory where you can create a `.spec.json` file.
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+Recordings are video only, with no audio track.
+
+## Record and stop
+
+The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`.
+
+Every recording ends at a `stopRecord` step; Doc Detective finalizes any recordings still open at the end of the run. `stopRecord` targets a recording in one of two ways:
+
+- **Untargeted** (`true` or `null`): stops the most recently started recording that's still active (last in, first out). This is the common case, when only one recording runs at a time.
+- **By name** (a string, or `{ "name": "<name>" }`): stops the active recording with that `name`, wherever it falls in the active set.
+
+A single context can run more than one recording at once—for example, a full session alongside a shorter clip. Give each `record` step a `name` so a later `stopRecord` targets the right one. For that pattern, see [Multiple overlapping recordings](/docs/actions/record#multiple-overlapping-recordings).
+
+{/* test {"testId":"record-guide-record-stop","detectSteps":false} */}
+
+```json title="recording.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        { "description": "Start recording.", "record": true },
+        { "description": "Walk through the flow.", "goTo": "https://example.com" },
+        { "description": "Stop recording.", "stopRecord": true }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"record-guide-rs-start","description":"Start recording, directed at a gitignored output folder instead of the default path (on this headless docs-test runner, with no display, this step SKIPS rather than fails)","record":{"path":"guide_record.mp4","directory":"./.dd-output"}} */}
+{/* step {"stepId":"record-guide-rs-goto","description":"Walk through the flow on the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-rs-stop","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
+By default (`overwrite: "false"`), a `record` step whose file already exists is skipped and reports `SKIPPED`; for the overwrite modes that re-record on change, see [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression).
+
+For the full set of fields, see the [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas.
+
+## Choose a recording engine
+
+Recording uses one of two engines. If you don't set `engine`, Doc Detective prefers the `browser` engine when a visible Chrome context is available, and falls back to `ffmpeg` otherwise.
+
+- **`browser`** records the Chrome viewport for the current tab only. It needs a visible Chrome context and can't record in headless mode, but it's always safe to run concurrently because each context records its own window.
+- **`ffmpeg`** records the whole screen, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically.
+
+Set `engine` as a string to pick an engine with its defaults, or as an object to tune it:
+
+```json
+{
+  "description": "Record the Chrome tab with the browser engine.",
+  "record": { "path": "browser_demo.mp4", "engine": "browser" }
+}
+```
+
+{/* test {"testId":"record-guide-engine-ffmpeg","detectSteps":false} */}
+
+```json
+{
+  "description": "Record the active window at 60 fps with FFmpeg.",
+  "record": {
+    "path": "ffmpeg_demo.mp4",
+    "engine": { "name": "ffmpeg", "target": "window", "fps": 60 }
+  }
+}
+```
+
+{/* step {"stepId":"record-guide-engine-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-engine-start","description":"Start recording the active window at 60 fps with FFmpeg, directed at a gitignored output folder (SKIPS on this headless docs-test runner)","record":{"path":"guide_ffmpeg.mp4","directory":"./.dd-output","engine":{"name":"ffmpeg","target":"window","fps":60}}} */}
+{/* step {"stepId":"record-guide-engine-wait","description":"Wait briefly","wait":1000} */}
+{/* step {"stepId":"record-guide-engine-stop","description":"Stop recording","stopRecord":true} */}
+{/* test end */}
+
+Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test so they take turns on the display—you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On Linux, the `ffmpeg` engine needs Xvfb to record a headless context, which has no physical display to capture.
+
+Recording a native app surface or a mobile device screen follows different rules—see [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
+
+## Verify it works
+
+- A recording that saved reports `PASS`.
+- A headless machine with no visible display skips the `record` step and reports `SKIPPED`. See [Recording is skipped in CI](#recording-is-skipped-in-ci).
+
+Videos land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Troubleshooting
+
+### Recording is skipped in CI
+
+**Cause:** a headless CI run has no visible display to capture.
+
+**Solution:** run headed, or on Linux install Xvfb for the `ffmpeg` engine (see [Docker and headless](/docs/ci/docker-and-headless)). Even when the capture is skipped, a span with checkpoints still reports staleness against its committed baselines (see [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression)).
+
+### Two concurrent recordings overlap on Windows or macOS
+
+**Cause:** the recordings share one physical display, so their captures overlap.
+
+**Solution:** use the `browser` engine, which records each context's own window, or let Doc Detective serialize the `ffmpeg` recordings on the shared display.
+
+## What's next
+
+- [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression) to watch a recording for visual drift.
+- [Record video automatically](/docs/test-docs/automatic-recording) for every driver-based context.
+- [Narrate a recording with annotations](/docs/test-docs/narrate-recordings) that stay up across the flow.
+- Follow the worked [recording example](/docs/test-docs/record-video) end to end.
+- [Capture screenshots](/docs/test-docs/capture-screenshots-guide) for stills, comparisons, and annotations.
+- [Run in CI and at scale](/docs/ci/reporters-and-artifacts).

@@ -243,3 +243,8 @@ onboarding
 startSurface
 passthrough
 TUIs
+AXIdentifier
+AXRole
+AXTitle
+AXValue
+AXDescription

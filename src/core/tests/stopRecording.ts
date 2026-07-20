@@ -13,11 +13,13 @@ import {
   deriveCropScale,
   detectDisplayPointSize,
   probeVideoMetadata,
+  detectAllBlack,
 } from "./ffmpegRecorder.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
+import type { ImplicitAssertionSpec } from "../routing.js";
 import {
   computeSpanVerdict,
   promoteRecordingSpan,
@@ -213,6 +215,8 @@ async function stopRecording({
   // same-target recordings are already refused at start, and a crashed or
   // failed run's leftover staging file is simply overwritten by the next
   // run's transcode (-y) instead of accumulating orphans.
+  let appliedCrop: { x: number; y: number; w: number; h: number } | null =
+    null;
   const isAboveVariation = recording.overwrite === "aboveVariation";
   const finalTargetPath = recording.targetPath;
   const writeTargetPath = isAboveVariation
@@ -389,6 +393,7 @@ async function stopRecording({
         deleteSource: true,
         crop,
       });
+      appliedCrop = crop;
       dropHandle();
     } else if (recording.type === "appium") {
       // Device engine (phase A7): the whole video arrives base64 from the
@@ -561,7 +566,7 @@ async function stopRecording({
       }
     }
   } else if (checkpoints?.entries?.length) {
-    // Recording checkpoints without aboveVariation (ADR 01072): seed missing
+    // Recording checkpoints without aboveVariation (ADR 01075): seed missing
     // baselines from the staged captures (first run); never modify existing
     // baselines. A dirty span (a step FAILed) seeds nothing — first-run
     // baselines must come from a clean run.
@@ -618,10 +623,95 @@ async function stopRecording({
     );
   }
 
-  // Checkpoint reporting (ADR 01072): per-checkpoint results plus drift and
-  // comparison-error signals through the shared implicit-assertion engine at
-  // WARNING severity — never FAIL, mirroring screenshot semantics. Under
-  // aboveVariation the WARNING doubles as "the recording was refreshed".
+  // Structural verify guards (ADR 01080) and checkpoint drift reporting
+  // (ADR 01075) evaluate through ONE shared implicit-assertion pass, so the
+  // FAIL > WARNING roll-up is computed once: a violated structural guard
+  // (author-demanded, FAIL severity) outranks checkpoint drift (advice,
+  // WARNING severity).
+  const specs: ImplicitAssertionSpec[] = [];
+  const verify = recording.verify;
+  if (verify && typeof verify === "object") {
+    if (typeof verify.minDuration === "number") {
+      // An unprobeable duration fails the guard — an author who demanded a
+      // duration floor shouldn't get a silent pass on an unreadable file.
+      specs.push({
+        statement: `$$outputs.duration >= ${verify.minDuration}`,
+        severity: "fail",
+      });
+    }
+    if (typeof verify.maxDuration === "number") {
+      specs.push({
+        statement: `$$outputs.duration <= ${verify.maxDuration}`,
+        severity: "fail",
+      });
+    }
+    if (verify.resolution !== undefined && verify.resolution !== false) {
+      // resolution: true compares against the resolved capture expectation
+      // (crop rect when one applied, else the capture frame size). The
+      // object form compares literal dimensions. ±2 px tolerance — encoders
+      // round to even dimensions.
+      let expected: { width: number; height: number } | null = null;
+      if (verify.resolution === true) {
+        if (appliedCrop) {
+          expected = { width: appliedCrop.w, height: appliedCrop.h };
+        } else if (recording.captureInfo?.frameSize) {
+          expected = {
+            width: recording.captureInfo.frameSize.w,
+            height: recording.captureInfo.frameSize.h,
+          };
+        }
+      } else {
+        expected = {
+          width: verify.resolution.width,
+          height: verify.resolution.height,
+        };
+      }
+      if (!expected) {
+        log(
+          config,
+          "debug",
+          `verify.resolution: true has no capture expectation for this engine; skipping the check.`
+        );
+      } else {
+        result.outputs.resolutionMatch =
+          typeof result.outputs.width === "number" &&
+          typeof result.outputs.height === "number" &&
+          Math.abs(result.outputs.width - expected.width) <= 2 &&
+          Math.abs(result.outputs.height - expected.height) <= 2;
+        specs.push({
+          statement: `$$outputs.resolutionMatch == true`,
+          severity: "fail",
+        });
+      }
+    }
+    if (verify.notBlack) {
+      // Blackness is judged as a fraction of the clip, so an unknown duration
+      // can't be judged at all — skip rather than report a not-black that
+      // never had evidence behind it.
+      const allBlack =
+        typeof result.outputs.duration === "number"
+          ? await detectAllBlack({
+              cacheDir: config?.cacheDir,
+              filePath: finalTargetPath,
+              duration: result.outputs.duration,
+              fps: result.outputs.fps,
+            })
+          : null;
+      if (allBlack === null) {
+        log(
+          config,
+          "debug",
+          `verify.notBlack: couldn't analyze ${finalTargetPath} (unreadable or unknown duration); skipping the check.`
+        );
+      } else {
+        result.outputs.allBlack = allBlack;
+        specs.push({
+          statement: `$$outputs.allBlack == false`,
+          severity: "fail",
+        });
+      }
+    }
+  }
   if (checkpoints?.entries?.length) {
     // Errored checkpoints (capture failure, aspect-ratio mismatch against
     // the baseline) can hide extreme drift behind a variation of 0 — they
@@ -629,23 +719,29 @@ async function stopRecording({
     // pass.
     Object.assign(result.outputs, buildCheckpointOutputs(checkpoints.entries));
     result.outputs.seededBaselines = seededBaselines;
-    const ctx = buildConditionContext({ outputs: result.outputs });
-    const { assertions, status } = await evaluateImplicitAssertions(
-      [
-        {
-          statement: `$$outputs.maxCheckpointVariation <= ${checkpoints.maxVariation}`,
-          severity: "warning",
-        },
-        {
-          statement: `$$outputs.checkpointErrors == 0`,
-          severity: "warning",
-        },
-      ],
-      ctx
+    specs.push(
+      {
+        statement: `$$outputs.maxCheckpointVariation <= ${checkpoints.maxVariation}`,
+        severity: "warning",
+      },
+      {
+        statement: `$$outputs.checkpointErrors == 0`,
+        severity: "warning",
+      }
     );
+  }
+  if (specs.length > 0) {
+    const ctx = buildConditionContext({ outputs: result.outputs });
+    const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
     result.assertions = assertions;
     result.status = status;
-    if (status === "WARNING") {
+    // Only verify guards carry FAIL severity; checkpoint specs are warnings.
+    // So a FAIL here is always a guard, and a WARNING always has checkpoints —
+    // the `entries` check keeps that assumption honest rather than implicit,
+    // since the guards can run on a span with no checkpoints at all.
+    if (status === "FAIL") {
+      result.description += ` One or more structural verify guards failed.`;
+    } else if (status === "WARNING" && checkpoints?.entries?.length) {
       // Only claim a refresh when one actually happened: an indeterminate or
       // failed span keeps the existing recording, so saying "refreshed" there
       // would describe the opposite of what's on disk.
@@ -658,6 +754,8 @@ async function stopRecording({
     if (baselineFailures > 0) {
       result.outputs.baselineFailures = baselineFailures;
     }
+  }
+  if (checkpoints) {
     try {
       fs.rmSync(checkpoints.stagingDir, { recursive: true, force: true });
     } catch {
@@ -677,7 +775,12 @@ async function stopRecording({
       delete result.outputs.recordingPath;
       delete result.outputs.format;
     } else {
-      result.status = "WARNING";
+      // Never downgrade a structural verify FAIL (ADR 01080) to WARNING here:
+      // a guard the author explicitly demanded outranks "we kept the old
+      // video", and the roll-up is FAIL > WARNING everywhere else. Say the
+      // target is stale either way — that's additive information, not a
+      // verdict.
+      if (result.status !== "FAIL") result.status = "WARNING";
       result.description += ` The captured video couldn't replace ${finalTargetPath}, so the existing (now stale) recording was kept.`;
     }
   }

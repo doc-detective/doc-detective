@@ -1,0 +1,87 @@
+---
+title: Capture screenshots automatically
+description: Turn on autoScreenshot to capture an image after every browser-driven step.
+---
+
+Build a visual record of a test without adding a `screenshot` step to every part of it. With `autoScreenshot` on, Doc Detective captures an image after every browser-driven step. New to capturing screenshots? Start with [Capture screenshots](/docs/test-docs/capture-screenshots-guide).
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A page or site to capture. The examples below capture a local page.
+- A directory where you can create a `.spec.json` file.
+- Browser-driven steps in your test, since automatic screenshots capture after each one.
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+## Capture screenshots automatically
+
+Turn on `autoScreenshot` to build a visual record without adding a `screenshot` step to every part of a test. Doc Detective then captures a screenshot after every browser-driven step. Unlike video recording, screenshots (including `autoScreenshot`) capture fine in a headless or CI context, so this works on a headless runner. Automatic screenshots capture an image after every step but don't compare it against a reference, so to gate on drift you add an explicit `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).
+
+Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+
+```json title="config.json"
+{
+  "autoScreenshot": true,
+  "output": "./test-results"
+}
+```
+
+The CLI flag does the same thing for a single run:
+
+{/* test {"testId":"capture-guide-autoscreenshot","detectSteps":false,"autoScreenshot":true} */}
+
+```bash
+doc-detective --auto-screenshot
+```
+
+{/* step {"stepId":"capture-guide-autoscreenshot-goto","description":"Open the local test server; with autoScreenshot on, Doc Detective captures a screenshot after this browser-driven step (screenshots capture fine headless)","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-autoscreenshot-step","description":"Take another step, which also gets an automatic screenshot","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* test end */}
+
+To scope the behavior more tightly, set `autoScreenshot` on an individual spec or test to override the config:
+
+```json
+{
+  "autoScreenshot": true,
+  "tests": [
+    {
+      "autoScreenshot": false,
+      "steps": []
+    }
+  ]
+}
+```
+
+Auto screenshots land under the per-run artifact tree, on a stable path derived from each step's content:
+
+```
+<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-<hash>.png
+```
+
+Because the IDs come from file paths and content hashes rather than random values, the same step produces the same relative path in every run. You can diff two run folders and spot UI changes over time. Doc Detective skips a step that already defines an explicit `screenshot` (it already produces an image), and it still captures a step that failed—the failure frame is usually the most useful one for debugging.
+
+For where the artifacts land and how to consume them, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts) and the [`config`](/reference/schemas/config) schema. For the automatic-screenshot mechanics, see [Automatic screenshots](/docs/actions/screenshot#automatic-screenshots).
+
+## Verify it works
+
+- An automatic screenshot lands after each browser-driven step, under the per-run artifact tree.
+
+## Troubleshooting
+
+### Auto screenshots don't appear for a step
+
+**Cause:** the step already defines an explicit `screenshot` (Doc Detective skips it to avoid a duplicate), or the step isn't browser-driven.
+
+**Solution:** this is expected behavior. Explicit `screenshot` steps produce their own image, and `autoScreenshot` only captures browser-driven steps.
+
+## What's next
+
+- [Capture screenshots](/docs/test-docs/capture-screenshots-guide) of the full viewport, a cropped element, or an element with padding.
+- [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) by comparing a capture against a reference image.
+- [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image.
+- Follow the worked [screenshot example](/docs/test-docs/capture-screenshots) end to end.
+- Look up automatic-screenshot fields in the [`config`](/reference/schemas/config) schema.
+- [Run in CI and at scale](/docs/ci/reporters-and-artifacts) to see where artifacts land.

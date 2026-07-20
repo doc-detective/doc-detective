@@ -1,0 +1,93 @@
+---
+title: Detect visual regressions in screenshots
+description: Compare a screenshot capture against a committed reference image to catch visual drift.
+---
+
+Turn a screenshot into a regression test by comparing each capture against a saved reference image. When the two drift apart by more than a threshold you set, Doc Detective flags it for review. New to capturing screenshots? Start with [Capture screenshots](/docs/test-docs/capture-screenshots-guide). The comparison runs fine in a headless or CI context.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A page or site to capture. The examples below capture a local page.
+- A directory where you can create a `.spec.json` file.
+- A base `screenshot` step to build on—see [Capture screenshots](/docs/test-docs/capture-screenshots-guide).
+- A committed reference image at `path` (the first run seeds it).
+
+The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+## Detect visual regressions
+
+A screenshot becomes a regression test when you compare it against a saved reference image.
+
+Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the maximum acceptable fractional difference between the new capture and the reference at `path`. When the difference exceeds the threshold, the step returns `WARNING`—not `FAIL`—because visual drift is a signal to review, not a hard break:
+
+{/* test {"testId":"capture-guide-regression","detectSteps":false} */}
+
+```json
+{
+  "description": "Compare against the committed reference image.",
+  "screenshot": {
+    "path": "./reference/home.png",
+    "maxVariation": 0.05,
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-regression-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-regression-shot","description":"Capture with a comparison threshold, directed at a fresh gitignored path so the run seeds the reference and passes","screenshot":{"path":"guide_regression.png","directory":"./.dd-output","maxVariation":0.05,"overwrite":"aboveVariation"}} */}
+{/* test end */}
+
+`overwrite` controls when Doc Detective replaces the reference image with the new capture:
+
+- `"false"`: never overwrite.
+- `"true"`: always overwrite.
+- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`.
+
+When a comparison runs, the step exposes `$$variation` (the fractional difference) and `$$aspectRatioMatch` (whether the two images share an aspect ratio). Capture either with the step-level `variables` object. For the full list of outputs, see [Visual regression testing](/docs/actions/screenshot) and the [`screenshot`](/reference/schemas/screenshot) schema.
+
+### Reference images in cloud storage
+
+`path` can be an `http(s)://` URL that ends in `.png`, so a team can keep reference images in cloud storage like S3. Signed-URL query strings are fine. Doc Detective downloads the remote image once per run and uses it as a read-only reference, writes the new capture to `./doc-detective-runs/<run-timestamp>/` for inspection, and ignores `overwrite` because it never mutates remote storage:
+
+```json
+{
+  "description": "Compare against a reference image in S3.",
+  "screenshot": {
+    "path": "https://my-bucket.s3.amazonaws.com/reference-images/home.png",
+    "maxVariation": 0.05
+  }
+}
+```
+
+To guard against server-side request forgery (SSRF), Doc Detective refuses to fetch a reference image from a private, loopback, or link-local address—including its IPv4-mapped IPv6 form—and from the `169.254.169.254` cloud-metadata endpoint. A blocked URL fails the step with a message that starts with `Couldn't fetch remote reference image`. To compare against a reference on an internal address, such as a local development server, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to opt out.
+
+## Verify it works
+
+- A comparison that stays within `maxVariation` reports `PASS`.
+- A comparison that exceeds `maxVariation` reports `WARNING`, so the run continues while flagging the drift for review.
+
+## Troubleshooting
+
+### Visual comparison never runs
+
+**Cause:** `maxVariation` isn't set, so the step only captures an image without comparing it.
+
+**Solution:** set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
+
+### A remote reference URL fails with "Refusing to fetch private/loopback address"
+
+**Cause:** the SSRF guard blocks reference URLs that resolve to a private, loopback, or link-local address.
+
+**Solution:** host the reference image on a public address, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to compare against an internal address such as a local development server.
+
+## What's next
+
+- [Capture screenshots](/docs/test-docs/capture-screenshots-guide) of the full viewport, a cropped element, or an element with padding.
+- [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every browser-driven step.
+- [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image.
+- Follow the worked [screenshot example](/docs/test-docs/capture-screenshots) end to end.
+- Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference.
+- [Run in CI: reporters and artifacts](/docs/ci/reporters-and-artifacts) to see where captures and results land.

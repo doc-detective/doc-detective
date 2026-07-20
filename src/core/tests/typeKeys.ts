@@ -7,14 +7,17 @@ import { isRecordingActive } from "./ffmpegRecorder.js";
 import { waitForOutputMatch } from "../utils.js";
 import {
   parseSurfaceRef,
-  reinterpretForSessions,
   switchToSurface,
 } from "./browserSurface.js";
 import {
-  resolveAppSurfaceRef,
   findAppElement,
   ensureAppForeground,
 } from "./appSurface.js";
+import {
+  resolveTargetSurface,
+  activateSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 import {
   resolveAppWindow,
   activeAppWindow,
@@ -381,12 +384,14 @@ async function typeKeys({
   driver,
   processRegistry,
   appSession,
+  surfaceTracker,
 }: {
   config: any;
   step: any;
   driver: any;
   processRegistry?: Map<string, any>;
   appSession?: any;
+  surfaceTracker?: ActiveSurfaceTracker;
 }) {
   // `assertions` starts empty: the no-criteria (active-element) path types into
   // the focused element with no existence check, so zero applicable specs roll
@@ -434,22 +439,27 @@ async function typeKeys({
     return result;
   }
 
-  // Process-surface branch: when `surface` targets a background process, send
-  // the keystrokes to its stdin instead of the browser/active element. Runs
-  // BEFORE the element/active-element path (which stays untouched). This path is
+  // Uniform surface routing (ADR 01081): classify the step's target — the
+  // explicit `surface` reference, or the context's active surface — then
+  // dispatch to the kind's execution path. The process path (stdin bytes) is
   // webdriverio-free — it never loads the heavy browser dep.
-  // App-surface branch (native app phase A1): type into an element on the
-  // app session's driver. Element criteria are required — focused-window
-  // typing and the device $KEY$ vocabulary land in later phases. Checked
-  // before the session reinterpretation below: an app registry hit is
-  // authoritative for its name.
-  const appRef = resolveAppSurfaceRef(step.type.surface, appSession);
-  if (appRef) {
-    if (appRef.error) {
-      result.status = "FAIL";
-      result.description = appRef.error;
-      return result;
-    }
+  const target = resolveTargetSurface({
+    surface: step.type.surface,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "error") {
+    result.status = "FAIL";
+    result.description = target.message;
+    return result;
+  }
+  // App-surface path (native app phase A1): type into an element on the
+  // app session's driver. Element criteria are required on desktop —
+  // focused-window typing and the device $KEY$ vocabulary are mobile-only.
+  if (target.kind === "app") {
+    const appRef = { entry: target.entry, window: target.window };
     // Window selectors (ADR 01036): resolve to a real window before any
     // typing decisions — previously `window` was silently ignored here.
     let windowTarget: any = null;
@@ -601,31 +611,26 @@ async function typeKeys({
     return result;
   }
 
-  // A bare string is identity-only (Phase 4): when a browser session owns the
-  // name, it routes to the browser branch instead of the process lookup.
-  const resolved = reinterpretForSessions(
-    driver,
-    resolveSurface(step.type.surface)
-  );
-  if (resolved.kind === "unsupported") {
-    result.status = "FAIL";
-    result.description = "surface kind not yet supported.";
-    return result;
-  }
-  if (resolved.kind === "process") {
+  if (target.kind === "process") {
     // A bare-string surface can't be kind-checked by the schema; reject
     // browser readiness conditions that slipped through it loudly instead of
     // silently ignoring them.
     const wu = step.type.waitUntil;
     if (wu && (wu.networkIdleTime !== undefined || wu.domIdleTime !== undefined || wu.find !== undefined)) {
       result.status = "FAIL";
-      result.description = `Browser readiness conditions (networkIdleTime/domIdleTime/find) don't apply to the process surface "${resolved.name}".`;
+      result.description = `Browser readiness conditions (networkIdleTime/domIdleTime/find) don't apply to the process surface "${target.name}".`;
       return result;
     }
-    return await typeToProcess({ step, name: resolved.name!, processRegistry });
+    const typed = await typeToProcess({ step, name: target.name, processRegistry });
+    // A process a step successfully typed to becomes the active surface,
+    // mirroring the browser/app activation on reference (ADR 01081).
+    if (typed.status === "PASS") {
+      activateSurface(surfaceTracker, { kind: "process", name: target.name });
+    }
+    return typed;
   }
-  if (resolved.kind === "browser") {
-    // Browser-surface branch (Phase 3/4): focus the requested session +
+  if (target.surface !== undefined) {
+    // Explicit browser reference (Phase 3/4): focus the requested session +
     // window/tab, then fall through to the unchanged element/active-element
     // typing path — against the resolved session's driver.
     const wu = step.type.waitUntil;
@@ -635,7 +640,7 @@ async function typeKeys({
         "Process readiness conditions (stdio/delayMs) don't apply to a browser surface.";
       return result;
     }
-    const switched = await switchToSurface(driver, step.type.surface);
+    const switched = await switchToSurface(driver, target.surface);
     if (!switched.ok) {
       result.status = "FAIL";
       result.description = switched.message;
@@ -759,10 +764,12 @@ async function typeKeys({
     return result;
   }
 
-  // Browser readiness (Phase 3): after typing into a browser surface, wait on
-  // the requested page conditions. Unlike goTo, nothing applies by default —
-  // only the conditions the author names run, all bounded by `timeout`.
-  if (resolved.kind === "browser" && step.type.waitUntil) {
+  // Browser readiness (Phase 3): after typing into an EXPLICITLY referenced
+  // browser surface, wait on the requested page conditions. Unlike goTo,
+  // nothing applies by default — only the conditions the author names run,
+  // all bounded by `timeout`. (Surface-less types never ran these
+  // pre-ADR-01081 and still don't.)
+  if (target.surface !== undefined && step.type.waitUntil) {
     const readiness = await waitForBrowserReadiness({
       driver,
       waitUntil: step.type.waitUntil,

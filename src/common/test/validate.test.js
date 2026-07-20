@@ -410,6 +410,56 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should validate a record step with verify guards", function () {
+        for (const verify of [
+          {},
+          { minDuration: 1 },
+          { minDuration: 0.5, maxDuration: 30 },
+          { resolution: true },
+          { resolution: false },
+          { resolution: { width: 1280, height: 720 } },
+          { notBlack: true },
+          {
+            minDuration: 1,
+            resolution: { width: 640, height: 480 },
+            notBlack: true,
+          },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", verify } },
+          });
+          expect(
+            result.valid,
+            `verify: ${JSON.stringify(verify)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject a record step with invalid verify guards", function () {
+        // Note: primitives coerce under ajv coerceTypes, so negatives use
+        // out-of-range numbers, unknown keys, incomplete objects, and arrays.
+        for (const verify of [
+          { minDuration: -1 },
+          { maxDuration: -1 },
+          { minDuration: "soon" },
+          { notBlack: {} },
+          { unknownGuard: true },
+          { resolution: { width: 1280 } },
+          { resolution: { width: 0, height: 480 } },
+          [true],
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", verify } },
+          });
+          expect(
+            result.valid,
+            `expected invalid verify: ${JSON.stringify(verify)}`
+          ).to.be.false;
+        }
+      });
+
       it("should validate a record step with checkpoints enabled", function () {
         for (const checkpoints of [
           true,
@@ -1161,6 +1211,346 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         ]) {
           expect(validPath(path), `expected invalid: ${path}`).to.be.false;
         }
+      });
+    });
+
+    describe("annotations", function () {
+      const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
+
+      it("should validate an annotation_v3 object for each type with a string target", function () {
+        for (const type of TYPES) {
+          const result = validate({
+            schemaKey: "annotation_v3",
+            object: { [type]: "#submit-button" },
+          });
+
+          expect(result.valid, `expected valid: ${type} — ${result.errors}`).to
+            .be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate an annotation_v3 object with a find-criteria target", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: {
+            outline: {
+              elementClass: ["form-field", "/^billing-/"],
+              elementAttribute: { "data-state": "invalid" },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate an annotation_v3 object with a position target", function () {
+        const named = validate({
+          schemaKey: "annotation_v3",
+          object: { text: { position: "top-right" }, label: "Demo data" },
+        });
+        expect(named.valid, named.errors).to.be.true;
+
+        const point = validate({
+          schemaKey: "annotation_v3",
+          object: { arrow: { position: { x: 640, y: 220 } } },
+        });
+        expect(point.valid, point.errors).to.be.true;
+      });
+
+      it("should reject an annotation_v3 object with no type key", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { label: "Orphaned label" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an annotation_v3 object with more than one type key", function () {
+        // Exactly one type key per annotation — two shapes in one object is
+        // ambiguous about what should be drawn.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", blur: "#b" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate an annotation_v3 object with the full shared prop set", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: {
+            id: "redact-api-keys",
+            blur: { elementAttribute: { "data-sensitive": true } },
+            all: true,
+            track: true,
+            duration: 3500,
+            position: "right",
+            style: { intensity: 22, color: "#E11D48", strokeWidth: 3 },
+            transition: { enter: "none", exit: "fade", durationMs: 400 },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject unknown annotation_v3 properties and bad style values", function () {
+        const unknown = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", bogus: true },
+        });
+        expect(unknown.valid).to.be.false;
+
+        const badOpacity = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", style: { opacity: 5 } },
+        });
+        expect(badOpacity.valid).to.be.false;
+
+        const badTransition = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", transition: { enter: "explode" } },
+        });
+        expect(badTransition.valid).to.be.false;
+      });
+
+      it("should not inject defaults into an annotation_v3 object", function () {
+        // annotation_v3 is $ref'd from screenshot steps and the defaults
+        // cascade alike; a schema-level default here would be force-injected
+        // into every consumer and break the config→spec→test resolution.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a" },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.deep.equal({ outline: "#a" });
+      });
+
+      it("should validate a screenshot step with an annotations array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "checkout.png",
+              crop: { selector: "#checkout-panel", padding: 24 },
+              annotations: [
+                { outline: "#credit-card-number" },
+                { badge: "#expiry", label: "2" },
+                {
+                  callout: { elementTestId: "cvv-input" },
+                  label: "Never stored",
+                  position: "right",
+                  style: { maxWidth: 240 },
+                },
+                { blur: ".customer-email", all: true },
+              ],
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.screenshot.annotations).to.have.lengthOf(4);
+      });
+
+      it("should reject a screenshot annotations entry that isn't a valid annotation", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: { path: "a.png", annotations: [{ label: "no type" }] },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate annotationDefaults at the config level", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            annotationDefaults: {
+              color: "#E11D48",
+              strokeWidth: 3,
+              fontFamily: "Inter, system-ui, sans-serif",
+              fontSize: 14,
+              badge: { background: "#E11D48", color: "#FFFFFF" },
+              callout: { background: "#1E293B", maxWidth: 280 },
+              blur: { intensity: 14 },
+              transition: { enter: "fade", exit: "fade", durationMs: 250 },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotationDefaults.color).to.equal("#E11D48");
+      });
+
+      it("should validate annotationDefaults overrides on specs and tests", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            annotationDefaults: { color: "#7C3AED" },
+            tests: [
+              {
+                annotationDefaults: { color: "#0EA5E9" },
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotationDefaults.color).to.equal("#7C3AED");
+        expect(result.object.tests[0].annotationDefaults.color).to.equal(
+          "#0EA5E9"
+        );
+      });
+
+      it("should not default annotationDefaults at any cascade level when unset", function () {
+        // Same contract as autoScreenshot: absent must stay absent so the
+        // runtime can resolve test > spec > config > built-in theme.
+        const spec = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+        expect(spec.valid, spec.errors).to.be.true;
+        expect(spec.object.annotationDefaults).to.equal(undefined);
+        expect(spec.object.tests[0].annotationDefaults).to.equal(undefined);
+
+        const config = validate({ schemaKey: "config_v3", object: {} });
+        expect(config.valid, config.errors).to.be.true;
+        expect(config.object.annotationDefaults).to.equal(undefined);
+      });
+
+      it("should validate an annotate step's add, update, and clear forms", function () {
+        const add = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: {
+              add: [
+                { id: "guide", callout: "#totp", label: "Only with 2FA on" },
+                { id: "redact", blur: { selector: ".key" }, all: true, track: true },
+              ],
+            },
+          },
+        });
+        expect(add.valid, add.errors).to.be.true;
+
+        const update = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: { update: [{ id: "guide", callout: "#metadata-url" }] },
+          },
+        });
+        expect(update.valid, update.errors).to.be.true;
+
+        const clearAll = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: true } },
+        });
+        expect(clearAll.valid, clearAll.errors).to.be.true;
+
+        const clearSome = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: ["guide", "redact"] } },
+        });
+        expect(clearSome.valid, clearSome.errors).to.be.true;
+
+        const combined = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: { add: [{ outline: "#a" }], clear: ["old"] },
+          },
+        });
+        expect(combined.valid, combined.errors).to.be.true;
+      });
+
+      it("should require an id on every annotate update entry", function () {
+        // `update` addresses an annotation that's already on screen, so
+        // without an id there's nothing to address.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { update: [{ callout: "#a", label: "x" }] } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty annotate step", function () {
+        // An annotate that neither adds, updates, nor clears is a no-op the
+        // author didn't mean to write.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: {} },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject annotate entries that aren't valid annotations", function () {
+        const noType = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ label: "orphan" }] } },
+        });
+        expect(noType.valid).to.be.false;
+
+        const twoTypes = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ outline: "#a", blur: "#b" }] } },
+        });
+        expect(twoTypes.valid).to.be.false;
+
+        const unknown = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ outline: "#a" }], bogus: true } },
+        });
+        expect(unknown.valid).to.be.false;
+      });
+
+      it("should keep clear's boolean form a boolean rather than coercing it", function () {
+        // AJV runs with coerceTypes; a leading array/string branch could turn
+        // `true` into something else. The boolean branch comes first.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: true } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotate.clear).to.equal(true);
+      });
+
+      it("should list annotate as a markup action", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            fileTypes: [
+              {
+                name: "markdown",
+                extensions: [".md"],
+                markup: [
+                  { name: "annotateStep", regex: ["x"], actions: ["annotate"] },
+                ],
+              },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject an invalid annotationDefaults theme", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { annotationDefaults: { color: 5, bogus: true } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
       });
     });
 

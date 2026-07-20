@@ -13,11 +13,11 @@ The `startSurface` action opens (provisions) a surface and registers it by name 
 Pass a single descriptor to open one surface, or an **array of descriptors to open several concurrently**—browser and process descriptors launch in parallel, and app descriptors boot their devices in parallel (the sessions themselves open in authored order). One step can boot two emulators for a two-phone conversation instead of waiting out two serial boots.
 
 <Note>
-Doc Detective drives native apps through a platform-specific Appium driver—`appium-novawindows-driver` on Windows, `appium-mac2-driver` on macOS, `appium-uiautomator2-driver` on Android, and `appium-xcuitest-driver` on iOS—and installs it on demand the first time an app surface starts. To install one ahead of time, run `doc-detective install runtime appium-novawindows-driver` on Windows or `doc-detective install runtime appium-mac2-driver` on macOS.
+Doc Detective drives native apps through a platform-specific automation driver and installs it on demand the first time an app surface starts. On Windows and macOS there's no separate pre-install step—the desktop driver installs automatically on that first run, so a machine that can't reach the network to fetch it skips the context with guidance rather than failing. Android and iOS need more preparation, covered below.
 
 Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
 
-iOS app surfaces run only on a macOS host and drive an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios`](/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
+iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios`](/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
 </Note>
 
 ## App descriptors
@@ -47,7 +47,7 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 - `name`: (Optional) Surface-registry name. Default: the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name` (an unnamed duplicate fails with guidance).
 - `headless`: (Optional) Overrides the context's headless setting for this session.
 - `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
-- `viewport`: (Optional) Page-content dimensions, which win over `size`. Doc Detective sizes the viewport by resizing the window, so the ~500px minimum window width (in headless mode too) applies: a smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`, so you can trust the rendered size over the request. To capture true sub-500px widths, emulate a mobile device rather than resizing the window.
+- `viewport`: (Optional) Page-content dimensions, which win over `size`. Doc Detective sizes the viewport by resizing the window, so the ~500px minimum window width (in headless mode too) applies: a smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`, so you can trust the rendered size over the request. To render content at true sub-500px widths, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
 - `driverOptions`: (Optional) Escape-hatch capability passthrough.
 
 There's deliberately no `url` on the browser descriptor—[`goTo`](goTo) stays the navigation step—and no `waitUntil`: a browser session is ready the moment it opens.
@@ -71,7 +71,9 @@ Safari is the exception: `safaridriver` allows only one automation session per h
 
 ## Target an app surface
 
-After `startSurface` registers an app, reference it from a later step with a `surface` object that names it:
+An app that `startSurface` opens becomes the **active surface**: later surface-sensitive steps ([`find`](find), [`click`](click), [`type`](type), [`screenshot`](screenshot), [`swipe`](swipe)) act on it with no `surface` field at all, the same way browser steps act on the active tab. Use `surface` when you need to *switch* targets mid-test (to another app, a browser, or a background process). A step's explicit `surface` reference also makes that surface active for the surface-less steps that follow.
+
+To target an app explicitly, name it in a `surface` object:
 
 ```json
 {
@@ -219,7 +221,7 @@ The simulator tooling ships with Xcode rather than as a separate download, so th
 doc-detective install ios --yes
 ```
 
-See [`install ios`](/reference/cli/install#install-ios) for everything the command does—verifying the prerequisites, installing the `appium-xcuitest-driver`, and prebuilding WebDriverAgent—along with the guidance it prints when a step can't run. When the host can't run an iOS simulator (a non-macOS host, or a macOS host without Xcode or an installed runtime), the context skips with a pointer back to that command instead of failing. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
+See [`install ios`](/reference/cli/install#install-ios) for everything the command does—verifying the prerequisites, installing the automation driver, and prebuilding WebDriverAgent—along with the guidance it prints when a step can't run. When the host can't run an iOS simulator (a non-macOS host, or a macOS host without Xcode or an installed runtime), the context skips with a pointer back to that command instead of failing. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
 
 On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator, which can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache—and sessions consume it automatically—so that build cost disappears from the run. This is especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
 
@@ -300,7 +302,7 @@ You don't have to close every app explicitly. Doc Detective closes any app surfa
 
 ### Launch a macOS app and act on it
 
-This example launches Calculator by its `.app` path, waits until a digit button exists, computes `1 + 2`, checks that the display reads `3`, captures the window, and closes the surface. The digit buttons match by accessible name with `elementAria`. The operator keys use a native XPath selector because their accessible names are words (`Add`, `Equals`) rather than the symbols on screen.
+This example launches Calculator by its `.app` path, waits until a digit button exists, computes `1 + 2`, checks that the display reads `3`, takes a screenshot of the window, and closes the surface. The digit buttons match by accessible name with `elementAria`. The operator keys use a native XPath selector because their accessible names are words (`Add`, `Equals`) rather than the symbols on screen.
 
 ```json
 {
@@ -357,7 +359,7 @@ This example launches Calculator by its `.app` path, waits until a digit button 
           }
         },
         {
-          "description": "Capture the window.",
+          "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "calculator-app.png",
             "surface": { "app": "Calculator" }
@@ -375,7 +377,7 @@ This example launches Calculator by its `.app` path, waits until a digit button 
 
 ### Launch an Android app on an emulator
 
-This example targets the `android` platform, launches the Settings app by its package name on the context's default emulator, waits until its content is on screen, captures the window, and closes the surface. Give the first surface a generous `timeout` so a cold emulator boot fits inside it.
+This example targets the `android` platform, launches the Settings app by its package name on the context's default emulator, waits until its content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold emulator boot fits inside it.
 
 ```json
 {
@@ -391,14 +393,14 @@ This example targets the `android` platform, launches the Settings app by its pa
           "description": "Launch the Settings app and wait until it's ready.",
           "startSurface": {
             "app": "com.android.settings",
-            "timeout": 120000,
+            "timeout": 180000,
             "waitUntil": {
               "find": { "elementText": "Settings" }
             }
           }
         },
         {
-          "description": "Capture the window.",
+          "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "android-settings.png",
             "surface": { "app": "settings" }
@@ -416,7 +418,7 @@ This example targets the `android` platform, launches the Settings app by its pa
 
 ### Launch an iOS app on a simulator
 
-This example targets the `ios` platform, launches the Settings app by its bundle ID on the context's default simulator, waits until its content is on screen, captures the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot and WebDriverAgent build fit inside it.
+This example targets the `ios` platform, launches the Settings app by its bundle ID on the context's default simulator, waits until its content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot and WebDriverAgent build fit inside it.
 
 ```json
 {
@@ -432,14 +434,14 @@ This example targets the `ios` platform, launches the Settings app by its bundle
           "description": "Launch the Settings app and wait until it's ready.",
           "startSurface": {
             "app": "com.apple.Preferences",
-            "timeout": 120000,
+            "timeout": 180000,
             "waitUntil": {
               "find": { "elementText": "Settings" }
             }
           }
         },
         {
-          "description": "Capture the window.",
+          "description": "Take a screenshot of the window.",
           "screenshot": {
             "path": "ios-settings.png",
             "surface": { "app": "Preferences" }
