@@ -211,6 +211,10 @@ You can specify window or viewport dimensions. WebKit/Safari does **not** suppor
 }
 ```
 
+<Note>
+Like Chrome, WebKit/Safari sizes the `viewport` by resizing the window, so the same minimum window-width floor applies. See [Chrome Dimensions and Visibility](#chrome-dimensions-and-visibility).
+</Note>
+
 ### Mobile browsers (Android and iOS)
 
 With a mobile platform entry (`android` or `ios`), `browsers` means the browser **on the managed device** — Doc Detective boots (or reuses) the emulator/simulator and drives its browser, and `goTo`, `find`, `click`, and `screenshot` behave exactly as on desktop. Element semantics are web DOM, not native accessibility, and no app descriptor is involved.

@@ -131,7 +131,7 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 
 **Outputs:** depending on which options you configure, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Each output is present only when its check applies:
 
-- `$$width` / `$$height`: the saved image's actual pixel dimensions, after any crop. When the browser floors a requested viewport, these reflect the size the page rendered, not the size you requested, so a caption or report reconciles against the file. Always present.
+- `$$width` / `$$height`: the saved image's actual pixel dimensions, after any crop. If the browser floors a requested viewport, these report the size the page rendered rather than the size you asked for, so you can reconcile a caption or report against the file. Present when Doc Detective can read the saved image's dimensions; omitted if the metadata read fails or the image has no readable size.
 - `$$cropElementFound`: whether the element to crop to was located (when `crop` is set).
 - `$$fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
 - `$$annotationTargetsFound`: whether every annotation's target resolved (when `annotations` is set). The step fails if any target is missing.
