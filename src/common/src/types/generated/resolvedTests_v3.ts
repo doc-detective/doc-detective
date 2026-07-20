@@ -162,6 +162,10 @@ export interface Config {
    */
   logLevel?: "silent" | "error" | "warning" | "info" | "debug";
   /**
+   * Redact credential-shaped values (JWTs, GitHub tokens, AWS access key IDs, and passwords embedded in connection strings) from test results and logs, even when they weren't referenced with `$secret.`. This is a backstop for undeclared credentials: it can only catch values with a recognizable shape, so a credential without one (an ordinary password, for example) still needs a `$secret.NAME` reference to be protected. Set to `false` if a legitimate value in your output is being redacted. Values referenced with `$secret.` are always protected regardless of this setting.
+   */
+  heuristicRedaction?: boolean;
+  /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.
    */
   runOn?: Context[];

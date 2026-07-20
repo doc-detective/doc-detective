@@ -1800,6 +1800,34 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.stepId).to.be.a("string").and.not.equal("");
       });
 
+      // ADR 01073: the value-shape redaction backstop's single opt-out.
+      it("accepts config_v3 heuristicRedaction: false", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { input: "./docs", heuristicRedaction: false },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.heuristicRedaction).to.equal(false);
+      });
+
+      it("defaults config_v3 heuristicRedaction to true when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { input: "./docs" },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.heuristicRedaction).to.equal(true);
+      });
+
+      it("rejects a non-boolean config_v3 heuristicRedaction", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { input: "./docs", heuristicRedaction: "yes" },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.ok;
+      });
+
       // (d) selection on a multi-candidate schema (config_v3 <- config_v2).
       it("selects config_v2 for a v2-shaped config and returns the restructured object", function () {
         const original = {

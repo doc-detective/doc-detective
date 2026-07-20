@@ -3,6 +3,7 @@ import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir } from "./core/utils.js";
+import { scrubString, scrubObject } from "./core/secrets.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -60,10 +61,15 @@ function logLevelEnabled(level: string, config: any = {}): boolean {
 function log(message: any, level: string = "info", config: any = {}) {
   // Only log if the message level is at or above the current log level
   if (logLevelEnabled(level, config)) {
+    // The CLI-layer twin of the core logger's scrub (ADR 01072). Objects are
+    // masked deeply (this logger hands the value straight to console.*, which
+    // formats it itself, so there is no serialized string to scrub instead).
+    const safe =
+      typeof message === "string" ? scrubString(message) : scrubObject(message);
     if (level === "error") {
-      console.error(message);
+      console.error(safe);
     } else {
-      console.log(message);
+      console.log(safe);
     }
   }
 }

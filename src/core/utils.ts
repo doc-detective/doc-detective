@@ -16,6 +16,7 @@ import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
+import { scrubString } from "./secrets.js";
 
 export {
   outputResults,
@@ -1491,13 +1492,18 @@ async function log(config: any, level: string, message?: any) {
   const logLevelMatch = logLevelEnabled(config, level);
 
   if (logLevelMatch) {
+    // Mask resolved secrets at the single emission choke point (ADR 01072).
+    // Everything the runner prints funnels through here — `clog`, the STEP /
+    // RESULT / CONTEXT debug dumps, WebDriver errors that quote the text they
+    // just typed — so one scrub covers them all. Scrubbing the SERIALIZED form
+    // of an object also catches secrets sitting in keys.
     if (typeof message === "string") {
-      let logMessage = `(${level.toUpperCase()}) ${message}`;
+      let logMessage = `(${level.toUpperCase()}) ${scrubString(message)}`;
       console.log(logMessage);
     } else if (typeof message === "object") {
       let logMessage = `(${level.toUpperCase()})`;
       console.log(logMessage);
-      console.log(JSON.stringify(message, null, 2));
+      console.log(scrubString(JSON.stringify(message, null, 2)));
     }
   }
 }
@@ -1641,7 +1647,16 @@ function evaluateContextRequirements({
 // A real env ref is `$NAME` NOT followed by another `$` (or word char).
 // Safe to share: used only via `String.prototype.match`, which does not rely
 // on or leave mutated `lastIndex` state.
-const ENV_VAR_REGEX = /\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/g;
+//
+// The leading `(?!secret\.[A-Za-z0-9_])` reserves the `$secret.NAME` grammar
+// (ADR 01071) for the secret resolver. Without it this regex matches the
+// `$secret` PREFIX of the token — the trailing `.` satisfies its lookahead — so
+// on any host with a `SECRET` env var set, `$secret.API_TOKEN` was rewritten to
+// `<value>.API_TOKEN` before the secret resolver ever saw it. That is not
+// hypothetical on Windows, where env lookups are case-insensitive and a stray
+// `SECRET` is common. The reservation makes an env var literally named `secret`
+// unreachable via `$secret.` + a word char; nothing else changes.
+const ENV_VAR_REGEX = /\$(?!secret\.[A-Za-z0-9_])[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/g;
 
 function replaceEnvs(stringOrObject: any): any {
   if (!stringOrObject) return stringOrObject;

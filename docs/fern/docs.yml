@@ -226,6 +226,9 @@ navigation:
               - page: Generate requests from OpenAPI
                 path: pages/docs/test-code/generate-tests-from-openapi.mdx
                 slug: generate-tests-from-openapi
+              - page: Secrets
+                path: pages/docs/test-code/secrets.mdx
+                slug: secrets
               - page: Integrations
                 path: pages/docs/get-started/integrations.mdx
                 slug: integrations

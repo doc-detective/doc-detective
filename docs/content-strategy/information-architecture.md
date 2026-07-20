@@ -178,6 +178,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | HTTP & API testing | D2 | ★ | `httpRequest`, `checkLink`. |
 | Cookies & variables | D2 | | `saveCookie` / `loadCookie` / `loadVariables` / outputs. |
 | Generate tests from OpenAPI | D3 | | `openApi` integration. |
+| Secrets | D2, P1 | | `$secret.NAME` references: how to reference a credential, what reports show, why a secret can't be asserted or routed on, the unset-secret failure and the `requires.env` skip, and the explicit non-goals (screenshots, cookie files, transformed values). Cross-linked from the `loadVariables` action page, which otherwise reads as an endorsement of `$VAR` for credentials. Serves P1 as well: CI secret stores set the same env vars. |
 
 **Formats & surfaces — cross-surface (W3 anchor)**
 

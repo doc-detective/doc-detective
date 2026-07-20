@@ -17,6 +17,21 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `lsof -iTCP:8092 -sTCP:LISTEN` on Linux/macOS — and inspect the owning process's command line (it
   may be mocha from a sibling `.claude/worktrees/*` checkout, or a days-old orphan). Wait or kill
   only orphaned listeners, then rerun.
+  - **A live sibling run is a wait, not a kill.** The listener's age is not the test — a *day-old*
+    `node test/server/start.js` can still be the server a sibling worktree's mocha is actively
+    using, because the hooks reuse whatever already holds the port. Check for concurrent runs
+    (`Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" | Where-Object { $_.CommandLine -like '*mocha*' }`)
+    before killing anything; killing the port out from under a sibling breaks their run, not yours.
+  - **Two more contention signatures beyond the 404.** When the sibling's run *ends*, its hooks stop
+    the shared servers mid-flight through your run, so you get connection-refused rather than a 404:
+    `Reached error page: about:neterror?e=connectionFailure ... localhost:8092` (core-core
+    `getRunner()` tab-selector tests) and `Failed to stop test server: Server is not running` in your
+    own teardown. Resource contention from two concurrent suites also surfaces as
+    `stopRecord ... Recording download timed out` in the `runTests.test.js` end-to-end CLI spec.
+    All three *may* be environmental — but a connection refusal, a teardown error, and a recording
+    timeout are all shapes a real regression can take too, so don't file them as contention on the
+    signature alone. Re-run the single test file in isolation: it passing is what makes the
+    contention diagnosis, and it failing means you have a real bug.
 - **Browserless worktrees fail the browser-dependent tests.** A worktree with no Chrome/Firefox/
   Appium installed and no network to lazy-provision fails browser-dependent tests with "Chrome
   browser is not available" or step-count assertions (`0 !== 1`, `undefined (reading 'result')`)
