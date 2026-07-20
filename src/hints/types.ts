@@ -246,6 +246,13 @@ export interface HintContext {
    * the `walkResults` context pass.
    */
   ranMobileContexts: boolean;
+  /**
+   * True when three or more surface-sensitive steps in this run explicitly
+   * referenced the SAME app surface (`surface: { app: … }`) — repetition the
+   * active-surface default (ADR 01081) makes redundant. Powers
+   * `omitSurfaceForActiveApp`. Sourced from the `walkResults` step pass.
+   */
+  repeatedAppSurfaceRefs: boolean;
 }
 
 export interface Hint {

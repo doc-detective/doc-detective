@@ -37,6 +37,10 @@ import {
   stepTargetsAppSurface,
   stepOpensAppSurface,
 } from "../../runtime/browserStepKeys.js";
+import {
+  activateSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -715,6 +719,11 @@ interface AppSessionState {
   appiumHome?: string;
   surfaces: Map<string, AppSurfaceEntry>;
   activeApp?: string;
+  // Cross-kind active-surface tracker (ADR 01081), shared with the context's
+  // browser session registry: app activations mark the app as the context's
+  // active surface, so surface-less steps route here after an app opens or
+  // is explicitly targeted.
+  tracker?: ActiveSurfaceTracker;
   recordingHost: { state: { recordings: any[] } };
   // Android (phase A3b): one shared driver session per device, keyed by device
   // name. Multiple app surfaces on the same device reuse its session and switch
@@ -1446,6 +1455,7 @@ async function startAppSurface({
     deviceName,
   });
   appSession.activeApp = name;
+  activateSurface(appSession.tracker, { kind: "app", name });
 
   // Window-selector baseline (ADR 01036, desktop): capture the main window
   // handle / pid / known-vs-foreign handles (Windows) or the (title, frame)
@@ -1530,13 +1540,21 @@ async function startAppSurface({
 
 // Bring an app surface's app to the foreground on its shared Android device
 // session before acting on it — the active-surface switch, mirroring browser
-// tab focus. No-op for desktop surfaces (one driver per app) and when the app
-// is already foreground. Returns an error string if activation fails.
+// tab focus. Desktop surfaces (one driver per app) need no driver-level
+// foregrounding, but the ACTIVE-SURFACE pointer still moves (ADR 01081): a
+// step that references an app surface makes it the surface later
+// surface-less steps act on, uniformly across kinds. Returns an error string
+// if activation fails.
 async function ensureAppForeground(
   entry: AppSurfaceEntry,
   appSession?: AppSessionState
 ): Promise<{ error?: string }> {
-  if (!entry.deviceName || !appSession) return {};
+  if (!appSession) return {};
+  if (!entry.deviceName) {
+    appSession.activeApp = entry.name;
+    activateSurface(appSession.tracker, { kind: "app", name: entry.name });
+    return {};
+  }
   const session = appSession.deviceSessions?.get(entry.deviceName);
   // A surface carrying a deviceName must have a live device session. A missing
   // one is an internal inconsistency — fail loudly instead of skipping the
@@ -1546,16 +1564,18 @@ async function ensureAppForeground(
       error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}): no active session for device "${entry.deviceName}".`,
     };
   }
-  if (session.foregroundApp === entry.appId) return {};
-  try {
-    await session.driver.activateApp(entry.appId);
-  } catch (error: any) {
-    return {
-      error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}) on device "${entry.deviceName}": ${error?.message ?? error}`,
-    };
+  if (session.foregroundApp !== entry.appId) {
+    try {
+      await session.driver.activateApp(entry.appId);
+    } catch (error: any) {
+      return {
+        error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}) on device "${entry.deviceName}": ${error?.message ?? error}`,
+      };
+    }
+    session.foregroundApp = entry.appId;
   }
-  session.foregroundApp = entry.appId;
   appSession.activeApp = entry.name;
+  activateSurface(appSession.tracker, { kind: "app", name: entry.name });
   return {};
 }
 

@@ -1,0 +1,107 @@
+{
+  "specId": "active-surface-process",
+  "description": "Uniform active-surface routing (ADR 01081) for the PROCESS kind: a process opened via startSurface becomes the active surface, so a `type` step that omits `surface` sends its keystrokes to that process's stdin. The routing proof is two-fold: the surface-less type PASSes in a context with no browser at all (pre-ADR it fell through to the browser path), and a later explicit type's `waitUntil.stdio` matches the REPL output the SURFACE-LESS keystrokes produced (the stdio matcher checks buffered history, so the match can only come from the earlier write). Also proves a process registered by runShell `background` does NOT hijack the active surface — only startSurface and explicit references switch it. Node-only, so it runs and PASSes on every platform; unique names/ports keep it safe under concurrentRunners.",
+  "tests": [
+    {
+      "testId": "active-surface-process-typing",
+      "description": "Start node's REPL via the process descriptor, type arithmetic WITHOUT a surface (routes to the active process), then assert the result landed via an explicit reference whose stdio condition matches the output the surface-less write produced. A final surface-less type proves the explicit reference kept the process active.",
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node -i",
+            "name": "asp-repl",
+            "waitUntil": {
+              "stdio": "/>/"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": [
+            "1000 + 337",
+            "$ENTER$"
+          ]
+        },
+        {
+          "type": {
+            "keys": [
+              "0",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "asp-repl"
+            },
+            "waitUntil": {
+              "stdio": "/1337/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "type": [
+            "2 + 2",
+            "$ENTER$"
+          ]
+        },
+        {
+          "closeSurface": "asp-repl"
+        }
+      ]
+    },
+    {
+      "testId": "active-surface-background-no-hijack",
+      "description": "A background process registered by runShell (not startSurface) must NOT become the active surface: after starting one, a surface-less type still routes to the startSurface-opened REPL — proven by an explicit stdio match on the REPL's output, which only exists if the surface-less keystrokes went there.",
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node -i",
+            "name": "asp-main",
+            "waitUntil": {
+              "stdio": "/>/"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "asp-bystander",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": [
+            "2000 + 337",
+            "$ENTER$"
+          ]
+        },
+        {
+          "type": {
+            "keys": [
+              "0",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "asp-main"
+            },
+            "waitUntil": {
+              "stdio": "/2337/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": "asp-bystander"
+        },
+        {
+          "closeSurface": "asp-main"
+        }
+      ]
+    }
+  ]
+}

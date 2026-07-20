@@ -22,6 +22,9 @@ import {
   BROWSER_STEP_KEYS as driverActions,
   startSurfaceDescriptors,
   stepOpensBrowserSurface,
+  stepTargetsProcessSurface,
+  stepIsSurfacelessInteraction,
+  testHasNonBrowserSurfaceSignal,
 } from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
@@ -96,6 +99,10 @@ import {
   type AppSessionState,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
+import {
+  createActiveSurfaceTracker,
+  type ActiveSurfaceTracker,
+} from "./tests/activeSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 import {
   mobileBrowserGate,
@@ -649,18 +656,26 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
 }
 
 // Like isDriverRequired, but only counts driver steps that need a BROWSER: a
-// step whose payload targets an app surface (object form) is driven by the
-// app session instead, and the synthetic autoRecord capture is an ffmpeg
-// screen grab — neither may force a default browser into existence (in a
-// browser test the authored steps already require one, so excluding the
-// synthetic step never changes the outcome there).
+// step whose payload targets an app or process surface (object form) is
+// driven by the app session / process registry instead, and the synthetic
+// autoRecord capture is an ffmpeg screen grab — none may force a default
+// browser into existence (in a browser test the authored steps already
+// require one, so excluding the synthetic step never changes the outcome
+// there). Uniform routing (ADR 01081) adds one more exclusion: a
+// surface-less interaction step in a test that opens or targets a
+// non-browser surface routes to the active surface at runtime, so it doesn't
+// force a browser either — a test with no such signal keeps the browser
+// default unchanged.
 function isBrowserRequired({ test }: { test: any }): boolean {
   if (!Array.isArray(test?.steps)) return false;
+  const hasNonBrowserSignal = testHasNonBrowserSurfaceSignal(test.steps);
   return test.steps.some(
     (step: any) =>
       !step?.__autoRecord &&
       ((driverActions.some((action) => typeof step[action] !== "undefined") &&
-        !stepTargetsAppSurface(step)) ||
+        !stepTargetsAppSurface(step) &&
+        !stepTargetsProcessSurface(step) &&
+        !(hasNonBrowserSignal && stepIsSurfacelessInteraction(step))) ||
         // Phase 6: `startSurface: { browser: … }` opens a browser session
         // (the goTo-opener sibling); app/process descriptors don't.
         stepOpensBrowserSurface(step))
@@ -3835,6 +3850,11 @@ async function runContext({
   // context that passes its preflight (phase A3b). Declared here so the mobile
   // branch can set it and fall through to the shared step-execution path.
   let appSession: AppSessionState | undefined;
+  // Cross-kind active-surface tracker (ADR 01081): one MRU per context,
+  // shared by the browser session registry, the app session, and the process
+  // lanes, so surface-less steps route to the most recently active surface
+  // regardless of kind.
+  const surfaceTracker = createActiveSurfaceTracker();
   // Mobile web (phase A5): set when the mobile preflight resolved a device
   // browser for this context. The try block below then opens the browser
   // session on the device (through the app session's Appium server) instead
@@ -3952,6 +3972,9 @@ async function runContext({
     appSession.appiumEntry = preflight.appiumEntry;
     appSession.appiumHome = preflight.appiumHome;
   }
+  // Whichever branch created the app session (android/ios/desktop), it shares
+  // the context's active-surface tracker with the browser registry below.
+  if (appSession) appSession.tracker = surfaceTracker;
 
   // If a driver is required but no browser could be resolved (e.g.
   // getDefaultBrowser found nothing installed, or the context supplied a
@@ -4226,6 +4249,7 @@ async function runContext({
           );
         },
         isNameTaken: (name: string) => !!processRegistry?.has(name),
+        tracker: surfaceTracker,
       });
       registerSession(browserSessions, {
         name: String(mobileWebBrowserName).toLowerCase(),
@@ -4446,6 +4470,7 @@ async function runContext({
             return res.driver;
           },
           isNameTaken: (name: string) => !!processRegistry?.has(name),
+          tracker: surfaceTracker,
         });
         registerSession(browserSessions, {
           name: String(startedName).toLowerCase(),
@@ -4751,6 +4776,7 @@ async function runContext({
           },
           processRegistry: processRegistry,
           appSession: appSession,
+          surfaceTracker: surfaceTracker,
         });
         if (logLevelEnabled(config, "debug")) clog(
           "debug",
@@ -5118,6 +5144,7 @@ async function runStep({
   options = {},
   processRegistry,
   appSession,
+  surfaceTracker,
 }: {
   config?: any;
   context?: any;
@@ -5127,6 +5154,7 @@ async function runStep({
   options?: any;
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
+  surfaceTracker?: ActiveSurfaceTracker;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -5137,6 +5165,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
     });
   } else if (typeof step.dragAndDrop !== "undefined") {
     actionResult = await dragAndDropElement({
@@ -5147,7 +5177,7 @@ async function runStep({
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
-    actionResult = await findElement({ config: config, step: step, driver, appSession });
+    actionResult = await findElement({ config: config, step: step, driver, appSession, processRegistry, surfaceTracker });
   } else if (typeof step.stopRecord !== "undefined") {
     actionResult = await stopRecording({
       config: config,
@@ -5270,6 +5300,7 @@ async function runStep({
         appSession,
         driver,
         processRegistry,
+        surfaceTracker,
         platform: context?.platform ?? "",
         serverDeps: {
           startServer: async (appiumEntry: string, appiumHome: string) => {
@@ -5344,6 +5375,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
       annotationTheme: options?.annotationTheme,
     });
   } else if (typeof step.annotate !== "undefined") {
@@ -5359,6 +5392,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
     });
   } else if (typeof step.type !== "undefined") {
     actionResult = await typeKeys({
@@ -5367,6 +5402,7 @@ async function runStep({
       driver: driver,
       processRegistry,
       appSession,
+      surfaceTracker,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });

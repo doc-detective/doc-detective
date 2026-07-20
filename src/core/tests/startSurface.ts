@@ -17,6 +17,10 @@ import {
   normalizeEngine,
   type BrowserSessionRegistry,
 } from "./browserSessions.js";
+import {
+  activateSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 
 export { startSurfaceStep };
 
@@ -82,6 +86,7 @@ async function startSurfaceStep({
   driver,
   processRegistry,
   appSession,
+  surfaceTracker,
   serverDeps,
   deps,
 }: {
@@ -91,6 +96,7 @@ async function startSurfaceStep({
   driver?: any;
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
+  surfaceTracker?: ActiveSurfaceTracker;
   serverDeps?: any;
   // Injected for unit tests; defaults to the real lane implementations.
   deps?: {
@@ -243,7 +249,7 @@ async function startSurfaceStep({
     } catch (error: any) {
       return { status: "FAIL", description: error.message };
     }
-    return startProcess({
+    const started = await startProcess({
       config,
       descriptor: {
         command: d.process,
@@ -258,6 +264,14 @@ async function startSurfaceStep({
       processRegistry,
       driver,
     });
+    // A process opened via startSurface becomes the active surface (ADR
+    // 01081), like the app and browser lanes. A process registered as a side
+    // effect of runShell/runCode `background:` deliberately does NOT — those
+    // are shell steps, not surface steps.
+    if (started.status === "PASS") {
+      activateSurface(surfaceTracker, { kind: "process", name: d.name });
+    }
+    return started;
   };
 
   // --- Single-object form: dispatch directly; the app branch returns its
@@ -364,6 +378,28 @@ async function startSurfaceStep({
       if (results[slot.i]?.status === "PASS") {
         activateSession(browserRegistry, results[slot.i].outputs?.name ?? slot.name);
       }
+    }
+  }
+  // Cross-kind re-assert (ADR 01081): the lanes above activated in per-kind
+  // completion/serial order, so the CROSS-kind MRU may not end on the last
+  // authored descriptor. Re-activate every successful surface in authored
+  // order so the array's last authored success is the context's active
+  // surface, regardless of kind or completion order.
+  for (const slot of indexed) {
+    if (results[slot.i]?.status !== "PASS") continue;
+    const name = results[slot.i].outputs?.name ?? slot.name;
+    if (slot.kind === "app") {
+      activateSurface(appSession?.tracker ?? surfaceTracker, {
+        kind: "app",
+        name,
+      });
+    } else if (slot.kind === "browser") {
+      activateSurface(browserRegistry?.tracker ?? surfaceTracker, {
+        kind: "browser",
+        name,
+      });
+    } else {
+      activateSurface(surfaceTracker, { kind: "process", name });
     }
   }
 
