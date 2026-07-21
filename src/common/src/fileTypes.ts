@@ -47,11 +47,16 @@ const defaultFileTypesBase: Record<string, FileType> = {
         name: "asciidoc",
         extensions: ["adoc", "asciidoc", "asc"],
         inlineStatements: {
-            testStart: ["\\/\\/\\s+\\(\\s*test\\s+([\\s\\S]*?)\\s*\\)"],
-            testEnd: ["\\/\\/\\s+\\(\\s*test end\\s*\\)"],
-            ignoreStart: ["\\/\\/\\s+\\(\\s*test ignore start\\s*\\)"],
-            ignoreEnd: ["\\/\\/\\s+\\(\\s*test ignore end\\s*\\)"],
-            step: ["\\/\\/\\s+\\(\\s*step\\s+([\\s\\S]*?)\\s*\\)"],
+            // Structure-aware: // and //// comments are scanner comment
+            // nodes; the container filter keeps the `// (test …)` paren
+            // grammar (plain comments never match) and comment-looking
+            // lines inside listings can't false-positive.
+            in: [
+                {
+                    comment: { matches: "^\\(\\s*([\\s\\S]*?)\\s*\\)$" },
+                    value: "match.1",
+                },
+            ],
         },
         markup: [],
     },

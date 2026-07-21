@@ -3,6 +3,7 @@ export { parseMarkdown, parseAttributeList } from "./markdown.js";
 export { parseMdx } from "./mdx.js";
 export { parseHtml } from "./html.js";
 export { parseDitaXml } from "./xml.js";
+export { parseAsciidoc } from "./asciidoc.js";
 export { resolveBackend } from "./backends.js";
 export {
   SELECTOR_KINDS,

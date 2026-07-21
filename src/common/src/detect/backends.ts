@@ -10,6 +10,7 @@ import { parseMarkdown } from "./markdown.js";
 import { parseMdx } from "./mdx.js";
 import { parseHtml } from "./html.js";
 import { parseDitaXml } from "./xml.js";
+import { parseAsciidoc } from "./asciidoc.js";
 
 const backendByExtension: Record<string, BackendParse> = {
   md: parseMarkdown,
@@ -24,6 +25,9 @@ const backendByExtension: Record<string, BackendParse> = {
   dita: parseDitaXml,
   ditamap: parseDitaXml,
   xml: parseDitaXml,
+  adoc: parseAsciidoc,
+  asciidoc: parseAsciidoc,
+  asc: parseAsciidoc,
 };
 
 const backendByFileTypeName: Record<string, BackendParse> = {
@@ -31,6 +35,7 @@ const backendByFileTypeName: Record<string, BackendParse> = {
   mdx: parseMdx,
   html: parseHtml,
   dita: parseDitaXml,
+  asciidoc: parseAsciidoc,
 };
 
 export function resolveBackend(
