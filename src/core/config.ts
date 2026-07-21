@@ -495,6 +495,9 @@ async function setConfig({ config, detectApps = true }: any) {
     if (fileType.extends) {
       // If fileType extends another, merge the properties
       const extendedFileTypeRaw = defaultFileTypes[fileType.extends];
+      /* c8 ignore start - unreachable via setConfig: the schema's `extends`
+         enum only lists known definitions, so AJV rejects unknown values
+         before this defense-in-depth guard can fire. */
       if (!extendedFileTypeRaw) {
         log(
           config,
@@ -509,6 +512,7 @@ async function setConfig({ config, detectApps = true }: any) {
             '".'
         );
       }
+      /* c8 ignore stop */
       const extendedFileType = JSON.parse(JSON.stringify(extendedFileTypeRaw));
       if (extendedFileType) {
         if (!fileType.name) {
