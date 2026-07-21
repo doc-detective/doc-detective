@@ -1757,6 +1757,21 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           expect(result.valid).to.be.false;
         });
 
+        it("should reject a definition combining regex and a selector kind", function () {
+          // The modes are mutually exclusive: a combined definition would
+          // have undefined runtime semantics, so validation rejects it.
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "both",
+              regex: ["x"],
+              codeBlock: { language: "bash" },
+              actions: ["runCode"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
         it("should reject a definition with two selector kinds", function () {
           const result = validate({
             schemaKey: "config_v3",

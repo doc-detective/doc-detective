@@ -644,9 +644,9 @@
             "$ref": "#/components/schemas/markupActions"
           }
         },
-        "anyOf": [
+        "oneOf": [
           {
-            "$comment": "Regex mode.",
+            "$comment": "Regex mode. oneOf (not anyOf) makes the modes mutually exclusive: a definition carrying both regex and a selector kind would have undefined runtime semantics, so it fails validation.",
             "required": [
               "regex"
             ]
@@ -1089,6 +1089,7 @@
         }
       },
       "statementContainer": {
+        "$comment": "Structurally a selectorNode plus the `value` field path. Duplicated rather than $ref-composed because additionalProperties: false doesn't compose across allOf — a $ref'd selectorNode couldn't admit the extra `value` property.",
         "title": "Statement container",
         "description": "Where inline statements live: the string \"comment\" (all comment nodes), or a selector node whose matched nodes are read as statements. `value` names the node field holding the statement text (defaults to the node's own content).",
         "anyOf": [
@@ -1288,6 +1289,42 @@
     {},
     {
       "shell": "powershell"
+    },
+    {
+      "fileTypes": [
+        "markdown",
+        {
+          "name": "markdown-rich",
+          "extensions": ["md"],
+          "inlineStatements": {
+            "in": ["comment"]
+          },
+          "markup": [
+            {
+              "name": "runCode",
+              "codeBlock": {
+                "language": ["bash", "python"],
+                "metaExcludes": "testIgnore"
+              },
+              "captures": ["language", "content"],
+              "actions": ["runCode"]
+            },
+            {
+              "name": "screenshotImage",
+              "image": {
+                "attributes": { "class": "screenshot" }
+              },
+              "captures": ["src"],
+              "actions": ["screenshot"]
+            },
+            {
+              "name": "legacyBoldText",
+              "regex": ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
+              "actions": ["find"]
+            }
+          ]
+        }
+      ]
     },
     {
       "input": ".",

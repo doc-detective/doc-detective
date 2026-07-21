@@ -67,9 +67,11 @@ Mechanism:
    automatic per file via an extension→backend map plus existing content sniffing — there is no
    `parser` config field.
 2. **Selector markup definitions**: `markupDefinition` keeps one shared property table (`name`,
-   `regex`, eight kind keys, `captures`, `actions`, `batchMatches`) constrained by `anyOf`:
-   `required: ["regex"]` | `oneOf` over the kind keys — **modeled on the step schema, the kind IS
-   the key** (`{"codeBlock": {…}}` like `{"goTo": …}`). Kind option objects are
+   `regex`, eight kind keys, `captures`, `actions`, `batchMatches`) constrained by an outer
+   `oneOf`: `required: ["regex"]` | inner `oneOf` over the kind keys — **modeled on the step
+   schema, the kind IS the key** (`{"codeBlock": {…}}` like `{"goTo": …}`). The outer `oneOf`
+   makes the modes mutually exclusive: a definition carrying both `regex` and a kind key fails
+   validation rather than getting undefined runtime semantics. Kind option objects are
    `additionalProperties: false` with scalar shorthands; the single property table exists because
    the dereferencing schema build would otherwise duplicate the embedded step schema per branch
    (+39 MB measured on `schemas.json` vs +9 MB flattened). `captures` maps named node fields

@@ -74,8 +74,10 @@ only the options valid for that kind:
 ```
 
 A `markupDefinition` is a single object schema whose property table holds both modes (`name`,
-`regex`, the eight kind keys, `captures`, `actions`, `batchMatches`), constrained by
-`anyOf`: `required: ["regex"]` | `oneOf` over the kind keys (exactly one). One shared property
+`regex`, the eight kind keys, `captures`, `actions`, `batchMatches`), constrained by an outer
+`oneOf`: `required: ["regex"]` | inner `oneOf` over the kind keys (exactly one). The outer
+`oneOf` makes the modes mutually exclusive — a definition carrying both `regex` and a kind key
+fails validation. One shared property
 table matters because the schema build fully dereferences `$ref`s: `actions` embeds the entire
 step schema, and a two-branch `anyOf` would duplicate it at every markupDefinition site (measured:
 +39 MB on the generated `schemas.json`; the flattened shape costs +9 MB, all from the selector
