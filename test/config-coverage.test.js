@@ -625,7 +625,9 @@ describe("config.ts — setConfig", function () {
     assert.ok(ft.extensions.includes("mdbare"));
   });
 
-  it("throws when a fileType extends an unknown definition", async function () {
+  it("rejects a fileType that extends an unknown definition at validation", async function () {
+    // Schema validation rejects unknown `extends` values before the runtime
+    // extends-merge guard can fire (the enum only lists known definitions).
     await assert.rejects(
       () =>
         setConfig({
@@ -636,7 +638,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /references unknown fileType definition/
+      /Invalid config object/
     );
   });
 

@@ -1554,6 +1554,289 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("selector markup definitions (config_v3)", function () {
+      // Wraps a single markup definition in a minimal custom fileType.
+      const configWithMarkup = (def) => ({
+        fileTypes: [{ name: "custom", extensions: ["md"], markup: [def] }],
+      });
+      // Wraps an inlineStatements value in a minimal custom fileType.
+      const configWithStatements = (inlineStatements) => ({
+        fileTypes: [{ name: "custom", extensions: ["md"], inlineStatements }],
+      });
+
+      describe("valid selector shapes", function () {
+        it("should accept a codeBlock selector with language, metaExcludes, and captures", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "runCode",
+              codeBlock: {
+                language: ["bash", "python", "py", "javascript", "js"],
+                metaExcludes: "testIgnore",
+              },
+              captures: ["language", "content"],
+              actions: [
+                { unsafe: true, runCode: { language: "bash", code: "$2" } },
+              ],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a link selector with url and precededBy", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "goToUrl",
+              link: {
+                url: "^https?://",
+                precededBy: "\\b(?:[Gg]o\\s+to|[Oo]pen)\\s*$",
+              },
+              captures: ["url"],
+              actions: ["goTo"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept an empty-object selector (any node of that kind)", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "findOnscreenText",
+              strong: {},
+              captures: ["text"],
+              actions: ["find"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept an element scalar shorthand for tag", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "findUiControl",
+              element: "uicontrol",
+              captures: ["content"],
+              actions: ["find"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a codeBlock scalar shorthand for language", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "runBash",
+              codeBlock: "bash",
+              captures: ["language", "content"],
+              actions: ["runCode"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a text selector with a matches capture regex", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "typeText",
+              text: { matches: '\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"' },
+              captures: ["match.1"],
+              actions: ["type"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a followedBy.then chained element selector", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "typeIntoUiControl",
+              element: {
+                tag: "userinput",
+                precededBy: "\\b(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s*$",
+                followedBy: {
+                  text: "^\\s+(?:in|into)(?:\\s+the)?\\s*$",
+                  then: { element: { tag: "uicontrol" } },
+                },
+              },
+              captures: ["content", "then.content"],
+              actions: [{ type: { keys: "$1", selector: "$2" } }],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should keep an attribute exists-check boolean a boolean rather than coercing it", function () {
+          // AJV runs with coerceTypes; the string branch could turn `true`
+          // into "true". The const-true branch must come first.
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "screenshotToPath",
+              image: { attributes: { class: "screenshot", path: true } },
+              captures: ["src", "attributes.path"],
+              actions: ["screenshot"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(
+            result.object.fileTypes[0].markup[0].image.attributes.path
+          ).to.equal(true);
+        });
+      });
+
+      describe("valid statement containers", function () {
+        it("should accept the comment shorthand container", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithStatements({ in: ["comment"] }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept an element container with a value field path", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithStatements({
+              in: [
+                "comment",
+                {
+                  element: {
+                    tag: "data",
+                    attributes: { name: "doc-detective" },
+                  },
+                  value: "attributes.value",
+                },
+              ],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept selector containers alongside legacy regex statements", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithStatements({
+              in: ["comment"],
+              testStart: ["<\\?doc-detective\\s+test([\\s\\S]*?)\\?>"],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      });
+
+      describe("invalid selector shapes", function () {
+        it("should reject a selector definition with an unknown kind option", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "runCode",
+              codeBlock: { bogusOption: "x" },
+              actions: ["runCode"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject a selector definition with an unknown top-level property", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "runCode",
+              codeBlock: { language: "bash" },
+              bogus: true,
+              actions: ["runCode"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject a definition with two selector kinds", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "conflicted",
+              codeBlock: { language: "bash" },
+              link: { url: "^https?://" },
+              actions: ["runCode"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject a markup definition with neither regex nor a selector kind", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "empty",
+              actions: ["find"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject a kind option that belongs to a different kind", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "wrongOption",
+              strong: { url: "^https?://" },
+              actions: ["find"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject an empty captures array", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "noCaptures",
+              strong: {},
+              captures: [],
+              actions: ["find"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+      });
+
+      describe("invalid statement containers", function () {
+        it("should reject an unknown string container", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithStatements({ in: ["bogus"] }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject a container entry with an unknown property", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithStatements({
+              in: [{ element: { tag: "data" }, bogus: 1 }],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
+        it("should reject a container entry with no selector kind", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithStatements({
+              in: [{ value: "attributes.value" }],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({

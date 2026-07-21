@@ -399,6 +399,10 @@ export interface DeviceDescriptor {
 }
 export interface FileTypeExecutable {
   /**
+   * Name of the file type.
+   */
+  name?: string;
+  /**
    * File extensions to use with type.
    */
   extensions: string | [string, ...string[]];
@@ -406,7 +410,6 @@ export interface FileTypeExecutable {
    * `runShell` step to perform for this file type. Use $1 as a placeholder for the file path.
    */
   runShell?: RunShell;
-  [k: string]: unknown;
 }
 export interface RunShellCommandDetailed {
   /**
