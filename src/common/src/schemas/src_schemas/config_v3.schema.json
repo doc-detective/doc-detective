@@ -626,13 +626,13 @@
             ]
           },
           "captures": {
-            "description": "Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>`, and `then.<field>`. If omitted, the kind's documented default capture order applies.",
+            "description": "Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` (decimal group index), and `then.<field>`. If omitted, the kind's documented default capture order applies.",
             "type": "array",
             "minItems": 1,
             "items": {
               "type": "string",
               "minLength": 1,
-              "pattern": "\\S"
+              "pattern": "^(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+|then\\.(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+))$"
             }
           },
           "batchMatches": {

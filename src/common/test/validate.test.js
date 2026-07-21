@@ -1808,6 +1808,45 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           expect(result.valid).to.be.false;
         });
 
+        it("should reject unknown capture field paths and non-numeric match groups", function () {
+          const bogusField = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "typoCapture",
+              strong: {},
+              captures: ["captuers"],
+              actions: ["find"],
+            }),
+          });
+          expect(bogusField.valid).to.be.false;
+          const nanGroup = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "nanGroup",
+              text: { matches: "(x)" },
+              captures: ["match.foo"],
+              actions: ["find"],
+            }),
+          });
+          expect(nanGroup.valid).to.be.false;
+        });
+
+        it("should accept then-prefixed and attribute capture paths", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "chainCaptures",
+              element: {
+                tag: "userinput",
+                followedBy: { then: { element: { tag: "uicontrol" } } },
+              },
+              captures: ["content", "then.content", "then.attributes.href", "match.2"],
+              actions: [{ type: { keys: "$1", selector: "$2" } }],
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
         it("should reject an empty captures array", function () {
           const result = validate({
             schemaKey: "config_v3",
@@ -1819,6 +1858,34 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             }),
           });
           expect(result.valid).to.be.false;
+        });
+      });
+
+      describe("fileType enums (mdx and dita)", function () {
+        it("accepts mdx as a predefined fileTypes string", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { fileTypes: ["markdown", "mdx"] },
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("accepts mdx and dita as extends targets", function () {
+          for (const extendsTarget of ["mdx", "dita"]) {
+            const result = validate({
+              schemaKey: "config_v3",
+              object: {
+                fileTypes: [{ extends: extendsTarget, extensions: ["zz1"] }],
+              },
+            });
+            expect(result.valid, result.errors).to.be.true;
+          }
+        });
+
+        it("includes mdx in the fileTypes default", function () {
+          const result = validate({ schemaKey: "config_v3", object: {} });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.fileTypes).to.include("mdx");
         });
       });
 

@@ -160,10 +160,14 @@ describe("detect: markdown backend", function () {
       expect(link.attributes).to.deep.equal({ class: "external" });
     });
 
-    it("supports single-quoted and unquoted IAL values", function () {
-      const md = "![x](a.png){: key='v 1' plain=simple}\n";
+    it("supports single-quoted, unquoted, and bare IAL values", function () {
+      const md = "![x](a.png){: key='v 1' plain=simple standalone}\n";
       const img = first(parseMarkdown(md), "image");
-      expect(img.attributes).to.deep.equal({ key: "v 1", plain: "simple" });
+      expect(img.attributes).to.deep.equal({
+        key: "v 1",
+        plain: "simple",
+        standalone: true,
+      });
     });
 
     it("leaves attributes unset when no IAL follows", function () {

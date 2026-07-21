@@ -16,6 +16,7 @@ Statements to include tests and steps inside the content of the file, such as wi
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+in | array of one of: string, object | Optional. Statement containers for structurally parsed file types: which semantic nodes are read as potential inline statements. Coexists with the regex statement properties below. | 
 testStart | one of:<br/>- string<br/>- array of string | Optional. Regular expressions that indicate the start of a test. If capture groups are used, the first capture group is used for the statement. If no capture groups are used, the entire match is used for the statement. | 
 testEnd | one of:<br/>- string<br/>- array of string | Optional. Regular expressions that indicate that the current test is complete. | 
 ignoreStart | one of:<br/>- string<br/>- array of string | Optional. Regular expressions that indicates that the following content should be ignored for testing purposes. | 
@@ -26,6 +27,7 @@ step | one of:<br/>- string<br/>- array of string | Optional. Regular expression
 
 ```json
 {
+  "in": [],
   "testStart": "example",
   "testEnd": "example",
   "ignoreStart": "example",

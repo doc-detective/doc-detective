@@ -13,7 +13,20 @@ await build({
   bundle: true,
   format: "cjs",
   platform: "node",
-  packages: "external",
+  // Externalize only the CJS-consumable dependencies. The ESM-only unified
+  // stack (mdast-util-*, micromark-*) gets bundled INTO the CJS artifact so
+  // `require("doc-detective-common")` never emits a bare require() of an
+  // ESM-only package — keeping the CJS entry usable even on runtimes without
+  // unflagged require(esm).
+  external: [
+    "ajv",
+    "ajv-errors",
+    "ajv-formats",
+    "ajv-keywords",
+    "yaml",
+    "parse5",
+    "@rgrove/parse-xml",
+  ],
 });
 
 await copyFile(
