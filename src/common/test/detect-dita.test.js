@@ -5,7 +5,6 @@ import { defaultFileTypes } from "../dist/fileTypes.js";
 import { validate } from "../dist/validate.js";
 
 const first = (nodes, kind) => nodes.find((n) => n.kind === kind);
-const all = (nodes, kind) => nodes.filter((n) => n.kind === kind);
 
 describe("detect: dita/xml backend", function () {
   it("emits comment nodes with exact offsets", function () {

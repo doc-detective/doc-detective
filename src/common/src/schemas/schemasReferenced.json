@@ -7571,7 +7571,7 @@
                 "$ref": "#/components/schemas/markupActions"
               }
             },
-            "anyOf": [
+            "oneOf": [
               {
                 "required": [
                   "regex"
@@ -15282,7 +15282,7 @@
                 "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActions"
               }
             },
-            "anyOf": [
+            "oneOf": [
               {
                 "required": [
                   "regex"
