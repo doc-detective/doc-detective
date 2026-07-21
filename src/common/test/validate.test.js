@@ -1743,13 +1743,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           expect(result.valid).to.be.false;
         });
 
-        it("should reject a selector definition with an unknown top-level property", function () {
+        it("should reject a misspelled selector kind", function () {
+          // A typo'd kind key (wrong casing) is just an unknown property, so
+          // the definition has neither `regex` nor a valid selector kind.
           const result = validate({
             schemaKey: "config_v3",
             object: configWithMarkup({
               name: "runCode",
-              codeBlock: { language: "bash" },
-              bogus: true,
+              codeblock: { language: "bash" },
               actions: ["runCode"],
             }),
           });

@@ -559,72 +559,20 @@
       },
       "markupDefinition": {
         "title": "Markup definition",
-        "anyOf": [
-          {
-            "$comment": "Regex mode: match raw file text with regular expressions.",
-            "title": "Markup definition (regex)",
-            "type": "object",
-            "required": [
-              "regex"
-            ],
-            "properties": {
-              "name": {
-                "description": "Name of the markup definition",
-                "type": "string"
-              },
-              "regex": {
-                "description": "Regular expressions to match the markup type.",
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/stringOrArray"
-                  }
-                ]
-              },
-              "batchMatches": {
-                "description": "If `true`, all matches are combined into a single string.",
-                "type": "boolean",
-                "default": false
-              },
-              "actions": {
-                "$ref": "#/components/schemas/markupActions"
-              }
-            }
-          },
-          {
-            "$ref": "#/components/schemas/markupSelectorDefinition"
-          }
-        ]
-      },
-      "markupActions": {
-        "description": "Actions to perform when the markup type is detected.",
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/markupActionString"
-          },
-          {
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/markupActionString"
-                },
-                {
-                  "$ref": "step_v3.schema.json#"
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "markupSelectorDefinition": {
-        "$comment": "Selector mode: match structurally parsed semantic nodes. Exactly one selector kind key (comment, codeBlock, link, image, strong, emphasis, text, element) per definition, mirroring the action-as-key pattern of the step schema.",
-        "title": "Markup definition (selector)",
+        "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind.",
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "name": {
             "description": "Name of the markup definition",
             "type": "string"
+          },
+          "regex": {
+            "description": "Regular expressions to match the markup type.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
           },
           "comment": {
             "description": "Match comment nodes (non-rendered author notes).",
@@ -674,7 +622,7 @@
             ]
           },
           "captures": {
-            "description": "Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>`, and `then.<field>`. If omitted, the kind's documented default capture order applies.",
+            "description": "Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>`, and `then.<field>`. If omitted, the kind's documented default capture order applies.",
             "type": "array",
             "minItems": 1,
             "items": {
@@ -692,46 +640,78 @@
             "$ref": "#/components/schemas/markupActions"
           }
         },
-        "oneOf": [
+        "anyOf": [
           {
+            "$comment": "Regex mode.",
             "required": [
-              "comment"
+              "regex"
             ]
           },
           {
-            "required": [
-              "codeBlock"
+            "$comment": "Selector mode: exactly one kind key.",
+            "oneOf": [
+              {
+                "required": [
+                  "comment"
+                ]
+              },
+              {
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              }
             ]
+          }
+        ]
+      },
+      "markupActions": {
+        "description": "Actions to perform when the markup type is detected.",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/markupActionString"
           },
           {
-            "required": [
-              "link"
-            ]
-          },
-          {
-            "required": [
-              "image"
-            ]
-          },
-          {
-            "required": [
-              "strong"
-            ]
-          },
-          {
-            "required": [
-              "emphasis"
-            ]
-          },
-          {
-            "required": [
-              "text"
-            ]
-          },
-          {
-            "required": [
-              "element"
-            ]
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/markupActionString"
+                },
+                {
+                  "$ref": "step_v3.schema.json#"
+                }
+              ]
+            }
           }
         ]
       },

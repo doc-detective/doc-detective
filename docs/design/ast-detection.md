@@ -73,8 +73,15 @@ only the options valid for that kind:
 }
 ```
 
-A `markupDefinition` is `anyOf`: the regex shape (unchanged) | the selector shape (`oneOf` over
-exactly one kind key + shared props `name`, `captures`, `actions`, `batchMatches`). Per-kind
+A `markupDefinition` is a single object schema whose property table holds both modes (`name`,
+`regex`, the eight kind keys, `captures`, `actions`, `batchMatches`), constrained by
+`anyOf`: `required: ["regex"]` | `oneOf` over the kind keys (exactly one). One shared property
+table matters because the schema build fully dereferences `$ref`s: `actions` embeds the entire
+step schema, and a two-branch `anyOf` would duplicate it at every markupDefinition site (measured:
++39 MB on the generated `schemas.json`; the flattened shape costs +9 MB, all from the selector
+tree itself). Consequence: unknown top-level properties pass when a valid mode is present (as
+regex definitions always allowed), but kind *option* objects are `additionalProperties: false`, a
+misspelled kind key means "no valid mode" and fails, and two kind keys fail the `oneOf`. Per-kind
 options (all optional; `{}` = any node of that kind; scalar shorthands mirror the step schema,
 e.g. `"codeBlock": "bash"` ≡ `{"language": "bash"}`, `"element": "uicontrol"` ≡
 `{"tag": "uicontrol"}`):
@@ -617,8 +624,8 @@ existing behavior.
 ## Phasing (one PR per phase; red→green TDD; ADR + fixtures + docs per repo rules)
 
 1. **Foundation** — ADR 01082; `require(esm)` smoke check from compiled CJS; selector shapes in
-   `config_v3.schema.json` (kind-as-key `oneOf`, per-kind options, `additionalProperties: false`);
-   this design doc.
+   `config_v3.schema.json` (flattened single property table, `anyOf` regex | `oneOf` kind,
+   strict per-kind option objects); this design doc.
 2. **Markdown backend + selector engine** — `src/common/src/detect/` module (backend interface,
    selector matcher, statement parser, IAL normalizer: mdast doesn't parse Kramdown/Pandoc
    attribute lists natively, so a post-pass parses trailing `{: …}`/`{…}` spans into
