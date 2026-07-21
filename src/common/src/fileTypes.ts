@@ -59,51 +59,49 @@ const defaultFileTypesBase: Record<string, FileType> = {
         name: "dita",
         extensions: ["dita", "ditamap", "xml"],
         inlineStatements: {
-            testStart: [
-                "<\\?doc-detective\\s+test([\\s\\S]*?)\\?>",
-                "<!--\\s*test([\\s\\S]+?)-->",
-                "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value='test\\s+([^']+?)'[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-                '<data\\s+[^>]*?name=["\']doc-detective["\'][^>]*?value="test\\s+([^"]+?)"[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-                "<data\\s+[^>]*?value='test\\s+([^']+?)'[^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-                '<data\\s+[^>]*?value="test\\s+([^"]+?)"[^>]*?name=["\']doc-detective["\'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
+            // Structure-aware: XML comments and <data name="doc-detective">
+            // elements are statement containers; the parser handles quote
+            // variants, attribute order, and entity decoding. The
+            // <?doc-detective …?> processing-instruction channel stays
+            // regex-only (rarely used; slated for deprecation).
+            in: [
+                "comment",
+                {
+                    element: {
+                        tag: "data",
+                        attributes: { name: "doc-detective" },
+                    },
+                    value: "attributes.value",
+                },
             ],
-            testEnd: [
-                "<\\?doc-detective\\s+test\\s+end\\s*\\?>",
-                "<!--\\s*test end([\\s\\S]+?)-->",
-                "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value=[\"']test end[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-                "<data\\s+[^>]*?value=[\"']test end[\"'][^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-            ],
-            ignoreStart: [
-                "<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>",
-                "<!--\\s*test ignore\\s+start\\s*-->",
-            ],
-            ignoreEnd: [
-                "<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>",
-                "<!--\\s*test ignore\\s+end\\s*-->",
-            ],
-            step: [
-                "<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>",
-                "<!--\\s*step([\\s\\S]+?)-->",
-                '<data\\s+name="step"\\s*>([\\s\\S]*?)<\\/data>',
-                "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value='step\\s+([^']+?)'[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-                '<data\\s+[^>]*?name=["\']doc-detective["\'][^>]*?value="step\\s+([^"]+?)"[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-                "<data\\s+[^>]*?value='step\\s+([^']+?)'[^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-                '<data\\s+[^>]*?value="step\\s+([^"]+?)"[^>]*?name=["\']doc-detective["\'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-            ],
+            testStart: ["<\\?doc-detective\\s+test([\\s\\S]*?)\\?>"],
+            testEnd: ["<\\?doc-detective\\s+test\\s+end\\s*\\?>"],
+            ignoreStart: ["<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>"],
+            ignoreEnd: ["<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>"],
+            step: ["<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>"],
         },
         markup: [
             {
                 name: "clickUiControl",
-                regex: [
-                    "(?:[Cc]lick|[Tt]ap|[Ss]elect|[Pp]ress|[Cc]hoose)\\s+(?:the\\s+)?<uicontrol>([^<]+)<\\/uicontrol>",
-                ],
+                element: {
+                    tag: "uicontrol",
+                    precededBy:
+                        "(?:[Cc]lick|[Tt]ap|[Ss]elect|[Pp]ress|[Cc]hoose)\\s+(?:the\\s+)?$",
+                },
+                captures: ["content"],
                 actions: ["click"],
             },
             {
                 name: "typeIntoUiControl",
-                regex: [
-                    "(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+<userinput>([^<]+)<\\/userinput>\\s+(?:in|into)(?:\\s+the)?\\s+<uicontrol>([^<]+)<\\/uicontrol>",
-                ],
+                element: {
+                    tag: "userinput",
+                    precededBy: "\\b(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+$",
+                    followedBy: {
+                        text: "^\\s+(?:in|into)(?:\\s+the)?\\s+$",
+                        then: { element: { tag: "uicontrol" } },
+                    },
+                },
+                captures: ["content", "then.content"],
                 actions: [
                     {
                         type: {
@@ -115,61 +113,86 @@ const defaultFileTypesBase: Record<string, FileType> = {
             },
             {
                 name: "navigateToXref",
-                regex: [
-                    '(?:[Nn]avigate\\s+to|[Oo]pen|[Gg]o\\s+to|[Vv]isit|[Bb]rowse\\s+to)\\s+<xref\\s+[^>]*href="(https?:\\/\\/[^"]+)"[^>]*>',
-                ],
+                element: {
+                    tag: "xref",
+                    attributes: { href: "^https?:\\/\\/" },
+                    precededBy:
+                        "(?:[Nn]avigate\\s+to|[Oo]pen|[Gg]o\\s+to|[Vv]isit|[Bb]rowse\\s+to)\\s+$",
+                },
+                captures: ["attributes.href"],
                 actions: ["goTo"],
             },
             {
                 name: "findUiControl",
-                regex: ["<uicontrol>([^<]+)<\\/uicontrol>"],
+                element: "uicontrol",
+                captures: ["content"],
                 actions: ["find"],
             },
             {
                 name: "verifyWindowTitle",
-                regex: ["<wintitle>([^<]+)<\\/wintitle>"],
+                element: "wintitle",
+                captures: ["content"],
                 actions: ["find"],
             },
             {
                 name: "checkExternalXref",
-                regex: [
-                    '<xref\\s+[^>]*scope="external"[^>]*href="(https?:\\/\\/[^"]+)"[^>]*>',
-                    '<xref\\s+[^>]*href="(https?:\\/\\/[^"]+)"[^>]*scope="external"[^>]*>',
-                ],
+                element: {
+                    tag: "xref",
+                    attributes: { scope: "external", href: "^https?:\\/\\/" },
+                },
+                captures: ["attributes.href"],
                 actions: ["checkLink"],
             },
             {
                 name: "checkHyperlink",
-                regex: ['<xref\\s+href="(https?:\\/\\/[^"]+)"[^>]*>'],
+                element: {
+                    tag: "xref",
+                    attributes: { href: "^https?:\\/\\/" },
+                },
+                captures: ["attributes.href"],
                 actions: ["checkLink"],
             },
             {
                 name: "checkLinkElement",
-                regex: ['<link\\s+href="(https?:\\/\\/[^"]+)"[^>]*>'],
+                element: {
+                    tag: "link",
+                    attributes: { href: "^https?:\\/\\/" },
+                },
+                captures: ["attributes.href"],
                 actions: ["checkLink"],
             },
             {
                 name: "clickOnscreenText",
-                regex: [
-                    "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+<b>((?:(?!<\\/b>).)+)<\\/b>",
-                ],
+                strong: {
+                    precededBy:
+                        "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+$",
+                },
+                captures: ["text"],
                 actions: ["click"],
             },
             {
                 name: "findOnscreenText",
-                regex: ["<b>((?:(?!<\\/b>).)+)<\\/b>"],
+                strong: {},
+                captures: ["text"],
                 actions: ["find"],
             },
             {
                 name: "goToUrl",
-                regex: [
-                    '\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+<xref\\s+href="(https?:\\/\\/[^"]+)"[^>]*>',
-                ],
+                element: {
+                    tag: "xref",
+                    attributes: { href: "^https?:\\/\\/" },
+                    precededBy:
+                        "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+$",
+                },
+                captures: ["attributes.href"],
                 actions: ["goTo"],
             },
             {
                 name: "typeText",
-                regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'],
+                text: {
+                    matches: '\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"',
+                },
+                captures: ["match.1"],
                 actions: ["type"],
             },
         ],

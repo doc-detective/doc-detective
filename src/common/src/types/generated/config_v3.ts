@@ -25,7 +25,7 @@ export type FileTypeCustom = (
   /**
    * Base template to extend.
    */
-  extends?: "markdown" | "mdx" | "asciidoc" | "html";
+  extends?: "markdown" | "mdx" | "asciidoc" | "html" | "dita";
   /**
    * File extensions to use with type.
    */

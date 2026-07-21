@@ -7206,7 +7206,8 @@
                           "markdown",
                           "mdx",
                           "asciidoc",
-                          "html"
+                          "html",
+                          "dita"
                         ]
                       },
                       "extensions": {
@@ -14936,7 +14937,8 @@
                           "markdown",
                           "mdx",
                           "asciidoc",
-                          "html"
+                          "html",
+                          "dita"
                         ]
                       },
                       "extensions": {

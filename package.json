@@ -83,6 +83,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^16.0.3",
     "@inquirer/prompts": "^8.7.2",
+    "@rgrove/parse-xml": "^4.2.2",
     "adm-zip": "^0.6.1",
     "ajv": "^8.20.0",
     "ajv-errors": "^3.0.0",

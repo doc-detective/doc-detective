@@ -891,7 +891,8 @@
                           "markdown",
                           "mdx",
                           "asciidoc",
-                          "html"
+                          "html",
+                          "dita"
                         ]
                       },
                       "extensions": {
