@@ -9,7 +9,7 @@
  */
 export type LoadVariables = string;
 export type DeviceByName = string;
-export type FileTypePredefined = "markdown" | "asciidoc" | "html" | "dita";
+export type FileTypePredefined = "markdown" | "mdx" | "asciidoc" | "html" | "dita";
 export type FileTypeCustom = (
   | {
       [k: string]: unknown;
@@ -25,7 +25,7 @@ export type FileTypeCustom = (
   /**
    * Base template to extend.
    */
-  extends?: "markdown" | "asciidoc" | "html";
+  extends?: "markdown" | "mdx" | "asciidoc" | "html";
   /**
    * File extensions to use with type.
    */

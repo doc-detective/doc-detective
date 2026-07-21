@@ -71,7 +71,18 @@ export function parseMarkdown(content: string): SemanticNode[] {
     extensions: [gfm()],
     mdastExtensions: [gfmFromMarkdown()],
   });
+  return collectNodes(content, tree);
+}
 
+/** Matches an expression whose entire body is one block comment. */
+const EXPRESSION_COMMENT_RE = /^\/\*([\s\S]*?)\*\/$/;
+
+/**
+ * Shared mdast walker for the markdown and mdx backends. MDX node types
+ * (expression comments, JSX elements, ESM statements) only occur in trees
+ * parsed with the MDX extensions; plain markdown trees never produce them.
+ */
+export function collectNodes(content: string, tree: any): SemanticNode[] {
   const nodes: SemanticNode[] = [];
   let nextBlockId = 0;
 
@@ -95,6 +106,57 @@ export function parseMarkdown(content: string): SemanticNode[] {
         blockId,
       });
     }
+  };
+
+  /** Emit a comment node for an MDX `{/* … *​/}` expression, if it is one. */
+  const emitExpressionComment = (node: any, blockId: number) => {
+    // MDX expression nodes always carry a string value.
+    const m = EXPRESSION_COMMENT_RE.exec(node.value.trim());
+    if (!m) return;
+    const [start, end] = offsetsOf(node);
+    nodes.push({
+      kind: "comment",
+      startIndex: start,
+      endIndex: end,
+      content: m[1].trim(),
+      precedingText: "",
+      followingText: "",
+      blockId,
+    });
+  };
+
+  /** Emit an element node for a named MDX JSX element. */
+  const emitJsxElement = (node: any, blockId: number) => {
+    if (!node.name) return; // fragments (<>…</>) have no name
+    const [start, end] = offsetsOf(node);
+    const attributes: Record<string, string | true> = {};
+    let hasAttributes = false;
+    // mdast-util-mdx always materializes the attributes array.
+    for (const attr of node.attributes) {
+      // Spread attributes ({...props}) carry no static name/value.
+      if (attr.type !== "mdxJsxAttribute") continue;
+      hasAttributes = true;
+      if (attr.value == null) {
+        attributes[attr.name] = true;
+      } else if (typeof attr.value === "string") {
+        attributes[attr.name] = attr.value;
+      } else {
+        // mdxJsxAttributeValueExpression — expose the expression source.
+        attributes[attr.name] = String(attr.value.value);
+      }
+    }
+    const semantic: SemanticNode = {
+      kind: "element",
+      startIndex: start,
+      endIndex: end,
+      tag: node.name,
+      content: inlineText(node),
+      precedingText: "",
+      followingText: "",
+      blockId,
+    };
+    if (hasAttributes) semantic.attributes = attributes;
+    nodes.push(semantic);
   };
 
   /** Attach a trailing IAL to a node, extending its span to cover it. */
@@ -187,6 +249,17 @@ export function parseMarkdown(content: string): SemanticNode[] {
           emitComments(child, blockId);
           break;
         }
+        case "mdxTextExpression": {
+          emitExpressionComment(child, blockId);
+          break;
+        }
+        case "mdxJsxTextElement": {
+          emitJsxElement(child, blockId);
+          // Inner phrasing is the element's content, not standalone prose,
+          // but nested links/emphasis still surface.
+          walkInline(child, blockId, true);
+          break;
+        }
         default: {
           // Other phrasing content (delete, footnotes, breaks, inline code):
           // recurse into containers so nested links/emphasis still surface;
@@ -235,6 +308,17 @@ export function parseMarkdown(content: string): SemanticNode[] {
         }
         case "html": {
           emitComments(child, ++nextBlockId);
+          break;
+        }
+        case "mdxFlowExpression": {
+          emitExpressionComment(child, ++nextBlockId);
+          break;
+        }
+        case "mdxJsxFlowElement": {
+          emitJsxElement(child, ++nextBlockId);
+          // JSX containers hold block content (paragraphs, lists, …); keep
+          // walking so nested markdown constructs surface.
+          walkBlocks(child);
           break;
         }
         case "definition": {

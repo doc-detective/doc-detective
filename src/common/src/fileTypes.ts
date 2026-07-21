@@ -188,18 +188,13 @@ const defaultFileTypesBase: Record<string, FileType> = {
     },
     markdown_1_0: {
         name: "markdown",
-        extensions: ["md", "markdown", "mdown", "mkd", "mkdn", "mdx"],
+        extensions: ["md", "markdown", "mdown", "mkd", "mkdn"],
         inlineStatements: {
             // Structure-aware: HTML comments and every [comment]: # quote
             // variant normalize to comment nodes, parsed by one statement
-            // grammar. MDX expression comments ({/* … */}) stay regex-based
-            // until the dedicated mdx fileType/backend split lands.
+            // grammar. MDX expression comments ({/* … */}) belong to the
+            // dedicated mdx fileType below.
             in: ["comment"],
-            testStart: ["{\\/\\*\\s*test\\s+?([\\s\\S]*?)\\s*\\*\\/}"],
-            testEnd: ["{\\/\\*\\s*test end\\s*\\*\\/}"],
-            ignoreStart: ["{\\/\\*\\s*test ignore start\\s*\\*\\/}"],
-            ignoreEnd: ["{\\/\\*\\s*test ignore end\\s*\\*\\/}"],
-            step: ["{\\/\\*\\s*step\\s+?([\\s\\S]*?)\\s*\\*\\/}"],
         },
         markup: [
             {
@@ -289,6 +284,19 @@ const defaultFileTypesBase: Record<string, FileType> = {
     },
 };
 
+// MDX splits from markdown: the mdx backend parses {/* … */} expression
+// comments as comment nodes and exposes JSX components as element nodes,
+// while `<!-- -->` is a syntax error in MDX. The selector markup is shared
+// with markdown (read-only; consumers deep-copy before mutating).
+defaultFileTypesBase.mdx_1_0 = {
+    name: "mdx",
+    extensions: ["mdx"],
+    inlineStatements: {
+        in: ["comment"],
+    },
+    markup: defaultFileTypesBase.markdown_1_0.markup,
+};
+
 /**
  * Default file type definitions, including keyword aliases.
  * Keys include both versioned names (e.g. "markdown_1_0") and
@@ -297,6 +305,7 @@ const defaultFileTypesBase: Record<string, FileType> = {
 export const defaultFileTypes: Record<string, FileType> = {
     ...defaultFileTypesBase,
     markdown: defaultFileTypesBase.markdown_1_0,
+    mdx: defaultFileTypesBase.mdx_1_0,
     asciidoc: defaultFileTypesBase.asciidoc_1_0,
     html: defaultFileTypesBase.html_1_0,
     dita: defaultFileTypesBase.dita_1_0,

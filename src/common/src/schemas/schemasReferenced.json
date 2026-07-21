@@ -7161,6 +7161,7 @@
         "fileTypes": {
           "default": [
             "markdown",
+            "mdx",
             "asciidoc",
             "html",
             "dita"
@@ -7175,6 +7176,7 @@
                     "type": "string",
                     "enum": [
                       "markdown",
+                      "mdx",
                       "asciidoc",
                       "html",
                       "dita"
@@ -7202,6 +7204,7 @@
                         "type": "string",
                         "enum": [
                           "markdown",
+                          "mdx",
                           "asciidoc",
                           "html"
                         ]
@@ -14903,6 +14906,7 @@
                     "type": "string",
                     "enum": [
                       "markdown",
+                      "mdx",
                       "asciidoc",
                       "html",
                       "dita"
@@ -14930,6 +14934,7 @@
                         "type": "string",
                         "enum": [
                           "markdown",
+                          "mdx",
                           "asciidoc",
                           "html"
                         ]

@@ -1,5 +1,6 @@
 export { SemanticKind, SemanticNode, BackendParse } from "./types.js";
 export { parseMarkdown, parseAttributeList } from "./markdown.js";
+export { parseMdx } from "./mdx.js";
 export { resolveBackend } from "./backends.js";
 export {
   SELECTOR_KINDS,

@@ -172,6 +172,7 @@
       "description": "Configuration for file types and their markup detection.",
       "default": [
         "markdown",
+        "mdx",
         "asciidoc",
         "html",
         "dita"
@@ -188,6 +189,7 @@
                 "type": "string",
                 "enum": [
                   "markdown",
+                  "mdx",
                   "asciidoc",
                   "html",
                   "dita"
@@ -219,6 +221,7 @@
                     "type": "string",
                     "enum": [
                       "markdown",
+                      "mdx",
                       "asciidoc",
                       "html"
                     ]
