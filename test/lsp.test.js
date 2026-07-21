@@ -744,6 +744,21 @@ describe("lsp — inline tests (markup fileTypes)", function () {
     expect(md('<!-- test {bad json -->\n')).to.deep.equal([]);
   });
 
+  it("produces no selector-container diagnostics when no backend maps the extension", function () {
+    // A fileType that declares statement containers but whose document
+    // extension has no structural backend degrades to regex-only, same as
+    // the runner.
+    const diagnostics = computeInlineDiagnostics(
+      doc("file:///a/doc.zzz", '<!-- step {"goTo":123} -->\n'),
+      {
+        name: "custom",
+        extensions: ["zzz"],
+        inlineStatements: { in: ["comment"] },
+      },
+    );
+    expect(diagnostics).to.deep.equal([]);
+  });
+
   it("tolerates a fileType missing inlineStatements/patterns (malformed config)", function () {
     // Defensive: a custom fileType with no inline statements yields nothing,
     // never throws. Exercises the `|| {}` / `|| []` / optional-chaining guards.
