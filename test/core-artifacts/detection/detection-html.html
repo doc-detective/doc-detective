@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Structural statement detection: HTML</title>
+  </head>
+  <body>
+    <!-- test {"testId": "detection-html-comments"} -->
+    <p>Comment nodes from parse5 feed the shared statement grammar.</p>
+    <!-- step {"checkLink": "http://localhost:8092"} -->
+    <!-- step {"wait": 100} -->
+
+    <!-- test ignore start -->
+    <!-- step {"httpRequest": {"url": "http://localhost:9/unreachable"}} -->
+    <!-- test ignore end -->
+
+    <pre><code>&lt;!-- step {"httpRequest": {"url": "http://localhost:9/unreachable"}} --&gt;</code></pre>
+
+    <!-- step {"wait": 50} -->
+    <!-- test end -->
+  </body>
+</html>

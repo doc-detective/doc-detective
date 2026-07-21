@@ -193,8 +193,8 @@ validation — unchanged downstream.
 | Format | Backend | Notes |
 |---|---|---|
 | Markdown | `remark-parse` + `remark-gfm` (mdast) | Offsets on every node; `<!-- -->` = `html` nodes; `[comment]: #` = definition nodes |
-| MDX | `remark-mdx` on same pipeline | `{/* */}` = `mdxFlowExpression`/`mdxTextExpression`; `.mdx` branches off `.md` (today lumped together) |
-| HTML | `rehype-parse` (parse5) | Comment nodes + offsets; unist like markdown |
+| MDX | `micromark-extension-mdxjs` + `mdast-util-mdx` on the shared walker | `{/* */}` = expression comments; JSX components = elements; IAL spans (never valid JS) are blanked length-preservingly before the parse |
+| HTML | `parse5` (direct, `sourceCodeLocationInfo`) | Comment nodes + exact offsets; raw attribute names (hast's property normalization avoided) |
 | DITA/XML | `@rgrove/parse-xml` (`includeOffsets`, `preserveComments`) | Pure JS, positions + comments; replaces `parseXmlAttributes` guards with a real parser. NOT fast-xml-parser (no positions) |
 | AsciiDoc | new line-aware scanner in-repo | Implements exactly the selector kinds the built-in needs — no more |
 | Unknown | none | Regex path only, unchanged |

@@ -1,0 +1,26 @@
+= Structural statement detection: AsciiDoc
+
+The paren-filtered comment container keeps the `// (test …)` grammar; plain
+comments stay inert.
+
+// just a regular comment, not a statement
+
+// (test {"testId": "detection-asciidoc-comments"})
+
+Check the docs server at http://localhost:8092[the test server].
+
+// (step {"checkLink": "http://localhost:8092"})
+// (step {"wait": 100})
+
+// (test ignore start)
+// (step {"httpRequest": {"url": "http://localhost:9/unreachable"}})
+// (test ignore end)
+
+[source,html]
+----
+// (step {"httpRequest": {"url": "http://localhost:9/unreachable"}})
+----
+
+// (step {"wait": 50})
+
+// (test end)
