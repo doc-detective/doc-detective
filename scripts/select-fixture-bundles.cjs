@@ -28,7 +28,7 @@ const BUNDLES = [
   {
     name: "general",
     dirs: ["navigation", "capture", "interactions", "routing", "http", "guards",
-      "reporters", "process", "sessions"],
+      "reporters", "process", "sessions", "detection"],
     timeout: 30,
   },
   { name: "recording", dirs: ["recording"] },

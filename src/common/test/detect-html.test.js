@@ -89,6 +89,18 @@ describe("detect: html backend", function () {
     expect(all(nodes, "comment")).to.have.length(0);
   });
 
+  it("parses full documents whose body holds comments directly", function () {
+    // Regression: an authored <body> is emitted as an element and text-
+    // flattened; comment children must not break the flattening.
+    const html =
+      "<!DOCTYPE html>\n<html>\n<body>\n<!-- test {\"testId\": \"t\"} -->\n<p>x</p>\n</body>\n</html>\n";
+    const nodes = parseHtml(html);
+    const c = first(nodes, "comment");
+    expect(c.content).to.equal('test {"testId": "t"}');
+    const body = nodes.find((n) => n.kind === "element" && n.tag === "body");
+    expect(body.content).to.include("x");
+  });
+
   it("resolves html extensions to the html backend", function () {
     for (const ext of ["html", "htm", "xhtml"]) {
       expect(resolveBackend(ext), ext).to.be.a("function");

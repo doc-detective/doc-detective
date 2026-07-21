@@ -36,7 +36,8 @@ function textOf(node: any): string {
   let out = "";
   for (const child of node.childNodes) {
     if (child.nodeName === "#text") out += child.value;
-    else out += textOf(child);
+    // Comments (and other leaf nodes) have no childNodes and no text.
+    else if (Array.isArray(child.childNodes)) out += textOf(child);
   }
   return out;
 }
