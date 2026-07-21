@@ -213,7 +213,7 @@ describe("detect: backend resolution", function () {
   });
 
   it("returns null for unmapped extensions", function () {
-    expect(resolveBackend("adoc")).to.equal(null);
+    expect(resolveBackend("rst")).to.equal(null);
     expect(resolveBackend("")).to.equal(null);
   });
 
@@ -221,7 +221,7 @@ describe("detect: backend resolution", function () {
     expect(resolveBackend("weird", { name: "markdown", extensions: [] })).to.be.a(
       "function"
     );
-    expect(resolveBackend("weird", { name: "asciidoc", extensions: [] })).to.equal(
+    expect(resolveBackend("weird", { name: "restructured", extensions: [] })).to.equal(
       null
     );
   });
