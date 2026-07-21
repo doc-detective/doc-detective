@@ -7,6 +7,7 @@
 
 import { BackendParse } from "./types.js";
 import { parseMarkdown } from "./markdown.js";
+import { parseMdx } from "./mdx.js";
 
 const backendByExtension: Record<string, BackendParse> = {
   md: parseMarkdown,
@@ -14,13 +15,12 @@ const backendByExtension: Record<string, BackendParse> = {
   mdown: parseMarkdown,
   mkd: parseMarkdown,
   mkdn: parseMarkdown,
-  // Temporary: .mdx parses with the markdown backend until the dedicated
-  // MDX backend and mdx fileType split land.
-  mdx: parseMarkdown,
+  mdx: parseMdx,
 };
 
 const backendByFileTypeName: Record<string, BackendParse> = {
   markdown: parseMarkdown,
+  mdx: parseMdx,
 };
 
 export function resolveBackend(

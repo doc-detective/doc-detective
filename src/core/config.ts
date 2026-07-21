@@ -264,6 +264,7 @@ async function setConfig({ config }: any) {
             fileType.inlineStatements = {};
           }
           const keys = [
+            "in",
             "testStart",
             "testEnd",
             "ignoreStart",
@@ -275,12 +276,21 @@ async function setConfig({ config }: any) {
               extendedFileType?.inlineStatements?.[key] ||
               fileType?.inlineStatements?.[key]
             ) {
-              fileType.inlineStatements[key] = [
-                ...new Set([
-                  ...(extendedFileType?.inlineStatements?.[key] || []),
-                  ...(fileType?.inlineStatements?.[key] || []),
-                ]),
+              const merged = [
+                ...(extendedFileType?.inlineStatements?.[key] || []),
+                ...(fileType?.inlineStatements?.[key] || []),
               ];
+              // Dedupe by value; `in` entries can be objects (selector
+              // containers), so identity-based Set dedup isn't enough —
+              // a duplicated container would detect every statement twice.
+              const seen = new Set<string>();
+              fileType.inlineStatements[key] = merged.filter((entry: any) => {
+                const id =
+                  typeof entry === "string" ? entry : JSON.stringify(entry);
+                if (seen.has(id)) return false;
+                seen.add(id);
+                return true;
+              });
             }
           }
         }
