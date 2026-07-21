@@ -563,8 +563,9 @@
       },
       "markupDefinition": {
         "title": "Markup definition",
-        "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind.",
+        "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "name": {
             "description": "Name of the markup definition",

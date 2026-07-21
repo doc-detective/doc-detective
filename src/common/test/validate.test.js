@@ -1808,6 +1808,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           expect(result.valid).to.be.false;
         });
 
+        it("should reject a markup definition with an unknown property", function () {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: configWithMarkup({
+              name: "typoProp",
+              codeBlock: { language: "bash" },
+              captuers: ["content"], // misspelled "captures"
+              actions: ["runCode"],
+            }),
+          });
+          expect(result.valid).to.be.false;
+        });
+
         it("should reject unknown capture field paths and non-numeric match groups", function () {
           const bogusField = validate({
             schemaKey: "config_v3",
