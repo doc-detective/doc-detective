@@ -1,6 +1,9 @@
 {
   "name": "doc-detective-common",
   "version": "4.40.6",
+  "engines": {
+    "node": "^22.22.0 || >=24.0.0"
+  },
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "main": "dist/index.cjs",

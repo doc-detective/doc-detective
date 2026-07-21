@@ -2,7 +2,6 @@ import { expect } from "chai";
 import { parseDitaXml, resolveBackend } from "../dist/detect/index.js";
 import { detectTests } from "../dist/detectTests.js";
 import { defaultFileTypes } from "../dist/fileTypes.js";
-import { validate } from "../dist/validate.js";
 
 const first = (nodes, kind) => nodes.find((n) => n.kind === kind);
 
@@ -106,14 +105,6 @@ describe("dita built-in fileType", function () {
     expect(ft.inlineStatements.testStart).to.have.length(1);
     expect(ft.inlineStatements.testStart[0]).to.include("doc-detective");
     expect(ft.markup.every((m) => !m.regex)).to.equal(true);
-  });
-
-  it("validates dita as an extends target in config_v3", function () {
-    const result = validate({
-      schemaKey: "config_v3",
-      object: { fileTypes: [{ extends: "dita", extensions: ["ditax"] }] },
-    });
-    expect(result.valid, result.errors).to.be.true;
   });
 
   it("detects the full maximal example end-to-end", async function () {

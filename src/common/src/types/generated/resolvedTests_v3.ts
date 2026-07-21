@@ -135,7 +135,7 @@ export type MarkupDefinition = (
    */
   element?: string | ElementSelector;
   /**
-   * Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>`, and `then.<field>`. If omitted, the kind's documented default capture order applies.
+   * Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` (decimal group index), and `then.<field>`. If omitted, the kind's documented default capture order applies.
    *
    * @minItems 1
    */

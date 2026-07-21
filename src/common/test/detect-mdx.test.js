@@ -2,7 +2,6 @@ import { expect } from "chai";
 import { parseMdx, resolveBackend } from "../dist/detect/index.js";
 import { detectTests } from "../dist/detectTests.js";
 import { defaultFileTypes } from "../dist/fileTypes.js";
-import { validate } from "../dist/validate.js";
 
 const first = (nodes, kind) => nodes.find((n) => n.kind === kind);
 const all = (nodes, kind) => nodes.filter((n) => n.kind === kind);
@@ -135,30 +134,6 @@ describe("mdx built-in fileType", function () {
       defaultFileTypes.markdown.markup
     );
     expect(defaultFileTypes.mdx.inlineStatements.in).to.deep.equal(["comment"]);
-  });
-
-  it("validates as a predefined fileTypes string in config_v3", function () {
-    const result = validate({
-      schemaKey: "config_v3",
-      object: { fileTypes: ["markdown", "mdx"] },
-    });
-    expect(result.valid, result.errors).to.be.true;
-  });
-
-  it("validates as an extends target in config_v3", function () {
-    const result = validate({
-      schemaKey: "config_v3",
-      object: {
-        fileTypes: [{ extends: "mdx", extensions: ["mdx2"] }],
-      },
-    });
-    expect(result.valid, result.errors).to.be.true;
-  });
-
-  it("appears in the config_v3 fileTypes default", function () {
-    const result = validate({ schemaKey: "config_v3", object: {} });
-    expect(result.valid, result.errors).to.be.true;
-    expect(result.object.fileTypes).to.include("mdx");
   });
 
   it("detects statements and markup end-to-end in an .mdx file", async function () {

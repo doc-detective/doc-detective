@@ -18,8 +18,14 @@ import { SemanticNode } from "./types.js";
 
 const COMMENT_RE = /<!--([\s\S]*?)-->/g;
 const IAL_RE = /^\s*\{([^}]*)\}/;
+// One name branch with an OPTIONAL value tail (not name=value | bare-name
+// alternation): overlapping alternatives on the same prefix backtrack
+// polynomially on adversarial input (flagged by CodeQL js/polynomial-redos).
 const IAL_TOKEN_RE =
-  /([.#][^\s{}]+)|([A-Za-z_][\w.:-]*)=(?:"([^"]*)"|'([^']*)'|([^\s{}]+))|([A-Za-z_][\w.:-]*)/g;
+  /([.#][^\s{}]+)|([A-Za-z_][\w.:-]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\s{}]+)))?/g;
+// Attribute-list spans are short; bounding the lookahead keeps the IAL
+// post-pass O(1) per node instead of slicing to end-of-document.
+const IAL_MAX_LOOKAHEAD = 300;
 
 /**
  * Parses the inside of a Kramdown/Pandoc attribute list into an attributes
@@ -45,10 +51,8 @@ export function parseAttributeList(
         attributes.id = token.slice(1);
       }
     } else if (m[2]) {
-      // The token regex guarantees exactly one of the three value groups.
-      attributes[m[2]] = (m[3] ?? m[4] ?? m[5]) as string;
-    } else {
-      attributes[m[6]] = true;
+      const value = m[3] ?? m[4] ?? m[5];
+      attributes[m[2]] = value === undefined ? true : value;
     }
   }
   return found ? attributes : null;
@@ -161,7 +165,10 @@ export function collectNodes(content: string, tree: any): SemanticNode[] {
 
   /** Attach a trailing IAL to a node, extending its span to cover it. */
   const attachIal = (semantic: SemanticNode) => {
-    const trailing = content.slice(semantic.endIndex);
+    const trailing = content.slice(
+      semantic.endIndex,
+      semantic.endIndex + IAL_MAX_LOOKAHEAD
+    );
     const m = IAL_RE.exec(trailing);
     if (!m) return;
     const attributes = parseAttributeList(m[1]);

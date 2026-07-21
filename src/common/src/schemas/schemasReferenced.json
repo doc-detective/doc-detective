@@ -7560,7 +7560,7 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "pattern": "\\S"
+                  "pattern": "^(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+|then\\.(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+))$"
                 }
               },
               "batchMatches": {
@@ -15272,7 +15272,7 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "pattern": "\\S"
+                  "pattern": "^(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+|then\\.(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+))$"
                 }
               },
               "batchMatches": {
