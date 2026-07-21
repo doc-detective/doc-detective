@@ -176,13 +176,12 @@ const defaultFileTypesBase: Record<string, FileType> = {
     },
     html_1_0: {
         name: "html",
-        extensions: ["html", "htm"],
+        extensions: ["html", "htm", "xhtml"],
         inlineStatements: {
-            testStart: ["<!--\\s*test\\s+?([\\s\\S]*?)\\s*-->"],
-            testEnd: ["<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->"],
-            ignoreStart: ["<!--\\s*test ignore start\\s*-->"],
-            ignoreEnd: ["<!--\\s*test ignore end\\s*-->"],
-            step: ["<!--\\s*step\\s+?([\\s\\S]*?)\\s*-->"],
+            // Structure-aware: parse5 comment nodes feed the shared
+            // statement grammar; comments inside <pre>/script/style can't
+            // false-positive.
+            in: ["comment"],
         },
         markup: [],
     },
