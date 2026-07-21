@@ -7499,63 +7499,17 @@
             }
           },
           "markupDefinition": {
-            "anyOf": [
-              {
-                "type": "object",
-                "required": [
-                  "regex"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "regex": {
-                    "anyOf": [
-                      {
-                        "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
-                      }
-                    ]
-                  },
-                  "batchMatches": {
-                    "type": "boolean",
-                    "default": false
-                  },
-                  "actions": {
-                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActions"
-                  }
-                }
-              },
-              {
-                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupSelectorDefinition"
-              }
-            ]
-          },
-          "markupActions": {
-            "anyOf": [
-              {
-                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
-                    },
-                    {
-                      "$ref": "step_v3.nodefaults.schema.json#"
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "markupSelectorDefinition": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
+              },
+              "regex": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
               },
               "comment": {
                 "$ref": "#/components/schemas/selectorContentFilter"
@@ -7613,46 +7567,75 @@
                 "$ref": "#/components/schemas/markupActions"
               }
             },
-            "oneOf": [
+            "anyOf": [
               {
                 "required": [
-                  "comment"
+                  "regex"
                 ]
               },
               {
-                "required": [
-                  "codeBlock"
+                "oneOf": [
+                  {
+                    "required": [
+                      "comment"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
+                  }
                 ]
+              }
+            ]
+          },
+          "markupActions": {
+            "anyOf": [
+              {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
               },
               {
-                "required": [
-                  "link"
-                ]
-              },
-              {
-                "required": [
-                  "image"
-                ]
-              },
-              {
-                "required": [
-                  "strong"
-                ]
-              },
-              {
-                "required": [
-                  "emphasis"
-                ]
-              },
-              {
-                "required": [
-                  "text"
-                ]
-              },
-              {
-                "required": [
-                  "element"
-                ]
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+                    },
+                    {
+                      "$ref": "step_v3.nodefaults.schema.json#"
+                    }
+                  ]
+                }
               }
             ]
           },
@@ -15225,62 +15208,17 @@
             }
           },
           "markupDefinition": {
-            "anyOf": [
-              {
-                "type": "object",
-                "required": [
-                  "regex"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "regex": {
-                    "anyOf": [
-                      {
-                        "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
-                      }
-                    ]
-                  },
-                  "batchMatches": {
-                    "type": "boolean"
-                  },
-                  "actions": {
-                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActions"
-                  }
-                }
-              },
-              {
-                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupSelectorDefinition"
-              }
-            ]
-          },
-          "markupActions": {
-            "anyOf": [
-              {
-                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
-                    },
-                    {
-                      "$ref": "step_v3.nodefaults.schema.json#"
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "markupSelectorDefinition": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
+              },
+              "regex": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
               },
               "comment": {
                 "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
@@ -15337,46 +15275,75 @@
                 "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActions"
               }
             },
-            "oneOf": [
+            "anyOf": [
               {
                 "required": [
-                  "comment"
+                  "regex"
                 ]
               },
               {
-                "required": [
-                  "codeBlock"
+                "oneOf": [
+                  {
+                    "required": [
+                      "comment"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
+                  }
                 ]
+              }
+            ]
+          },
+          "markupActions": {
+            "anyOf": [
+              {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
               },
               {
-                "required": [
-                  "link"
-                ]
-              },
-              {
-                "required": [
-                  "image"
-                ]
-              },
-              {
-                "required": [
-                  "strong"
-                ]
-              },
-              {
-                "required": [
-                  "emphasis"
-                ]
-              },
-              {
-                "required": [
-                  "text"
-                ]
-              },
-              {
-                "required": [
-                  "element"
-                ]
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+                    },
+                    {
+                      "$ref": "step_v3.nodefaults.schema.json#"
+                    }
+                  ]
+                }
               }
             ]
           },

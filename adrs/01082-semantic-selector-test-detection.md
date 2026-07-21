@@ -66,12 +66,15 @@ Mechanism:
    Opal-heavy; tree-sitter-asciidoc is the designated future upgrade). Backend selection is
    automatic per file via an extension→backend map plus existing content sniffing — there is no
    `parser` config field.
-2. **Selector markup definitions**: `markupDefinition` becomes `anyOf` regex-shape (unchanged) |
-   selector-shape, where the selector-shape is a `oneOf` over kind keys **modeled on the step
-   schema — the kind IS the key** (`{"codeBlock": {…}}` like `{"goTo": …}`), each kind exposing
-   only its valid options with `additionalProperties: false`, plus scalar shorthands. `captures`
-   maps named node fields (`url`, `content`, `attributes.<name>`, `match.<n>`, `then.<field>`) to
-   `$1..$n`, preserving the action-substitution contract. Scoped regex refinements
+2. **Selector markup definitions**: `markupDefinition` keeps one shared property table (`name`,
+   `regex`, eight kind keys, `captures`, `actions`, `batchMatches`) constrained by `anyOf`:
+   `required: ["regex"]` | `oneOf` over the kind keys — **modeled on the step schema, the kind IS
+   the key** (`{"codeBlock": {…}}` like `{"goTo": …}`). Kind option objects are
+   `additionalProperties: false` with scalar shorthands; the single property table exists because
+   the dereferencing schema build would otherwise duplicate the embedded step schema per branch
+   (+39 MB measured on `schemas.json` vs +9 MB flattened). `captures` maps named node fields
+   (`url`, `content`, `attributes.<name>`, `match.<n>`, `then.<field>`) to `$1..$n`, preserving
+   the action-substitution contract. Scoped regex refinements
    (`matches`/`contentMatches`/`precededBy`/`followedBy`, incl. `followedBy.then` chaining for
    sequence patterns) replace guard-hack lookarounds.
 3. **Inline statements**: `inlineStatements.in` declares statement *containers* (comment nodes,
