@@ -8,6 +8,13 @@ import YAML from "yaml";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
+import {
+  resolveBackend,
+  getSelectorDefinition,
+  selectorContainerStatements,
+  selectorMarkupStatements,
+  SemanticNode,
+} from "./detect/index.js";
 
 // Cache of compiled patterns, keyed by `pattern + ' ' + flags`. parseContent
 // re-derives the same handful of file-type regexes for EVERY file it scans
@@ -450,16 +457,70 @@ export async function parseContent({
 
   // Precompute line starts for efficient line number lookups
   const lineStarts = getLineStarts(content);
+  const getLine = (index: number) => getLineNumber(content, index, lineStarts);
+
+  // Structure-aware detection: when the fileType declares statement
+  // containers (inlineStatements.in) or selector-mode markup definitions,
+  // parse the content into semantic nodes once via the extension-resolved
+  // backend. No backend or a failed parse degrades to regex-only detection.
+  const statementContainers = fileType.inlineStatements?.in;
+  const wantsContainers =
+    Array.isArray(statementContainers) && statementContainers.length > 0;
+  const selectorMarkup = (config.detectSteps ?? true)
+    ? (fileType.markup ?? []).filter((m) => getSelectorDefinition(m))
+    : [];
+  let semanticNodes: SemanticNode[] | null = null;
+  if (wantsContainers || selectorMarkup.length > 0) {
+    const backend = resolveBackend(ext, fileType);
+    if (backend) {
+      try {
+        semanticNodes = backend(content);
+      /* c8 ignore start - defensive: micromark accepts any string input, so
+         a throwing parse isn't reproducible with real content. Kept so a
+         backend bug degrades that file to regex-only detection instead of
+         failing the whole run. */
+      } catch (error) {
+        log(
+          config,
+          "warn",
+          `Structural parse of ${filePath || "content"} failed; selector-based detection skipped for this file.`
+        );
+      }
+      /* c8 ignore stop */
+    }
+  }
+  if (semanticNodes) {
+    if (wantsContainers) {
+      statements.push(
+        ...selectorContainerStatements({
+          containers: statementContainers!,
+          nodes: semanticNodes,
+          content,
+          getLine,
+        })
+      );
+    }
+    if (selectorMarkup.length > 0) {
+      statements.push(
+        ...selectorMarkupStatements({
+          markup: selectorMarkup,
+          nodes: semanticNodes,
+          content,
+          getLine,
+        })
+      );
+    }
+  }
 
   // Test for each statement type
   statementTypes.forEach((statementType) => {
-    if (
-      typeof fileType.inlineStatements === "undefined" ||
-      typeof fileType.inlineStatements[statementType as keyof typeof fileType.inlineStatements] === "undefined"
-    )
-      return;
+    const patterns =
+      fileType.inlineStatements?.[
+        statementType as "testStart" | "testEnd" | "ignoreStart" | "ignoreEnd" | "step"
+      ];
+    if (typeof patterns === "undefined") return;
 
-    fileType.inlineStatements[statementType as keyof typeof fileType.inlineStatements]!.forEach((statementRegex) => {
+    patterns.forEach((statementRegex) => {
       const regex = safeRegExp(statementRegex, "g");
       if (!regex) return;
       const matches = [...content.matchAll(regex)];
@@ -476,6 +537,8 @@ export async function parseContent({
 
   if ((config.detectSteps ?? true) && fileType.markup) {
     fileType.markup.forEach((markup) => {
+      // Selector-mode definitions (no regex) are handled above.
+      if (!markup.regex) return;
       markup.regex.forEach((pattern) => {
         const regex = safeRegExp(pattern, "g");
         if (!regex) return;
