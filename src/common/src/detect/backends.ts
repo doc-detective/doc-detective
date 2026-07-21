@@ -8,6 +8,7 @@
 import { BackendParse } from "./types.js";
 import { parseMarkdown } from "./markdown.js";
 import { parseMdx } from "./mdx.js";
+import { parseHtml } from "./html.js";
 
 const backendByExtension: Record<string, BackendParse> = {
   md: parseMarkdown,
@@ -16,11 +17,15 @@ const backendByExtension: Record<string, BackendParse> = {
   mkd: parseMarkdown,
   mkdn: parseMarkdown,
   mdx: parseMdx,
+  html: parseHtml,
+  htm: parseHtml,
+  xhtml: parseHtml,
 };
 
 const backendByFileTypeName: Record<string, BackendParse> = {
   markdown: parseMarkdown,
   mdx: parseMdx,
+  html: parseHtml,
 };
 
 export function resolveBackend(
