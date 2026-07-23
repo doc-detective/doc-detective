@@ -1,6 +1,6 @@
 # First-class GitLab CI support
 
-**Status:** accepted (design; component-first) — key decisions settled in §9; per-primitive ADRs follow at implementation
+**Status:** accepted (design; component-first) — key decisions settled in §9. **Phase 1 (`exitOnFail` / `--exit-on-fail`) is implemented** and disabled by default; Phases 2–4 are pending. Per-primitive ADRs follow at implementation
 **Date:** 2026-07-15
 **Owners:** doc-detective maintainers
 **Related:** [GitHub Action](https://github.com/doc-detective/github-action), `docs/fern/pages/docs/ci/github-action.mdx`, `docs/fern/pages/docs/ci/reporters-and-artifacts.mdx`, `docs/content-strategy/information-architecture.md` (Priya track, CUJ P1)
@@ -53,7 +53,7 @@ Therefore "first-class GitLab" is **two layers**:
   repo: a Component published to the [CI/CD Catalog](https://docs.gitlab.com/ee/ci/components/), wiring
   the primitives into GitLab-native surfaces and doing MR/issue/integration handoff via the GitLab API.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ Layer 2:  doc-detective/gitlab-component  (NEW separate repo)│
 │  templates/doc-detective.yml  — CI/CD Component               │
@@ -75,7 +75,7 @@ Each follows the repo's **CLI flags ↔ config** pattern (`CLAUDE.md`): schema f
 `setConfig` override → runtime helper → read from `config.*`. Each is a red→green behavior change with an
 ADR, `config_v3` positive/negative validation cases, and PASS/SKIPPED-only feature fixtures.
 
-### 4.1 `exitOnFail` / `--exit-on-fail`  (primitive #1 — build first)
+### 4.1 `exitOnFail` / `--exit-on-fail`  (primitive #1 — ✅ implemented, default `false`)
 
 **The foundational gap.** `src/cli.ts` sets `process.exitCode = 1` only on config/validation error; it
 never inspects `results.summary`. Every non-GitHub CI (GitLab, Jenkins, CircleCI) currently needs the
@@ -84,7 +84,7 @@ never inspects `results.summary`. Every non-GitHub CI (GitLab, Jenkins, CircleCI
 - **Schema:** add `exitOnFail` (boolean, default `false`) to `config_v3.schema.json`. Default `false`
   preserves today's contract — the fixtures gate (`scripts/check-fixture-results.cjs`) and the Action's
   own `exit_on_fail: false` default both rely on exit 0.
-- **Flag:** `.option("exitOnFail", { alias: "e", type: "boolean", description: "…" })` in `buildYargs()`.
+- **Flag:** `.option("exit-on-fail", { alias: "e", type: "boolean", description: "…" })` in `buildYargs()` (yargs camelCases it to `args.exitOnFail`).
 - **`setConfig` override:** `if (typeof args.exitOnFail === "boolean") config.exitOnFail = args.exitOnFail;`
 - **Runtime:** a pure helper `shouldFailRun(results)` in `src/core/utils.ts` returning
   `results.summary.specs.fail > 0` (the stable contract this repo's own gate already keys on:
@@ -178,6 +178,11 @@ include:
 - `artifacts: reports: junit: junit.xml` → MR test-summary widget.
 - Optional **MR note** (comment) on failure via `/merge_requests/:iid/notes` — something the Action
   doesn't do. Gate behind an input (`comment_on_mr`), default off; the JUnit widget may make it redundant.
+  `CI_MERGE_REQUEST_IID` is populated **only** in `merge_request_event` pipelines, so `comment_on_mr`
+  requires one. On a branch or tag pipeline where the IID is absent, the component **skips the note with a
+  logged notice** — it does not fail the job and does not attempt a branch→MR lookup (that lookup is
+  ambiguous, and silently guessing the wrong MR is worse than skipping). Document this precondition on the
+  input so users enable `comment_on_mr` only where it can work.
 
 ### 5.2 Token & permission model (the sharp edge)
 
@@ -215,8 +220,9 @@ primitives the component applies to the created issue/MR note:
 
 1. **mention** — append `@<bot>` + a collapsible `$RESULTS` block + `$PROMPT` to the issue/note body
    (the default; matches the Action's mention path).
-2. **assign** — assign the issue to a bot user (the Action's Copilot path; on GitLab, GitLab **Duo** or a
-   configured bot account).
+2. **assign** — hand the issue to a bot reviewer (the Action's Copilot path). On GitLab this is realized
+   through a Duo quick action (`/assign_reviewer @GitLabDuo`) rather than a raw assignee API call, because
+   direct assignment needs a resolvable reviewer identity (see the `duo` entry below).
 3. **label** — apply a label the integration's webhook subscribes to (Promptless/Dosu style).
 
 A per-integration table maps `name → { strategy, gitlabSupported, setupDocUrl }`. Decisions:
@@ -225,8 +231,13 @@ A per-integration table maps `name → { strategy, gitlabSupported, setupDocUrl 
   the abstraction leaves room to add `dosu`, `doc-sentinel`, `cursor`, and `opencode` later as each is
   verified on GitLab — no schema/structural change needed to grow the set.
   - `claude` — **mention** strategy (`@claude` in the issue / MR note, with `$RESULTS` + `$PROMPT`).
-  - `duo` — **assign** strategy (GitLab Duo, the native analog of the Action's Copilot auto-assign).
-    GitLab-native; the Action has no equivalent.
+  - `duo` — **quick-action** strategy: post a `/assign_reviewer @GitLabDuo` quick action (falling back to
+    an `@GitLabDuo` mention) in the issue or MR note — the GitLab-native analog of the Action's Copilot
+    auto-assign, but realized through a quick action/mention rather than a raw assignee API call, since
+    direct assignment needs a resolvable reviewer identity. **Prerequisite:** GitLab Duo and its automated
+    code-review feature must be enabled for the project (Premium/Ultimate + the Duo add-on), and the
+    `@GitLabDuo` identity must be resolvable. Where Duo isn't enabled, the component reports the same
+    fail-fast guidance as an unsupported integration rather than posting a mention nothing will answer.
   - `promptless` — **label** strategy (applies the label Promptless's GitLab webhook subscribes to).
 - **Honesty over false parity.** Any integration name not in the launch set (notably `copilot`, which is
   GitHub-only) makes the component **fail fast with a helpful message** naming the supported set and the
@@ -274,7 +285,7 @@ gating on *every* non-GitHub CI, and the component's `exit_on_fail` is a thin de
 **Decided:**
 
 1. **exit-on-fail** — `FAIL` only (WARNING non-fatal); reuse exit code `1`. (§4.1)
-2. **Integration launch set** — `claude` (mention), `duo` (assign, GitLab-native), `promptless` (label);
+2. **Integration launch set** — `claude` (mention), `duo` (Duo quick action, GitLab-native), `promptless` (label);
    fail-fast-with-guidance on any other name including GitHub-only `copilot`. (§6)
 3. **No Code Quality reporter** — dropped; GitLab's `codequality` artifact is an inline-annotation
    transport, not linting, but the name misleads and the JUnit test widget already covers the need. (§4.4)

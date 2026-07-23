@@ -112,9 +112,11 @@ doc-detective --input ./docs --exit-on-fail
 - **Parse the JSON results.** Read the `summary` object from the `json` reporter's output and fail the step yourself when any `fail` count is greater than zero. Useful when you want custom logic beyond a pass/fail gate.
 
 ```bash
-doc-detective --input ./docs --reporters json --output results.json
-node -e "process.exit(require('./results.json').summary.tests.fail > 0 ? 1 : 0)"
+doc-detective --input ./docs --reporters json --output results.json && \
+  node -e "process.exit(require('./results.json').summary.specs.fail > 0 ? 1 : 0)"
 ```
+
+The `&&` runs the check only if Doc Detective itself exited cleanly, so a crash or invalid config (a non-zero exit) still fails the step instead of being masked by the results parse.
 
 ## Verify it works
 

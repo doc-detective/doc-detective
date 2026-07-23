@@ -377,6 +377,28 @@ describe("Util tests", function () {
     expect(configAbsent.exitOnFail).to.equal(false);
   });
 
+  it("--no-exit-on-fail overrides exitOnFail:true from a config file (CLI wins)", async function () {
+    this.timeout(5000);
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-eof-precedence-"));
+    try {
+      const cfgPath = path.join(tmpDir, "config.json");
+      fs.writeFileSync(cfgPath, JSON.stringify({ exitOnFail: true }));
+
+      // File config sets it true; the CLI override must win and turn it off.
+      const argsOff = setArgs(["node", "runTests.js", "--no-exit-on-fail"]);
+      const configOff = await setConfig({ configPath: cfgPath, args: argsOff });
+      expect(configOff.exitOnFail).to.equal(false);
+
+      // With no flag, the file value stands.
+      const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+      const configFile = await setConfig({ configPath: cfgPath, args: argsAbsent });
+      expect(configFile.exitOnFail).to.equal(true);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it("Yargs parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     expect(on.autoScreenshot).to.equal(true);
