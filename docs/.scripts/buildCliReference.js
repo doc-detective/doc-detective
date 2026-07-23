@@ -6,7 +6,7 @@
 // `npm run docs:build-cli-ref`.
 //
 // Sibling of docs/.scripts/buildSchemaReferencesV4.js (which generates the
-// reference/schemas/*.md pages). Like that script it is build-free: it reads
+// reference/schemas/*.mdx pages). Like that script it is build-free: it reads
 // the TypeScript sources statically with the compiler API rather than
 // executing the compiled CLI, so it needs no `npm run build` and no heavy
 // runtime import graph. Flag/command metadata comes from the yargs `.option()`
