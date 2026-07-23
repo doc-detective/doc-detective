@@ -116,7 +116,7 @@ doc-detective --input ./docs --reporters json --output results.json && \
   node -e "process.exit(require('./results.json').summary.specs.fail > 0 ? 1 : 0)"
 ```
 
-The `&&` runs the check only if Doc Detective itself exited cleanly, so a crash or invalid config (a non-zero exit) still fails the step instead of being masked by the results parse.
+The `&&` runs the check only if Doc Detective itself exited cleanly, so a crash or a broken config (a non-zero exit) still fails the step—the results parse never hides it.
 
 ## Verify it works
 
