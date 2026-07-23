@@ -27,7 +27,7 @@ From `action.yml` and `docs/ci/github-action.mdx`:
 
 | Capability | Action input(s) | Notes |
 |---|---|---|
-| **Fail the job on test failure** | `exit_on_fail` | The headline feature. The CLI **always exits 0 on test failure**; the Action reads results and exits non-zero. |
+| **Fail the job on test failure** | `exit_on_fail` | The headline feature. The CLI **exits 0 on test failure by default** (opt in with `--exit-on-fail`); the Action's `exit_on_fail` delegates to that flag. |
 | Open a PR when files change | `create_pr_on_change`, `pr_branch/title/body/labels/assignees/reviewers` | Commits refreshed screenshots/recordings to a branch. |
 | Open an issue on failure | `create_issue_on_fail`, `issue_title/body/labels/assignees` | `$RESULTS`/`$RUN_URL`/`$PROMPT` template vars. |
 | **Hand off to an AI integration** | `integrations`, `prompt` | `@`-mentions / assigns / labels a GitHub-app bot in the created issue. |
@@ -41,9 +41,10 @@ opportunities on GitLab, not parity requirements.
 ## 3. Key architectural fact
 
 The GitHub Action lives in a **separate repo** (`doc-detective/github-action`) and consumes this repo's
-CLI. This repo is entirely CI-agnostic: no `GITHUB_*` handling, no exit-on-fail, and only four reporters
+CLI. This repo is entirely CI-agnostic: no `GITHUB_*` handling, and only four reporters
 (`terminal`, `json`, `html`, `runFolder`) — **no JUnit output** (confirmed in `src/utils.ts` reporter
-registry, `config_v3.schema.json` `reporters`).
+registry, `config_v3.schema.json` `reporters`). Exit-on-fail (`--exit-on-fail` / `exitOnFail`) is
+implemented as Phase 1 and disabled by default.
 
 Therefore "first-class GitLab" is **two layers**:
 
@@ -77,9 +78,11 @@ ADR, `config_v3` positive/negative validation cases, and PASS/SKIPPED-only featu
 
 ### 4.1 `exitOnFail` / `--exit-on-fail`  (primitive #1 — ✅ implemented, default `false`)
 
-**The foundational gap.** `src/cli.ts` sets `process.exitCode = 1` only on config/validation error; it
-never inspects `results.summary`. Every non-GitHub CI (GitLab, Jenkins, CircleCI) currently needs the
-`node -e "...summary.tests.fail > 0"` dance. The component depends on this primitive.
+**Closed gap (Phase 1 — ✅ implemented, default `false`).** Before this primitive, `src/cli.ts` set `process.exitCode = 1`
+only on config/validation error and never inspected `results.summary`; every non-GitHub CI (GitLab,
+Jenkins, CircleCI) needed a `node -e "...summary.tests.fail > 0"` wrapper. This primitive adds the
+`shouldFailRun` helper and the post-reporter gate in `cli.ts`. The component's `exit_on_fail` delegates
+to this flag instead of re-implementing the parse.
 
 - **Schema:** add `exitOnFail` (boolean, default `false`) to `config_v3.schema.json`. Default `false`
   preserves today's contract — the fixtures gate (`scripts/check-fixture-results.cjs`) and the Action's
@@ -272,7 +275,7 @@ Per `CLAUDE.md` this feature has clear user-facing impact; docs travel with it. 
 | Phase | Deliverable | Repo | Depends on |
 |---|---|---|---|
 | **0** | This design + alignment | this repo (`docs/design/`) | — |
-| **1** | `--exit-on-fail` / `exitOnFail` (ADR + fixtures + docs) | this repo | 0 |
+| **1** ✅ | `--exit-on-fail` / `exitOnFail` (ADR + fixtures + docs) | this repo | 0 |
 | **2** | `junit` reporter (ADR + fixtures + docs) | this repo | 0 |
 | **3** | GitLab CI/CD Component: inputs, artifact wiring, MR/issue creation, **integrations handoff** | new repo `doc-detective/gitlab-component` | 1–2 |
 | **4** | Docs: new GitLab page + overview/reporters/integrations updates | this repo | 1–3 |
