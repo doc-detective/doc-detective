@@ -140,3 +140,24 @@ The blur stays glued to every match while the page scrolls, and never animates i
 Doc Detective draws annotations into a `dd-annotation-layer` element with its own shadow root, sitting above the page and ignoring pointer events. The page under test keeps behaving exactly as it would without annotations, and the page's CSS can't restyle them.
 
 Doc Detective tracks the annotations itself, so they survive navigation: after a step loads a new page, it re-draws whatever is still up. Annotations last until an `annotate` step clears them, their `duration` elapses, or the test context ends.
+
+Element-target annotations—an `outline`, `arrow`, `callout`, `badge`, or `blur` pointed at a selector or display text—resolve the same way the [`find`](/docs/actions/find) action does, and `annotate` polls with a fixed default wait of 5 seconds. Unlike [`find`](/docs/actions/find), which takes a configurable `timeout` (default 5000 ms), `annotate` exposes no `timeout` field on the action or its annotation objects—you can't lengthen this wait directly. If the target doesn't appear in that window, the step fails. The result description contains `Couldn't find the element to annotate: <target>` (or `Couldn't find any element to annotate: <target>` when the annotation sets `all`). An object target appears JSON-encoded in both messages. A plain-string target renders bare in the single-element message. It never appears in the `all` message, because `annotate` rejects `all: true` with a plain-string target up front, before any lookup runs.
+
+When you annotate right after `goTo` or navigation on a slow or CI page, precede the `annotate` step with a guard `find` for the same target (optionally with a longer `timeout`). The `find` waits deterministically, so the target is present when `annotate` runs:
+
+```json
+{
+  "steps": [
+    { "find": { "selector": "#usage-meter", "timeout": 15000 } },
+    { "annotate": { "add": [{ "outline": "#usage-meter" }] } }
+  ]
+}
+```
+
+If a step starts a recording and annotates immediately—like the "Narrate a recording" example above—put the guard `find` before the `record` step so the video doesn't record its wait as dead air.
+
+This only helps when the element hadn't rendered yet. If `annotate` fails well after the page has settled, the target is probably wrong or gone, and a `find` won't help either.
+
+Position-anchored `text` annotations carry no element target, so they don't resolve an element and aren't affected by this wait.
+
+To map a failure to its step and stabilize a flaky test, see [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview).
