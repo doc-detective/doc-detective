@@ -12,7 +12,7 @@ The pages here build on each other, but each one stands on its own if you alread
 Wire Doc Detective into CI and gate pull requests on the results.
 
 - [Run in CI with the GitHub Action](/docs/ci/github-action) is the fastest path: add the action to a workflow, gate pull requests, and open PRs or issues automatically.
-- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) covers the output formats, where each one writes, and—most importantly—how to fail a build when tests fail. The standalone CLI doesn't exit non-zero on test failures on its own, so read this before you rely on the exit code.
+- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) covers the output formats, where each one writes, and—most importantly—how to fail a build when tests fail. The standalone CLI doesn't exit non-zero on test failures by default unless you opt in with `--exit-on-fail`, so read this before you rely on the exit code.
 
 ## Run headless and containerized
 
@@ -31,7 +31,7 @@ Every run emits a machine-readable summary, plus screenshots and recordings when
 
 The guides above use the GitHub Action, but nothing about Doc Detective is GitHub-specific. These capabilities ship today, and dedicated journey pages for them are on the way, so this section points you to the reference material you need in the meantime.
 
-- **Other CI platforms.** Any runner that executes a shell command can run Doc Detective. To gate the build, parse the JSON `summary` yourself, which works the same on GitLab CI, Jenkins, CircleCI, or anywhere else. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-5-fail-ci-when-tests-fail).
+- **Other CI platforms.** Any runner that executes a shell command can run Doc Detective. The simplest cross-platform gate is `--exit-on-fail`, which makes the CLI exit non-zero when tests fail. It works the same on GitLab CI, Jenkins, CircleCI, or a bare shell. For custom gating logic, parse the JSON `summary` yourself. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail).
 - **Concurrency.** To raise throughput, run tests in parallel with `concurrentRunners`. Set it to `true` to use the CPU core count, capped at four. Recordings that use the `ffmpeg` engine serialize on the shared display, so use the browser recording engine when you record under concurrency. See the [`config`](/reference/schemas/config) reference.
 - **Distributed runs.** To orchestrate runs across machines, point Doc Detective at a remote orchestration service. See the [Orchestration API](/reference/schemas/doc-detective-orchestration-api) reference.
 

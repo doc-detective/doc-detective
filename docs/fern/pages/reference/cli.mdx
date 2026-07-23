@@ -105,10 +105,10 @@ npx doc-detective debug --include-env
 ## Exit codes
 
 <Note>
-The standalone `doc-detective` CLI does not exit with a non-zero code when tests fail—it exits non-zero only on a crash or invalid configuration. To gate CI on test failures, parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or use the [GitHub Action](/docs/ci/github-action)'s exit-on-fail behavior.
+By default, the standalone `doc-detective` CLI exits `0` even when tests fail—it exits non-zero only on a crash or invalid configuration. To fail the build when a spec fails, pass `--exit-on-fail` (or set `exitOnFail: true` in your config). It's the least-setup option, and it works on any CI: the CLI exits `1` whenever a spec's result is FAIL. `WARNING` and `SKIPPED` results stay non-fatal, and a run that matches no specs (for example, a `--test` or `--spec` filter with no matches) also exits `0`—so a mistyped filter can pass a gated build. You can also parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or set the [GitHub Action](/docs/ci/github-action)'s `exit_on_fail` input. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for examples.
 </Note>
 
-The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract, so gate CI on the parsed results, not on which non-zero code the process returns.
+The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract—`1` covers both test failures and crashes. Treat any non-zero exit as a failure rather than branching on the exact code. If you need to tell a test failure apart from a crash, parse the results `summary`.
 
 ## Configuration
 
