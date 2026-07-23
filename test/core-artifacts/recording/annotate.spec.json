@@ -22,9 +22,10 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
-          "description": "Guard every annotation target with a preceding `find`. `annotate` resolves its target once with no polling, so on a slow headed browser (notably Windows CI) a bare goTo/navigation can hand off before the element is queryable and the annotate FAILs; `find` waits for the element, closing that race. Every element-targeting `annotate` in this spec (including `update` and each transition, which re-target new elements) is paired with a matching `find` for the same target.",
+          "description": "Guard every annotation target with a preceding `find`. `annotate` resolves its target once with no polling, so on a slow headed browser (notably Windows CI) a bare goTo/navigation can hand off before the element is queryable and the annotate FAILs; `find` waits for the element, closing that race. Every element-targeting `annotate` in this spec (including `update` and each transition, which re-target new elements) is paired with a matching `find` for the same target. The first find after each navigation carries a generous `timeout` because later tests reuse a browser context that recording has made slow — the default 5s can lapse before the page is queryable on a cold CI runner.",
           "find": {
-            "selector": "#username-input"
+            "selector": "#username-input",
+            "timeout": 20000
           }
         },
         {
@@ -120,7 +121,8 @@
         },
         {
           "find": {
-            "selector": "#submit-button"
+            "selector": "#submit-button",
+            "timeout": 20000
           }
         },
         {
@@ -220,7 +222,8 @@
         },
         {
           "find": {
-            "selector": "#username-input"
+            "selector": "#username-input",
+            "timeout": 20000
           }
         },
         {
@@ -358,7 +361,8 @@
         },
         {
           "find": {
-            "selector": "#submit-button"
+            "selector": "#submit-button",
+            "timeout": 20000
           }
         },
         {
@@ -409,7 +413,8 @@
         },
         {
           "find": {
-            "selector": ".form-control"
+            "selector": ".form-control",
+            "timeout": 20000
           }
         },
         {
