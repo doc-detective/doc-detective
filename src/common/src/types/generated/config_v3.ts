@@ -161,6 +161,10 @@ export interface Config {
    */
   autoUpdate?: boolean;
   /**
+   * If `true`, the CLI exits with a non-zero code (`1`) when any spec's result is `FAIL`, so a documentation-testing job fails the build the way a broken unit test would. Defaults to `false`, which preserves the CLI's historical behavior of exiting `0` on test failures (it exits non-zero only on a crash or invalid config) — the exit-on-fail decision has historically lived in CI wrappers like the Doc Detective GitHub Action. `WARNING` results are non-fatal and never trigger a non-zero exit. Equivalent to `--exit-on-fail` on the CLI.
+   */
+  exitOnFail?: boolean;
+  /**
    * Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
    */
   shell?: "bash" | "cmd" | "powershell";
