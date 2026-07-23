@@ -1,4 +1,5 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
+import { shouldFailRun } from "./core/utils.js";
 import {
   buildYargs,
   setConfig,
@@ -264,6 +265,15 @@ async function runTestsHandler(args: any) {
     // Optionally print one contextual hint after the reporters finish.
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
+  }
+
+  // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
+  // exits 0 even on FAIL (the fail-the-build call has historically lived in CI
+  // wrappers like the GitHub Action), so this flag is what lets any CI gate on
+  // the exit code. The `!process.exitCode` guard preserves any non-zero code an
+  // earlier stage already set instead of overwriting it with 1.
+  if (config.exitOnFail && !process.exitCode && shouldFailRun(results)) {
+    process.exitCode = 1;
   }
 
   // Join the telemetry flush started inside runTests. Awaited only NOW — after

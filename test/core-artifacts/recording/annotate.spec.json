@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "annotate-lifecycle-in-recording",
-      "description": "The core choreography: add annotations, interact, update one by id, clear one, clear the rest \u2014 all inside a recording, so every state lands in the video.",
+      "description": "The core choreography: add annotations, interact, update one by id, clear one, clear the rest — all inside a recording, so every state lands in the video.",
       "runOn": [
         {
           "platforms": [
@@ -20,6 +20,13 @@
       "steps": [
         {
           "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "description": "Guard every annotation target with a preceding `find`. `annotate` resolves its target once with no polling, so on a slow headed browser (notably Windows CI) a bare goTo/navigation can hand off before the element is queryable and the annotate FAILs; `find` waits for the element, closing that race. Every element-targeting `annotate` in this spec (including `update` and each transition, which re-target new elements) is paired with a matching `find` for the same target. The first find after each navigation carries a generous `timeout` because later tests reuse a browser context that recording has made slow — the default 5s can lapse before the page is queryable on a cold CI runner.",
+          "find": {
+            "selector": "#username-input",
+            "timeout": 20000
+          }
         },
         {
           "record": {
@@ -48,6 +55,11 @@
         },
         {
           "click": "#username-input"
+        },
+        {
+          "find": {
+            "selector": "#submit-button"
+          }
         },
         {
           "stepId": "annotate-update",
@@ -106,6 +118,12 @@
       "steps": [
         {
           "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "find": {
+            "selector": "#submit-button",
+            "timeout": 20000
+          }
         },
         {
           "annotate": {
@@ -185,7 +203,7 @@
     },
     {
       "testId": "annotate-transitions-and-duration",
-      "description": "Recording-only semantics: each enter transition, and a duration that clears the annotation without a paired clear step. No recording here \u2014 the browser engine allows one recording per context and four in a spec contend; the lifecycle test covers the in-recording path, and these exercise the same rendering.",
+      "description": "Recording-only semantics: each enter transition, and a duration that clears the annotation without a paired clear step. No recording here — the browser engine allows one recording per context and four in a spec contend; the lifecycle test covers the in-recording path, and these exercise the same rendering.",
       "runOn": [
         {
           "platforms": [
@@ -203,6 +221,12 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
+          "find": {
+            "selector": "#username-input",
+            "timeout": 20000
+          }
+        },
+        {
           "stepId": "annotate-transition-fade",
           "annotate": {
             "add": [
@@ -215,6 +239,11 @@
                 }
               }
             ]
+          }
+        },
+        {
+          "find": {
+            "selector": "#submit-button"
           }
         },
         {
@@ -231,6 +260,11 @@
                 }
               }
             ]
+          }
+        },
+        {
+          "find": {
+            "elementTestId": "password-field"
           }
         },
         {
@@ -251,8 +285,13 @@
           }
         },
         {
+          "find": {
+            "selector": "#contact-email"
+          }
+        },
+        {
           "stepId": "annotate-transition-none",
-          "description": "A blur must never fade in \u2014 that would show the sensitive content while it animates.",
+          "description": "A blur must never fade in — that would show the sensitive content while it animates.",
           "annotate": {
             "add": [
               {
@@ -263,6 +302,11 @@
                 }
               }
             ]
+          }
+        },
+        {
+          "find": {
+            "selector": "#primary-action"
           }
         },
         {
@@ -316,6 +360,12 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
+          "find": {
+            "selector": "#submit-button",
+            "timeout": 20000
+          }
+        },
+        {
           "stepId": "annotate-tracked",
           "annotate": {
             "add": [
@@ -360,6 +410,12 @@
       "steps": [
         {
           "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "find": {
+            "selector": ".form-control",
+            "timeout": 20000
+          }
         },
         {
           "stepId": "annotate-redact-all",
