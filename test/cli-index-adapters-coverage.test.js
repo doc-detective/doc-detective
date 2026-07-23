@@ -106,6 +106,91 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
+  // exit-on-fail gate. An unreachable httpRequest is a deterministic offline
+  // FAIL (connection refused on a closed loopback port) with no browser/network
+  // dependency, so it exercises the real summary.specs.fail path end-to-end.
+  const FAILING_SPEC = {
+    tests: [
+      {
+        steps: [
+          { httpRequest: { url: "http://127.0.0.1:1/nope", statusCodes: [200] } },
+        ],
+      },
+    ],
+  };
+  const PASSING_SPEC = { tests: [{ steps: [{ wait: 10 }] }] };
+
+  function writeSpec(dir, name, spec) {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, JSON.stringify(spec));
+    return p;
+  }
+
+  it("--exit-on-fail exits non-zero when a spec FAILs", function () {
+    const dir = mkTmp("dd-cli-eof-fail-");
+    try {
+      const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
+      const r = runCli([
+        "--input", spec,
+        "--output", path.join(dir, "out.json"),
+        "--exit-on-fail",
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 1, `expected exit 1 on failure; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("without --exit-on-fail a FAILing run still exits 0 (historical default preserved)", function () {
+    const dir = mkTmp("dd-cli-eof-default-");
+    try {
+      const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
+      const r = runCli([
+        "--input", spec,
+        "--output", path.join(dir, "out.json"),
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 0, `expected exit 0 by default; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("--exit-on-fail exits 0 when every spec passes", function () {
+    const dir = mkTmp("dd-cli-eof-pass-");
+    try {
+      const spec = writeSpec(dir, "p.spec.json", PASSING_SPEC);
+      const r = runCli([
+        "--input", spec,
+        "--output", path.join(dir, "out.json"),
+        "--exit-on-fail",
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 0, `expected exit 0 on all-pass; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("exitOnFail via config file gates the same as the flag (file→config→runtime path)", function () {
+    const dir = mkTmp("dd-cli-eof-cfg-");
+    try {
+      const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
+      fs.writeFileSync(
+        path.join(dir, ".doc-detective.json"),
+        JSON.stringify({ exitOnFail: true })
+      );
+      const r = runCli(
+        ["--input", spec, "--output", path.join(dir, "out.json"), "--logLevel", "silent"],
+        { cwd: dir }
+      );
+      assert.equal(r.status, 1, `expected config-driven exit 1; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("DOC_DETECTIVE_DEBUG=1 with a valid config prints the diagnostic dump and returns", function () {
     const dir = mkTmp("dd-cli-dbg-");
     try {

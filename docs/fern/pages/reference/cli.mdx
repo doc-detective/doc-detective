@@ -43,10 +43,11 @@ These flags apply to the default run command. Each has a config-file equivalent;
 | `--concurrent-runners` |  | string | `1` | Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported. |
 | `--browser-fallback` |  | string | `auto` | How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage. |
 | `--shell` |  | string | `bash` | Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field. |
+| `--exit-on-fail` | `-e` | boolean | `false` | Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it. |
 
 ### Negating boolean flags
 
-Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: `--no-hints`, `--no-auto-screenshot`, `--no-auto-record`, and `--no-auto-update`. (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)
+Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: `--no-hints`, `--no-auto-screenshot`, `--no-auto-record`, `--no-auto-update`, and `--no-exit-on-fail`. (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)
 
 Notes on individual flags:
 

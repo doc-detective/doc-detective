@@ -56,6 +56,7 @@ export {
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
+  shouldFailRun,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -899,6 +900,21 @@ function selectSpecsForRun(specs: any[], config: any): any[] {
     out.push({ ...spec, tests: filteredTests });
   }
   return out;
+}
+
+// Decide whether a completed run should fail the process, for the CLI's
+// `exitOnFail` gate. A run fails only when at least one spec's result is FAIL,
+// read here from the rolled-up `summary.specs.fail` count — the summary-level
+// equivalent of the per-spec `specs[].result === "FAIL"` check this repo's
+// fixture gate (scripts/check-fixture-results.cjs) uses; the two agree because
+// a failing spec always increments `summary.specs.fail`. WARNING and SKIPPED
+// are non-fatal by design, and a zero-spec run is not a failure (a filtered
+// run that legitimately matches no specs must not fail the build). Pure and
+// defensive: any missing/malformed results/summary shape yields false so a
+// shape regression can't spuriously fail an otherwise-passing build.
+function shouldFailRun(results: any): boolean {
+  const failCount = results?.summary?.specs?.fail;
+  return typeof failCount === "number" && failCount > 0;
 }
 
 function isRelativeUrl(url: string) {

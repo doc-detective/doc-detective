@@ -349,6 +349,34 @@ describe("Util tests", function () {
     expect(configAbsent.autoUpdate).to.equal(true);
   });
 
+  it("Yargs parses --exit-on-fail / --no-exit-on-fail as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--exit-on-fail"]);
+    expect(on.exitOnFail).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-exit-on-fail"]);
+    expect(off.exitOnFail).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.exitOnFail).to.equal(undefined);
+  });
+
+  it("setConfig stores --exit-on-fail on config.exitOnFail and applies schema default when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--exit-on-fail"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.exitOnFail).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-exit-on-fail"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.exitOnFail).to.equal(false);
+
+    // Schema default is false; absent flag yields false via AJV useDefaults.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.exitOnFail).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.exitOnFail).to.equal(false);
+  });
+
   it("Yargs parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     expect(on.autoScreenshot).to.equal(true);
