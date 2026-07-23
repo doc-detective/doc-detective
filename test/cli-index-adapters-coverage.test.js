@@ -173,6 +173,24 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
+  it("--exit-on-fail exits 0 for a zero-spec run (a filtered/empty run is not a failure)", function () {
+    const dir = mkTmp("dd-cli-eof-zero-");
+    try {
+      // An input directory that exists but contains no specs → 0 specs run.
+      // summary.specs.fail is 0, so the gate must not fail the build; failing
+      // here would break legitimately-filtered runs that match nothing.
+      const r = runCli([
+        "--input", dir,
+        "--output", path.join(dir, "out.json"),
+        "--exit-on-fail",
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 0, `expected exit 0 for a zero-spec run; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("exitOnFail via config file gates the same as the flag (file→config→runtime path)", function () {
     const dir = mkTmp("dd-cli-eof-cfg-");
     try {

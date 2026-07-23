@@ -267,14 +267,10 @@ async function runTestsHandler(args: any) {
     await maybeShowHint(config, results);
   }
 
-  // Fail the process on test failures when the user opted in via `exitOnFail`
-  // (config) / `--exit-on-fail` (CLI). The CLI otherwise exits 0 even when
-  // specs FAIL — the exit-on-fail decision has historically lived in CI
-  // wrappers like the GitHub Action; this is the in-CLI equivalent, so any CI
-  // (GitLab, Jenkins, CircleCI) can gate on the exit code directly. Applies to
-  // both the reporter and orchestration-API paths above. Keyed on
-  // summary.specs.fail via shouldFailRun; WARNING is non-fatal. Dry-run already
-  // returned. Never clobbers an already-set non-zero exit code.
+  // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
+  // exits 0 even on FAIL (the fail-the-build call has historically lived in CI
+  // wrappers like the GitHub Action), so this flag is what lets any CI gate on
+  // the exit code. Never clobbers an already-set non-zero code.
   if (config.exitOnFail && shouldFailRun(results)) {
     process.exitCode = 1;
   }
