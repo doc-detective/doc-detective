@@ -174,9 +174,11 @@ Mirror `browserFallback` (the natural sibling — both are session-resilience po
 
 ## 7. Bounds & safety
 
-- **Only** retry when the health-probe confirms a dead session **and** the classifier
-  (`isRetryableSessionError`, widened for `invalid session id`) matches the probe error. A live-session
-  FAIL never retries — deterministic bugs fail all attempts and surface normally.
+- **Only** retry when a step FAILed **and** one of two probe conditions holds: the health probe throws a
+  classified session-death error (`isSessionAlive` → `isRetryableSessionError`, widened for `invalid
+  session id`), **or** `isPageBroken` finds the live session on a known browser error page
+  (`chrome-error://` / `about:neterror` / `about:certerror`). A live-session FAIL matching **neither** never
+  retries — deterministic bugs fail all attempts and surface normally.
 - Bounded by `retries` (default 1). Linear backoff between attempts (mirror `driverStart`'s
   `500*attempt`).
 - Cap total wall-clock: each attempt re-runs the whole context; with `this.timeout` semantics gone (this
