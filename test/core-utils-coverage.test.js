@@ -30,6 +30,7 @@ import {
   compileFilter,
   isRetryableSessionError,
   isSessionAlive,
+  isPageBroken,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -1028,6 +1029,38 @@ describe("core/utils coverage", function () {
       const alive = await isSessionAlive(driver, 100);
       assert.equal(alive, true);
       assert.ok(Date.now() - start < 2000, "probe should return promptly, not hang");
+    });
+  });
+
+  describe("isPageBroken", function () {
+    const brokenDriver = (url) => ({ getUrl: async () => url });
+    it("returns true for a browser crash/error page", async function () {
+      for (const url of [
+        "chrome-error://chromewebdata/",
+        "about:neterror?e=dnsNotFound&u=http%3A//x",
+        "about:certerror?e=nssBadCert",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), true, url);
+      }
+    });
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), false, url);
+      }
+    });
+    it("does NOT treat about:blank as broken (a test may legitimately be there)", async function () {
+      assert.equal(await isPageBroken(brokenDriver("about:blank")), false);
+    });
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageBroken({}), false);
+      assert.equal(await isPageBroken(null), false);
+      assert.equal(
+        await isPageBroken({ getUrl: async () => { throw new Error("invalid session id"); } }),
+        false
+      );
     });
   });
 

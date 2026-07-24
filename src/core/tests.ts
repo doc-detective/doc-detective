@@ -44,6 +44,7 @@ import {
   evaluateContextRequirements,
   isRetryableSessionError,
   isSessionAlive,
+  isPageBroken,
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
@@ -5005,8 +5006,35 @@ async function runContext({
     if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
       const probeDriver =
         sessionDrivers(browserSessions, driver)[0] ?? appSession?.recordingHost;
-      if (probeDriver && !(await isSessionAlive(probeDriver))) {
-        sessionDiedMidRun = true;
+      if (probeDriver) {
+        if (!(await isSessionAlive(probeDriver))) {
+          sessionDiedMidRun = true;
+        } else if (await isPageBroken(probeDriver)) {
+          // Alive but on a browser crash/error page (renderer crash →
+          // chrome-error): the session responds but the page under test is gone.
+          // Retry on a fresh session like a dead session.
+          sessionDiedMidRun = true;
+          clog(
+            "debug",
+            "Context session is alive but on a browser error page; treating it as a broken context for retry."
+          );
+        } else if (
+          logLevelEnabled(config, "debug") &&
+          typeof probeDriver.getUrl === "function"
+        ) {
+          // Diagnostic for the not-yet-covered alive-but-same-URL-blank mode: log
+          // the page URL of a live-session FAIL that was NOT retried, so a
+          // recurring flake (e.g. recording `annotate`) reveals whether its page
+          // crashed to an error page (now retried) or just blanked at the same URL.
+          try {
+            clog(
+              "debug",
+              `Context FAILed on a live, non-error-page session (url=${await probeDriver.getUrl()}); not retried.`
+            );
+          } catch {
+            /* best-effort diagnostic */
+          }
+        }
       }
     }
   } finally {

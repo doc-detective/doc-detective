@@ -81,9 +81,17 @@ so a post-`find`-failure probe would catch the death. Widen `isRetryableSessionE
 
 **Cost:** one extra driver round-trip only on the *failure* path (never on green steps) — negligible.
 
-*Open v2 consideration:* a session that is alive but on a blank/crashed page (probe succeeds, DOM empty).
-Rare, and ambiguous with a real failure; v1 treats it as a real FAIL. A later refinement could also assert
-the current URL matches the last `goTo` target.
+**v2 — alive but broken page (partially addressed).** A session can respond (probe succeeds) while the
+browser sits on a crash/error page instead of the page under test. **v2 (`isPageBroken`) covers the
+unambiguous case:** a browser **error page** — `chrome-error://chromewebdata/` (renderer crash),
+`about:neterror`/`about:certerror` (Firefox) — is treated as broken and retried, because a test is never
+legitimately on one (no false positives). A URL-match against the last `goTo` was rejected: `driver.state.url`
+is only maintained in the annotation-persistence path (`tests.ts:5550`), not per navigation, so it isn't a
+reliable "expected URL". The remaining, **not-yet-covered** case is a page that blanked *at the same URL*
+(session alive, URL unchanged, DOM emptied) — ambiguous with a genuine "element not on a correctly-loaded
+page" failure, so v2 still treats it as a real FAIL. A debug diagnostic logs the page URL of any live,
+non-error-page FAIL that isn't retried, so a recurring flake (e.g. the recording `annotate` legs) reveals
+which mode it actually is before a v3 heuristic is designed.
 
 ## 4. Retry mechanism — in-place, pool-safe (considered; shipped as re-invoke)
 

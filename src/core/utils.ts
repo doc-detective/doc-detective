@@ -54,6 +54,7 @@ export {
   compileFilter,
   isRetryableSessionError,
   isSessionAlive,
+  isPageBroken,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -870,6 +871,29 @@ async function isSessionAlive(
     return !isRetryableSessionError(message);
   } finally {
     if (timer) clearTimeout(timer);
+  }
+}
+
+// Browser error pages a renderer crash or failed navigation lands on. A test is
+// never legitimately on one, so they unambiguously signal a broken page.
+const BROWSER_ERROR_PAGE = /^(chrome-error:|about:neterror|about:certerror)/i;
+
+// Companion to isSessionAlive for the "alive but broken page" retry case: the
+// session responds (getPageSource succeeds), but the browser sits on a crash /
+// error page instead of the page under test (a renderer crash navigates to
+// `chrome-error://chromewebdata/`; Firefox to `about:neterror`/`about:certerror`).
+// True ONLY for an unambiguous browser error page — NOT `about:blank`, which a
+// test may legitimately be on, so a genuine "element not on a correctly-loaded
+// page" failure still FAILs and is never retried. App/mobile sessions have no URL
+// and a thrown `getUrl` (dead session, already caught by isSessionAlive) both
+// yield false.
+async function isPageBroken(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    const url = String((await driver.getUrl()) ?? "");
+    return BROWSER_ERROR_PAGE.test(url);
+  } catch {
+    return false;
   }
 }
 
