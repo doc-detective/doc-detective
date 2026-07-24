@@ -14,10 +14,10 @@ description: "Reference for the `Element selector (chained)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-tag | one of:<br/>- string<br/>- array of string | Optional. No description provided. | —
+tag | one of:<br/>- string<br/>- array of string | Optional. Element/component name(s) to match. | —
 attributes | object | Optional. Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`. | —
-contentMatches | string | Optional. No description provided.<br/><br/>Minimum length: 1 | —
-contentExcludes | string | Optional. No description provided.<br/><br/>Minimum length: 1 | —
+contentMatches | string | Optional. Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.<br/><br/>Minimum length: 1 | —
+contentExcludes | string | Optional. Regular expression the element's inner content must not match.<br/><br/>Minimum length: 1 | —
 
 ## Examples
 

@@ -940,9 +940,11 @@
         "additionalProperties": false,
         "properties": {
           "comment": {
+            "description": "Match comment nodes (non-rendered author notes).",
             "$ref": "#/components/schemas/selectorContentFilter"
           },
           "codeBlock": {
+            "description": "Match fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
             "anyOf": [
               {
                 "type": "string"
@@ -953,21 +955,27 @@
             ]
           },
           "link": {
+            "description": "Match hyperlink nodes.",
             "$ref": "#/components/schemas/selectorLinkCore"
           },
           "image": {
+            "description": "Match image nodes.",
             "$ref": "#/components/schemas/selectorImageCore"
           },
           "strong": {
+            "description": "Match bold/strong text nodes.",
             "$ref": "#/components/schemas/selectorEmphasisCore"
           },
           "emphasis": {
+            "description": "Match italic/emphasis text nodes.",
             "$ref": "#/components/schemas/selectorEmphasisCore"
           },
           "text": {
+            "description": "Match prose text runs (never inside code blocks or comments).",
             "$ref": "#/components/schemas/selectorContentFilter"
           },
           "element": {
+            "description": "Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
             "anyOf": [
               {
                 "type": "string",
@@ -1028,10 +1036,12 @@
         "additionalProperties": false,
         "properties": {
           "url": {
+            "description": "Regular expression the link destination must match.",
             "type": "string",
             "minLength": 1
           },
           "text": {
+            "description": "Regular expression the link text must match.",
             "type": "string",
             "minLength": 1
           },
@@ -1046,10 +1056,12 @@
         "additionalProperties": false,
         "properties": {
           "src": {
+            "description": "Regular expression the image source must match.",
             "type": "string",
             "minLength": 1
           },
           "alt": {
+            "description": "Regular expression the image alt text must match.",
             "type": "string",
             "minLength": 1
           },
@@ -1064,6 +1076,7 @@
         "additionalProperties": false,
         "properties": {
           "text": {
+            "description": "Regular expression the node's text must match.",
             "type": "string",
             "minLength": 1
           }
@@ -1075,6 +1088,7 @@
         "additionalProperties": false,
         "properties": {
           "tag": {
+            "description": "Element/component name(s) to match.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/stringOrArray"
@@ -1085,10 +1099,12 @@
             "$ref": "#/components/schemas/selectorAttributes"
           },
           "contentMatches": {
+            "description": "Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.",
             "type": "string",
             "minLength": 1
           },
           "contentExcludes": {
+            "description": "Regular expression the element's inner content must not match.",
             "type": "string",
             "minLength": 1
           }
@@ -1110,9 +1126,11 @@
             "additionalProperties": false,
             "properties": {
               "comment": {
+                "description": "Read statements from comment nodes (non-rendered author notes).",
                 "$ref": "#/components/schemas/selectorContentFilter"
               },
               "codeBlock": {
+                "description": "Read statements from fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
                 "anyOf": [
                   {
                     "type": "string"
@@ -1123,21 +1141,27 @@
                 ]
               },
               "link": {
+                "description": "Read statements from hyperlink nodes.",
                 "$ref": "#/components/schemas/selectorLinkCore"
               },
               "image": {
+                "description": "Read statements from image nodes.",
                 "$ref": "#/components/schemas/selectorImageCore"
               },
               "strong": {
+                "description": "Read statements from bold/strong text nodes.",
                 "$ref": "#/components/schemas/selectorEmphasisCore"
               },
               "emphasis": {
+                "description": "Read statements from italic/emphasis text nodes.",
                 "$ref": "#/components/schemas/selectorEmphasisCore"
               },
               "text": {
+                "description": "Read statements from prose text runs (never inside code blocks or comments).",
                 "$ref": "#/components/schemas/selectorContentFilter"
               },
               "element": {
+                "description": "Read statements from a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
                 "anyOf": [
                   {
                     "type": "string",
@@ -1249,7 +1273,7 @@
             ]
           },
           "ignoreStart": {
-            "description": "Regular expressions that indicates that the following content should be ignored for testing purposes.",
+            "description": "Regular expressions that indicate that the following content should be ignored for testing purposes.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/stringOrArray"
