@@ -37,7 +37,12 @@ const generatedSchemaFiles = new Set();
 // Output directory (Fern content path)
 const outputDir = path.resolve(__dirname, "../fern/pages/reference/schemas");
 
-// Base URL path that generated cross-links point at (Fern route, not Docusaurus)
+// Content under fern/pages is MDX — see the "Documentation pages" rule in
+// docs/AGENTS.md, which forbids the .md extension.
+const pageExt = ".mdx";
+
+// Base URL path that generated cross-links point at (Fern route, not Docusaurus).
+// Hrefs are extensionless, so pageExt doesn't reach them.
 const linkBase = "/reference/schemas";
 
 // Map for tracking parent-child relationships
@@ -449,11 +454,21 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
     description += `<br/><br/>${constraints.join(". ")}`;
   }
 
-  // Format default value
-  let defaultValue = "";
+  // Format default value. A property with no schema default still has to fill the
+  // Default column — an empty final cell leaves a three-cell row under the
+  // four-column header, which markdownlint flags as MD055/MD056.
+  let defaultValue = "—";
   if (propSchema.default !== undefined) {
-    if (typeof propSchema.default === "object") {
+    if (propSchema.default !== null && typeof propSchema.default === "object") {
+      // Objects and arrays are rendered as JSON in a double-backtick span so a
+      // `{}` or `[]` body doesn't itself close the span. `null` is typeof
+      // "object" but has no braces, so it takes the single-backtick path below.
       defaultValue = `\`\`${JSON.stringify(propSchema.default)}\`\``;
+    } else if (propSchema.default === "") {
+      // An empty-string default interpolates to a bare "``", which is malformed
+      // markdown and tells the reader nothing. Show the quotes so it reads as
+      // "defaults to the empty string".
+      defaultValue = '`""`';
     } else {
       defaultValue = `\`${propSchema.default}\``;
     }
@@ -612,9 +627,7 @@ async function main() {
 
     // Generate schema paths
     for (const [schemaId, _] of Object.entries(extractedSchemas)) {
-      const fileName = `${createValidFileName(schemaId)}.md`;
-      const pathWithoutExt = fileName.replace(".md", "");
-      schemaPaths.set(schemaId, `${linkBase}/${pathWithoutExt}`);
+      schemaPaths.set(schemaId, `${linkBase}/${createValidFileName(schemaId)}`);
     }
   }
 
@@ -633,7 +646,7 @@ async function main() {
     content = content.replace(/\n{3,}/g, "\n\n").replace(/\s+$/, "") + "\n";
 
     // Determine file name
-    const fileName = `${createValidFileName(schemaId)}.md`;
+    const fileName = `${createValidFileName(schemaId)}${pageExt}`;
     // Write file
     const filePath = path.join(outputDir, fileName);
     fs.writeFileSync(filePath, content);
@@ -643,10 +656,14 @@ async function main() {
   }
 
   // Prune stale pages: this directory is owned entirely by the generator, so any
-  // *.md no longer produced (schema removed or renamed) is dead and must go —
+  // page no longer produced (schema removed or renamed) is dead and must go —
   // otherwise the drift check can't catch it (the file is unchanged, not new).
+  // Both extensions are pruned, not just pageExt: these pages were `.md` before
+  // the move to `.mdx`, so this clears the pre-rename files instead of orphaning
+  // them beside their replacements.
   for (const existing of fs.readdirSync(outputDir)) {
-    if (existing.endsWith(".md") && !generatedSchemaFiles.has(existing)) {
+    const isPage = existing.endsWith(".mdx") || existing.endsWith(".md");
+    if (isPage && !generatedSchemaFiles.has(existing)) {
       fs.unlinkSync(path.join(outputDir, existing));
       console.log(`Removed stale schema file: ${existing}`);
     }

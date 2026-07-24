@@ -56,6 +56,7 @@ export {
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
+  shouldFailRun,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -899,6 +900,16 @@ function selectSpecsForRun(specs: any[], config: any): any[] {
     out.push({ ...spec, tests: filteredTests });
   }
   return out;
+}
+
+// The exitOnFail gate. Keys on summary.specs.fail — the roll-up equivalent of
+// the fixture gate's per-spec FAIL check (scripts/check-fixture-results.cjs).
+// WARNING/SKIPPED and a zero-spec run (e.g. a filter matching nothing) are not
+// failures. Defensive: a missing/malformed summary yields false, never a
+// spurious build failure.
+function shouldFailRun(results: any): boolean {
+  const failCount = results?.summary?.specs?.fail;
+  return typeof failCount === "number" && failCount > 0;
 }
 
 function isRelativeUrl(url: string) {

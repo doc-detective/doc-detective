@@ -11,7 +11,7 @@ decision-makers: doc-detective maintainers
 The `click` action accepts three shapes: `true`, a detailed object (`{ "click": { "elementText": … } }`),
 and a **string shorthand** (`{ "click": "Some text" }`) that finds an element by selector / text /
 aria / id / test id and clicks it. All three are documented in
-[docs/fern/pages/reference/schemas/click.md](../docs/fern/pages/reference/schemas/click.md).
+[docs/fern/pages/reference/schemas/click.mdx](../docs/fern/pages/reference/schemas/click.mdx).
 
 `clickElement` ([src/core/tests/click.ts](../src/core/tests/click.ts)) delegates to `findElement`
 with `click: true` so the click runs as a sub-effect of the find. But `findElement`
@@ -84,7 +84,7 @@ text, selector, and regex shorthand permutations plus the object form for parity
 ## Docs impact
 
 None. The string shorthand is already documented as clicking the element
-([click.md](../docs/fern/pages/reference/schemas/click.md) example `{ "click": "Submit" }`); this fix
+([click.mdx](../docs/fern/pages/reference/schemas/click.mdx) example `{ "click": "Submit" }`); this fix
 restores the documented behavior. No page, flag, or output changes.
 
 ## Pros and Cons of the Options

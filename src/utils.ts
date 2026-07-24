@@ -166,6 +166,12 @@ function buildYargs(args: any): any {
         "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
       type: "string",
     })
+    .option("exit-on-fail", {
+      alias: "e",
+      description:
+        "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
+      type: "boolean",
+    })
     .version(require("../package.json").version)
     .help()
     .alias("help", "h");
@@ -415,6 +421,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   }
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
+  }
+  if (typeof args.exitOnFail === "boolean") {
+    config.exitOnFail = args.exitOnFail;
   }
   if (typeof args.autoScreenshot === "boolean") {
     config.autoScreenshot = args.autoScreenshot;

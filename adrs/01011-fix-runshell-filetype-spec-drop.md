@@ -32,7 +32,7 @@ carried a valid test, but was **never pushed to `specs`**: a `runShell`-typed fi
 spec, and therefore no test ever ran for it.
 
 The documented contract — a `runShell` fileType "performs a runShell step for this file type"
-([File type (executable)](../docs/fern/pages/reference/schemas/file-type-executable.md)) — was always
+([File type (executable)](../docs/fern/pages/reference/schemas/file-type-executable.mdx)) — was always
 the intent. This is a control-flow bug (a `continue` placed before the push), not a contract change.
 
 ## Decision Drivers
@@ -90,7 +90,7 @@ confirms non-runShell detection is unaffected.
 
 This restores **user-facing behavior**: a custom `runShell` fileType now actually emits a runnable
 test rather than silently producing nothing. The generated reference page
-[File type (executable)](../docs/fern/pages/reference/schemas/file-type-executable.md) already
+[File type (executable)](../docs/fern/pages/reference/schemas/file-type-executable.mdx) already
 documents the field as performing "a runShell step for this file type" — i.e. the page describes the
 now-honored contract, so **no documentation page requires changes**. No config/CLI flag, output
 format, or default is added or altered.

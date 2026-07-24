@@ -97,18 +97,26 @@ The file names inside the folder are constant—the run ID lives in the folder n
 This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
 
 <Warning>
-The standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code reports success even when documentation tests failed.
+By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code reports success even when documentation tests failed—unless you opt in with `--exit-on-fail`.
 </Warning>
 
 To gate your build, choose one of these approaches:
 
-- **Use the GitHub Action.** Set its `exit_on_fail` input to `true` so the job fails when tests fail. See the [GitHub Action guide](/docs/ci/github-action).
-- **Parse the JSON results.** Read the `summary` object from the `json` reporter's output and fail the step yourself when any `fail` count is greater than zero. This works on any CI platform.
+- **Set `--exit-on-fail` (least setup, works on any CI).** Pass the flag (or set `exitOnFail: true` in your config) and the CLI exits with code `1` whenever a spec fails, so the job fails like a broken unit test. `WARNING` results are non-fatal and never trigger a non-zero exit. It works the same everywhere—GitLab CI, Jenkins, CircleCI, or a bare shell.
 
 ```bash
-doc-detective --input ./docs --reporters json --output results.json
-node -e "process.exit(require('./results.json').summary.tests.fail > 0 ? 1 : 0)"
+doc-detective --input ./docs --exit-on-fail
 ```
+
+- **Use the GitHub Action.** Set its `exit_on_fail` input to `true` so the job fails when tests fail. See the [GitHub Action guide](/docs/ci/github-action).
+- **Parse the JSON results.** Read the `summary` object from the `json` reporter's output and fail the step yourself when any `fail` count is greater than zero. Useful when you want custom logic beyond a pass/fail gate.
+
+```bash
+doc-detective --input ./docs --reporters json --output results.json && \
+  node -e "process.exit(require('./results.json').summary.specs.fail > 0 ? 1 : 0)"
+```
+
+The `&&` runs the check only if Doc Detective itself exited cleanly, so a crash or a broken config (a non-zero exit) still fails the step—the results parse never hides it.
 
 ## Verify it works
 

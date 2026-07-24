@@ -32,6 +32,7 @@ import {
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
+  shouldFailRun,
   findFreePort,
   evaluateContextRequirements,
 } from "../dist/core/utils.js";
@@ -102,6 +103,34 @@ describe("core/utils coverage", function () {
       assert.deepEqual(out, []);
       const out2 = selectSpecsForRun([{ specId: "x" }], { testFilter: ["y"] });
       assert.deepEqual(out2, []);
+    });
+  });
+
+  describe("shouldFailRun", function () {
+    it("returns true when the spec fail count is greater than zero", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 1, fail: 2, warning: 0, skipped: 0 } } }),
+        true
+      );
+    });
+    it("returns false when there are no spec failures", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 3, fail: 0, warning: 0, skipped: 1 } } }),
+        false
+      );
+    });
+    it("treats warnings as non-fatal (fail stays 0)", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 0, fail: 0, warning: 5, skipped: 0 } } }),
+        false
+      );
+    });
+    it("returns false for a missing or malformed results/summary shape", function () {
+      assert.equal(shouldFailRun(undefined), false);
+      assert.equal(shouldFailRun(null), false);
+      assert.equal(shouldFailRun({}), false);
+      assert.equal(shouldFailRun({ summary: {} }), false);
+      assert.equal(shouldFailRun({ summary: { specs: {} } }), false);
     });
   });
 

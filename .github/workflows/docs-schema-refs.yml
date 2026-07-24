@@ -43,7 +43,7 @@ jobs:
         run: |
           untracked="$(git ls-files --others --exclude-standard -- docs/fern/pages/reference/schemas)"
           if ! git diff --quiet -- docs/fern/pages/reference/schemas || [ -n "$untracked" ]; then
-            echo "::error::Schema reference pages are out of date. Run 'npm run docs:build-schema-refs' and commit the result. Do not hand-edit docs/fern/pages/reference/schemas/*.md."
+            echo "::error::Schema reference pages are out of date. Run 'npm run docs:build-schema-refs' and commit the result. Do not hand-edit docs/fern/pages/reference/schemas/*.mdx."
             git --no-pager diff --stat -- docs/fern/pages/reference/schemas
             [ -n "$untracked" ] && { echo "Untracked generated pages:"; echo "$untracked"; }
             exit 1
