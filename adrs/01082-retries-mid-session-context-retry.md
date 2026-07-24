@@ -4,7 +4,7 @@ date: 2026-07-24
 decision-makers: doc-detective maintainers
 ---
 
-# `retries`: retry a whole context on a fresh session when the session dies mid-run
+# `retries`: retry a whole context on a fresh session when the session dies or the page breaks mid-run
 
 ## Context and Problem Statement
 
@@ -46,15 +46,23 @@ a legitimate test failure?
 Chosen: **A**. A new **`retries`** policy (config + context, default **1**, `0` disables), resolved by
 `resolveRetryPolicy` (context overrides config, via `??` so an explicit `0` is preserved). Behavior:
 
-1. **Detection — active liveness probe.** A dead session's step FAIL is indistinguishable at the result
+1. **Detection — active probe, two modes.** A bad-session step FAIL is indistinguishable at the result
    level from a real assertion FAIL (handlers catch driver errors and return FAIL), and the headline
-   symptom (a `find` timing out on a dead DOM) carries no session-error string, so string-matching is
-   insufficient. After the step loop, if any step FAILed, `runContext` probes the session **while it is
-   still registered, before teardown** with a session-scoped, driver-agnostic command
-   (`isSessionAlive` → `getPageSource`, valid for browser/webview/native; **not** `status`, which queries
-   the Appium *server*). A dead session sets a non-enumerable `_sessionDied` hint on the FAIL report;
-   `isRetryableSessionError` is widened with `invalid session id` / `no such session` / `chrome not
-   reachable` / `session deleted because of page crash`.
+   symptom (a `find` timing out) carries no session-error string, so string-matching is insufficient.
+   After the step loop, if any step FAILed, `runContext` probes **while the session is still registered,
+   before teardown**, and sets a non-enumerable `_sessionDied` hint on the FAIL report when either mode
+   fires:
+   - **Dead session** — `isSessionAlive` runs a session-scoped, driver-agnostic command
+     (`getPageSource`, valid for browser/webview/native; **not** `status`, which queries the Appium
+     *server*). A classified throw means the session is gone; `isRetryableSessionError` is widened with
+     `invalid session id` / `no such session` / `chrome not reachable` / `session deleted because of page
+     crash`.
+   - **Alive but broken page** — if the session responds, `isPageBroken` checks the current URL: an
+     unambiguous browser **error page** (`chrome-error://chromewebdata/` on a renderer crash;
+     `about:neterror` / `about:certerror` on Firefox) means the page under test is gone → retry. Only
+     error pages count — `about:blank` is **not** treated as broken, so a genuine "element not on a
+     correctly-loaded page" failure still FAILs. A URL-match against the last `goTo` was rejected:
+     `driver.state.url` isn't maintained per navigation, so it isn't a reliable expected URL.
 2. **Retry — re-invoke, not in-place.** `runContextWithRetries` wraps the `runContext` call at both job
    sites (`runJob`, `runRoutedJob`). On a `FAIL` report carrying `_sessionDied`, within budget, it
    re-invokes `runContext` — which re-runs setup, re-provisions every session, and restarts recordings
@@ -67,30 +75,33 @@ Chosen: **A**. A new **`retries`** policy (config + context, default **1**, `0` 
 
 ### Consequences
 
-* Good: eliminates the **dead-session** mid-run flake mode (the `getRunner` `ECONNREFUSED` case) for
+* Good: eliminates the **dead-session** mid-run flake mode (the `getRunner` `ECONNREFUSED` case) **and**
+  the **broken-page-via-error-page** mode (a renderer crash that navigates to `chrome-error://`) for
   fixtures and real users; a single opt-out (`retries: 0`) restores byte-identical single-attempt
-  behavior. (The alive-but-broken-page mode is not covered — see the limits below.)
+  behavior.
 * Good: re-invoke reuses the entire existing setup/teardown/recording path, so multi-surface, app/mobile,
   and recording contexts retry correctly with no deep surgery in `runContext`'s step loop.
 * Good: the active probe means retries can never hide a real assertion failure.
 * Neutral: the pool port churns on a retry (release→re-acquire); safe under concurrency (progress
   guaranteed), a negligible cost paid only on the failure path.
-* Bad/limit: a session that is *alive but on a blank/crashed page* (probe succeeds, but the expected DOM
-  is gone) is treated as a real FAIL and not retried — a deliberate v1 scope; a later page-integrity /
-  URL-match refinement (v2) could cover it. **CI evidence (PR #680) shows the `windows-latest` recording
-  `annotate` flake is exactly this case, not the dead-session case:** its `find` steps time out while the
-  probe's `getPageSource` still succeeds, so v1 correctly does not retry it. This ADR therefore fixes the
-  **dead-session** mode (the `getRunner` `ECONNREFUSED` flake, PR #678) but **not** the recording
-  `annotate` flake, which is a distinct alive-but-broken-page mode left for v2. My original framing of the
-  three flakes as one root cause was wrong: they split into dead-session (fixed here) and
-  alive-but-broken-page (recording; v2).
+* Bad/limit: one alive-but-broken-page sub-case remains uncovered — a page that **blanks at the same
+  URL** (session responds, URL unchanged, DOM emptied). It's ambiguous with a genuine "element not on a
+  correctly-loaded page" failure, so it is treated as a real FAIL and not retried. CI (PR #680) showed the
+  `windows-latest` recording `annotate` flake is the alive-but-broken-page mode (its `find` times out
+  while `getPageSource` still succeeds); the error-page detection now covers the renderer-crash variant of
+  it, and a **debug diagnostic** logs the URL of any live, non-error-page FAIL that isn't retried, so if
+  the recording flake turns out to be the same-URL-blank variant the logs will reveal it for a follow-up
+  heuristic. (The three flakes split into two modes — dead-session and alive-but-broken-page — not one
+  root cause as first framed.)
 * Bad/limit: the probe adds one `getPageSource` round-trip on any failing context (failure path only).
 
 ### Confirmation
 
-Red→green unit tests: `isRetryableSessionError` mid-run markers and `isSessionAlive` (probe resolves →
-alive; classified session-death throw → dead; non-session throw → alive; null driver → dead) in
-`test/core-utils-coverage.test.js`; `resolveRetryPolicy` (context-over-config, default 1, **explicit 0
+Red→green unit tests: `isRetryableSessionError` mid-run markers, `isSessionAlive` (probe resolves →
+alive; classified session-death throw → dead; non-session throw → alive; wedged/timeout → alive; null
+driver → dead), and `isPageBroken` (browser error page → broken; normal page & `about:blank` → not
+broken; no-`getUrl`/throwing driver → not broken) in `test/core-utils-coverage.test.js`;
+`resolveRetryPolicy` (context-over-config, default 1, **explicit 0
 preserved**) and `runContextWithRetries` (retry-on-dead-session → PASS; **no retry on a live-session
 FAIL**; budget exhaustion; `retries: 0` disables; **non-idempotent context fields restored** before each
 retry) in `test/browser-fallback.test.js`; `config_v3` positive/negative/default `retries` cases in
