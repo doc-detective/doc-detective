@@ -134,9 +134,10 @@ On a confirmed dead-session FAIL within budget:
 5. The existing `finally` (`4974-5042`) remains the **terminal** cleanup (final recordings stop, session
    sweep, app teardown, **pool release**) — unchanged.
 
-If retries are exhausted, the **last** attempt's FAIL stands, annotated so the report says *why* (e.g.
-`resultDescription` suffixed "(session died and could not be recovered after N retries)") so a genuine
-red is never silently swallowed.
+If retries are exhausted, the **last** attempt's FAIL stands (a genuine red is never silently swallowed).
+As shipped, `runContextWithRetries` records the count on the returned report — `contextReport.retries = N`
+when any retry ran (visible on both a recovered PASS and an exhausted FAIL) — and logs a `warning` per
+attempt; it does not rewrite `resultDescription`.
 
 ## 5. State that must be reset per retry
 

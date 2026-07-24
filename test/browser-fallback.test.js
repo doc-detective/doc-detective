@@ -199,13 +199,23 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
   // A fake runContext that FAILs with the retry hint for the first `failTimes`
   // attempts, then PASSes. Mirrors runContext's returned report shape; the
   // wrapper reads `_sessionDied` by property access.
+  // No-op backoff so these tests don't pay the real 500ms-per-attempt sleep.
+  const noDelay = () => 0;
   function fakeRunContext({ failTimes, died = true }) {
     let calls = 0;
     const fn = async (args) => {
       calls++;
       if (calls <= failTimes) {
         const report = { result: "FAIL", contextId: args.context.contextId, steps: [] };
-        if (died) report._sessionDied = true;
+        // Match production: the wrapper reads `_sessionDied` by name, and it is
+        // non-enumerable on the real report.
+        if (died) {
+          Object.defineProperty(report, "_sessionDied", {
+            value: true,
+            enumerable: false,
+            configurable: true,
+          });
+        }
         return report;
       }
       return { result: "PASS", contextId: args.context.contextId, steps: [] };
@@ -214,41 +224,48 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
     return fn;
   }
 
-  it("retries a dead-session FAIL and returns the fresh-session PASS", async function () {
+  it("retries a dead-session FAIL and returns the fresh-session PASS, stamping retries", async function () {
     const fn = fakeRunContext({ failTimes: 1 });
     const report = await runContextWithRetries(
       { context: { contextId: "c1" }, config: { retries: 1 } },
-      fn
+      fn,
+      noDelay
     );
     assert.equal(report.result, "PASS");
     assert.equal(fn.calls(), 2, "should have retried once");
+    assert.equal(report.retries, 1, "recovered report should record 1 retry");
   });
 
   it("does NOT retry a live-session FAIL (no _sessionDied) — a real bug still fails", async function () {
     const fn = fakeRunContext({ failTimes: 1, died: false });
     const report = await runContextWithRetries(
       { context: { contextId: "c1" }, config: { retries: 3 } },
-      fn
+      fn,
+      noDelay
     );
     assert.equal(report.result, "FAIL");
     assert.equal(fn.calls(), 1, "a live-session assertion FAIL must not retry");
+    assert.equal(report.retries, undefined, "no retries stamped when none happened");
   });
 
   it("stops after exhausting the retries budget, returning the last FAIL", async function () {
     const fn = fakeRunContext({ failTimes: 99 }); // always dies
     const report = await runContextWithRetries(
       { context: { contextId: "c1" }, config: { retries: 2 } },
-      fn
+      fn,
+      noDelay
     );
     assert.equal(report.result, "FAIL");
     assert.equal(fn.calls(), 3, "1 initial attempt + 2 retries");
+    assert.equal(report.retries, 2, "exhausted report should record 2 retries");
   });
 
   it("does not retry when retries is 0 (disabled)", async function () {
     const fn = fakeRunContext({ failTimes: 1 });
     const report = await runContextWithRetries(
       { context: { contextId: "c1" }, config: { retries: 0 } },
-      fn
+      fn,
+      noDelay
     );
     assert.equal(report.result, "FAIL");
     assert.equal(fn.calls(), 1);
@@ -268,13 +285,17 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
       args.context.browser = { name: "firefox" }; // narrowed fallback
       if (seen.length === 1) {
         const r = { result: "FAIL", steps: [] };
-        r._sessionDied = true;
+        Object.defineProperty(r, "_sessionDied", {
+          value: true,
+          enumerable: false,
+          configurable: true,
+        });
         return r;
       }
       return { result: "PASS", steps: [] };
     };
     const context = { contextId: "c1", browser: { name: "chrome" } };
-    await runContextWithRetries({ context, config: { retries: 1 } }, fn);
+    await runContextWithRetries({ context, config: { retries: 1 } }, fn, noDelay);
     assert.equal(seen.length, 2, "should have run twice");
     assert.equal(seen[1].openApiLen, 0, "openApi restored, not accumulated");
     assert.deepEqual(

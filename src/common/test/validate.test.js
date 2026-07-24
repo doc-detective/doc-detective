@@ -803,7 +803,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
 
       it("should reject a config_v3 object whose retries is negative or non-integer", function () {
-        for (const retries of [-1, 1.5, "two"]) {
+        for (const retries of [-1, 11, 1.5, "two"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { retries },
@@ -2505,7 +2505,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
 
       it("should reject a context_v3 object whose retries is negative or non-integer", function () {
-        for (const retries of [-1, 1.5, "two"]) {
+        for (const retries of [-1, 11, 1.5, "two"]) {
           const result = validate({
             schemaKey: "context_v3",
             object: { platforms: ["linux"], retries },

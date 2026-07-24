@@ -5004,12 +5004,18 @@ async function runContext({
     // live session means the FAIL is real and stands. Recording sweeps already
     // ran above, so the probe never races an in-flight capture.
     if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
-      const probeDriver =
-        sessionDrivers(browserSessions, driver)[0] ?? appSession?.recordingHost;
-      if (probeDriver) {
+      // Probe EVERY session the context holds — a multi-surface browser context
+      // plus an app session — not just the first, so a dead app/native session
+      // behind a live browser (or vice versa) is still caught. Retry if ANY is
+      // dead or on a browser error page.
+      const probeDrivers = sessionDrivers(browserSessions, driver);
+      if (appSession?.recordingHost) probeDrivers.push(appSession.recordingHost);
+      for (const probeDriver of probeDrivers) {
         if (!(await isSessionAlive(probeDriver))) {
           sessionDiedMidRun = true;
-        } else if (await isPageBroken(probeDriver)) {
+          break;
+        }
+        if (await isPageBroken(probeDriver)) {
           // Alive but on a browser crash/error page (renderer crash →
           // chrome-error): the session responds but the page under test is gone.
           // Retry on a fresh session like a dead session.
@@ -5018,22 +5024,26 @@ async function runContext({
             "debug",
             "Context session is alive but on a browser error page; treating it as a broken context for retry."
           );
-        } else if (
-          logLevelEnabled(config, "debug") &&
-          typeof probeDriver.getUrl === "function"
-        ) {
-          // Diagnostic for the not-yet-covered alive-but-same-URL-blank mode: log
-          // the page URL of a live-session FAIL that was NOT retried, so a
-          // recurring flake (e.g. recording `annotate`) reveals whether its page
-          // crashed to an error page (now retried) or just blanked at the same URL.
-          try {
-            clog(
-              "debug",
-              `Context FAILed on a live, non-error-page session (url=${await probeDriver.getUrl()}); not retried.`
-            );
-          } catch {
-            /* best-effort diagnostic */
-          }
+          break;
+        }
+      }
+      if (
+        !sessionDiedMidRun &&
+        probeDrivers.length > 0 &&
+        logLevelEnabled(config, "debug") &&
+        typeof probeDrivers[0].getUrl === "function"
+      ) {
+        // Diagnostic for the not-yet-covered alive-but-same-URL-blank mode: log
+        // the page URL of a live-session FAIL that was NOT retried, so a
+        // recurring flake (e.g. recording `annotate`) reveals whether its page
+        // crashed to an error page (now retried) or just blanked at the same URL.
+        try {
+          clog(
+            "debug",
+            `Context FAILed on a live, non-error-page session (url=${await probeDrivers[0].getUrl()}); not retried.`
+          );
+        } catch {
+          /* best-effort diagnostic */
         }
       }
     }
@@ -5141,6 +5151,11 @@ async function runContext({
 // fresh (contextReport is rebuilt each call; step IDs assign idempotently).
 const RUN_CONTEXT_MUTATED_KEYS = ["openApi", "browser", "__display", "__displaySize"];
 
+// SHALLOW clone — one level. Sufficient for the current RUN_CONTEXT_MUTATED_KEYS
+// (`openApi` entries are appended, never mutated in place; `browser`/`__display*`
+// are flat). If a future mutated field nests a value that runContext mutates *in
+// place*, the snapshot and the live context would share that nested reference and
+// restore wouldn't protect it — deepen this (or that key's snapshot) then.
 function cloneMutable(value: any): any {
   if (Array.isArray(value)) return [...value];
   if (value && typeof value === "object") return { ...value };
@@ -5161,7 +5176,10 @@ function cloneMutable(value: any): any {
 // injectable for unit testing. Exported for that test.
 async function runContextWithRetries(
   args: any,
-  runContextFn: (a: any) => Promise<any> = runContext
+  runContextFn: (a: any) => Promise<any> = runContext,
+  // Backoff before each retry. Injectable so unit tests pass `() => 0` instead
+  // of paying the real 500ms-per-attempt sleep.
+  delayMs: (attempt: number) => number = (attempt) => 500 * (attempt + 1)
 ): Promise<any> {
   const { context, config } = args;
   const retries = resolveRetryPolicy({ context, config });
@@ -5183,7 +5201,8 @@ async function runContextWithRetries(
   };
 
   let report: any;
-  for (let attempt = 0; ; attempt++) {
+  let attempt = 0;
+  for (; ; attempt++) {
     report = await runContextFn(args);
     const retryable = report?.result === "FAIL" && report?._sessionDied === true;
     if (!retryable || attempt >= retries) break;
@@ -5193,9 +5212,15 @@ async function runContextWithRetries(
       `Context '${context?.contextId}' session died mid-run; retrying on a fresh session (attempt ${attempt + 2} of ${retries + 1}).`
     );
     restore();
-    // Linear backoff, mirroring driverStart's session-creation retry, so a
+    // Linear backoff (mirrors driverStart's session-creation retry) so a
     // transient runner blip has a moment to clear before the fresh session.
-    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    await new Promise((resolve) => setTimeout(resolve, delayMs(attempt)));
+  }
+  // Surface how many retries were spent, so a report consumer can tell a clean
+  // PASS from one recovered after a mid-run session death (the warning log alone
+  // isn't machine-readable). Stamped only when a retry actually happened.
+  if (attempt > 0 && report && typeof report === "object") {
+    report.retries = attempt;
   }
   return report;
 }
