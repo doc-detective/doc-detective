@@ -8,6 +8,8 @@ let buildFallbackCandidates;
 let driverSkipDiagnostic;
 let ensureContextBrowserInstalled;
 let resolveBrowserFallbackPolicy;
+let resolveRetryPolicy;
+let runContextWithRetries;
 let shouldRepairBeforeFallback;
 
 before(async function () {
@@ -16,6 +18,8 @@ before(async function () {
     driverSkipDiagnostic,
     ensureContextBrowserInstalled,
     resolveBrowserFallbackPolicy,
+    resolveRetryPolicy,
+    runContextWithRetries,
     shouldRepairBeforeFallback,
   } = await import("../dist/core/tests.js"));
 });
@@ -167,6 +171,138 @@ describe("resolveBrowserFallbackPolicy (context overrides config)", function () 
 
   it("defaults to 'auto' when neither context nor config sets a policy", function () {
     assert.equal(resolveBrowserFallbackPolicy({ context: {}, config: {} }), "auto");
+  });
+});
+
+describe("resolveRetryPolicy (context overrides config, 0 preserved)", function () {
+  it("uses the context-level retries when set, overriding config", function () {
+    assert.equal(resolveRetryPolicy({ context: { retries: 3 }, config: { retries: 1 } }), 3);
+  });
+
+  it("falls back to the config-level retries when the context has none", function () {
+    assert.equal(resolveRetryPolicy({ context: {}, config: { retries: 2 } }), 2);
+  });
+
+  it("defaults to 1 when neither context nor config sets retries", function () {
+    assert.equal(resolveRetryPolicy({ context: {}, config: {} }), 1);
+  });
+
+  it("preserves an explicit 0 (disable) at either level — not treated as falsy", function () {
+    // The whole point of `??` over `||`: retries:0 must disable, not fall
+    // through to the default.
+    assert.equal(resolveRetryPolicy({ context: { retries: 0 }, config: { retries: 5 } }), 0);
+    assert.equal(resolveRetryPolicy({ context: {}, config: { retries: 0 } }), 0);
+  });
+});
+
+describe("runContextWithRetries (mid-run session-death retry)", function () {
+  // A fake runContext that FAILs with the retry hint for the first `failTimes`
+  // attempts, then PASSes. Mirrors runContext's returned report shape; the
+  // wrapper reads `_sessionDied` by property access.
+  // No-op backoff so these tests don't pay the real 500ms-per-attempt sleep.
+  const noDelay = () => 0;
+  function fakeRunContext({ failTimes, died = true }) {
+    let calls = 0;
+    const fn = async (args) => {
+      calls++;
+      if (calls <= failTimes) {
+        const report = { result: "FAIL", contextId: args.context.contextId, steps: [] };
+        // Match production: the wrapper reads `_sessionDied` by name, and it is
+        // non-enumerable on the real report.
+        if (died) {
+          Object.defineProperty(report, "_sessionDied", {
+            value: true,
+            enumerable: false,
+            configurable: true,
+          });
+        }
+        return report;
+      }
+      return { result: "PASS", contextId: args.context.contextId, steps: [] };
+    };
+    fn.calls = () => calls;
+    return fn;
+  }
+
+  it("retries a dead-session FAIL and returns the fresh-session PASS, stamping retries", async function () {
+    const fn = fakeRunContext({ failTimes: 1 });
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 1 } },
+      fn,
+      noDelay
+    );
+    assert.equal(report.result, "PASS");
+    assert.equal(fn.calls(), 2, "should have retried once");
+    assert.equal(report.retries, 1, "recovered report should record 1 retry");
+  });
+
+  it("does NOT retry a live-session FAIL (no _sessionDied) — a real bug still fails", async function () {
+    const fn = fakeRunContext({ failTimes: 1, died: false });
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 3 } },
+      fn,
+      noDelay
+    );
+    assert.equal(report.result, "FAIL");
+    assert.equal(fn.calls(), 1, "a live-session assertion FAIL must not retry");
+    assert.equal(report.retries, undefined, "no retries stamped when none happened");
+  });
+
+  it("stops after exhausting the retries budget, returning the last FAIL", async function () {
+    const fn = fakeRunContext({ failTimes: 99 }); // always dies
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 2 } },
+      fn,
+      noDelay
+    );
+    assert.equal(report.result, "FAIL");
+    assert.equal(fn.calls(), 3, "1 initial attempt + 2 retries");
+    assert.equal(report.retries, 2, "exhausted report should record 2 retries");
+  });
+
+  it("does not retry when retries is 0 (disabled)", async function () {
+    const fn = fakeRunContext({ failTimes: 1 });
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 0 } },
+      fn,
+      noDelay
+    );
+    assert.equal(report.result, "FAIL");
+    assert.equal(fn.calls(), 1);
+  });
+
+  it("restores the non-idempotent context fields (openApi/browser) before each retry", async function () {
+    // The fake mutates context the way runContext does — appends openApi and
+    // narrows browser to a fallback — so the wrapper must restore before the
+    // retry, or attempt 2 would see accumulated openApi and the narrowed engine.
+    const seen = [];
+    const fn = async (args) => {
+      seen.push({
+        openApiLen: (args.context.openApi || []).length,
+        browser: args.context.browser && { ...args.context.browser },
+      });
+      args.context.openApi = [...(args.context.openApi || []), { spec: "x" }];
+      args.context.browser = { name: "firefox" }; // narrowed fallback
+      if (seen.length === 1) {
+        const r = { result: "FAIL", steps: [] };
+        Object.defineProperty(r, "_sessionDied", {
+          value: true,
+          enumerable: false,
+          configurable: true,
+        });
+        return r;
+      }
+      return { result: "PASS", steps: [] };
+    };
+    const context = { contextId: "c1", browser: { name: "chrome" } };
+    await runContextWithRetries({ context, config: { retries: 1 } }, fn, noDelay);
+    assert.equal(seen.length, 2, "should have run twice");
+    assert.equal(seen[1].openApiLen, 0, "openApi restored, not accumulated");
+    assert.deepEqual(
+      seen[1].browser,
+      { name: "chrome" },
+      "browser restored to the originally-requested engine"
+    );
   });
 });
 

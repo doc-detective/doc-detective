@@ -7798,6 +7798,10 @@ export interface Context {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session dies mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   */
+  retries?: number;
+  /**
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */
   requires?: string | [string, ...string[]] | Requirements;

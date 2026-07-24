@@ -33,6 +33,7 @@ The guides above use the GitHub Action, but nothing about Doc Detective is GitHu
 
 - **Other CI platforms.** Any runner that executes a shell command can run Doc Detective. To gate the build, parse the JSON `summary` yourself, which works the same on GitLab CI, Jenkins, CircleCI, or anywhere else. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-5-fail-ci-when-tests-fail).
 - **Concurrency.** To raise throughput, run tests in parallel with `concurrentRunners`. Set it to `true` to use the CPU core count, capped at four. Recordings that use the `ffmpeg` engine serialize on the shared display, so use the browser recording engine when you record under concurrency. See the [`config`](/reference/schemas/config) reference.
+- **Session-death resilience.** On loaded CI runners a browser or app session occasionally drops mid-test—an early step passes, then a later step can't reach the session. Doc Detective detects this by probing whether the session still responds and re-runs the whole affected context on a fresh session, controlled by the `retries` config option (default `1`; set `0` to disable). It never retries a genuine test failure, where the session still responds normally. See the [`config`](/reference/schemas/config) reference.
 - **Distributed runs.** To orchestrate runs across machines, point Doc Detective at a remote orchestration service. See the [Orchestration API](/reference/schemas/doc-detective-orchestration-api) reference.
 
 ## What's next

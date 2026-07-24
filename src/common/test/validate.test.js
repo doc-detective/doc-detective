@@ -781,6 +781,38 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("exitOnFail");
       });
 
+      it("should validate a config_v3 object with retries set (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should default retries to 1 when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(1);
+      });
+
+      it("should reject a config_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 11, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
+      });
+
       it("should validate a config_v3 object with cacheDir set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -2446,6 +2478,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("browserFallback");
+      });
+    });
+
+    describe("context_v3 retries", function () {
+      it("should validate a context_v3 object with a retries override (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should NOT inject a default retries at the context level (inherits config when omitted)", function () {
+        // Only the config-level field defaults to 1; a context override must stay
+        // undefined when unset so resolveRetryPolicy falls through to config.
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(undefined);
+      });
+
+      it("should reject a context_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 11, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
       });
     });
 

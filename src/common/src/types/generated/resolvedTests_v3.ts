@@ -218,6 +218,10 @@ export interface Config {
    * Controls whether a context whose browser cannot start a driver session falls back to another available browser instead of being skipped. Drivers are validated by execution (not just presence) so a present-but-broken driver — for example a partially downloaded geckodriver — no longer silently skips Firefox coverage. `auto` (default): fall back to any other available browser for both auto-selected and explicitly requested browsers; a fallback away from an explicitly requested browser reports the context as `WARNING` rather than `PASS`. `explicit`: fall back only when the browser was auto-selected; an explicitly requested browser whose driver is broken is skipped with a diagnostic reason. `off`: never fall back across browsers (driver validation and diagnostic skip reasons still apply). Equivalent to `--browser-fallback` on the CLI.
    */
   browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * How many times to re-run a whole test context on a fresh session when its browser or app session dies mid-run — an early step (like `goTo`) passes, then a later step fails because the session or DOM is gone (WebDriver `ECONNREFUSED` / `invalid session id`, or an element that can't be found because the context is dead). A session death is detected by an active liveness probe, so a legitimate assertion failure (the session is alive, the element genuinely isn't there) is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.
+   */
+  retries?: number;
 }
 /**
  * A context in which to perform tests. If no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For example, if a browser isn't specified but is required by steps in the test, Doc Detective will search for and use a supported browser available in the current environment.
@@ -246,6 +250,10 @@ export interface Context {
    * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
    */
   browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session dies mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   */
+  retries?: number;
   /**
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */
@@ -1032,6 +1040,10 @@ export interface Context1 {
    * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
    */
   browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session dies mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   */
+  retries?: number;
   /**
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */
