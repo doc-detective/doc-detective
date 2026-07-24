@@ -67,15 +67,23 @@ Chosen: **A**. A new **`retries`** policy (config + context, default **1**, `0` 
 
 ### Consequences
 
-* Good: eliminates the mid-run-session-death flake class for fixtures and real users; a single opt-out
-  (`retries: 0`) restores byte-identical single-attempt behavior.
+* Good: eliminates the **dead-session** mid-run flake mode (the `getRunner` `ECONNREFUSED` case) for
+  fixtures and real users; a single opt-out (`retries: 0`) restores byte-identical single-attempt
+  behavior. (The alive-but-broken-page mode is not covered — see the limits below.)
 * Good: re-invoke reuses the entire existing setup/teardown/recording path, so multi-surface, app/mobile,
   and recording contexts retry correctly with no deep surgery in `runContext`'s step loop.
 * Good: the active probe means retries can never hide a real assertion failure.
 * Neutral: the pool port churns on a retry (release→re-acquire); safe under concurrency (progress
   guaranteed), a negligible cost paid only on the failure path.
-* Bad/limit: a session that is *alive but on a blank/crashed page* (probe succeeds, DOM empty) is treated
-  as a real FAIL and not retried — a deliberate v1 scope; a later URL-match refinement could cover it.
+* Bad/limit: a session that is *alive but on a blank/crashed page* (probe succeeds, but the expected DOM
+  is gone) is treated as a real FAIL and not retried — a deliberate v1 scope; a later page-integrity /
+  URL-match refinement (v2) could cover it. **CI evidence (PR #680) shows the `windows-latest` recording
+  `annotate` flake is exactly this case, not the dead-session case:** its `find` steps time out while the
+  probe's `getPageSource` still succeeds, so v1 correctly does not retry it. This ADR therefore fixes the
+  **dead-session** mode (the `getRunner` `ECONNREFUSED` flake, PR #678) but **not** the recording
+  `annotate` flake, which is a distinct alive-but-broken-page mode left for v2. My original framing of the
+  three flakes as one root cause was wrong: they split into dead-session (fixed here) and
+  alive-but-broken-page (recording; v2).
 * Bad/limit: the probe adds one `getPageSource` round-trip on any failing context (failure path only).
 
 ### Confirmation
