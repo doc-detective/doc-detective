@@ -1516,6 +1516,16 @@ describe("getRunner() function", function () {
   // 5 minutes per test
   this.timeout(300000);
 
+  // Every test here drives a real Appium + Chromium session (or a runTests
+  // browser flow). On constrained CI runners — notably windows-latest — that
+  // session can crash shortly after launch, surfacing as an empty getTitle()
+  // ("first runner should work" assertion) or an ECONNREFUSED on teardown: a
+  // transient infra flake, not a getRunner defect. Retry like the sibling
+  // browser suites above (this.retries(2) on the runTests cases). Retries only
+  // re-run on failure, so a deterministic bug still fails all attempts — this
+  // heals a one-off session death without masking a real regression.
+  this.retries(2);
+
   let getRunner;
 
   before(async function () {
