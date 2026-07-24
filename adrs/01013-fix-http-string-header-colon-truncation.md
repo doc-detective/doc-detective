@@ -86,7 +86,7 @@ assert normal `Name: value` parsing and the colon-less-line-skipped behavior. Th
 ## Docs impact
 
 The string-header **form** already documented in
-[docs/fern/pages/reference/schemas/httprequest.md](../docs/fern/pages/reference/schemas/httprequest.md)
+[docs/fern/pages/reference/schemas/httprequest.mdx](../docs/fern/pages/reference/schemas/httprequest.mdx)
 is unchanged — the same `"Name: value\nName: value"` shape is accepted; only the buggy truncation of
 colon-bearing values is fixed. That reference example uses colon-free values, so it is not misleading
 and needs no edit. This fix restores the documented convenience form's intended behavior; no

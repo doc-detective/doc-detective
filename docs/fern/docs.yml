@@ -123,7 +123,7 @@ navigation:
             path: pages/docs/get-started/installation.mdx
             slug: installation
           - page: Concepts
-            path: pages/docs/get-started/concepts.md
+            path: pages/docs/get-started/concepts.mdx
             slug: concepts
           - page: Create your first test
             path: pages/docs/get-started/create-your-first-test.mdx
@@ -254,7 +254,7 @@ navigation:
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom
               - page: Test across platforms & browsers
-                path: pages/docs/config/contexts.md
+                path: pages/docs/config/contexts.mdx
                 slug: platforms-and-browsers
               - page: Heretto
                 path: pages/docs/integrations/heretto.mdx
@@ -409,7 +409,7 @@ navigation:
             path: pages/legal/telemetry.mdx
             slug: /legal/telemetry
           - page: Privacy policy (Companion app)
-            path: pages/legal/privacy-policy-companion.md
+            path: pages/legal/privacy-policy-companion.mdx
             slug: /legal/privacy-policy-companion
 
 ###########
