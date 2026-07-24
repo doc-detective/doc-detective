@@ -87,7 +87,12 @@ To find the specs slowing your CI down, sort the specs by `durationMs`:
 jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' testResults-*.json
 ```
 
-When a step or context runs more than once—a step re-run by [`onFail` retry routing](/reference/schemas/routing), or a context re-run by the [`retries`](/reference/schemas/config) policy—`durationMs` reports the **final attempt**, the one the reported result describes. The `attempts` and `retries` fields tell you that earlier attempts happened, and the enclosing context's duration still includes them, so the cost of retrying stays visible. A step that never ran—skipped, guarded off, or downstream of a failure—reports `0`.
+Anything that runs more than once reports the **final attempt** in `durationMs`—the attempt the reported result describes. What that costs you depends on which kind of retry happened:
+
+- A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt, but the enclosing context's duration covers every attempt and the waits between them. Compare the two to see what the retries cost, and read `attempts` for the count.
+- A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt, and no other field absorbs the earlier ones—so the time spent on abandoned context attempts appears nowhere in the totals. The `retries` count is your signal that it happened.
+
+A step that never ran—skipped, guarded off, or downstream of a failure—reports `0`.
 
 ### Read the warm-phase timings
 

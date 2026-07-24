@@ -49,7 +49,7 @@ Three consequences:
 Chosen: **option A**. Every run, spec, test, context, and step report node carries `durationMs` —
 integer milliseconds, `readOnly`, system-populated, never authored.
 
-```
+```text
 step.durationMs    = measured wall clock of the FINAL attempt
 context.durationMs = measured wall clock of the FINAL attempt
 test.durationMs    = sum(context.durationMs)
@@ -88,8 +88,22 @@ For a step re-run by `onFail: retry` routing, or a context re-run by the `retrie
 (ADR 01082), `durationMs` is the **final attempt's** elapsed time — not the sum across attempts,
 and not including the backoff waits between them. The final attempt is the one the reported
 `result` describes, so its timing is the one that matches the verdict. The surrounding `attempts`
-and `retries` fields already tell a consumer that earlier attempts happened; a context's
-`durationMs` still spans every attempt of its *steps*, so retry cost remains visible one level up.
+and `retries` fields already tell a consumer that earlier attempts happened.
+
+The two retry levels differ in whether that discarded time is recoverable from the report, and the
+distinction is easy to state imprecisely:
+
+- **Step retries stay visible one level up.** The context clock spans every attempt of its steps
+  plus the backoff waits, so `context.durationMs - sum(step.durationMs)` is a lower bound on what
+  the retries cost.
+- **Context retries do not.** A re-run context reports only its final attempt, and because the test
+  level is a sum of those final-attempt values, no node absorbs the abandoned attempts. Time spent
+  on a context attempt that was thrown away appears nowhere in the totals; `retries` is the only
+  signal it happened.
+
+Accepted as a consequence of choosing final-attempt semantics. Summing context attempts instead
+would make `context.durationMs` describe work the reported `result` does not, which is the
+ambiguity this rule exists to avoid.
 
 ### Why `durationMs`, not `duration`
 
