@@ -172,6 +172,7 @@
       "description": "Configuration for file types and their markup detection.",
       "default": [
         "markdown",
+        "mdx",
         "asciidoc",
         "html",
         "dita"
@@ -188,6 +189,7 @@
                 "type": "string",
                 "enum": [
                   "markdown",
+                  "mdx",
                   "asciidoc",
                   "html",
                   "dita"
@@ -219,8 +221,10 @@
                     "type": "string",
                     "enum": [
                       "markdown",
+                      "mdx",
                       "asciidoc",
-                      "html"
+                      "html",
+                      "dita"
                     ]
                   },
                   "extensions": {
@@ -237,7 +241,6 @@
                   "markup": {
                     "description": "Markup definitions for the file type.",
                     "type": "array",
-                    "minItems": 1,
                     "items": {
                       "$ref": "#/components/schemas/markupDefinition"
                     }
@@ -246,12 +249,17 @@
               },
               {
                 "title": "File type (executable)",
-                "$comment": "Executable mode: Convert executable inputs directly into tests.",
+                "$comment": "Executable mode: Convert executable inputs directly into tests. additionalProperties is false so this branch can't silently absorb malformed custom file types.",
                 "type": "object",
                 "required": [
                   "extensions"
                 ],
+                "additionalProperties": false,
                 "properties": {
+                  "name": {
+                    "description": "Name of the file type.",
+                    "type": "string"
+                  },
                   "extensions": {
                     "description": "File extensions to use with type.",
                     "anyOf": [
@@ -559,7 +567,10 @@
         "title": "Environment details"
       },
       "markupDefinition": {
+        "title": "Markup definition",
+        "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "name": {
             "description": "Name of the markup definition",
@@ -573,34 +584,644 @@
               }
             ]
           },
+          "comment": {
+            "description": "Match comment nodes (non-rendered author notes).",
+            "$ref": "#/components/schemas/selectorContentFilter"
+          },
+          "codeBlock": {
+            "description": "Match fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/selectorCodeBlock"
+              }
+            ]
+          },
+          "link": {
+            "description": "Match hyperlink nodes.",
+            "$ref": "#/components/schemas/selectorLink"
+          },
+          "image": {
+            "description": "Match image nodes.",
+            "$ref": "#/components/schemas/selectorImage"
+          },
+          "strong": {
+            "description": "Match bold/strong text nodes.",
+            "$ref": "#/components/schemas/selectorEmphasis"
+          },
+          "emphasis": {
+            "description": "Match italic/emphasis text nodes.",
+            "$ref": "#/components/schemas/selectorEmphasis"
+          },
+          "text": {
+            "description": "Match prose text runs (never inside code blocks or comments).",
+            "$ref": "#/components/schemas/selectorContentFilter"
+          },
+          "element": {
+            "description": "Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/components/schemas/selectorElement"
+              }
+            ]
+          },
+          "captures": {
+            "description": "Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` (decimal group index), and `then.<field>`. If omitted, the kind's documented default capture order applies.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+|then\\.(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+))$"
+            }
+          },
           "batchMatches": {
             "description": "If `true`, all matches are combined into a single string.",
             "type": "boolean",
             "default": false
           },
           "actions": {
-            "description": "Actions to perform when the markup type is detected.",
-            "anyOf": [
+            "$ref": "#/components/schemas/markupActions"
+          }
+        },
+        "oneOf": [
+          {
+            "$comment": "Regex mode. oneOf (not anyOf) makes the modes mutually exclusive: a definition carrying both regex and a selector kind would have undefined runtime semantics, so it fails validation.",
+            "required": [
+              "regex"
+            ]
+          },
+          {
+            "$comment": "Selector mode: exactly one kind key.",
+            "oneOf": [
               {
-                "$ref": "#/components/schemas/markupActionString"
+                "required": [
+                  "comment"
+                ]
               },
               {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/markupActionString"
-                    },
-                    {
-                      "$ref": "step_v3.schema.json#"
-                    }
-                  ]
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "markupActions": {
+        "description": "Actions to perform when the markup type is detected.",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/markupActionString"
+          },
+          {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/markupActionString"
+                },
+                {
+                  "$ref": "step_v3.schema.json#"
                 }
+              ]
+            }
+          }
+        ]
+      },
+      "selectorContentFilter": {
+        "title": "Content filter selector",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "matches": {
+            "description": "Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.",
+            "type": "string",
+            "minLength": 1
+          },
+          "excludes": {
+            "description": "Regular expression the node's content must not match.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "selectorAttributes": {
+        "title": "Attribute matchers",
+        "description": "Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key=\"val\"}`): classes normalize to `class`, IDs to `id`.",
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "const": true
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "selectorCodeBlock": {
+        "title": "Code block selector",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "description": "Info-string language(s) to match. An empty string matches bare fences with no language.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "metaMatches": {
+            "description": "Regular expression the info-string tail (after the language) must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "metaExcludes": {
+            "description": "Regular expression the info-string tail must not match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "contentMatches": {
+            "description": "Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.",
+            "type": "string",
+            "minLength": 1
+          },
+          "contentExcludes": {
+            "description": "Regular expression the block content must not match.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "selectorLink": {
+        "title": "Link selector",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "Regular expression the link destination must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "description": "Regular expression the link text must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "followedBy": {
+            "$ref": "#/components/schemas/selectorFollowedBy"
+          }
+        }
+      },
+      "selectorImage": {
+        "title": "Image selector",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "src": {
+            "description": "Regular expression the image source must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "alt": {
+            "description": "Regular expression the image alt text must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "followedBy": {
+            "$ref": "#/components/schemas/selectorFollowedBy"
+          }
+        }
+      },
+      "selectorEmphasis": {
+        "title": "Strong/emphasis selector",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "Regular expression the node's text must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "followedBy": {
+            "$ref": "#/components/schemas/selectorFollowedBy"
+          }
+        }
+      },
+      "selectorElement": {
+        "title": "Element selector",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tag": {
+            "description": "Element/component name(s) to match.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "contentMatches": {
+            "description": "Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.",
+            "type": "string",
+            "minLength": 1
+          },
+          "contentExcludes": {
+            "description": "Regular expression the element's inner content must not match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "followedBy": {
+            "$ref": "#/components/schemas/selectorFollowedBy"
+          }
+        }
+      },
+      "selectorPrecededBy": {
+        "title": "Preceding-context matcher",
+        "description": "Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. \"Click **X**\").",
+        "type": "string",
+        "minLength": 1
+      },
+      "selectorFollowedBy": {
+        "title": "Following-context matcher",
+        "description": "Regular expression matched against the sibling text immediately after the node, or an object chaining a second node for sequence patterns. Chained-node fields are exposed as `then.<field>` capture paths.",
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "then"
+            ],
+            "properties": {
+              "text": {
+                "description": "Regular expression the sibling text between this node and the chained node must match.",
+                "type": "string",
+                "minLength": 1
+              },
+              "then": {
+                "$ref": "#/components/schemas/selectorNode"
+              }
+            }
+          }
+        ]
+      },
+      "selectorNode": {
+        "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
+        "title": "Selector node",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "description": "Match comment nodes (non-rendered author notes).",
+            "$ref": "#/components/schemas/selectorContentFilter"
+          },
+          "codeBlock": {
+            "description": "Match fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/components/schemas/selectorCodeBlock"
+              }
+            ]
+          },
+          "link": {
+            "description": "Match hyperlink nodes.",
+            "$ref": "#/components/schemas/selectorLinkCore"
+          },
+          "image": {
+            "description": "Match image nodes.",
+            "$ref": "#/components/schemas/selectorImageCore"
+          },
+          "strong": {
+            "description": "Match bold/strong text nodes.",
+            "$ref": "#/components/schemas/selectorEmphasisCore"
+          },
+          "emphasis": {
+            "description": "Match italic/emphasis text nodes.",
+            "$ref": "#/components/schemas/selectorEmphasisCore"
+          },
+          "text": {
+            "description": "Match prose text runs (never inside code blocks or comments).",
+            "$ref": "#/components/schemas/selectorContentFilter"
+          },
+          "element": {
+            "description": "Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/components/schemas/selectorElementCore"
               }
             ]
           }
         },
-        "title": "Markup definition"
+        "oneOf": [
+          {
+            "required": [
+              "comment"
+            ]
+          },
+          {
+            "required": [
+              "codeBlock"
+            ]
+          },
+          {
+            "required": [
+              "link"
+            ]
+          },
+          {
+            "required": [
+              "image"
+            ]
+          },
+          {
+            "required": [
+              "strong"
+            ]
+          },
+          {
+            "required": [
+              "emphasis"
+            ]
+          },
+          {
+            "required": [
+              "text"
+            ]
+          },
+          {
+            "required": [
+              "element"
+            ]
+          }
+        ]
+      },
+      "selectorLinkCore": {
+        "title": "Link selector (chained)",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "Regular expression the link destination must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "description": "Regular expression the link text must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          }
+        }
+      },
+      "selectorImageCore": {
+        "title": "Image selector (chained)",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "src": {
+            "description": "Regular expression the image source must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "alt": {
+            "description": "Regular expression the image alt text must match.",
+            "type": "string",
+            "minLength": 1
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          }
+        }
+      },
+      "selectorEmphasisCore": {
+        "title": "Strong/emphasis selector (chained)",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "Regular expression the node's text must match.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "selectorElementCore": {
+        "title": "Element selector (chained)",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tag": {
+            "description": "Element/component name(s) to match.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/stringOrArray"
+              }
+            ]
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "contentMatches": {
+            "description": "Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.",
+            "type": "string",
+            "minLength": 1
+          },
+          "contentExcludes": {
+            "description": "Regular expression the element's inner content must not match.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "statementContainer": {
+        "$comment": "Structurally a selectorNode plus the `value` field path. Duplicated rather than $ref-composed because additionalProperties: false doesn't compose across allOf — a $ref'd selectorNode couldn't admit the extra `value` property.",
+        "title": "Statement container",
+        "description": "Where inline statements live: the string \"comment\" (all comment nodes), or a selector node whose matched nodes are read as statements. `value` names the node field holding the statement text (defaults to the node's own content).",
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "comment"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "comment": {
+                "description": "Read statements from comment nodes (non-rendered author notes).",
+                "$ref": "#/components/schemas/selectorContentFilter"
+              },
+              "codeBlock": {
+                "description": "Read statements from fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/components/schemas/selectorCodeBlock"
+                  }
+                ]
+              },
+              "link": {
+                "description": "Read statements from hyperlink nodes.",
+                "$ref": "#/components/schemas/selectorLinkCore"
+              },
+              "image": {
+                "description": "Read statements from image nodes.",
+                "$ref": "#/components/schemas/selectorImageCore"
+              },
+              "strong": {
+                "description": "Read statements from bold/strong text nodes.",
+                "$ref": "#/components/schemas/selectorEmphasisCore"
+              },
+              "emphasis": {
+                "description": "Read statements from italic/emphasis text nodes.",
+                "$ref": "#/components/schemas/selectorEmphasisCore"
+              },
+              "text": {
+                "description": "Read statements from prose text runs (never inside code blocks or comments).",
+                "$ref": "#/components/schemas/selectorContentFilter"
+              },
+              "element": {
+                "description": "Read statements from a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "#/components/schemas/selectorElementCore"
+                  }
+                ]
+              },
+              "value": {
+                "description": "Field path holding the statement text, e.g. `attributes.value`. Defaults to the node's own content.",
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "comment"
+                ]
+              },
+              {
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              }
+            ]
+          }
+        ]
       },
       "markupActionString": {
         "type": "string",
@@ -627,6 +1248,14 @@
         "description": "Statements to include tests and steps inside the content of the file, such as within Markdown.",
         "type": "object",
         "properties": {
+          "in": {
+            "description": "Statement containers for structurally parsed file types: which semantic nodes are read as potential inline statements. Coexists with the regex statement properties below.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/statementContainer"
+            }
+          },
           "testStart": {
             "description": "Regular expressions that indicate the start of a test. If capture groups are used, the first capture group is used for the statement. If no capture groups are used, the entire match is used for the statement.",
             "anyOf": [
@@ -644,7 +1273,7 @@
             ]
           },
           "ignoreStart": {
-            "description": "Regular expressions that indicates that the following content should be ignored for testing purposes.",
+            "description": "Regular expressions that indicate that the following content should be ignored for testing purposes.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/stringOrArray"
@@ -690,6 +1319,42 @@
     {},
     {
       "shell": "powershell"
+    },
+    {
+      "fileTypes": [
+        "markdown",
+        {
+          "name": "markdown-rich",
+          "extensions": ["md"],
+          "inlineStatements": {
+            "in": ["comment"]
+          },
+          "markup": [
+            {
+              "name": "runCode",
+              "codeBlock": {
+                "language": ["bash", "python"],
+                "metaExcludes": "testIgnore"
+              },
+              "captures": ["language", "content"],
+              "actions": ["runCode"]
+            },
+            {
+              "name": "screenshotImage",
+              "image": {
+                "attributes": { "class": "screenshot" }
+              },
+              "captures": ["src"],
+              "actions": ["screenshot"]
+            },
+            {
+              "name": "legacyBoldText",
+              "regex": ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
+              "actions": ["find"]
+            }
+          ]
+        }
+      ]
     },
     {
       "input": ".",

@@ -1,0 +1,165 @@
+---
+title: Selector-based detection
+sidebar-title: Selectors
+description: Match tests and steps against document structure—comments, code blocks, links, images, and elements—instead of regular expressions.
+---
+
+Selectors let a [file type](/docs/input-formats/custom) match **document structure** instead of raw text. Doc Detective parses Markdown, MDX, HTML, DITA/XML, and AsciiDoc files into semantic nodes—comments, code blocks, links, images, bold and italic text, prose runs, and elements—and your configuration describes which nodes become tests and steps.
+
+Compared to regular expressions, selectors can't produce a whole class of false positives. A comment inside a code fence is code, not a statement. An image can never match a link selector. Attribute matching doesn't care about quoting style or attribute order. Regular-expression definitions remain fully supported—the two styles coexist in one file type, and existing configurations keep working unchanged.
+
+## How files get parsed
+
+Doc Detective picks a parser per file from its extension—there's nothing to configure:
+
+| Extensions | Parser |
+|---|---|
+| `md`, `markdown`, `mdown`, `mkd`, `mkdn` | Markdown (CommonMark + GFM) |
+| `mdx` | MDX (Markdown + JSX, with `{/* … */}` comments and JSX components as elements) |
+| `html`, `htm`, `xhtml` | HTML (standards-conformant) |
+| `dita`, `ditamap`, `xml` | XML (entities decoded by the parser) |
+| `adoc`, `asciidoc`, `asc` | AsciiDoc (comments, listings, macros, inline formatting) |
+
+Files with other extensions fall back to content sniffing. When no parser applies, only regular-expression definitions run for that file. If a file fails to parse (for example, malformed XML), that file degrades to regular-expression detection, and Doc Detective skips its selector definitions.
+
+## Inline statements: where they live
+
+For parsed file types, `inlineStatements.in` lists the **containers** whose text Doc Detective reads as potential statements (`test`, `test end`, `step`, `test ignore start`, `test ignore end`). One shared grammar parses the statement text. By that point, the parser has already stripped the wrapper syntax.
+
+```json
+{
+  "inlineStatements": {
+    "in": ["comment"]
+  }
+}
+```
+
+That single `"comment"` entry is the whole story for Markdown: `<!-- test -->` comments and every `[comment]: #` quote variant normalize to the same comment nodes. In MDX, `{/* test */}` expression comments do too.
+
+A container can also be a filtered node with a `value` field path when the statement text lives somewhere other than the node's content. The built-in DITA definition uses both forms:
+
+```json
+{
+  "inlineStatements": {
+    "in": [
+      "comment",
+      {
+        "element": { "tag": "data", "attributes": { "name": "doc-detective" } },
+        "value": "attributes.value"
+      }
+    ]
+  }
+}
+```
+
+And the built-in AsciiDoc definition uses a filter to keep the `// (test …)` parenthesis grammar while ignoring ordinary comments:
+
+```json
+{
+  "inlineStatements": {
+    "in": [
+      { "comment": { "matches": "^\\(\\s*([\\s\\S]*?)\\s*\\)$" }, "value": "match.1" }
+    ]
+  }
+}
+```
+
+Legacy regular-expression statement properties (`testStart`, `step`, …) still work and can coexist with `in`—the built-in DITA definition keeps its `<?doc-detective …?>` processing-instruction statements on the legacy path (deprecated).
+
+## Markup definitions: the kind is the key
+
+A selector-based markup definition names exactly one node **kind** as its key—the same pattern steps use (`{"goTo": …}`, `{"find": …}`):
+
+```json
+{
+  "name": "runCode",
+  "codeBlock": {
+    "language": ["bash", "python", "py", "javascript", "js"],
+    "metaExcludes": "testIgnore"
+  },
+  "captures": ["language", "content"],
+  "actions": [
+    { "unsafe": true, "runCode": { "language": "$1", "code": "$2" } }
+  ]
+}
+```
+
+`captures` maps node fields, in order, to `$1..$n` for action substitution. An empty kind object (`"strong": {}`) matches every node of that kind, and two kinds have scalar shorthands: `"codeBlock": "bash"` means `{ "language": "bash" }`, and `"element": "uicontrol"` means `{ "tag": "uicontrol" }`.
+
+### Kinds and their options
+
+| Kind | Matches | Options | `captures` fields |
+|---|---|---|---|
+| `comment` | non-rendered author notes | `matches`, `excludes` | `content`, `match.<n>` |
+| `codeBlock` | fenced/source blocks | `language` (string or array, where `""` matches a bare fence), `metaMatches`, `metaExcludes`, `attributes`, `contentMatches`, `contentExcludes` | `language`, `meta`, `content`, `attributes.<name>`, `match.<n>` |
+| `link` | hyperlinks | `url`, `text`, `attributes`, `precededBy`, `followedBy` | `text`, `url`, `title`, `attributes.<name>` |
+| `image` | images | `src`, `alt`, `attributes`, `precededBy`, `followedBy` | `src`, `alt`, `attributes.<name>` |
+| `strong` / `emphasis` | bold / italic text | `text`, `precededBy`, `followedBy` | `text` |
+| `text` | prose runs (never inside code or comments) | `matches`, `excludes` | `match.<n>` |
+| `element` | named elements (HTML/XML tags, MDX JSX components) | `tag` (string or array), `attributes`, `contentMatches`, `contentExcludes`, `precededBy`, `followedBy` | `tag`, `content`, `attributes.<name>`, `match.<n>`, `then.<field>` |
+
+Option semantics:
+
+- **`attributes`**—a map of attribute name to matcher: a regular-expression string, or `true` to require the attribute exists. Where attributes come from depends on the format:
+  - **Markdown**: Kramdown/Pandoc-style attribute lists on images, links, and code fences. `{: .screenshot}`, `{.screenshot}`, and `{: #results .screenshot width="800"}` all normalize the same way (`.cls` → `class`, `#id` → `id`, `key="val"` → named attribute).
+  - **MDX**: the same attribute lists, plus JSX component props on `element` nodes (`<Button label="Save" />` exposes `label`).
+  - **HTML and XML**: the native element attributes.
+  - **AsciiDoc**: the bracket attribute list (`image::x.png[alt, role=screenshot]`).
+- **`matches`/`contentMatches`**—a regular expression the node's content must match. Its parenthesized match groups become `match.1`, `match.2`, … `captures` paths. `excludes`/`contentExcludes` reject matches.
+- **`precededBy` / `followedBy`**—regular expressions tested against the raw source adjacent to the node, for verb-context patterns like "Click **X**" (`"precededBy": "\\b[Cc]lick\\s+$"`). When the match touches the node, the step's recorded source span extends over it.
+- **`followedBy` with `then`**—chains a second node for sequence patterns. The chained node's fields map to `then.<field>` paths. The built-in DITA `typeIntoUiControl` definition is the worked example:
+
+```json
+{
+  "name": "typeIntoUiControl",
+  "element": {
+    "tag": "userinput",
+    "precededBy": "\\b(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+$",
+    "followedBy": {
+      "text": "^\\s+(?:in|into)(?:\\s+the)?\\s+$",
+      "then": { "element": { "tag": "uicontrol" } }
+    }
+  },
+  "captures": ["content", "then.content"],
+  "actions": [{ "type": { "keys": "$1", "selector": "$2" } }]
+}
+```
+
+### More examples
+
+Screenshot an image by attribute—you can match and reference any attribute-list attribute, not just classes:
+
+```json
+{
+  "name": "screenshotToPath",
+  "image": { "attributes": { "class": "screenshot", "path": true } },
+  "captures": ["src", "attributes.path"],
+  "actions": [{ "screenshot": "$2" }]
+}
+```
+
+Click a JSX component in MDX:
+
+```json
+{
+  "name": "clickNamedButton",
+  "element": { "tag": "Button", "attributes": { "label": true } },
+  "captures": ["attributes.label"],
+  "actions": ["click"]
+}
+```
+
+Check links only when they're real hyperlinks (images can't match):
+
+```json
+{
+  "name": "checkHyperlink",
+  "link": { "url": "^https?://" },
+  "captures": ["url"],
+  "actions": ["checkLink"]
+}
+```
+
+## Mixing selectors and regular expressions
+
+A markup definition is selector-based when it has a kind key, and regular-expression-based when it has `regex`—one definition can't be both, but one file type freely mixes definitions of each style, and `extends` merges them across built-ins and your overrides. The built-in Markdown, MDX, HTML, DITA, and AsciiDoc definitions are all selector-based. Anything they don't cover is regex's job.

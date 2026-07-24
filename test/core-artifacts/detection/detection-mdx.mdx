@@ -1,0 +1,21 @@
+{/* test {"testId": "detection-mdx-expressions"} */}
+
+import Nothing from "@site/nothing";
+
+# Structural statement detection: MDX
+
+MDX expression comments are first-class statement containers; ESM and JSX
+stay inert.
+
+<Callout kind="note">Server check below.</Callout>
+
+{/* step {"checkLink": "http://localhost:8092"} */}
+{/* step {"wait": 100} */}
+
+{/* test ignore start */}
+{/* step {"httpRequest": {"url": "http://localhost:9/unreachable"}} */}
+{/* test ignore end */}
+
+{/* step {"wait": 50} */}
+
+{/* test end */}

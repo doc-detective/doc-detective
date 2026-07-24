@@ -33,7 +33,7 @@ crawl | boolean | Optional. If `true`, crawls sitemap.xml files specified by URL
 processDitaMaps | boolean | Optional. If `true`, processes DITA maps and includes generated files as inputs. | `true`
 logLevel | string | Optional. Amount of detail to output when performing an operation.<br/><br/>Accepted values: `silent`, `error`, `warning`, `info`, `debug` | `info`
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | —
-fileTypes | array of one of: string, object([File type (custom)](/reference/schemas/file-type-custom)), object([File type (executable)](/reference/schemas/file-type-executable)) | Optional. Configuration for file types and their markup detection. | ``["markdown","asciidoc","html","dita"]``
+fileTypes | array of one of: string, object([File type (custom)](/reference/schemas/file-type-custom)), object([File type (executable)](/reference/schemas/file-type-executable)) | Optional. Configuration for file types and their markup detection. | ``["markdown","mdx","asciidoc","html","dita"]``
 integrations | object([Integrations options](/reference/schemas/integrations-options)) | Optional. Options for connecting to external services. | —
 telemetry | object([Telemetry options](/reference/schemas/telemetry-options)) | Optional. Options around sending telemetry for Doc Detective usage. | ``{"send":true}``
 hints | object([Hints options](/reference/schemas/hints-options)) | Optional. Options for the post-run hints feature. After a test run, Doc Detective may print one short, contextual hint with code samples and links to encourage further engagement (for example, suggesting a CI workflow when none is detected). Doc Detective displays hints only in an interactive terminal (TTY) and only at the default `info` log level. | ``{"enabled":true}``
@@ -59,6 +59,67 @@ browserFallback | string | Optional. Controls whether a context whose browser ca
 ```json
 {
   "shell": "powershell"
+}
+```
+
+```json
+{
+  "fileTypes": [
+    "markdown",
+    {
+      "name": "markdown-rich",
+      "extensions": [
+        "md"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "runCode",
+          "codeBlock": {
+            "language": [
+              "bash",
+              "python"
+            ],
+            "metaExcludes": "testIgnore"
+          },
+          "captures": [
+            "language",
+            "content"
+          ],
+          "actions": [
+            "runCode"
+          ]
+        },
+        {
+          "name": "screenshotImage",
+          "image": {
+            "attributes": {
+              "class": "screenshot"
+            }
+          },
+          "captures": [
+            "src"
+          ],
+          "actions": [
+            "screenshot"
+          ]
+        },
+        {
+          "name": "legacyBoldText",
+          "regex": [
+            "\\*\\*((?:(?!\\*\\*).)+)\\*\\*"
+          ],
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 

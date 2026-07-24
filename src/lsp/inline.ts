@@ -7,6 +7,10 @@ import type { TextDocument } from "vscode-languageserver-textdocument";
 import { validate } from "../common/src/validate.js";
 import { parseObject } from "../common/src/detectTests.js";
 import { defaultFileTypes, type FileType } from "../common/src/fileTypes.js";
+import {
+  resolveBackend,
+  selectorContainerStatements,
+} from "../common/src/detect/index.js";
 import { basenameFromUri } from "./gate.js";
 import { getRegistry } from "./registry.js";
 import { pointerFromPath, type OffsetRange } from "./json/positions.js";
@@ -219,18 +223,89 @@ function warn(range: Range, message: string, code?: string): Diagnostic {
 }
 
 /**
+ * Statements found via the shared selector-container pipeline (the same
+ * `inlineStatements.in` extraction the runner uses), keyed by statement type.
+ * Returns empty results when the fileType declares no containers or no
+ * backend exists for the document's extension.
+ */
+function selectorStatements(
+  text: string,
+  fileType: FileType,
+  uri: string,
+): Array<{ type: string; raw: string; _startIndex: number; _endIndex: number }> {
+  const containers = (fileType.inlineStatements as any)?.in as
+    | any[]
+    | undefined;
+  if (!containers || containers.length === 0) return [];
+  const ext = (basenameFromUri(uri).split(".").pop() || "").toLowerCase();
+  const backend = resolveBackend(ext, fileType);
+  if (!backend) return [];
+  let nodes;
+  try {
+    nodes = backend(text);
+  } catch {
+    /* c8 ignore next 2 - backend parse failures degrade to regex-only, same as the runner */
+    return [];
+  }
+  const statements = selectorContainerStatements({
+    containers,
+    nodes,
+    content: text,
+    getLine: () => 1,
+  });
+  return statements.map((s: any) => ({
+    type: s.type,
+    raw: s[1] ?? "",
+    _startIndex: s._startIndex,
+    _endIndex: s._endIndex,
+  }));
+}
+
+/** Convert a selector statement into the InlineStatement shape, ranging the
+ * payload text when it can be located inside the statement's span. */
+function toInlineStatement(
+  text: string,
+  s: { raw: string; _startIndex: number; _endIndex: number },
+): InlineStatement {
+  const payload = parseObject({ stringifiedObject: s.raw });
+  let range: OffsetRange = { start: s._startIndex, end: s._endIndex };
+  if (s.raw) {
+    const at = text.indexOf(s.raw, s._startIndex);
+    if (at !== -1 && at < s._endIndex) {
+      range = { start: at, end: at + s.raw.length };
+    }
+  }
+  return { payload, parsed: payload !== null && typeof payload === "object", range };
+}
+
+/**
  * Compute diagnostics for inline Doc Detective test statements embedded in a
  * markup document (markdown/asciidoc/html/dita, or a config fileType). Only the
  * `test` open and `step` statement regions the runner recognizes get language
- * features — the rest of the prose is left alone.
+ * features — the rest of the prose is left alone. Statements come from both
+ * the legacy regex `inlineStatements` and the selector-container (`in`)
+ * pipeline shared with the runner.
  */
 export function computeInlineDiagnostics(
   doc: TextDocument,
   fileType: FileType,
 ): Diagnostic[] {
   const text = doc.getText();
-  const ignore = ignoreRanges(text, fileType);
   const statements = fileType.inlineStatements || {};
+
+  const fromSelectors = selectorStatements(text, fileType, doc.uri);
+  const ignore = ignoreRanges(text, fileType);
+  // Pair selector ignoreStart/ignoreEnd offsets the same way the regex path does.
+  const selEnds = fromSelectors
+    .filter((s) => s.type === "ignoreEnd")
+    .map((s) => s._startIndex);
+  for (const s of fromSelectors) {
+    if (s.type !== "ignoreStart") continue;
+    const end = selEnds.find((e) => e >= s._startIndex);
+    ignore.push({ start: s._startIndex, end: end ?? text.length });
+  }
+  const ignored = (offset: number) =>
+    ignore.some((r) => offset >= r.start && offset < r.end);
 
   const diagnostics: Diagnostic[] = [];
   for (const stmt of extractStatements(text, statements.testStart, ignore)) {
@@ -238,6 +313,14 @@ export function computeInlineDiagnostics(
   }
   for (const stmt of extractStatements(text, statements.step, ignore)) {
     diagnostics.push(...diagnoseStep(doc, stmt));
+  }
+  for (const s of fromSelectors) {
+    if (ignored(s._startIndex)) continue;
+    if (s.type === "testStart") {
+      diagnostics.push(...diagnoseTestOpen(doc, toInlineStatement(text, s)));
+    } else if (s.type === "step") {
+      diagnostics.push(...diagnoseStep(doc, toInlineStatement(text, s)));
+    }
   }
   return diagnostics;
 }
