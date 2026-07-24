@@ -271,6 +271,52 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
     assert.equal(fn.calls(), 1);
   });
 
+  it("stamps durationMs even on the retries-disabled fast path", async function () {
+    // The `retries === 0` bypass returns without entering the retry loop, so
+    // it needs its own clock — otherwise a run with retries off would emit
+    // contexts with no timing at all (ADR 01083).
+    const fn = fakeRunContext({ failTimes: 0 });
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 0 } },
+      fn,
+      noDelay
+    );
+    assert.equal(typeof report.durationMs, "number");
+    assert.ok(report.durationMs >= 0);
+  });
+
+  it("reports the FINAL attempt's durationMs, not the sum across attempts", async function () {
+    // Attempt 1 burns ~120ms then dies; attempt 2 is near-instant and passes.
+    // A summed duration would be >= 120ms; the final-attempt value is well
+    // under that.
+    let calls = 0;
+    const fn = async (args) => {
+      calls++;
+      if (calls === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        const report = { result: "FAIL", contextId: args.context.contextId, steps: [] };
+        Object.defineProperty(report, "_sessionDied", {
+          value: true,
+          enumerable: false,
+          configurable: true,
+        });
+        return report;
+      }
+      return { result: "PASS", contextId: args.context.contextId, steps: [] };
+    };
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 1 } },
+      fn,
+      noDelay
+    );
+    assert.equal(report.result, "PASS");
+    assert.equal(calls, 2, "should have retried once");
+    assert.ok(
+      report.durationMs < 100,
+      `durationMs ${report.durationMs}ms looks like a sum across attempts, not the final attempt`
+    );
+  });
+
   it("restores the non-idempotent context fields (openApi/browser) before each retry", async function () {
     // The fake mutates context the way runContext does — appends openApi and
     // narrows browser to a fallback — so the wrapper must restore before the

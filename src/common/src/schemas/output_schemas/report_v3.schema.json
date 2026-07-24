@@ -20,6 +20,12 @@
       "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
       "readOnly": true
     },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock duration of the run's execution phase in milliseconds, spanning the warm phase, every spec, and teardown. Excludes what happens before execution starts — test detection, resolution, and any just-in-time dependency install — so on a cold runner the process takes longer than this. Because contexts run concurrently, this can be LESS than the sum of the per-spec durations. Present only in test results. System-populated.",
+      "readOnly": true
+    },
     "specs": {
       "description": "Test specifications that were performed.",
       "type": "array",
@@ -1452,6 +1458,12 @@
                     }
                   }
                 ]
+              },
+              "durationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.",
+                "readOnly": true
               },
               "tests": {
                 "description": "[Tests](test) to perform.",
@@ -4513,6 +4525,12 @@
                                       "minimum": 2,
                                       "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                       "readOnly": true
+                                    },
+                                    "durationMs": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                      "readOnly": true
                                     }
                                   },
                                   "title": "Common"
@@ -5413,6 +5431,12 @@
                                   "type": "integer",
                                   "minimum": 2,
                                   "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "durationMs": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
                                 },
                                 "location": {
@@ -6380,6 +6404,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -7537,6 +7567,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -9193,6 +9229,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -18486,6 +18528,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -20603,6 +20651,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -22546,6 +22600,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -23883,6 +23943,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -25168,6 +25234,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -26596,6 +26668,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -30606,6 +30684,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -39380,6 +39464,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -40573,6 +40663,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -42429,6 +42525,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -43428,6 +43530,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -45666,6 +45774,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -48033,6 +48147,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -48990,6 +49110,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -50590,6 +50716,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -51766,6 +51898,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -54088,6 +54226,12 @@
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -55077,6 +55221,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -59795,6 +59945,12 @@
                             ]
                           }
                         },
+                        "durationMs": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.",
+                          "readOnly": true
+                        },
                         "contexts": {
                           "title": "Resolved contexts",
                           "type": "array",
@@ -59803,6 +59959,12 @@
                           "items": {
                             "type": "object",
                             "properties": {
+                              "durationMs": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.",
+                                "readOnly": true
+                              },
                               "platform": {
                                 "type": "string",
                                 "description": "Platform to run the test on. This is a resolved version of the `platforms` property."
@@ -60996,6 +61158,12 @@
                                             "minimum": 2,
                                             "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                             "readOnly": true
+                                          },
+                                          "durationMs": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                            "readOnly": true
                                           }
                                         },
                                         "title": "Common"
@@ -61896,6 +62064,12 @@
                                         "type": "integer",
                                         "minimum": 2,
                                         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "durationMs": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
                                       },
                                       "location": {
@@ -62863,6 +63037,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -64020,6 +64200,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -65676,6 +65862,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -74969,6 +75161,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -77086,6 +77284,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -79029,6 +79233,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -80366,6 +80576,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -81651,6 +81867,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -83079,6 +83301,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -87089,6 +87317,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -95863,6 +96097,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -97056,6 +97296,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -98912,6 +99158,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -99911,6 +100163,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -102149,6 +102407,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -104516,6 +104780,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -105473,6 +105743,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -107073,6 +107349,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -108249,6 +108531,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -110571,6 +110859,12 @@
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -111560,6 +111854,12 @@
                                               "type": "integer",
                                               "minimum": 2,
                                               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "durationMs": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
