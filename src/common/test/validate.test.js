@@ -2481,6 +2481,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("context_v3 retries", function () {
+      it("should validate a context_v3 object with a retries override (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should NOT inject a default retries at the context level (inherits config when omitted)", function () {
+        // Only the config-level field defaults to 1; a context override must stay
+        // undefined when unset so resolveRetryPolicy falls through to config.
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(undefined);
+      });
+
+      it("should reject a context_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
+      });
+    });
+
     describe("context_v3 requires", function () {
       it("should validate a context_v3 object with a string requirement", function () {
         const result = validate({

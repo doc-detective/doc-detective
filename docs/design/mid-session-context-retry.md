@@ -1,13 +1,22 @@
 # Mid-session context retry
 
-**Status:** accepted (scope/design) — key decisions settled in §9; ADR + implementation to follow
+**Status:** **implemented** — shipped as [ADR 01082](../../adrs/01082-retries-mid-session-context-retry.md).
 **Date:** 2026-07-24
 **Owners:** doc-detective maintainers
 **Motivation:** the recurring `windows-latest` browser-session-death flake class (recording annotate legs, `getRunner` unit tests, `android-skip` element lookups — all the same root cause). See PRs #675/#677/#678 for the trail.
 
-> Roadmap/design doc (per `CLAUDE.md`: *roadmaps and design → `docs/design/`*). The behavior change it
-> proposes ships with its own **ADR + feature fixtures + docs** at implementation. This doc is the scope
-> and the plan, not the implementation.
+> Roadmap/design doc (per `CLAUDE.md`: *roadmaps and design → `docs/design/`*). This is the original scope.
+>
+> **Two things changed between scope and shipped code — the [ADR](../../adrs/01082-retries-mid-session-context-retry.md) is authoritative:**
+> 1. **Field name: `retries`** (config + context), not the `contextRetries` this doc first proposed.
+> 2. **Retry mechanism: re-invoke, not in-place.** §4 below scopes an *in-place* retry (retain the Appium
+>    port, re-provision the session inside `runContext`). The implementation instead **re-invokes
+>    `runContext`** (`runContextWithRetries` at the two job sites), which reuses the full
+>    setup/teardown/recording path at far lower risk than surgery inside the 1300-line `runContext`. The
+>    trade-off: the pool port is released and re-acquired between attempts (safe under concurrency —
+>    progress guaranteed) instead of held. The mid-run **detection** (active session-health probe) and the
+>    **state reset** (snapshot/restore `openApi`/`browser`) are as scoped. §4–§5 preserve the in-place
+>    reasoning for the record; read them as *considered*, and the ADR as *shipped*.
 
 ## 1. Problem
 
@@ -76,7 +85,12 @@ so a post-`find`-failure probe would catch the death. Widen `isRetryableSessionE
 Rare, and ambiguous with a real failure; v1 treats it as a real FAIL. A later refinement could also assert
 the current URL matches the last `goTo` target.
 
-## 4. Retry mechanism — in-place, pool-safe
+## 4. Retry mechanism — in-place, pool-safe (considered; shipped as re-invoke)
+
+> **Shipped differently.** Per the status note above, the implementation re-invokes `runContext`
+> (`runContextWithRetries`) rather than the in-place wrapper this section scopes. The in-place reasoning is
+> kept below for the record; the [ADR](../../adrs/01082-retries-mid-session-context-retry.md) describes
+> what shipped.
 
 The clean hook is a **retry wrapper inside `runContext`** (`tests.ts:3744`) around the step loop
 (`4641-4956`). This is deliberately *not* a job re-queue:
@@ -154,7 +168,7 @@ Mirror `browserFallback` (the natural sibling — both are session-resilience po
 - **Only** retry when the health-probe confirms a dead session **and** the classifier
   (`isRetryableSessionError`, widened for `invalid session id`) matches the probe error. A live-session
   FAIL never retries — deterministic bugs fail all attempts and surface normally.
-- Bounded by `contextRetries` (default 1). Linear backoff between attempts (mirror `driverStart`'s
+- Bounded by `retries` (default 1). Linear backoff between attempts (mirror `driverStart`'s
   `500*attempt`).
 - Cap total wall-clock: each attempt re-runs the whole context; with `this.timeout` semantics gone (this
   is the runner, not mocha), guard against a pathological context that dies every attempt by respecting
@@ -215,7 +229,7 @@ Mirror `browserFallback` (the natural sibling — both are session-resilience po
    live-session assertion failure, asserting it does **not** retry.
 7. **Feature fixtures** — this is a resilience path; a deterministic fixture can't easily kill a live
    session, so the precise assertions live in the focused `it(...)` (per `CLAUDE.md`'s documented
-   exception, like exit-on-fail). Add a normal PASS fixture that exercises the default `contextRetries:1`
+   exception, like exit-on-fail). Add a normal PASS fixture that exercises the default `retries:1`
    config path to prove it's a no-op on green runs.
 8. **ADR** (MADR) recording the detection strategy, the in-place-retry decision, the default, and the
    "never mask deterministic failures" guarantee.
@@ -227,5 +241,5 @@ Mirror `browserFallback` (the natural sibling — both are session-resilience po
 - **Risk:** a subtle death-detector false-positive retries a genuinely-failing test, hiding a real bug.
   Mitigated by the *active probe* (only retry when the session is provably dead) and by capping retries.
 - **Risk:** recording artifact corruption on retry — mitigated by discard-before-retry.
-- **Rollback:** `contextRetries: 0` restores exactly today's behavior; the whole path is gated behind a
+- **Rollback:** `retries: 0` restores exactly today's behavior; the whole path is gated behind a
   resolved policy, so disabling it is a one-line config.
