@@ -52,7 +52,7 @@ The results file carries a `summary` object with the pass, fail, warning, and sk
 
 ### Find slow specs with `durationMs`
 
-Every node in the results—the run, each spec, each test, each context, and each step—carries a `durationMs` field in whole milliseconds. Doc Detective populates it; you never set it yourself.
+Every node in the results—the run, each spec, each test, each context, and each step—carries a `durationMs` field in whole milliseconds. Doc Detective populates it. You never set it yourself.
 
 ```json
 {
@@ -71,13 +71,13 @@ The meaning shifts slightly by level, and the difference matters when you run te
 
 | Level | `durationMs` is |
 |---|---|
-| Run | Elapsed time for the execution phase: the warm phase, every spec, and teardown. It excludes test detection, resolution, and any just-in-time dependency install, so a cold runner spends longer than this value reports. |
+| Run | Elapsed time for the execution phase: the warm phase, every spec, and cleanup. It excludes test detection, resolution, and any just-in-time dependency install, so a cold runner spends longer than this value reports. |
 | Spec | The sum of its tests' durations. |
 | Test | The sum of its contexts' durations. |
-| Context | Elapsed time for the context, covering setup, every step, and teardown. |
+| Context | Elapsed time for the context, covering setup, every step, and cleanup. |
 | Step | Elapsed time for the step. |
 
-Spec and test durations are **sums of work**, not elapsed spans. Contexts from every test share one concurrent pool, so an elapsed span for a spec would count time while unrelated specs were running. Summing keeps the number stable no matter what you set [`concurrentRunners`](/reference/schemas/config) to, which is what you want when comparing specs to each other.
+Spec and test durations are **sums of work**, not elapsed spans. Contexts from every test run through the same set of concurrent runners, so an elapsed span for a spec would count time while unrelated specs were running. Summing keeps the number stable no matter what you set [`concurrentRunners`](/reference/schemas/config) to, which is what you want when comparing specs to each other.
 
 The consequence: when `concurrentRunners` is greater than 1, the run's `durationMs` is *less* than the sum of its specs' durations, because specs overlapped. That's expected. Read the run value as elapsed wall-clock time, and the spec values as where the work went.
 
