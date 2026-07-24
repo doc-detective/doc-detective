@@ -1018,6 +1018,17 @@ describe("core/utils coverage", function () {
       assert.equal(await isSessionAlive(null), false);
       assert.equal(await isSessionAlive(undefined), false);
     });
+    it("treats a wedged (never-resolving) probe as alive within the probe timeout", async function () {
+      // A wedged session (socket open, no response): getPageSource never
+      // settles. The bounded probe must return within probeTimeoutMs and treat
+      // it as alive (conservative — never retry a real failure on a slow probe),
+      // rather than hang for the transport timeout.
+      const driver = { getPageSource: () => new Promise(() => {}) };
+      const start = Date.now();
+      const alive = await isSessionAlive(driver, 100);
+      assert.equal(alive, true);
+      assert.ok(Date.now() - start < 2000, "probe should return promptly, not hang");
+    });
   });
 
   describe("isTransientProcessInitError", function () {

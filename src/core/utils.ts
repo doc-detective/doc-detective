@@ -836,16 +836,40 @@ function isRetryableSessionError(
 // live-session failure is never mistaken for a dead one and a real bug is never
 // retried away. Any non-session probe error, or a missing driver's probe, is
 // treated conservatively: a null driver is dead; a non-session throw is alive.
-async function isSessionAlive(driver: any): Promise<boolean> {
+// The probe is bounded by `probeTimeoutMs`: a cleanly-dead session rejects fast
+// (ECONNREFUSED / invalid session id), but a wedged one (socket open, no
+// response) could otherwise hang for the underlying transport timeout — minutes,
+// on the failure path, while the context holds its concurrency slot. On timeout
+// we return `true` (alive), the conservative outcome: never retry a real failure
+// just because the probe was slow, and cap the added latency to `probeTimeoutMs`.
+async function isSessionAlive(
+  driver: any,
+  probeTimeoutMs: number = 15000
+): Promise<boolean> {
   if (!driver || typeof driver.getPageSource !== "function") return false;
+  let timer: any;
   try {
-    await driver.getPageSource();
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(resolve, probeTimeoutMs);
+    });
+    const probe = Promise.resolve(driver.getPageSource());
+    // If the timeout wins the race, the probe stays pending; swallow its
+    // eventual rejection so a wedged session doesn't surface an unhandled
+    // rejection later. The race itself still sees a fast rejection (caught below).
+    probe.catch(() => {});
+    // Race the probe against the timeout. Reaching here without a throw means
+    // either the probe resolved (unambiguously alive) or it timed out (slow but
+    // not provably dead) — both count as alive. Only a thrown, classified
+    // session-death error (caught below) marks the session dead.
+    await Promise.race([probe, timeout]);
     return true;
   } catch (err: any) {
     const message = String(err?.message ?? err ?? "");
     // Classified session-death → dead. Anything else → assume alive (don't
     // retry a live-session failure on an unrelated probe blip).
     return !isRetryableSessionError(message);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
