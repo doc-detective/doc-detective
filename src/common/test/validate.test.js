@@ -781,6 +781,38 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("exitOnFail");
       });
 
+      it("should validate a config_v3 object with retries set (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should default retries to 1 when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(1);
+      });
+
+      it("should reject a config_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
+      });
+
       it("should validate a config_v3 object with cacheDir set", function () {
         const result = validate({
           schemaKey: "config_v3",

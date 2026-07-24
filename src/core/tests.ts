@@ -43,6 +43,7 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
+  isSessionAlive,
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
@@ -202,6 +203,8 @@ export {
   buildFallbackCandidates,
   driverSkipDiagnostic,
   resolveBrowserFallbackPolicy,
+  resolveRetryPolicy,
+  runContextWithRetries,
   shouldRepairBeforeFallback,
   isSupportedContext,
   contextRequirementsSkipMessage,
@@ -1122,6 +1125,21 @@ function resolveBrowserFallbackPolicy({
   return context?.browserFallback || config?.browserFallback || "auto";
 }
 
+// Resolve the mid-run session-death context-retry budget (the `retries` policy):
+// how many times to re-run a whole context on a fresh session when its session
+// dies mid-run. Context overrides config; default 1. Uses `??` (NOT `||`) so an
+// explicit `retries: 0` (disable) is preserved instead of falling through to the
+// default the way a falsy `||` would. Pure and exported for unit testing.
+function resolveRetryPolicy({
+  context,
+  config,
+}: {
+  context: any;
+  config: any;
+}): number {
+  return context?.retries ?? config?.retries ?? 1;
+}
+
 /**
  * Whether to attempt a driver repair before falling back away from a browser
  * whose session just failed to start. We only repair the *requested* engine
@@ -2004,7 +2022,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // ordering to a single pool over input-ordered jobs.
     const runJob = async (job: any) => {
       try {
-        job.contexts[job.slot] = await runContext({
+        job.contexts[job.slot] = await runContextWithRetries({
           config,
           spec: job.spec,
           test: job.test,
@@ -2459,7 +2477,7 @@ async function runRoutedSpec({
     // limit===1 keep the byte-identical runConcurrent path.
     const runRoutedJob = async (job: any) => {
       try {
-        job.contexts[job.slot] = await runContext({
+        job.contexts[job.slot] = await runContextWithRetries({
           config,
           spec: job.spec,
           test: job.test,
@@ -4129,6 +4147,10 @@ async function runContext({
   // WARNING when an explicitly pinned engine was substituted.
   let fellBackNote = "";
   let fellBackPinned = false;
+  // Set by the post-loop liveness probe: true when the context failed AND its
+  // session was found dead mid-run. The caller (runContextWithRetries) reads
+  // this off the returned report to decide whether to retry on a fresh session.
+  let sessionDiedMidRun = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
@@ -4971,6 +4993,22 @@ async function runContext({
         contextReport,
       });
     }
+
+    // Mid-run session-death detection for the `retries` context-retry policy.
+    // A dead session's step FAIL is indistinguishable from a real assertion FAIL
+    // at the result level (handlers catch driver errors and return FAIL), so if
+    // any step failed we probe the session directly here — while it is still
+    // registered, before the finally tears it down. A dead session means the
+    // FAIL is spurious and the whole context can be retried on a fresh session; a
+    // live session means the FAIL is real and stands. Recording sweeps already
+    // ran above, so the probe never races an in-flight capture.
+    if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
+      const probeDriver =
+        sessionDrivers(browserSessions, driver)[0] ?? appSession?.recordingHost;
+      if (probeDriver && !(await isSessionAlive(probeDriver))) {
+        sessionDiedMidRun = true;
+      }
+    }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
     // are still active. Stop them now — while the driver session is still alive
@@ -5054,7 +5092,84 @@ async function runContext({
       ? `${fellBackNote} ${contextReport.resultDescription}`
       : fellBackNote;
   }
+  // Internal hint for runContextWithRetries — a FAIL whose session died mid-run
+  // is retryable. Non-enumerable so it never leaks into the serialized report,
+  // and only set on the retryable case so the wrapper's check is a plain read.
+  if (contextReport.result === "FAIL" && sessionDiedMidRun) {
+    Object.defineProperty(contextReport, "_sessionDied", {
+      value: true,
+      enumerable: false,
+      configurable: true,
+    });
+  }
   return contextReport;
+}
+
+// Context fields runContext mutates non-idempotently: `openApi` appends the
+// config's definitions, and `browser` narrows to a fallback engine/headless
+// mode. A retry re-invokes runContext, so these are snapshotted and restored
+// before each attempt (`__display`/`__displaySize` too, so a retry re-resolves
+// them rather than reusing a stale display) — everything else runContext derives
+// fresh (contextReport is rebuilt each call; step IDs assign idempotently).
+const RUN_CONTEXT_MUTATED_KEYS = ["openApi", "browser", "__display", "__displaySize"];
+
+function cloneMutable(value: any): any {
+  if (Array.isArray(value)) return [...value];
+  if (value && typeof value === "object") return { ...value };
+  return value;
+}
+
+// Runs a context and retries the WHOLE context on a fresh session when its
+// session dies mid-run — an early step passes, then a later step fails on a
+// now-dead session (WebDriver ECONNREFUSED / invalid session id, or an element
+// that can't be found because the DOM is dead). Bounded by the resolved
+// `retries` policy (config/context, default 1). Detection is runContext's active
+// liveness probe, surfaced as the non-enumerable `_sessionDied` flag on a FAIL
+// report, so a live-session assertion FAIL is NEVER retried — a real bug still
+// fails all attempts. Retrying re-invokes runContext, which re-runs setup,
+// re-provisions every session, and restarts recordings cleanly; the job keeps
+// its concurrency slot and any exclusive resource (display / native-app-driver /
+// android-emulator), so only the Appium pool port churns. `runContextFn` is
+// injectable for unit testing. Exported for that test.
+async function runContextWithRetries(
+  args: any,
+  runContextFn: (a: any) => Promise<any> = runContext
+): Promise<any> {
+  const { context, config } = args;
+  const retries = resolveRetryPolicy({ context, config });
+  if (!(retries > 0)) return runContextFn(args);
+
+  // Snapshot the non-idempotent context fields so each retry starts from the
+  // originally-requested state instead of the prior attempt's narrowed one.
+  const had: Record<string, boolean> = {};
+  const snapshot: Record<string, any> = {};
+  for (const key of RUN_CONTEXT_MUTATED_KEYS) {
+    had[key] = key in context;
+    if (had[key]) snapshot[key] = cloneMutable(context[key]);
+  }
+  const restore = () => {
+    for (const key of RUN_CONTEXT_MUTATED_KEYS) {
+      if (!had[key]) delete context[key];
+      else context[key] = cloneMutable(snapshot[key]);
+    }
+  };
+
+  let report: any;
+  for (let attempt = 0; ; attempt++) {
+    report = await runContextFn(args);
+    const retryable = report?.result === "FAIL" && report?._sessionDied === true;
+    if (!retryable || attempt >= retries) break;
+    log(
+      config,
+      "warning",
+      `Context '${context?.contextId}' session died mid-run; retrying on a fresh session (attempt ${attempt + 2} of ${retries + 1}).`
+    );
+    restore();
+    // Linear backoff, mirroring driverStart's session-creation retry, so a
+    // transient runner blip has a moment to clear before the fresh session.
+    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+  }
+  return report;
 }
 
 // Every live session driver in the context, falling back to the lone default

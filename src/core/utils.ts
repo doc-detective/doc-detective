@@ -53,6 +53,7 @@ export {
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isSessionAlive,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -803,7 +804,7 @@ async function waitForReady(
 //      concurrent-startup contention: a staggered retry lets it clear and
 //      recovers on the next attempt in practice.
 const TRANSIENT_SESSION_ERROR =
-  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server/i;
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server|invalid session id|no such session|session deleted because of page crash|chrome not reachable/i;
 
 // The wdio client aborts POST /session with "aborted due to timeout" when the
 // request exceeds connectionRetryTimeout. For native sessions that declared a
@@ -822,6 +823,30 @@ function isRetryableSessionError(
   if (typeof message !== "string" || !message) return false;
   if (TRANSIENT_SESSION_ERROR.test(message)) return true;
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+}
+
+// Active liveness probe for the `retries` context-retry policy. A dead session
+// surfaces a step FAIL that is indistinguishable at the result level from a
+// legitimate assertion FAIL (handlers catch driver errors and return FAIL), so
+// after a FAIL we probe the session directly: a session-scoped, driver-agnostic
+// command (`getPageSource` — valid for browser, webview, and native/app
+// sessions; NOT `status`, which queries the Appium *server* and would pass for a
+// dead session behind a live server). Returns false ONLY when the session is
+// provably gone (probe throws a classified session-death error), so a
+// live-session failure is never mistaken for a dead one and a real bug is never
+// retried away. Any non-session probe error, or a missing driver's probe, is
+// treated conservatively: a null driver is dead; a non-session throw is alive.
+async function isSessionAlive(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getPageSource !== "function") return false;
+  try {
+    await driver.getPageSource();
+    return true;
+  } catch (err: any) {
+    const message = String(err?.message ?? err ?? "");
+    // Classified session-death → dead. Anything else → assume alive (don't
+    // retry a live-session failure on an unrelated probe blip).
+    return !isRetryableSessionError(message);
+  }
 }
 
 // Windows NTSTATUS exit codes for a process that died *during initialization*
