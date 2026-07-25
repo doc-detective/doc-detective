@@ -138,10 +138,18 @@ evidence comes from.
   the guarantee: each is a page where a real failure must still FAIL.
 * `test/core-utils-coverage.test.js` — `isPageBroken` gains a case asserting it does **not** claim
   `data:,`, keeping the two predicates disjoint so each retry reason logs its own diagnostic.
-* The wiring in `runContext` follows 01082's precedent for `isPageBroken`: the predicate is unit
-  tested, and the probe path is exercised end-to-end by the recording fixture bundle in CI. A
-  `test/core-artifacts/` fixture is not used, because provoking a session that silently fails to
-  navigate is exactly the nondeterminism being fixed — it cannot be scripted.
+* `test/core-utils-coverage.test.js` — `classifyContextRetry`: the retry *decision*, extracted from
+  `runContext` so the rules the individual predicates can't express are deterministically testable.
+  Covers a dead session anywhere in the context, an error page anywhere, an unnavigated **primary**
+  session, the precedence between them, the empty-session case, and — the rule this ADR turns on —
+  that a context whose **secondary** session sits on `data:,` while the primary is on a real page
+  does **not** retry.
+* What is left untested in-process is only the two lines in `runContext` that map a non-null reason
+  onto the `_sessionDied` flag and a log line. Everything with a rule in it now has a unit test, and
+  the flag's downstream effect is already covered by the `runContextWithRetries` suite in
+  `test/browser-fallback.test.js`. A `test/core-artifacts/` fixture is deliberately not used:
+  provoking a session that silently fails to navigate is exactly the nondeterminism being fixed, so
+  it cannot be scripted.
 
 ## Pros and Cons of the Options
 
@@ -167,5 +175,6 @@ evidence comes from.
 ### D. Do nothing, keep collecting diagnostics
 
 * Good, zero risk.
-* Bad, the diagnostic has already answered the question — five consistent samples across two PRs. The
-  flake stays red and keeps costing re-runs and reviewer attention.
+* Bad, the diagnostic has already answered the question — six consistent samples across two PRs and
+  two fixture bundles, with no competing explanation. The flake stays red and keeps costing re-runs
+  and reviewer attention.

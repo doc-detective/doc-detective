@@ -56,6 +56,7 @@ export {
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
+  classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -926,6 +927,37 @@ async function isPageUnnavigated(driver: any): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
+
+// The retry DECISION for a FAILed context, composed from the three probes above.
+// Returns the reason to retry on a fresh session, or null to let the FAIL stand.
+// Split out from runContext so the rules that the individual probes can't
+// express are directly testable — which sessions each check applies to, and how
+// they rank:
+//
+//   • Dead session or browser error page — checked on EVERY session the context
+//     holds (a dead app session behind a live browser, or vice versa, still
+//     breaks the context), first match wins.
+//   • Never navigated — checked ONLY on the primary session. A secondary surface
+//     opened via `goTo newTab` may be deliberately left on `data:,`, so applying
+//     "any session" here would retry contexts whose real assertion failed on the
+//     primary page. `probeDrivers[0]` is the first-registered session: the array
+//     comes from a Map's values(), whose iteration order is insertion order per
+//     the language spec, not an implementation detail.
+//
+// See adrs/01082-retries-mid-session-context-retry.md and
+// adrs/01084-retry-unnavigated-context.md.
+async function classifyContextRetry(
+  probeDrivers: any[]
+): Promise<ContextRetryReason | null> {
+  for (const probeDriver of probeDrivers) {
+    if (!(await isSessionAlive(probeDriver))) return "session-died";
+    if (await isPageBroken(probeDriver)) return "page-broken";
+  }
+  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  return null;
 }
 
 // Windows NTSTATUS exit codes for a process that died *during initialization*
