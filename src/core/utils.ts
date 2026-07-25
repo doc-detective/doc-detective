@@ -55,6 +55,7 @@ export {
   isRetryableSessionError,
   isSessionAlive,
   isPageBroken,
+  isPageUnnavigated,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -892,6 +893,36 @@ async function isPageBroken(driver: any): Promise<boolean> {
   try {
     const url = String((await driver.getUrl()) ?? "");
     return BROWSER_ERROR_PAGE.test(url);
+  } catch {
+    return false;
+  }
+}
+
+// Chromium parks a brand-new session on the EMPTY data URL (`data:,`) until its
+// first navigation, so a context still sitting there when it FAILs never got
+// started — its `goTo` silently didn't take effect, or the driver ended up
+// attached to a window that never navigated. Matched exactly: `data:,` (and the
+// bare `data:`), never a data URL carrying content, which is a deliberate
+// navigation target.
+//
+// Deliberately NOT `about:blank`. Chromium's initial page is `data:,`, while
+// `about:blank` is somewhere a test can legitimately navigate — the same
+// distinction BROWSER_ERROR_PAGE already makes — so keeping it out preserves the
+// guarantee that a genuine "element not on a correctly-loaded page" failure
+// still FAILs. Firefox's initial page IS `about:blank`, so this heuristic is
+// Chromium-only by construction; see adrs/01084-retry-unnavigated-context.md.
+const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
+
+// Companion to isSessionAlive / isPageBroken for the "alive but never navigated"
+// retry case (ADR 01084). The session responds and the page isn't a crash page,
+// but the browser is still on its initial blank document, which no correctly
+// loaded page under test ever is. App/mobile sessions have no URL, and a thrown
+// `getUrl` (dead session, already caught by isSessionAlive) both yield false.
+async function isPageUnnavigated(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    const url = String((await driver.getUrl()) ?? "").trim();
+    return INITIAL_BLANK_DOCUMENT.test(url);
   } catch {
     return false;
   }

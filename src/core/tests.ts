@@ -45,6 +45,7 @@ import {
   isRetryableSessionError,
   isSessionAlive,
   isPageBroken,
+  isPageUnnavigated,
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
@@ -5027,16 +5028,34 @@ async function runContext({
           break;
         }
       }
+      // Alive, not an error page, but the PRIMARY session never left its initial
+      // blank document — the context never got started (ADR 01084). Checked only
+      // on the primary session, unlike the probes above: a secondary surface a
+      // test opened but deliberately never navigated is legitimately on
+      // `data:,`, and retrying the whole context for that would be a false
+      // positive. Bounded by the same `retries` budget, so a genuinely
+      // unnavigable context still FAILs — it just costs one more attempt.
+      if (!sessionDiedMidRun && (await isPageUnnavigated(probeDrivers[0]))) {
+        sessionDiedMidRun = true;
+        clog(
+          "debug",
+          "Context session is alive but still on its initial blank document (never navigated); treating it as a broken context for retry."
+        );
+      }
       if (
         !sessionDiedMidRun &&
         probeDrivers.length > 0 &&
         logLevelEnabled(config, "debug") &&
         typeof probeDrivers[0].getUrl === "function"
       ) {
-        // Diagnostic for the not-yet-covered alive-but-same-URL-blank mode: log
-        // the page URL of a live-session FAIL that was NOT retried, so a
-        // recurring flake (e.g. recording `annotate`) reveals whether its page
-        // crashed to an error page (now retried) or just blanked at the same URL.
+        // Diagnostic for whatever live-session modes remain uncovered: log the
+        // page URL of a live-session FAIL that was NOT retried. This is how the
+        // long-running `windows-chrome` flake was characterized — every
+        // occurrence, across both the recording and nav-capture bundles, logged
+        // `url=data:,`, which ADR 01084 now retries. What's left for it to catch
+        // is the same-URL-blank mode (page blanks without changing URL), which
+        // stays unretried because it can't be told apart from a genuine
+        // element-not-found on a correctly-loaded page.
         try {
           clog(
             "debug",

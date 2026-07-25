@@ -31,6 +31,7 @@ import {
   isRetryableSessionError,
   isSessionAlive,
   isPageBroken,
+  isPageUnnavigated,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -1059,6 +1060,61 @@ describe("core/utils coverage", function () {
       assert.equal(await isPageBroken(null), false);
       assert.equal(
         await isPageBroken({ getUrl: async () => { throw new Error("invalid session id"); } }),
+        false
+      );
+    });
+    it("does NOT treat the initial blank document as broken (isPageUnnavigated owns that)", async function () {
+      // Keeps the two predicates disjoint: `data:,` is a never-navigated page,
+      // not a crashed one, and they carry different diagnostics.
+      assert.equal(await isPageBroken(brokenDriver("data:,")), false);
+    });
+  });
+
+  describe("isPageUnnavigated", function () {
+    // Chromium parks a brand-new session on `data:,` until the first
+    // navigation. A context that FAILs while still there never got started —
+    // see adrs/01084-retry-unnavigated-context.md.
+    const at = (url) => ({ getUrl: async () => url });
+
+    it("returns true for Chromium's initial blank document", async function () {
+      assert.equal(await isPageUnnavigated(at("data:,")), true);
+      assert.equal(await isPageUnnavigated(at("data:")), true);
+    });
+
+    it("does NOT treat about:blank as unnavigated (a test may legitimately be there)", async function () {
+      // Mirrors the isPageBroken contract: about:blank is a reachable, valid
+      // target, so a genuine element-not-found there must still FAIL.
+      assert.equal(await isPageUnnavigated(at("about:blank")), false);
+    });
+
+    it("does NOT treat a real data: URL as unnavigated", async function () {
+      // Only the EMPTY data URL is the initial document; a data: page with
+      // content is a deliberate navigation target.
+      assert.equal(
+        await isPageUnnavigated(at("data:text/html,<h1>hello</h1>")),
+        false
+      );
+      assert.equal(await isPageUnnavigated(at("data:,notempty")), false);
+    });
+
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageUnnavigated(at(url)), false, url);
+      }
+    });
+
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageUnnavigated({}), false);
+      assert.equal(await isPageUnnavigated(null), false);
+      assert.equal(
+        await isPageUnnavigated({
+          getUrl: async () => {
+            throw new Error("invalid session id");
+          },
+        }),
         false
       );
     });

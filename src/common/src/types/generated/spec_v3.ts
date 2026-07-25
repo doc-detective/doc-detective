@@ -98,7 +98,7 @@ export interface Context {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session dies mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
    */
   retries?: number;
   /**

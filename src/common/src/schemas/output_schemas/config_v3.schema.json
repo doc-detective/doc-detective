@@ -408,7 +408,7 @@
                 ]
               },
               "retries": {
-                "description": "Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session dies mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.",
+                "description": "Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 10
@@ -58739,7 +58739,7 @@
       "default": "auto"
     },
     "retries": {
-      "description": "How many times to re-run a whole test context on a fresh session when its browser or app session dies mid-run — an early step (like `goTo`) passes, then a later step fails because the session or DOM is gone (WebDriver `ECONNREFUSED` / `invalid session id`, or an element that can't be found because the context is dead). A session death is detected by an active liveness probe, so a legitimate assertion failure (the session is alive, the element genuinely isn't there) is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.",
+      "description": "How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.",
       "type": "integer",
       "minimum": 0,
       "maximum": 10,
