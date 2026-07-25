@@ -286,14 +286,18 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
   });
 
   it("reports the FINAL attempt's durationMs, not the sum across attempts", async function () {
-    // Attempt 1 burns ~120ms then dies; attempt 2 is near-instant and passes.
-    // A summed duration would be >= 120ms; the final-attempt value is well
-    // under that.
+    // Attempt 1 burns SLOW_ATTEMPT_MS then dies; attempt 2 is a near-instant
+    // PASS. So the correct (final-attempt) value is ~0ms and the regression
+    // (summed) value is >= SLOW_ATTEMPT_MS. Asserting at the midpoint keeps a
+    // wide margin on BOTH sides: ~150ms of headroom before a loaded CI node
+    // could push the near-zero final attempt over the line, and ~150ms of
+    // clearance below the smallest possible summed value.
+    const SLOW_ATTEMPT_MS = 300;
     let calls = 0;
     const fn = async (args) => {
       calls++;
       if (calls === 1) {
-        await new Promise((resolve) => setTimeout(resolve, 120));
+        await new Promise((resolve) => setTimeout(resolve, SLOW_ATTEMPT_MS));
         const report = { result: "FAIL", contextId: args.context.contextId, steps: [] };
         Object.defineProperty(report, "_sessionDied", {
           value: true,
@@ -312,8 +316,8 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
     assert.equal(report.result, "PASS");
     assert.equal(calls, 2, "should have retried once");
     assert.ok(
-      report.durationMs < 100,
-      `durationMs ${report.durationMs}ms looks like a sum across attempts, not the final attempt`
+      report.durationMs < SLOW_ATTEMPT_MS / 2,
+      `durationMs ${report.durationMs}ms looks like a sum across attempts (>= ${SLOW_ATTEMPT_MS}ms), not the final attempt`
     );
   });
 
