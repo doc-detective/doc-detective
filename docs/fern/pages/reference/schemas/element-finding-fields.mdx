@@ -23,6 +23,7 @@ elementTestId | string | Optional. data-testid attribute of the element to annot
 elementClass | one of:<br/>- string<br/>- array of string | Optional. Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only. | —
 elementAttribute | object | Optional. Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence. | —
 elementAria | string | Optional. Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax. | —
+timeout | integer | Optional. Max duration in milliseconds to wait for the element to exist. | `5000`
 
 ## Examples
 
@@ -34,6 +35,7 @@ elementAria | string | Optional. Computed accessible name of the element per ARI
   "elementTestId": "example",
   "elementClass": "example",
   "elementAttribute": {},
-  "elementAria": "example"
+  "elementAria": "example",
+  "timeout": 5000
 }
 ```
