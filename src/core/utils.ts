@@ -55,6 +55,8 @@ export {
   isRetryableSessionError,
   isSessionAlive,
   isPageBroken,
+  isPageUnnavigated,
+  classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -895,6 +897,67 @@ async function isPageBroken(driver: any): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Chromium parks a brand-new session on the EMPTY data URL (`data:,`) until its
+// first navigation, so a context still sitting there when it FAILs never got
+// started — its `goTo` silently didn't take effect, or the driver ended up
+// attached to a window that never navigated. Matched exactly: `data:,` (and the
+// bare `data:`), never a data URL carrying content, which is a deliberate
+// navigation target.
+//
+// Deliberately NOT `about:blank`. Chromium's initial page is `data:,`, while
+// `about:blank` is somewhere a test can legitimately navigate — the same
+// distinction BROWSER_ERROR_PAGE already makes — so keeping it out preserves the
+// guarantee that a genuine "element not on a correctly-loaded page" failure
+// still FAILs. Firefox's initial page IS `about:blank`, so this heuristic is
+// Chromium-only by construction; see adrs/01084-retry-unnavigated-context.md.
+const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
+
+// Companion to isSessionAlive / isPageBroken for the "alive but never navigated"
+// retry case (ADR 01084). The session responds and the page isn't a crash page,
+// but the browser is still on its initial blank document, which no correctly
+// loaded page under test ever is. App/mobile sessions have no URL, and a thrown
+// `getUrl` (dead session, already caught by isSessionAlive) both yield false.
+async function isPageUnnavigated(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    const url = String((await driver.getUrl()) ?? "").trim();
+    return INITIAL_BLANK_DOCUMENT.test(url);
+  } catch {
+    return false;
+  }
+}
+
+export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
+
+// The retry DECISION for a FAILed context, composed from the three probes above.
+// Returns the reason to retry on a fresh session, or null to let the FAIL stand.
+// Split out from runContext so the rules that the individual probes can't
+// express are directly testable — which sessions each check applies to, and how
+// they rank:
+//
+//   • Dead session or browser error page — checked on EVERY session the context
+//     holds (a dead app session behind a live browser, or vice versa, still
+//     breaks the context), first match wins.
+//   • Never navigated — checked ONLY on the primary session. A secondary surface
+//     opened via `goTo newTab` may be deliberately left on `data:,`, so applying
+//     "any session" here would retry contexts whose real assertion failed on the
+//     primary page. `probeDrivers[0]` is the first-registered session: the array
+//     comes from a Map's values(), whose iteration order is insertion order per
+//     the language spec, not an implementation detail.
+//
+// See adrs/01082-retries-mid-session-context-retry.md and
+// adrs/01084-retry-unnavigated-context.md.
+async function classifyContextRetry(
+  probeDrivers: any[]
+): Promise<ContextRetryReason | null> {
+  for (const probeDriver of probeDrivers) {
+    if (!(await isSessionAlive(probeDriver))) return "session-died";
+    if (await isPageBroken(probeDriver)) return "page-broken";
+  }
+  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  return null;
 }
 
 // Windows NTSTATUS exit codes for a process that died *during initialization*

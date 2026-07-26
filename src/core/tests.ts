@@ -43,8 +43,7 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
-  isSessionAlive,
-  isPageBroken,
+  classifyContextRetry,
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
@@ -5004,27 +5003,32 @@ async function runContext({
     // live session means the FAIL is real and stands. Recording sweeps already
     // ran above, so the probe never races an in-flight capture.
     if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
-      // Probe EVERY session the context holds — a multi-surface browser context
-      // plus an app session — not just the first, so a dead app/native session
-      // behind a live browser (or vice versa) is still caught. Retry if ANY is
-      // dead or on a browser error page.
+      // Collect EVERY session the context holds — a multi-surface browser
+      // context plus an app session — not just the first, so a dead app/native
+      // session behind a live browser (or vice versa) is still caught. Which of
+      // these each check applies to differs, and classifyContextRetry owns that
+      // distinction. Primary session first (Map values() is insertion-ordered).
       const probeDrivers = sessionDrivers(browserSessions, driver);
       if (appSession?.recordingHost) probeDrivers.push(appSession.recordingHost);
-      for (const probeDriver of probeDrivers) {
-        if (!(await isSessionAlive(probeDriver))) {
-          sessionDiedMidRun = true;
-          break;
-        }
-        if (await isPageBroken(probeDriver)) {
-          // Alive but on a browser crash/error page (renderer crash →
-          // chrome-error): the session responds but the page under test is gone.
-          // Retry on a fresh session like a dead session.
-          sessionDiedMidRun = true;
+      // Which sessions each probe applies to, and how they rank, lives in
+      // classifyContextRetry so it can be unit tested without a real context.
+      // A dead session is the silent case: it needs no explanation beyond the
+      // retry warning the wrapper already logs. The alive-but-unusable cases do,
+      // because "the session responded and we retried anyway" is otherwise
+      // surprising in a log.
+      const retryReason = await classifyContextRetry(probeDrivers);
+      if (retryReason) {
+        sessionDiedMidRun = true;
+        if (retryReason === "page-broken") {
           clog(
             "debug",
             "Context session is alive but on a browser error page; treating it as a broken context for retry."
           );
-          break;
+        } else if (retryReason === "unnavigated") {
+          clog(
+            "debug",
+            "Context session is alive but still on its initial blank document (never navigated); treating it as a broken context for retry."
+          );
         }
       }
       if (
@@ -5033,10 +5037,14 @@ async function runContext({
         logLevelEnabled(config, "debug") &&
         typeof probeDrivers[0].getUrl === "function"
       ) {
-        // Diagnostic for the not-yet-covered alive-but-same-URL-blank mode: log
-        // the page URL of a live-session FAIL that was NOT retried, so a
-        // recurring flake (e.g. recording `annotate`) reveals whether its page
-        // crashed to an error page (now retried) or just blanked at the same URL.
+        // Diagnostic for whatever live-session modes remain uncovered: log the
+        // page URL of a live-session FAIL that was NOT retried. This is how the
+        // long-running `windows-chrome` flake was characterized — every
+        // occurrence, across both the recording and nav-capture bundles, logged
+        // `url=data:,`, which ADR 01084 now retries. What's left for it to catch
+        // is the same-URL-blank mode (page blanks without changing URL), which
+        // stays unretried because it can't be told apart from a genuine
+        // element-not-found on a correctly-loaded page.
         try {
           clog(
             "debug",
