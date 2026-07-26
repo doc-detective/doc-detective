@@ -5987,9 +5987,10 @@
                       "default": 5000
                     },
                     "moveTo": {
-                      "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+                      "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
                       "type": "boolean",
-                      "default": true
+                      "default": false,
+                      "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
                     },
                     "click": {
                       "description": "Click the element.",
@@ -10133,9 +10134,10 @@
                         "default": 5000
                       },
                       "moveTo": {
-                        "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+                        "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
                         "type": "boolean",
-                        "default": true
+                        "default": false,
+                        "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
                       },
                       "click": {
                         "description": "Click the element.",

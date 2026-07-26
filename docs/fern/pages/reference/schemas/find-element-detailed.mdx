@@ -23,7 +23,7 @@ elementClass | one of:<br/>- string<br/>- array of string | Optional. Class or a
 elementAttribute | object | Optional. Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence. | —
 elementAria | string | Optional. Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax. | —
 timeout | integer | Optional. Max duration in milliseconds to wait for the element to exist. | `5000`
-moveTo | boolean | Optional. Move to the element. If the element isn't visible, it's scrolled into view. | `true`
+moveTo | boolean | Optional. Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element. | `false`
 click | one of:<br/>- one of:<br/>- string<br/>- object([Click element (detailed)](/reference/schemas/click-element-detailed))<br/>- boolean<br/>- object([Find element and click](/reference/schemas/find-element-and-click)) | Optional. Click the element. | —
 type | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- object([Type keys (detailed)](/reference/schemas/type-keys-detailed)) | Optional. Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`type`](type). To type in the element, make the element active with the `click` parameter. | —
 
@@ -40,7 +40,7 @@ type | one of:<br/>- one of:<br/>- string<br/>- array of string<br/>- object([Ty
   "elementAttribute": {},
   "elementAria": "example",
   "timeout": 5000,
-  "moveTo": true,
+  "moveTo": false,
   "click": "example"
 }
 ```

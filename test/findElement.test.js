@@ -1,7 +1,29 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { findElement } from "../dist/core/tests/findElement.js";
 
 const config = { logLevel: "silent" };
+
+// Read the AUTHORED schema, not a generated copy: the `default` keyword is
+// what the docs generator prints and what users read, and it's the half of
+// this invariant that nothing else covers.
+const FIND_V3 = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "src",
+      "common",
+      "src",
+      "schemas",
+      "src_schemas",
+      "find_v3.schema.json"
+    ),
+    "utf8"
+  )
+);
 
 // Helper: find the implicit assertion whose statement CONTAINS `needle`. Under
 // the unified model `statement` is a runtime `$$` expression, so we match on the
@@ -195,6 +217,41 @@ describe("findElement unified assertion model", function () {
     });
     assert.equal(calls.length, 1);
     assert.deepEqual(calls[0], [{ button: "right" }]);
+  });
+
+  // A schema `default` is documentation, not behavior: find_v3's properties
+  // sit inside an `anyOf`, and Ajv skips defaults there, so nothing injects
+  // the value. The runtime carries its own default in the `step.find = {...}`
+  // normalization block, and the two drifted apart unnoticed — the schema and
+  // docs advertised `true` while every run behaved as `false`. These pin them
+  // together so the next divergence fails here instead of shipping.
+  it("moveTo's declared default is false", function () {
+    assert.equal(FIND_V3.components.schemas.object.properties.moveTo.default, false);
+  });
+
+  it("a bare find performs no moveTo, matching the declared default", async () => {
+    const element = makeElement();
+    const driver = makeDriver({ candidates: [element] });
+    const result = await findElement({
+      config,
+      step: { find: { selector: "button" } },
+      driver,
+    });
+
+    // findElement appends this only when it takes the moveTo branch, and it
+    // appends unconditionally once inside — so it reports whether the branch
+    // ran, independent of whether the move itself succeeded.
+    const movedAtRuntime = /Moved to element\./.test(result.description);
+    assert.equal(
+      movedAtRuntime,
+      false,
+      `a bare find moved to the element: ${result.description}`
+    );
+    assert.equal(
+      movedAtRuntime,
+      FIND_V3.components.schemas.object.properties.moveTo.default,
+      "find_v3's declared moveTo default no longer matches what a bare find does"
+    );
   });
 
   it("found but click sub-effect fails → status FAIL with NO extra assertion record", async () => {
