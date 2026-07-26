@@ -1429,6 +1429,26 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object).to.deep.equal({ outline: "#a" });
       });
 
+      it("should not inject the target timeout default into an object target", function () {
+        // The string form above never enters target_element_shape, so it
+        // can't exercise the one `default` that shape carries. This does.
+        //
+        // `timeout` declares `"default": 5000` to document the wait on the
+        // generated reference page, and it stays inert only because Ajv skips
+        // defaults inside `anyOf` — which is how every target is reached. If
+        // that ever changed, every annotation target would silently gain a
+        // timeout it didn't ask for, and the runtime's own default (find's)
+        // would stop being the one in charge.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#a" } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.deep.equal({ outline: { selector: "#a" } });
+        expect(result.object.outline.timeout).to.equal(undefined);
+      });
+
       it("should validate a screenshot step with an annotations array", function () {
         const result = validate({
           schemaKey: "step_v3",
