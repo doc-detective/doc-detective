@@ -66,6 +66,8 @@ The results also carry a `warm` object that records what the run provisioned bef
 
 Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to do, or the environment handles it later), and `failed`. The warm phase is best-effort: a `failed` task logs a warning and never fails the run—the affected test context retries or skips with its normal behavior and reason. Use the timings to spot provisioning costs in slow CI runs: a long `warmed` task on every run usually means the [runtime cache](/docs/ci/docker-and-headless#step-3-warm-runtime-assets) isn't persisted between runs.
 
+When a standalone [`doc-detective warm`](/reference/cli/warm) run has already booted the devices a run needs, the run adopts them instead of booting its own. Its warm phase then reports those device tasks as `warmed` in milliseconds—the standalone command paid the boot cost earlier, outside the run—so a short `warmed` task here can mean an adopted device rather than a cold boot.
+
 ## Step 4: Find the HTML report
 
 The `html` reporter writes a self-contained HTML report you can open in a browser:
