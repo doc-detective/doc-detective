@@ -88,9 +88,25 @@ function readSchema(file) {
  */
 function pageSchemas() {
   const source = fs.readFileSync(DOCS_GENERATOR, "utf8");
-  const start = source.indexOf("const schemasToGenerate = [");
+  const marker = "const schemasToGenerate = [";
+  const start = source.indexOf(marker);
+  // Fail loudly. Without this, renaming or reformatting that literal makes
+  // `start` -1, the slice garbage, the regex match nothing, and pageSchemas()
+  // return an empty Set — so unique-title would scan zero files, report nothing,
+  // and exit 0. A safety net that silently switches itself off is worse than no
+  // safety net, because it still looks green.
+  if (start === -1) {
+    throw new Error(
+      `Could not find "${marker}" in ${DOCS_GENERATOR}. The unique-title rule reads that list to ` +
+        `know which schemas become reference pages; update the marker here if the generator changed.`
+    );
+  }
   const list = source.slice(start, source.indexOf("]", start));
-  return new Set([...list.matchAll(/"([A-Za-z0-9_]+_v\d)"/g)].map((m) => `${m[1]}.schema.json`));
+  const emitted = new Set([...list.matchAll(/"([A-Za-z0-9_]+_v\d)"/g)].map((m) => `${m[1]}.schema.json`));
+  if (emitted.size === 0) {
+    throw new Error(`Parsed "${marker}" in ${DOCS_GENERATOR} but found no schema names — the list format changed.`);
+  }
+  return emitted;
 }
 
 /**
@@ -509,10 +525,21 @@ async function main() {
   await lintExamples();
 
   if (findings.length > 0) {
+    // `--format github-actions` is forwarded to Spectral, but these findings
+    // never pass through it, so without this they'd print as plain text and
+    // never become inline PR annotations — the job would claim a coverage it
+    // didn't have.
+    const annotate = format === "github-actions";
     console.error("");
     console.error("Schema lint (cross-file and Ajv-semantic rules):");
     console.error("");
     for (const f of findings) {
+      if (annotate) {
+        const file = path.relative(REPO_ROOT, path.join(SRC_SCHEMAS, f.file)).split(path.sep).join("/");
+        // Newlines terminate an annotation, so collapse the message onto one line.
+        const message = `${f.rule}: ${f.pointer ? `${f.pointer} — ` : ""}${f.message}`.replace(/\s*\n\s*/g, " ");
+        console.log(`::error file=${file},title=${f.rule}::${message}`);
+      }
       console.error(`  error  ${f.rule}  ${f.file}${f.pointer}`);
       console.error(`         ${f.message}`);
       console.error("");
