@@ -1,6 +1,6 @@
 {
   "specId": "annotate",
-  "description": "The annotate step: annotations drawn into the page, so they persist across steps and appear in recordings. Unlike screenshot annotations (composited into one image), these need a live browser, so the permutations that assert visible behavior are gated to headed Chrome on Windows/macOS like the rest of this bundle; headless Linux lands them SKIPPED, which passes the gate. FAIL paths (updating an absent id, an invalid payload) and the no-browser SKIP are pinned in test/annotate-step.test.js, since a spec can't assert FAIL.",
+  "description": "The annotate step: annotations drawn into the page, so they persist across steps and appear in recordings. Unlike screenshot annotations (composited into one image), these need a live browser, so the permutations that assert visible behavior are gated to headed Chrome on Windows/macOS like the rest of this bundle; headless Linux lands them SKIPPED, which passes the gate. FAIL paths (updating an absent id, an invalid payload) and the no-browser SKIP are pinned in test/annotate-step.test.js, since a spec can't assert FAIL. Element targets carry `timeout: 20000` (ADR 01085) because these tests reuse a browser context that recording has made slow — on a cold headed CI runner, notably Windows, the default 5s can lapse before the page is queryable. That `timeout` replaced a guard `find` in front of every element-targeting annotate, which existed only to buy the wait the target can now ask for itself; the `click` and the scroll-inducing `find` that remain are doing real work.",
   "tests": [
     {
       "testId": "annotate-lifecycle-in-recording",
@@ -22,13 +22,6 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
-          "description": "Guard every annotation target with a preceding `find`. `annotate` resolves its target once with no polling, so on a slow headed browser (notably Windows CI) a bare goTo/navigation can hand off before the element is queryable and the annotate FAILs; `find` waits for the element, closing that race. Every element-targeting `annotate` in this spec (including `update` and each transition, which re-target new elements) is paired with a matching `find` for the same target. The first find after each navigation carries a generous `timeout` because later tests reuse a browser context that recording has made slow — the default 5s can lapse before the page is queryable on a cold CI runner.",
-          "find": {
-            "selector": "#username-input",
-            "timeout": 20000
-          }
-        },
-        {
           "record": {
             "path": "annotate-lifecycle.webm",
             "overwrite": "true"
@@ -40,12 +33,18 @@
             "add": [
               {
                 "id": "step-counter",
-                "badge": "#username-input",
+                "badge": {
+                  "selector": "#username-input",
+                  "timeout": 20000
+                },
                 "label": "1"
               },
               {
                 "id": "guide",
-                "callout": "#username-input",
+                "callout": {
+                  "selector": "#username-input",
+                  "timeout": 20000
+                },
                 "label": "Enter your username first",
                 "position": "right",
                 "track": true
@@ -57,23 +56,24 @@
           "click": "#username-input"
         },
         {
-          "find": {
-            "selector": "#submit-button"
-          }
-        },
-        {
           "stepId": "annotate-update",
-          "description": "Move the same annotations to the next control by id.",
+          "description": "Move the same annotations to the next control by id. `update` re-resolves its target, so it carries its own timeout.",
           "annotate": {
             "update": [
               {
                 "id": "step-counter",
-                "badge": "#submit-button",
+                "badge": {
+                  "selector": "#submit-button",
+                  "timeout": 20000
+                },
                 "label": "2"
               },
               {
                 "id": "guide",
-                "callout": "#submit-button",
+                "callout": {
+                  "selector": "#submit-button",
+                  "timeout": 20000
+                },
                 "label": "Then submit",
                 "position": "right",
                 "track": true
@@ -120,17 +120,14 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
-          "find": {
-            "selector": "#submit-button",
-            "timeout": 20000
-          }
-        },
-        {
           "annotate": {
             "add": [
               {
                 "id": "persist",
-                "outline": "#submit-button"
+                "outline": {
+                  "selector": "#submit-button",
+                  "timeout": 20000
+                }
               }
             ]
           }
@@ -221,18 +218,15 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
-          "find": {
-            "selector": "#username-input",
-            "timeout": 20000
-          }
-        },
-        {
           "stepId": "annotate-transition-fade",
           "annotate": {
             "add": [
               {
                 "id": "t-fade",
-                "outline": "#username-input",
+                "outline": {
+                  "selector": "#username-input",
+                  "timeout": 20000
+                },
                 "transition": {
                   "enter": "fade",
                   "durationMs": 300
@@ -242,17 +236,15 @@
           }
         },
         {
-          "find": {
-            "selector": "#submit-button"
-          }
-        },
-        {
           "stepId": "annotate-transition-pop",
           "annotate": {
             "add": [
               {
                 "id": "t-pop",
-                "badge": "#submit-button",
+                "badge": {
+                  "selector": "#submit-button",
+                  "timeout": 20000
+                },
                 "label": "1",
                 "transition": {
                   "enter": "pop",
@@ -263,18 +255,14 @@
           }
         },
         {
-          "find": {
-            "elementTestId": "password-field"
-          }
-        },
-        {
           "stepId": "annotate-transition-draw",
           "annotate": {
             "add": [
               {
                 "id": "t-draw",
                 "outline": {
-                  "elementTestId": "password-field"
+                  "elementTestId": "password-field",
+                  "timeout": 20000
                 },
                 "transition": {
                   "enter": "draw",
@@ -285,18 +273,16 @@
           }
         },
         {
-          "find": {
-            "selector": "#contact-email"
-          }
-        },
-        {
           "stepId": "annotate-transition-none",
           "description": "A blur must never fade in — that would show the sensitive content while it animates.",
           "annotate": {
             "add": [
               {
                 "id": "t-none",
-                "blur": "#contact-email",
+                "blur": {
+                  "selector": "#contact-email",
+                  "timeout": 20000
+                },
                 "transition": {
                   "enter": "none"
                 }
@@ -305,17 +291,15 @@
           }
         },
         {
-          "find": {
-            "selector": "#primary-action"
-          }
-        },
-        {
           "stepId": "annotate-duration",
           "annotate": {
             "add": [
               {
                 "id": "t-timed",
-                "outline": "#primary-action",
+                "outline": {
+                  "selector": "#primary-action",
+                  "timeout": 20000
+                },
                 "duration": 800
               }
             ]
@@ -360,24 +344,22 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
-          "find": {
-            "selector": "#submit-button",
-            "timeout": 20000
-          }
-        },
-        {
           "stepId": "annotate-tracked",
           "annotate": {
             "add": [
               {
                 "id": "tracked",
-                "outline": "#submit-button",
+                "outline": {
+                  "selector": "#submit-button",
+                  "timeout": 20000
+                },
                 "track": true
               }
             ]
           }
         },
         {
+          "description": "Not a guard — this `find` is what scrolls the page, which is the thing being tested. Its default moveTo brings #contact-email into view, and the tracked outline has to follow #submit-button as it moves.",
           "find": {
             "selector": "#contact-email"
           }
@@ -412,19 +394,14 @@
           "goTo": "http://localhost:8092/enhanced-elements.html"
         },
         {
-          "find": {
-            "selector": ".form-control",
-            "timeout": 20000
-          }
-        },
-        {
           "stepId": "annotate-redact-all",
           "annotate": {
             "add": [
               {
                 "id": "redact",
                 "blur": {
-                  "selector": ".form-control"
+                  "selector": ".form-control",
+                  "timeout": 20000
                 },
                 "all": true,
                 "track": true,
