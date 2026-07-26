@@ -94,8 +94,11 @@ The two retry levels differ in whether that discarded time is recoverable from t
 distinction is easy to state imprecisely:
 
 - **Step retries stay visible one level up.** The context clock spans every attempt of its steps
-  plus the backoff waits, so `context.durationMs - sum(step.durationMs)` is a lower bound on what
-  the retries cost.
+  plus the backoff waits between them, so a retried step's discarded time is still counted in
+  `context.durationMs` even though the step itself reports only its final attempt. It is *counted*,
+  not *isolated*: `context.durationMs - sum(step.durationMs)` is an **upper** bound on retry cost,
+  because that same gap also holds ordinary context overhead — preflight, driver startup, teardown —
+  which is there whether or not anything retried. Read `attempts` to know a retry happened at all.
 - **Context retries do not.** A re-run context reports only its final attempt, and because the test
   level is a sum of those final-attempt values, no node absorbs the abandoned attempts. Time spent
   on a context attempt that was thrown away appears nowhere in the totals; `retries` is the only
