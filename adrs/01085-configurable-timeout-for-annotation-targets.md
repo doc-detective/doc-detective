@@ -122,10 +122,21 @@ single field. The finding fields have already drifted across four schemas — `c
   paid again on each re-render, not only the first. Applying it uniformly was chosen over
   first-resolve-only because the alternative is a hidden special case: the same annotation would
   wait differently depending on whether a navigation had happened since.
-* Bad/limit: `timeout: 0` is inconsistent across surfaces, because `findElement` uses `|| 5000` on
-  its browser path and `?? 5000` on its app path. So `0` means "check once" on an app surface and
-  "wait 5000 ms" in a browser. This is pre-existing `find` behavior that annotations now inherit
-  rather than anything introduced here; fixing it changes `find` and belongs in its own ADR.
+* Bad/limit: `timeout: 0` is inconsistent, and the split is **per resolution path, not per
+  surface**:
+
+  | Path | How 0 is treated | Why |
+  |---|---|---|
+  | Browser, single element | waits 5000 ms | `findElement` does `step.find.timeout \|\| 5000`, which rewrites 0 |
+  | Browser, `all: true` | checks once | goes straight to `findElementByCriteria`, whose `timeout = 5000` default parameter only fires on `undefined` |
+  | App surface | checks once | `findElement`'s app branch does `findSpec.timeout ?? 5000` |
+
+  So `{"blur": {"selector": ".x", "timeout": 0}, "all": true}` and
+  `{"outline": {"selector": ".x", "timeout": 0}}` behave differently in the *same* browser. The
+  `||` is pre-existing `find` behavior that annotations now inherit; "check once" is arguably the
+  correct reading of 0, so the fix is to change `find`'s `||` to `??` rather than to propagate the
+  clobbering — which changes `find` and belongs in its own ADR. Not papered over here, because
+  making `all` match the `||` path would entrench the wrong behavior in a second place.
 * Bad/limit: the `{"outline": "#foo"}` string shorthand still cannot carry a timeout. Authors who
   need one expand to the object form, as they already do for `find`.
 

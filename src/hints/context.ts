@@ -490,14 +490,40 @@ function emptyWalkData(): WalkData {
 export const ANNOTATION_TARGET_MISSING = /element to annotate/;
 
 /**
- * Whether any annotation in this step already asked for extra time.
+ * The annotation type keys, whose value is the annotation's target. Mirrors
+ * the `oneOf` branches in `annotation_v3.schema.json`; listed rather than
+ * inferred because the target has to be told apart from the sibling options
+ * (`label` is a string too, and a top-level `position` is placement, not a
+ * target). Drift degrades to silence — a new type the hint doesn't know about
+ * simply won't trigger it — which is the right failure mode for a hint.
+ */
+const ANNOTATION_TYPE_KEYS = [
+  "outline",
+  "arrow",
+  "badge",
+  "callout",
+  "blur",
+  "text",
+];
+
+/**
+ * Whether this step has an element target that could have waited longer.
+ *
+ * Requires BOTH that the step declares at least one element-anchored target
+ * and that none of them asked for extra time:
+ *
+ * - No element target at all (a `clear`-only step, or position-anchored
+ *   annotations) means there is nothing to put a `timeout` on. That case is
+ *   reachable — renderLayer re-resolves every surviving annotation on each
+ *   render, so a `clear` step can FAIL on an annotation some earlier step
+ *   added, which may already carry a `timeout` of its own.
+ * - One target already carrying a `timeout` is enough to stay quiet: the
+ *   author knows the field exists, and which target needed it is their call.
  *
  * Covers both surfaces the field lives on: an `annotate` step's `add`/`update`
- * entries, and a screenshot's own `annotations`. One target carrying a
- * `timeout` is enough to stay quiet — the author knows the field exists, and
- * which target needed it is their call, not a hint's.
+ * entries, and a screenshot's own `annotations`.
  */
-function annotationTargetsAskForTime(step: any): boolean {
+function annotationTargetCouldWaitLonger(step: any): boolean {
   const annotations = [
     ...(Array.isArray(step?.annotate?.add) ? step.annotate.add : []),
     ...(Array.isArray(step?.annotate?.update) ? step.annotate.update : []),
@@ -505,14 +531,26 @@ function annotationTargetsAskForTime(step: any): boolean {
       ? step.screenshot.annotations
       : []),
   ];
-  return annotations.some((annotation: any) =>
-    // The target is the value of whichever type key the annotation names, so
-    // scan the values rather than hardcoding the six type names — a new
-    // annotation type shouldn't silently start producing a wrong hint.
-    Object.values(annotation ?? {}).some(
-      (value: any) => typeof value?.timeout === "number"
-    )
-  );
+
+  let sawElementTarget = false;
+  for (const annotation of annotations) {
+    for (const key of ANNOTATION_TYPE_KEYS) {
+      const target = annotation?.[key];
+      if (target === undefined) continue;
+      // The selector-or-text shorthand is element-anchored but has nowhere to
+      // put a timeout — exactly the case worth teaching.
+      if (typeof target === "string") {
+        sawElementTarget = true;
+        continue;
+      }
+      if (!target || typeof target !== "object") continue;
+      // A position target resolves without a driver, so waiting is meaningless.
+      if (target.position !== undefined) continue;
+      if (typeof target.timeout === "number") return false;
+      sawElementTarget = true;
+    }
+  }
+  return sawElementTarget;
 }
 
 // The step keys whose actions route through the active-surface resolver
@@ -709,16 +747,16 @@ function inspectStep(step: any, data: WalkData): void {
   }
 
   // A step that FAILed because an annotation's target was never found, where
-  // no target asked for extra time. Gated on the resolution message rather
-  // than "an annotate step FAILed": the other failure modes (an invalid
-  // payload, updating an id that isn't on screen) have nothing to do with
-  // waiting, and a timeout suggestion there is noise. Powers
-  // `setAnnotationTimeout`.
+  // the step has an element target that could have waited longer. Gated on
+  // the resolution message rather than "an annotate step FAILed": the other
+  // failure modes (an invalid payload, updating an id that isn't on screen)
+  // have nothing to do with waiting, and a timeout suggestion there is noise.
+  // Powers `setAnnotationTimeout`.
   if (
     step.result === "FAIL" &&
     typeof step.resultDescription === "string" &&
     ANNOTATION_TARGET_MISSING.test(step.resultDescription) &&
-    !annotationTargetsAskForTime(step)
+    annotationTargetCouldWaitLonger(step)
   ) {
     data.failedAnnotationTargetWithoutTimeout = true;
   }

@@ -359,7 +359,7 @@
           }
         },
         {
-          "description": "Not a guard — this `find` is what scrolls the page, which is the thing being tested. Its default moveTo brings #contact-email into view, and the tracked outline has to follow #submit-button as it moves.",
+          "description": "Kept rather than folded into a target `timeout`: it advances the page past the annotated element, which is what the tracking loop is here to survive. Note it does NOT scroll — findElement applies `moveTo: step.find.moveTo || false`, and find_v3's `\"default\": true` is inert because Ajv skips defaults inside anyOf. Add an explicit `moveTo: true` if this test should assert scroll-tracking rather than just re-anchoring.",
           "find": {
             "selector": "#contact-email"
           }

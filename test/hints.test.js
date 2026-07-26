@@ -991,6 +991,50 @@ describe("hints/context", function () {
         ] }] }] }],
       });
       expect(passed.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // A `clear`-only step can FAIL with this message: renderLayer
+      // re-resolves every SURVIVING annotation on each render, so an
+      // annotation an earlier step added can go missing here. There's no
+      // target in this step to put a timeout on, and the one that failed may
+      // already have had one -> stay quiet.
+      const clearOnly = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { clear: ["b"] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(clearOnly.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // Position-anchored annotations resolve without a driver, so waiting
+      // longer is meaningless -> stay quiet.
+      const positionOnly = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: {
+              add: [{ text: { position: "top-left" }, label: "Demo" }],
+            },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(positionOnly.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // A bare string target is element-anchored with nowhere to put a
+      // timeout — exactly the case worth teaching -> fire.
+      const stringTarget = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { add: [{ outline: "#late" }] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(stringTarget.failedAnnotationTargetWithoutTimeout).to.equal(true);
     });
   });
 
