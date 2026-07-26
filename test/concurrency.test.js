@@ -884,6 +884,29 @@ describe("runSpecs concurrency", function () {
       delete report.runId;
       delete report.runDir;
     }
+    // durationMs is measured wall-clock time, so it can never be identical
+    // across two runs — and the run-level value is EXPECTED to differ by
+    // design: it's elapsed time, so 2 runners finish the same work sooner
+    // (ADR 01083). Assert the field is present at every level, then strip it
+    // so the comparison stays about execution results.
+    const stripDurations = (node) => {
+      // Mirrors the runner's own `if (!contextReport) continue` guard: a
+      // crash-isolated context can leave an unassigned slot.
+      if (!node) return;
+      expect(node.durationMs, "durationMs missing from a report node").to.be.a(
+        "number"
+      );
+      delete node.durationMs;
+      for (const child of node.specs ??
+        node.tests ??
+        node.contexts ??
+        node.steps ??
+        []) {
+        stripDurations(child);
+      }
+    };
+    stripDurations(sequential);
+    stripDurations(concurrent);
     expect(concurrent).to.deep.equal(sequential);
   });
 

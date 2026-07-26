@@ -63,6 +63,10 @@ export interface Specification {
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
+   * Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.
+   */
+  durationMs?: number;
+  /**
    * [Tests](test) to perform.
    *
    * @minItems 1

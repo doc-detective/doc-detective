@@ -33,6 +33,7 @@ location | object([Source Location](/reference/schemas/source-location)) | ReadO
 autoScreenshot | string | ReadOnly. Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.<br/><br/>Minimum length: 1. Pattern: `^(?![A-Za-z]:|[\\/])[^\\]+$` | —
 attempts | integer | ReadOnly. Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.<br/><br/>Minimum: 2 | —
 visit | integer | ReadOnly. Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.<br/><br/>Minimum: 2 | —
+durationMs | integer | ReadOnly. Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.<br/><br/>Minimum: 0 | —
 
 ## Examples
 

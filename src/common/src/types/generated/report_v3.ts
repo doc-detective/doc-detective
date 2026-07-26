@@ -44,6 +44,10 @@ export interface Report {
    */
   runDir?: string;
   /**
+   * Wall-clock duration of the run's execution phase in milliseconds, spanning the warm phase, every spec, and teardown. Excludes what happens before execution starts — test detection, resolution, and any just-in-time dependency install — so on a cold runner the process takes longer than this. Because contexts run concurrently, this can be LESS than the sum of the per-spec durations. Present only in test results. System-populated.
+   */
+  durationMs?: number;
+  /**
    * Test specifications that were performed.
    *
    * @minItems 1
@@ -127,6 +131,10 @@ export interface Specification {
    */
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults;
+  /**
+   * Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.
+   */
+  durationMs?: number;
   /**
    * [Tests](test) to perform.
    *

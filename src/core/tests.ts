@@ -1278,6 +1278,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
+        // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        durationMs: 0,
         specs: [],
       };
     }
@@ -1413,6 +1415,14 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  */
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
+  // Run-level wall clock, scoped to the EXECUTION phase — detection,
+  // resolution, and JIT dependency installs happen in runTests before this
+  // point and are deliberately excluded (see ADR 01083). Started before the
+  // filter short-circuit so a zero-spec run reports a real (tiny) duration
+  // rather than omitting the field. Unlike the spec/test sums, this IS elapsed
+  // time — so under concurrency it can be LESS than the sum of the per-spec
+  // durations.
+  const runStart = Date.now();
   // Narrow the spec set to what specFilter / testFilter allow before running.
   // Filtered-out specs / tests do not appear in the report (true filter, not
   // skip). Pass-through when neither filter is set.
@@ -1438,6 +1448,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      durationMs: Date.now() - runStart,
       specs: [],
     };
   }
@@ -2138,7 +2149,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.
     for (const specReport of report.specs) {
+      let specDurationMs = 0;
       for (const testReport of specReport.tests) {
+        let testDurationMs = 0;
         for (const contextReport of testReport.contexts) {
           // Every slot is assigned by the pool callback (even on crash), so
           // this guard should never fire — it documents the invariant and
@@ -2146,13 +2159,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
             report.summary.steps[stepReport.result.toLowerCase()]++;
+            // Default here rather than at each construction site: this pass is
+            // the only place that sees EVERY node from both execution paths
+            // (flat pool and routed sequencer), real and synthetic alike. A
+            // node that never ran — a guard-skipped context, a routing marker
+            // — has no clock, and a future synthetic site can't forget the
+            // field. Nodes that ran keep their measured value (ADR 01083).
+            stepReport.durationMs ??= 0;
           }
           report.summary.contexts[contextReport.result.toLowerCase()]++;
+          contextReport.durationMs ??= 0;
+          testDurationMs += contextReport.durationMs;
         }
         testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
+        // Test and spec durations are SUMS of their children, not wall-clock
+        // spans: contexts from every test and spec share one concurrent pool,
+        // so a span would count idle time while unrelated specs ran. The sum
+        // is total work — what slow-test triage and JUnit's `<testsuite time>`
+        // both want. See ADR 01083.
+        testReport.durationMs = testDurationMs;
+        specDurationMs += testDurationMs;
         report.summary.tests[testReport.result.toLowerCase()]++;
       }
       specReport.result = rollUpResults(specReport.tests);
+      specReport.durationMs = specDurationMs;
       report.summary.specs[specReport.result.toLowerCase()]++;
     }
   } finally {
@@ -2231,6 +2261,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   }
 
+  // Stamped last, after teardown and any Heretto upload, so the number matches
+  // the elapsed time a user actually observes.
+  report.durationMs = Date.now() - runStart;
   return report;
 }
 
@@ -4786,6 +4819,7 @@ async function runContext({
       // it. Surface-less browser steps in that (pathological) state fail on the
       // dead session — acceptable; the run closed its own browser mid-test.
       const runStepOnce = async () => {
+        const stepStart = Date.now();
         const r = await runStep({
           config: config,
           context: context,
@@ -4808,7 +4842,12 @@ async function runContext({
         r.resultDescription = r.description;
         delete r.status;
         delete r.description;
-        return { ...step, ...r } as any;
+        // Stamp AFTER the spread: `step` may carry an authored `duration`
+        // input (a click's press duration, an annotation's display duration),
+        // and `r` is the runStep result — neither may clobber the timing.
+        // On retry the loop below discards this report wholesale, so the
+        // surviving value is the FINAL attempt's, per ADR 01083.
+        return { ...step, ...r, durationMs: Date.now() - stepStart } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -5190,8 +5229,21 @@ async function runContextWithRetries(
   delayMs: (attempt: number) => number = (attempt) => 500 * (attempt + 1)
 ): Promise<any> {
   const { context, config } = args;
+  // Time each attempt here rather than inside runContext: runContext has a
+  // dozen exits (eleven early `requires`/preflight SKIPPED returns plus the
+  // normal one), and this wrapper is its only caller, so one clock here stamps
+  // every one of them. A retried context keeps the FINAL attempt's elapsed
+  // time — the attempt the reported `result` describes (ADR 01083).
+  const timedRunContext = async (a: any) => {
+    const start = Date.now();
+    const report = await runContextFn(a);
+    if (report && typeof report === "object") {
+      report.durationMs = Date.now() - start;
+    }
+    return report;
+  };
   const retries = resolveRetryPolicy({ context, config });
-  if (!(retries > 0)) return runContextFn(args);
+  if (!(retries > 0)) return timedRunContext(args);
 
   // Snapshot the non-idempotent context fields so each retry starts from the
   // originally-requested state instead of the prior attempt's narrowed one.
@@ -5211,7 +5263,7 @@ async function runContextWithRetries(
   let report: any;
   let attempt = 0;
   for (; ; attempt++) {
-    report = await runContextFn(args);
+    report = await timedRunContext(args);
     const retryable = report?.result === "FAIL" && report?._sessionDied === true;
     if (!retryable || attempt >= retries) break;
     log(
@@ -5281,6 +5333,10 @@ async function stopAllRecordings({
       description: "Stopping recording",
       stepId: randomUUID(),
     };
+    // These sweep steps really execute, so they carry a measured duration
+    // rather than the Phase-3 zero default. Timed in both the success and the
+    // failure path, so a stop that hangs before throwing still shows its cost.
+    const stopStart = Date.now();
     try {
       const stepResult = await runStep({
         config,
@@ -5295,7 +5351,11 @@ async function stopAllRecordings({
       delete stepResult.description;
       // Don't leak the internal routing marker into the report.
       delete stopRecordStep.__stopAny;
-      contextReport.steps.push({ ...stopRecordStep, ...stepResult });
+      contextReport.steps.push({
+        ...stopRecordStep,
+        ...stepResult,
+        durationMs: Date.now() - stopStart,
+      });
     } catch (error: any) {
       // A throw from runStep would otherwise strand the remaining handles.
       // Drop the top handle so the loop can't spin, and record the failure.
@@ -5305,6 +5365,7 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        durationMs: Date.now() - stopStart,
       });
     }
   }

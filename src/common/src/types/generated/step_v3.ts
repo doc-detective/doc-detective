@@ -2046,6 +2046,10 @@ export interface Common {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2228,6 +2232,10 @@ export interface Common1 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2377,6 +2385,10 @@ export interface Common2 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2526,6 +2538,10 @@ export interface Common3 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2732,6 +2748,10 @@ export interface Common4 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2881,6 +2901,10 @@ export interface Common5 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3111,6 +3135,10 @@ export interface Common6 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3342,6 +3370,10 @@ export interface Common7 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3578,6 +3610,10 @@ export interface Common8 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3848,6 +3884,10 @@ export interface Common9 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -4571,6 +4611,10 @@ export interface Common10 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -4720,6 +4764,10 @@ export interface Common11 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5013,6 +5061,10 @@ export interface Common12 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5168,6 +5220,10 @@ export interface Common13 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5467,6 +5523,10 @@ export interface Common14 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -6000,6 +6060,10 @@ export interface Common15 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -6149,6 +6213,10 @@ export interface Common16 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -6368,6 +6436,10 @@ export interface Common17 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -6517,6 +6589,10 @@ export interface Common18 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -6857,6 +6933,10 @@ export interface Common19 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -7006,6 +7086,10 @@ export interface Common20 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**

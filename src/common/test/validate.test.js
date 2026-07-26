@@ -2046,6 +2046,117 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
     });
+
+    describe("report_v3 durationMs", function () {
+      const minimalSpecs = [
+        { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
+      ];
+      // Negative cases must fail on the `minimum`/`integer` constraint, not on
+      // `additionalProperties` — otherwise they'd pass identically against a
+      // schema that never declared `durationMs` at all.
+      const expectConstraintError = (errors) => {
+        expect(errors).to.be.a("string");
+        expect(errors).to.include("durationMs");
+        expect(errors).to.not.include("additional properties");
+      };
+      // A fully timed report: `durationMs` on the run, spec, test, resolved
+      // context, and step nodes. System-populated output, never authored.
+      const timedReport = {
+        durationMs: 5000,
+        specs: [
+          {
+            durationMs: 4000,
+            tests: [
+              {
+                durationMs: 4000,
+                contexts: [
+                  {
+                    durationMs: 4000,
+                    steps: [
+                      { goTo: { url: "https://example.com" }, durationMs: 900 },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      it("should validate durationMs on every report node", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: structuredClone(timedReport),
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.durationMs).to.equal(5000);
+        expect(result.object.specs[0].durationMs).to.equal(4000);
+        expect(result.object.specs[0].tests[0].durationMs).to.equal(4000);
+        expect(
+          result.object.specs[0].tests[0].contexts[0].durationMs
+        ).to.equal(4000);
+        expect(
+          result.object.specs[0].tests[0].contexts[0].steps[0].durationMs
+        ).to.equal(900);
+      });
+
+      it("should validate a report_v3 object without durationMs (back-compat)", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: { specs: minimalSpecs },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.durationMs).to.equal(undefined);
+      });
+
+      it("should accept a zero durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].steps[0].durationMs = 0;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a negative run durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.durationMs = -1;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a fractional step durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].steps[0].durationMs = 12.5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative test durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative context durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative spec durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+    });
   });
 
   describe("transformToSchemaKey", function () {
