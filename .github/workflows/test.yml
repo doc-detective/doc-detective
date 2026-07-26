@@ -142,6 +142,34 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
+  # Schema lint for src/common/src/schemas/src_schemas (ADR 01087).
+  #
+  # NOT the enforcement — `npm run build:common` already gates on this, so every
+  # matrix cell above fails on a violation too. This job exists for speed and
+  # legibility: it reports in about a minute instead of waiting on a full build,
+  # and `--format github-actions` turns each finding into an inline PR annotation
+  # on the offending line.
+  schema-lint:
+    name: Schema lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # --ignore-scripts is safe here: the lint reads the AUTHORED schemas and
+      # needs no build output. That's the same property that lets it gate the
+      # build without a chicken-and-egg problem.
+      - run: npm ci --ignore-scripts
+      - run: npm run lint:schemas -- --format github-actions
+
   # Coverage ratchet for the doc-detective-common subpackage. The matrix above
   # builds common on every cell but never measures coverage; this single
   # platform-independent job does. It enforces coverage-thresholds.json — c8

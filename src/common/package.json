@@ -22,12 +22,13 @@
     "dereferenceSchemas": "node ./src/schemas/dereferenceSchemas.cjs",
     "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
     "compile": "npm run clean && tsc && node scripts/createCjsWrapper.js",
-    "build": "npm run dereferenceSchemas && npm run generate:types && npm run compile",
+    "build": "npm run lint:schemas && npm run dereferenceSchemas && npm run generate:types && npm run compile",
     "test": "mocha",
     "test:coverage": "c8 mocha",
     "test:coverage:html": "c8 --reporter=html mocha",
     "test:coverage:check": "c8 check-coverage",
-    "test:coverage:ratchet": "node ../../scripts/check-coverage-ratchet.cjs"
+    "test:coverage:ratchet": "node ../../scripts/check-coverage-ratchet.cjs",
+    "lint:schemas": "node ../../scripts/lint-schemas.cjs"
   },
   "repository": {
     "type": "git",
