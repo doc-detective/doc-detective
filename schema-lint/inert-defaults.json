@@ -2,15 +2,15 @@
   "annotation_v3.schema.json": {
     "/components/schemas/target_element_shape/properties/timeout": {
       "value": 5000,
-      "runtime": "src/core/tests/findElement.ts — timeoutMs: findSpec.timeout ?? 5000,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "checkLink_v3.schema.json": {
     "/components/schemas/object/properties/params": {
       "value": {},
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/statusCodes": {
       "value": [
@@ -21,40 +21,40 @@
         308
       ],
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/headers": {
       "value": {},
-      "runtime": "src/core/tests/checkLink.ts — res.headers?.[\"retry-after\"] ?? res.headers?.[\"Retry-After\"]",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "config_v3.schema.json": {
     "/components/schemas/markupDefinition/properties/batchMatches": {
       "value": false,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "context_v3.schema.json": {
     "/components/schemas/browser/properties/headless": {
       "value": true,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "dragAndDrop_v3.schema.json": {
     "/components/schemas/object/properties/timeout": {
       "value": 5000,
-      "runtime": "src/core/tests/findElement.ts — timeoutMs: findSpec.timeout ?? 5000,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "find_v2.schema.json": {
     "/properties/click/oneOf/0": {
       "value": false,
-      "runtime": "src/core/tests/findElement.ts — timeoutMs: findSpec.timeout ?? 5000,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "find_v3.schema.json": {
@@ -73,7 +73,7 @@
     "/components/schemas/object/allOf/0/properties/params": {
       "value": {},
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/allOf/0/properties/timeout": {
       "value": 30000,
@@ -83,12 +83,12 @@
     "/components/schemas/object/allOf/0/properties/waitUntil/properties/networkIdleTime": {
       "value": 500,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/allOf/0/properties/waitUntil/properties/domIdleTime": {
       "value": 1000,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "httpRequest_v3.schema.json": {
@@ -97,7 +97,7 @@
         200,
         201
       ],
-      "runtime": "src/core/tests/httpRequest.ts — ...(step.httpRequest.statusCodes || []),",
+      "runtime": "src/core/tests/httpRequest.ts — statusCodes: step.httpRequest.statusCodes || [200, 201],",
       "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
     },
     "/components/schemas/object/properties/method": {
@@ -112,38 +112,38 @@
     },
     "/components/schemas/object/properties/request/properties/headers": {
       "value": {},
-      "runtime": "src/core/tests/httpRequest.ts — ...(step.httpRequest.request.headers || {}),",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/request/properties/parameters": {
       "value": {},
-      "runtime": "src/core/tests/httpRequest.ts — if (Object.keys(operation.example.request?.parameters ?? {}).length > 0)",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/request/properties/body": {
       "value": {},
-      "runtime": "src/core/tests/httpRequest.ts — if (Object.keys(operation.example.request?.body ?? {}).length > 0)",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/response/properties/headers": {
       "value": {},
-      "runtime": "src/core/tests/httpRequest.ts — ...(step.httpRequest.request.headers || {}),",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/response/properties/body": {
       "value": {},
-      "runtime": "src/core/tests/httpRequest.ts — if (Object.keys(operation.example.request?.body ?? {}).length > 0)",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/response/properties/required": {
       "value": [],
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/allowAdditionalFields": {
       "value": true,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/maxVariation": {
       "value": 0,
@@ -160,12 +160,12 @@
     "/components/schemas/engine/anyOf/1/properties/fps": {
       "value": 30,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/properties/checkpoints/anyOf/1/properties/maxVariation": {
       "value": 0.05,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "runBrowserScript_v3.schema.json": {
@@ -181,8 +181,8 @@
     },
     "/components/schemas/object/properties/overwrite": {
       "value": "aboveVariation",
-      "runtime": "src/core/tests/runBrowserScript.ts — overwrite: step.runBrowserScript.overwrite || \"aboveVariation\",",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - 2 candidate runtime sites, too ambiguous to cite automatically. Review and pick the right one."
     },
     "/components/schemas/object/properties/timeout": {
       "value": 60000,
@@ -226,7 +226,7 @@
     "/components/schemas/object/properties/background/properties/tty": {
       "value": false,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "runShell_v3.schema.json": {
@@ -265,80 +265,80 @@
     "/components/schemas/object/properties/background/properties/tty": {
       "value": false,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "saveCookie_v3.schema.json": {
     "/components/schemas/object/properties/overwrite": {
       "value": false,
-      "runtime": "src/core/tests/saveCookie.ts — if (fs.existsSync(fullPath) && !(overwrite === true || overwrite === \"true\")) {",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "screenshot_v3.schema.json": {
     "/components/schemas/objectShape/properties/maxVariation": {
       "value": 0.05,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/objectShape/properties/overwrite": {
       "value": "aboveVariation",
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "startSurface_v3.schema.json": {
     "/components/schemas/appDescriptor/properties/workingDirectory": {
       "value": ".",
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/appDescriptor/properties/timeout": {
       "value": 60000,
-      "runtime": "src/core/tests/findElement.ts — timeoutMs: findSpec.timeout ?? 5000,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/processDescriptor/properties/args": {
       "value": [],
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/processDescriptor/properties/workingDirectory": {
       "value": ".",
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/processDescriptor/properties/tty": {
       "value": false,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/processDescriptor/properties/timeout": {
       "value": 60000,
-      "runtime": "src/core/tests/findElement.ts — timeoutMs: findSpec.timeout ?? 5000,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "step_v3.schema.json": {
     "/components/schemas/unsafe": {
       "value": false,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/outputs": {
       "value": {},
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/variables": {
       "value": {},
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/breakpoint": {
       "value": false,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   },
   "swipe_v3.schema.json": {
@@ -349,20 +349,20 @@
     },
     "/components/schemas/duration": {
       "value": 500,
-      "runtime": "src/core/tests/swipe.ts — duration: swipe.duration ?? DEFAULT_SWIPE_DURATION,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - 2 candidate runtime sites, too ambiguous to cite automatically. Review and pick the right one."
     }
   },
   "type_v3.schema.json": {
     "/components/schemas/object/allOf/0/properties/inputDelay": {
       "value": 100,
       "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Flagged for review; may be a moveTo twin."
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
     "/components/schemas/object/allOf/0/properties/timeout": {
       "value": 5000,
-      "runtime": "src/core/tests/findElement.ts — timeoutMs: findSpec.timeout ?? 5000,",
-      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     }
   }
 }
