@@ -44,6 +44,10 @@ export interface Report {
    */
   runDir?: string;
   /**
+   * Wall-clock duration of the run's execution phase in milliseconds, spanning the warm phase, every spec, and teardown. Excludes what happens before execution starts — test detection, resolution, and any just-in-time dependency install — so on a cold runner the process takes longer than this. Because contexts run concurrently, this can be LESS than the sum of the per-spec durations. Present only in test results. System-populated.
+   */
+  durationMs?: number;
+  /**
    * Test specifications that were performed.
    *
    * @minItems 1
@@ -128,6 +132,10 @@ export interface Specification {
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
+   * Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.
+   */
+  durationMs?: number;
+  /**
    * [Tests](test) to perform.
    *
    * @minItems 1
@@ -162,6 +170,10 @@ export interface Context {
    * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
    */
   browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   */
+  retries?: number;
   /**
    * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
    */

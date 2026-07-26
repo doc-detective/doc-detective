@@ -43,6 +43,7 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
+  classifyContextRetry,
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
@@ -202,6 +203,8 @@ export {
   buildFallbackCandidates,
   driverSkipDiagnostic,
   resolveBrowserFallbackPolicy,
+  resolveRetryPolicy,
+  runContextWithRetries,
   shouldRepairBeforeFallback,
   isSupportedContext,
   contextRequirementsSkipMessage,
@@ -1122,6 +1125,21 @@ function resolveBrowserFallbackPolicy({
   return context?.browserFallback || config?.browserFallback || "auto";
 }
 
+// Resolve the mid-run session-death context-retry budget (the `retries` policy):
+// how many times to re-run a whole context on a fresh session when its session
+// dies mid-run. Context overrides config; default 1. Uses `??` (NOT `||`) so an
+// explicit `retries: 0` (disable) is preserved instead of falling through to the
+// default the way a falsy `||` would. Pure and exported for unit testing.
+function resolveRetryPolicy({
+  context,
+  config,
+}: {
+  context: any;
+  config: any;
+}): number {
+  return context?.retries ?? config?.retries ?? 1;
+}
+
 /**
  * Whether to attempt a driver repair before falling back away from a browser
  * whose session just failed to start. We only repair the *requested* engine
@@ -1260,6 +1278,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
+        // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        durationMs: 0,
         specs: [],
       };
     }
@@ -1395,6 +1415,14 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  */
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
+  // Run-level wall clock, scoped to the EXECUTION phase — detection,
+  // resolution, and JIT dependency installs happen in runTests before this
+  // point and are deliberately excluded (see ADR 01083). Started before the
+  // filter short-circuit so a zero-spec run reports a real (tiny) duration
+  // rather than omitting the field. Unlike the spec/test sums, this IS elapsed
+  // time — so under concurrency it can be LESS than the sum of the per-spec
+  // durations.
+  const runStart = Date.now();
   // Narrow the spec set to what specFilter / testFilter allow before running.
   // Filtered-out specs / tests do not appear in the report (true filter, not
   // skip). Pass-through when neither filter is set.
@@ -1420,6 +1448,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      durationMs: Date.now() - runStart,
       specs: [],
     };
   }
@@ -2004,7 +2033,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // ordering to a single pool over input-ordered jobs.
     const runJob = async (job: any) => {
       try {
-        job.contexts[job.slot] = await runContext({
+        job.contexts[job.slot] = await runContextWithRetries({
           config,
           spec: job.spec,
           test: job.test,
@@ -2120,7 +2149,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.
     for (const specReport of report.specs) {
+      let specDurationMs = 0;
       for (const testReport of specReport.tests) {
+        let testDurationMs = 0;
         for (const contextReport of testReport.contexts) {
           // Every slot is assigned by the pool callback (even on crash), so
           // this guard should never fire — it documents the invariant and
@@ -2128,13 +2159,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
             report.summary.steps[stepReport.result.toLowerCase()]++;
+            // Default here rather than at each construction site: this pass is
+            // the only place that sees EVERY node from both execution paths
+            // (flat pool and routed sequencer), real and synthetic alike. A
+            // node that never ran — a guard-skipped context, a routing marker
+            // — has no clock, and a future synthetic site can't forget the
+            // field. Nodes that ran keep their measured value (ADR 01083).
+            stepReport.durationMs ??= 0;
           }
           report.summary.contexts[contextReport.result.toLowerCase()]++;
+          contextReport.durationMs ??= 0;
+          testDurationMs += contextReport.durationMs;
         }
         testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
+        // Test and spec durations are SUMS of their children, not wall-clock
+        // spans: contexts from every test and spec share one concurrent pool,
+        // so a span would count idle time while unrelated specs ran. The sum
+        // is total work — what slow-test triage and JUnit's `<testsuite time>`
+        // both want. See ADR 01083.
+        testReport.durationMs = testDurationMs;
+        specDurationMs += testDurationMs;
         report.summary.tests[testReport.result.toLowerCase()]++;
       }
       specReport.result = rollUpResults(specReport.tests);
+      specReport.durationMs = specDurationMs;
       report.summary.specs[specReport.result.toLowerCase()]++;
     }
   } finally {
@@ -2213,6 +2261,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
   }
 
+  // Stamped last, after teardown and any Heretto upload, so the number matches
+  // the elapsed time a user actually observes.
+  report.durationMs = Date.now() - runStart;
   return report;
 }
 
@@ -2459,7 +2510,7 @@ async function runRoutedSpec({
     // limit===1 keep the byte-identical runConcurrent path.
     const runRoutedJob = async (job: any) => {
       try {
-        job.contexts[job.slot] = await runContext({
+        job.contexts[job.slot] = await runContextWithRetries({
           config,
           spec: job.spec,
           test: job.test,
@@ -4129,6 +4180,10 @@ async function runContext({
   // WARNING when an explicitly pinned engine was substituted.
   let fellBackNote = "";
   let fellBackPinned = false;
+  // Set by the post-loop liveness probe: true when the context failed AND its
+  // session was found dead mid-run. The caller (runContextWithRetries) reads
+  // this off the returned report to decide whether to retry on a fresh session.
+  let sessionDiedMidRun = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
@@ -4764,6 +4819,7 @@ async function runContext({
       // it. Surface-less browser steps in that (pathological) state fail on the
       // dead session — acceptable; the run closed its own browser mid-test.
       const runStepOnce = async () => {
+        const stepStart = Date.now();
         const r = await runStep({
           config: config,
           context: context,
@@ -4786,7 +4842,12 @@ async function runContext({
         r.resultDescription = r.description;
         delete r.status;
         delete r.description;
-        return { ...step, ...r } as any;
+        // Stamp AFTER the spread: `step` may carry an authored `duration`
+        // input (a click's press duration, an annotation's display duration),
+        // and `r` is the runStep result — neither may clobber the timing.
+        // On retry the loop below discards this report wholesale, so the
+        // surviving value is the FINAL attempt's, per ADR 01083.
+        return { ...step, ...r, durationMs: Date.now() - stepStart } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -4971,6 +5032,68 @@ async function runContext({
         contextReport,
       });
     }
+
+    // Mid-run session-death detection for the `retries` context-retry policy.
+    // A dead session's step FAIL is indistinguishable from a real assertion FAIL
+    // at the result level (handlers catch driver errors and return FAIL), so if
+    // any step failed we probe the session directly here — while it is still
+    // registered, before the finally tears it down. A dead session means the
+    // FAIL is spurious and the whole context can be retried on a fresh session; a
+    // live session means the FAIL is real and stands. Recording sweeps already
+    // ran above, so the probe never races an in-flight capture.
+    if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
+      // Collect EVERY session the context holds — a multi-surface browser
+      // context plus an app session — not just the first, so a dead app/native
+      // session behind a live browser (or vice versa) is still caught. Which of
+      // these each check applies to differs, and classifyContextRetry owns that
+      // distinction. Primary session first (Map values() is insertion-ordered).
+      const probeDrivers = sessionDrivers(browserSessions, driver);
+      if (appSession?.recordingHost) probeDrivers.push(appSession.recordingHost);
+      // Which sessions each probe applies to, and how they rank, lives in
+      // classifyContextRetry so it can be unit tested without a real context.
+      // A dead session is the silent case: it needs no explanation beyond the
+      // retry warning the wrapper already logs. The alive-but-unusable cases do,
+      // because "the session responded and we retried anyway" is otherwise
+      // surprising in a log.
+      const retryReason = await classifyContextRetry(probeDrivers);
+      if (retryReason) {
+        sessionDiedMidRun = true;
+        if (retryReason === "page-broken") {
+          clog(
+            "debug",
+            "Context session is alive but on a browser error page; treating it as a broken context for retry."
+          );
+        } else if (retryReason === "unnavigated") {
+          clog(
+            "debug",
+            "Context session is alive but still on its initial blank document (never navigated); treating it as a broken context for retry."
+          );
+        }
+      }
+      if (
+        !sessionDiedMidRun &&
+        probeDrivers.length > 0 &&
+        logLevelEnabled(config, "debug") &&
+        typeof probeDrivers[0].getUrl === "function"
+      ) {
+        // Diagnostic for whatever live-session modes remain uncovered: log the
+        // page URL of a live-session FAIL that was NOT retried. This is how the
+        // long-running `windows-chrome` flake was characterized — every
+        // occurrence, across both the recording and nav-capture bundles, logged
+        // `url=data:,`, which ADR 01084 now retries. What's left for it to catch
+        // is the same-URL-blank mode (page blanks without changing URL), which
+        // stays unretried because it can't be told apart from a genuine
+        // element-not-found on a correctly-loaded page.
+        try {
+          clog(
+            "debug",
+            `Context FAILed on a live, non-error-page session (url=${await probeDrivers[0].getUrl()}); not retried.`
+          );
+        } catch {
+          /* best-effort diagnostic */
+        }
+      }
+    }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
     // are still active. Stop them now — while the driver session is still alive
@@ -5054,7 +5177,112 @@ async function runContext({
       ? `${fellBackNote} ${contextReport.resultDescription}`
       : fellBackNote;
   }
+  // Internal hint for runContextWithRetries — a FAIL whose session died mid-run
+  // is retryable. Non-enumerable so it never leaks into the serialized report,
+  // and only set on the retryable case so the wrapper's check is a plain read.
+  if (contextReport.result === "FAIL" && sessionDiedMidRun) {
+    Object.defineProperty(contextReport, "_sessionDied", {
+      value: true,
+      enumerable: false,
+      configurable: true,
+    });
+  }
   return contextReport;
+}
+
+// Context fields runContext mutates non-idempotently: `openApi` appends the
+// config's definitions, and `browser` narrows to a fallback engine/headless
+// mode. A retry re-invokes runContext, so these are snapshotted and restored
+// before each attempt (`__display`/`__displaySize` too, so a retry re-resolves
+// them rather than reusing a stale display) — everything else runContext derives
+// fresh (contextReport is rebuilt each call; step IDs assign idempotently).
+const RUN_CONTEXT_MUTATED_KEYS = ["openApi", "browser", "__display", "__displaySize"];
+
+// SHALLOW clone — one level. Sufficient for the current RUN_CONTEXT_MUTATED_KEYS
+// (`openApi` entries are appended, never mutated in place; `browser`/`__display*`
+// are flat). If a future mutated field nests a value that runContext mutates *in
+// place*, the snapshot and the live context would share that nested reference and
+// restore wouldn't protect it — deepen this (or that key's snapshot) then.
+function cloneMutable(value: any): any {
+  if (Array.isArray(value)) return [...value];
+  if (value && typeof value === "object") return { ...value };
+  return value;
+}
+
+// Runs a context and retries the WHOLE context on a fresh session when its
+// session dies mid-run — an early step passes, then a later step fails on a
+// now-dead session (WebDriver ECONNREFUSED / invalid session id, or an element
+// that can't be found because the DOM is dead). Bounded by the resolved
+// `retries` policy (config/context, default 1). Detection is runContext's active
+// liveness probe, surfaced as the non-enumerable `_sessionDied` flag on a FAIL
+// report, so a live-session assertion FAIL is NEVER retried — a real bug still
+// fails all attempts. Retrying re-invokes runContext, which re-runs setup,
+// re-provisions every session, and restarts recordings cleanly; the job keeps
+// its concurrency slot and any exclusive resource (display / native-app-driver /
+// android-emulator), so only the Appium pool port churns. `runContextFn` is
+// injectable for unit testing. Exported for that test.
+async function runContextWithRetries(
+  args: any,
+  runContextFn: (a: any) => Promise<any> = runContext,
+  // Backoff before each retry. Injectable so unit tests pass `() => 0` instead
+  // of paying the real 500ms-per-attempt sleep.
+  delayMs: (attempt: number) => number = (attempt) => 500 * (attempt + 1)
+): Promise<any> {
+  const { context, config } = args;
+  // Time each attempt here rather than inside runContext: runContext has a
+  // dozen exits (eleven early `requires`/preflight SKIPPED returns plus the
+  // normal one), and this wrapper is its only caller, so one clock here stamps
+  // every one of them. A retried context keeps the FINAL attempt's elapsed
+  // time — the attempt the reported `result` describes (ADR 01083).
+  const timedRunContext = async (a: any) => {
+    const start = Date.now();
+    const report = await runContextFn(a);
+    if (report && typeof report === "object") {
+      report.durationMs = Date.now() - start;
+    }
+    return report;
+  };
+  const retries = resolveRetryPolicy({ context, config });
+  if (!(retries > 0)) return timedRunContext(args);
+
+  // Snapshot the non-idempotent context fields so each retry starts from the
+  // originally-requested state instead of the prior attempt's narrowed one.
+  const had: Record<string, boolean> = {};
+  const snapshot: Record<string, any> = {};
+  for (const key of RUN_CONTEXT_MUTATED_KEYS) {
+    had[key] = key in context;
+    if (had[key]) snapshot[key] = cloneMutable(context[key]);
+  }
+  const restore = () => {
+    for (const key of RUN_CONTEXT_MUTATED_KEYS) {
+      if (!had[key]) delete context[key];
+      else context[key] = cloneMutable(snapshot[key]);
+    }
+  };
+
+  let report: any;
+  let attempt = 0;
+  for (; ; attempt++) {
+    report = await timedRunContext(args);
+    const retryable = report?.result === "FAIL" && report?._sessionDied === true;
+    if (!retryable || attempt >= retries) break;
+    log(
+      config,
+      "warning",
+      `Context '${context?.contextId}' session died mid-run; retrying on a fresh session (attempt ${attempt + 2} of ${retries + 1}).`
+    );
+    restore();
+    // Linear backoff (mirrors driverStart's session-creation retry) so a
+    // transient runner blip has a moment to clear before the fresh session.
+    await new Promise((resolve) => setTimeout(resolve, delayMs(attempt)));
+  }
+  // Surface how many retries were spent, so a report consumer can tell a clean
+  // PASS from one recovered after a mid-run session death (the warning log alone
+  // isn't machine-readable). Stamped only when a retry actually happened.
+  if (attempt > 0 && report && typeof report === "object") {
+    report.retries = attempt;
+  }
+  return report;
 }
 
 // Every live session driver in the context, falling back to the lone default
@@ -5105,6 +5333,10 @@ async function stopAllRecordings({
       description: "Stopping recording",
       stepId: randomUUID(),
     };
+    // These sweep steps really execute, so they carry a measured duration
+    // rather than the Phase-3 zero default. Timed in both the success and the
+    // failure path, so a stop that hangs before throwing still shows its cost.
+    const stopStart = Date.now();
     try {
       const stepResult = await runStep({
         config,
@@ -5119,7 +5351,11 @@ async function stopAllRecordings({
       delete stepResult.description;
       // Don't leak the internal routing marker into the report.
       delete stopRecordStep.__stopAny;
-      contextReport.steps.push({ ...stopRecordStep, ...stepResult });
+      contextReport.steps.push({
+        ...stopRecordStep,
+        ...stepResult,
+        durationMs: Date.now() - stopStart,
+      });
     } catch (error: any) {
       // A throw from runStep would otherwise strand the remaining handles.
       // Drop the top handle so the loop can't spin, and record the failure.
@@ -5129,6 +5365,7 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        durationMs: Date.now() - stopStart,
       });
     }
   }

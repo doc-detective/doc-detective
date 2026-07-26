@@ -781,6 +781,38 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("exitOnFail");
       });
 
+      it("should validate a config_v3 object with retries set (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should default retries to 1 when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(1);
+      });
+
+      it("should reject a config_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 11, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
+      });
+
       it("should validate a config_v3 object with cacheDir set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -1276,6 +1308,40 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid, result.errors).to.be.true;
       });
 
+      it("should validate an annotation_v3 target with a timeout", function () {
+        // Annotation targets resolve through the same findElement as `find`,
+        // so they take the same `timeout`. Without it every target polls for a
+        // hardcoded 5s and authors have to precede `annotate` with a guard
+        // `find` just to buy a longer wait.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#slow-widget", timeout: 15000 } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.outline.timeout).to.equal(15000);
+      });
+
+      it("should reject an annotation_v3 target whose only field is a timeout", function () {
+        // `timeout` is a deadline, not a way to find an element — it can't
+        // satisfy the at-least-one-element-finding-field guard on its own.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { timeout: 15000 } },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a non-integer annotation_v3 target timeout", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#a", timeout: "soon" } },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
       it("should validate an annotation_v3 object with a position target", function () {
         const named = validate({
           schemaKey: "annotation_v3",
@@ -1361,6 +1427,26 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.valid, result.errors).to.be.true;
         expect(result.object).to.deep.equal({ outline: "#a" });
+      });
+
+      it("should not inject the target timeout default into an object target", function () {
+        // The string form above never enters target_element_shape, so it
+        // can't exercise the one `default` that shape carries. This does.
+        //
+        // `timeout` declares `"default": 5000` to document the wait on the
+        // generated reference page, and it stays inert only because Ajv skips
+        // defaults inside `anyOf` — which is how every target is reached. If
+        // that ever changed, every annotation target would silently gain a
+        // timeout it didn't ask for, and the runtime's own default (find's)
+        // would stop being the one in charge.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#a" } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.deep.equal({ outline: { selector: "#a" } });
+        expect(result.object.outline.timeout).to.equal(undefined);
       });
 
       it("should validate a screenshot step with an annotations array", function () {
@@ -2393,6 +2479,117 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
     });
+
+    describe("report_v3 durationMs", function () {
+      const minimalSpecs = [
+        { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
+      ];
+      // Negative cases must fail on the `minimum`/`integer` constraint, not on
+      // `additionalProperties` — otherwise they'd pass identically against a
+      // schema that never declared `durationMs` at all.
+      const expectConstraintError = (errors) => {
+        expect(errors).to.be.a("string");
+        expect(errors).to.include("durationMs");
+        expect(errors).to.not.include("additional properties");
+      };
+      // A fully timed report: `durationMs` on the run, spec, test, resolved
+      // context, and step nodes. System-populated output, never authored.
+      const timedReport = {
+        durationMs: 5000,
+        specs: [
+          {
+            durationMs: 4000,
+            tests: [
+              {
+                durationMs: 4000,
+                contexts: [
+                  {
+                    durationMs: 4000,
+                    steps: [
+                      { goTo: { url: "https://example.com" }, durationMs: 900 },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      it("should validate durationMs on every report node", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: structuredClone(timedReport),
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.durationMs).to.equal(5000);
+        expect(result.object.specs[0].durationMs).to.equal(4000);
+        expect(result.object.specs[0].tests[0].durationMs).to.equal(4000);
+        expect(
+          result.object.specs[0].tests[0].contexts[0].durationMs
+        ).to.equal(4000);
+        expect(
+          result.object.specs[0].tests[0].contexts[0].steps[0].durationMs
+        ).to.equal(900);
+      });
+
+      it("should validate a report_v3 object without durationMs (back-compat)", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: { specs: minimalSpecs },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.durationMs).to.equal(undefined);
+      });
+
+      it("should accept a zero durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].steps[0].durationMs = 0;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a negative run durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.durationMs = -1;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a fractional step durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].steps[0].durationMs = 12.5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative test durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative context durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative spec durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+    });
   });
 
   describe("transformToSchemaKey", function () {
@@ -2825,6 +3022,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("browserFallback");
+      });
+    });
+
+    describe("context_v3 retries", function () {
+      it("should validate a context_v3 object with a retries override (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should NOT inject a default retries at the context level (inherits config when omitted)", function () {
+        // Only the config-level field defaults to 1; a context override must stay
+        // undefined when unset so resolveRetryPolicy falls through to config.
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(undefined);
+      });
+
+      it("should reject a context_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 11, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
       });
     });
 

@@ -1,3 +1,19 @@
+# [4.37.0](https://github.com/doc-detective/doc-detective/compare/v4.36.0...v4.37.0) (2026-07-26)
+
+
+### Bug Fixes
+
+* **core:** retry a context that FAILs on its initial blank document ([#687](https://github.com/doc-detective/doc-detective/issues/687)) ([9e21386](https://github.com/doc-detective/doc-detective/commit/9e21386bc5db2abde15fc82718180d6ae2f9092e))
+* **schema:** declare find's moveTo default as false, matching the runtime ([#689](https://github.com/doc-detective/doc-detective/issues/689)) ([4fa5bb6](https://github.com/doc-detective/doc-detective/commit/4fa5bb6ba31dbd4bb3841e0d92ee12a584e17b2f)), closes [#175](https://github.com/doc-detective/doc-detective/issues/175) [#170](https://github.com/doc-detective/doc-detective/issues/170)
+
+
+### Features
+
+* **annotate:** configurable timeout on annotation element targets ([#688](https://github.com/doc-detective/doc-detective/issues/688)) ([ba823f3](https://github.com/doc-detective/doc-detective/commit/ba823f3a588cd8518c2b65ac81bd44f8b5f51816)), closes [#679](https://github.com/doc-detective/doc-detective/issues/679)
+* **cli:** add --exit-on-fail gate for non-zero exit on spec failures ([#675](https://github.com/doc-detective/doc-detective/issues/675)) ([3376b33](https://github.com/doc-detective/doc-detective/commit/3376b330129a1d9a8aecfd7e58a648e2d475e12d))
+* **core:** record durationMs on every report node ([#686](https://github.com/doc-detective/doc-detective/issues/686)) ([b98d045](https://github.com/doc-detective/doc-detective/commit/b98d045dda56a0cca599c091f63c3736bc2c9541)), closes [#683](https://github.com/doc-detective/doc-detective/issues/683)
+* **core:** retry a context on a fresh session when its session dies or page breaks mid-run ([#680](https://github.com/doc-detective/doc-detective/issues/680)) ([9131e34](https://github.com/doc-detective/doc-detective/commit/9131e34527e62150fc70af03f244f358cbeb26b9)), closes [#675](https://github.com/doc-detective/doc-detective/issues/675) [#677](https://github.com/doc-detective/doc-detective/issues/677) [#678](https://github.com/doc-detective/doc-detective/issues/678)
+
 # [4.36.0](https://github.com/doc-detective/doc-detective/compare/v4.35.0...v4.36.0) (2026-07-19)
 
 

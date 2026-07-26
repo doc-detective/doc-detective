@@ -29,6 +29,10 @@ import {
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isSessionAlive,
+  isPageBroken,
+  isPageUnnavigated,
+  classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -937,6 +941,25 @@ describe("core/utils coverage", function () {
       }
     });
 
+    it("treats mid-run session-death markers as retryable (for context retry)", function () {
+      // When a session dies mid-run, a later command — or the context-retry
+      // health-probe (getPageSource) — hits the dead session and surfaces one of
+      // these. The `retries` policy keys on this classification to re-provision a
+      // fresh session instead of accepting the spurious FAIL. These can't occur
+      // before a session exists, so adding them is inert for driverStart's
+      // creation-retry path.
+      for (const message of [
+        "invalid session id: Tried to run command without establishing a connection",
+        "WebDriverError: invalid session id",
+        "no such session",
+        "unknown error: session deleted because of page crash",
+        "chrome not reachable",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 0), true, message);
+        assert.equal(isRetryableSessionError(message, 900000), true, message);
+      }
+    });
+
     it("retries a session-creation timeout abort only when a slow-startup ceiling was declared", function () {
       // Native sessions (XCUITest/Mac2) declare wdaLaunchTimeout etc., which
       // raises the ceiling past the 2-minute default: the server-side WDA
@@ -960,6 +983,195 @@ describe("core/utils coverage", function () {
         assert.equal(isRetryableSessionError(message, 900000), false, message);
       }
       assert.equal(isRetryableSessionError(undefined, 900000), false);
+    });
+  });
+
+  describe("isSessionAlive", function () {
+    it("returns true when the session-scoped probe resolves", async function () {
+      const driver = { getPageSource: async () => "<html></html>" };
+      assert.equal(await isSessionAlive(driver), true);
+    });
+    it("returns false when the probe throws a classified session-death error", async function () {
+      for (const msg of [
+        "invalid session id",
+        "no such session",
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        "chrome not reachable",
+        "unknown error: session deleted because of page crash",
+      ]) {
+        const driver = {
+          getPageSource: async () => {
+            throw new Error(msg);
+          },
+        };
+        assert.equal(await isSessionAlive(driver), false, msg);
+      }
+    });
+    it("assumes alive (true) when the probe throws a non-session error", async function () {
+      // A live session that legitimately failed a step must not be retried, so a
+      // non-session probe error is treated as alive.
+      const driver = {
+        getPageSource: async () => {
+          throw new Error("some unrelated transient blip");
+        },
+      };
+      assert.equal(await isSessionAlive(driver), true);
+    });
+    it("returns false for a null/undefined driver", async function () {
+      assert.equal(await isSessionAlive(null), false);
+      assert.equal(await isSessionAlive(undefined), false);
+    });
+    it("treats a wedged (never-resolving) probe as alive within the probe timeout", async function () {
+      // A wedged session (socket open, no response): getPageSource never
+      // settles. The bounded probe must return within probeTimeoutMs and treat
+      // it as alive (conservative — never retry a real failure on a slow probe),
+      // rather than hang for the transport timeout.
+      const driver = { getPageSource: () => new Promise(() => {}) };
+      const start = Date.now();
+      const alive = await isSessionAlive(driver, 100);
+      assert.equal(alive, true);
+      assert.ok(Date.now() - start < 2000, "probe should return promptly, not hang");
+    });
+  });
+
+  describe("isPageBroken", function () {
+    const brokenDriver = (url) => ({ getUrl: async () => url });
+    it("returns true for a browser crash/error page", async function () {
+      for (const url of [
+        "chrome-error://chromewebdata/",
+        "about:neterror?e=dnsNotFound&u=http%3A//x",
+        "about:certerror?e=nssBadCert",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), true, url);
+      }
+    });
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), false, url);
+      }
+    });
+    it("does NOT treat about:blank as broken (a test may legitimately be there)", async function () {
+      assert.equal(await isPageBroken(brokenDriver("about:blank")), false);
+    });
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageBroken({}), false);
+      assert.equal(await isPageBroken(null), false);
+      assert.equal(
+        await isPageBroken({ getUrl: async () => { throw new Error("invalid session id"); } }),
+        false
+      );
+    });
+    it("does NOT treat the initial blank document as broken (isPageUnnavigated owns that)", async function () {
+      // Keeps the two predicates disjoint: `data:,` is a never-navigated page,
+      // not a crashed one, and they carry different diagnostics.
+      assert.equal(await isPageBroken(brokenDriver("data:,")), false);
+    });
+  });
+
+  describe("isPageUnnavigated", function () {
+    // Chromium parks a brand-new session on `data:,` until the first
+    // navigation. A context that FAILs while still there never got started —
+    // see adrs/01084-retry-unnavigated-context.md.
+    const at = (url) => ({ getUrl: async () => url });
+
+    it("returns true for Chromium's initial blank document", async function () {
+      assert.equal(await isPageUnnavigated(at("data:,")), true);
+      assert.equal(await isPageUnnavigated(at("data:")), true);
+    });
+
+    it("does NOT treat about:blank as unnavigated (a test may legitimately be there)", async function () {
+      // Mirrors the isPageBroken contract: about:blank is a reachable, valid
+      // target, so a genuine element-not-found there must still FAIL.
+      assert.equal(await isPageUnnavigated(at("about:blank")), false);
+    });
+
+    it("does NOT treat a real data: URL as unnavigated", async function () {
+      // Only the EMPTY data URL is the initial document; a data: page with
+      // content is a deliberate navigation target.
+      assert.equal(
+        await isPageUnnavigated(at("data:text/html,<h1>hello</h1>")),
+        false
+      );
+      assert.equal(await isPageUnnavigated(at("data:,notempty")), false);
+    });
+
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageUnnavigated(at(url)), false, url);
+      }
+    });
+
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageUnnavigated({}), false);
+      assert.equal(await isPageUnnavigated(null), false);
+      assert.equal(
+        await isPageUnnavigated({
+          getUrl: async () => {
+            throw new Error("invalid session id");
+          },
+        }),
+        false
+      );
+    });
+  });
+
+  describe("classifyContextRetry", function () {
+    // The retry DECISION, composed from the three probes. Covers the rules the
+    // probes themselves can't express: which sessions each check applies to,
+    // and the precedence between them (ADR 01084).
+    const alive = (url) => ({
+      getPageSource: async () => "<html></html>",
+      getUrl: async () => url,
+    });
+    const dead = () => ({
+      getPageSource: async () => {
+        throw new Error("invalid session id");
+      },
+    });
+    const REAL = "http://localhost:8092/enhanced-elements.html";
+
+    it("returns null when every session is alive on a real page", async function () {
+      assert.equal(await classifyContextRetry([alive(REAL), alive(REAL)]), null);
+    });
+
+    it("returns null for no sessions at all", async function () {
+      assert.equal(await classifyContextRetry([]), null);
+    });
+
+    it("reports a dead session anywhere in the context", async function () {
+      assert.equal(await classifyContextRetry([alive(REAL), dead()]), "session-died");
+      assert.equal(await classifyContextRetry([dead(), alive(REAL)]), "session-died");
+    });
+
+    it("reports a browser error page anywhere in the context", async function () {
+      assert.equal(
+        await classifyContextRetry([alive(REAL), alive("chrome-error://chromewebdata/")]),
+        "page-broken"
+      );
+    });
+
+    it("reports an unnavigated PRIMARY session", async function () {
+      assert.equal(await classifyContextRetry([alive("data:,")]), "unnavigated");
+      assert.equal(await classifyContextRetry([alive("data:,"), alive(REAL)]), "unnavigated");
+    });
+
+    it("does NOT retry when only a SECONDARY session is unnavigated", async function () {
+      // The rule that keeps this from firing on a `goTo newTab` surface the
+      // test deliberately never navigated: the real assertion failed on the
+      // primary page, so the context must FAIL rather than retry.
+      assert.equal(await classifyContextRetry([alive(REAL), alive("data:,")]), null);
+    });
+
+    it("prefers a dead session over an unnavigated primary", async function () {
+      // A dead session is the stronger, more actionable signal; both retry, but
+      // only one of them is worth logging as 'never navigated'.
+      assert.equal(await classifyContextRetry([dead(), alive("data:,")]), "session-died");
     });
   });
 

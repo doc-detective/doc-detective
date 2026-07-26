@@ -50,6 +50,50 @@ The `json` reporter writes the full results to a file:
 
 The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail)).
 
+### Find slow specs with `durationMs`
+
+Every node in the results—the run, each spec, each test, each context, and each step—carries a `durationMs` field in whole milliseconds. Doc Detective populates it. You never set it yourself.
+
+```json
+{
+  "durationMs": 61840,
+  "specs": [
+    {
+      "specId": "api.spec.json",
+      "durationMs": 48200,
+      "tests": [{ "testId": "create-a-widget", "durationMs": 48200 }]
+    }
+  ]
+}
+```
+
+The meaning shifts slightly by level, and the difference matters when you run tests concurrently:
+
+| Level | `durationMs` is |
+|---|---|
+| Run | Elapsed time for the execution phase: the warm phase, every spec, and cleanup. It excludes test detection, resolution, and any just-in-time dependency install, so a cold runner spends longer than this value reports. |
+| Spec | The sum of its tests' durations. |
+| Test | The sum of its contexts' durations. |
+| Context | Elapsed time for the context, covering setup, every step, and cleanup. |
+| Step | Elapsed time for the step. |
+
+Spec and test durations are **sums of work**, not elapsed spans. Contexts from every test run through the same set of concurrent runners, so an elapsed span for a spec would count time while unrelated specs were running. Summing keeps the number stable no matter what you set [`concurrentRunners`](/reference/schemas/config) to, which is what you want when comparing specs to each other.
+
+The consequence: when `concurrentRunners` is greater than 1, the run's `durationMs` is *less* than the sum of its specs' durations, because specs overlapped. That's expected. Read the run value as elapsed wall-clock time, and the spec values as where the work went.
+
+To find the specs slowing your CI down, sort the specs by `durationMs`:
+
+```bash
+jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' testResults-*.json
+```
+
+Anything that runs more than once reports the **final attempt** in `durationMs`—the attempt the reported result describes. What that costs you depends on which kind of retry happened:
+
+- A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt, but the enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though: the difference between a context and the sum of its steps also includes ordinary setup and cleanup, so read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
+- A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt, and no other field absorbs the earlier ones—so the time spent on abandoned context attempts appears nowhere in the totals. The `retries` count is your signal that it happened.
+
+A step that never ran—skipped, guarded off, or downstream of a failure—reports `0`.
+
 ### Read the warm-phase timings
 
 The results also carry a `warm` object that records what the run provisioned before executing tests. At the start of every run, Doc Detective front-loads the setup its tests would otherwise pay one at a time—browser and driver installs, simulator and emulator boots, and related downloads—and runs those tasks concurrently. Each entry lists the task, its outcome, and how long it took:

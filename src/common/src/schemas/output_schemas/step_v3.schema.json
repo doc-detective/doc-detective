@@ -937,6 +937,12 @@
             "minimum": 2,
             "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
             "readOnly": true
+          },
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+            "readOnly": true
           }
         },
         "title": "Common"
@@ -1837,6 +1843,12 @@
         "type": "integer",
         "minimum": 2,
         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+        "readOnly": true
+      },
+      "durationMs": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
         "readOnly": true
       },
       "location": {
@@ -2804,6 +2816,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -3961,6 +3979,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -5618,6 +5642,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -5957,9 +5987,10 @@
                       "default": 5000
                     },
                     "moveTo": {
-                      "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+                      "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
                       "type": "boolean",
-                      "default": true
+                      "default": false,
+                      "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
                     },
                     "click": {
                       "description": "Click the element.",
@@ -10103,9 +10134,10 @@
                         "default": 5000
                       },
                       "moveTo": {
-                        "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+                        "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
                         "type": "boolean",
-                        "default": true
+                        "default": false,
+                        "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
                       },
                       "click": {
                         "description": "Click the element.",
@@ -14910,6 +14942,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -17027,6 +17065,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -18970,6 +19014,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -20307,6 +20357,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -21592,6 +21648,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -23020,6 +23082,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -27031,6 +27099,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -27539,6 +27613,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -27715,6 +27795,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -27891,6 +27977,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -28067,6 +28159,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -28243,6 +28341,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -28419,6 +28523,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -28828,6 +28938,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -28996,6 +29112,12 @@
                                         "elementAria": {
                                           "type": "string",
                                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "timeout": {
+                                          "type": "integer",
+                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                          "default": 5000,
+                                          "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                         }
                                       }
                                     },
@@ -29153,6 +29275,12 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "timeout": {
+                                      "type": "integer",
+                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "default": 5000,
+                                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
                                   }
                                 },
@@ -29490,6 +29618,13 @@
                                 "transition": {
                                   "enter": "none"
                                 }
+                              },
+                              {
+                                "callout": {
+                                  "elementTestId": "dashboard-loaded",
+                                  "timeout": 15000
+                                },
+                                "label": "Your dashboard, once the first sync finishes"
                               },
                               {
                                 "id": "usage-highlight",
@@ -30090,6 +30225,12 @@
                                                 "elementAria": {
                                                   "type": "string",
                                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                 }
                                               }
                                             },
@@ -30266,6 +30407,12 @@
                                                 "elementAria": {
                                                   "type": "string",
                                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                 }
                                               }
                                             },
@@ -30442,6 +30589,12 @@
                                                 "elementAria": {
                                                   "type": "string",
                                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                 }
                                               }
                                             },
@@ -30618,6 +30771,12 @@
                                                 "elementAria": {
                                                   "type": "string",
                                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                 }
                                               }
                                             },
@@ -30794,6 +30953,12 @@
                                                 "elementAria": {
                                                   "type": "string",
                                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                 }
                                               }
                                             },
@@ -30970,6 +31135,12 @@
                                                 "elementAria": {
                                                   "type": "string",
                                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                 }
                                               }
                                             },
@@ -31379,6 +31550,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -31547,6 +31724,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -31704,6 +31887,12 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "timeout": {
+                                        "type": "integer",
+                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                        "default": 5000,
+                                        "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                       }
                                     }
                                   },
@@ -32041,6 +32230,13 @@
                                   "transition": {
                                     "enter": "none"
                                   }
+                                },
+                                {
+                                  "callout": {
+                                    "elementTestId": "dashboard-loaded",
+                                    "timeout": 15000
+                                  },
+                                  "label": "Your dashboard, once the first sync finishes"
                                 },
                                 {
                                   "id": "usage-highlight",
@@ -32620,6 +32816,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -32796,6 +32998,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -32972,6 +33180,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -33148,6 +33362,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -33324,6 +33544,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -33500,6 +33726,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -33909,6 +34141,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -34077,6 +34315,12 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "timeout": {
+                                        "type": "integer",
+                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                        "default": 5000,
+                                        "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                       }
                                     }
                                   },
@@ -34234,6 +34478,12 @@
                                   "elementAria": {
                                     "type": "string",
                                     "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "default": 5000,
+                                    "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
                                 }
                               },
@@ -34571,6 +34821,13 @@
                               "transition": {
                                 "enter": "none"
                               }
+                            },
+                            {
+                              "callout": {
+                                "elementTestId": "dashboard-loaded",
+                                "timeout": 15000
+                              },
+                              "label": "Your dashboard, once the first sync finishes"
                             },
                             {
                               "id": "usage-highlight",
@@ -35804,6 +36061,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -36997,6 +37260,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -38853,6 +39122,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -39852,6 +40127,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -42090,6 +42371,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -44457,6 +44744,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -45414,6 +45707,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -47014,6 +47313,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -48190,6 +48495,12 @@
               "type": "integer",
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
+              "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
               "readOnly": true
             }
           },
@@ -50512,6 +50823,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -51502,6 +51819,12 @@
               "minimum": 2,
               "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
               "readOnly": true
+            },
+            "durationMs": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+              "readOnly": true
             }
           },
           "title": "Common"
@@ -51606,6 +51929,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -51782,6 +52111,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -51958,6 +52293,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -52134,6 +52475,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -52310,6 +52657,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -52486,6 +52839,12 @@
                                           "elementAria": {
                                             "type": "string",
                                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                           }
                                         }
                                       },
@@ -52895,6 +53254,12 @@
                                         "elementAria": {
                                           "type": "string",
                                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "timeout": {
+                                          "type": "integer",
+                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                          "default": 5000,
+                                          "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                         }
                                       }
                                     },
@@ -53063,6 +53428,12 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "timeout": {
+                                      "type": "integer",
+                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "default": 5000,
+                                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
                                   }
                                 },
@@ -53220,6 +53591,12 @@
                                 "elementAria": {
                                   "type": "string",
                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                },
+                                "timeout": {
+                                  "type": "integer",
+                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "default": 5000,
+                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
                               }
                             },
@@ -53559,6 +53936,13 @@
                             }
                           },
                           {
+                            "callout": {
+                              "elementTestId": "dashboard-loaded",
+                              "timeout": 15000
+                            },
+                            "label": "Your dashboard, once the first sync finishes"
+                          },
+                          {
                             "id": "usage-highlight",
                             "outline": {
                               "elementClass": [
@@ -53663,6 +54047,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -53839,6 +54229,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -54015,6 +54411,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -54191,6 +54593,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -54367,6 +54775,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -54543,6 +54957,12 @@
                                               "elementAria": {
                                                 "type": "string",
                                                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                               }
                                             }
                                           },
@@ -54952,6 +55372,12 @@
                                             "elementAria": {
                                               "type": "string",
                                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                             }
                                           }
                                         },
@@ -55120,6 +55546,12 @@
                                         "elementAria": {
                                           "type": "string",
                                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "timeout": {
+                                          "type": "integer",
+                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                          "default": 5000,
+                                          "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                         }
                                       }
                                     },
@@ -55277,6 +55709,12 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "timeout": {
+                                      "type": "integer",
+                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "default": 5000,
+                                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
                                   }
                                 },
@@ -55614,6 +56052,13 @@
                                 "transition": {
                                   "enter": "none"
                                 }
+                              },
+                              {
+                                "callout": {
+                                  "elementTestId": "dashboard-loaded",
+                                  "timeout": 15000
+                                },
+                                "label": "Your dashboard, once the first sync finishes"
                               },
                               {
                                 "id": "usage-highlight",

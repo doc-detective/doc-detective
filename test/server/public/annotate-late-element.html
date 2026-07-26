@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Late Element - Annotate Timeout Test</title>
+</head>
+<body>
+    <h1>Annotate Timeout Test</h1>
+    <p>Targets on this page appear well after an annotation's default 5000 ms wait.</p>
+
+    <!-- Present at load: the control for the "timeout omitted" permutation. -->
+    <div id="instant-target">Ready immediately</div>
+
+    <div id="container"></div>
+
+    <script>
+        // 6500 ms is deliberately PAST the 5000 ms default an annotation target
+        // falls back to. A shorter delay would let the fixture pass whether or
+        // not `timeout` is honored, which would prove nothing.
+        setTimeout(() => {
+            const container = document.getElementById('container');
+
+            const panel = document.createElement('div');
+            panel.id = 'late-panel';
+            panel.setAttribute('data-testid', 'late-panel');
+            panel.textContent = 'Dashboard';
+            container.appendChild(panel);
+
+            // Several matches, so `all: true` has more than one element to
+            // redact — the branch that reaches findElementByCriteria directly
+            // rather than going through findElement.
+            for (let i = 1; i <= 3; i++) {
+                const secret = document.createElement('div');
+                secret.className = 'late-secret';
+                secret.textContent = 'API key ' + i;
+                container.appendChild(secret);
+            }
+        }, 6500);
+
+        // A second late target, for the `update` permutation: the update has to
+        // re-resolve against an element that isn't there yet either.
+        setTimeout(() => {
+            const later = document.createElement('div');
+            later.id = 'late-second';
+            later.textContent = 'Billing';
+            document.getElementById('container').appendChild(later);
+        }, 8000);
+    </script>
+</body>
+</html>

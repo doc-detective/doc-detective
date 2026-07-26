@@ -128,6 +128,183 @@ describe("Run tests successfully", function () {
     }
   });
 
+  describe("durationMs on report nodes", function () {
+    // Timing is a report *output*, so it can't be asserted through the
+    // fixture gate (a spec can't read its own report). These run the real
+    // pipeline over hermetic shell-only specs and assert the emitted shape.
+    // See adrs/01083-record-durationms-on-report-nodes.md.
+    this.timeout(300000);
+
+    async function runSpecObject(spec, name, configOverrides = {}) {
+      fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+      const tempFilePath = path.resolve(`./.tmp/temp-${name}.json`);
+      fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+      try {
+        return await runTests({ input: tempFilePath, ...configOverrides });
+      } finally {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+    const isDuration = (value, label) => {
+      assert.equal(typeof value, "number", `${label} durationMs is not a number`);
+      assert.ok(
+        Number.isInteger(value),
+        `${label} durationMs ${value} is not an integer`
+      );
+      assert.ok(value >= 0, `${label} durationMs ${value} is negative`);
+    };
+
+    it("records durationMs on every node of a completed run, and rolls up", async () => {
+      const spec = {
+        tests: [
+          {
+            testId: "dur-a",
+            steps: [{ runShell: "echo a1" }, { runShell: "echo a2" }],
+          },
+          { testId: "dur-b", steps: [{ runShell: "echo b1" }] },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-rollup");
+
+      isDuration(result.durationMs, "run");
+      assert.ok(result.specs.length > 0, "run produced no specs");
+      for (const specReport of result.specs) {
+        isDuration(specReport.durationMs, "spec");
+        assert.ok(specReport.tests.length > 0, "spec produced no tests");
+        let testSum = 0;
+        for (const testReport of specReport.tests) {
+          isDuration(testReport.durationMs, "test");
+          assert.ok(
+            testReport.contexts.length > 0,
+            "test resolved no contexts"
+          );
+          let contextSum = 0;
+          for (const contextReport of testReport.contexts) {
+            isDuration(contextReport.durationMs, "context");
+            assert.ok(contextReport.steps.length > 0, "context ran no steps");
+            let stepSum = 0;
+            for (const stepReport of contextReport.steps) {
+              isDuration(stepReport.durationMs, "step");
+              stepSum += stepReport.durationMs;
+            }
+            // Steps are serial within a context, and the context clock also
+            // covers preflight and teardown, so this is a true lower bound.
+            assert.ok(
+              contextReport.durationMs >= stepSum,
+              `context ${contextReport.durationMs}ms < sum of steps ${stepSum}ms`
+            );
+            contextSum += contextReport.durationMs;
+          }
+          assert.equal(
+            testReport.durationMs,
+            contextSum,
+            "test durationMs is not the sum of its contexts"
+          );
+          testSum += testReport.durationMs;
+        }
+        assert.equal(
+          specReport.durationMs,
+          testSum,
+          "spec durationMs is not the sum of its tests"
+        );
+      }
+    });
+
+    it("reports the final attempt's time for a step re-run by onFail retry", async () => {
+      // Always fails, so it burns all 3 attempts with a 400ms wait between
+      // them. The step itself is near-instant, so a final-attempt duration is
+      // far below the ~800ms of accumulated backoff a summed duration would
+      // have to exceed.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-retry",
+            steps: [
+              {
+                runShell: "node -e \"process.exit(1)\"",
+                onFail: [{ retry: { limit: 2, delay: 400 } }, { continue: true }],
+              },
+            ],
+          },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-retry");
+      const context = result.specs[0].tests[0].contexts[0];
+      const step = context.steps[0];
+
+      assert.equal(step.attempts, 3, "expected the step to run 3 times");
+      isDuration(step.durationMs, "retried step");
+      assert.ok(
+        step.durationMs < 800,
+        `step durationMs ${step.durationMs}ms looks like a sum across attempts, not the final attempt`
+      );
+      // The context clock DOES span every attempt plus the backoff waits.
+      assert.ok(
+        context.durationMs >= 800,
+        `context durationMs ${context.durationMs}ms should span both 400ms backoff waits`
+      );
+    });
+
+    it("records durationMs on steps that never executed", async () => {
+      // The second step is unreachable: the first fails and stops the test, so
+      // step 2 lands SKIPPED without ever running. It still carries the field.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-skipped",
+            steps: [
+              { runShell: "node -e \"process.exit(1)\"" },
+              { runShell: "echo unreachable" },
+            ],
+          },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-skipped");
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2, "expected both steps to be reported");
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.equal(steps[1].durationMs, 0);
+    });
+
+    it("records durationMs on contexts that were skipped before running", async () => {
+      // A false test guard makes prepareContextSlot synthesize a SKIPPED
+      // context report that never reaches the runner's clock — one of several
+      // such sites. The Phase 3 pass is what guarantees it still carries the
+      // field, so a reporter never sees `undefined`.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-guard-skip",
+            if: "$$env.DOC_DETECTIVE_NO_SUCH_VAR === 'never'",
+            steps: [{ runShell: "echo should-not-run" }],
+          },
+          { testId: "dur-guard-run", steps: [{ runShell: "echo ran" }] },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-guard-skip");
+      const tests = result.specs[0].tests;
+      const skipped = tests.find((t) => t.testId === "dur-guard-skip");
+      assert.ok(skipped.contexts.length > 0, "guard-skipped test had no contexts");
+      for (const context of skipped.contexts) {
+        assert.equal(context.result, "SKIPPED");
+        isDuration(context.durationMs, "guard-skipped context");
+      }
+      isDuration(skipped.durationMs, "guard-skipped test");
+    });
+
+    it("does not throw on a run where filters match no specs", async () => {
+      const spec = {
+        tests: [{ testId: "dur-filtered", steps: [{ runShell: "echo hi" }] }],
+      };
+      const result = await runSpecObject(spec, "durations-zero-spec", {
+        testFilter: ["no-such-test-matches-this"],
+      });
+      assert.deepEqual(result.specs, []);
+      isDuration(result.durationMs, "zero-spec run");
+    });
+  });
+
   describe("runShell shell selection", function () {
     // Shell steps run through real spawns; give slow Windows JIT paths room.
     this.timeout(300000);
@@ -1515,6 +1692,16 @@ describe("collectDeviceDescriptors() device planning", function () {
 describe("getRunner() function", function () {
   // 5 minutes per test
   this.timeout(300000);
+
+  // Every test here drives a real Appium + Chromium session (or a runTests
+  // browser flow). On constrained CI runners — notably windows-latest — that
+  // session can crash shortly after launch, surfacing as an empty getTitle()
+  // ("first runner should work" assertion) or an ECONNREFUSED on teardown: a
+  // transient infra flake, not a getRunner defect. Retry like the sibling
+  // browser suites above (this.retries(2) on the runTests cases). Retries only
+  // re-run on failure, so a deterministic bug still fails all attempts — this
+  // heals a one-off session death without masking a real regression.
+  this.retries(2);
 
   let getRunner;
 

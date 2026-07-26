@@ -359,6 +359,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // setAnnotationTimeout (current-run problems)
+  // ------------------------------------------------------------------
+  {
+    id: "setAnnotationTimeout",
+    priority: 20,
+    markdown: [
+      "An annotation's target wasn't on the page yet. Element targets wait 5 seconds by default — give a slower one more time with `timeout`, the same field `find` takes:",
+      "",
+      "```json",
+      '{ "annotate": { "add": [{ "callout": { "selector": "#dashboard", "timeout": 20000 }, "label": "Your data" }] } }',
+      "```",
+      "",
+      "It works the same on a screenshot's own `annotations`, and it needs the object form of the target — the string shorthand has nowhere to put it.",
+      "",
+      "More: [annotate](https://doc-detective.com/docs/actions/annotate)",
+    ].join("\n"),
+    when: (ctx) => ctx.failedAnnotationTargetWithoutTimeout === true,
+  },
+
+  // ------------------------------------------------------------------
   // setConcurrentRunners (optimization & advanced)
   // ------------------------------------------------------------------
   {

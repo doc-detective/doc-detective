@@ -449,6 +449,10 @@ export interface ElementFindingFields {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -500,6 +504,10 @@ export interface ElementFindingFields1 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -551,6 +559,10 @@ export interface ElementFindingFields2 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -602,6 +614,10 @@ export interface ElementFindingFields3 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -653,6 +669,10 @@ export interface ElementFindingFields4 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -704,6 +724,10 @@ export interface ElementFindingFields5 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -900,6 +924,10 @@ export interface ElementFindingFields6 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -951,6 +979,10 @@ export interface ElementFindingFields7 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1002,6 +1034,10 @@ export interface ElementFindingFields8 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1053,6 +1089,10 @@ export interface ElementFindingFields9 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1104,6 +1144,10 @@ export interface ElementFindingFields10 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1155,6 +1199,10 @@ export interface ElementFindingFields11 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.

@@ -53,6 +53,10 @@ export {
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isSessionAlive,
+  isPageBroken,
+  isPageUnnavigated,
+  classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -803,7 +807,7 @@ async function waitForReady(
 //      concurrent-startup contention: a staggered retry lets it clear and
 //      recovers on the next attempt in practice.
 const TRANSIENT_SESSION_ERROR =
-  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server/i;
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server|invalid session id|no such session|session deleted because of page crash|chrome not reachable/i;
 
 // The wdio client aborts POST /session with "aborted due to timeout" when the
 // request exceeds connectionRetryTimeout. For native sessions that declared a
@@ -822,6 +826,138 @@ function isRetryableSessionError(
   if (typeof message !== "string" || !message) return false;
   if (TRANSIENT_SESSION_ERROR.test(message)) return true;
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+}
+
+// Active liveness probe for the `retries` context-retry policy. A dead session
+// surfaces a step FAIL that is indistinguishable at the result level from a
+// legitimate assertion FAIL (handlers catch driver errors and return FAIL), so
+// after a FAIL we probe the session directly: a session-scoped, driver-agnostic
+// command (`getPageSource` — valid for browser, webview, and native/app
+// sessions; NOT `status`, which queries the Appium *server* and would pass for a
+// dead session behind a live server). Returns false ONLY when the session is
+// provably gone (probe throws a classified session-death error), so a
+// live-session failure is never mistaken for a dead one and a real bug is never
+// retried away. Any non-session probe error, or a missing driver's probe, is
+// treated conservatively: a null driver is dead; a non-session throw is alive.
+// The probe is bounded by `probeTimeoutMs`: a cleanly-dead session rejects fast
+// (ECONNREFUSED / invalid session id), but a wedged one (socket open, no
+// response) could otherwise hang for the underlying transport timeout — minutes,
+// on the failure path, while the context holds its concurrency slot. On timeout
+// we return `true` (alive), the conservative outcome: never retry a real failure
+// just because the probe was slow, and cap the added latency to `probeTimeoutMs`.
+async function isSessionAlive(
+  driver: any,
+  probeTimeoutMs: number = 15000
+): Promise<boolean> {
+  if (!driver || typeof driver.getPageSource !== "function") return false;
+  let timer: any;
+  try {
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(resolve, probeTimeoutMs);
+    });
+    const probe = Promise.resolve(driver.getPageSource());
+    // If the timeout wins the race, the probe stays pending; swallow its
+    // eventual rejection so a wedged session doesn't surface an unhandled
+    // rejection later. The race itself still sees a fast rejection (caught below).
+    probe.catch(() => {});
+    // Race the probe against the timeout. Reaching here without a throw means
+    // either the probe resolved (unambiguously alive) or it timed out (slow but
+    // not provably dead) — both count as alive. Only a thrown, classified
+    // session-death error (caught below) marks the session dead.
+    await Promise.race([probe, timeout]);
+    return true;
+  } catch (err: any) {
+    const message = String(err?.message ?? err ?? "");
+    // Classified session-death → dead. Anything else → assume alive (don't
+    // retry a live-session failure on an unrelated probe blip).
+    return !isRetryableSessionError(message);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+// Browser error pages a renderer crash or failed navigation lands on. A test is
+// never legitimately on one, so they unambiguously signal a broken page.
+const BROWSER_ERROR_PAGE = /^(chrome-error:|about:neterror|about:certerror)/i;
+
+// Companion to isSessionAlive for the "alive but broken page" retry case: the
+// session responds (getPageSource succeeds), but the browser sits on a crash /
+// error page instead of the page under test (a renderer crash navigates to
+// `chrome-error://chromewebdata/`; Firefox to `about:neterror`/`about:certerror`).
+// True ONLY for an unambiguous browser error page — NOT `about:blank`, which a
+// test may legitimately be on, so a genuine "element not on a correctly-loaded
+// page" failure still FAILs and is never retried. App/mobile sessions have no URL
+// and a thrown `getUrl` (dead session, already caught by isSessionAlive) both
+// yield false.
+async function isPageBroken(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    const url = String((await driver.getUrl()) ?? "");
+    return BROWSER_ERROR_PAGE.test(url);
+  } catch {
+    return false;
+  }
+}
+
+// Chromium parks a brand-new session on the EMPTY data URL (`data:,`) until its
+// first navigation, so a context still sitting there when it FAILs never got
+// started — its `goTo` silently didn't take effect, or the driver ended up
+// attached to a window that never navigated. Matched exactly: `data:,` (and the
+// bare `data:`), never a data URL carrying content, which is a deliberate
+// navigation target.
+//
+// Deliberately NOT `about:blank`. Chromium's initial page is `data:,`, while
+// `about:blank` is somewhere a test can legitimately navigate — the same
+// distinction BROWSER_ERROR_PAGE already makes — so keeping it out preserves the
+// guarantee that a genuine "element not on a correctly-loaded page" failure
+// still FAILs. Firefox's initial page IS `about:blank`, so this heuristic is
+// Chromium-only by construction; see adrs/01084-retry-unnavigated-context.md.
+const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
+
+// Companion to isSessionAlive / isPageBroken for the "alive but never navigated"
+// retry case (ADR 01084). The session responds and the page isn't a crash page,
+// but the browser is still on its initial blank document, which no correctly
+// loaded page under test ever is. App/mobile sessions have no URL, and a thrown
+// `getUrl` (dead session, already caught by isSessionAlive) both yield false.
+async function isPageUnnavigated(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    const url = String((await driver.getUrl()) ?? "").trim();
+    return INITIAL_BLANK_DOCUMENT.test(url);
+  } catch {
+    return false;
+  }
+}
+
+export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
+
+// The retry DECISION for a FAILed context, composed from the three probes above.
+// Returns the reason to retry on a fresh session, or null to let the FAIL stand.
+// Split out from runContext so the rules that the individual probes can't
+// express are directly testable — which sessions each check applies to, and how
+// they rank:
+//
+//   • Dead session or browser error page — checked on EVERY session the context
+//     holds (a dead app session behind a live browser, or vice versa, still
+//     breaks the context), first match wins.
+//   • Never navigated — checked ONLY on the primary session. A secondary surface
+//     opened via `goTo newTab` may be deliberately left on `data:,`, so applying
+//     "any session" here would retry contexts whose real assertion failed on the
+//     primary page. `probeDrivers[0]` is the first-registered session: the array
+//     comes from a Map's values(), whose iteration order is insertion order per
+//     the language spec, not an implementation detail.
+//
+// See adrs/01082-retries-mid-session-context-retry.md and
+// adrs/01084-retry-unnavigated-context.md.
+async function classifyContextRetry(
+  probeDrivers: any[]
+): Promise<ContextRetryReason | null> {
+  for (const probeDriver of probeDrivers) {
+    if (!(await isSessionAlive(probeDriver))) return "session-died";
+    if (await isPageBroken(probeDriver)) return "page-broken";
+  }
+  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  return null;
 }
 
 // Windows NTSTATUS exit codes for a process that died *during initialization*
