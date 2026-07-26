@@ -149,6 +149,8 @@ export async function buildHintContext(
     usedRetry: walkData.usedRetry,
     failedTransientRequest: walkData.failedTransientRequest,
     failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
+    failedAnnotationTargetWithoutTimeout:
+      walkData.failedAnnotationTargetWithoutTimeout,
     ranIosContexts: walkData.ranIosContexts,
     viewportFloored: walkData.viewportFloored,
     ranMobileContexts: walkData.ranMobileContexts,
@@ -405,6 +407,11 @@ interface WalkData {
   usedRetry: boolean;
   failedTransientRequest: boolean;
   failedRunShellWithoutShell: boolean;
+  // True when a step FAILed specifically because an annotation's target
+  // couldn't be found, and no target in that step asked for extra time. The
+  // fix is a `timeout` on the target (ADR 01085). Powers
+  // `setAnnotationTimeout`.
+  failedAnnotationTargetWithoutTimeout: boolean;
   ranIosContexts: boolean;
   hasStaleRecordings: boolean;
   viewportFloored: boolean;
@@ -460,6 +467,7 @@ function emptyWalkData(): WalkData {
     usedRetry: false,
     failedTransientRequest: false,
     failedRunShellWithoutShell: false,
+    failedAnnotationTargetWithoutTimeout: false,
     ranIosContexts: false,
     hasStaleRecordings: false,
     viewportFloored: false,
@@ -467,6 +475,44 @@ function emptyWalkData(): WalkData {
     repeatedAppSurfaceRefs: false,
     appSurfaceRefCounts: new Map(),
   };
+}
+
+/**
+ * Matches the runner's "target didn't resolve" annotation failures — both the
+ * single-element form ("the element to annotate") and the `all` form ("any
+ * element to annotate"). Mirrors the messages in
+ * `src/core/annotations/geometry.ts`; matched on text rather than imported so
+ * `hints/` stays free of the core module graph, the same trade the viewport
+ * tolerance and surface-key list above make. Exported so `test/hints.test.js`
+ * can drive a real resolution failure through geometry and assert the message
+ * still matches — a reword there would otherwise silence the hint quietly.
+ */
+export const ANNOTATION_TARGET_MISSING = /element to annotate/;
+
+/**
+ * Whether any annotation in this step already asked for extra time.
+ *
+ * Covers both surfaces the field lives on: an `annotate` step's `add`/`update`
+ * entries, and a screenshot's own `annotations`. One target carrying a
+ * `timeout` is enough to stay quiet — the author knows the field exists, and
+ * which target needed it is their call, not a hint's.
+ */
+function annotationTargetsAskForTime(step: any): boolean {
+  const annotations = [
+    ...(Array.isArray(step?.annotate?.add) ? step.annotate.add : []),
+    ...(Array.isArray(step?.annotate?.update) ? step.annotate.update : []),
+    ...(Array.isArray(step?.screenshot?.annotations)
+      ? step.screenshot.annotations
+      : []),
+  ];
+  return annotations.some((annotation: any) =>
+    // The target is the value of whichever type key the annotation names, so
+    // scan the values rather than hardcoding the six type names — a new
+    // annotation type shouldn't silently start producing a wrong hint.
+    Object.values(annotation ?? {}).some(
+      (value: any) => typeof value?.timeout === "number"
+    )
+  );
 }
 
 // The step keys whose actions route through the active-surface resolver
@@ -660,6 +706,21 @@ function inspectStep(step: any, data: WalkData): void {
     typeof step.runShell?.shell !== "string"
   ) {
     data.failedRunShellWithoutShell = true;
+  }
+
+  // A step that FAILed because an annotation's target was never found, where
+  // no target asked for extra time. Gated on the resolution message rather
+  // than "an annotate step FAILed": the other failure modes (an invalid
+  // payload, updating an id that isn't on screen) have nothing to do with
+  // waiting, and a timeout suggestion there is noise. Powers
+  // `setAnnotationTimeout`.
+  if (
+    step.result === "FAIL" &&
+    typeof step.resultDescription === "string" &&
+    ANNOTATION_TARGET_MISSING.test(step.resultDescription) &&
+    !annotationTargetsAskForTime(step)
+  ) {
+    data.failedAnnotationTargetWithoutTimeout = true;
   }
 
   // runShell command sniffing.

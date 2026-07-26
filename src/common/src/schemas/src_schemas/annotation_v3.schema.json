@@ -251,6 +251,12 @@
           "elementAria": {
             "type": "string",
             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "default": 5000,
+            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
           }
         }
       },
@@ -499,6 +505,13 @@
       "transition": {
         "enter": "none"
       }
+    },
+    {
+      "callout": {
+        "elementTestId": "dashboard-loaded",
+        "timeout": 15000
+      },
+      "label": "Your dashboard, once the first sync finishes"
     },
     {
       "id": "usage-highlight",

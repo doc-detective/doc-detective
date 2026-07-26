@@ -1308,6 +1308,40 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid, result.errors).to.be.true;
       });
 
+      it("should validate an annotation_v3 target with a timeout", function () {
+        // Annotation targets resolve through the same findElement as `find`,
+        // so they take the same `timeout`. Without it every target polls for a
+        // hardcoded 5s and authors have to precede `annotate` with a guard
+        // `find` just to buy a longer wait.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#slow-widget", timeout: 15000 } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.outline.timeout).to.equal(15000);
+      });
+
+      it("should reject an annotation_v3 target whose only field is a timeout", function () {
+        // `timeout` is a deadline, not a way to find an element — it can't
+        // satisfy the at-least-one-element-finding-field guard on its own.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { timeout: 15000 } },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a non-integer annotation_v3 target timeout", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#a", timeout: "soon" } },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
       it("should validate an annotation_v3 object with a position target", function () {
         const named = validate({
           schemaKey: "annotation_v3",

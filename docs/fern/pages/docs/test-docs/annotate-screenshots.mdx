@@ -31,6 +31,8 @@ There are six annotation types:
 
 Each annotation names one type, and the type's value is its target. A target can be a string (a selector or display text, the same as [`crop`](/docs/test-docs/capture-screenshots-guide)), an object (the same element-finding fields as [`find`](/docs/selectors/css)), or a position (a named region like `top-right` or a `{ "x": …, "y": … }` point). Shared options include `label` (the text a `badge`, `callout`, or `text` shows), `position` (where the annotation sits relative to its target), `style` (per-annotation visual overrides), and `all` (annotate every matching element instead of only the first).
 
+An object target also takes `timeout`, the number of milliseconds to wait for its element. Annotations wait 5000 by default; raise it for anything slower, such as `{ "outline": { "elementTestId": "dashboard", "timeout": 20000 } }`.
+
 This example numbers the fields of a sign-in form and redacts an email address, all in one capture:
 
 {/* test {"testId":"capture-guide-annotated","detectSteps":false} */}
@@ -80,7 +82,7 @@ Annotations also work on [native app surfaces](/docs/actions/screenshot#app-surf
 
 ## Verify it works
 
-- An annotation whose target doesn't resolve reports `FAIL`, because the annotation can't be placed.
+- An annotation whose target doesn't resolve reports `FAIL`, because the annotation can't be placed. If the element is only slow rather than missing, raise its `timeout` instead of removing the annotation.
 
 ## Troubleshooting
 

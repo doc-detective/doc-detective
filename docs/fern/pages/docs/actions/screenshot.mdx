@@ -63,6 +63,14 @@ A target can be:
 - **An object**, using the same element-finding fields as [`find`](/docs/actions/find). For example, `{ "outline": { "elementTestId": "submit" } }`.
 - **A position**, a fixed spot for annotations that aren't tied to an element. For example, `{ "text": { "position": "top-right" }, "label": "Demo data" }`. Accepts a named region (`top`, `bottom`, `left`, `right`, `center`, `top-left`, `top-right`, `bottom-left`, `bottom-right`) or a point (`{ "x": 640, "y": 220 }`).
 
+An element target waits up to 5000 milliseconds for its element to appear. Set `timeout` on the target to wait longer:
+
+```json
+{ "outline": { "elementTestId": "dashboard", "timeout": 20000 } }
+```
+
+`timeout` works the same way as [`find`](/docs/actions/find)'s, and like find's, it needs the object form of the target: the string shorthand has nowhere to put it.
+
 ### Options
 
 - `label`: Text to display. Used by `badge`, `callout`, and `text`.

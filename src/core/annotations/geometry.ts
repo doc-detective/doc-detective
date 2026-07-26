@@ -43,6 +43,7 @@ export {
   appCriteriaError,
   allTargetError,
   appWindowOrigin,
+  criteriaFromTarget,
   resolveAnnotationRects,
   APP_UNSUPPORTED_CRITERIA,
   APP_SUPPORTED_CRITERIA,
@@ -204,6 +205,15 @@ function allTargetError(
 
 // Turn an annotation target into the criteria object findElement expects.
 // A string target passes straight through as find's selector-or-text shorthand.
+//
+// `timeout` rides along with the finding fields rather than being handled
+// separately, because every consumer below already knows what to do with it:
+// findElement reads `step.find.timeout` on both its browser and app paths, and
+// findElementByCriteria takes it as a parameter. Leaving it out of this list
+// was the only reason annotation targets were pinned to the hardcoded 5000 ms
+// while `find` could ask for longer. Deliberately NOT defaulted here — the
+// number belongs to find, and a copy of it here would be a second thing to
+// keep in sync.
 function criteriaFromTarget(target: any): any {
   if (typeof target === "string") return target;
   return {
@@ -214,6 +224,7 @@ function criteriaFromTarget(target: any): any {
     elementClass: target?.elementClass,
     elementAttribute: target?.elementAttribute,
     elementAria: target?.elementAria,
+    timeout: target?.timeout,
   };
 }
 

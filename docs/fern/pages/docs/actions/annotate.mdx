@@ -40,6 +40,28 @@ The [screenshot annotations](/docs/actions/screenshot#annotations) page covers t
 Set `"transition": { "enter": "none" }` on a `blur` you're using to redact. An annotation that fades in leaves the content underneath readable for the length of the animation, and every frame of that is in the recording.
 </Warning>
 
+### Annotate something that hasn't loaded yet
+
+An element target waits up to 5000 milliseconds for its element to appear, then fails the step. When you're annotating something slower than that — a panel behind a fetch, a dashboard that renders after a first sync — set `timeout` on the target:
+
+```json
+{
+  "annotate": {
+    "add": [
+      {
+        "id": "guide",
+        "callout": { "elementTestId": "dashboard", "timeout": 20000 },
+        "label": "Your data lands here after the first sync"
+      }
+    ]
+  }
+}
+```
+
+This is [`find`](/docs/actions/find)'s `timeout`, on the annotation's target. Two things follow from that: it needs the object form of the target, since the string shorthand has nowhere to put it, and it's per-target, so one slow element in a payload doesn't make the others wait.
+
+`update` re-resolves its target, so give it a `timeout` too when you're repointing an annotation at something that isn't on the page yet.
+
 **Outputs:** the action exposes `$$annotationCount`, the number of annotations on screen after the step.
 
 > For comprehensive options, see the [`annotate`](/reference/schemas/annotate) reference.
