@@ -657,6 +657,7 @@ describe("lsp — inline tests (markup fileTypes)", function () {
 
   it("routes markup files by extension to the inline pipeline", function () {
     expect(fileTypeForUri("file:///a/doc.md")).to.be.an("object");
+    expect(fileTypeForUri("file:///a/doc.mdx")).to.be.an("object");
     expect(fileTypeForUri("file:///a/doc.adoc")).to.be.an("object");
     expect(fileTypeForUri("file:///a/doc.html")).to.be.an("object");
     expect(fileTypeForUri("file:///a/doc.dita")).to.be.an("object");
@@ -666,6 +667,15 @@ describe("lsp — inline tests (markup fileTypes)", function () {
 
   it("stays silent on markup with no Doc Detective statements", function () {
     expect(md("# Just docs\n\nNothing to see.\n")).to.deep.equal([]);
+  });
+
+  it("flags an invalid inline step inside an .mdx expression comment", function () {
+    // .mdx routes through the mdx backend, whose {/* … */} expression
+    // comments are statement containers; a bad step must surface diagnostics.
+    const d = computeDiagnostics(
+      doc("file:///a/doc.mdx", '{/* step {"goTo":123} */}\n'),
+    );
+    expect(d.length).to.be.greaterThan(0);
   });
 
   it("returns no diagnostics for a valid inline test + step", function () {
