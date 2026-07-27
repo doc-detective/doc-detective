@@ -147,8 +147,10 @@ jobs:
   # NOT the enforcement — `npm run build:common` already gates on this, so every
   # matrix cell above fails on a violation too. This job exists for speed and
   # legibility: it reports in about a minute instead of waiting on a full build,
-  # and `--format github-actions` turns each finding into an inline PR annotation
-  # on the offending line.
+  # and `--format github-actions` surfaces findings as PR annotations. Spectral's
+  # land inline on the offending line; the custom passes' land at file level,
+  # because they identify a location by JSON Pointer and mapping that to a line
+  # number would mean re-parsing the raw text. The pointer is in the message.
   schema-lint:
     name: Schema lint
     runs-on: ubuntu-latest

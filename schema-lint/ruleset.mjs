@@ -42,11 +42,19 @@ import { basename, join } from "node:path";
 // up with "__filename is not defined" inside its loader.
 function loadBaseline() {
   const file = process.env.SCHEMA_LINT_BASELINE || join(process.cwd(), "schema-lint", "baseline.json");
+  let raw;
   try {
-    return JSON.parse(readFileSync(file, "utf8"));
-  } catch {
-    return {};
+    raw = readFileSync(file, "utf8");
+  } catch (error) {
+    // A missing baseline is a legitimate state (nothing recorded yet). Anything
+    // else — unreadable, permission-denied — is not.
+    if (error && error.code === "ENOENT") return {};
+    throw error;
   }
+  // Deliberately NOT caught. A truncated or malformed baseline would otherwise
+  // yield an empty set, re-firing all 17 baselined findings at once with nothing
+  // pointing at the real culprit. Let the SyntaxError name the file.
+  return JSON.parse(raw);
 }
 
 const baselinedCollapse = new Set(loadBaseline()["no-type-collapse"] ?? []);
