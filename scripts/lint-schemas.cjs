@@ -503,24 +503,50 @@ async function lintExamples() {
 // ---------------------------------------------------------------------------
 
 function runSpectral(format) {
-  const args = [
-    "spectral",
-    "lint",
-    "--ruleset",
-    RULESET,
-    "--fail-severity",
-    "error",
-    path.join(SRC_SCHEMAS, "*.json"),
-  ];
+  // Spawn Spectral's CLI entry with THIS node binary rather than `npx`, and with
+  // no shell.
+  //
+  // `npx` on Windows is a .cmd, which can't be spawned without `shell: true` —
+  // and `shell: true` concatenates argv without escaping (Node's own DEP0190
+  // warns about it). Every path here is absolute and derived from __dirname, so
+  // a checkout under an ordinary Windows home like `C:\Users\Jane Doe\...`
+  // would split mid-path: the child receives `--ruleset C:/Users/Jane` plus a
+  // stray `Doe/.../ruleset.mjs`. Resolving the entry script sidesteps the shell
+  // entirely, so spaces are safe on every platform.
+  let cli;
+  try {
+    cli = require.resolve("@stoplight/spectral-cli/dist/index.js");
+  } catch (error) {
+    console.error(
+      `Schema lint could not locate @stoplight/spectral-cli (${error.message}). ` +
+        `Run \`npm ci\` — the structural rules cannot run without it.`
+    );
+    return false;
+  }
+
+  const args = [cli, "lint", "--ruleset", RULESET, "--fail-severity", "error", path.join(SRC_SCHEMAS, "*.json")];
   if (format) args.push("--format", format);
-  const result = spawnSync("npx", args, {
+
+  const result = spawnSync(process.execPath, args, {
     cwd: REPO_ROOT,
     stdio: "inherit",
-    shell: process.platform === "win32",
     // The ruleset can't locate the baseline itself — Spectral transpiles
     // rulesets, which breaks `import.meta.url` — so hand it the absolute path.
     env: { ...process.env, SCHEMA_LINT_BASELINE: BASELINE_FILE },
   });
+
+  // A failure to LAUNCH is not a rule violation. Without this, an ENOENT or
+  // EPERM surfaces as "Schema lint FAILED: Spectral rules" with nothing printed
+  // (stdio is inherited), sending someone hunting for a schema problem that
+  // doesn't exist while four of the six rules silently never ran.
+  if (result.error) {
+    console.error(`Schema lint could not run Spectral: ${result.error.message}`);
+    return false;
+  }
+  if (result.status === null) {
+    console.error(`Schema lint: Spectral was terminated by signal ${result.signal}.`);
+    return false;
+  }
   return result.status === 0;
 }
 
