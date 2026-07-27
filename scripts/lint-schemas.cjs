@@ -216,17 +216,24 @@ function inertDefaults(schema) {
     .map(([pointer, e]) => ({ pointer, value: e.value }));
 }
 
-/** Walk every schema node, calling visit(node, pointer, underComposition). */
-function walk(node, pointer, underComposition, visit) {
+/**
+ * Walk every schema node, calling visit(node, pointer).
+ *
+ * Composition tracking deliberately lives in inertDefaults() instead: that rule
+ * needs reachability (following $refs, skipping non-applicator containers), which
+ * a plain lexical walk gets wrong. Threading an unused `underComposition` through
+ * here would imply this walk can answer that question. It can't.
+ */
+function walk(node, pointer, visit) {
   if (!node || typeof node !== "object") return;
   if (Array.isArray(node)) {
-    node.forEach((child, i) => walk(child, `${pointer}/${i}`, underComposition, visit));
+    node.forEach((child, i) => walk(child, `${pointer}/${i}`, visit));
     return;
   }
-  visit(node, pointer, underComposition);
+  visit(node, pointer);
   for (const [key, value] of Object.entries(node)) {
     if (DATA_KEYWORDS.has(key)) continue;
-    walk(value, `${pointer}/${key}`, underComposition || COMPOSITION_KEYWORDS.includes(key), visit);
+    walk(value, `${pointer}/${key}`, visit);
   }
 }
 
@@ -296,7 +303,7 @@ function lintUniqueTitles() {
     } catch {
       continue;
     }
-    walk(schema, "", false, (node, pointer) => {
+    walk(schema, "", (node, pointer) => {
       if (typeof node.title !== "string" || !node.title.trim()) return;
       if (!index.has(node.title)) index.set(node.title, []);
       index.get(node.title).push({ file, pointer: pointer || "/" });
@@ -308,7 +315,12 @@ function lintUniqueTitles() {
   for (const [title, sites] of index) {
     const files = new Set(sites.map((s) => s.file));
     if (files.size < 2) continue; // one declaration, or repeats within one file
-    if (baselined.has(`${sites[0].file}${sites[0].pointer}`)) continue;
+    // Suppress only when EVERY site is baselined, not just an anchor site.
+    // Keying on `sites[0]` alone meant a third schema joining an
+    // already-recorded 2-way collision went unreported whenever it sorted after
+    // the anchor — the collision would silently grow while the lint stayed
+    // quiet. Requiring full coverage makes any new entrant reopen the finding.
+    if (sites.every((s) => baselined.has(`${s.file}${s.pointer}`))) continue;
     const where = sites.map((s) => `${s.file}${s.pointer}`).join("\n      ");
     report(
       "unique-title",
@@ -337,7 +349,7 @@ function lintUniqueTitles() {
  * `|| false`" beside `"default": true` and notice the contradiction.
  */
 function lintInertDefaults() {
-  // --- layer 1: reachability decides WHICH defaults are inert ------------
+  // --- step 1: reachability decides WHICH defaults are inert -------------
   //
   // See inertDefaults(): Ajv's own strict warning was tried first as the oracle
   // and rejected — it flags httpRequest_v3's `statusCodes` but stays silent on
@@ -354,16 +366,15 @@ function lintInertDefaults() {
       walkerHits.push({ file, pointer: hit.pointer, value: hit.value });
     }
   }
-  const inert = walkerHits;
 
-  // --- layer 3: the acknowledgement gate ----------------------------------
+  // --- step 2: the acknowledgement gate -----------------------------------
   let ack = {};
   if (fs.existsSync(ACK_FILE)) {
     ack = JSON.parse(fs.readFileSync(ACK_FILE, "utf8"));
   }
 
   const seen = new Set();
-  for (const hit of inert) {
+  for (const hit of walkerHits) {
     const key = `${hit.file}${hit.pointer}`;
     seen.add(key);
     const entry = ack[hit.file] && ack[hit.file][hit.pointer];
