@@ -19,7 +19,7 @@
 // android, prebootIos) travel with each bundle into the matrix.
 const BUNDLES = [
   { name: "nav-capture", dirs: ["navigation", "capture"] },
-  { name: "interactions", dirs: ["interactions"] },
+  { name: "interactions", dirs: ["interactions", "visual-find"] },
   { name: "web-plumbing", dirs: ["routing", "http", "guards"] },
   { name: "proc-sessions", dirs: ["process", "sessions"] },
   { name: "recording", dirs: ["recording"] },

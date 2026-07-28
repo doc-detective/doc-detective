@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Visual Find Duo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; }
+        h1 { margin: 24px 40px; }
+        /* Fixed absolute layout so rect-region fixtures can rely on stable
+           viewport coordinates. */
+        .zone {
+            position: absolute;
+            top: 140px;
+            width: 320px;
+            height: 300px;
+            padding: 16px;
+            box-sizing: border-box;
+            border: 1px dashed #9ca3af;
+        }
+        #zone-a { left: 40px; }
+        #zone-b { left: 440px; }
+        button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: #ffffff;
+            font-size: 16px;
+        }
+        button:hover, button:focus, button:active { background: #ffffff; outline: none; }
+        .glyph { display: inline-block; width: 48px; height: 48px; line-height: 0; }
+        #duo-result { position: absolute; top: 480px; left: 40px; }
+    </style>
+    <script>
+        function setResult(text) {
+            document.getElementById('duo-result').textContent = text;
+        }
+    </script>
+</head>
+<body>
+    <h1>Two identical glyphs</h1>
+    <div class="zone" id="zone-a">
+        <button id="btn-a" type="button" onclick="setResult('Alpha clicked')">
+            <span class="glyph" id="glyph-a" aria-hidden="true"><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="6" fill="#2563eb"/><circle cx="24" cy="24" r="14" fill="none" stroke="#facc15" stroke-width="4"/><rect x="20" y="8" width="8" height="10" fill="#ef4444"/></svg></span>
+            Alpha
+        </button>
+    </div>
+    <div class="zone" id="zone-b">
+        <button id="btn-b" type="button" onclick="setResult('Beta clicked')">
+            <span class="glyph" id="glyph-b" aria-hidden="true"><svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="6" fill="#2563eb"/><circle cx="24" cy="24" r="14" fill="none" stroke="#facc15" stroke-width="4"/><rect x="20" y="8" width="8" height="10" fill="#ef4444"/></svg></span>
+            Beta
+        </button>
+    </div>
+    <p id="duo-result"></p>
+</body>
+</html>

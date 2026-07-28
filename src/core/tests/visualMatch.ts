@@ -607,12 +607,25 @@ async function elementAtPoint(
   y: number
 ): Promise<any | null> {
   try {
-    const element = await driver.execute(
+    const raw = await driver.execute(
       (px: number, py: number) => document.elementFromPoint(px, py),
       x,
       y
     );
-    if (element && (element.elementId || element.ELEMENT)) return element;
+    if (raw) {
+      // Some clients hand back a ready element object...
+      if (raw.elementId) return raw;
+      // ...but wdio's execute returns the raw W3C element REFERENCE
+      // ({"element-6066-…": id} — legacy "ELEMENT" for old protocols).
+      // driver.$() accepts a reference and wraps it into a real element.
+      const isReference = Object.keys(raw).some(
+        (key) => key.startsWith("element-") || key === "ELEMENT"
+      );
+      if (isReference) {
+        const element = await driver.$(raw);
+        if (element?.elementId) return element;
+      }
+    }
   } catch {
     // Fall through to the documentElement fallback.
   }

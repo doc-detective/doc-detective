@@ -171,6 +171,14 @@ async function resolvePaths({
       return relativePath;
     }
 
+    // An unexpanded $VARIABLE can't be meaningfully resolved at detection
+    // time — step `variables` substitute at runtime (replaceEnvs), after this
+    // pass. Prepending the base dir here would corrupt the substituted value
+    // (e.g. an absolute $$outputs.screenshotPath), so leave it verbatim.
+    if (relativePath.startsWith("$")) {
+      return relativePath;
+    }
+
     // If path is already absolute, return it
     if (path.isAbsolute(relativePath)) {
       return relativePath;

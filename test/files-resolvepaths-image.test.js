@@ -67,4 +67,18 @@ describe("resolvePaths image criterion", function () {
     const step = await resolveSpec({ find: { image: absolute } });
     assert.equal(step.find.image, absolute);
   });
+
+  it("leaves unexpanded $VARIABLE values untouched for runtime substitution", async function () {
+    // Path resolution happens at detection time, but step `variables` (e.g. a
+    // prior screenshot's $$outputs.screenshotPath) substitute at runtime.
+    // Resolving "$TPL" against the spec dir would splice the spec dir in
+    // front of the substituted absolute path and break the template lookup.
+    const step = await resolveSpec({ find: { image: "$TPL" } });
+    assert.equal(step.find.image, "$TPL");
+
+    const objectStep = await resolveSpec({
+      find: { image: { path: "$TPL" } },
+    });
+    assert.equal(objectStep.find.image.path, "$TPL");
+  });
 });
