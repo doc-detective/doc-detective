@@ -327,6 +327,24 @@ const baseConfig = { logLevel: "silent" };
     );
   });
 
+  it("FAILs rather than passing on <html> when no element sits at the match center", async function () {
+    // elementFromPoint returning null (transparent region, decorative pixels)
+    // must NOT silently resolve to the document root — a later click/type
+    // would target the wrong thing.
+    const scene = await makeScene([{ x: 300, y: 200 }]);
+    const template = await makeTemplateFile(tmpDir);
+    const driver = makeDriver({ scene, pointElement: null });
+
+    const result = await findElement({
+      config: baseConfig,
+      step: { find: { image: template, timeout: 1200 } },
+      driver,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.outputs.found, false);
+  });
+
   it("a missing template file fails with an actionable message", async function () {
     const scene = await makeScene([{ x: 300, y: 200 }]);
     const driver = makeDriver({ scene });

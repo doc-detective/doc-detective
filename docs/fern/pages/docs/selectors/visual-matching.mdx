@@ -5,7 +5,7 @@ description: Locate elements by template image when text and selectors can't rea
 
 Sometimes an element has no reliable text, ID, or selector to match on: a canvas-rendered control, a custom-drawn icon, a native app widget without automation metadata, or a case where all you have is a cropped screenshot. The `image` finding criterion locates elements **visually**: you provide a template image (an icon file or a cropped screenshot), and Doc Detective finds the region of the screen that matches it.
 
-The `image` criterion works in every element-finding action and sub-action — [`find`](/docs/actions/find), [`click`](/docs/actions/click), [`dragAndDrop`](/docs/actions/draganddrop) sources and targets, [`type`](/docs/actions/type) element targeting, `waitUntil.find` conditions, [`screenshot`](/docs/actions/screenshot) crops, and [`annotate`](/docs/actions/annotate) targets — on every surface: desktop browsers, mobile web, and Windows, macOS, Android, and iOS native apps. The one exception is `screenshot` crops, which work on browser surfaces only. On a native app capture, a crop fails the step rather than silently skipping.
+The `image` criterion works in every element-finding action and sub-action—[`find`](/docs/actions/find), [`click`](/docs/actions/click), [`dragAndDrop`](/docs/actions/draganddrop) sources and targets, [`type`](/docs/actions/type) element targeting, `waitUntil.find` conditions, [`screenshot`](/docs/actions/screenshot) crops, and [`annotate`](/docs/actions/annotate) targets—on every surface: desktop browsers, mobile web, and Windows, macOS, Android, and iOS native apps. The one exception is `screenshot` crops, which work on browser surfaces only. On a native app capture, a crop fails the step rather than silently skipping.
 
 ## Provide a template
 
@@ -27,7 +27,7 @@ The `image` value accepts:
 }
 ```
 
-The most reliable template is a **crop from a screenshot Doc Detective itself took**, because it's guaranteed to be at the capture's scale and rendering. Seed it in the same test with a [`screenshot`](/docs/actions/screenshot) crop, then reference it by the same relative path — or capture the screenshot's output path into a variable:
+The most reliable template is a **crop from a screenshot Doc Detective itself took**, because it's guaranteed to match the screen's scale and rendering. On a browser surface, seed it in the same test with a [`screenshot`](/docs/actions/screenshot) crop, then reference it by the same relative path—or save the screenshot output path into a variable. Screenshot crops are browser-only, so on a native app surface, seed a full-window screenshot instead.
 
 ```json
 {
@@ -55,14 +55,14 @@ The most reliable template is a **crop from a screenshot Doc Detective itself to
 
 Doc Detective screenshots the surface and runs OpenCV template matching against it, polling until the element appears or the step times out.
 
-- **Scaling is automatic.** Displays differ (Retina, Windows 125–200% scaling), and a template captured at one scale fails completely against a capture at another. Doc Detective derives the capture's scale and tries the template at a ladder of candidate scales — including the common display ratios — so a template captured on a differently-scaled machine still matches. The scale that matched is reported in `outputs.imageMatch.scaleUsed`.
-- **The match becomes a real element wherever possible.** On browser surfaces, the element under the matched region's center is resolved with `document.elementFromPoint`, so every interaction (`click` with buttons and durations, `moveTo`, `type`) and all `outputs.element` details work exactly as with any other criterion. On native app surfaces, Doc Detective recovers the element from the app's accessibility tree; when that isn't possible, the find still succeeds with the matched region's geometry in `outputs.imageMatch`, and a left click falls back to tapping the region's center.
-- **Combining criteria narrows geometrically.** When `image` is combined with other criteria (`elementText`, `selector`, and so on), the matched element must satisfy them all: its bounds must contain a visual match's center *and* it must match the other criteria. This is how you disambiguate two identical icons with different labels.
-- **Ambiguity fails loudly.** If two or more regions match the template and nothing disambiguates them, the step fails and names the count, scores, and locations — Doc Detective never silently clicks the first lookalike. Add another criterion or a `region` to narrow the search.
+- **Scaling is automatic.** Displays differ (Retina, Windows 125–200% scaling), and a template taken at one scale fails completely against a screen at another. Doc Detective derives the scale of the screenshot it takes and tries the template at a ladder of candidate scales—including the common display ratios—so a template taken on a differently scaled machine still matches. The step reports the matched scale in `outputs.imageMatch.scaleUsed`.
+- **The match becomes a real element wherever possible.** On browser surfaces, Doc Detective resolves the element under the matched region's center with `document.elementFromPoint`, so every interaction (`click` with buttons and durations, `moveTo`, `type`) and all `outputs.element` details work exactly as with any other criterion. On native app surfaces, Doc Detective recovers the element from the app's accessibility tree. When that isn't possible, the find still succeeds with the matched region's geometry in `outputs.imageMatch`, and a left click falls back to tapping the region's center.
+- **Combining criteria narrows geometrically.** When you combine `image` with other criteria (`elementText`, `selector`, and so on), the matched element must satisfy them all: its bounds must contain a visual match's center *and* it must match the other criteria. This is how you tell apart two identical icons with different labels.
+- **Ambiguity fails loudly.** If two or more regions match the template and nothing tells them apart, the step fails and names the count, scores, and locations—Doc Detective never silently clicks the first lookalike. Add another criterion or a `region` to narrow the search.
 
 ## Tune the match threshold
 
-`matchThreshold` (0–1) is the minimum normalized match score to accept. The default is `0.8` — strict enough to reject lookalikes while tolerating minor rendering variation. Set it per step in the `image` object, or change the default for a whole project with the `imageMatching` config option:
+`matchThreshold` (0–1) is the minimum normalized match score to accept. The default is `0.8`—strict enough to reject lookalikes while tolerating minor rendering variation. Set it per step in the `image` object, or change the default for a whole project with the `imageMatching` config option:
 
 ```json
 {
@@ -70,11 +70,11 @@ Doc Detective screenshots the surface and runs OpenCV template matching against 
 }
 ```
 
-Higher values are stricter (`1` demands a near pixel-perfect match); lower values tolerate more variation but risk matching the wrong region.
+Higher values are stricter (`1` demands a near pixel-perfect match). Lower values tolerate more variation but risk matching the wrong region.
 
 ## Narrow the search with a region
 
-`region` restricts where Doc Detective looks — useful to disambiguate identical-looking targets or to speed up matching:
+`region` restricts where Doc Detective looks—useful to disambiguate identical-looking targets or to speed up matching:
 
 - **A rect** in logical units: `"region": { "x": 400, "y": 0, "width": 400, "height": 300 }`
 - **Element criteria** whose matched element's bounds become the search area: `"region": { "selector": "#sidebar" }`
@@ -83,15 +83,15 @@ Higher values are stricter (`1` demands a near pixel-perfect match); lower value
 
 When a visual find times out, the failure reports how close the best candidate came (for example, `Best visual candidate scored 0.71 against threshold 0.8`) and writes an annotated screenshot with the best-candidate region boxed into the run's artifact folder. The outputs also carry `outputs.imageMiss` with the best score and rect. Common causes:
 
-- **The template is stale** — the UI changed. Re-capture it.
-- **The element is below the fold** — browser matching sees only the current viewport, and visual finds don't auto-scroll. Scroll first, or use a DOM criterion (which does scroll) alongside the image.
+- **The template is stale**—the UI changed. Take a fresh template screenshot.
+- **The element is below the fold**—browser matching sees only the current viewport, and visual finds don't auto-scroll. Scroll first, or use a DOM criterion (which does scroll) alongside the image.
 - **The threshold is too strict** for the rendering variation between the template's source and the current surface.
 
 ## Limitations
 
-- Matching costs a capture plus an OpenCV pass per poll (roughly 0.1–1.5 s each, plus a one-time engine load), so image finds poll less often within a timeout than DOM finds. Give visual steps generous timeouts.
+- Matching costs a screenshot plus an OpenCV pass per poll (roughly 0.1–1.5 s each, plus a one-time engine load), so image finds poll less often within a timeout than DOM finds. Give visual steps generous timeouts.
 - Browser matching is viewport-bound: content below the fold never matches.
-- On an image-only browser find, `outputs.element` describes the **topmost** node at the match center — which can be a child of the logical control, exactly as a real user's click would land.
+- On an image-only browser find, `outputs.element` describes the **topmost** node at the match center—which can be a child of the logical control, exactly as a real user's click would land.
 - Visual matching requires the optional `@appium/opencv` dependency. It installs automatically with `doc-detective install`, with no native build on any supported platform.
 
 > For every field, see the [`find`](/reference/schemas/find) reference.
