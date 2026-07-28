@@ -70,10 +70,15 @@ describe("vale workflow changed-file scoping", function () {
   });
 
   describe(".github/workflows/vale.yml wiring", function () {
-    const workflow = parseYaml(fs.readFileSync(workflowPath, "utf8"));
-    const steps = workflow.jobs.vale.steps;
-    const changedFiles = steps.find((s) => s.id === "changed-files");
-    const runVale = steps.find((s) => s.name === "Run vale");
+    let changedFiles;
+    let runVale;
+
+    before(function () {
+      const workflow = parseYaml(fs.readFileSync(workflowPath, "utf8"));
+      const steps = workflow.jobs.vale.steps;
+      changedFiles = steps.find((s) => s.id === "changed-files");
+      runVale = steps.find((s) => s.name === "Run vale");
+    });
 
     it("changed-files emits a real JSON array (json: true, escape_json: false)", function () {
       assert.ok(changedFiles, "changed-files step missing");
