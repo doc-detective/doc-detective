@@ -536,8 +536,10 @@ describe("visualMatch driver helpers", function () {
       const { captureForMatch } = await import(
         "../dist/core/tests/visualMatch.js"
       );
+      // Capture width (160) deliberately differs from innerWidth (80) so the
+      // asserted scale of 2 is distinguishable from the 1:1 fallback.
       const png = await sharp({
-        create: { width: 80, height: 40, channels: 3, background: { r: 9, g: 9, b: 9 } },
+        create: { width: 160, height: 80, channels: 3, background: { r: 9, g: 9, b: 9 } },
       })
         .png()
         .toBuffer();
@@ -554,7 +556,7 @@ describe("visualMatch driver helpers", function () {
         },
       };
       const { buffer, captureScale } = await captureForMatch({ driver });
-      assert.equal(captureScale, 1);
+      assert.equal(captureScale, 2);
       assert.ok(buffer.length > 0);
       const pointerCalls = calls.filter((s) => s.includes("dd-mouse-pointer"));
       assert.equal(pointerCalls.length, 2, "hide + restore");

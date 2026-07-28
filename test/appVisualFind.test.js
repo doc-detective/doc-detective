@@ -406,6 +406,12 @@ function makeRecordingAppDriver({
     // invoke fired or the element click did — assert the click landed at all.
     const invoked = driver.__executes.some((e) => e.cmd === "windows: invoke");
     assert.ok(invoked || clicked > 0, "expected an element-based click");
+    // The discriminating contract: a recovered element means the
+    // coordinate-tap fallback must NOT run.
+    assert.ok(
+      !driver.__executes.some((e) => e.cmd === "windows: click"),
+      "expected no coordinate-tap fallback"
+    );
   });
 
   it("a visual miss FAILs with structured imageMiss outputs", async function () {
