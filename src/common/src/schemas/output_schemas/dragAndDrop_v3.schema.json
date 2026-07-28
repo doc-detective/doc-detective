@@ -12,108 +12,10 @@
       "description": "The element to drag.",
       "anyOf": [
         {
-          "title": "Element (simple)",
-          "type": "string",
-          "description": "Display text, selector, or regex pattern (enclosed in forward slashes) of the element."
+          "$ref": "#/x_dd_defs/da8a1b2f8733c"
         },
         {
-          "title": "Element (detailed)",
-          "type": "object",
-          "anyOf": [
-            {
-              "required": [
-                "selector"
-              ]
-            },
-            {
-              "required": [
-                "elementText"
-              ]
-            },
-            {
-              "required": [
-                "elementId"
-              ]
-            },
-            {
-              "required": [
-                "elementTestId"
-              ]
-            },
-            {
-              "required": [
-                "elementClass"
-              ]
-            },
-            {
-              "required": [
-                "elementAttribute"
-              ]
-            },
-            {
-              "required": [
-                "elementAria"
-              ]
-            }
-          ],
-          "properties": {
-            "elementText": {
-              "type": "string",
-              "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
-            },
-            "selector": {
-              "type": "string",
-              "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
-            },
-            "elementId": {
-              "type": "string",
-              "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-            },
-            "elementTestId": {
-              "type": "string",
-              "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-            },
-            "elementClass": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-            },
-            "elementAttribute": {
-              "type": "object",
-              "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "boolean"
-                  }
-                ]
-              }
-            },
-            "elementAria": {
-              "type": "string",
-              "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-            },
-            "timeout": {
-              "type": "integer",
-              "description": "Max duration in milliseconds to wait for the element to exist.",
-              "default": 5000
-            }
-          }
+          "$ref": "#/x_dd_defs/d13289e99fde6"
         }
       ]
     },
@@ -121,108 +23,10 @@
       "description": "The target location to drop the element.",
       "anyOf": [
         {
-          "title": "Element (simple)",
-          "type": "string",
-          "description": "Display text, selector, or regex pattern (enclosed in forward slashes) of the element."
+          "$ref": "#/x_dd_defs/da8a1b2f8733c"
         },
         {
-          "title": "Element (detailed)",
-          "type": "object",
-          "anyOf": [
-            {
-              "required": [
-                "selector"
-              ]
-            },
-            {
-              "required": [
-                "elementText"
-              ]
-            },
-            {
-              "required": [
-                "elementId"
-              ]
-            },
-            {
-              "required": [
-                "elementTestId"
-              ]
-            },
-            {
-              "required": [
-                "elementClass"
-              ]
-            },
-            {
-              "required": [
-                "elementAttribute"
-              ]
-            },
-            {
-              "required": [
-                "elementAria"
-              ]
-            }
-          ],
-          "properties": {
-            "elementText": {
-              "type": "string",
-              "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
-            },
-            "selector": {
-              "type": "string",
-              "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
-            },
-            "elementId": {
-              "type": "string",
-              "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-            },
-            "elementTestId": {
-              "type": "string",
-              "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-            },
-            "elementClass": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-            },
-            "elementAttribute": {
-              "type": "object",
-              "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "boolean"
-                  }
-                ]
-              }
-            },
-            "elementAria": {
-              "type": "string",
-              "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-            },
-            "timeout": {
-              "type": "integer",
-              "description": "Max duration in milliseconds to wait for the element to exist.",
-              "default": 5000
-            }
-          }
+          "$ref": "#/x_dd_defs/d13289e99fde6"
         }
       ]
     },
@@ -283,50 +87,13 @@
               "title": "Window/tab selector",
               "anyOf": [
                 {
-                  "title": "By index",
-                  "type": "integer",
-                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                  "$ref": "#/x_dd_defs/d34d60ebb0a88"
                 },
                 {
-                  "title": "By name",
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                  "$ref": "#/x_dd_defs/dcef07241c15a"
                 },
                 {
-                  "title": "By criteria",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "minProperties": 1,
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name assigned when the window/tab was opened."
-                    },
-                    "index": {
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end."
-                    },
-                    "title": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Page title to match. Substring, or /regex/."
-                    },
-                    "url": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Page URL to match. Substring, or /regex/."
-                    }
-                  }
+                  "$ref": "#/x_dd_defs/d9e0c9a379818"
                 }
               ]
             },
@@ -335,50 +102,13 @@
               "title": "Window/tab selector",
               "anyOf": [
                 {
-                  "title": "By index",
-                  "type": "integer",
-                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+                  "$ref": "#/x_dd_defs/d34d60ebb0a88"
                 },
                 {
-                  "title": "By name",
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+                  "$ref": "#/x_dd_defs/dcef07241c15a"
                 },
                 {
-                  "title": "By criteria",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "minProperties": 1,
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name assigned when the window/tab was opened."
-                    },
-                    "index": {
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end."
-                    },
-                    "title": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Page title to match. Substring, or /regex/."
-                    },
-                    "url": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Page URL to match. Substring, or /regex/."
-                    }
-                  }
+                  "$ref": "#/x_dd_defs/d9e0c9a379818"
                 }
               ]
             }
@@ -392,214 +122,18 @@
       "elementSpecification": {
         "anyOf": [
           {
-            "title": "Element (simple)",
-            "type": "string",
-            "description": "Display text, selector, or regex pattern (enclosed in forward slashes) of the element."
+            "$ref": "#/x_dd_defs/da8a1b2f8733c"
           },
           {
-            "title": "Element (detailed)",
-            "type": "object",
-            "anyOf": [
-              {
-                "required": [
-                  "selector"
-                ]
-              },
-              {
-                "required": [
-                  "elementText"
-                ]
-              },
-              {
-                "required": [
-                  "elementId"
-                ]
-              },
-              {
-                "required": [
-                  "elementTestId"
-                ]
-              },
-              {
-                "required": [
-                  "elementClass"
-                ]
-              },
-              {
-                "required": [
-                  "elementAttribute"
-                ]
-              },
-              {
-                "required": [
-                  "elementAria"
-                ]
-              }
-            ],
-            "properties": {
-              "elementText": {
-                "type": "string",
-                "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
-              },
-              "selector": {
-                "type": "string",
-                "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
-              },
-              "elementId": {
-                "type": "string",
-                "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "elementTestId": {
-                "type": "string",
-                "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "elementClass": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-              },
-              "elementAttribute": {
-                "type": "object",
-                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
-                  ]
-                }
-              },
-              "elementAria": {
-                "type": "string",
-                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "timeout": {
-                "type": "integer",
-                "description": "Max duration in milliseconds to wait for the element to exist.",
-                "default": 5000
-              }
-            }
+            "$ref": "#/x_dd_defs/d13289e99fde6"
           }
         ]
       },
       "string": {
-        "title": "Element (simple)",
-        "type": "string",
-        "description": "Display text, selector, or regex pattern (enclosed in forward slashes) of the element."
+        "$ref": "#/x_dd_defs/da8a1b2f8733c"
       },
       "object": {
-        "title": "Element (detailed)",
-        "type": "object",
-        "anyOf": [
-          {
-            "required": [
-              "selector"
-            ]
-          },
-          {
-            "required": [
-              "elementText"
-            ]
-          },
-          {
-            "required": [
-              "elementId"
-            ]
-          },
-          {
-            "required": [
-              "elementTestId"
-            ]
-          },
-          {
-            "required": [
-              "elementClass"
-            ]
-          },
-          {
-            "required": [
-              "elementAttribute"
-            ]
-          },
-          {
-            "required": [
-              "elementAria"
-            ]
-          }
-        ],
-        "properties": {
-          "elementText": {
-            "type": "string",
-            "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
-          },
-          "selector": {
-            "type": "string",
-            "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-          },
-          "elementAttribute": {
-            "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
-            }
-          },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
-            "default": 5000
-          }
-        }
+        "$ref": "#/x_dd_defs/d13289e99fde6"
       }
     }
   },
@@ -646,5 +180,187 @@
         "elementText": "/Drop Zone.*/"
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "da8a1b2f8733c": {
+      "title": "Element (simple)",
+      "type": "string",
+      "description": "Display text, selector, or regex pattern (enclosed in forward slashes) of the element."
+    },
+    "d381bfe000ddd": {
+      "type": "string",
+      "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
+    },
+    "d94a8bcb1ecfb": {
+      "type": "string",
+      "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
+    },
+    "d51f552441335": {
+      "type": "string",
+      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "de98afd642d66": {
+      "type": "string",
+      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d36879a346bf0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+    },
+    "df5fb044d9398": {
+      "type": "object",
+      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "da993bab30b8c": {
+      "type": "string",
+      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d77bc73107b01": {
+      "elementText": {
+        "$ref": "#/x_dd_defs/d381bfe000ddd"
+      },
+      "selector": {
+        "$ref": "#/x_dd_defs/d94a8bcb1ecfb"
+      },
+      "elementId": {
+        "$ref": "#/x_dd_defs/d51f552441335"
+      },
+      "elementTestId": {
+        "$ref": "#/x_dd_defs/de98afd642d66"
+      },
+      "elementClass": {
+        "$ref": "#/x_dd_defs/d36879a346bf0"
+      },
+      "elementAttribute": {
+        "$ref": "#/x_dd_defs/df5fb044d9398"
+      },
+      "elementAria": {
+        "$ref": "#/x_dd_defs/da993bab30b8c"
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Max duration in milliseconds to wait for the element to exist.",
+        "default": 5000
+      }
+    },
+    "d13289e99fde6": {
+      "title": "Element (detailed)",
+      "type": "object",
+      "anyOf": [
+        {
+          "required": [
+            "selector"
+          ]
+        },
+        {
+          "required": [
+            "elementText"
+          ]
+        },
+        {
+          "required": [
+            "elementId"
+          ]
+        },
+        {
+          "required": [
+            "elementTestId"
+          ]
+        },
+        {
+          "required": [
+            "elementClass"
+          ]
+        },
+        {
+          "required": [
+            "elementAttribute"
+          ]
+        },
+        {
+          "required": [
+            "elementAria"
+          ]
+        }
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d77bc73107b01"
+      }
+    },
+    "d34d60ebb0a88": {
+      "title": "By index",
+      "type": "integer",
+      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+    },
+    "dcef07241c15a": {
+      "title": "By name",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+    },
+    "db83479a87432": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened."
+    },
+    "d477cb6dfff92": {
+      "name": {
+        "$ref": "#/x_dd_defs/db83479a87432"
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index in creation order. Negative counts from the end."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page title to match. Substring, or /regex/."
+      },
+      "url": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page URL to match. Substring, or /regex/."
+      }
+    },
+    "d9e0c9a379818": {
+      "title": "By criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d477cb6dfff92"
+      }
+    }
+  }
 }

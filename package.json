@@ -44,7 +44,7 @@
     "docs:build-cli-ref": "node docs/.scripts/buildCliReference.js",
     "compile": "tsc && node scripts/createCjsWrapper.js",
     "watch": "nodemon --watch src --ext ts --exec \"npm run compile\"",
-    "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const s=p.join('src','common','src','schemas','schemas.json');const d=p.join('dist','common','src','schemas','schemas.json');fs.mkdirSync(p.dirname(d),{recursive:true});fs.copyFileSync(s,d);\"",
+    "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const dir=p.join('dist','common','src','schemas');fs.mkdirSync(dir,{recursive:true});for(const f of ['schemas.json','dedupe.cjs']){fs.copyFileSync(p.join('src','common','src','schemas',f),p.join(dir,f));}\"",
     "build": "npm run build:common && npm run compile && npm run copy:schemas",
     "mocha": "mocha",
     "test": "mocha --exit test/*.test.js && npm run test:common",

@@ -1,6 +1,7 @@
 const parser = require("@apidevtools/json-schema-ref-parser");
 const path = require("path");
 const fs = require("fs");
+const { compressSchema, expandSchema } = require("./dedupe.cjs");
 
 (async () => {
   await dereferenceSchemas();
@@ -129,10 +130,29 @@ async function dereferenceSchemas() {
       // Delete $id attributes
       schema = deleteDollarIds(schema);
 
+      // Compress: hoist repeated subtrees into internal refs so the
+      // committed artifacts stay small — full inlining duplicated shared
+      // components thousands of times and brushed GitHub's 100 MB file
+      // limit. Consumers receive the EXPANDED form via schemas/index.ts /
+      // the generators, so this is an on-disk encoding, not a shape change.
+      // Self-verifying: the build fails when expansion doesn't reproduce
+      // the dereferenced tree exactly.
+      const compressed = compressSchema(schema);
+      const roundTrip = expandSchema(JSON.parse(JSON.stringify(compressed)));
+      if (JSON.stringify(roundTrip) !== JSON.stringify(schema)) {
+        throw new Error(`Dedupe round-trip mismatch for ${file}`);
+      }
+
       // Write to file
-      fs.writeFileSync(outputFilePath, JSON.stringify(schema, null, 2));
+      fs.writeFileSync(outputFilePath, JSON.stringify(compressed, null, 2));
     } catch (err) {
       console.error(`Error processing ${file}:`, err);
+      // Per-file processing errors are historically tolerated (logged and
+      // skipped), but a failed dedupe INVARIANT means a wrong artifact
+      // would ship — that must fail the build.
+      if (String(err && err.message).includes("Dedupe round-trip mismatch")) {
+        throw err;
+      }
     }
   }
   // Build final schemas.json file

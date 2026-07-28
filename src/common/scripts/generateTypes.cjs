@@ -1,6 +1,7 @@
 const { compile } = require("json-schema-to-typescript");
 const fs = require("fs").promises;
 const path = require("path");
+const { expandSchema } = require("../src/schemas/dedupe.cjs");
 
 async function generateTypes() {
   const schemasDir = path.join(__dirname, "..", "src", "schemas", "output_schemas");
@@ -22,7 +23,12 @@ async function generateTypes() {
     const schemaPath = path.join(schemasDir, file);
 
     try {
-      const schema = JSON.parse(await fs.readFile(schemaPath, "utf-8"));
+      // Expand the deduped on-disk encoding so json-schema-to-typescript
+      // sees the same fully-inlined structure the pre-dedupe pipeline fed
+      // it — generated types stay byte-identical.
+      const schema = expandSchema(
+        JSON.parse(await fs.readFile(schemaPath, "utf-8"))
+      );
       const ts = await compile(schema, schema.title || file.replace(".schema.json", ""), {
         bannerComment: `/* eslint-disable */\n/**\n * Auto-generated from ${file}\n * Do not edit manually\n */`,
         style: {

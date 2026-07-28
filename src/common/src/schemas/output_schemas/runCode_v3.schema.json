@@ -4,287 +4,13 @@
   "description": "Assemble and run code.",
   "anyOf": [
     {
-      "type": "object",
-      "required": [
-        "code",
-        "language"
-      ],
-      "properties": {
-        "language": {
-          "type": "string",
-          "description": "Language of the code to run.",
-          "enum": [
-            "python",
-            "bash",
-            "javascript"
-          ]
-        },
-        "code": {
-          "description": "Code to run.",
-          "type": "string"
-        },
-        "args": {
-          "type": "array",
-          "description": "Arguments for the command.",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "default": []
-        },
-        "workingDirectory": {
-          "type": "string",
-          "description": "Working directory for the command.",
-          "default": "."
-        },
-        "exitCodes": {
-          "type": "array",
-          "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
-          "items": {
-            "anyOf": [
-              {
-                "type": "integer"
-              }
-            ]
-          },
-          "default": [
-            0
-          ]
-        },
-        "stdio": {
-          "type": "string",
-          "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
-        },
-        "path": {
-          "type": "string",
-          "description": "File path to save the command's output, relative to `directory`."
-        },
-        "directory": {
-          "type": "string",
-          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
-        },
-        "maxVariation": {
-          "type": "number",
-          "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
-          "default": 0,
-          "minimum": 0,
-          "maximum": 1
-        },
-        "overwrite": {
-          "type": "string",
-          "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
-          "enum": [
-            "true",
-            "false",
-            "aboveVariation"
-          ],
-          "default": "aboveVariation"
-        },
-        "timeout": {
-          "type": "integer",
-          "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
-          "default": 60000
-        },
-        "background": {
-          "type": "object",
-          "description": "Start the code as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.",
-          "additionalProperties": false,
-          "required": [
-            "name"
-          ],
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.",
-              "minLength": 1,
-              "pattern": "\\S",
-              "transform": [
-                "trim"
-              ]
-            },
-            "waitUntil": {
-              "type": "object",
-              "description": "Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.",
-              "additionalProperties": false,
-              "minProperties": 1,
-              "properties": {
-                "port": {
-                  "type": "integer",
-                  "description": "Wait until this TCP port accepts connections on localhost.",
-                  "minimum": 1,
-                  "maximum": 65535
-                },
-                "stdio": {
-                  "type": "string",
-                  "description": "Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \\d+/`.",
-                  "minLength": 1
-                },
-                "httpGet": {
-                  "type": "string",
-                  "description": "Wait until an HTTP GET request to this URL returns a 2xx status."
-                },
-                "delayMs": {
-                  "type": "integer",
-                  "description": "Wait at least this many milliseconds.",
-                  "minimum": 0
-                }
-              }
-            },
-            "tty": {
-              "type": "boolean",
-              "default": false,
-              "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
-            }
-          }
-        }
-      },
-      "title": "Run code (detailed)"
+      "$ref": "#/x_dd_defs/dfd1f987e87c4"
     }
   ],
   "components": {
     "schemas": {
       "object": {
-        "type": "object",
-        "required": [
-          "code",
-          "language"
-        ],
-        "properties": {
-          "language": {
-            "type": "string",
-            "description": "Language of the code to run.",
-            "enum": [
-              "python",
-              "bash",
-              "javascript"
-            ]
-          },
-          "code": {
-            "description": "Code to run.",
-            "type": "string"
-          },
-          "args": {
-            "type": "array",
-            "description": "Arguments for the command.",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                }
-              ]
-            },
-            "default": []
-          },
-          "workingDirectory": {
-            "type": "string",
-            "description": "Working directory for the command.",
-            "default": "."
-          },
-          "exitCodes": {
-            "type": "array",
-            "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "default": [
-              0
-            ]
-          },
-          "stdio": {
-            "type": "string",
-            "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
-          },
-          "path": {
-            "type": "string",
-            "description": "File path to save the command's output, relative to `directory`."
-          },
-          "directory": {
-            "type": "string",
-            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
-          },
-          "maxVariation": {
-            "type": "number",
-            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
-            "default": 0,
-            "minimum": 0,
-            "maximum": 1
-          },
-          "overwrite": {
-            "type": "string",
-            "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
-            "enum": [
-              "true",
-              "false",
-              "aboveVariation"
-            ],
-            "default": "aboveVariation"
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
-            "default": 60000
-          },
-          "background": {
-            "type": "object",
-            "description": "Start the code as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.",
-            "additionalProperties": false,
-            "required": [
-              "name"
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "waitUntil": {
-                "type": "object",
-                "description": "Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.",
-                "additionalProperties": false,
-                "minProperties": 1,
-                "properties": {
-                  "port": {
-                    "type": "integer",
-                    "description": "Wait until this TCP port accepts connections on localhost.",
-                    "minimum": 1,
-                    "maximum": 65535
-                  },
-                  "stdio": {
-                    "type": "string",
-                    "description": "Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \\d+/`.",
-                    "minLength": 1
-                  },
-                  "httpGet": {
-                    "type": "string",
-                    "description": "Wait until an HTTP GET request to this URL returns a 2xx status."
-                  },
-                  "delayMs": {
-                    "type": "integer",
-                    "description": "Wait at least this many milliseconds.",
-                    "minimum": 0
-                  }
-                }
-              },
-              "tty": {
-                "type": "boolean",
-                "default": false,
-                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
-              }
-            }
-          }
-        },
-        "title": "Run code (detailed)"
+        "$ref": "#/x_dd_defs/dfd1f987e87c4"
       }
     }
   },
@@ -333,5 +59,192 @@
       },
       "timeout": 15000
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d1ac818bba454": {
+      "type": "array",
+      "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
+      "items": {
+        "anyOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "default": [
+        0
+      ]
+    },
+    "dff2864e5d280": {
+      "type": "string",
+      "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
+    },
+    "db7e6ccc6dd35": {
+      "type": "string",
+      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+    },
+    "d04422782d0f2": {
+      "type": "number",
+      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "d67323486122f": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
+      "enum": [
+        "true",
+        "false",
+        "aboveVariation"
+      ],
+      "default": "aboveVariation"
+    },
+    "d2024579fb408": {
+      "type": "integer",
+      "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+      "default": 60000
+    },
+    "d07e90fcd6e4d": {
+      "type": "string",
+      "description": "Unique identifier for this background process within the run. Reference it from a `closeSurface` step to stop it.",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d5516989a70cb": {
+      "type": "integer",
+      "description": "Wait until this TCP port accepts connections on localhost.",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "d406ef25357d6": {
+      "type": "string",
+      "description": "Wait until the process's output contains this content. Searches both stdout and stderr. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/ready on \\d+/`.",
+      "minLength": 1
+    },
+    "ddddaa6f9ad11": {
+      "port": {
+        "$ref": "#/x_dd_defs/d5516989a70cb"
+      },
+      "stdio": {
+        "$ref": "#/x_dd_defs/d406ef25357d6"
+      },
+      "httpGet": {
+        "type": "string",
+        "description": "Wait until an HTTP GET request to this URL returns a 2xx status."
+      },
+      "delayMs": {
+        "type": "integer",
+        "description": "Wait at least this many milliseconds.",
+        "minimum": 0
+      }
+    },
+    "d88bdd6067f9a": {
+      "type": "object",
+      "description": "Conditions that must all be met before the process is considered ready and the step proceeds. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the step fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/ddddaa6f9ad11"
+      }
+    },
+    "d08d149bb2b6d": {
+      "type": "boolean",
+      "default": false,
+      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+    },
+    "df74216b00baa": {
+      "name": {
+        "$ref": "#/x_dd_defs/d07e90fcd6e4d"
+      },
+      "waitUntil": {
+        "$ref": "#/x_dd_defs/d88bdd6067f9a"
+      },
+      "tty": {
+        "$ref": "#/x_dd_defs/d08d149bb2b6d"
+      }
+    },
+    "d9429aae1754f": {
+      "type": "object",
+      "description": "Start the code as a long-running background process and return as soon as it is ready, instead of waiting for it to exit. When set, `exitCodes`, `stdio`, and output saving (`path`, `directory`, `maxVariation`, `overwrite`) are ignored, and `timeout` is the max time to wait for `waitUntil`. The process is owned by the run and is stopped by a `closeSurface` step or automatically when the run finishes.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/df74216b00baa"
+      }
+    },
+    "de3e8a5f84ad4": {
+      "language": {
+        "type": "string",
+        "description": "Language of the code to run.",
+        "enum": [
+          "python",
+          "bash",
+          "javascript"
+        ]
+      },
+      "code": {
+        "description": "Code to run.",
+        "type": "string"
+      },
+      "args": {
+        "type": "array",
+        "description": "Arguments for the command.",
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "default": []
+      },
+      "workingDirectory": {
+        "type": "string",
+        "description": "Working directory for the command.",
+        "default": "."
+      },
+      "exitCodes": {
+        "$ref": "#/x_dd_defs/d1ac818bba454"
+      },
+      "stdio": {
+        "$ref": "#/x_dd_defs/dff2864e5d280"
+      },
+      "path": {
+        "type": "string",
+        "description": "File path to save the command's output, relative to `directory`."
+      },
+      "directory": {
+        "$ref": "#/x_dd_defs/db7e6ccc6dd35"
+      },
+      "maxVariation": {
+        "$ref": "#/x_dd_defs/d04422782d0f2"
+      },
+      "overwrite": {
+        "$ref": "#/x_dd_defs/d67323486122f"
+      },
+      "timeout": {
+        "$ref": "#/x_dd_defs/d2024579fb408"
+      },
+      "background": {
+        "$ref": "#/x_dd_defs/d9429aae1754f"
+      }
+    },
+    "dfd1f987e87c4": {
+      "type": "object",
+      "required": [
+        "code",
+        "language"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/de3e8a5f84ad4"
+      },
+      "title": "Run code (detailed)"
+    }
+  }
 }

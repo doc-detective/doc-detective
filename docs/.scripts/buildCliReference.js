@@ -39,7 +39,13 @@ function loadConfigSchema() {
   const schemas = fs.existsSync(localBundle)
     ? require(localBundle)
     : require("doc-detective-common").schemas;
-  return schemas.config_v3 || {};
+  // The committed bundle is the deduped on-disk encoding; expand back to the
+  // fully-inlined form (a no-op on the pre-expanded package export).
+  const { expandSchema } = require(path.resolve(
+    __dirname,
+    "../../src/common/src/schemas/dedupe.cjs"
+  ));
+  return expandSchema(schemas.config_v3 || {});
 }
 
 // Resolve a (possibly dotted) config key to its schema-declared default.

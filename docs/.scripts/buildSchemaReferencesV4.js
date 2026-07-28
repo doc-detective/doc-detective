@@ -13,15 +13,26 @@ const parser = require("@apidevtools/json-schema-ref-parser");
 const crypto = require("crypto");
 
 // Load the schema set from THIS repo's doc-detective-common, not a published
-// copy. The committed, dereferenced bundle is the source of truth and avoids a
-// build step; fall back to the package export if it ever moves.
+// copy. The committed bundle is the source of truth and avoids a build step;
+// fall back to the package export if it ever moves. The committed file is the
+// DEDUPED on-disk encoding (repeated subtrees hoisted into internal refs), so
+// expand each schema back to the fully-inlined form this generator walks —
+// the package export ships pre-expanded, so it passes through unchanged.
+const { expandSchema } = require(path.resolve(
+  __dirname,
+  "../../src/common/src/schemas/dedupe.cjs"
+));
 function loadSchemas() {
   const localBundle = path.resolve(
     __dirname,
     "../../src/common/src/schemas/schemas.json"
   );
-  if (fs.existsSync(localBundle)) return require(localBundle);
-  return require("doc-detective-common").schemas;
+  const raw = fs.existsSync(localBundle)
+    ? require(localBundle)
+    : require("doc-detective-common").schemas;
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [key, expandSchema(value)])
+  );
 }
 const schemas = loadSchemas();
 
