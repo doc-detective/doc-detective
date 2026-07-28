@@ -54,9 +54,13 @@ noise (and whole-repo runtime) on every docs PR and re-breaking as soon as any f
 
 ### Confirmation
 
-`.tmp/simulate-vale-input.cjs`-style simulation of vale-action's `lib/input.js` (including
-`getInput()` trimming) reproduces the fallback for the old wiring and yields per-file args for the
-JSON wiring. Post-merge, the "Run vale" step log should show per-file arguments and no
+[test/vale-workflow.test.js](../test/vale-workflow.test.js) pins the contract: it re-implements
+vale-action's `lib/input.js` resolution (including `getInput()` trimming) and asserts that the old
+space-separated wiring falls back to whole-repo lint, that a JSON array — spaced paths included —
+resolves to per-file args, that escaped JSON re-breaks parsing, and that
+[vale.yml](../.github/workflows/vale.yml) keeps `json: true` + `escape_json: false` with no
+whitespace separator. The test fails against the pre-fix workflow and passes against this one.
+Post-merge, the "Run vale" step log should show per-file arguments and no
 `falling back to 'all'` warning.
 
 ## Pros and Cons of the Options
