@@ -39,6 +39,16 @@
           }
         },
         {
+          "description": "Diagnostic ordering (see issue #696): CHILD PAGE MARKER is static HTML, while PAGE par1 is written by the page's inline script from the query param. Probing the static marker first splits 'chrome never got this page' (wrong tab, or no load) from 'chrome has the page but the script hadn't run'. The firefox assertion above already proved the goTo reached the right session, so this is the next fork down.",
+          "find": {
+            "elementText": "CHILD PAGE MARKER",
+            "surface": {
+              "browser": "chrome",
+              "name": "par-chrome"
+            }
+          }
+        },
+        {
           "find": {
             "elementText": "PAGE par1",
             "surface": {
