@@ -133,6 +133,7 @@ export interface Config {
   integrations?: IntegrationsOptions;
   telemetry?: TelemetryOptions;
   hints?: HintsOptions;
+  imageMatching?: ImageMatchingOptions;
   /**
    * Number of concurrent test runners. Set to true to use CPU core count (capped at 4).
    */
@@ -570,6 +571,15 @@ export interface HintsOptions {
    * If `true` (the default), Doc Detective may print one applicable hint after a test run. Disable from the CLI with `--no-hints`.
    */
   enabled: boolean;
+}
+/**
+ * Defaults for the visual element-matching (`image`) finding criterion.
+ */
+export interface ImageMatchingOptions {
+  /**
+   * Default minimum normalized match score (0–1) for the `image` finding criterion. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Individual steps override this with their own `matchThreshold`.
+   */
+  matchThreshold: number;
 }
 /**
  * Environment information for the system running Doc Detective.

@@ -49,6 +49,9 @@ export type ElementCriteria1 =
     }
   | {
       [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
     };
 
 export interface AppDescriptor {
