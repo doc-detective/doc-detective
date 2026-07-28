@@ -654,7 +654,7 @@ async function typeKeys({
   const hasElementCriteria = step.type.selector || step.type.elementText ||
                              step.type.elementId || step.type.elementTestId ||
                              step.type.elementClass || step.type.elementAttribute ||
-                             step.type.elementAria;
+                             step.type.elementAria || step.type.image;
 
   if (hasElementCriteria) {
     const { element: foundElement, error } = await findElementByCriteria({
@@ -665,8 +665,11 @@ async function typeKeys({
       elementClass: step.type.elementClass,
       elementAttribute: step.type.elementAttribute,
       elementAria: step.type.elementAria,
+      image: step.type.image,
       timeout: 5000,
       driver,
+      config,
+      stepId: step.stepId,
     });
 
     // Compute the existence output and evaluate the implicit assertion through
@@ -774,6 +777,7 @@ async function typeKeys({
       driver,
       waitUntil: step.type.waitUntil,
       timeout: typeof step.type.timeout === "number" ? step.type.timeout : 5000,
+      config,
     });
     if (!readiness.ok) {
       result.status = "FAIL";
@@ -795,9 +799,13 @@ async function waitForBrowserReadiness({
   driver,
   waitUntil,
   timeout,
+  config,
 }: {
   driver: any;
   waitUntil: any;
+  // Threaded to findElementByCriteria for the image criterion's
+  // config-level matchThreshold default.
+  config?: any;
   timeout: number;
 }): Promise<{ ok: boolean; message: string }> {
   const failures: string[] = [];
@@ -837,8 +845,10 @@ async function waitForBrowserReadiness({
           elementClass: find.elementClass,
           elementAttribute: find.elementAttribute,
           elementAria: find.elementAria,
+          image: find.image,
           timeout,
           driver,
+          config,
         });
         if (!element) {
           const message = `element not found (${JSON.stringify(waitUntil.find)})`;

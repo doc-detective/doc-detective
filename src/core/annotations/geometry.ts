@@ -224,6 +224,7 @@ function criteriaFromTarget(target: any): any {
     elementClass: target?.elementClass,
     elementAttribute: target?.elementAttribute,
     elementAria: target?.elementAria,
+    image: target?.image,
     timeout: target?.timeout,
   };
 }
@@ -363,6 +364,7 @@ async function resolveAnnotationRects({
         ...criteriaFromTarget(target),
         driver,
         all: true,
+        config,
       });
       if (found.error || !found.elements?.length) {
         errors.push(
