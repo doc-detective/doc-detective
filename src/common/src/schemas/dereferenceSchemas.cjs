@@ -136,11 +136,20 @@ async function dereferenceSchemas() {
       // limit. Consumers receive the EXPANDED form via schemas/index.ts /
       // the generators, so this is an on-disk encoding, not a shape change.
       // Self-verifying: the build fails when expansion doesn't reproduce
-      // the dereferenced tree exactly.
-      const compressed = compressSchema(schema);
-      const roundTrip = expandSchema(JSON.parse(JSON.stringify(compressed)));
-      if (JSON.stringify(roundTrip) !== JSON.stringify(schema)) {
-        throw new Error(`Dedupe round-trip mismatch for ${file}`);
+      // the dereferenced tree exactly. EVERY dedupe-step error is fatal
+      // (namespace collisions from assertNamespaceFree included) — the
+      // output file hasn't been written yet, so swallowing one would leave
+      // a stale artifact on disk while the build reports success.
+      let compressed;
+      try {
+        compressed = compressSchema(schema);
+        const roundTrip = expandSchema(JSON.parse(JSON.stringify(compressed)));
+        if (JSON.stringify(roundTrip) !== JSON.stringify(schema)) {
+          throw new Error(`Dedupe round-trip mismatch for ${file}`);
+        }
+      } catch (err) {
+        err.fatalDedupeError = true;
+        throw err;
       }
 
       // Write to file
@@ -148,9 +157,9 @@ async function dereferenceSchemas() {
     } catch (err) {
       console.error(`Error processing ${file}:`, err);
       // Per-file processing errors are historically tolerated (logged and
-      // skipped), but a failed dedupe INVARIANT means a wrong artifact
-      // would ship — that must fail the build.
-      if (String(err && err.message).includes("Dedupe round-trip mismatch")) {
+      // skipped), but any failed dedupe step means a wrong or stale
+      // artifact would ship — that must fail the build.
+      if (err && err.fatalDedupeError) {
         throw err;
       }
     }

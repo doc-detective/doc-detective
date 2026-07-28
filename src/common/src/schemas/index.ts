@@ -2,7 +2,11 @@ import schemasJson from "./schemas.json" with { type: "json" };
 import { expandSchema } from "./dedupe.cjs";
 
 export type SchemaKey = keyof typeof schemasJson;
-export type Schema = (typeof schemasJson)[SchemaKey];
+// The runtime export carries EXPANDED schemas, so the public type must not
+// leak the compressed on-disk encoding (x_dd_defs / internal $refs) that
+// `typeof schemasJson` would describe. Nothing consumes deep schema types
+// structurally, so a generic JSON-object shape is the honest surface.
+export type Schema = { [key: string]: unknown };
 
 // The committed schemas.json is the DEDUPED on-disk encoding (repeated
 // subtrees hoisted into internal refs — see dedupe.cjs); consumers always

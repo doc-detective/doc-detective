@@ -138,6 +138,20 @@ describe("schema dedupe", function () {
       ).to.throw(/unresolvable/i);
     });
 
+    it("expand throws on a cyclic dedupe ref instead of overflowing", function () {
+      // compressSchema only ever produces trees, so a cycle can only come
+      // from a hand-corrupted artifact — it must fail loudly.
+      const compressed = {
+        title: "cyclic",
+        properties: { x: { $ref: `#/${DEDUPE_CONTAINER}/a` } },
+        [DEDUPE_CONTAINER]: {
+          a: { $ref: `#/${DEDUPE_CONTAINER}/b` },
+          b: { $ref: `#/${DEDUPE_CONTAINER}/a` },
+        },
+      };
+      expect(() => expandSchema(compressed)).to.throw(/cyclic/i);
+    });
+
     it("expand leaves non-container refs alone", function () {
       const schema = {
         properties: { x: { $ref: "#/definitions/authored" } },
