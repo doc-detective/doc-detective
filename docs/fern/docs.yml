@@ -296,6 +296,8 @@ navigation:
             slug: css
           - page: XPath selectors
             path: pages/docs/selectors/xpath.mdx
+          - page: Visual matching
+            path: pages/docs/selectors/visual-matching.mdx
             slug: xpath
 
       - section: Troubleshooting

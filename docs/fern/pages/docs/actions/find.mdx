@@ -15,6 +15,7 @@ You can specify the target element directly using a string (for basic text or se
 - **Object Format:** Use an object with the following properties:
   - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
   - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
+  - `image`: (Optional) Locate the element **visually** by template image — a file path (`"image": "images/gear.png"`) or data URI, or an object with `path`, `matchThreshold` (0–1, default 0.8), and a `region` to search within. Combine it with other criteria to disambiguate identical-looking targets: the element must match them all. Works on every surface, including native apps. See [Visual matching](/docs/selectors/visual-matching).
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
   - `moveTo`: (Optional) Move the cursor to the element. If the element isn't visible, it's scrolled into view (default: `false`). A bare `find` leaves the viewport and cursor where they're already sitting, so set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).
@@ -57,7 +58,7 @@ On Windows, resolving a selector probes the app's candidate windows to read thei
 
 **Setting Variables:** to capture a found element's attributes into variables for later steps, use the step-level `variables` object. You can assign values based on the element using expressions like `$$element.text`.
 
-**Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
+**Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When the `image` criterion matched, `outputs.imageMatch` carries the matched region's `rect`, `center`, `score`, and `scaleUsed` (capture with `$$imageMatch.score` and friends); on a visual miss, `outputs.imageMiss` reports the best candidate's score and the path of an annotated diagnostic screenshot.
 
 > For comprehensive options, see the [`find`](/reference/schemas/find) reference.
 
