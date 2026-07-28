@@ -301,6 +301,9 @@ async function findElementBySelectorAndText({
     if (elements.length > 0) {
       break;
     }
+    // Budget already spent — return now rather than sleeping first, or
+    // `timeout: 0` would mean "in 100ms" instead of "now".
+    if (Date.now() - startTime >= timeout) break;
     // Wait 100ms before trying again
     await new Promise((resolve) => setTimeout(resolve, 100));
   } while (Date.now() - startTime < timeout);
@@ -569,6 +572,9 @@ async function findElementByCriteria({
 
       // Skip if no candidates found
       if (candidates.length === 0) {
+        // Same immediate-return rule as the tail of the loop: don't sleep out
+        // a budget that's already gone.
+        if (Date.now() - startTime >= timeout) break;
         await new Promise((resolve) => setTimeout(resolve, pollingInterval));
         continue;
       }
@@ -712,7 +718,10 @@ async function findElementByCriteria({
       console.error("Error finding elements:", error);
     }
 
-    // No matching elements found, wait before retrying
+    // No matching elements found. Return now if the budget is spent, so
+    // `timeout: 0` is a genuine immediate check.
+    if (Date.now() - startTime >= timeout) break;
+    // Wait before retrying
     await new Promise((resolve) => setTimeout(resolve, pollingInterval));
   } while (Date.now() - startTime < timeout);
 

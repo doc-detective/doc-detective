@@ -770,15 +770,25 @@ describe("active-surface bookkeeping is non-destructive and honors timeout 0", f
       },
       async pause() {},
     };
+    const startedAt = Date.now();
     const result = await findElement({
       config: {},
       step: { find: { selector: "#x", timeout: 0 } },
       driver,
     });
+    const elapsed = Date.now() - startedAt;
     // `timeout: 0` means "check once, now" — not "wait the 5s default" (which
     // the browser path did by clobbering 0 through `||`), and not "never check"
     // (which a `while (elapsed < timeout)` poll does for 0).
     assert.equal(result.outputs.found, false);
     assert.equal(polls, 1, "timeout 0 must poll exactly once, not spin for 5s");
+    // Polling once isn't enough: sleeping the 100ms poll interval before
+    // re-checking the deadline would still make "now" mean "in 100ms". The
+    // driver is stubbed (no I/O), so the honest path is single-digit ms; the
+    // bug floor is a full 100ms interval.
+    assert.ok(
+      elapsed < 75,
+      `timeout 0 must return immediately, took ${elapsed}ms`
+    );
   });
 });

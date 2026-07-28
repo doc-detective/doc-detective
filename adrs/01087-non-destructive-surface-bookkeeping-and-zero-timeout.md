@@ -83,6 +83,13 @@ Concretely:
    and both polling strategies in `findStrategies` become `do { … } while (…)`,
    so `timeout: 0` performs exactly one immediate check. For any positive
    timeout the first iteration always ran, so nothing changes there.
+
+   The loop shape alone is not sufficient: every sleep site must also be guarded
+   by the deadline. A `do/while` that sleeps the poll interval *before*
+   re-evaluating its condition still turns "now" into "in 100ms", so each of the
+   three sleep sites (including the empty-candidate `continue` path) returns
+   early when the budget is already spent. A positive timeout that expires now
+   also skips one final pointless sleep before giving up.
 2. `currentSurface` prunes only handles whose registry the caller actually
    supplied (`canAdjudicate`), and selects only among those. Unknown is no longer
    treated as dead. The lazy-prune contract is preserved: when the registry *is*
@@ -120,7 +127,10 @@ Three hermetic tests in
 [`test/active-surface.test.js`](../test/active-surface.test.js), each written
 red→green:
 
-* `timeout: 0` polls exactly once instead of spinning (was 47 polls over ~5s).
+* `timeout: 0` polls exactly once instead of spinning (was 47 polls over ~5s),
+  **and returns promptly** rather than sleeping a poll interval first. The test
+  asserts both the poll count and elapsed time, because the count alone passed
+  while the call still took ~870ms.
 * A handle survives a `currentSurface` call whose registry was not supplied, and
   is still routable to a caller that does supply it.
 * A handle whose registry *is* supplied and reports it gone is still pruned —
