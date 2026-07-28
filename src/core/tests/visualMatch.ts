@@ -492,11 +492,18 @@ async function matchTemplate({
       // getImageOccurrence throws when nothing clears the threshold — that's
       // a no-match-at-this-scale, not an error.
     }
+    // Require a numeric score, not just a rect: an undefined score would
+    // poison every downstream comparison (NaN compares false against both
+    // thresholds and other candidates) and silently drop the match.
     let rawScaleMatches: Array<{ rect: Rect; score: number }> = (
       occurrence?.multiple ?? []
-    ).filter((m: any) => m?.rect);
+    ).filter((m: any) => m?.rect && typeof m?.score === "number");
     // Single-shape fallback in case the library returns a bare result.
-    if (!rawScaleMatches.length && occurrence?.rect) {
+    if (
+      !rawScaleMatches.length &&
+      occurrence?.rect &&
+      typeof occurrence?.score === "number"
+    ) {
       rawScaleMatches = [{ rect: occurrence.rect, score: occurrence.score }];
     }
     const scaleMatches: VisualMatch[] = [];
@@ -639,9 +646,11 @@ async function getElementViewportRect(
 
 // Recover the real element under a viewport point (CSS px —
 // document.elementFromPoint's exact coordinate space). Returns the topmost
-// node, which is what a real user's click at that point would hit. Falls back
-// to the document element when the point resolves to nothing (edge clipping)
-// so outputs and the click sub-effect still have a target.
+// node, which is what a real user's click at that point would hit — or null
+// when nothing useful sits there (transparent region, point fractionally
+// outside the viewport). No document-root fallback: a find that "succeeds"
+// on <html> would silently aim later clicks/types at the wrong target, so
+// the caller keeps polling and the miss path fires honestly at timeout.
 async function elementAtPoint(
   driver: any,
   x: number,
@@ -668,15 +677,9 @@ async function elementAtPoint(
       }
     }
   } catch {
-    // Fall through to the documentElement fallback.
+    // Treated as nothing-at-point; the caller retries or reports the miss.
   }
-  try {
-    const fallback = await driver.$("html");
-    if (fallback && fallback.elementId !== undefined) return fallback;
-    return fallback ?? null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 // Best-effort miss diagnostic: the last capture with the best candidate's box
@@ -728,7 +731,7 @@ async function writeMissDiagnostic({
       dir,
       `image-miss-${sanitizeFilesystemName(stepId ?? "", "find")}-${Date.now()}.png`
     );
-    fs.writeFileSync(file, composed);
+    await fs.promises.writeFile(file, composed);
     return file;
   } catch {
     return null;

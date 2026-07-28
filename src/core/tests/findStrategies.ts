@@ -501,7 +501,11 @@ async function findElementByCriteria({
     threshold: number;
     region: any;
     cache: { scaledTemplates?: Map<number, Buffer> };
-    bestEver: VisualMatch | null;
+    // Best candidate ever seen, tagged with ITS iteration's capture scale —
+    // the capture scale can change between polls (zoom, DPI move, a failed
+    // innerWidth read), so converting with the latest scale would skew the
+    // miss diagnostic's rect.
+    bestEver: (VisualMatch & { captureScale: number }) | null;
     lastCapture: Buffer | null;
     lastScale: number;
     ambiguous: VisualMatch[] | null;
@@ -619,7 +623,7 @@ async function findElementByCriteria({
           (!visual.bestEver ||
             matchResult.bestCandidate.score > visual.bestEver.score)
         ) {
-          visual.bestEver = matchResult.bestCandidate;
+          visual.bestEver = { ...matchResult.bestCandidate, captureScale };
         }
         if (!matchResult.matches.length) {
           await new Promise((resolve) => setTimeout(resolve, pollingInterval));
@@ -971,7 +975,7 @@ async function findElementByCriteria({
         error:
           `${visual.ambiguous.length} regions matched the template ` +
           `(${JSON.stringify(rects)}). Add another criterion (elementText, ` +
-          `selector, …) or a region to disambiguate.`,
+          `a CSS selector, …) or a region to disambiguate.`,
       };
     }
     const bestScore = visual.bestEver
@@ -986,7 +990,7 @@ async function findElementByCriteria({
       ctx,
     });
     const bestRect = visual.bestEver
-      ? captureRectToLogical(visual.bestEver.rect, visual.lastScale)
+      ? captureRectToLogical(visual.bestEver.rect, visual.bestEver.captureScale)
       : null;
     const scoreSentence =
       bestScore !== null

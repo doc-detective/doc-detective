@@ -10982,6 +10982,10 @@
       },
       "timeout": 8000,
       "moveTo": false
+    },
+    {
+      "image": "images/gear-icon.png",
+      "click": true
     }
   ]
 }

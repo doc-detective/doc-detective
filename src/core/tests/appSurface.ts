@@ -1169,6 +1169,13 @@ type AppFindResult = {
   imageMatch?: VisualMatch & { center: { x: number; y: number } };
   recovered?: boolean;
   recoveryReason?: string;
+  // Structured miss diagnostics (visual finds only) — mirrors the browser
+  // path so app users can branch on $$imageMiss.bestScore too.
+  imageMiss?: {
+    bestScore: number | null;
+    bestRect: Rect | null;
+    diagnosticPath: string | null;
+  };
 };
 
 async function findAppElement({
@@ -1247,23 +1254,35 @@ async function findAppElementVisually({
   const threshold = resolveMatchThreshold(criterion.matchThreshold, visual.config);
   const ctx = { cacheDir: visual.config?.cacheDir };
   const isMobile = isMobileTargetPlatform(platform);
+  // Every non-image criterion counts — including elementClass/elementAttribute
+  // and CSS selectors, which app surfaces REJECT: routing them into the
+  // locator compile below surfaces buildAppLocator's precise error instead of
+  // silently taking the image-only path and matching the wrong element.
   const hasLocatorCriteria = Boolean(
     locatorCriteria?.selector ||
       locatorCriteria?.elementText ||
       locatorCriteria?.elementId ||
       locatorCriteria?.elementTestId ||
-      locatorCriteria?.elementAria
+      locatorCriteria?.elementAria ||
+      locatorCriteria?.elementClass ||
+      locatorCriteria?.elementAttribute
   );
+  if (hasLocatorCriteria) {
+    const compiled = buildAppLocator(locatorCriteria, platform);
+    if ("error" in compiled) return { error: compiled.error };
+  }
 
   const cache: { scaledTemplates?: Map<number, Buffer> } = {};
-  let bestEver: VisualMatch | null = null;
+  let bestEver: (VisualMatch & { captureScale: number }) | null = null;
   let lastCapture: Buffer | null = null;
   let lastScale = 1;
   let ambiguous: VisualMatch[] | null = null;
   const start = Date.now();
   const pollInterval = 250;
 
-  while (Date.now() - start < timeout) {
+  // do/while so an explicit `timeout: 0` (the locator path's immediate-check
+  // semantics) still runs one capture+match round instead of always missing.
+  do {
     // Capture the window and derive the capture scale from it (annotations'
     // computeScale posture: junk logical width degrades to 1:1).
     let capture: Buffer;
@@ -1341,7 +1360,7 @@ async function findAppElementVisually({
       matchResult.bestCandidate &&
       (!bestEver || matchResult.bestCandidate.score > bestEver.score)
     ) {
-      bestEver = matchResult.bestCandidate;
+      bestEver = { ...matchResult.bestCandidate, captureScale: lastScale };
     }
     if (!matchResult.matches.length) {
       await new Promise((r) => setTimeout(r, pollInterval));
@@ -1429,7 +1448,7 @@ async function findAppElementVisually({
       recovered: false,
       recoveryReason: recovery.reason,
     };
-  }
+  } while (Date.now() - start < timeout);
 
   if (ambiguous) {
     const rects = ambiguous.map((m) => ({
@@ -1455,6 +1474,11 @@ async function findAppElementVisually({
     stepId: visual.stepId,
     ctx,
   });
+  // Convert with the scale of the iteration that PRODUCED the candidate —
+  // the capture scale can drift between polls.
+  const bestRect = bestEver
+    ? captureRectToLogical(bestEver.rect, bestEver.captureScale)
+    : null;
   const scoreSentence =
     bestScore !== null
       ? `Best visual candidate scored ${bestScore} against threshold ${threshold}.`
@@ -1463,6 +1487,7 @@ async function findAppElementVisually({
     error: `Element not found within timeout. ${scoreSentence}${
       diagnosticPath ? ` Annotated screenshot: ${diagnosticPath}.` : ""
     }`,
+    imageMiss: { bestScore, bestRect, diagnosticPath },
   };
 }
 

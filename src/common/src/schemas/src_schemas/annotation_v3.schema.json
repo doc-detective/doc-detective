@@ -136,7 +136,7 @@
       },
       "target_element": {
         "title": "Target by element (detailed)",
-        "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+        "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
         "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
         "allOf": [
           {

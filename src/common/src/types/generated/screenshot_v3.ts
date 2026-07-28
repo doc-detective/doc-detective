@@ -76,7 +76,7 @@ export type Annotation = AnnotationFields & ExactlyOneAnnotationType;
  */
 export type TargetByElementSimple = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed = ElementFindingFields & AtLeastOneElementFindingField;
 /**
@@ -108,7 +108,7 @@ export type NamedRegion =
  */
 export type TargetByElementSimple1 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed1 = ElementFindingFields1 & AtLeastOneElementFindingField1;
 /**
@@ -140,7 +140,7 @@ export type NamedRegion1 =
  */
 export type TargetByElementSimple2 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed2 = ElementFindingFields2 & AtLeastOneElementFindingField2;
 /**
@@ -172,7 +172,7 @@ export type NamedRegion2 =
  */
 export type TargetByElementSimple3 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed3 = ElementFindingFields3 & AtLeastOneElementFindingField3;
 /**
@@ -204,7 +204,7 @@ export type NamedRegion3 =
  */
 export type TargetByElementSimple4 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed4 = ElementFindingFields4 & AtLeastOneElementFindingField4;
 /**
@@ -236,7 +236,7 @@ export type NamedRegion4 =
  */
 export type TargetByElementSimple5 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed5 = ElementFindingFields5 & AtLeastOneElementFindingField5;
 /**

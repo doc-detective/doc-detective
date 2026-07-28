@@ -515,7 +515,8 @@ async function typeKeys({
       step.type.elementText ||
       step.type.elementId ||
       step.type.elementTestId ||
-      step.type.elementAria;
+      step.type.elementAria ||
+      step.type.image;
     if (!hasAppElementCriteria && textRuns.length) {
       // Text needs a destination. Android can type into the focused element
       // (mobile: type); iOS can't (XCUITest's mobile: keys is iPad-only), and
@@ -552,10 +553,23 @@ async function typeKeys({
         timeout: step.type.timeout ?? 5000,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
+        visual: {
+          entry: appRef.entry!,
+          windowTarget,
+          config,
+          stepId: step.stepId,
+        },
       });
       if (found.error) {
         result.status = "FAIL";
         result.description = found.error;
+        return result;
+      }
+      if (!found.element && found.imageMatch) {
+        // Rect-only visual match: typing needs a real element to focus.
+        result.status = "FAIL";
+        result.description =
+          "Matched the template visually, but no element could be recovered from the page source — typing needs a real element. Add another criterion so the element resolves.";
         return result;
       }
       element = found.element;
@@ -599,6 +613,12 @@ async function typeKeys({
         timeout: step.type.timeout ?? 5000,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
+        visual: {
+          entry: appRef.entry!,
+          windowTarget,
+          config,
+          stepId: step.stepId,
+        },
       });
       if (ready.error) {
         result.status = "FAIL";

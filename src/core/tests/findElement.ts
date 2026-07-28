@@ -161,6 +161,8 @@ async function findElement({ config, step, driver, click, appSession, processReg
       });
       if (found.error) {
         result.description = found.error;
+        // Structured visual-miss diagnostics, mirroring the browser path.
+        if (found.imageMiss) result.outputs.imageMiss = found.imageMiss;
         result.outputs.found = false;
         return await finalizeFound({ result });
       }
