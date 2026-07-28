@@ -706,3 +706,79 @@ describe("handler routing — no active surface", function () {
     assert.match(result.description, /No active surface to act on/);
   });
 });
+
+describe("active-surface bookkeeping is non-destructive and honors timeout 0", function () {
+  it("currentSurface keeps handles whose registry wasn't supplied", function () {
+    // A caller that omits a registry doesn't know whether that kind's surfaces
+    // are alive — treating "unknown" as "dead" and deleting the handle would
+    // corrupt routing for every later step that DOES supply the registry.
+    const tracker = createActiveSurfaceTracker();
+    activateSurface(tracker, { kind: "process", name: "server" });
+    const processRegistry = new Map([["server", { pid: 1 }]]);
+
+    // Resolve once WITHOUT the process registry (the ignorant caller).
+    currentSurface(tracker, {});
+
+    // The live process must still be routable for a caller that supplies it.
+    assert.deepEqual(
+      currentSurface(tracker, { processRegistry }),
+      { kind: "process", name: "server" }
+    );
+  });
+
+  it("currentSurface still prunes a surface its registry says is gone", function () {
+    // The lazy-prune contract must survive the fix above: when the registry IS
+    // supplied and the surface isn't in it, the handle is genuinely dead.
+    const tracker = createActiveSurfaceTracker();
+    activateSurface(tracker, { kind: "process", name: "gone" });
+    assert.equal(currentSurface(tracker, { processRegistry: new Map() }), null);
+    assert.deepEqual(tracker.mru, []);
+  });
+
+  it("a browser find honors an explicit timeout of 0", async function () {
+    // The app path uses `?? 5000` precisely so `timeout: 0` stays an immediate
+    // check; the browser path must not clobber it back to the default.
+    let polls = 0;
+    // setElementOutputs probes a wide element API; stub it all so the test
+    // fails on the timeout assertion alone, never on a missing method.
+    const element = new Proxy(
+      {
+        async waitForExist() {},
+        async getText() {
+          return "Ready";
+        },
+        elementId: "e1",
+      },
+      {
+        get(target, prop) {
+          if (prop in target) return target[prop];
+          return async () => undefined;
+        },
+      }
+    );
+    const driver = {
+      state: {},
+      async $() {
+        return element;
+      },
+      // No candidates ever match: the poll COUNT is then what distinguishes an
+      // honored `timeout: 0` (one immediate check) from one clobbered to the
+      // 5s default (spins for five seconds).
+      async $$() {
+        polls++;
+        return [];
+      },
+      async pause() {},
+    };
+    const result = await findElement({
+      config: {},
+      step: { find: { selector: "#x", timeout: 0 } },
+      driver,
+    });
+    // `timeout: 0` means "check once, now" — not "wait the 5s default" (which
+    // the browser path did by clobbering 0 through `||`), and not "never check"
+    // (which a `while (elapsed < timeout)` poll does for 0).
+    assert.equal(result.outputs.found, false);
+    assert.equal(polls, 1, "timeout 0 must poll exactly once, not spin for 5s");
+  });
+});

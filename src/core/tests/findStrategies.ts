@@ -274,7 +274,10 @@ async function findElementBySelectorAndText({
     return { element: null, foundBy: null }; // No selector or text
   }
   const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
+  // do/while so `timeout: 0` means "check once, now" rather than "never check
+  // at all". For any positive timeout this is unchanged: the first iteration
+  // always ran anyway.
+  do {
     const candidates = await driver.$$(selector);
     elements = [];
     for (const el of candidates) {
@@ -300,7 +303,7 @@ async function findElementBySelectorAndText({
     }
     // Wait 100ms before trying again
     await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  } while (Date.now() - startTime < timeout);
   if (elements.length === 0) {
     return { element: null, foundBy: null }; // No matching elements
   }
@@ -457,8 +460,10 @@ async function findElementByCriteria({
   const startTime = Date.now();
   const pollingInterval = 100; // Check every 100ms
 
-  // Poll for elements until timeout
-  while (Date.now() - startTime < timeout) {
+  // Poll for elements until timeout. do/while so `timeout: 0` means "check
+  // once, now" rather than "never check at all"; for any positive timeout the
+  // first iteration always ran anyway, so behavior there is unchanged.
+  do {
     let candidates: any[] = [];
 
     try {
@@ -709,7 +714,7 @@ async function findElementByCriteria({
 
     // No matching elements found, wait before retrying
     await new Promise((resolve) => setTimeout(resolve, pollingInterval));
-  }
+  } while (Date.now() - startTime < timeout);
 
   // Timeout reached, return error
   return {
