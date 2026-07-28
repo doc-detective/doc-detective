@@ -12,6 +12,7 @@ import {
   resolveAppWindow,
   activeAppWindow,
   scopedFindRoot,
+  appWindowRect,
 } from "./appWindows.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { performElementPress } from "./movement.js";
@@ -109,14 +110,6 @@ async function findElement({ config, step, driver, click, appSession, processReg
     // equivalent: the element's text.
     const findSpec: any =
       typeof step.find === "string" ? { elementText: step.find } : step.find;
-    if (findSpec.image) {
-      // Visual matching on app surfaces lands with the page-source recovery
-      // work; until then reject cleanly rather than ignoring the criterion.
-      result.status = "FAIL";
-      result.description =
-        "The image criterion isn't supported on app surfaces yet.";
-      return result;
-    }
     {
       // Window selectors (ADR 01036): resolve to a real window — Windows
       // re-roots the session (sticky), macOS holds the window element and
@@ -157,6 +150,14 @@ async function findElement({ config, step, driver, click, appSession, processReg
         timeout: findSpec.timeout ?? 5000,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
+        // Visual-matching context (image criterion): window capture source,
+        // config threshold default, and step id for miss diagnostics.
+        visual: {
+          entry: appRef.entry!,
+          windowTarget,
+          config,
+          stepId: step.stepId,
+        },
       });
       if (found.error) {
         result.description = found.error;
@@ -164,6 +165,75 @@ async function findElement({ config, step, driver, click, appSession, processReg
         return await finalizeFound({ result });
       }
       result.outputs.found = true;
+      if (found.imageMatch) result.outputs.imageMatch = found.imageMatch;
+      // Rect-only visual match (ADR 01087): the template matched but no real
+      // element could be recovered from the page source. The find still
+      // PASSes with imageMatch outputs; a left-click sub-effect falls back
+      // to a coordinate tap below, and element-dependent sub-effects FAIL
+      // with an actionable message.
+      const rectOnly = !found.element && found.imageMatch;
+      if (rectOnly) {
+        await finalizeFound({ result });
+        result.description += ` Matched the template visually (score ${found.imageMatch!.score.toFixed(
+          3
+        )}), but no element could be recovered from the page source${
+          found.recoveryReason ? ` (${found.recoveryReason})` : ""
+        }; interactions fall back to coordinates.`;
+        if (findSpec.moveTo || findSpec.type) {
+          result.status = "FAIL";
+          result.description +=
+            " The moveTo/type sub-effects aren't supported on app surfaces; use a separate `type` step targeting the app surface.";
+          return result;
+        }
+        if (click || findSpec.click) {
+          const clickSpec = findSpec.click;
+          const button =
+            typeof clickSpec === "string" &&
+            ["left", "right", "middle"].includes(clickSpec)
+              ? clickSpec
+              : clickSpec?.button || "left";
+          const duration =
+            typeof clickSpec === "object" ? clickSpec?.duration : undefined;
+          if (button !== "left" || duration) {
+            result.status = "FAIL";
+            result.description +=
+              " Non-left clicks and long-presses need a recovered element; add another criterion so the element resolves, or drop the button/duration.";
+            return result;
+          }
+          const platform = appRef.entry!.platform ?? "windows";
+          const gestures = APP_GESTURES[platform];
+          // Coordinate transform per platform: the match center is logical
+          // (window-relative on desktop). Nova's bare-x/y click and
+          // macos: click both take SCREEN coordinates, so desktop adds the
+          // window origin; mobile centers are already device px / points.
+          let tapPoint = { ...found.imageMatch!.center };
+          if (platform === "windows" || platform === "mac") {
+            const windowRect = await appWindowRect(appRef.entry!, windowTarget);
+            if (!windowRect) {
+              result.status = "FAIL";
+              result.description +=
+                " Couldn't read the app window position for the coordinate tap.";
+              return result;
+            }
+            tapPoint = {
+              x: tapPoint.x + windowRect.x,
+              y: tapPoint.y + windowRect.y,
+            };
+          }
+          try {
+            await gestures.tapAtPoint(
+              appDriver,
+              Math.round(tapPoint.x),
+              Math.round(tapPoint.y)
+            );
+            result.description += " Clicked the matched region.";
+          } catch (error: any) {
+            result.status = "FAIL";
+            result.description += ` Couldn't click the matched region. Error: ${error.message}`;
+          }
+        }
+        return result;
+      }
       // Expose the driver handle the same way the browser path does (via
       // setElementOutputs), so callers that need real geometry — screenshot
       // annotations reading getElementRect — can work on app surfaces too.
