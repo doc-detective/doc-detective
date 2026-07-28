@@ -17,7 +17,10 @@
 // template captured on a differently-scaled machine still matches.
 
 import fs from "node:fs";
+import path from "node:path";
 import { loadHeavyDep } from "../../runtime/loader.js";
+import { getRunOutputDir, sanitizeFilesystemName } from "../utils.js";
+import { isRecordingActive } from "./ffmpegRecorder.js";
 
 export {
   normalizeImageCriterion,
@@ -30,6 +33,10 @@ export {
   dedupeMatches,
   loadTemplateBuffer,
   matchTemplate,
+  captureForMatch,
+  getElementViewportRect,
+  elementAtPoint,
+  writeMissDiagnostic,
 };
 export type { Rect, ImageCriterion, VisualMatch, MatchTemplateResult };
 
@@ -504,4 +511,172 @@ async function matchTemplate({
     matches,
     bestCandidate: bestCandidate ?? matches[0] ?? null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Driver-coupled helpers
+// ---------------------------------------------------------------------------
+
+// Capture the browser viewport for matching and derive the capture scale
+// (capture px per CSS px). Scale comes from the capture itself — same posture
+// as annotations' computeScale: junk logical width degrades to 1:1 rather
+// than exploding. During a recording the synthetic cursor overlay is hidden
+// for the capture (and always restored), or the pointer sitting on the target
+// would tank the match score — same dance as saveScreenshot.
+async function captureForMatch({
+  driver,
+  ctx = {},
+}: {
+  driver: any;
+  ctx?: { cacheDir?: string };
+}): Promise<{ buffer: Buffer; captureScale: number }> {
+  const recordingActive = isRecordingActive(driver);
+  let base64: string;
+  try {
+    if (recordingActive) {
+      await driver.execute(() => {
+        const pointer = document.querySelector("dd-mouse-pointer") as any;
+        if (pointer) pointer.style.display = "none";
+      });
+    }
+    base64 = await driver.takeScreenshot();
+  } finally {
+    if (recordingActive) {
+      try {
+        await driver.execute(() => {
+          const pointer = document.querySelector("dd-mouse-pointer") as any;
+          if (pointer) pointer.style.display = "";
+        });
+      } catch {
+        // Restoration is best-effort; the capture result still stands.
+      }
+    }
+  }
+  const buffer = Buffer.from(base64, "base64");
+  const sharp = await getSharp(ctx);
+  const meta = await sharp(buffer).metadata();
+  let logicalWidth: unknown = null;
+  try {
+    logicalWidth = await driver.execute(() => window.innerWidth);
+  } catch {
+    // Fall through to the 1:1 default below.
+  }
+  const captureScale =
+    typeof logicalWidth === "number" &&
+    Number.isFinite(logicalWidth) &&
+    logicalWidth > 0 &&
+    meta.width
+      ? meta.width / logicalWidth
+      : 1;
+  return { buffer, captureScale };
+}
+
+// The candidate's viewport rect in CSS px — the same space as the capture
+// (getBoundingClientRect is viewport-relative; getLocation() is PAGE-relative
+// and would break the geometric AND as soon as the page scrolls).
+async function getElementViewportRect(
+  driver: any,
+  element: any
+): Promise<Rect | null> {
+  try {
+    const rect = await driver.execute((el: any) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    }, element);
+    if (
+      rect &&
+      typeof rect.x === "number" &&
+      typeof rect.width === "number"
+    ) {
+      return rect;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Recover the real element under a viewport point (CSS px —
+// document.elementFromPoint's exact coordinate space). Returns the topmost
+// node, which is what a real user's click at that point would hit. Falls back
+// to the document element when the point resolves to nothing (edge clipping)
+// so outputs and the click sub-effect still have a target.
+async function elementAtPoint(
+  driver: any,
+  x: number,
+  y: number
+): Promise<any | null> {
+  try {
+    const element = await driver.execute(
+      (px: number, py: number) => document.elementFromPoint(px, py),
+      x,
+      y
+    );
+    if (element && (element.elementId || element.ELEMENT)) return element;
+  } catch {
+    // Fall through to the documentElement fallback.
+  }
+  try {
+    const fallback = await driver.$("html");
+    if (fallback && fallback.elementId !== undefined) return fallback;
+    return fallback ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Best-effort miss diagnostic: the last capture with the best candidate's box
+// and score drawn on it, written into the per-run artifact folder. A failure
+// to render or write must never mask the not-found result — callers get null
+// and report the score alone.
+async function writeMissDiagnostic({
+  config,
+  capture,
+  bestCandidate,
+  threshold,
+  stepId,
+  ctx = {},
+}: {
+  config: any;
+  capture: Buffer | null;
+  bestCandidate: VisualMatch | null;
+  threshold: number;
+  stepId?: string;
+  ctx?: { cacheDir?: string };
+}): Promise<string | null> {
+  if (!capture) return null;
+  try {
+    const sharp = await getSharp(ctx);
+    const meta = await sharp(capture).metadata();
+    const width = meta.width ?? 0;
+    const height = meta.height ?? 0;
+    if (!width || !height) return null;
+    let overlay = "";
+    if (bestCandidate) {
+      const { rect, score } = bestCandidate;
+      const labelY = rect.y > 24 ? rect.y - 8 : rect.y + rect.height + 18;
+      // No raw `<`/`&` in the label — it's embedded in SVG markup.
+      const label = `best ${score.toFixed(3)} (threshold ${threshold})`;
+      overlay = `
+        <rect x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}"
+              fill="none" stroke="#e11d48" stroke-width="3"/>
+        <text x="${Math.max(4, rect.x)}" y="${labelY}" font-family="Arial, sans-serif"
+              font-size="16" font-weight="bold" fill="#e11d48"
+              stroke="#ffffff" stroke-width="3" paint-order="stroke">${label}</text>`;
+    }
+    const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${overlay}</svg>`;
+    const composed = await sharp(capture)
+      .composite([{ input: Buffer.from(svg), left: 0, top: 0 }])
+      .png()
+      .toBuffer();
+    const dir = getRunOutputDir(config);
+    const file = path.join(
+      dir,
+      `image-miss-${sanitizeFilesystemName(stepId ?? "", "find")}-${Date.now()}.png`
+    );
+    fs.writeFileSync(file, composed);
+    return file;
+  } catch {
+    return null;
+  }
 }

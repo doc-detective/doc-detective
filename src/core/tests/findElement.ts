@@ -109,6 +109,14 @@ async function findElement({ config, step, driver, click, appSession, processReg
     // equivalent: the element's text.
     const findSpec: any =
       typeof step.find === "string" ? { elementText: step.find } : step.find;
+    if (findSpec.image) {
+      // Visual matching on app surfaces lands with the page-source recovery
+      // work; until then reject cleanly rather than ignoring the criterion.
+      result.status = "FAIL";
+      result.description =
+        "The image criterion isn't supported on app surfaces yet.";
+      return result;
+    }
     {
       // Window selectors (ADR 01036): resolve to a real window — Windows
       // re-roots the session (sticky), macOS holds the window element and
@@ -316,6 +324,8 @@ async function findElement({ config, step, driver, click, appSession, processReg
     element: foundElement,
     foundBy,
     error,
+    imageMatch,
+    imageMiss,
   } = await findElementByCriteria({
     selector: step.find.selector || undefined,
     elementText: step.find.elementText || undefined,
@@ -324,12 +334,18 @@ async function findElement({ config, step, driver, click, appSession, processReg
     elementClass: step.find.elementClass,
     elementAttribute: step.find.elementAttribute,
     elementAria: step.find.elementAria,
+    image: step.find.image,
     timeout: step.find.timeout,
     driver,
+    config,
+    stepId: step.stepId,
   });
 
   if (!foundElement) {
     result.description = error || "No elements matched criteria.";
+    // Miss diagnostics for the image criterion: how close the best candidate
+    // came and where the annotated screenshot landed.
+    if (imageMiss) result.outputs.imageMiss = imageMiss;
     result.outputs.found = false;
     return await finalizeFound({ result });
   }
@@ -345,6 +361,10 @@ async function findElement({ config, step, driver, click, appSession, processReg
 
   // Set element in outputs
   result.outputs = await setElementOutputs({ element });
+  // Visual-match details (score, logical rect, center, scaleUsed) so later
+  // steps and assertions can act on the matched region even without element
+  // geometry.
+  if (imageMatch) result.outputs.imageMatch = imageMatch;
   result.outputs.found = true;
   // Evaluate the existence assertion now (PASS). Sub-effects below remain
   // EXECUTION and may still set FAIL with no extra record.
