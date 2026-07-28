@@ -32,8 +32,10 @@
           "goTo": "http://localhost:8092/multi-tab-child.html?page=par1"
         },
         {
+          "description": "Generous timeout: a cold parallel chrome session on a loaded runner can need well over the 5s default for its first find after cross-session navigation",
           "find": {
             "elementText": "PAGE par1",
+            "timeout": 30000,
             "surface": {
               "browser": "chrome",
               "name": "par-chrome"
@@ -60,6 +62,7 @@
           "description": "The default firefox session was untouched by the parallel open",
           "find": {
             "elementText": "MULTI-TAB HOME",
+            "timeout": 15000,
             "surface": "firefox"
           }
         },
@@ -100,8 +103,10 @@
           "goTo": "http://localhost:8092/multi-tab-child.html?page=alpha1"
         },
         {
+          "description": "Generous timeout: first find on a freshly parallel-opened session (same cold-session risk as the mixed test)",
           "find": {
             "elementText": "PAGE alpha1",
+            "timeout": 30000,
             "surface": {
               "browser": "firefox",
               "name": "alpha"
