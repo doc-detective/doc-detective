@@ -27,7 +27,7 @@ The `image` value accepts:
 }
 ```
 
-The most reliable template is a **crop from a screenshot Doc Detective itself took**, because it's guaranteed to match the screen's scale and rendering. On a browser surface, seed it in the same test with a [`screenshot`](/docs/actions/screenshot) crop, then reference it by the same relative path—or save the screenshot output path into a variable. (Screenshot crops are browser-only; on a native app surface, seed a full-window screenshot instead.)
+The most reliable template is a **crop from a screenshot Doc Detective itself took**, because it's guaranteed to match the screen's scale and rendering. On a browser surface, seed it in the same test with a [`screenshot`](/docs/actions/screenshot) crop, then reference it by the same relative path—or save the screenshot output path into a variable. Screenshot crops are browser-only, so on a native app surface, seed a full-window screenshot instead.
 
 ```json
 {
@@ -55,10 +55,10 @@ The most reliable template is a **crop from a screenshot Doc Detective itself to
 
 Doc Detective screenshots the surface and runs OpenCV template matching against it, polling until the element appears or the step times out.
 
-- **Scaling is automatic.** Displays differ (Retina, Windows 125–200% scaling), and a template taken at one scale fails completely against a screen at another. Doc Detective derives the scale of the screenshot it takes and tries the template at a ladder of candidate scales—including the common display ratios—so a template taken on a differently-scaled machine still matches. The step reports the matched scale in `outputs.imageMatch.scaleUsed`.
+- **Scaling is automatic.** Displays differ (Retina, Windows 125–200% scaling), and a template taken at one scale fails completely against a screen at another. Doc Detective derives the scale of the screenshot it takes and tries the template at a ladder of candidate scales—including the common display ratios—so a template taken on a differently scaled machine still matches. The step reports the matched scale in `outputs.imageMatch.scaleUsed`.
 - **The match becomes a real element wherever possible.** On browser surfaces, Doc Detective resolves the element under the matched region's center with `document.elementFromPoint`, so every interaction (`click` with buttons and durations, `moveTo`, `type`) and all `outputs.element` details work exactly as with any other criterion. On native app surfaces, Doc Detective recovers the element from the app's accessibility tree. When that isn't possible, the find still succeeds with the matched region's geometry in `outputs.imageMatch`, and a left click falls back to tapping the region's center.
-- **Combining criteria narrows geometrically.** When `image` is combined with other criteria (`elementText`, `selector`, and so on), the matched element must satisfy them all: its bounds must contain a visual match's center *and* it must match the other criteria. This is how you disambiguate two identical icons with different labels.
-- **Ambiguity fails loudly.** If two or more regions match the template and nothing disambiguates them, the step fails and names the count, scores, and locations—Doc Detective never silently clicks the first lookalike. Add another criterion or a `region` to narrow the search.
+- **Combining criteria narrows geometrically.** When you combine `image` with other criteria (`elementText`, `selector`, and so on), the matched element must satisfy them all: its bounds must contain a visual match's center *and* it must match the other criteria. This is how you tell apart two identical icons with different labels.
+- **Ambiguity fails loudly.** If two or more regions match the template and nothing tells them apart, the step fails and names the count, scores, and locations—Doc Detective never silently clicks the first lookalike. Add another criterion or a `region` to narrow the search.
 
 ## Tune the match threshold
 
@@ -70,7 +70,7 @@ Doc Detective screenshots the surface and runs OpenCV template matching against 
 }
 ```
 
-Higher values are stricter (`1` demands a near pixel-perfect match); lower values tolerate more variation but risk matching the wrong region.
+Higher values are stricter (`1` demands a near pixel-perfect match). Lower values tolerate more variation but risk matching the wrong region.
 
 ## Narrow the search with a region
 
