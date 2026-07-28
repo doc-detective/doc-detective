@@ -770,25 +770,38 @@ describe("active-surface bookkeeping is non-destructive and honors timeout 0", f
       },
       async pause() {},
     };
-    const startedAt = Date.now();
-    const result = await findElement({
-      config: {},
-      step: { find: { selector: "#x", timeout: 0 } },
-      driver,
-    });
-    const elapsed = Date.now() - startedAt;
+    // Observe the poll-interval sleeps directly rather than timing the call: a
+    // wall-clock threshold would be flaky on a loaded runner, and "did it
+    // schedule a sleep" is the actual contract. Recording only — the timer
+    // still behaves normally, so a regression fails on the assertion below
+    // rather than hanging.
+    const sleeps = [];
+    const realSetTimeout = global.setTimeout;
+    global.setTimeout = function (fn, delay, ...rest) {
+      if (delay >= 50) sleeps.push(delay);
+      return realSetTimeout(fn, delay, ...rest);
+    };
+    let result;
+    try {
+      result = await findElement({
+        config: {},
+        step: { find: { selector: "#x", timeout: 0 } },
+        driver,
+      });
+    } finally {
+      global.setTimeout = realSetTimeout;
+    }
     // `timeout: 0` means "check once, now" — not "wait the 5s default" (which
     // the browser path did by clobbering 0 through `||`), and not "never check"
     // (which a `while (elapsed < timeout)` poll does for 0).
     assert.equal(result.outputs.found, false);
     assert.equal(polls, 1, "timeout 0 must poll exactly once, not spin for 5s");
-    // Polling once isn't enough: sleeping the 100ms poll interval before
-    // re-checking the deadline would still make "now" mean "in 100ms". The
-    // driver is stubbed (no I/O), so the honest path is single-digit ms; the
-    // bug floor is a full 100ms interval.
-    assert.ok(
-      elapsed < 75,
-      `timeout 0 must return immediately, took ${elapsed}ms`
+    // Polling once isn't enough: sleeping the poll interval before re-checking
+    // the deadline would still make "now" mean "in 100ms".
+    assert.deepEqual(
+      sleeps,
+      [],
+      `timeout 0 must not sleep before returning; slept ${sleeps.join(", ")}ms`
     );
   });
 });

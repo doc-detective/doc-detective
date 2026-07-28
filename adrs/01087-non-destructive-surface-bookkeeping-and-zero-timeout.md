@@ -128,9 +128,13 @@ Three hermetic tests in
 red→green:
 
 * `timeout: 0` polls exactly once instead of spinning (was 47 polls over ~5s),
-  **and returns promptly** rather than sleeping a poll interval first. The test
-  asserts both the poll count and elapsed time, because the count alone passed
-  while the call still took ~870ms.
+  **and schedules no poll-interval sleep** before returning. The test asserts
+  both, because the poll count alone passed while the call still took ~870ms.
+
+  The sleep assertion observes `setTimeout` rather than measuring elapsed wall
+  time. A duration threshold is the wrong instrument here: it is flaky on a
+  loaded runner, and "did it schedule a sleep" is the actual contract. Verified
+  to fail (`slept 100ms`) with any one of the three guards removed.
 * A handle survives a `currentSurface` call whose registry was not supplied, and
   is still routable to a caller that does supply it.
 * A handle whose registry *is* supplied and reports it gone is still pruned —
