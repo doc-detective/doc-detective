@@ -1279,6 +1279,17 @@ async function findAppElementVisually({
   let ambiguous: VisualMatch[] | null = null;
   const start = Date.now();
   const pollInterval = 250;
+  // Sleep only within the remaining budget: an immediate check (`timeout: 0`)
+  // or a nearly-expired timeout must not pad the step with a full interval
+  // before the loop condition exits.
+  const pollDelay = async () => {
+    const remaining = timeout - (Date.now() - start);
+    if (remaining > 0) {
+      await new Promise((r) =>
+        setTimeout(r, Math.min(pollInterval, remaining))
+      );
+    }
+  };
 
   // do/while so an explicit `timeout: 0` (the locator path's immediate-check
   // semantics) still runs one capture+match round instead of always missing.
@@ -1338,7 +1349,7 @@ async function findAppElementVisually({
           captureScale,
         });
         if (resolved === null) {
-          await new Promise((r) => setTimeout(r, pollInterval));
+          await pollDelay();
           continue;
         }
         regionPx = resolved;
@@ -1363,7 +1374,7 @@ async function findAppElementVisually({
       bestEver = { ...matchResult.bestCandidate, captureScale: lastScale };
     }
     if (!matchResult.matches.length) {
-      await new Promise((r) => setTimeout(r, pollInterval));
+      await pollDelay();
       continue;
     }
     const logicalMatches = matchResult.matches.map((m) => ({
@@ -1409,7 +1420,7 @@ async function findAppElementVisually({
           }
         }
       }
-      await new Promise((r) => setTimeout(r, pollInterval));
+      await pollDelay();
       continue;
     }
 
@@ -1417,7 +1428,7 @@ async function findAppElementVisually({
     // duplicates may settle) and fail loudly at timeout.
     if (logicalMatches.length > 1) {
       ambiguous = logicalMatches;
-      await new Promise((r) => setTimeout(r, pollInterval));
+      await pollDelay();
       continue;
     }
     ambiguous = null;

@@ -76,7 +76,7 @@ export type GoToURLDetailed = {
      */
     domIdleTime?: number | null;
     /**
-     * Wait for a specific element to be present in the DOM. At least one element-finding field (selector, elementText, image, …) must be specified.
+     * Wait for a matching element or visual match to be available on the page. At least one element-finding field (selector, elementText, image, …) must be specified.
      */
     find?: {
       [k: string]: unknown;
