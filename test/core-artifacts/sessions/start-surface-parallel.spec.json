@@ -59,7 +59,7 @@
           }
         },
         {
-          "description": "The default firefox session was untouched by the parallel open",
+          "description": "The default firefox session was untouched by the parallel open. Modest timeout: this asserts across sessions while two others are live, so it wants headroom over the default without the cold-session budget above.",
           "find": {
             "elementText": "MULTI-TAB HOME",
             "timeout": 15000,
