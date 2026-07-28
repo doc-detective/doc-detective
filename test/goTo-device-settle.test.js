@@ -228,6 +228,12 @@ describe("goTo post-navigation settle (device web only)", function () {
   // race-free home for that assertion.
 
   it("iOS web context whose tree stays empty past the ceiling still PROCEEDS to PASS (settle never fails goTo)", async function () {
+    // This case exhausts the settle CEILING in real time (~3s locally). On a
+    // loaded CI runner the mock's 2ms poll ticks stretch with timer slack and
+    // have pushed the case past the suite's 10s default (observed twice on
+    // windows node-24 shard 1). Per .mocharc.yml, slow tests own a longer
+    // per-test timeout rather than racing the shared default.
+    this.timeout(30000);
     installBrowserStub({ ready: "complete" });
     // emptyTreePolls huge: the tree never populates within the settle ceiling.
     const { driver } = makeSettleDriver({
