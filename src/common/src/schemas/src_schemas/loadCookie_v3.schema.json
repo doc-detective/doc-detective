@@ -17,73 +17,105 @@
         "title": "Cookie name or file path",
         "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
         "pattern": "^[A-Za-z0-9_./\\-]+$",
-        "transform": ["trim"]
+        "transform": [
+          "trim"
+        ]
       },
       "object": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name"],
-        "anyOf": [
+        "title": "Load cookie (detailed)",
+        "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+        "allOf": [
           {
-            "required": ["path"],
-            "not": {
-              "required": ["variable"]
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "$schema": {
+                "description": "Optional self-describing schema URI for linters",
+                "type": "string",
+                "format": "uri-reference"
+              },
+              "name": {
+                "type": "string",
+                "title": "Cookie name",
+                "description": "Name of the specific cookie to load.",
+                "pattern": "^[A-Za-z0-9_.-]+$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "variable": {
+                "type": "string",
+                "title": "Environment variable name",
+                "description": "Environment variable name containing the cookie as JSON string.",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "title": "Cookie file path",
+                "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "title": "Directory path",
+                "description": "Directory containing the cookie file.",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "domain": {
+                "type": "string",
+                "title": "Cookie domain",
+                "description": "Specific domain to filter the cookie by when loading from multi-cookie file (optional).",
+                "transform": [
+                  "trim"
+                ]
+              }
             }
           },
           {
-            "required": ["variable"],
-            "not": {
-              "anyOf": [
-                {
-                  "required": ["path"]
-                },
-                {
-                  "required": ["directory"]
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ],
+                "not": {
+                  "required": [
+                    "variable"
+                  ]
                 }
-              ]
-            }
+              },
+              {
+                "required": [
+                  "variable"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "path"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "directory"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
           }
-        ],
-        "properties": {
-          "$schema": {
-            "description": "Optional self-describing schema URI for linters",
-            "type": "string",
-            "format": "uri-reference"
-          },
-          "name": {
-            "type": "string",
-            "title": "Cookie name",
-            "description": "Name of the specific cookie to load.",
-            "pattern": "^[A-Za-z0-9_.-]+$",
-            "transform": ["trim"]
-          },
-          "variable": {
-            "type": "string",
-            "title": "Environment variable name",
-            "description": "Environment variable name containing the cookie as JSON string.",
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-            "transform": ["trim"]
-          },
-          "path": {
-            "type": "string",
-            "title": "Cookie file path",
-            "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
-            "transform": ["trim"]
-          },
-          "directory": {
-            "type": "string",
-            "title": "Directory path",
-            "description": "Directory containing the cookie file.",
-            "transform": ["trim"]
-          },
-          "domain": {
-            "type": "string",
-            "title": "Cookie domain",
-            "description": "Specific domain to filter the cookie by when loading from multi-cookie file (optional).",
-            "transform": ["trim"]
-          }
-        },
-        "title": "Load cookie (detailed)"
+        ]
       }
     }
   },

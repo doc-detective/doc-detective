@@ -13,98 +13,106 @@
       ]
     },
     {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$schema": {
-          "description": "Optional self-describing schema URI for linters",
-          "type": "string",
-          "format": "uri-reference"
-        },
-        "name": {
-          "type": "string",
-          "title": "Cookie name",
-          "description": "Name of the specific cookie to save.",
-          "pattern": "^[A-Za-z0-9_.-]+$",
-          "transform": [
-            "trim"
-          ]
-        },
-        "variable": {
-          "type": "string",
-          "title": "Environment variable name",
-          "description": "Environment variable name to store the cookie as JSON string.",
-          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-          "transform": [
-            "trim"
-          ]
-        },
-        "path": {
-          "type": "string",
-          "title": "Cookie file path",
-          "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
-          "transform": [
-            "trim"
-          ]
-        },
-        "directory": {
-          "type": "string",
-          "title": "Directory path",
-          "description": "Directory to save the cookie file. If not specified, uses output directory.",
-          "transform": [
-            "trim"
-          ]
-        },
-        "overwrite": {
-          "type": "boolean",
-          "title": "Overwrite existing file",
-          "description": "Whether to overwrite existing cookie file.",
-          "default": false
-        },
-        "domain": {
-          "type": "string",
-          "title": "Cookie domain",
-          "description": "Specific domain to filter the cookie by (optional).",
-          "transform": [
-            "trim"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "anyOf": [
+      "title": "Save cookie (detailed)",
+      "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+      "allOf": [
         {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$schema": {
+              "description": "Optional self-describing schema URI for linters",
+              "type": "string",
+              "format": "uri-reference"
+            },
+            "name": {
+              "type": "string",
+              "title": "Cookie name",
+              "description": "Name of the specific cookie to save.",
+              "pattern": "^[A-Za-z0-9_.-]+$",
+              "transform": [
+                "trim"
+              ]
+            },
+            "variable": {
+              "type": "string",
+              "title": "Environment variable name",
+              "description": "Environment variable name to store the cookie as JSON string.",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "transform": [
+                "trim"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "title": "Cookie file path",
+              "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+              "transform": [
+                "trim"
+              ]
+            },
+            "directory": {
+              "type": "string",
+              "title": "Directory path",
+              "description": "Directory to save the cookie file. If not specified, uses output directory.",
+              "transform": [
+                "trim"
+              ]
+            },
+            "overwrite": {
+              "type": "boolean",
+              "title": "Overwrite existing file",
+              "description": "Whether to overwrite existing cookie file.",
+              "default": false
+            },
+            "domain": {
+              "type": "string",
+              "title": "Cookie domain",
+              "description": "Specific domain to filter the cookie by (optional).",
+              "transform": [
+                "trim"
+              ]
+            }
+          },
           "required": [
-            "path"
-          ],
-          "not": {
-            "required": [
-              "variable"
-            ]
-          }
+            "name"
+          ]
         },
         {
-          "required": [
-            "variable"
-          ],
-          "not": {
-            "anyOf": [
-              {
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "path"
+              ],
+              "not": {
                 "required": [
-                  "path"
-                ]
-              },
-              {
-                "required": [
-                  "directory"
+                  "variable"
                 ]
               }
-            ]
-          }
+            },
+            {
+              "required": [
+                "variable"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "path"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "directory"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
         }
-      ],
-      "title": "Save cookie (detailed)"
+      ]
     }
   ],
   "components": {
@@ -119,98 +127,106 @@
         ]
       },
       "object": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "Optional self-describing schema URI for linters",
-            "type": "string",
-            "format": "uri-reference"
-          },
-          "name": {
-            "type": "string",
-            "title": "Cookie name",
-            "description": "Name of the specific cookie to save.",
-            "pattern": "^[A-Za-z0-9_.-]+$",
-            "transform": [
-              "trim"
-            ]
-          },
-          "variable": {
-            "type": "string",
-            "title": "Environment variable name",
-            "description": "Environment variable name to store the cookie as JSON string.",
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-            "transform": [
-              "trim"
-            ]
-          },
-          "path": {
-            "type": "string",
-            "title": "Cookie file path",
-            "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
-            "transform": [
-              "trim"
-            ]
-          },
-          "directory": {
-            "type": "string",
-            "title": "Directory path",
-            "description": "Directory to save the cookie file. If not specified, uses output directory.",
-            "transform": [
-              "trim"
-            ]
-          },
-          "overwrite": {
-            "type": "boolean",
-            "title": "Overwrite existing file",
-            "description": "Whether to overwrite existing cookie file.",
-            "default": false
-          },
-          "domain": {
-            "type": "string",
-            "title": "Cookie domain",
-            "description": "Specific domain to filter the cookie by (optional).",
-            "transform": [
-              "trim"
-            ]
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "anyOf": [
+        "title": "Save cookie (detailed)",
+        "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+        "allOf": [
           {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "$schema": {
+                "description": "Optional self-describing schema URI for linters",
+                "type": "string",
+                "format": "uri-reference"
+              },
+              "name": {
+                "type": "string",
+                "title": "Cookie name",
+                "description": "Name of the specific cookie to save.",
+                "pattern": "^[A-Za-z0-9_.-]+$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "variable": {
+                "type": "string",
+                "title": "Environment variable name",
+                "description": "Environment variable name to store the cookie as JSON string.",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "title": "Cookie file path",
+                "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "title": "Directory path",
+                "description": "Directory to save the cookie file. If not specified, uses output directory.",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "overwrite": {
+                "type": "boolean",
+                "title": "Overwrite existing file",
+                "description": "Whether to overwrite existing cookie file.",
+                "default": false
+              },
+              "domain": {
+                "type": "string",
+                "title": "Cookie domain",
+                "description": "Specific domain to filter the cookie by (optional).",
+                "transform": [
+                  "trim"
+                ]
+              }
+            },
             "required": [
-              "path"
-            ],
-            "not": {
-              "required": [
-                "variable"
-              ]
-            }
+              "name"
+            ]
           },
           {
-            "required": [
-              "variable"
-            ],
-            "not": {
-              "anyOf": [
-                {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ],
+                "not": {
                   "required": [
-                    "path"
-                  ]
-                },
-                {
-                  "required": [
-                    "directory"
+                    "variable"
                   ]
                 }
-              ]
-            }
+              },
+              {
+                "required": [
+                  "variable"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "path"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "directory"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
           }
-        ],
-        "title": "Save cookie (detailed)"
+        ]
       }
     }
   },

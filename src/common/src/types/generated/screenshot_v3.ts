@@ -65,8 +65,44 @@ export type CropByElementSimple = string;
  * Crop the screenshot to a specific element.
  */
 export type CropByElementDetailed = {
+  /**
+   * Display text of the element to screenshot.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element to screenshot.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  padding?: PaddingSimple | PaddingDetailed;
+} & {
   [k: string]: unknown;
 };
+/**
+ * Padding in pixels to add to the bounds of the element.
+ */
+export type PaddingSimple = number;
 /**
  * A visual annotation drawn onto a screenshot or recording. Each annotation names exactly one type (`outline`, `arrow`, `badge`, `callout`, `blur`, or `text`), and the type's value is the target it points at: an element (a selector/display-text string or a detailed find object) or a fixed `position` in the capture. `id`, `track`, `transition`, and `duration` describe behavior over time — they apply to recordings and are inert in still screenshots, so the same annotation means the same thing in both.
  */
@@ -330,6 +366,15 @@ export interface ByCriteria2 {
    * Window title to match. Substring, or /regex/.
    */
   title?: string;
+}
+/**
+ * Padding in pixels to add to the bounds of the element.
+ */
+export interface PaddingDetailed {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
 }
 export interface AnnotationFields {
   /**

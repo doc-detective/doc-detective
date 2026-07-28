@@ -53,102 +53,110 @@
       },
       "object": {
         "title": "Element (detailed)",
-        "type": "object",
-        "anyOf": [
+        "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+        "allOf": [
           {
-            "required": [
-              "selector"
-            ]
-          },
-          {
-            "required": [
-              "elementText"
-            ]
-          },
-          {
-            "required": [
-              "elementId"
-            ]
-          },
-          {
-            "required": [
-              "elementTestId"
-            ]
-          },
-          {
-            "required": [
-              "elementClass"
-            ]
-          },
-          {
-            "required": [
-              "elementAttribute"
-            ]
-          },
-          {
-            "required": [
-              "elementAria"
-            ]
-          }
-        ],
-        "properties": {
-          "elementText": {
-            "type": "string",
-            "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
-          },
-          "selector": {
-            "type": "string",
-            "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-          },
-          "elementAttribute": {
             "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
+            "properties": {
+              "elementText": {
+                "type": "string",
+                "description": "Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector."
+              },
+              "selector": {
+                "type": "string",
+                "description": "Selector of the element. If combined with `elementText`, the element must match both the text and the selector."
+              },
+              "elementId": {
+                "type": "string",
+                "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementTestId": {
+                "type": "string",
+                "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementClass": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+              },
+              "elementAttribute": {
+                "type": "object",
+                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
                 }
-              ]
+              },
+              "elementAria": {
+                "type": "string",
+                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "timeout": {
+                "type": "integer",
+                "description": "Max duration in milliseconds to wait for the element to exist.",
+                "default": 5000
+              }
             }
           },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
-            "default": 5000
+          {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "selector"
+                ]
+              },
+              {
+                "required": [
+                  "elementText"
+                ]
+              },
+              {
+                "required": [
+                  "elementId"
+                ]
+              },
+              {
+                "required": [
+                  "elementTestId"
+                ]
+              },
+              {
+                "required": [
+                  "elementClass"
+                ]
+              },
+              {
+                "required": [
+                  "elementAttribute"
+                ]
+              },
+              {
+                "required": [
+                  "elementAria"
+                ]
+              }
+            ]
           }
-        }
+        ]
       }
     }
   },

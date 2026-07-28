@@ -38,46 +38,12 @@
       },
       "findElement": {
         "title": "Element criteria",
-        "type": "object",
         "description": "Wait for a specific element to be present. At least one finding field must be specified.",
-        "additionalProperties": false,
-        "anyOf": [
-              {
-                "required": [
-                  "selector"
-                ]
-              },
-              {
-                "required": [
-                  "elementText"
-                ]
-              },
-              {
-                "required": [
-                  "elementId"
-                ]
-              },
-              {
-                "required": [
-                  "elementTestId"
-                ]
-              },
-              {
-                "required": [
-                  "elementClass"
-                ]
-              },
-              {
-                "required": [
-                  "elementAttribute"
-                ]
-              },
-              {
-                "required": [
-                  "elementAria"
-                ]
-              }
-            ],
+        "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+        "allOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
             "properties": {
               "selector": {
                 "type": "string",
@@ -131,6 +97,48 @@
                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
               }
             }
+          },
+          {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "selector"
+                ]
+              },
+              {
+                "required": [
+                  "elementText"
+                ]
+              },
+              {
+                "required": [
+                  "elementId"
+                ]
+              },
+              {
+                "required": [
+                  "elementTestId"
+                ]
+              },
+              {
+                "required": [
+                  "elementClass"
+                ]
+              },
+              {
+                "required": [
+                  "elementAttribute"
+                ]
+              },
+              {
+                "required": [
+                  "elementAria"
+                ]
+              }
+            ]
+          }
+        ]
       },
       "app": {
         "title": "App readiness",
