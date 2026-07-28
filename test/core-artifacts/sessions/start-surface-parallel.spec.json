@@ -124,8 +124,10 @@
           }
         },
         {
+          "description": "Generous timeout: beta's first find, and it was opened cold in the same parallel array",
           "find": {
-            "elementText": "PAGE beta1"
+            "elementText": "PAGE beta1",
+            "timeout": 30000
           }
         },
         {
