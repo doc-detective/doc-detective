@@ -798,6 +798,7 @@ async function typeKeys({
       waitUntil: step.type.waitUntil,
       timeout: typeof step.type.timeout === "number" ? step.type.timeout : 5000,
       config,
+      stepId: step.stepId,
     });
     if (!readiness.ok) {
       result.status = "FAIL";
@@ -820,12 +821,15 @@ async function waitForBrowserReadiness({
   waitUntil,
   timeout,
   config,
+  stepId,
 }: {
   driver: any;
   waitUntil: any;
   // Threaded to findElementByCriteria for the image criterion's
-  // config-level matchThreshold default.
+  // config-level matchThreshold default and step-derived miss-diagnostic
+  // filenames.
   config?: any;
+  stepId?: string;
   timeout: number;
 }): Promise<{ ok: boolean; message: string }> {
   const failures: string[] = [];
@@ -869,6 +873,7 @@ async function waitForBrowserReadiness({
           timeout,
           driver,
           config,
+          stepId,
         });
         if (!element) {
           const message = `element not found (${JSON.stringify(waitUntil.find)})`;

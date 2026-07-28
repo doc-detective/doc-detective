@@ -275,7 +275,7 @@ async function loadTemplateBuffer(criterion: ImageCriterion): Promise<Buffer> {
     return buffer;
   }
   try {
-    return fs.readFileSync(templatePath);
+    return await fs.promises.readFile(templatePath);
   } catch (error: any) {
     throw new Error(
       `Couldn't read the template image at "${templatePath}": ${error?.message ?? error}`
@@ -509,14 +509,21 @@ async function matchTemplate({
     const scaleMatches: VisualMatch[] = [];
     for (const raw of rawScaleMatches) {
       const refined = await refineMatch(raw, scaledTemplate, scale);
-      scaleMatches.push({
+      const match: VisualMatch = {
         rect: toCaptureRect(refined.rect),
         score: refined.score,
         scaleUsed: scale,
-      });
+      };
+      // Refinement re-reads the true peak, which can land marginally BELOW
+      // the threshold the raw scan cleared (edge-of-window effects). Keep the
+      // "everything in `matches` cleared the threshold" invariant: demote
+      // such entries to diagnostics-only candidates.
+      if (refined.score >= threshold) {
+        scaleMatches.push(match);
+      }
+      trackCandidate(match);
     }
     allMatches.push(...scaleMatches);
-    for (const match of scaleMatches) trackCandidate(match);
 
     if (!scaleMatches.length && collectBestCandidate) {
       // Nothing cleared the threshold at this scale; grab the best score
