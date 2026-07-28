@@ -32,6 +32,13 @@
           "goTo": "http://localhost:8092/multi-tab-child.html?page=par1"
         },
         {
+          "description": "Diagnostic ordering (see issue #696): assert the default firefox session is still on its own page BEFORE looking at par-chrome. If the surface-less goTo above wrongly navigated firefox instead of the active chrome session, this step fails first and names the real cause; leaving it after the par-chrome find only ever reported the downstream symptom.",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": "firefox"
+          }
+        },
+        {
           "find": {
             "elementText": "PAGE par1",
             "surface": {
@@ -54,13 +61,6 @@
               "stdio": "5"
             },
             "timeout": 10000
-          }
-        },
-        {
-          "description": "The default firefox session was untouched by the parallel open",
-          "find": {
-            "elementText": "MULTI-TAB HOME",
-            "surface": "firefox"
           }
         },
         {
