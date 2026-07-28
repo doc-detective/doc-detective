@@ -37,6 +37,7 @@ describe("runtime/heavyDeps", function () {
       "geckodriver",
       "pixelmatch",
       "pngjs",
+      "@appium/opencv",
       "@homebridge/node-pty-prebuilt-multiarch",
     ]);
   });
