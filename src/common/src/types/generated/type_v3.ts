@@ -125,16 +125,13 @@ export type ElementCriteria1 = {
   [k: string]: unknown;
 };
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image = ImageSimple | ImageDetailed;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple = string;
-export type RegionElementCriteria = {
-  [k: string]: unknown;
-};
 
 export interface ProcessSurface {
   /**
@@ -241,35 +238,19 @@ export interface AppReadiness {
 }
 export interface ImageDetailed {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect | RegionElementCriteria;
-}
-export interface RegionRect {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 export interface WaitUntilRequiresASurface {
   [k: string]: unknown;

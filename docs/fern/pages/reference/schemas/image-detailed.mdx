@@ -21,9 +21,9 @@ description: "Reference for the `Image (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-path | string | Required. Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).<br/><br/>Minimum length: 1 | —
-matchThreshold | number | Optional. Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).<br/><br/>Minimum: 0. Maximum: 1 | —
-region | one of:<br/>- object([Region (rect)](/reference/schemas/region-rect))<br/>- object([Region (element criteria)](/reference/schemas/region-element-criteria)) | Optional. Restrict the search area: a rect in logical units (&#123;x, y, width, height&#125;), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets. | —
+path | string | Required. Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.<br/><br/>Minimum length: 1 | —
+matchThreshold | number | Optional. Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).<br/><br/>Minimum: 0. Maximum: 1 | —
+region | object | Optional. Search area: a rect (&#123;x, y, width, height&#125; in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected. | —
 
 ## Examples
 
@@ -31,11 +31,6 @@ region | one of:<br/>- object([Region (rect)](/reference/schemas/region-rect))<b
 {
   "path": "example",
   "matchThreshold": 42,
-  "region": {
-    "x": 42,
-    "y": 42,
-    "width": 42,
-    "height": 42
-  }
+  "region": {}
 }
 ```

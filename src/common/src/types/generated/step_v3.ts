@@ -638,16 +638,13 @@ export type ElementCriteria1 = {
   [k: string]: unknown;
 };
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image = ImageSimple | ImageDetailed;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple = string;
-export type RegionElementCriteria = {
-  [k: string]: unknown;
-};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -756,16 +753,13 @@ export type TargetByElementSimple = string;
  */
 export type TargetByElementDetailed = ElementFindingFields & AtLeastOneElementFindingField;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image1 = ImageSimple1 | ImageDetailed1;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple1 = string;
-export type RegionElementCriteria1 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField = {
   [k: string]: unknown;
 };
@@ -791,16 +785,13 @@ export type TargetByElementSimple1 = string;
  */
 export type TargetByElementDetailed1 = ElementFindingFields1 & AtLeastOneElementFindingField1;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image2 = ImageSimple2 | ImageDetailed2;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple2 = string;
-export type RegionElementCriteria2 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField1 = {
   [k: string]: unknown;
 };
@@ -826,16 +817,13 @@ export type TargetByElementSimple2 = string;
  */
 export type TargetByElementDetailed2 = ElementFindingFields2 & AtLeastOneElementFindingField2;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image3 = ImageSimple3 | ImageDetailed3;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple3 = string;
-export type RegionElementCriteria3 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField2 = {
   [k: string]: unknown;
 };
@@ -861,16 +849,13 @@ export type TargetByElementSimple3 = string;
  */
 export type TargetByElementDetailed3 = ElementFindingFields3 & AtLeastOneElementFindingField3;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image4 = ImageSimple4 | ImageDetailed4;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple4 = string;
-export type RegionElementCriteria4 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField3 = {
   [k: string]: unknown;
 };
@@ -896,16 +881,13 @@ export type TargetByElementSimple4 = string;
  */
 export type TargetByElementDetailed4 = ElementFindingFields4 & AtLeastOneElementFindingField4;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image5 = ImageSimple5 | ImageDetailed5;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple5 = string;
-export type RegionElementCriteria5 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField4 = {
   [k: string]: unknown;
 };
@@ -931,16 +913,13 @@ export type TargetByElementSimple5 = string;
  */
 export type TargetByElementDetailed5 = ElementFindingFields5 & AtLeastOneElementFindingField5;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image6 = ImageSimple6 | ImageDetailed6;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple6 = string;
-export type RegionElementCriteria6 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField5 = {
   [k: string]: unknown;
 };
@@ -1739,16 +1718,13 @@ export type TargetByElementSimple6 = string;
  */
 export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image7 = ImageSimple7 | ImageDetailed7;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple7 = string;
-export type RegionElementCriteria7 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField6 = {
   [k: string]: unknown;
 };
@@ -1774,16 +1750,13 @@ export type TargetByElementSimple7 = string;
  */
 export type TargetByElementDetailed7 = ElementFindingFields7 & AtLeastOneElementFindingField7;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image8 = ImageSimple8 | ImageDetailed8;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple8 = string;
-export type RegionElementCriteria8 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField7 = {
   [k: string]: unknown;
 };
@@ -1809,16 +1782,13 @@ export type TargetByElementSimple8 = string;
  */
 export type TargetByElementDetailed8 = ElementFindingFields8 & AtLeastOneElementFindingField8;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image9 = ImageSimple9 | ImageDetailed9;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple9 = string;
-export type RegionElementCriteria9 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField8 = {
   [k: string]: unknown;
 };
@@ -1844,16 +1814,13 @@ export type TargetByElementSimple9 = string;
  */
 export type TargetByElementDetailed9 = ElementFindingFields9 & AtLeastOneElementFindingField9;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image10 = ImageSimple10 | ImageDetailed10;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple10 = string;
-export type RegionElementCriteria10 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField9 = {
   [k: string]: unknown;
 };
@@ -1879,16 +1846,13 @@ export type TargetByElementSimple10 = string;
  */
 export type TargetByElementDetailed10 = ElementFindingFields10 & AtLeastOneElementFindingField10;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image11 = ImageSimple11 | ImageDetailed11;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple11 = string;
-export type RegionElementCriteria11 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField10 = {
   [k: string]: unknown;
 };
@@ -1914,16 +1878,13 @@ export type TargetByElementSimple11 = string;
  */
 export type TargetByElementDetailed11 = ElementFindingFields11 & AtLeastOneElementFindingField11;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image12 = ImageSimple12 | ImageDetailed12;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple12 = string;
-export type RegionElementCriteria12 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField11 = {
   [k: string]: unknown;
 };
@@ -1973,16 +1934,13 @@ export type TargetByElementSimple12 = string;
  */
 export type TargetByElementDetailed12 = ElementFindingFields12 & AtLeastOneElementFindingField12;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image13 = ImageSimple13 | ImageDetailed13;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple13 = string;
-export type RegionElementCriteria13 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField12 = {
   [k: string]: unknown;
 };
@@ -2008,16 +1966,13 @@ export type TargetByElementSimple13 = string;
  */
 export type TargetByElementDetailed13 = ElementFindingFields13 & AtLeastOneElementFindingField13;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image14 = ImageSimple14 | ImageDetailed14;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple14 = string;
-export type RegionElementCriteria14 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField13 = {
   [k: string]: unknown;
 };
@@ -2043,16 +1998,13 @@ export type TargetByElementSimple14 = string;
  */
 export type TargetByElementDetailed14 = ElementFindingFields14 & AtLeastOneElementFindingField14;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image15 = ImageSimple15 | ImageDetailed15;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple15 = string;
-export type RegionElementCriteria15 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField14 = {
   [k: string]: unknown;
 };
@@ -2078,16 +2030,13 @@ export type TargetByElementSimple15 = string;
  */
 export type TargetByElementDetailed15 = ElementFindingFields15 & AtLeastOneElementFindingField15;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image16 = ImageSimple16 | ImageDetailed16;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple16 = string;
-export type RegionElementCriteria16 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField15 = {
   [k: string]: unknown;
 };
@@ -2113,16 +2062,13 @@ export type TargetByElementSimple16 = string;
  */
 export type TargetByElementDetailed16 = ElementFindingFields16 & AtLeastOneElementFindingField16;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image17 = ImageSimple17 | ImageDetailed17;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple17 = string;
-export type RegionElementCriteria17 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField16 = {
   [k: string]: unknown;
 };
@@ -2148,16 +2094,13 @@ export type TargetByElementSimple17 = string;
  */
 export type TargetByElementDetailed17 = ElementFindingFields17 & AtLeastOneElementFindingField17;
 /**
- * Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
  */
 export type Image18 = ImageSimple18 | ImageDetailed18;
 /**
- * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
  */
 export type ImageSimple18 = string;
-export type RegionElementCriteria18 = {
-  [k: string]: unknown;
-};
 export type AtLeastOneElementFindingField17 = {
   [k: string]: unknown;
 };
@@ -4024,35 +3967,19 @@ export interface AppReadiness {
 }
 export interface ImageDetailed {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect | RegionElementCriteria;
-}
-export interface RegionRect {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 export interface WaitUntilRequiresASurface {
   [k: string]: unknown;
@@ -4411,35 +4338,19 @@ export interface ElementFindingFields {
 }
 export interface ImageDetailed1 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect1 | RegionElementCriteria1;
-}
-export interface RegionRect1 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4499,35 +4410,19 @@ export interface ElementFindingFields1 {
 }
 export interface ImageDetailed2 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect2 | RegionElementCriteria2;
-}
-export interface RegionRect2 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4587,35 +4482,19 @@ export interface ElementFindingFields2 {
 }
 export interface ImageDetailed3 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect3 | RegionElementCriteria3;
-}
-export interface RegionRect3 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4675,35 +4554,19 @@ export interface ElementFindingFields3 {
 }
 export interface ImageDetailed4 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect4 | RegionElementCriteria4;
-}
-export interface RegionRect4 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4763,35 +4626,19 @@ export interface ElementFindingFields4 {
 }
 export interface ImageDetailed5 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect5 | RegionElementCriteria5;
-}
-export interface RegionRect5 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4851,35 +4698,19 @@ export interface ElementFindingFields5 {
 }
 export interface ImageDetailed6 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect6 | RegionElementCriteria6;
-}
-export interface RegionRect6 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7754,35 +7585,19 @@ export interface ElementFindingFields6 {
 }
 export interface ImageDetailed7 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect7 | RegionElementCriteria7;
-}
-export interface RegionRect7 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7842,35 +7657,19 @@ export interface ElementFindingFields7 {
 }
 export interface ImageDetailed8 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect8 | RegionElementCriteria8;
-}
-export interface RegionRect8 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7930,35 +7729,19 @@ export interface ElementFindingFields8 {
 }
 export interface ImageDetailed9 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect9 | RegionElementCriteria9;
-}
-export interface RegionRect9 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8018,35 +7801,19 @@ export interface ElementFindingFields9 {
 }
 export interface ImageDetailed10 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect10 | RegionElementCriteria10;
-}
-export interface RegionRect10 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8106,35 +7873,19 @@ export interface ElementFindingFields10 {
 }
 export interface ImageDetailed11 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect11 | RegionElementCriteria11;
-}
-export interface RegionRect11 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8194,35 +7945,19 @@ export interface ElementFindingFields11 {
 }
 export interface ImageDetailed12 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect12 | RegionElementCriteria12;
-}
-export interface RegionRect12 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8427,35 +8162,19 @@ export interface ElementFindingFields12 {
 }
 export interface ImageDetailed13 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect13 | RegionElementCriteria13;
-}
-export interface RegionRect13 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8515,35 +8234,19 @@ export interface ElementFindingFields13 {
 }
 export interface ImageDetailed14 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect14 | RegionElementCriteria14;
-}
-export interface RegionRect14 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8603,35 +8306,19 @@ export interface ElementFindingFields14 {
 }
 export interface ImageDetailed15 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect15 | RegionElementCriteria15;
-}
-export interface RegionRect15 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8691,35 +8378,19 @@ export interface ElementFindingFields15 {
 }
 export interface ImageDetailed16 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect16 | RegionElementCriteria16;
-}
-export interface RegionRect16 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8779,35 +8450,19 @@ export interface ElementFindingFields16 {
 }
 export interface ImageDetailed17 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect17 | RegionElementCriteria17;
-}
-export interface RegionRect17 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8867,35 +8522,19 @@ export interface ElementFindingFields17 {
 }
 export interface ImageDetailed18 {
   /**
-   * Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…).
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
    */
   path: string;
   /**
-   * Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
    */
   matchThreshold?: number;
   /**
-   * Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
    */
-  region?: RegionRect18 | RegionElementCriteria18;
-}
-export interface RegionRect18 {
-  /**
-   * Left edge of the search area in logical units.
-   */
-  x: number;
-  /**
-   * Top edge of the search area in logical units.
-   */
-  y: number;
-  /**
-   * Width of the search area in logical units.
-   */
-  width: number;
-  /**
-   * Height of the search area in logical units.
-   */
-  height: number;
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.

@@ -1762,8 +1762,12 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
-      it("should reject a region with a nested image criterion", function () {
-        // No recursion: a region narrows the search for ONE image.
+      it("should accept a loosely-shaped region at the schema level", function () {
+        // `region` is deliberately a loose object in the schema: every byte
+        // of the image component inlines ~15,000x through the dereferenced
+        // output schemas, so the rect-or-criteria shape (and the no-nested-
+        // image rule) is enforced at runtime by normalizeImageCriterion
+        // instead. See elementImage_v3.schema.json's $comment.
         const result = validate({
           schemaKey: "step_v3",
           object: {
@@ -1772,7 +1776,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             },
           },
         });
-        expect(result.valid).to.be.false;
+        expect(result.valid, result.errors).to.be.true;
       });
 
       it("should validate click with an image criterion", function () {

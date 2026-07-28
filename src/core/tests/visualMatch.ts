@@ -112,6 +112,47 @@ function normalizeImageCriterion(image: any): ImageCriterion {
         "The image criterion object requires a `path` (template image file path or data URI)."
       );
     }
+    // The region's rect-or-criteria shape is validated HERE, not in the
+    // schema: the schema keeps `region` a loose object because every byte of
+    // that inline multiplies ~15,000x through the dereferenced output
+    // schemas (see elementImage_v3.schema.json's $comment).
+    const region = image.region;
+    if (region !== undefined) {
+      if (!region || typeof region !== "object" || Array.isArray(region)) {
+        throw new Error(
+          "The image criterion's region must be an object: a rect ({x, y, width, height}) or element criteria."
+        );
+      }
+      if (region.image !== undefined) {
+        throw new Error(
+          "The image criterion's region can't nest another image; a region narrows the search for ONE template."
+        );
+      }
+      const isRect =
+        typeof region.x === "number" &&
+        typeof region.y === "number" &&
+        typeof region.width === "number" &&
+        typeof region.height === "number";
+      const hasCriteria = [
+        "selector",
+        "elementText",
+        "elementId",
+        "elementTestId",
+        "elementClass",
+        "elementAttribute",
+        "elementAria",
+      ].some((field) => region[field] !== undefined);
+      if (!isRect && !hasCriteria) {
+        throw new Error(
+          "The image criterion's region must be a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …)."
+        );
+      }
+      if (isRect && (region.width <= 0 || region.height <= 0)) {
+        throw new Error(
+          "The image criterion's region rect needs a positive width and height."
+        );
+      }
+    }
     return image as ImageCriterion;
   }
   throw new Error(

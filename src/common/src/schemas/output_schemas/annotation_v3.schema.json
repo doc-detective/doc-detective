@@ -82,13 +82,14 @@
                     "image": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "image",
-                      "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                       "anyOf": [
                         {
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         {
                           "title": "Image (detailed)",
@@ -101,146 +102,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -251,7 +124,7 @@
                             "title": "Image (simple)",
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "object": {
                             "title": "Image (detailed)",
@@ -264,146 +137,18 @@
                               "path": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                               },
                               "matchThreshold": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1,
-                                "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                               },
                               "region": {
-                                "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                                "anyOf": [
-                                  {
-                                    "title": "Region (rect)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "properties": {
-                                      "x": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Left edge of the search area in logical units."
-                                      },
-                                      "y": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Top edge of the search area in logical units."
-                                      },
-                                      "width": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Width of the search area in logical units."
-                                      },
-                                      "height": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Height of the search area in logical units."
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "title": "Region (element criteria)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "anyOf": [
-                                      {
-                                        "required": [
-                                          "selector"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementText"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementTestId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementClass"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAttribute"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAria"
-                                        ]
-                                      }
-                                    ],
-                                    "properties": {
-                                      "selector": {
-                                        "type": "string",
-                                        "description": "Selector of the element whose bounds become the search area."
-                                      },
-                                      "elementText": {
-                                        "type": "string",
-                                        "description": "Display text of the element whose bounds become the search area."
-                                      },
-                                      "elementId": {
-                                        "type": "string",
-                                        "description": "ID attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementTestId": {
-                                        "type": "string",
-                                        "description": "data-testid attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementClass": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        ],
-                                        "description": "Class or classes of the element whose bounds become the search area."
-                                      },
-                                      "elementAttribute": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
-                                          ]
-                                        },
-                                        "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                      },
-                                      "elementAria": {
-                                        "type": "string",
-                                        "description": "Accessible name of the element whose bounds become the search area."
-                                      }
-                                    }
-                                  }
-                                ]
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                               }
                             }
                           }
@@ -414,21 +159,6 @@
                         {
                           "path": "icons/gear.png",
                           "matchThreshold": 0.9
-                        },
-                        {
-                          "path": "data:image/png;base64,iVBORw0KGgo=",
-                          "region": {
-                            "x": 0,
-                            "y": 0,
-                            "width": 400,
-                            "height": 120
-                          }
-                        },
-                        {
-                          "path": "icons/gear.png",
-                          "region": {
-                            "elementAria": "Toolbar"
-                          }
                         }
                       ]
                     },
@@ -623,13 +353,14 @@
                     "image": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "image",
-                      "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                       "anyOf": [
                         {
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         {
                           "title": "Image (detailed)",
@@ -642,146 +373,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -792,7 +395,7 @@
                             "title": "Image (simple)",
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "object": {
                             "title": "Image (detailed)",
@@ -805,146 +408,18 @@
                               "path": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                               },
                               "matchThreshold": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1,
-                                "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                               },
                               "region": {
-                                "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                                "anyOf": [
-                                  {
-                                    "title": "Region (rect)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "properties": {
-                                      "x": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Left edge of the search area in logical units."
-                                      },
-                                      "y": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Top edge of the search area in logical units."
-                                      },
-                                      "width": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Width of the search area in logical units."
-                                      },
-                                      "height": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Height of the search area in logical units."
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "title": "Region (element criteria)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "anyOf": [
-                                      {
-                                        "required": [
-                                          "selector"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementText"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementTestId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementClass"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAttribute"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAria"
-                                        ]
-                                      }
-                                    ],
-                                    "properties": {
-                                      "selector": {
-                                        "type": "string",
-                                        "description": "Selector of the element whose bounds become the search area."
-                                      },
-                                      "elementText": {
-                                        "type": "string",
-                                        "description": "Display text of the element whose bounds become the search area."
-                                      },
-                                      "elementId": {
-                                        "type": "string",
-                                        "description": "ID attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementTestId": {
-                                        "type": "string",
-                                        "description": "data-testid attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementClass": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        ],
-                                        "description": "Class or classes of the element whose bounds become the search area."
-                                      },
-                                      "elementAttribute": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
-                                          ]
-                                        },
-                                        "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                      },
-                                      "elementAria": {
-                                        "type": "string",
-                                        "description": "Accessible name of the element whose bounds become the search area."
-                                      }
-                                    }
-                                  }
-                                ]
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                               }
                             }
                           }
@@ -955,21 +430,6 @@
                         {
                           "path": "icons/gear.png",
                           "matchThreshold": 0.9
-                        },
-                        {
-                          "path": "data:image/png;base64,iVBORw0KGgo=",
-                          "region": {
-                            "x": 0,
-                            "y": 0,
-                            "width": 400,
-                            "height": 120
-                          }
-                        },
-                        {
-                          "path": "icons/gear.png",
-                          "region": {
-                            "elementAria": "Toolbar"
-                          }
                         }
                       ]
                     },
@@ -1164,13 +624,14 @@
                     "image": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "image",
-                      "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                       "anyOf": [
                         {
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         {
                           "title": "Image (detailed)",
@@ -1183,146 +644,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -1333,7 +666,7 @@
                             "title": "Image (simple)",
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "object": {
                             "title": "Image (detailed)",
@@ -1346,146 +679,18 @@
                               "path": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                               },
                               "matchThreshold": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1,
-                                "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                               },
                               "region": {
-                                "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                                "anyOf": [
-                                  {
-                                    "title": "Region (rect)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "properties": {
-                                      "x": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Left edge of the search area in logical units."
-                                      },
-                                      "y": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Top edge of the search area in logical units."
-                                      },
-                                      "width": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Width of the search area in logical units."
-                                      },
-                                      "height": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Height of the search area in logical units."
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "title": "Region (element criteria)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "anyOf": [
-                                      {
-                                        "required": [
-                                          "selector"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementText"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementTestId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementClass"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAttribute"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAria"
-                                        ]
-                                      }
-                                    ],
-                                    "properties": {
-                                      "selector": {
-                                        "type": "string",
-                                        "description": "Selector of the element whose bounds become the search area."
-                                      },
-                                      "elementText": {
-                                        "type": "string",
-                                        "description": "Display text of the element whose bounds become the search area."
-                                      },
-                                      "elementId": {
-                                        "type": "string",
-                                        "description": "ID attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementTestId": {
-                                        "type": "string",
-                                        "description": "data-testid attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementClass": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        ],
-                                        "description": "Class or classes of the element whose bounds become the search area."
-                                      },
-                                      "elementAttribute": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
-                                          ]
-                                        },
-                                        "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                      },
-                                      "elementAria": {
-                                        "type": "string",
-                                        "description": "Accessible name of the element whose bounds become the search area."
-                                      }
-                                    }
-                                  }
-                                ]
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                               }
                             }
                           }
@@ -1496,21 +701,6 @@
                         {
                           "path": "icons/gear.png",
                           "matchThreshold": 0.9
-                        },
-                        {
-                          "path": "data:image/png;base64,iVBORw0KGgo=",
-                          "region": {
-                            "x": 0,
-                            "y": 0,
-                            "width": 400,
-                            "height": 120
-                          }
-                        },
-                        {
-                          "path": "icons/gear.png",
-                          "region": {
-                            "elementAria": "Toolbar"
-                          }
                         }
                       ]
                     },
@@ -1705,13 +895,14 @@
                     "image": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "image",
-                      "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                       "anyOf": [
                         {
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         {
                           "title": "Image (detailed)",
@@ -1724,146 +915,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -1874,7 +937,7 @@
                             "title": "Image (simple)",
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "object": {
                             "title": "Image (detailed)",
@@ -1887,146 +950,18 @@
                               "path": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                               },
                               "matchThreshold": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1,
-                                "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                               },
                               "region": {
-                                "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                                "anyOf": [
-                                  {
-                                    "title": "Region (rect)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "properties": {
-                                      "x": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Left edge of the search area in logical units."
-                                      },
-                                      "y": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Top edge of the search area in logical units."
-                                      },
-                                      "width": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Width of the search area in logical units."
-                                      },
-                                      "height": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Height of the search area in logical units."
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "title": "Region (element criteria)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "anyOf": [
-                                      {
-                                        "required": [
-                                          "selector"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementText"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementTestId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementClass"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAttribute"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAria"
-                                        ]
-                                      }
-                                    ],
-                                    "properties": {
-                                      "selector": {
-                                        "type": "string",
-                                        "description": "Selector of the element whose bounds become the search area."
-                                      },
-                                      "elementText": {
-                                        "type": "string",
-                                        "description": "Display text of the element whose bounds become the search area."
-                                      },
-                                      "elementId": {
-                                        "type": "string",
-                                        "description": "ID attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementTestId": {
-                                        "type": "string",
-                                        "description": "data-testid attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementClass": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        ],
-                                        "description": "Class or classes of the element whose bounds become the search area."
-                                      },
-                                      "elementAttribute": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
-                                          ]
-                                        },
-                                        "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                      },
-                                      "elementAria": {
-                                        "type": "string",
-                                        "description": "Accessible name of the element whose bounds become the search area."
-                                      }
-                                    }
-                                  }
-                                ]
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                               }
                             }
                           }
@@ -2037,21 +972,6 @@
                         {
                           "path": "icons/gear.png",
                           "matchThreshold": 0.9
-                        },
-                        {
-                          "path": "data:image/png;base64,iVBORw0KGgo=",
-                          "region": {
-                            "x": 0,
-                            "y": 0,
-                            "width": 400,
-                            "height": 120
-                          }
-                        },
-                        {
-                          "path": "icons/gear.png",
-                          "region": {
-                            "elementAria": "Toolbar"
-                          }
                         }
                       ]
                     },
@@ -2246,13 +1166,14 @@
                     "image": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "image",
-                      "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                       "anyOf": [
                         {
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         {
                           "title": "Image (detailed)",
@@ -2265,146 +1186,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -2415,7 +1208,7 @@
                             "title": "Image (simple)",
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "object": {
                             "title": "Image (detailed)",
@@ -2428,146 +1221,18 @@
                               "path": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                               },
                               "matchThreshold": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1,
-                                "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                               },
                               "region": {
-                                "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                                "anyOf": [
-                                  {
-                                    "title": "Region (rect)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "properties": {
-                                      "x": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Left edge of the search area in logical units."
-                                      },
-                                      "y": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Top edge of the search area in logical units."
-                                      },
-                                      "width": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Width of the search area in logical units."
-                                      },
-                                      "height": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Height of the search area in logical units."
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "title": "Region (element criteria)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "anyOf": [
-                                      {
-                                        "required": [
-                                          "selector"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementText"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementTestId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementClass"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAttribute"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAria"
-                                        ]
-                                      }
-                                    ],
-                                    "properties": {
-                                      "selector": {
-                                        "type": "string",
-                                        "description": "Selector of the element whose bounds become the search area."
-                                      },
-                                      "elementText": {
-                                        "type": "string",
-                                        "description": "Display text of the element whose bounds become the search area."
-                                      },
-                                      "elementId": {
-                                        "type": "string",
-                                        "description": "ID attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementTestId": {
-                                        "type": "string",
-                                        "description": "data-testid attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementClass": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        ],
-                                        "description": "Class or classes of the element whose bounds become the search area."
-                                      },
-                                      "elementAttribute": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
-                                          ]
-                                        },
-                                        "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                      },
-                                      "elementAria": {
-                                        "type": "string",
-                                        "description": "Accessible name of the element whose bounds become the search area."
-                                      }
-                                    }
-                                  }
-                                ]
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                               }
                             }
                           }
@@ -2578,21 +1243,6 @@
                         {
                           "path": "icons/gear.png",
                           "matchThreshold": 0.9
-                        },
-                        {
-                          "path": "data:image/png;base64,iVBORw0KGgo=",
-                          "region": {
-                            "x": 0,
-                            "y": 0,
-                            "width": 400,
-                            "height": 120
-                          }
-                        },
-                        {
-                          "path": "icons/gear.png",
-                          "region": {
-                            "elementAria": "Toolbar"
-                          }
                         }
                       ]
                     },
@@ -2787,13 +1437,14 @@
                     "image": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "image",
-                      "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                       "anyOf": [
                         {
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         {
                           "title": "Image (detailed)",
@@ -2806,146 +1457,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -2956,7 +1479,7 @@
                             "title": "Image (simple)",
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "object": {
                             "title": "Image (detailed)",
@@ -2969,146 +1492,18 @@
                               "path": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                               },
                               "matchThreshold": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1,
-                                "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                               },
                               "region": {
-                                "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                                "anyOf": [
-                                  {
-                                    "title": "Region (rect)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "properties": {
-                                      "x": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Left edge of the search area in logical units."
-                                      },
-                                      "y": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "description": "Top edge of the search area in logical units."
-                                      },
-                                      "width": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Width of the search area in logical units."
-                                      },
-                                      "height": {
-                                        "type": "number",
-                                        "exclusiveMinimum": 0,
-                                        "description": "Height of the search area in logical units."
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "title": "Region (element criteria)",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "anyOf": [
-                                      {
-                                        "required": [
-                                          "selector"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementText"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementTestId"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementClass"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAttribute"
-                                        ]
-                                      },
-                                      {
-                                        "required": [
-                                          "elementAria"
-                                        ]
-                                      }
-                                    ],
-                                    "properties": {
-                                      "selector": {
-                                        "type": "string",
-                                        "description": "Selector of the element whose bounds become the search area."
-                                      },
-                                      "elementText": {
-                                        "type": "string",
-                                        "description": "Display text of the element whose bounds become the search area."
-                                      },
-                                      "elementId": {
-                                        "type": "string",
-                                        "description": "ID attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementTestId": {
-                                        "type": "string",
-                                        "description": "data-testid attribute of the element whose bounds become the search area."
-                                      },
-                                      "elementClass": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        ],
-                                        "description": "Class or classes of the element whose bounds become the search area."
-                                      },
-                                      "elementAttribute": {
-                                        "type": "object",
-                                        "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
-                                          ]
-                                        },
-                                        "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                      },
-                                      "elementAria": {
-                                        "type": "string",
-                                        "description": "Accessible name of the element whose bounds become the search area."
-                                      }
-                                    }
-                                  }
-                                ]
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                               }
                             }
                           }
@@ -3119,21 +1514,6 @@
                         {
                           "path": "icons/gear.png",
                           "matchThreshold": 0.9
-                        },
-                        {
-                          "path": "data:image/png;base64,iVBORw0KGgo=",
-                          "region": {
-                            "x": 0,
-                            "y": 0,
-                            "width": 400,
-                            "height": 120
-                          }
-                        },
-                        {
-                          "path": "icons/gear.png",
-                          "region": {
-                            "elementAria": "Toolbar"
-                          }
                         }
                       ]
                     },
@@ -3561,13 +1941,14 @@
                   "image": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "title": "image",
-                    "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                    "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                    "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                     "anyOf": [
                       {
                         "title": "Image (simple)",
                         "type": "string",
                         "minLength": 1,
-                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                       },
                       {
                         "title": "Image (detailed)",
@@ -3580,146 +1961,18 @@
                           "path": {
                             "type": "string",
                             "minLength": 1,
-                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                           },
                           "matchThreshold": {
                             "type": "number",
                             "minimum": 0,
                             "maximum": 1,
-                            "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                            "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                           },
                           "region": {
-                            "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                            "anyOf": [
-                              {
-                                "title": "Region (rect)",
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "x",
-                                  "y",
-                                  "width",
-                                  "height"
-                                ],
-                                "properties": {
-                                  "x": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "description": "Left edge of the search area in logical units."
-                                  },
-                                  "y": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "description": "Top edge of the search area in logical units."
-                                  },
-                                  "width": {
-                                    "type": "number",
-                                    "exclusiveMinimum": 0,
-                                    "description": "Width of the search area in logical units."
-                                  },
-                                  "height": {
-                                    "type": "number",
-                                    "exclusiveMinimum": 0,
-                                    "description": "Height of the search area in logical units."
-                                  }
-                                }
-                              },
-                              {
-                                "title": "Region (element criteria)",
-                                "type": "object",
-                                "additionalProperties": false,
-                                "anyOf": [
-                                  {
-                                    "required": [
-                                      "selector"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "elementText"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "elementId"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "elementTestId"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "elementClass"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "elementAttribute"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "elementAria"
-                                    ]
-                                  }
-                                ],
-                                "properties": {
-                                  "selector": {
-                                    "type": "string",
-                                    "description": "Selector of the element whose bounds become the search area."
-                                  },
-                                  "elementText": {
-                                    "type": "string",
-                                    "description": "Display text of the element whose bounds become the search area."
-                                  },
-                                  "elementId": {
-                                    "type": "string",
-                                    "description": "ID attribute of the element whose bounds become the search area."
-                                  },
-                                  "elementTestId": {
-                                    "type": "string",
-                                    "description": "data-testid attribute of the element whose bounds become the search area."
-                                  },
-                                  "elementClass": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "string"
-                                        }
-                                      }
-                                    ],
-                                    "description": "Class or classes of the element whose bounds become the search area."
-                                  },
-                                  "elementAttribute": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
-                                      ]
-                                    },
-                                    "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                  },
-                                  "elementAria": {
-                                    "type": "string",
-                                    "description": "Accessible name of the element whose bounds become the search area."
-                                  }
-                                }
-                              }
-                            ]
+                            "type": "object",
+                            "minProperties": 1,
+                            "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                           }
                         }
                       }
@@ -3730,7 +1983,7 @@
                           "title": "Image (simple)",
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         "object": {
                           "title": "Image (detailed)",
@@ -3743,146 +1996,18 @@
                             "path": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                             },
                             "matchThreshold": {
                               "type": "number",
                               "minimum": 0,
                               "maximum": 1,
-                              "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                             },
                             "region": {
-                              "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                              "anyOf": [
-                                {
-                                  "title": "Region (rect)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "x",
-                                    "y",
-                                    "width",
-                                    "height"
-                                  ],
-                                  "properties": {
-                                    "x": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Left edge of the search area in logical units."
-                                    },
-                                    "y": {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "description": "Top edge of the search area in logical units."
-                                    },
-                                    "width": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Width of the search area in logical units."
-                                    },
-                                    "height": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0,
-                                      "description": "Height of the search area in logical units."
-                                    }
-                                  }
-                                },
-                                {
-                                  "title": "Region (element criteria)",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "selector"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementText"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementTestId"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementClass"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAttribute"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "elementAria"
-                                      ]
-                                    }
-                                  ],
-                                  "properties": {
-                                    "selector": {
-                                      "type": "string",
-                                      "description": "Selector of the element whose bounds become the search area."
-                                    },
-                                    "elementText": {
-                                      "type": "string",
-                                      "description": "Display text of the element whose bounds become the search area."
-                                    },
-                                    "elementId": {
-                                      "type": "string",
-                                      "description": "ID attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementTestId": {
-                                      "type": "string",
-                                      "description": "data-testid attribute of the element whose bounds become the search area."
-                                    },
-                                    "elementClass": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string"
-                                          }
-                                        }
-                                      ],
-                                      "description": "Class or classes of the element whose bounds become the search area."
-                                    },
-                                    "elementAttribute": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
-                                        ]
-                                      },
-                                      "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                    },
-                                    "elementAria": {
-                                      "type": "string",
-                                      "description": "Accessible name of the element whose bounds become the search area."
-                                    }
-                                  }
-                                }
-                              ]
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                             }
                           }
                         }
@@ -3893,21 +2018,6 @@
                       {
                         "path": "icons/gear.png",
                         "matchThreshold": 0.9
-                      },
-                      {
-                        "path": "data:image/png;base64,iVBORw0KGgo=",
-                        "region": {
-                          "x": 0,
-                          "y": 0,
-                          "width": 400,
-                          "height": 120
-                        }
-                      },
-                      {
-                        "path": "icons/gear.png",
-                        "region": {
-                          "elementAria": "Toolbar"
-                        }
                       }
                     ]
                   },
@@ -4094,13 +2204,14 @@
               "image": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "image",
-                "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+                "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
                 "anyOf": [
                   {
                     "title": "Image (simple)",
                     "type": "string",
                     "minLength": 1,
-                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                   },
                   {
                     "title": "Image (detailed)",
@@ -4113,146 +2224,18 @@
                       "path": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                       },
                       "matchThreshold": {
                         "type": "number",
                         "minimum": 0,
                         "maximum": 1,
-                        "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                        "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                       },
                       "region": {
-                        "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                        "anyOf": [
-                          {
-                            "title": "Region (rect)",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "x",
-                              "y",
-                              "width",
-                              "height"
-                            ],
-                            "properties": {
-                              "x": {
-                                "type": "number",
-                                "minimum": 0,
-                                "description": "Left edge of the search area in logical units."
-                              },
-                              "y": {
-                                "type": "number",
-                                "minimum": 0,
-                                "description": "Top edge of the search area in logical units."
-                              },
-                              "width": {
-                                "type": "number",
-                                "exclusiveMinimum": 0,
-                                "description": "Width of the search area in logical units."
-                              },
-                              "height": {
-                                "type": "number",
-                                "exclusiveMinimum": 0,
-                                "description": "Height of the search area in logical units."
-                              }
-                            }
-                          },
-                          {
-                            "title": "Region (element criteria)",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "anyOf": [
-                              {
-                                "required": [
-                                  "selector"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "elementText"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "elementId"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "elementTestId"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "elementClass"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "elementAttribute"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "elementAria"
-                                ]
-                              }
-                            ],
-                            "properties": {
-                              "selector": {
-                                "type": "string",
-                                "description": "Selector of the element whose bounds become the search area."
-                              },
-                              "elementText": {
-                                "type": "string",
-                                "description": "Display text of the element whose bounds become the search area."
-                              },
-                              "elementId": {
-                                "type": "string",
-                                "description": "ID attribute of the element whose bounds become the search area."
-                              },
-                              "elementTestId": {
-                                "type": "string",
-                                "description": "data-testid attribute of the element whose bounds become the search area."
-                              },
-                              "elementClass": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
-                                  }
-                                ],
-                                "description": "Class or classes of the element whose bounds become the search area."
-                              },
-                              "elementAttribute": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    }
-                                  ]
-                                },
-                                "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                              },
-                              "elementAria": {
-                                "type": "string",
-                                "description": "Accessible name of the element whose bounds become the search area."
-                              }
-                            }
-                          }
-                        ]
+                        "type": "object",
+                        "minProperties": 1,
+                        "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                       }
                     }
                   }
@@ -4263,7 +2246,7 @@
                       "title": "Image (simple)",
                       "type": "string",
                       "minLength": 1,
-                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                     },
                     "object": {
                       "title": "Image (detailed)",
@@ -4276,146 +2259,18 @@
                         "path": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                         },
                         "matchThreshold": {
                           "type": "number",
                           "minimum": 0,
                           "maximum": 1,
-                          "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                          "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                         },
                         "region": {
-                          "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                          "anyOf": [
-                            {
-                              "title": "Region (rect)",
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "x",
-                                "y",
-                                "width",
-                                "height"
-                              ],
-                              "properties": {
-                                "x": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "description": "Left edge of the search area in logical units."
-                                },
-                                "y": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "description": "Top edge of the search area in logical units."
-                                },
-                                "width": {
-                                  "type": "number",
-                                  "exclusiveMinimum": 0,
-                                  "description": "Width of the search area in logical units."
-                                },
-                                "height": {
-                                  "type": "number",
-                                  "exclusiveMinimum": 0,
-                                  "description": "Height of the search area in logical units."
-                                }
-                              }
-                            },
-                            {
-                              "title": "Region (element criteria)",
-                              "type": "object",
-                              "additionalProperties": false,
-                              "anyOf": [
-                                {
-                                  "required": [
-                                    "selector"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "elementText"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "elementId"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "elementTestId"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "elementClass"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "elementAttribute"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "elementAria"
-                                  ]
-                                }
-                              ],
-                              "properties": {
-                                "selector": {
-                                  "type": "string",
-                                  "description": "Selector of the element whose bounds become the search area."
-                                },
-                                "elementText": {
-                                  "type": "string",
-                                  "description": "Display text of the element whose bounds become the search area."
-                                },
-                                "elementId": {
-                                  "type": "string",
-                                  "description": "ID attribute of the element whose bounds become the search area."
-                                },
-                                "elementTestId": {
-                                  "type": "string",
-                                  "description": "data-testid attribute of the element whose bounds become the search area."
-                                },
-                                "elementClass": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    }
-                                  ],
-                                  "description": "Class or classes of the element whose bounds become the search area."
-                                },
-                                "elementAttribute": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
-                                    ]
-                                  },
-                                  "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                                },
-                                "elementAria": {
-                                  "type": "string",
-                                  "description": "Accessible name of the element whose bounds become the search area."
-                                }
-                              }
-                            }
-                          ]
+                          "type": "object",
+                          "minProperties": 1,
+                          "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                         }
                       }
                     }
@@ -4426,21 +2281,6 @@
                   {
                     "path": "icons/gear.png",
                     "matchThreshold": 0.9
-                  },
-                  {
-                    "path": "data:image/png;base64,iVBORw0KGgo=",
-                    "region": {
-                      "x": 0,
-                      "y": 0,
-                      "width": 400,
-                      "height": 120
-                    }
-                  },
-                  {
-                    "path": "icons/gear.png",
-                    "region": {
-                      "elementAria": "Toolbar"
-                    }
                   }
                 ]
               },
@@ -4622,13 +2462,14 @@
           "image": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "title": "image",
-            "description": "Locate the element visually by template image. Doc Detective screenshots the surface and finds the region matching the template via OpenCV template matching, auto-scaling the template across display scales (Retina, Windows scaling). Combine with other element criteria to disambiguate identical-looking targets; on browser surfaces the matched region resolves to the real element under its center.",
+            "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+            "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
             "anyOf": [
               {
                 "title": "Image (simple)",
                 "type": "string",
                 "minLength": 1,
-                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
               },
               {
                 "title": "Image (detailed)",
@@ -4641,146 +2482,18 @@
                   "path": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                   },
                   "matchThreshold": {
                     "type": "number",
                     "minimum": 0,
                     "maximum": 1,
-                    "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                   },
                   "region": {
-                    "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                    "anyOf": [
-                      {
-                        "title": "Region (rect)",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "x",
-                          "y",
-                          "width",
-                          "height"
-                        ],
-                        "properties": {
-                          "x": {
-                            "type": "number",
-                            "minimum": 0,
-                            "description": "Left edge of the search area in logical units."
-                          },
-                          "y": {
-                            "type": "number",
-                            "minimum": 0,
-                            "description": "Top edge of the search area in logical units."
-                          },
-                          "width": {
-                            "type": "number",
-                            "exclusiveMinimum": 0,
-                            "description": "Width of the search area in logical units."
-                          },
-                          "height": {
-                            "type": "number",
-                            "exclusiveMinimum": 0,
-                            "description": "Height of the search area in logical units."
-                          }
-                        }
-                      },
-                      {
-                        "title": "Region (element criteria)",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "anyOf": [
-                          {
-                            "required": [
-                              "selector"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementText"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementId"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementTestId"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementClass"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementAttribute"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementAria"
-                            ]
-                          }
-                        ],
-                        "properties": {
-                          "selector": {
-                            "type": "string",
-                            "description": "Selector of the element whose bounds become the search area."
-                          },
-                          "elementText": {
-                            "type": "string",
-                            "description": "Display text of the element whose bounds become the search area."
-                          },
-                          "elementId": {
-                            "type": "string",
-                            "description": "ID attribute of the element whose bounds become the search area."
-                          },
-                          "elementTestId": {
-                            "type": "string",
-                            "description": "data-testid attribute of the element whose bounds become the search area."
-                          },
-                          "elementClass": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            ],
-                            "description": "Class or classes of the element whose bounds become the search area."
-                          },
-                          "elementAttribute": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
-                              ]
-                            },
-                            "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                          },
-                          "elementAria": {
-                            "type": "string",
-                            "description": "Accessible name of the element whose bounds become the search area."
-                          }
-                        }
-                      }
-                    ]
+                    "type": "object",
+                    "minProperties": 1,
+                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                   }
                 }
               }
@@ -4791,7 +2504,7 @@
                   "title": "Image (simple)",
                   "type": "string",
                   "minLength": 1,
-                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                 },
                 "object": {
                   "title": "Image (detailed)",
@@ -4804,146 +2517,18 @@
                     "path": {
                       "type": "string",
                       "minLength": 1,
-                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec like other paths) or an inline data URI (data:image/png;base64,…)."
+                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
                     },
                     "matchThreshold": {
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1,
-                      "description": "Minimum normalized match score (0–1) to accept a match. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                      "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
                     },
                     "region": {
-                      "description": "Restrict the search area: a rect in logical units ({x, y, width, height}), or element-finding criteria whose matched element's bounds become the search area. Use it to speed up matching or to disambiguate multiple identical-looking targets.",
-                      "anyOf": [
-                        {
-                          "title": "Region (rect)",
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "x",
-                            "y",
-                            "width",
-                            "height"
-                          ],
-                          "properties": {
-                            "x": {
-                              "type": "number",
-                              "minimum": 0,
-                              "description": "Left edge of the search area in logical units."
-                            },
-                            "y": {
-                              "type": "number",
-                              "minimum": 0,
-                              "description": "Top edge of the search area in logical units."
-                            },
-                            "width": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Width of the search area in logical units."
-                            },
-                            "height": {
-                              "type": "number",
-                              "exclusiveMinimum": 0,
-                              "description": "Height of the search area in logical units."
-                            }
-                          }
-                        },
-                        {
-                          "title": "Region (element criteria)",
-                          "type": "object",
-                          "additionalProperties": false,
-                          "anyOf": [
-                            {
-                              "required": [
-                                "selector"
-                              ]
-                            },
-                            {
-                              "required": [
-                                "elementText"
-                              ]
-                            },
-                            {
-                              "required": [
-                                "elementId"
-                              ]
-                            },
-                            {
-                              "required": [
-                                "elementTestId"
-                              ]
-                            },
-                            {
-                              "required": [
-                                "elementClass"
-                              ]
-                            },
-                            {
-                              "required": [
-                                "elementAttribute"
-                              ]
-                            },
-                            {
-                              "required": [
-                                "elementAria"
-                              ]
-                            }
-                          ],
-                          "properties": {
-                            "selector": {
-                              "type": "string",
-                              "description": "Selector of the element whose bounds become the search area."
-                            },
-                            "elementText": {
-                              "type": "string",
-                              "description": "Display text of the element whose bounds become the search area."
-                            },
-                            "elementId": {
-                              "type": "string",
-                              "description": "ID attribute of the element whose bounds become the search area."
-                            },
-                            "elementTestId": {
-                              "type": "string",
-                              "description": "data-testid attribute of the element whose bounds become the search area."
-                            },
-                            "elementClass": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                }
-                              ],
-                              "description": "Class or classes of the element whose bounds become the search area."
-                            },
-                            "elementAttribute": {
-                              "type": "object",
-                              "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
-                                ]
-                              },
-                              "description": "Attribute key-value pairs of the element whose bounds become the search area."
-                            },
-                            "elementAria": {
-                              "type": "string",
-                              "description": "Accessible name of the element whose bounds become the search area."
-                            }
-                          }
-                        }
-                      ]
+                      "type": "object",
+                      "minProperties": 1,
+                      "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
                     }
                   }
                 }
@@ -4954,21 +2539,6 @@
               {
                 "path": "icons/gear.png",
                 "matchThreshold": 0.9
-              },
-              {
-                "path": "data:image/png;base64,iVBORw0KGgo=",
-                "region": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 400,
-                  "height": 120
-                }
-              },
-              {
-                "path": "icons/gear.png",
-                "region": {
-                  "elementAria": "Toolbar"
-                }
               }
             ]
           },

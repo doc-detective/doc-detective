@@ -73,6 +73,52 @@ describe("visualMatch pure helpers", function () {
     it("throws on a non-string, non-object value", function () {
       assert.throws(() => normalizeImageCriterion(42), /image/i);
     });
+
+    // The region's rect-or-criteria shape is validated here at runtime — the
+    // schema keeps `region` loose to bound the dereferenced-schema blowup.
+    it("accepts a rect region and a criteria region", function () {
+      assert.ok(
+        normalizeImageCriterion({
+          path: "g.png",
+          region: { x: 0, y: 0, width: 10, height: 10 },
+        })
+      );
+      assert.ok(
+        normalizeImageCriterion({
+          path: "g.png",
+          region: { elementText: "Toolbar" },
+        })
+      );
+    });
+
+    it("throws on a region nesting another image", function () {
+      assert.throws(
+        () =>
+          normalizeImageCriterion({
+            path: "g.png",
+            region: { image: "toolbar.png" },
+          }),
+        /nest/i
+      );
+    });
+
+    it("throws on a region that is neither rect nor criteria", function () {
+      assert.throws(
+        () => normalizeImageCriterion({ path: "g.png", region: { foo: 1 } }),
+        /rect|criteria/i
+      );
+    });
+
+    it("throws on a zero-size rect region", function () {
+      assert.throws(
+        () =>
+          normalizeImageCriterion({
+            path: "g.png",
+            region: { x: 0, y: 0, width: 0, height: 10 },
+          }),
+        /positive/i
+      );
+    });
   });
 
   describe("isDataUri", function () {
