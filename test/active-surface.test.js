@@ -17,6 +17,7 @@ import { findElement } from "../dist/core/tests/findElement.js";
 import { typeKeys } from "../dist/core/tests/typeKeys.js";
 import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
 import { swipeSurface } from "../dist/core/tests/swipe.js";
+import { startSurfaceStep } from "../dist/core/tests/startSurface.js";
 import {
   createSessionRegistry,
   registerSession,
@@ -807,6 +808,9 @@ describe("active-surface bookkeeping is non-destructive and honors timeout 0", f
 });
 
 describe("startSurface array form: activation re-assert failure is loud", function () {
+  // startSurface drags in the app/process/browser lanes; the first load on a
+  // cold CI runner can outrun mocha's 2s default.
+  this.timeout(20000);
   it("FAILs the descriptor when the opened session can't be made active", async function () {
     // The guard exists because a silent miss is the worst outcome: the session
     // opens, `activeName` keeps pointing at the PREVIOUS session, and every
@@ -817,9 +821,6 @@ describe("startSurface array form: activation re-assert failure is loud", functi
     // simulated: a sessions map that accepts writes but never returns them, so
     // the re-assert's lookup misses exactly as it would if the registry and the
     // opened session ever disagreed on the name.
-    const { startSurfaceStep } = await import(
-      "../dist/core/tests/startSurface.js"
-    );
     class WriteOnlyMap extends Map {
       get() {
         return undefined;
@@ -850,9 +851,6 @@ describe("startSurface array form: activation re-assert failure is loud", functi
 
   it("PASSes when the session is addressable, and makes it active", async function () {
     // Guard the guard: the failure path above must not fire on a healthy open.
-    const { startSurfaceStep } = await import(
-      "../dist/core/tests/startSurface.js"
-    );
     const tracker = createActiveSurfaceTracker();
     const registry = {
       sessions: new Map(),
