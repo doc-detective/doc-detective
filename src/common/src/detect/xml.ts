@@ -160,7 +160,11 @@ function collectXmlNodes(
   walk(doc, ++nextBlockId);
   nodes.sort((a, b) => a.startIndex - b.startIndex);
 
-  // Context pass, same contract as the other backends.
+  // Context pass, same contract as the other backends. Order matters: this
+  // runs BEFORE the offsetShift adjustment below, so node offsets and the
+  // `content` being sliced are both still in the (possibly synthetic-root-
+  // prepended) parse coordinates. The shift back to original-document
+  // coordinates happens only afterward.
   const blockBounds = new Map<number, [number, number]>();
   for (const n of nodes) {
     const bounds = blockBounds.get(n.blockId);

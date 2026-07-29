@@ -244,10 +244,11 @@ export function parseAsciidoc(content: string): SemanticNode[] {
     // Two constructs can't share a start (links start with a scheme, strong
     // with *, emphasis with _), so start alone is a total order.
     inline.sort((a, b) => a.start - b.start);
+    // `cursor` is both the emit boundary for gap text and the overlap guard:
+    // an item starting before it is nested in the last emitted node and skipped.
     let cursor = 0;
-    let lastEnd = 0;
     for (const item of inline) {
-      if (item.start < lastEnd) continue; // overlap: first (longest) wins
+      if (item.start < cursor) continue; // overlap: first (longest) wins
       if (item.start > cursor) {
         const segment = text.slice(cursor, item.start);
         if (segment.trim()) {
@@ -264,7 +265,6 @@ export function parseAsciidoc(content: string): SemanticNode[] {
       }
       nodes.push(item.node);
       cursor = item.end;
-      lastEnd = item.end;
     }
     if (cursor < text.length) {
       const segment = text.slice(cursor);
