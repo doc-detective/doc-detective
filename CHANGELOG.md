@@ -1,3 +1,10 @@
+## [4.37.1](https://github.com/doc-detective/doc-detective/compare/v4.37.0...v4.37.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **platform:** resolve symlinks in the runner bin entry guard ([#698](https://github.com/doc-detective/doc-detective/issues/698)) ([851f2c5](https://github.com/doc-detective/doc-detective/commit/851f2c536cbf2b9fae0837117244f100ed7fb165))
+
 # [4.37.0](https://github.com/doc-detective/doc-detective/compare/v4.36.0...v4.37.0) (2026-07-26)
 
 
