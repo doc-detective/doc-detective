@@ -1055,7 +1055,7 @@ describe("runner-entrypoint: bin entry guard", () => {
 
   /** Runs the entrypoint with no DD_* env, so main() fails fast and loudly. */
   function runEntrypoint(target) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [target], {
         env: {
           PATH: process.env.PATH,
@@ -1067,6 +1067,13 @@ describe("runner-entrypoint: bin entry guard", () => {
       let out = "";
       child.stdout.on("data", (c) => (out += c));
       child.stderr.on("data", (c) => (out += c));
+      // A failed spawn emits 'error', and 'close' is not guaranteed to
+      // follow — without this the promise never settles and the test dies
+      // on the mocha timeout instead of naming the cause. Whichever event
+      // fires first wins; a later one is a no-op.
+      child.on("error", (err) =>
+        reject(new Error(`failed to spawn ${target}: ${err.message}`))
+      );
       child.on("close", (code) => resolve({ code, out }));
     });
   }
