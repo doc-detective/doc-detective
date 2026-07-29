@@ -139,6 +139,11 @@ red→green:
   is still routable to a caller that does supply it.
 * A handle whose registry *is* supplied and reports it gone is still pruned —
   guarding the lazy-prune contract against regression.
+* An array-form `startSurface` whose opened session can't be resolved by name
+  FAILs that descriptor and names the surface, instead of silently leaving the
+  previous session active. Verified red with the guard removed. A companion case
+  asserts a healthy open still PASSes and becomes active, so the guard can't fire
+  on the normal path.
 
 ## Pros and Cons of the Options
 

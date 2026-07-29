@@ -805,3 +805,74 @@ describe("active-surface bookkeeping is non-destructive and honors timeout 0", f
     );
   });
 });
+
+describe("startSurface array form: activation re-assert failure is loud", function () {
+  it("FAILs the descriptor when the opened session can't be made active", async function () {
+    // The guard exists because a silent miss is the worst outcome: the session
+    // opens, `activeName` keeps pointing at the PREVIOUS session, and every
+    // later surface-less step acts on the wrong browser with no error anywhere.
+    //
+    // The miss isn't reachable through the normal path (openSession registers
+    // under the same name its outputs carry), so the corrupted state is
+    // simulated: a sessions map that accepts writes but never returns them, so
+    // the re-assert's lookup misses exactly as it would if the registry and the
+    // opened session ever disagreed on the name.
+    const { startSurfaceStep } = await import(
+      "../dist/core/tests/startSurface.js"
+    );
+    class WriteOnlyMap extends Map {
+      get() {
+        return undefined;
+      }
+    }
+    const tracker = createActiveSurfaceTracker();
+    const registry = {
+      sessions: new WriteOnlyMap(),
+      activeName: null,
+      focusSeq: 0,
+      tracker,
+      open: async () => ({ state: {} }),
+    };
+    const driver = { state: { sessionRegistry: registry } };
+
+    const result = await startSurfaceStep({
+      config: {},
+      step: { startSurface: [{ browser: "chrome", name: "par-chrome" }] },
+      platform: "windows",
+      driver,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /par-chrome/);
+    assert.match(result.description, /active surface/i);
+  });
+
+  it("PASSes when the session is addressable, and makes it active", async function () {
+    // Guard the guard: the failure path above must not fire on a healthy open.
+    const { startSurfaceStep } = await import(
+      "../dist/core/tests/startSurface.js"
+    );
+    const tracker = createActiveSurfaceTracker();
+    const registry = {
+      sessions: new Map(),
+      activeName: null,
+      focusSeq: 0,
+      tracker,
+      open: async () => ({ state: {} }),
+    };
+    const driver = { state: { sessionRegistry: registry } };
+
+    const result = await startSurfaceStep({
+      config: {},
+      step: { startSurface: [{ browser: "chrome", name: "ok-chrome" }] },
+      platform: "windows",
+      driver,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "PASS");
+    assert.equal(registry.activeName, "ok-chrome");
+    assert.deepEqual(tracker.mru[0], { kind: "browser", name: "ok-chrome" });
+  });
+});
