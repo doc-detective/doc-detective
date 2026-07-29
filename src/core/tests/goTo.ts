@@ -4,6 +4,7 @@ import {
   appendQueryParams,
   isDeviceWebContext,
   computeSettleCeiling,
+  isPageUnnavigated,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -403,6 +404,28 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         } catch {
           // Ceiling elapsed with the tree still empty: proceed anyway. find's
           // own wait remains the authority on a genuinely-absent element.
+        }
+      }
+
+      // The navigation can silently not take: a fresh Chromium session stays
+      // parked on its initial blank document (`data:,`) while `url()` resolves
+      // and every wait condition passes against that blank page (ADR 01084).
+      // Reporting PASS here strands the failure on whatever step next needs the
+      // page — a `find` timing out against a page that was never loaded, with
+      // nothing pointing at the navigation (issue #696). ADR 01084's retry
+      // covers the context's PRIMARY session only, so a secondary session from
+      // `startSurface` reaches here unprotected.
+      //
+      // Re-issuing is safe precisely because the URL is unambiguous: this code
+      // only runs after an explicit navigation, and a page that navigated
+      // anywhere is never on `data:,`. `about:blank` is deliberately excluded
+      // by the predicate — a test may navigate there on purpose.
+      if (await isPageUnnavigated(driver)) {
+        await driver.url(step.goTo.url);
+        if (await isPageUnnavigated(driver)) {
+          result.status = "FAIL";
+          result.description = `Navigated to ${step.goTo.url}, but the browser never left its initial blank document (data:,) — the navigation didn't take, even after a retry. The session is alive; the page was never loaded.`;
+          return result;
         }
       }
 
