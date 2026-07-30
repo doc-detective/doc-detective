@@ -27,6 +27,11 @@ function getRandomUUID(): string {
 // @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
 const ajv = new Ajv({
   strictSchema: false,
+  // strictTypes defaults to 'log', which prints a 'strict mode: missing type ...'
+  // warning for every if/then/required branch in the schemas at compile time --
+  // hundreds of lines per run for every consumer. It is a compile-time lint
+  // only and has no effect on validation results.
+  strictTypes: false,
   useDefaults: true,
   allErrors: true,
   allowUnionTypes: true,
@@ -51,6 +56,11 @@ const ajv = new Ajv({
 // @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
 const ajvCheck = new Ajv({
   strictSchema: false,
+  // strictTypes defaults to 'log', which prints a 'strict mode: missing type ...'
+  // warning for every if/then/required branch in the schemas at compile time --
+  // hundreds of lines per run for every consumer. It is a compile-time lint
+  // only and has no effect on validation results.
+  strictTypes: false,
   useDefaults: false,
   allErrors: true,
   allowUnionTypes: true,
