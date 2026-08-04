@@ -1,0 +1,69 @@
+{
+  "specId": "app-visual-find",
+  "description": "Visual element matching (image criterion) on a Windows native app surface, self-seeded: a full-window screenshot of Character Map becomes the template, and a find with that image must match it (score ~1.0) through the real window-capture + template-match + page-source-recovery pipeline. The runCode step asserts the imageMatch output carried a real score, so a silently-skipped match can't pass. Gated like the other charmap fixtures; elsewhere the context lands SKIPPED.",
+  "tests": [
+    {
+      "testId": "app-visual-find-selfseed",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "stepId": "app-visual-seed",
+          "screenshot": {
+            "path": "visual-app-window.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "stepId": "app-visual-find",
+          "find": {
+            "image": "visual-app-window.png",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 30000
+          },
+          "variables": {
+            "VF_APP_SCORE": "$$imageMatch.score"
+          }
+        },
+        {
+          "stepId": "app-visual-assert-score",
+          "runCode": {
+            "language": "javascript",
+            "code": "const score = Number(process.env.VF_APP_SCORE); if (!(score >= 0.8)) { console.error('imageMatch.score missing or too low: ' + process.env.VF_APP_SCORE); process.exit(1); } console.log('imageMatch.score ' + score);"
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    }
+  ]
+}

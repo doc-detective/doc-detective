@@ -1,0 +1,68 @@
+{
+  "specId": "app-visual-find-macos",
+  "description": "Visual element matching (image criterion) on a macOS native app surface — the A2 analogue of app-visual-find.spec.json. A full-window screenshot of TextEdit becomes the template, and a find with that image must match it through window-element capture + template matching + page-source recovery (screen-coordinate rebase onto the window). The runCode step asserts the imageMatch score so a silently-skipped match can't pass. TextEdit + untitled-document args mirror app-surfaces-macos.spec.json; elsewhere the context lands SKIPPED.",
+  "tests": [
+    {
+      "testId": "app-visual-find-selfseed-macos",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "stepId": "app-visual-seed-macos",
+          "screenshot": {
+            "path": "visual-app-window-macos.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "stepId": "app-visual-find-macos",
+          "find": {
+            "image": "visual-app-window-macos.png",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          },
+          "variables": {
+            "VF_APP_SCORE_MAC": "$$imageMatch.score"
+          }
+        },
+        {
+          "stepId": "app-visual-assert-score-macos",
+          "runCode": {
+            "language": "javascript",
+            "code": "const score = Number(process.env.VF_APP_SCORE_MAC); if (!(score >= 0.8)) { console.error('imageMatch.score missing or too low: ' + process.env.VF_APP_SCORE_MAC); process.exit(1); } console.log('imageMatch.score ' + score);"
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    }
+  ]
+}

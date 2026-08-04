@@ -72,6 +72,11 @@
             "required": [
               "elementAria"
             ]
+          },
+          {
+            "required": [
+              "image"
+            ]
           }
         ],
         "properties": {
@@ -145,6 +150,9 @@
           "elementAria": {
             "type": "string",
             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+          },
+          "image": {
+            "$ref": "elementImage_v3.schema.json#"
           }
         }
       }

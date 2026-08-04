@@ -1,0 +1,104 @@
+{
+  "specId": "visual-find-combo",
+  "description": "Visual matching disambiguation permutations on a page with two pixel-identical glyphs: image AND elementText (geometric AND picks the co-located candidate), an element-criteria search region, and a rect search region. Each permutation clicks through the resolved element and asserts the page reacted, so a wrong-glyph match fails loudly rather than passing by luck.",
+  "tests": [
+    {
+      "testId": "visual-find-and-text",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/visual-find-duo.html"
+        },
+        {
+          "stepId": "combo-seed",
+          "screenshot": {
+            "path": "visual-duo-glyph.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#glyph-a"
+          }
+        },
+        {
+          "stepId": "combo-find-and-click",
+          "find": {
+            "image": "static/images/visual-duo-glyph.png",
+            "elementText": "Beta",
+            "timeout": 15000,
+            "click": true
+          }
+        },
+        {
+          "find": "Beta clicked"
+        }
+      ]
+    },
+    {
+      "testId": "visual-find-region-criteria",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/visual-find-duo.html"
+        },
+        {
+          "stepId": "region-criteria-seed",
+          "screenshot": {
+            "path": "visual-duo-glyph-region.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#glyph-a"
+          }
+        },
+        {
+          "stepId": "region-criteria-find",
+          "find": {
+            "image": {
+              "path": "static/images/visual-duo-glyph-region.png",
+              "region": {
+                "selector": "#zone-b"
+              }
+            },
+            "timeout": 15000,
+            "click": true
+          }
+        },
+        {
+          "find": "Beta clicked"
+        }
+      ]
+    },
+    {
+      "testId": "visual-find-region-rect",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/visual-find-duo.html"
+        },
+        {
+          "stepId": "region-rect-seed",
+          "screenshot": {
+            "path": "visual-duo-glyph-rect.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#glyph-a"
+          }
+        },
+        {
+          "stepId": "region-rect-find",
+          "find": {
+            "image": {
+              "path": "static/images/visual-duo-glyph-rect.png",
+              "region": {
+                "x": 430,
+                "y": 130,
+                "width": 360,
+                "height": 330
+              }
+            },
+            "timeout": 15000,
+            "click": true
+          }
+        },
+        {
+          "find": "Beta clicked"
+        }
+      ]
+    }
+  ]
+}

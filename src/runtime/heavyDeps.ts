@@ -17,6 +17,9 @@ export const HEAVY_NPM_DEPS = [
   "geckodriver",
   "pixelmatch",
   "pngjs",
+  // Visual element matching (find's `image` criterion). WASM OpenCV bindings —
+  // no native build, installs on every supported platform (ADR 01087).
+  "@appium/opencv",
   // API-identical fork of node-pty with prebuilt binaries for macOS (incl.
   // arm64), Windows, and Linux across Node ABIs. Upstream node-pty has no Windows
   // prebuild and ships a non-executable macOS spawn-helper, so it can't be relied

@@ -70,6 +70,7 @@ const APP_SUPPORTED_CRITERIA = [
   "elementId",
   "elementTestId",
   "elementAria",
+  "image",
 ];
 
 // Derive the capture's pixel scale. A driver that reports a junk logical width
@@ -224,6 +225,7 @@ function criteriaFromTarget(target: any): any {
     elementClass: target?.elementClass,
     elementAttribute: target?.elementAttribute,
     elementAria: target?.elementAria,
+    image: target?.image,
     timeout: target?.timeout,
   };
 }
@@ -338,17 +340,22 @@ async function resolveAnnotationRects({
         appSession,
       });
       const element = findResult.outputs?.rawElement;
-      if (findResult.status === "FAIL" || !element) {
+      // A rect-only visual match (image criterion, element recovery failed)
+      // still carries the matched region — exactly what an annotation needs.
+      const imageRect = findResult.outputs?.imageMatch?.rect;
+      if (findResult.status === "FAIL" || (!element && !imageRect)) {
         errors.push(
           `Couldn't find the element to annotate: ${JSON.stringify(target)}.`
         );
         continue;
       }
-      const logical = await appElementRect(
-        appDriver ?? driver,
-        element,
-        windowOrigin ?? { x: 0, y: 0 }
-      );
+      const logical = element
+        ? await appElementRect(
+            appDriver ?? driver,
+            element,
+            windowOrigin ?? { x: 0, y: 0 }
+          )
+        : imageRect;
       placed.push({
         ...annotation,
         rect: toCanvasRect(logical, scale, cropOrigin),
@@ -363,6 +370,7 @@ async function resolveAnnotationRects({
         ...criteriaFromTarget(target),
         driver,
         all: true,
+        config,
       });
       if (found.error || !found.elements?.length) {
         errors.push(

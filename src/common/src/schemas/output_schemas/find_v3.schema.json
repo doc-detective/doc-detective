@@ -46,6 +46,11 @@
           "required": [
             "elementAria"
           ]
+        },
+        {
+          "required": [
+            "image"
+          ]
         }
       ],
       "additionalProperties": false,
@@ -321,6 +326,89 @@
           "type": "string",
           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
         },
+        "image": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "title": "image",
+          "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+          "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+          "anyOf": [
+            {
+              "title": "Image (simple)",
+              "type": "string",
+              "minLength": 1,
+              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+            },
+            {
+              "title": "Image (detailed)",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                },
+                "matchThreshold": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                },
+                "region": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                }
+              }
+            }
+          ],
+          "components": {
+            "schemas": {
+              "string": {
+                "title": "Image (simple)",
+                "type": "string",
+                "minLength": 1,
+                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+              },
+              "object": {
+                "title": "Image (detailed)",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                  },
+                  "matchThreshold": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                  },
+                  "region": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                  }
+                }
+              }
+            }
+          },
+          "examples": [
+            "icons/gear.png",
+            {
+              "path": "icons/gear.png",
+              "matchThreshold": 0.9
+            }
+          ]
+        },
         "timeout": {
           "type": "integer",
           "description": "Max duration in milliseconds to wait for the element to exist.",
@@ -382,6 +470,11 @@
                     {
                       "required": [
                         "elementAria"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "image"
                       ]
                     }
                   ],
@@ -670,6 +763,89 @@
                     "elementAria": {
                       "type": "string",
                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                    },
+                    "image": {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "title": "image",
+                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                      "anyOf": [
+                        {
+                          "title": "Image (simple)",
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                        },
+                        {
+                          "title": "Image (detailed)",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "path"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                            },
+                            "matchThreshold": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1,
+                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                            },
+                            "region": {
+                              "type": "object",
+                              "minProperties": 1,
+                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                            }
+                          }
+                        }
+                      ],
+                      "components": {
+                        "schemas": {
+                          "string": {
+                            "title": "Image (simple)",
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                          },
+                          "object": {
+                            "title": "Image (detailed)",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "path"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              "matchThreshold": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              },
+                              "region": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "examples": [
+                        "icons/gear.png",
+                        {
+                          "path": "icons/gear.png",
+                          "matchThreshold": 0.9
+                        }
+                      ]
                     }
                   }
                 },
@@ -735,6 +911,11 @@
                       {
                         "required": [
                           "elementAria"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "image"
                         ]
                       }
                     ],
@@ -1023,6 +1204,89 @@
                       "elementAria": {
                         "type": "string",
                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "image": {
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                        "title": "image",
+                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                        "anyOf": [
+                          {
+                            "title": "Image (simple)",
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                          },
+                          {
+                            "title": "Image (detailed)",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "path"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              "matchThreshold": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              },
+                              "region": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                              }
+                            }
+                          }
+                        ],
+                        "components": {
+                          "schemas": {
+                            "string": {
+                              "title": "Image (simple)",
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                            },
+                            "object": {
+                              "title": "Image (detailed)",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "path"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                "matchThreshold": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                },
+                                "region": {
+                                  "type": "object",
+                                  "minProperties": 1,
+                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "examples": [
+                          "icons/gear.png",
+                          {
+                            "path": "icons/gear.png",
+                            "matchThreshold": 0.9
+                          }
+                        ]
                       }
                     }
                   }
@@ -1819,6 +2083,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -1872,6 +2141,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -1928,6 +2280,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -1981,6 +2338,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -2044,6 +2484,89 @@
                         "elementAria": {
                           "type": "string",
                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "image": {
+                          "$schema": "http://json-schema.org/draft-07/schema#",
+                          "title": "image",
+                          "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                          "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                          "anyOf": [
+                            {
+                              "title": "Image (simple)",
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                            },
+                            {
+                              "title": "Image (detailed)",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "path"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                "matchThreshold": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                },
+                                "region": {
+                                  "type": "object",
+                                  "minProperties": 1,
+                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                }
+                              }
+                            }
+                          ],
+                          "components": {
+                            "schemas": {
+                              "string": {
+                                "title": "Image (simple)",
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              "object": {
+                                "title": "Image (detailed)",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "path"
+                                ],
+                                "properties": {
+                                  "path": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                  },
+                                  "matchThreshold": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                  },
+                                  "region": {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "examples": [
+                            "icons/gear.png",
+                            {
+                              "path": "icons/gear.png",
+                              "matchThreshold": 0.9
+                            }
+                          ]
                         }
                       },
                       "required": [
@@ -2115,6 +2638,11 @@
                             {
                               "required": [
                                 "elementAria"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "image"
                               ]
                             }
                           ]
@@ -2234,6 +2762,11 @@
                                     "required": [
                                       "elementAria"
                                     ]
+                                  },
+                                  {
+                                    "required": [
+                                      "image"
+                                    ]
                                   }
                                 ],
                                 "properties": {
@@ -2287,6 +2820,89 @@
                                   "elementAria": {
                                     "type": "string",
                                     "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "image": {
+                                    "$schema": "http://json-schema.org/draft-07/schema#",
+                                    "title": "image",
+                                    "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                    "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                    "anyOf": [
+                                      {
+                                        "title": "Image (simple)",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                      },
+                                      {
+                                        "title": "Image (detailed)",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "path"
+                                        ],
+                                        "properties": {
+                                          "path": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "matchThreshold": {
+                                            "type": "number",
+                                            "minimum": 0,
+                                            "maximum": 1,
+                                            "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                          },
+                                          "region": {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                          }
+                                        }
+                                      }
+                                    ],
+                                    "components": {
+                                      "schemas": {
+                                        "string": {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        "object": {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "examples": [
+                                      "icons/gear.png",
+                                      {
+                                        "path": "icons/gear.png",
+                                        "matchThreshold": 0.9
+                                      }
+                                    ]
                                   }
                                 }
                               }
@@ -2364,6 +2980,11 @@
                                     "required": [
                                       "elementAria"
                                     ]
+                                  },
+                                  {
+                                    "required": [
+                                      "image"
+                                    ]
                                   }
                                 ],
                                 "properties": {
@@ -2417,6 +3038,89 @@
                                   "elementAria": {
                                     "type": "string",
                                     "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "image": {
+                                    "$schema": "http://json-schema.org/draft-07/schema#",
+                                    "title": "image",
+                                    "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                    "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                    "anyOf": [
+                                      {
+                                        "title": "Image (simple)",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                      },
+                                      {
+                                        "title": "Image (detailed)",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "path"
+                                        ],
+                                        "properties": {
+                                          "path": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "matchThreshold": {
+                                            "type": "number",
+                                            "minimum": 0,
+                                            "maximum": 1,
+                                            "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                          },
+                                          "region": {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                          }
+                                        }
+                                      }
+                                    ],
+                                    "components": {
+                                      "schemas": {
+                                        "string": {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        "object": {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "examples": [
+                                      "icons/gear.png",
+                                      {
+                                        "path": "icons/gear.png",
+                                        "matchThreshold": 0.9
+                                      }
+                                    ]
                                   }
                                 }
                               }
@@ -2503,6 +3207,11 @@
                                     "required": [
                                       "elementAria"
                                     ]
+                                  },
+                                  {
+                                    "required": [
+                                      "image"
+                                    ]
                                   }
                                 ],
                                 "properties": {
@@ -2556,6 +3265,89 @@
                                   "elementAria": {
                                     "type": "string",
                                     "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                  },
+                                  "image": {
+                                    "$schema": "http://json-schema.org/draft-07/schema#",
+                                    "title": "image",
+                                    "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                    "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                    "anyOf": [
+                                      {
+                                        "title": "Image (simple)",
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                      },
+                                      {
+                                        "title": "Image (detailed)",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "path"
+                                        ],
+                                        "properties": {
+                                          "path": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "matchThreshold": {
+                                            "type": "number",
+                                            "minimum": 0,
+                                            "maximum": 1,
+                                            "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                          },
+                                          "region": {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                          }
+                                        }
+                                      }
+                                    ],
+                                    "components": {
+                                      "schemas": {
+                                        "string": {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        "object": {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "examples": [
+                                      "icons/gear.png",
+                                      {
+                                        "path": "icons/gear.png",
+                                        "matchThreshold": 0.9
+                                      }
+                                    ]
                                   }
                                 }
                               }
@@ -3316,6 +4108,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -3369,6 +4166,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -3425,6 +4305,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -3478,6 +4363,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -3541,6 +4509,89 @@
                           "elementAria": {
                             "type": "string",
                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "image": {
+                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "title": "image",
+                            "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                            "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                            "anyOf": [
+                              {
+                                "title": "Image (simple)",
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              {
+                                "title": "Image (detailed)",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "path"
+                                ],
+                                "properties": {
+                                  "path": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                  },
+                                  "matchThreshold": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                  },
+                                  "region": {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                  }
+                                }
+                              }
+                            ],
+                            "components": {
+                              "schemas": {
+                                "string": {
+                                  "title": "Image (simple)",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                "object": {
+                                  "title": "Image (detailed)",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "path"
+                                  ],
+                                  "properties": {
+                                    "path": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                    },
+                                    "matchThreshold": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 1,
+                                      "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                    },
+                                    "region": {
+                                      "type": "object",
+                                      "minProperties": 1,
+                                      "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "examples": [
+                              "icons/gear.png",
+                              {
+                                "path": "icons/gear.png",
+                                "matchThreshold": 0.9
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -3612,6 +4663,11 @@
                               {
                                 "required": [
                                   "elementAria"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "image"
                                 ]
                               }
                             ]
@@ -3731,6 +4787,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -3784,6 +4845,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -3861,6 +5005,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -3914,6 +5063,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -4000,6 +5232,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -4053,6 +5290,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -4138,7 +5458,8 @@
                   "elementTestId",
                   "elementClass",
                   "elementAttribute",
-                  "elementAria"
+                  "elementAria",
+                  "image"
                 ],
                 "title": "Find element and type"
               }
@@ -4192,6 +5513,11 @@
           {
             "required": [
               "elementAria"
+            ]
+          },
+          {
+            "required": [
+              "image"
             ]
           }
         ],
@@ -4468,6 +5794,89 @@
             "type": "string",
             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
           },
+          "image": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "image",
+            "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+            "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+            "anyOf": [
+              {
+                "title": "Image (simple)",
+                "type": "string",
+                "minLength": 1,
+                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+              },
+              {
+                "title": "Image (detailed)",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                  },
+                  "matchThreshold": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                  },
+                  "region": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                  }
+                }
+              }
+            ],
+            "components": {
+              "schemas": {
+                "string": {
+                  "title": "Image (simple)",
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                },
+                "object": {
+                  "title": "Image (detailed)",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                    },
+                    "matchThreshold": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                    },
+                    "region": {
+                      "type": "object",
+                      "minProperties": 1,
+                      "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                    }
+                  }
+                }
+              }
+            },
+            "examples": [
+              "icons/gear.png",
+              {
+                "path": "icons/gear.png",
+                "matchThreshold": 0.9
+              }
+            ]
+          },
           "timeout": {
             "type": "integer",
             "description": "Max duration in milliseconds to wait for the element to exist.",
@@ -4529,6 +5938,11 @@
                       {
                         "required": [
                           "elementAria"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "image"
                         ]
                       }
                     ],
@@ -4817,6 +6231,89 @@
                       "elementAria": {
                         "type": "string",
                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "image": {
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                        "title": "image",
+                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                        "anyOf": [
+                          {
+                            "title": "Image (simple)",
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                          },
+                          {
+                            "title": "Image (detailed)",
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "path"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              "matchThreshold": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                              },
+                              "region": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                              }
+                            }
+                          }
+                        ],
+                        "components": {
+                          "schemas": {
+                            "string": {
+                              "title": "Image (simple)",
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                            },
+                            "object": {
+                              "title": "Image (detailed)",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "path"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                "matchThreshold": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                },
+                                "region": {
+                                  "type": "object",
+                                  "minProperties": 1,
+                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "examples": [
+                          "icons/gear.png",
+                          {
+                            "path": "icons/gear.png",
+                            "matchThreshold": 0.9
+                          }
+                        ]
                       }
                     }
                   },
@@ -4882,6 +6379,11 @@
                         {
                           "required": [
                             "elementAria"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "image"
                           ]
                         }
                       ],
@@ -5170,6 +6672,89 @@
                         "elementAria": {
                           "type": "string",
                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "image": {
+                          "$schema": "http://json-schema.org/draft-07/schema#",
+                          "title": "image",
+                          "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                          "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                          "anyOf": [
+                            {
+                              "title": "Image (simple)",
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                            },
+                            {
+                              "title": "Image (detailed)",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "path"
+                              ],
+                              "properties": {
+                                "path": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                "matchThreshold": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                },
+                                "region": {
+                                  "type": "object",
+                                  "minProperties": 1,
+                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                }
+                              }
+                            }
+                          ],
+                          "components": {
+                            "schemas": {
+                              "string": {
+                                "title": "Image (simple)",
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              "object": {
+                                "title": "Image (detailed)",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "path"
+                                ],
+                                "properties": {
+                                  "path": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                  },
+                                  "matchThreshold": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                  },
+                                  "region": {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "examples": [
+                            "icons/gear.png",
+                            {
+                              "path": "icons/gear.png",
+                              "matchThreshold": 0.9
+                            }
+                          ]
                         }
                       }
                     }
@@ -5966,6 +7551,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -6019,6 +7609,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -6075,6 +7748,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -6128,6 +7806,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -6191,6 +7952,89 @@
                           "elementAria": {
                             "type": "string",
                             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "image": {
+                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "title": "image",
+                            "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                            "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                            "anyOf": [
+                              {
+                                "title": "Image (simple)",
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                              },
+                              {
+                                "title": "Image (detailed)",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "path"
+                                ],
+                                "properties": {
+                                  "path": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                  },
+                                  "matchThreshold": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                  },
+                                  "region": {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                  }
+                                }
+                              }
+                            ],
+                            "components": {
+                              "schemas": {
+                                "string": {
+                                  "title": "Image (simple)",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                "object": {
+                                  "title": "Image (detailed)",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "path"
+                                  ],
+                                  "properties": {
+                                    "path": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                    },
+                                    "matchThreshold": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 1,
+                                      "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                    },
+                                    "region": {
+                                      "type": "object",
+                                      "minProperties": 1,
+                                      "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "examples": [
+                              "icons/gear.png",
+                              {
+                                "path": "icons/gear.png",
+                                "matchThreshold": 0.9
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -6262,6 +8106,11 @@
                               {
                                 "required": [
                                   "elementAria"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "image"
                                 ]
                               }
                             ]
@@ -6381,6 +8230,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -6434,6 +8288,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -6511,6 +8448,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -6564,6 +8506,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -6650,6 +8675,11 @@
                                       "required": [
                                         "elementAria"
                                       ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
                                     }
                                   ],
                                   "properties": {
@@ -6703,6 +8733,89 @@
                                     "elementAria": {
                                       "type": "string",
                                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "image": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "image",
+                                      "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                      "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image (simple)",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "path"
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "matchThreshold": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1,
+                                              "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                            },
+                                            "region": {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "string": {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/gear.png",
+                                        {
+                                          "path": "icons/gear.png",
+                                          "matchThreshold": 0.9
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -7463,6 +9576,11 @@
                                           "required": [
                                             "elementAria"
                                           ]
+                                        },
+                                        {
+                                          "required": [
+                                            "image"
+                                          ]
                                         }
                                       ],
                                       "properties": {
@@ -7516,6 +9634,89 @@
                                         "elementAria": {
                                           "type": "string",
                                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "image": {
+                                          "$schema": "http://json-schema.org/draft-07/schema#",
+                                          "title": "image",
+                                          "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                          "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                          "anyOf": [
+                                            {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          ],
+                                          "components": {
+                                            "schemas": {
+                                              "string": {
+                                                "title": "Image (simple)",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "object": {
+                                                "title": "Image (detailed)",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "path"
+                                                ],
+                                                "properties": {
+                                                  "path": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                  },
+                                                  "matchThreshold": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1,
+                                                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                  },
+                                                  "region": {
+                                                    "type": "object",
+                                                    "minProperties": 1,
+                                                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "examples": [
+                                            "icons/gear.png",
+                                            {
+                                              "path": "icons/gear.png",
+                                              "matchThreshold": 0.9
+                                            }
+                                          ]
                                         }
                                       }
                                     }
@@ -7572,6 +9773,11 @@
                                           "required": [
                                             "elementAria"
                                           ]
+                                        },
+                                        {
+                                          "required": [
+                                            "image"
+                                          ]
                                         }
                                       ],
                                       "properties": {
@@ -7625,6 +9831,89 @@
                                         "elementAria": {
                                           "type": "string",
                                           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "image": {
+                                          "$schema": "http://json-schema.org/draft-07/schema#",
+                                          "title": "image",
+                                          "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                          "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                          "anyOf": [
+                                            {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          ],
+                                          "components": {
+                                            "schemas": {
+                                              "string": {
+                                                "title": "Image (simple)",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "object": {
+                                                "title": "Image (detailed)",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "path"
+                                                ],
+                                                "properties": {
+                                                  "path": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                  },
+                                                  "matchThreshold": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1,
+                                                    "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                  },
+                                                  "region": {
+                                                    "type": "object",
+                                                    "minProperties": 1,
+                                                    "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "examples": [
+                                            "icons/gear.png",
+                                            {
+                                              "path": "icons/gear.png",
+                                              "matchThreshold": 0.9
+                                            }
+                                          ]
                                         }
                                       }
                                     }
@@ -7688,6 +9977,89 @@
                             "elementAria": {
                               "type": "string",
                               "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                            },
+                            "image": {
+                              "$schema": "http://json-schema.org/draft-07/schema#",
+                              "title": "image",
+                              "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                              "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                              "anyOf": [
+                                {
+                                  "title": "Image (simple)",
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                },
+                                {
+                                  "title": "Image (detailed)",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "path"
+                                  ],
+                                  "properties": {
+                                    "path": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                    },
+                                    "matchThreshold": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 1,
+                                      "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                    },
+                                    "region": {
+                                      "type": "object",
+                                      "minProperties": 1,
+                                      "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                    }
+                                  }
+                                }
+                              ],
+                              "components": {
+                                "schemas": {
+                                  "string": {
+                                    "title": "Image (simple)",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                  },
+                                  "object": {
+                                    "title": "Image (detailed)",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "path"
+                                    ],
+                                    "properties": {
+                                      "path": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                      },
+                                      "matchThreshold": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1,
+                                        "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                      },
+                                      "region": {
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "examples": [
+                                "icons/gear.png",
+                                {
+                                  "path": "icons/gear.png",
+                                  "matchThreshold": 0.9
+                                }
+                              ]
                             }
                           },
                           "required": [
@@ -7759,6 +10131,11 @@
                                 {
                                   "required": [
                                     "elementAria"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "image"
                                   ]
                                 }
                               ]
@@ -7878,6 +10255,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -7931,6 +10313,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -8008,6 +10473,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -8061,6 +10531,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -8147,6 +10700,11 @@
                                         "required": [
                                           "elementAria"
                                         ]
+                                      },
+                                      {
+                                        "required": [
+                                          "image"
+                                        ]
                                       }
                                     ],
                                     "properties": {
@@ -8200,6 +10758,89 @@
                                       "elementAria": {
                                         "type": "string",
                                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "image": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "image",
+                                        "description": "Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.",
+                                        "$comment": "Keep tiny: this whole document inlines ~15,000x when dereferenced (ADR 01087). Region shape validates at runtime.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image (simple)",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "path"
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                              },
+                                              "matchThreshold": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1,
+                                                "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                              },
+                                              "region": {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "string": {
+                                              "title": "Image (simple)",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "path"
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI."
+                                                },
+                                                "matchThreshold": {
+                                                  "type": "number",
+                                                  "minimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8)."
+                                                },
+                                                "region": {
+                                                  "type": "object",
+                                                  "minProperties": 1,
+                                                  "description": "Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/gear.png",
+                                          {
+                                            "path": "icons/gear.png",
+                                            "matchThreshold": 0.9
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -8285,7 +10926,8 @@
                     "elementTestId",
                     "elementClass",
                     "elementAttribute",
-                    "elementAria"
+                    "elementAria",
+                    "image"
                   ],
                   "title": "Find element and type"
                 }
@@ -8340,6 +10982,10 @@
       },
       "timeout": 8000,
       "moveTo": false
+    },
+    {
+      "image": "images/gear-icon.png",
+      "click": true
     }
   ]
 }

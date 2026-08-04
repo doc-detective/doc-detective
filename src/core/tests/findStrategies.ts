@@ -1,5 +1,20 @@
 export { findElementBySelectorAndText, findElementByShorthand, findElementByCriteria, setElementOutputs };
 
+import {
+  normalizeImageCriterion,
+  resolveMatchThreshold,
+  loadTemplateBuffer,
+  matchTemplate,
+  captureForMatch,
+  captureRectToLogical,
+  rectCenter,
+  rectContainsPoint,
+  getElementViewportRect,
+  elementAtPoint,
+  writeMissDiagnostic,
+} from "./visualMatch.js";
+import type { Rect, VisualMatch } from "./visualMatch.js";
+
 // Set element outputs
 
 async function setElementOutputs({ element }: { element: any }) {
@@ -423,9 +438,12 @@ async function findElementByCriteria({
   elementClass,
   elementAttribute,
   elementAria,
+  image,
   timeout = 5000,
   driver,
   all = false,
+  config,
+  stepId,
 }: {
   selector?: any;
   elementText?: any;
@@ -434,6 +452,11 @@ async function findElementByCriteria({
   elementClass?: any;
   elementAttribute?: any;
   elementAria?: any;
+  // Visual matching criterion (string path/data URI, or {path, matchThreshold,
+  // region}). AND-combines with the DOM criteria geometrically: a candidate
+  // matches when its viewport rect contains a template-match center. Alone, it
+  // resolves the real element under the single match's center (ADR 01087).
+  image?: any;
   timeout?: number;
   driver: any;
   // Collect EVERY matching element instead of stopping at the first. Used by
@@ -442,7 +465,22 @@ async function findElementByCriteria({
   // it keep the original first-match-and-stop behavior; `elements` is always
   // populated, so `element` stays the first match either way.
   all?: boolean;
-}) {
+  // Config (imageMatching defaults, output dir for miss diagnostics) and the
+  // step id (diagnostic filename). Only consulted for image criteria.
+  config?: any;
+  stepId?: string;
+}): Promise<{
+  element: any;
+  elements?: any[];
+  foundBy: any;
+  error?: string | null;
+  imageMatch?: VisualMatch & { center: { x: number; y: number } };
+  imageMiss?: {
+    bestScore: number | null;
+    bestRect: Rect | null;
+    diagnosticPath: string | null;
+  };
+}> {
   // Validate at least one criterion is provided
   if (
     !selector &&
@@ -451,7 +489,8 @@ async function findElementByCriteria({
     !elementTestId &&
     !elementClass &&
     !elementAttribute &&
-    !elementAria
+    !elementAria &&
+    !image
   ) {
     return {
       element: null,
@@ -459,6 +498,98 @@ async function findElementByCriteria({
       error: "At least one element finding criterion must be specified",
     };
   }
+
+  // Visual-matching setup: normalize the criterion and load the template once
+  // — both failures are actionable authoring errors, not poll-and-retry
+  // conditions.
+  type VisualState = {
+    template: Buffer;
+    threshold: number;
+    region: any;
+    cache: { scaledTemplates?: Map<number, Buffer> };
+    // Best candidate ever seen, tagged with ITS iteration's capture scale —
+    // the capture scale can change between polls (zoom, DPI move, a failed
+    // innerWidth read), so converting with the latest scale would skew the
+    // miss diagnostic's rect.
+    bestEver: (VisualMatch & { captureScale: number }) | null;
+    lastCapture: Buffer | null;
+    lastScale: number;
+    ambiguous: VisualMatch[] | null;
+  };
+  let visual: VisualState | null = null;
+  const ctx = { cacheDir: config?.cacheDir };
+  if (image) {
+    try {
+      const criterion = normalizeImageCriterion(image);
+      visual = {
+        template: await loadTemplateBuffer(criterion),
+        threshold: resolveMatchThreshold(criterion.matchThreshold, config),
+        region: criterion.region,
+        cache: {},
+        bestEver: null,
+        lastCapture: null,
+        lastScale: 1,
+        ambiguous: null,
+      };
+    } catch (error: any) {
+      return {
+        element: null,
+        elements: [],
+        foundBy: null,
+        error: error?.message ?? String(error),
+      };
+    }
+  }
+  const hasDomCriteria = Boolean(
+    selector ||
+      elementText ||
+      elementId ||
+      elementTestId ||
+      elementClass ||
+      elementAttribute ||
+      elementAria
+  );
+
+  // Resolve the search region to CAPTURE pixels for this poll iteration. A
+  // rect region is logical units -> scaled; a criteria region resolves an
+  // element (one-shot, short timeout) and uses its viewport rect. Returns
+  // undefined for "no region", null for "region not resolvable right now"
+  // (miss this iteration, keep polling).
+  const resolveRegionPx = async (
+    captureScale: number
+  ): Promise<Rect | null | undefined> => {
+    const region = visual?.region;
+    if (!region) return undefined;
+    if (
+      typeof region.x === "number" &&
+      typeof region.y === "number" &&
+      typeof region.width === "number" &&
+      typeof region.height === "number"
+    ) {
+      return {
+        x: region.x * captureScale,
+        y: region.y * captureScale,
+        width: region.width * captureScale,
+        height: region.height * captureScale,
+      };
+    }
+    // Element-criteria region. The schema forbids a nested image, so this
+    // recursion is single-level.
+    const sub = await findElementByCriteria({
+      ...region,
+      timeout: 500,
+      driver,
+    });
+    if (!sub.element) return null;
+    const rect = await getElementViewportRect(driver, sub.element);
+    if (!rect) return null;
+    return {
+      x: rect.x * captureScale,
+      y: rect.y * captureScale,
+      width: rect.width * captureScale,
+      height: rect.height * captureScale,
+    };
+  };
 
   const startTime = Date.now();
   const pollingInterval = 100; // Check every 100ms
@@ -468,6 +599,86 @@ async function findElementByCriteria({
   // first iteration always ran anyway, so behavior there is unchanged.
   do {
     let candidates: any[] = [];
+    // Template matches for THIS iteration, in logical units. Populated only
+    // when an image criterion is present; the capture+match cost naturally
+    // throttles the loop well above the 100ms base interval.
+    let logicalMatches: VisualMatch[] | null = null;
+    let firstImageMatch: VisualMatch | null = null;
+
+    if (visual) {
+      try {
+        const { buffer, captureScale } = await captureForMatch({ driver, ctx });
+        visual.lastCapture = buffer;
+        visual.lastScale = captureScale;
+        const regionPx = await resolveRegionPx(captureScale);
+        if (regionPx === null) {
+          // Criteria region didn't resolve this round — miss, keep polling.
+          await new Promise((resolve) => setTimeout(resolve, pollingInterval));
+          continue;
+        }
+        const matchResult = await matchTemplate({
+          capture: buffer,
+          template: visual.template,
+          threshold: visual.threshold,
+          captureScale,
+          regionPx: regionPx ?? undefined,
+          collectBestCandidate: true,
+          cache: visual.cache,
+          ctx,
+        });
+        if (
+          matchResult.bestCandidate &&
+          (!visual.bestEver ||
+            matchResult.bestCandidate.score > visual.bestEver.score)
+        ) {
+          visual.bestEver = { ...matchResult.bestCandidate, captureScale };
+        }
+        if (!matchResult.matches.length) {
+          await new Promise((resolve) => setTimeout(resolve, pollingInterval));
+          continue;
+        }
+        logicalMatches = matchResult.matches.map((m) => ({
+          ...m,
+          rect: captureRectToLogical(m.rect, captureScale),
+        }));
+        visual.ambiguous = null;
+        if (!hasDomCriteria) {
+          // Image-only find. Multiple qualifying regions with nothing to
+          // disambiguate is an error — but keep polling first: transient
+          // duplicates (spinners, animations) may settle before timeout.
+          if (logicalMatches.length > 1) {
+            visual.ambiguous = logicalMatches;
+            await new Promise((resolve) =>
+              setTimeout(resolve, pollingInterval)
+            );
+            continue;
+          }
+          const match = logicalMatches[0];
+          const center = rectCenter(match.rect);
+          const element = await elementAtPoint(driver, center.x, center.y);
+          if (element) {
+            return {
+              element,
+              elements: [element],
+              foundBy: ["image"],
+              error: null,
+              imageMatch: { ...match, center },
+            };
+          }
+          await new Promise((resolve) => setTimeout(resolve, pollingInterval));
+          continue;
+        }
+      } catch (error: any) {
+        // Engine unavailable (missing heavy dep) or capture failure — an
+        // actionable FAIL, not a retry condition.
+        return {
+          element: null,
+          elements: [],
+          foundBy: null,
+          error: error?.message ?? String(error),
+        };
+      }
+    }
 
     try {
       // Build a combined XPath that includes all non-regex criteria to minimize candidates
@@ -584,8 +795,10 @@ async function findElementByCriteria({
       let matchedCriteria: string[] = [];
 
       for (const element of candidates) {
-        if (!elementText && !elementId && !elementTestId && !elementClass && !elementAttribute && !elementAria) {
-          // No criteria to check, should happen if only selector was used
+        if (!visual && !elementText && !elementId && !elementTestId && !elementClass && !elementAttribute && !elementAria) {
+          // No criteria to check, should happen if only selector was used.
+          // (With an image criterion this fast path must not fire — the
+          // geometric check below is the whole point.)
           matchedElements.push(element);
           matchedCriteria = ["selector"];
           if (!all) break;
@@ -633,6 +846,13 @@ async function findElementByCriteria({
             });
           }
 
+          if (visual && logicalMatches) {
+            // Geometric AND: the candidate's viewport rect (CSS px — the same
+            // space as the logical match rects) must contain a match center.
+            checks.push(getElementViewportRect(driver, element));
+            checkTypes.push({ type: "image", value: logicalMatches });
+          }
+
           // If no checks were added, we can't match
           if (checks.length === 0) {
             continue;
@@ -644,6 +864,7 @@ async function findElementByCriteria({
           // Track criteria matched for this element
           const elementCriteriaUsed: string[] = [];
           let allChecksPassed = true;
+          let candidateImageMatch: VisualMatch | null = null;
 
           // Validate all check results
           for (let i = 0; i < checkResults.length; i++) {
@@ -658,7 +879,22 @@ async function findElementByCriteria({
             const actualValue = checkResult.value;
 
             // Handle different check types
-            if (
+            if (checkType.type === "image") {
+              // Geometric AND: pass when the candidate's viewport rect
+              // contains the center of any template match.
+              const rect = actualValue as Rect | null;
+              const containing = rect
+                ? (checkType.value as VisualMatch[]).find((m) =>
+                    rectContainsPoint(rect, rectCenter(m.rect))
+                  )
+                : undefined;
+              if (!containing) {
+                allChecksPassed = false;
+                break;
+              }
+              candidateImageMatch = containing;
+              elementCriteriaUsed.push("image");
+            } else if (
               checkType.type === "elementClass" ||
               checkType.type === "elementAttribute"
             ) {
@@ -693,7 +929,10 @@ async function findElementByCriteria({
             matchedElements.push(element);
             // `foundBy` describes the FIRST match, so it means the same thing
             // whether or not `all` was set — later matches must not rewrite it.
-            if (matchedElements.length === 1) matchedCriteria = elementCriteriaUsed;
+            if (matchedElements.length === 1) {
+              matchedCriteria = elementCriteriaUsed;
+              firstImageMatch = candidateImageMatch;
+            }
             if (!all) break; // Found a match, stop searching
           }
         } catch {
@@ -712,6 +951,14 @@ async function findElementByCriteria({
           elements: matchedElements,
           foundBy: allCriteria,
           error: null,
+          ...(firstImageMatch
+            ? {
+                imageMatch: {
+                  ...firstImageMatch,
+                  center: rectCenter(firstImageMatch.rect),
+                },
+              }
+            : {}),
         };
       }
     } catch (error) {
@@ -726,6 +973,53 @@ async function findElementByCriteria({
   } while (Date.now() - startTime < timeout);
 
   // Timeout reached, return error
+  if (visual) {
+    if (visual.ambiguous) {
+      const rects = visual.ambiguous.map((m) => ({
+        x: Math.round(m.rect.x),
+        y: Math.round(m.rect.y),
+        width: Math.round(m.rect.width),
+        height: Math.round(m.rect.height),
+        score: Number(m.score.toFixed(3)),
+      }));
+      return {
+        element: null,
+        elements: [],
+        foundBy: null,
+        error:
+          `${visual.ambiguous.length} regions matched the template ` +
+          `(${JSON.stringify(rects)}). Add another criterion (elementText, ` +
+          `a CSS selector, …) or a region to disambiguate.`,
+      };
+    }
+    const bestScore = visual.bestEver
+      ? Number(visual.bestEver.score.toFixed(3))
+      : null;
+    const diagnosticPath = await writeMissDiagnostic({
+      config,
+      capture: visual.lastCapture,
+      bestCandidate: visual.bestEver,
+      threshold: visual.threshold,
+      stepId,
+      ctx,
+    });
+    const bestRect = visual.bestEver
+      ? captureRectToLogical(visual.bestEver.rect, visual.bestEver.captureScale)
+      : null;
+    const scoreSentence =
+      bestScore !== null
+        ? `Best visual candidate scored ${bestScore} against threshold ${visual.threshold}.`
+        : `No candidate region found at any scale (threshold ${visual.threshold}).`;
+    return {
+      element: null,
+      elements: [],
+      foundBy: null,
+      error: `Element not found within timeout. ${scoreSentence}${
+        diagnosticPath ? ` Annotated screenshot: ${diagnosticPath}.` : ""
+      }`,
+      imageMiss: { bestScore, bestRect, diagnosticPath },
+    };
+  }
   return {
     element: null,
     elements: [],

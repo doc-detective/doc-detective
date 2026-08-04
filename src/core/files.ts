@@ -136,6 +136,11 @@ async function resolvePaths({
     "specPath",
     "descriptionPath",
     "workingDirectory",
+    // The image finding criterion's bare-string form (`"image": "gear.png"`).
+    // The object form carries its template under `path`, which the generic
+    // entry above already resolves. Data URIs pass through via the `data:`
+    // skip in resolve().
+    "image",
   ];
   // Spec objects that are configurable by the user and shouldn't be resolved
   const specNoResolve = [
@@ -155,12 +160,22 @@ async function resolvePaths({
   const stepShorthandPathProperties = ["screenshot", "record"];
 
   function resolve(baseType: string, relativePath: string, filePath: string) {
-    // If the path is an http:// or https:// URL, or a heretto: URI, return it
+    // If the path is an http:// or https:// URL, a heretto: URI, or an inline
+    // data: URI (the image criterion's inline-template form), return it
     if (
       relativePath.startsWith("https://") ||
       relativePath.startsWith("http://") ||
-      relativePath.startsWith("heretto:")
+      relativePath.startsWith("heretto:") ||
+      relativePath.startsWith("data:")
     ) {
+      return relativePath;
+    }
+
+    // An unexpanded $VARIABLE can't be meaningfully resolved at detection
+    // time — step `variables` substitute at runtime (replaceEnvs), after this
+    // pass. Prepending the base dir here would corrupt the substituted value
+    // (e.g. an absolute $$outputs.screenshotPath), so leave it verbatim.
+    if (relativePath.startsWith("$")) {
       return relativePath;
     }
 
@@ -267,7 +282,8 @@ async function resolvePaths({
       if (
         object[property].startsWith("https://") ||
         object[property].startsWith("http://") ||
-        object[property].startsWith("heretto:")
+        object[property].startsWith("heretto:") ||
+        object[property].startsWith("data:")
       ) {
         continue;
       }

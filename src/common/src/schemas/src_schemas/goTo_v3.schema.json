@@ -177,7 +177,7 @@
                   },
                   "find": {
                     "type": "object",
-                    "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
+                    "description": "Wait for a matching element or visual match to be available on the page. At least one element-finding field (selector, elementText, image, …) must be specified.",
                     "additionalProperties": false,
                     "anyOf": [
                       {
@@ -213,6 +213,11 @@
                       {
                         "required": [
                           "elementAria"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "image"
                         ]
                       }
                     ],
@@ -267,6 +272,9 @@
                       "elementAria": {
                         "type": "string",
                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "image": {
+                        "$ref": "elementImage_v3.schema.json#"
                       }
                     }
                   }
@@ -495,6 +503,14 @@
             "type": "button",
             "value": "Standard Button"
           }
+        }
+      }
+    },
+    {
+      "url": "http://localhost:8092",
+      "waitUntil": {
+        "find": {
+          "image": "images/loaded-indicator.png"
         }
       }
     }

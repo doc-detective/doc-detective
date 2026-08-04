@@ -435,6 +435,27 @@
       },
       "title": "Hints options"
     },
+    "imageMatching": {
+      "description": "Defaults for the visual element-matching (`image`) finding criterion.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "matchThreshold": {
+          "description": "Default minimum normalized match score (0–1) for the `image` finding criterion. Higher is stricter: 1 demands a near pixel-perfect match, lower values tolerate more rendering variation but risk matching lookalikes. Individual steps override this with their own `matchThreshold`.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8
+        }
+      },
+      "required": [
+        "matchThreshold"
+      ],
+      "default": {
+        "matchThreshold": 0.8
+      },
+      "title": "Image matching options"
+    },
     "concurrentRunners": {
       "type": [
         "integer",

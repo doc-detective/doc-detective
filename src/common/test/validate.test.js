@@ -1672,6 +1672,213 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("image finding criterion (visual matching)", function () {
+      it("should validate find with a bare-string image path alone", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { find: { image: "icons/gear.png" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate find with a data-URI image", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { find: { image: "data:image/png;base64,iVBORw0KGgo=" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate find with the object image form", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: { image: { path: "icons/gear.png", matchThreshold: 0.9 } },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate image AND-combined with other criteria", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: { image: "icons/gear.png", elementText: "Settings" },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject an image object without a path", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { find: { image: { matchThreshold: 0.9 } } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a matchThreshold above 1", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: { image: { path: "gear.png", matchThreshold: 1.5 } },
+          },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate a rect search region", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: {
+              image: {
+                path: "gear.png",
+                region: { x: 0, y: 0, width: 400, height: 300 },
+              },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate an element-criteria search region", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: {
+              image: { path: "gear.png", region: { elementText: "Toolbar" } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject an empty region object", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { find: { image: { path: "gear.png", region: {} } } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should accept a loosely-shaped region at the schema level", function () {
+        // `region` is deliberately a loose object in the schema: every byte
+        // of the image component inlines ~15,000x through the dereferenced
+        // output schemas, so the rect-or-criteria shape (and the no-nested-
+        // image rule) is enforced at runtime by normalizeImageCriterion
+        // instead. See elementImage_v3.schema.json's $comment.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            find: {
+              image: { path: "gear.png", region: { image: "toolbar.png" } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate click with an image criterion", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { click: { image: "icons/gear.png" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate dragAndDrop with image source and target", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            dragAndDrop: {
+              source: { image: "card.png" },
+              target: { image: "column.png" },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate type with an image target", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { type: { keys: "hello", image: "field.png" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate goTo waitUntil.find with an image", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            goTo: {
+              url: "https://example.com",
+              waitUntil: { find: { image: "logo.png" } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a type waitUntil browser find with an image", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            type: {
+              keys: "hello",
+              surface: "chrome",
+              waitUntil: { find: { image: "spinner-gone.png" } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate screenshot crop with an image", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: { path: "shot.png", crop: { image: "widget.png" } },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate an annotation target with an image", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { image: "widget.png" } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate config imageMatching options", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { imageMatching: { matchThreshold: 0.6 } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.imageMatching.matchThreshold).to.equal(0.6);
+      });
+
+      it("should reject a config imageMatching threshold above 1", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { imageMatching: { matchThreshold: 1.5 } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should apply the config imageMatching default", function () {
+        const result = validate({ schemaKey: "config_v3", object: {} });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.imageMatching).to.deep.equal({
+          matchThreshold: 0.8,
+        });
+      });
+    });
+
     describe("invalid objects", function () {
       it("should return error for invalid step_v3 object", function () {
         const result = validate({
