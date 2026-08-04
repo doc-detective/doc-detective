@@ -116,8 +116,8 @@ a test may navigate to on purpose. Only `/^data:,?$/` matches.
 
 ### Confirmation
 
-Four hermetic tests in [`test/goTo-unnavigated.test.js`](../test/goTo-unnavigated.test.js),
-written red→green:
+Hermetic tests in [`test/goTo-unnavigated.test.js`](../test/goTo-unnavigated.test.js),
+written red→green (no count here on purpose — it drifts as cases are added):
 
 * A session that stays on `data:,` makes `goTo` **FAIL** (it previously returned
   PASS — the defect this ADR exists for).
@@ -126,9 +126,16 @@ written red→green:
 * The re-navigation happens **before** any wait: the recorded call order starts
   `nav, nav` and every wait follows the final navigation. Verified red by moving
   the retry back after the waits.
-* A normal navigation PASSes with exactly **one** navigation — the guard against
-  taxing the healthy path.
-* `about:blank` is untouched.
+* A normal navigation PASSes with exactly **one** navigation and exactly **one**
+  `getUrl()` probe — the guard against taxing the healthy path, and what keeps
+  the "one extra `getUrl()`" claim above honest.
+* A session reporting `about:blank` does not trigger the retry or the guard.
+  Note the scope: this asserts the **predicate exclusion**, not URL handling.
+  `goTo` mangles a literal `about:blank` target into `https://about:blank`
+  before validation — a real pre-existing bug, tracked separately in
+  [#700](https://github.com/doc-detective/doc-detective/issues/700), because the
+  `https://` prefix is what makes a bare `localhost:8092/x` pass `goTo_v3` and
+  removing it needs a coordinated schema change.
 
 The end-to-end confirmation is [#696](https://github.com/doc-detective/doc-detective/issues/696)'s
 fixture: if the mode recurs, the run now fails (or self-heals) at the `goTo`
