@@ -35,13 +35,14 @@ function uninstallBrowserStub() {
 function makeDriver({ urls }) {
   // `urls` is the sequence getUrl() returns, one per call; the last value
   // repeats once exhausted.
-  const record = { navigations: [] };
+  const record = { navigations: [], order: [] };
   let i = 0;
   const driver = {
     capabilities: { browserName: "chrome" },
     state: {},
     url: async (u) => {
       record.navigations.push(u);
+      record.order.push("nav");
       return u;
     },
     getUrl: async () => {
@@ -51,6 +52,7 @@ function makeDriver({ urls }) {
     },
     execute: async (fn, ...args) => fn(...args),
     waitUntil: async (condition) => {
+      record.order.push("wait");
       for (let n = 0; n < 500; n++) {
         if (await condition()) return true;
         await new Promise((r) => setTimeout(r, 1));
@@ -109,6 +111,28 @@ describe("goTo: browser never left its initial blank document", function () {
     const result = await goTo({ config: {}, step: step(), driver });
     assert.equal(result.status, "PASS");
     assert.equal(record.navigations.length, 1);
+  });
+
+  it("re-navigates BEFORE the wait conditions run, not after", async function () {
+    // The whole point of the fix is that the readiness gate must be evaluated
+    // against the real page. Retrying after the waits would leave goTo saying
+    // "all wait conditions met" for conditions only ever checked against the
+    // blank document — the same report-success-without-verifying bug this fix
+    // exists to remove.
+    const { driver, record } = makeDriver({
+      urls: ["data:,", "http://localhost:8092/multi-tab-child.html?page=par1"],
+    });
+    const result = await goTo({ config: {}, step: step(), driver });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(
+      record.order.slice(0, 2),
+      ["nav", "nav"],
+      "the retry must precede any wait; got: " + record.order.join(",")
+    );
+    assert.ok(
+      record.order.indexOf("wait") > record.order.lastIndexOf("nav"),
+      "every wait must run after the final navigation; got: " + record.order.join(",")
+    );
   });
 
   it("leaves about:blank alone — a legitimate navigation target", async function () {

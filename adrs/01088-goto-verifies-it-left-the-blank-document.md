@@ -72,10 +72,17 @@ step. That cost this investigation two wrong diagnoses.
 
 ## Decision Outcome
 
-Chosen: **option A**. After the wait conditions pass, `goTo` calls the existing
-`isPageUnnavigated(driver)` predicate. If the session is still on the empty data
-URL, it re-issues the navigation once; if it is *still* unnavigated, the step
-FAILs with a message naming what happened.
+Chosen: **option A**. `goTo` calls the existing `isPageUnnavigated(driver)`
+predicate immediately after `driver.url()` — **before** the wait conditions run —
+and re-issues the navigation once if the session is still on the empty data URL.
+After the waits, a final check FAILs the step with a message naming what
+happened if it never moved.
+
+The ordering is load-bearing. Retrying *after* the waits would leave `goTo`
+reporting *"all wait conditions met"* for conditions that were only ever
+evaluated against the blank document, which is the same report-success-without-
+verifying defect this ADR exists to remove. Re-navigating first means the
+readiness gate always runs against the page the step actually asked for.
 
 Re-issuing is safe here for the same reason 01084's predicate is safe, and the
 reason is stronger in this position: this code runs only after an **explicit
@@ -114,6 +121,9 @@ written red→green:
   PASS — the defect this ADR exists for).
 * A session that leaves `data:,` after a re-issued navigation **PASSes**, and the
   navigation is issued exactly twice.
+* The re-navigation happens **before** any wait: the recorded call order starts
+  `nav, nav` and every wait follows the final navigation. Verified red by moving
+  the retry back after the waits.
 * A normal navigation PASSes with exactly **one** navigation — the guard against
   taxing the healthy path.
 * `about:blank` is untouched.

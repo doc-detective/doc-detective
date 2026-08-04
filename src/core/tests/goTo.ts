@@ -178,6 +178,17 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
   try {
     await driver.url(step.goTo.url);
 
+    // A navigation can silently not take: a fresh Chromium session stays parked
+    // on its initial blank document (`data:,`) while `url()` resolves and every
+    // wait condition below passes trivially against that blank page (ADR 01084,
+    // ADR 01088). Re-issue BEFORE the waits run, so they are evaluated against
+    // the real page — retrying afterwards would leave the step reporting "all
+    // wait conditions met" for conditions that were only ever checked against
+    // the blank document.
+    if (await isPageUnnavigated(driver)) {
+      await driver.url(step.goTo.url);
+    }
+
     // Wait for page to load with wait logic
     const waitStartTime = Date.now();
     const waitTimeout = step.goTo.timeout;
@@ -407,26 +418,26 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         }
       }
 
-      // The navigation can silently not take: a fresh Chromium session stays
-      // parked on its initial blank document (`data:,`) while `url()` resolves
-      // and every wait condition passes against that blank page (ADR 01084).
-      // Reporting PASS here strands the failure on whatever step next needs the
-      // page — a `find` timing out against a page that was never loaded, with
-      // nothing pointing at the navigation (issue #696). ADR 01084's retry
-      // covers the context's PRIMARY session only, so a secondary session from
+      // Final guard: the retry above already ran, so still sitting on the
+      // initial blank document means the navigation never took. Reporting PASS
+      // here would strand the failure on whatever step next needs the page — a
+      // `find` timing out against a page that was never loaded, with nothing
+      // pointing at the navigation (issue #696). ADR 01084's retry covers the
+      // context's PRIMARY session only, so a secondary session opened by
       // `startSurface` reaches here unprotected.
-      //
-      // Re-issuing is safe precisely because the URL is unambiguous: this code
-      // only runs after an explicit navigation, and a page that navigated
-      // anywhere is never on `data:,`. `about:blank` is deliberately excluded
-      // by the predicate — a test may navigate there on purpose.
       if (await isPageUnnavigated(driver)) {
-        await driver.url(step.goTo.url);
-        if (await isPageUnnavigated(driver)) {
-          result.status = "FAIL";
-          result.description = `Navigated to ${step.goTo.url}, but the browser never left its initial blank document (data:,) — the navigation didn't take, even after a retry. The session is alive; the page was never loaded.`;
-          return result;
+        // Report the document it's actually stuck on rather than assuming a
+        // spelling: the predicate matches both `data:` and `data:,`.
+        let stuckOn = "its initial blank document";
+        try {
+          const url = String((await driver.getUrl()) ?? "").trim();
+          if (url) stuckOn = url;
+        } catch {
+          // Keep the generic wording — the diagnostic still stands.
         }
+        result.status = "FAIL";
+        result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${step.goTo.url} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
+        return result;
       }
 
       result.description = "Opened URL and all wait conditions met.";
