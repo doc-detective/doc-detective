@@ -97,6 +97,30 @@ describe("goTo: browser never left its initial blank document", function () {
     );
   });
 
+  it("redacts query strings from the failure message", async function () {
+    // Step descriptions land in reports, logs and CI artifacts. A target URL
+    // can carry a token or a signed query param, so neither the requested URL
+    // nor the observed one may appear verbatim in the diagnostic.
+    const { driver } = makeDriver({ urls: ["data:,"] });
+    const result = await goTo({
+      config: {},
+      step: {
+        goTo: {
+          url: "http://localhost:8092/p?token=SUPERSECRET&sig=abc",
+          timeout: 4000,
+          waitUntil: { networkIdleTime: null, domIdleTime: null },
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.ok(
+      !/SUPERSECRET|sig=abc/.test(result.description),
+      "query string must not reach the description: " + result.description
+    );
+    assert.match(result.description, /http:\/\/localhost:8092\/p/);
+  });
+
   it("retries the navigation once and PASSes when the retry takes", async function () {
     // First check shows the session still parked; after a re-issued navigation
     // it is on the real page. This is the flake healing itself.

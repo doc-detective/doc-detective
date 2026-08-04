@@ -6,6 +6,7 @@ import {
   computeSettleCeiling,
   isPageUnnavigated,
   isInitialBlankDocument,
+  redactUrlForOutput,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -445,9 +446,13 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         }
       }
       if (observedUrl !== null && isInitialBlankDocument(observedUrl)) {
-        const stuckOn = observedUrl || "its initial blank document";
+        // Redact both URLs: step descriptions land in reports, logs and CI
+        // artifacts, and a target URL can carry tokens or signed query params.
+        const stuckOn = observedUrl
+          ? redactUrlForOutput(observedUrl)
+          : "its initial blank document";
         result.status = "FAIL";
-        result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${step.goTo.url} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
+        result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${redactUrlForOutput(step.goTo.url)} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
         return result;
       }
 

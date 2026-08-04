@@ -132,6 +132,9 @@ written red→green (no count here on purpose — it drifts as cases are added):
 * A normal navigation PASSes with exactly **one** navigation and exactly **one**
   `getUrl()` probe — the guard against taxing the healthy path, and what keeps
   the "one extra `getUrl()`" claim above honest.
+* The failure message redacts query strings from both the requested and the
+  observed URL. Step descriptions land in reports, logs and CI artifacts, and a
+  target URL can carry a token or a signed query param.
 * A session reporting `about:blank` does not trigger the retry or the guard.
   Note the scope: this asserts the **predicate exclusion**, not URL handling.
   `goTo` mangles a literal `about:blank` target into `https://about:blank`
