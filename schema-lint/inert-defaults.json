@@ -1,0 +1,368 @@
+{
+  "annotation_v3.schema.json": {
+    "/components/schemas/target_element_shape/properties/timeout": {
+      "value": 5000,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "checkLink_v3.schema.json": {
+    "/components/schemas/object/properties/params": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/statusCodes": {
+      "value": [
+        200,
+        301,
+        302,
+        307,
+        308
+      ],
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/headers": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "config_v3.schema.json": {
+    "/components/schemas/markupDefinition/properties/batchMatches": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "context_v3.schema.json": {
+    "/components/schemas/browser/properties/headless": {
+      "value": true,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "dragAndDrop_v3.schema.json": {
+    "/components/schemas/object/properties/timeout": {
+      "value": 5000,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "find_v2.schema.json": {
+    "/properties/click/oneOf/0": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "find_v3.schema.json": {
+    "/components/schemas/object/properties/timeout": {
+      "value": 5000,
+      "runtime": "src/core/tests/findElement.ts — `timeout: step.find.timeout || 5000`",
+      "why": "Runtime owns the 5000 ms; the schema default documents it on the reference page."
+    },
+    "/components/schemas/object/properties/moveTo": {
+      "value": false,
+      "runtime": "src/core/tests/findElement.ts — `moveTo: step.find.moveTo || false` in the step normalization block",
+      "why": "ADR 01086: the runtime owns this default. The schema said true here for five years while the runtime used false; this registration is what makes that divergence fail the build."
+    }
+  },
+  "goTo_v3.schema.json": {
+    "/components/schemas/object/allOf/0/properties/params": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/allOf/0/properties/timeout": {
+      "value": 30000,
+      "runtime": "src/core/tests/goTo.ts — step.goTo.timeout = step.goTo.timeout || 30000;",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/allOf/0/properties/waitUntil/properties/networkIdleTime": {
+      "value": 500,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/allOf/0/properties/waitUntil/properties/domIdleTime": {
+      "value": 1000,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "httpRequest_v3.schema.json": {
+    "/components/schemas/object/properties/statusCodes": {
+      "value": [
+        200,
+        201
+      ],
+      "runtime": "src/core/tests/httpRequest.ts — statusCodes: step.httpRequest.statusCodes || [200, 201],",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/method": {
+      "value": "get",
+      "runtime": "src/core/tests/httpRequest.ts — method: step.httpRequest.method || \"get\",",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/timeout": {
+      "value": 60000,
+      "runtime": "src/core/tests/httpRequest.ts — timeout: step.httpRequest.timeout || 60000,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/request/properties/headers": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/request/properties/parameters": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/request/properties/body": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/response/properties/headers": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/response/properties/body": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/response/properties/required": {
+      "value": [],
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/allowAdditionalFields": {
+      "value": true,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/maxVariation": {
+      "value": 0,
+      "runtime": "src/core/tests/httpRequest.ts — maxVariation: step.httpRequest.maxVariation || 0,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/overwrite": {
+      "value": "aboveVariation",
+      "runtime": "src/core/tests/httpRequest.ts — overwrite: step.httpRequest.overwrite || \"aboveVariation\",",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    }
+  },
+  "record_v3.schema.json": {
+    "/components/schemas/engine/anyOf/1/properties/fps": {
+      "value": 30,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/properties/checkpoints/anyOf/1/properties/maxVariation": {
+      "value": 0.05,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "runBrowserScript_v3.schema.json": {
+    "/components/schemas/object/properties/args": {
+      "value": [],
+      "runtime": "src/core/tests/runBrowserScript.ts — args: step.runBrowserScript.args || [],",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/maxVariation": {
+      "value": 0,
+      "runtime": "src/core/tests/runBrowserScript.ts — maxVariation: step.runBrowserScript.maxVariation || 0,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/overwrite": {
+      "value": "aboveVariation",
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - 2 candidate runtime sites, too ambiguous to cite automatically. Review and pick the right one."
+    },
+    "/components/schemas/object/properties/timeout": {
+      "value": 60000,
+      "runtime": "src/core/tests/runBrowserScript.ts — timeout: step.runBrowserScript.timeout || 60000,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    }
+  },
+  "runCode_v3.schema.json": {
+    "/components/schemas/object/properties/args": {
+      "value": [],
+      "runtime": "src/core/tests/runCode.ts — args: step.runCode.args || [],",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/workingDirectory": {
+      "value": ".",
+      "runtime": "src/core/tests/runCode.ts — workingDirectory: step.runCode.workingDirectory || \".\",",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/exitCodes": {
+      "value": [
+        0
+      ],
+      "runtime": "src/core/tests/runCode.ts — exitCodes: step.runCode.exitCodes || [0],",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/maxVariation": {
+      "value": 0,
+      "runtime": "src/core/tests/runCode.ts — maxVariation: step.runCode.maxVariation || 0,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/overwrite": {
+      "value": "aboveVariation",
+      "runtime": "src/core/tests/runCode.ts — overwrite: step.runCode.overwrite || \"aboveVariation\",",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/timeout": {
+      "value": 60000,
+      "runtime": "src/core/tests/runCode.ts — timeout: step.runCode.timeout || 60000,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/background/properties/tty": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "runShell_v3.schema.json": {
+    "/components/schemas/object/properties/args": {
+      "value": [],
+      "runtime": "src/core/tests/runShell.ts — args: step.runShell.args || [],",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/workingDirectory": {
+      "value": ".",
+      "runtime": "src/core/tests/runShell.ts — workingDirectory: step.runShell.workingDirectory || \".\",",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/exitCodes": {
+      "value": [
+        0
+      ],
+      "runtime": "src/core/tests/runShell.ts — exitCodes: step.runShell.exitCodes || [0],",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/maxVariation": {
+      "value": 0,
+      "runtime": "src/core/tests/runShell.ts — maxVariation: step.runShell.maxVariation || 0,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/overwrite": {
+      "value": "aboveVariation",
+      "runtime": "src/core/tests/runShell.ts — overwrite: step.runShell.overwrite || \"aboveVariation\",",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/timeout": {
+      "value": 60000,
+      "runtime": "src/core/tests/runShell.ts — timeout: step.runShell.timeout || 60000,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/object/properties/background/properties/tty": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "saveCookie_v3.schema.json": {
+    "/components/schemas/object/properties/overwrite": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "screenshot_v3.schema.json": {
+    "/components/schemas/objectShape/properties/maxVariation": {
+      "value": 0.05,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/objectShape/properties/overwrite": {
+      "value": "aboveVariation",
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "startSurface_v3.schema.json": {
+    "/components/schemas/appDescriptor/properties/workingDirectory": {
+      "value": ".",
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/appDescriptor/properties/timeout": {
+      "value": 60000,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/processDescriptor/properties/args": {
+      "value": [],
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/processDescriptor/properties/workingDirectory": {
+      "value": ".",
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/processDescriptor/properties/tty": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/processDescriptor/properties/timeout": {
+      "value": 60000,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "step_v3.schema.json": {
+    "/components/schemas/unsafe": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/outputs": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/variables": {
+      "value": {},
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/breakpoint": {
+      "value": false,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  },
+  "swipe_v3.schema.json": {
+    "/components/schemas/directional/properties/distance": {
+      "value": 0.5,
+      "runtime": "src/core/tests/swipe.ts — distance: swipe.distance ?? DEFAULT_SWIPE_DISTANCE,",
+      "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
+    },
+    "/components/schemas/duration": {
+      "value": 500,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - 2 candidate runtime sites, too ambiguous to cite automatically. Review and pick the right one."
+    }
+  },
+  "type_v3.schema.json": {
+    "/components/schemas/object/allOf/0/properties/inputDelay": {
+      "value": 100,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    },
+    "/components/schemas/object/allOf/0/properties/timeout": {
+      "value": 5000,
+      "runtime": "UNVERIFIED",
+      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+    }
+  }
+}
