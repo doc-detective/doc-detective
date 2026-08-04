@@ -135,22 +135,20 @@ describe("goTo: browser never left its initial blank document", function () {
     );
   });
 
-  it("leaves about:blank alone — a legitimate navigation target", async function () {
-    // ADR 01084 excludes about:blank deliberately: a test may navigate there on
-    // purpose. Only Chromium's empty data URL is unambiguous.
+  it("does not treat a page sitting on about:blank as unnavigated", async function () {
+    // ADR 01084 excludes about:blank deliberately: unlike `data:,`, it is a page
+    // a test can legitimately navigate to, so treating it as "never navigated"
+    // would retry and then FAIL a correct run.
+    //
+    // This asserts the PREDICATE, not URL handling: the step navigates to a
+    // normal URL and the session reports about:blank, which must not trigger
+    // the retry or the guard. (goTo mangles a literal `about:blank` URL into
+    // `https://about:blank` before validation — a real pre-existing bug, but a
+    // separate one: the prefix is what makes bare `localhost:8092/x` pass the
+    // schema, so fixing it needs a coordinated goTo_v3 change.)
     const { driver, record } = makeDriver({ urls: ["about:blank"] });
-    const result = await goTo({
-      config: {},
-      step: {
-        goTo: {
-          url: "about:blank",
-          timeout: 4000,
-          waitUntil: { networkIdleTime: null, domIdleTime: null },
-        },
-      },
-      driver,
-    });
+    const result = await goTo({ config: {}, step: step(), driver });
     assert.equal(result.status, "PASS");
-    assert.equal(record.navigations.length, 1);
+    assert.equal(record.navigations.length, 1, "must not retry on about:blank");
   });
 });
