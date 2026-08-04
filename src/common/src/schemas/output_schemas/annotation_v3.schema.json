@@ -13,181 +13,13 @@
           "description": "Draw a box around the target.",
           "anyOf": [
             {
-              "title": "Target by element (simple)",
-              "type": "string",
-              "description": "Display text or selector of the element to annotate."
+              "$ref": "#/x_dd_defs/d203ba30cb75a"
             },
             {
-              "title": "Target by element (detailed)",
-              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-              "allOf": [
-                {
-                  "title": "Element-finding fields",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to annotate. Browser surfaces only."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000,
-                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                    }
-                  }
-                },
-                {
-                  "title": "At least one element-finding field",
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "$ref": "#/x_dd_defs/d640d88082e61"
             },
             {
-              "title": "Target by position",
-              "type": "object",
-              "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-              "additionalProperties": false,
-              "required": [
-                "position"
-              ],
-              "properties": {
-                "position": {
-                  "anyOf": [
-                    {
-                      "title": "Named region",
-                      "type": "string",
-                      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                      "enum": [
-                        "top",
-                        "bottom",
-                        "left",
-                        "right",
-                        "center",
-                        "top-left",
-                        "top-right",
-                        "bottom-left",
-                        "bottom-right"
-                      ]
-                    },
-                    {
-                      "title": "Annotation point",
-                      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                      "type": "object",
-                      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                      "additionalProperties": false,
-                      "required": [
-                        "x",
-                        "y"
-                      ],
-                      "properties": {
-                        "x": {
-                          "type": "number",
-                          "description": "Horizontal position in pixels from the left edge of the capture."
-                        },
-                        "y": {
-                          "type": "number",
-                          "description": "Vertical position in pixels from the top edge of the capture."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
+              "$ref": "#/x_dd_defs/d578a02667b67"
             }
           ]
         },
@@ -195,181 +27,13 @@
           "description": "Point an arrow at the target.",
           "anyOf": [
             {
-              "title": "Target by element (simple)",
-              "type": "string",
-              "description": "Display text or selector of the element to annotate."
+              "$ref": "#/x_dd_defs/d203ba30cb75a"
             },
             {
-              "title": "Target by element (detailed)",
-              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-              "allOf": [
-                {
-                  "title": "Element-finding fields",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to annotate. Browser surfaces only."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000,
-                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                    }
-                  }
-                },
-                {
-                  "title": "At least one element-finding field",
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "$ref": "#/x_dd_defs/d640d88082e61"
             },
             {
-              "title": "Target by position",
-              "type": "object",
-              "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-              "additionalProperties": false,
-              "required": [
-                "position"
-              ],
-              "properties": {
-                "position": {
-                  "anyOf": [
-                    {
-                      "title": "Named region",
-                      "type": "string",
-                      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                      "enum": [
-                        "top",
-                        "bottom",
-                        "left",
-                        "right",
-                        "center",
-                        "top-left",
-                        "top-right",
-                        "bottom-left",
-                        "bottom-right"
-                      ]
-                    },
-                    {
-                      "title": "Annotation point",
-                      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                      "type": "object",
-                      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                      "additionalProperties": false,
-                      "required": [
-                        "x",
-                        "y"
-                      ],
-                      "properties": {
-                        "x": {
-                          "type": "number",
-                          "description": "Horizontal position in pixels from the left edge of the capture."
-                        },
-                        "y": {
-                          "type": "number",
-                          "description": "Vertical position in pixels from the top edge of the capture."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
+              "$ref": "#/x_dd_defs/d578a02667b67"
             }
           ]
         },
@@ -377,181 +41,13 @@
           "description": "Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.",
           "anyOf": [
             {
-              "title": "Target by element (simple)",
-              "type": "string",
-              "description": "Display text or selector of the element to annotate."
+              "$ref": "#/x_dd_defs/d203ba30cb75a"
             },
             {
-              "title": "Target by element (detailed)",
-              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-              "allOf": [
-                {
-                  "title": "Element-finding fields",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to annotate. Browser surfaces only."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000,
-                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                    }
-                  }
-                },
-                {
-                  "title": "At least one element-finding field",
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "$ref": "#/x_dd_defs/d640d88082e61"
             },
             {
-              "title": "Target by position",
-              "type": "object",
-              "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-              "additionalProperties": false,
-              "required": [
-                "position"
-              ],
-              "properties": {
-                "position": {
-                  "anyOf": [
-                    {
-                      "title": "Named region",
-                      "type": "string",
-                      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                      "enum": [
-                        "top",
-                        "bottom",
-                        "left",
-                        "right",
-                        "center",
-                        "top-left",
-                        "top-right",
-                        "bottom-left",
-                        "bottom-right"
-                      ]
-                    },
-                    {
-                      "title": "Annotation point",
-                      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                      "type": "object",
-                      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                      "additionalProperties": false,
-                      "required": [
-                        "x",
-                        "y"
-                      ],
-                      "properties": {
-                        "x": {
-                          "type": "number",
-                          "description": "Horizontal position in pixels from the left edge of the capture."
-                        },
-                        "y": {
-                          "type": "number",
-                          "description": "Vertical position in pixels from the top edge of the capture."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
+              "$ref": "#/x_dd_defs/d578a02667b67"
             }
           ]
         },
@@ -559,181 +55,13 @@
           "description": "Label the target with a text box and a leader line. Set the text with `label`.",
           "anyOf": [
             {
-              "title": "Target by element (simple)",
-              "type": "string",
-              "description": "Display text or selector of the element to annotate."
+              "$ref": "#/x_dd_defs/d203ba30cb75a"
             },
             {
-              "title": "Target by element (detailed)",
-              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-              "allOf": [
-                {
-                  "title": "Element-finding fields",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to annotate. Browser surfaces only."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000,
-                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                    }
-                  }
-                },
-                {
-                  "title": "At least one element-finding field",
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "$ref": "#/x_dd_defs/d640d88082e61"
             },
             {
-              "title": "Target by position",
-              "type": "object",
-              "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-              "additionalProperties": false,
-              "required": [
-                "position"
-              ],
-              "properties": {
-                "position": {
-                  "anyOf": [
-                    {
-                      "title": "Named region",
-                      "type": "string",
-                      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                      "enum": [
-                        "top",
-                        "bottom",
-                        "left",
-                        "right",
-                        "center",
-                        "top-left",
-                        "top-right",
-                        "bottom-left",
-                        "bottom-right"
-                      ]
-                    },
-                    {
-                      "title": "Annotation point",
-                      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                      "type": "object",
-                      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                      "additionalProperties": false,
-                      "required": [
-                        "x",
-                        "y"
-                      ],
-                      "properties": {
-                        "x": {
-                          "type": "number",
-                          "description": "Horizontal position in pixels from the left edge of the capture."
-                        },
-                        "y": {
-                          "type": "number",
-                          "description": "Vertical position in pixels from the top edge of the capture."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
+              "$ref": "#/x_dd_defs/d578a02667b67"
             }
           ]
         },
@@ -741,181 +69,13 @@
           "description": "Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.",
           "anyOf": [
             {
-              "title": "Target by element (simple)",
-              "type": "string",
-              "description": "Display text or selector of the element to annotate."
+              "$ref": "#/x_dd_defs/d203ba30cb75a"
             },
             {
-              "title": "Target by element (detailed)",
-              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-              "allOf": [
-                {
-                  "title": "Element-finding fields",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to annotate. Browser surfaces only."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000,
-                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                    }
-                  }
-                },
-                {
-                  "title": "At least one element-finding field",
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "$ref": "#/x_dd_defs/d640d88082e61"
             },
             {
-              "title": "Target by position",
-              "type": "object",
-              "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-              "additionalProperties": false,
-              "required": [
-                "position"
-              ],
-              "properties": {
-                "position": {
-                  "anyOf": [
-                    {
-                      "title": "Named region",
-                      "type": "string",
-                      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                      "enum": [
-                        "top",
-                        "bottom",
-                        "left",
-                        "right",
-                        "center",
-                        "top-left",
-                        "top-right",
-                        "bottom-left",
-                        "bottom-right"
-                      ]
-                    },
-                    {
-                      "title": "Annotation point",
-                      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                      "type": "object",
-                      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                      "additionalProperties": false,
-                      "required": [
-                        "x",
-                        "y"
-                      ],
-                      "properties": {
-                        "x": {
-                          "type": "number",
-                          "description": "Horizontal position in pixels from the left edge of the capture."
-                        },
-                        "y": {
-                          "type": "number",
-                          "description": "Vertical position in pixels from the top edge of the capture."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
+              "$ref": "#/x_dd_defs/d578a02667b67"
             }
           ]
         },
@@ -923,181 +83,13 @@
           "description": "Place a standalone text box. Set the text with `label`.",
           "anyOf": [
             {
-              "title": "Target by element (simple)",
-              "type": "string",
-              "description": "Display text or selector of the element to annotate."
+              "$ref": "#/x_dd_defs/d203ba30cb75a"
             },
             {
-              "title": "Target by element (detailed)",
-              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-              "allOf": [
-                {
-                  "title": "Element-finding fields",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to annotate. Browser surfaces only."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000,
-                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                    }
-                  }
-                },
-                {
-                  "title": "At least one element-finding field",
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "$ref": "#/x_dd_defs/d640d88082e61"
             },
             {
-              "title": "Target by position",
-              "type": "object",
-              "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-              "additionalProperties": false,
-              "required": [
-                "position"
-              ],
-              "properties": {
-                "position": {
-                  "anyOf": [
-                    {
-                      "title": "Named region",
-                      "type": "string",
-                      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                      "enum": [
-                        "top",
-                        "bottom",
-                        "left",
-                        "right",
-                        "center",
-                        "top-left",
-                        "top-right",
-                        "bottom-left",
-                        "bottom-right"
-                      ]
-                    },
-                    {
-                      "title": "Annotation point",
-                      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                      "type": "object",
-                      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                      "additionalProperties": false,
-                      "required": [
-                        "x",
-                        "y"
-                      ],
-                      "properties": {
-                        "x": {
-                          "type": "number",
-                          "description": "Horizontal position in pixels from the left edge of the capture."
-                        },
-                        "y": {
-                          "type": "number",
-                          "description": "Vertical position in pixels from the top edge of the capture."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
+              "$ref": "#/x_dd_defs/d578a02667b67"
             }
           ]
         },
@@ -1120,125 +112,20 @@
           "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
           "additionalProperties": false,
           "properties": {
-            "color": {
-              "type": "string",
-              "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-            },
-            "background": {
-              "type": "string",
-              "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-            },
-            "strokeWidth": {
-              "type": "number",
-              "description": "Line width in pixels.",
-              "minimum": 0
-            },
-            "fontSize": {
-              "type": "number",
-              "description": "Font size in pixels.",
-              "minimum": 1
-            },
-            "fontFamily": {
-              "type": "string",
-              "description": "Font family. Falls back through the list as in CSS."
-            },
-            "opacity": {
-              "type": "number",
-              "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "radius": {
-              "type": "number",
-              "description": "Corner radius in pixels, for boxes and text backgrounds.",
-              "minimum": 0
-            },
-            "padding": {
-              "type": "number",
-              "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-              "minimum": 0
-            },
-            "maxWidth": {
-              "type": "number",
-              "description": "Maximum width in pixels for text before it wraps.",
-              "minimum": 1
-            },
-            "intensity": {
-              "type": "number",
-              "description": "Blur strength. Higher values obscure more.",
-              "minimum": 1
-            }
+            "$ref": "#/x_dd_defs/d497de236fde2"
           }
         },
         "position": {
           "description": "Where to place the annotation relative to its target. Accepts a named region, an absolute point, or an offset that nudges the default placement.",
           "anyOf": [
             {
-              "title": "Named region",
-              "type": "string",
-              "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-              "enum": [
-                "top",
-                "bottom",
-                "left",
-                "right",
-                "center",
-                "top-left",
-                "top-right",
-                "bottom-left",
-                "bottom-right"
-              ]
+              "$ref": "#/x_dd_defs/db945092c7d85"
             },
             {
-              "title": "Annotation point",
-              "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-              "type": "object",
-              "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-              "additionalProperties": false,
-              "required": [
-                "x",
-                "y"
-              ],
-              "properties": {
-                "x": {
-                  "type": "number",
-                  "description": "Horizontal position in pixels from the left edge of the capture."
-                },
-                "y": {
-                  "type": "number",
-                  "description": "Vertical position in pixels from the top edge of the capture."
-                }
-              }
+              "$ref": "#/x_dd_defs/d37560e3f963c"
             },
             {
-              "title": "Annotation offset",
-              "type": "object",
-              "description": "A nudge in pixels from the annotation's default placement.",
-              "additionalProperties": false,
-              "required": [
-                "offset"
-              ],
-              "properties": {
-                "offset": {
-                  "type": "object",
-                  "description": "Pixels to shift the annotation by.",
-                  "additionalProperties": false,
-                  "required": [
-                    "x",
-                    "y"
-                  ],
-                  "properties": {
-                    "x": {
-                      "type": "number",
-                      "description": "Pixels to shift right. Negative values shift left."
-                    },
-                    "y": {
-                      "type": "number",
-                      "description": "Pixels to shift down. Negative values shift up."
-                    }
-                  }
-                }
-              }
+              "$ref": "#/x_dd_defs/db98d033d9f26"
             }
           ]
         },
@@ -1252,29 +139,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "enter": {
-              "type": "string",
-              "description": "How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.",
-              "enum": [
-                "none",
-                "fade",
-                "pop",
-                "draw"
-              ]
-            },
-            "exit": {
-              "type": "string",
-              "description": "How the annotation disappears.",
-              "enum": [
-                "none",
-                "fade"
-              ]
-            },
-            "durationMs": {
-              "type": "number",
-              "description": "Length of the enter and exit animations, in milliseconds.",
-              "minimum": 0
-            }
+            "$ref": "#/x_dd_defs/d1e6599b52a8b"
           }
         },
         "duration": {
@@ -1338,606 +203,49 @@
         "description": "What the annotation points at: an element, or a fixed position in the capture.",
         "anyOf": [
           {
-            "title": "Target by element (simple)",
-            "type": "string",
-            "description": "Display text or selector of the element to annotate."
+            "$ref": "#/x_dd_defs/d203ba30cb75a"
           },
           {
-            "title": "Target by element (detailed)",
-            "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-            "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-            "allOf": [
-              {
-                "title": "Element-finding fields",
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "selector": {
-                    "type": "string",
-                    "description": "Selector of the element to annotate. Browser surfaces only."
-                  },
-                  "elementText": {
-                    "type": "string",
-                    "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementId": {
-                    "type": "string",
-                    "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementTestId": {
-                    "type": "string",
-                    "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementClass": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ],
-                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-                  },
-                  "elementAttribute": {
-                    "type": "object",
-                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                    "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-                  },
-                  "elementAria": {
-                    "type": "string",
-                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "timeout": {
-                    "type": "integer",
-                    "description": "Max duration in milliseconds to wait for the element to exist.",
-                    "default": 5000,
-                    "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-                  }
-                }
-              },
-              {
-                "title": "At least one element-finding field",
-                "type": "object",
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "required": [
-                      "selector"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "elementText"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "elementId"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "elementTestId"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "elementClass"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "elementAttribute"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "elementAria"
-                    ]
-                  }
-                ]
-              }
-            ]
+            "$ref": "#/x_dd_defs/d640d88082e61"
           },
           {
-            "title": "Target by position",
-            "type": "object",
-            "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-            "additionalProperties": false,
-            "required": [
-              "position"
-            ],
-            "properties": {
-              "position": {
-                "anyOf": [
-                  {
-                    "title": "Named region",
-                    "type": "string",
-                    "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                    "enum": [
-                      "top",
-                      "bottom",
-                      "left",
-                      "right",
-                      "center",
-                      "top-left",
-                      "top-right",
-                      "bottom-left",
-                      "bottom-right"
-                    ]
-                  },
-                  {
-                    "title": "Annotation point",
-                    "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                    "type": "object",
-                    "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                    "additionalProperties": false,
-                    "required": [
-                      "x",
-                      "y"
-                    ],
-                    "properties": {
-                      "x": {
-                        "type": "number",
-                        "description": "Horizontal position in pixels from the left edge of the capture."
-                      },
-                      "y": {
-                        "type": "number",
-                        "description": "Vertical position in pixels from the top edge of the capture."
-                      }
-                    }
-                  }
-                ]
-              }
-            }
+            "$ref": "#/x_dd_defs/d578a02667b67"
           }
         ]
       },
       "target_element": {
-        "title": "Target by element (detailed)",
-        "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
-        "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
-        "allOf": [
-          {
-            "title": "Element-finding fields",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "selector": {
-                "type": "string",
-                "description": "Selector of the element to annotate. Browser surfaces only."
-              },
-              "elementText": {
-                "type": "string",
-                "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "elementId": {
-                "type": "string",
-                "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "elementTestId": {
-                "type": "string",
-                "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "elementClass": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-              },
-              "elementAttribute": {
-                "type": "object",
-                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
-                  ]
-                },
-                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-              },
-              "elementAria": {
-                "type": "string",
-                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-              },
-              "timeout": {
-                "type": "integer",
-                "description": "Max duration in milliseconds to wait for the element to exist.",
-                "default": 5000,
-                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-              }
-            }
-          },
-          {
-            "title": "At least one element-finding field",
-            "type": "object",
-            "anyOf": [
-              {
-                "type": "object",
-                "required": [
-                  "selector"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "elementText"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "elementId"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "elementTestId"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "elementClass"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "elementAttribute"
-                ]
-              },
-              {
-                "type": "object",
-                "required": [
-                  "elementAria"
-                ]
-              }
-            ]
-          }
-        ]
+        "$ref": "#/x_dd_defs/d640d88082e61"
       },
       "target_element_guard": {
-        "title": "At least one element-finding field",
-        "type": "object",
-        "anyOf": [
-          {
-            "type": "object",
-            "required": [
-              "selector"
-            ]
-          },
-          {
-            "type": "object",
-            "required": [
-              "elementText"
-            ]
-          },
-          {
-            "type": "object",
-            "required": [
-              "elementId"
-            ]
-          },
-          {
-            "type": "object",
-            "required": [
-              "elementTestId"
-            ]
-          },
-          {
-            "type": "object",
-            "required": [
-              "elementClass"
-            ]
-          },
-          {
-            "type": "object",
-            "required": [
-              "elementAttribute"
-            ]
-          },
-          {
-            "type": "object",
-            "required": [
-              "elementAria"
-            ]
-          }
-        ]
+        "$ref": "#/x_dd_defs/dec5c62f73ed2"
       },
       "target_element_shape": {
-        "title": "Element-finding fields",
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "selector": {
-            "type": "string",
-            "description": "Selector of the element to annotate. Browser surfaces only."
-          },
-          "elementText": {
-            "type": "string",
-            "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
-          },
-          "elementAttribute": {
-            "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            },
-            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
-          },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
-            "default": 5000,
-            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
-          }
-        }
+        "$ref": "#/x_dd_defs/d485dff4ca6a2"
       },
       "target_position": {
-        "title": "Target by position",
-        "type": "object",
-        "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
-        "additionalProperties": false,
-        "required": [
-          "position"
-        ],
-        "properties": {
-          "position": {
-            "anyOf": [
-              {
-                "title": "Named region",
-                "type": "string",
-                "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-                "enum": [
-                  "top",
-                  "bottom",
-                  "left",
-                  "right",
-                  "center",
-                  "top-left",
-                  "top-right",
-                  "bottom-left",
-                  "bottom-right"
-                ]
-              },
-              {
-                "title": "Annotation point",
-                "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-                "type": "object",
-                "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-                "additionalProperties": false,
-                "required": [
-                  "x",
-                  "y"
-                ],
-                "properties": {
-                  "x": {
-                    "type": "number",
-                    "description": "Horizontal position in pixels from the left edge of the capture."
-                  },
-                  "y": {
-                    "type": "number",
-                    "description": "Vertical position in pixels from the top edge of the capture."
-                  }
-                }
-              }
-            ]
-          }
-        }
+        "$ref": "#/x_dd_defs/d578a02667b67"
       },
       "placement": {
         "anyOf": [
           {
-            "title": "Named region",
-            "type": "string",
-            "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-            "enum": [
-              "top",
-              "bottom",
-              "left",
-              "right",
-              "center",
-              "top-left",
-              "top-right",
-              "bottom-left",
-              "bottom-right"
-            ]
+            "$ref": "#/x_dd_defs/db945092c7d85"
           },
           {
-            "title": "Annotation point",
-            "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-            "type": "object",
-            "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-            "additionalProperties": false,
-            "required": [
-              "x",
-              "y"
-            ],
-            "properties": {
-              "x": {
-                "type": "number",
-                "description": "Horizontal position in pixels from the left edge of the capture."
-              },
-              "y": {
-                "type": "number",
-                "description": "Vertical position in pixels from the top edge of the capture."
-              }
-            }
+            "$ref": "#/x_dd_defs/d37560e3f963c"
           },
           {
-            "title": "Annotation offset",
-            "type": "object",
-            "description": "A nudge in pixels from the annotation's default placement.",
-            "additionalProperties": false,
-            "required": [
-              "offset"
-            ],
-            "properties": {
-              "offset": {
-                "type": "object",
-                "description": "Pixels to shift the annotation by.",
-                "additionalProperties": false,
-                "required": [
-                  "x",
-                  "y"
-                ],
-                "properties": {
-                  "x": {
-                    "type": "number",
-                    "description": "Pixels to shift right. Negative values shift left."
-                  },
-                  "y": {
-                    "type": "number",
-                    "description": "Pixels to shift down. Negative values shift up."
-                  }
-                }
-              }
-            }
+            "$ref": "#/x_dd_defs/db98d033d9f26"
           }
         ]
       },
       "region": {
-        "title": "Named region",
-        "type": "string",
-        "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
-        "enum": [
-          "top",
-          "bottom",
-          "left",
-          "right",
-          "center",
-          "top-left",
-          "top-right",
-          "bottom-left",
-          "bottom-right"
-        ]
+        "$ref": "#/x_dd_defs/db945092c7d85"
       },
       "point": {
-        "title": "Annotation point",
-        "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
-        "type": "object",
-        "description": "An absolute coordinate in the capture, in pixels from the top-left.",
-        "additionalProperties": false,
-        "required": [
-          "x",
-          "y"
-        ],
-        "properties": {
-          "x": {
-            "type": "number",
-            "description": "Horizontal position in pixels from the left edge of the capture."
-          },
-          "y": {
-            "type": "number",
-            "description": "Vertical position in pixels from the top edge of the capture."
-          }
-        }
+        "$ref": "#/x_dd_defs/d37560e3f963c"
       },
       "offset": {
-        "title": "Annotation offset",
-        "type": "object",
-        "description": "A nudge in pixels from the annotation's default placement.",
-        "additionalProperties": false,
-        "required": [
-          "offset"
-        ],
-        "properties": {
-          "offset": {
-            "type": "object",
-            "description": "Pixels to shift the annotation by.",
-            "additionalProperties": false,
-            "required": [
-              "x",
-              "y"
-            ],
-            "properties": {
-              "x": {
-                "type": "number",
-                "description": "Pixels to shift right. Negative values shift left."
-              },
-              "y": {
-                "type": "number",
-                "description": "Pixels to shift down. Negative values shift up."
-              }
-            }
-          }
-        }
+        "$ref": "#/x_dd_defs/db98d033d9f26"
       },
       "style": {
         "title": "Annotation style",
@@ -1946,54 +254,7 @@
         "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
         "additionalProperties": false,
         "properties": {
-          "color": {
-            "type": "string",
-            "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-          },
-          "background": {
-            "type": "string",
-            "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-          },
-          "strokeWidth": {
-            "type": "number",
-            "description": "Line width in pixels.",
-            "minimum": 0
-          },
-          "fontSize": {
-            "type": "number",
-            "description": "Font size in pixels.",
-            "minimum": 1
-          },
-          "fontFamily": {
-            "type": "string",
-            "description": "Font family. Falls back through the list as in CSS."
-          },
-          "opacity": {
-            "type": "number",
-            "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "radius": {
-            "type": "number",
-            "description": "Corner radius in pixels, for boxes and text backgrounds.",
-            "minimum": 0
-          },
-          "padding": {
-            "type": "number",
-            "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-            "minimum": 0
-          },
-          "maxWidth": {
-            "type": "number",
-            "description": "Maximum width in pixels for text before it wraps.",
-            "minimum": 1
-          },
-          "intensity": {
-            "type": "number",
-            "description": "Blur strength. Higher values obscure more.",
-            "minimum": 1
-          }
+          "$ref": "#/x_dd_defs/d497de236fde2"
         }
       },
       "transition": {
@@ -2002,29 +263,7 @@
         "description": "How an annotation enters and leaves during a recording.",
         "additionalProperties": false,
         "properties": {
-          "enter": {
-            "type": "string",
-            "description": "How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.",
-            "enum": [
-              "none",
-              "fade",
-              "pop",
-              "draw"
-            ]
-          },
-          "exit": {
-            "type": "string",
-            "description": "How the annotation disappears.",
-            "enum": [
-              "none",
-              "fade"
-            ]
-          },
-          "durationMs": {
-            "type": "number",
-            "description": "Length of the enter and exit animations, in milliseconds.",
-            "minimum": 0
-          }
+          "$ref": "#/x_dd_defs/d1e6599b52a8b"
         }
       }
     }
@@ -2106,5 +345,352 @@
         "durationMs": 400
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d203ba30cb75a": {
+      "title": "Target by element (simple)",
+      "type": "string",
+      "description": "Display text or selector of the element to annotate."
+    },
+    "d192d95f9b38b": {
+      "type": "string",
+      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "db0575cf4c30d": {
+      "type": "string",
+      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "df984b501fea7": {
+      "type": "string",
+      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "df8d63b095f7c": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+    },
+    "d93146a0a6c22": {
+      "type": "object",
+      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+    },
+    "da993bab30b8c": {
+      "type": "string",
+      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d8e4e67cd280a": {
+      "type": "integer",
+      "description": "Max duration in milliseconds to wait for the element to exist.",
+      "default": 5000,
+      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+    },
+    "d5fb615d2caed": {
+      "selector": {
+        "type": "string",
+        "description": "Selector of the element to annotate. Browser surfaces only."
+      },
+      "elementText": {
+        "$ref": "#/x_dd_defs/d192d95f9b38b"
+      },
+      "elementId": {
+        "$ref": "#/x_dd_defs/db0575cf4c30d"
+      },
+      "elementTestId": {
+        "$ref": "#/x_dd_defs/df984b501fea7"
+      },
+      "elementClass": {
+        "$ref": "#/x_dd_defs/df8d63b095f7c"
+      },
+      "elementAttribute": {
+        "$ref": "#/x_dd_defs/d93146a0a6c22"
+      },
+      "elementAria": {
+        "$ref": "#/x_dd_defs/da993bab30b8c"
+      },
+      "timeout": {
+        "$ref": "#/x_dd_defs/d8e4e67cd280a"
+      }
+    },
+    "d485dff4ca6a2": {
+      "title": "Element-finding fields",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d5fb615d2caed"
+      }
+    },
+    "dec5c62f73ed2": {
+      "title": "At least one element-finding field",
+      "type": "object",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "selector"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "elementText"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "elementId"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "elementTestId"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "elementClass"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "elementAttribute"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "elementAria"
+          ]
+        }
+      ]
+    },
+    "d640d88082e61": {
+      "title": "Target by element (detailed)",
+      "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+      "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+      "allOf": [
+        {
+          "$ref": "#/x_dd_defs/d485dff4ca6a2"
+        },
+        {
+          "$ref": "#/x_dd_defs/dec5c62f73ed2"
+        }
+      ]
+    },
+    "db945092c7d85": {
+      "title": "Named region",
+      "type": "string",
+      "description": "A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.",
+      "enum": [
+        "top",
+        "bottom",
+        "left",
+        "right",
+        "center",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right"
+      ]
+    },
+    "d0bcea90fe810": {
+      "x": {
+        "type": "number",
+        "description": "Horizontal position in pixels from the left edge of the capture."
+      },
+      "y": {
+        "type": "number",
+        "description": "Vertical position in pixels from the top edge of the capture."
+      }
+    },
+    "d37560e3f963c": {
+      "title": "Annotation point",
+      "$comment": "Titled 'Annotation point' rather than 'Point' because the docs generator keys its reference pages by title — a bare 'Point' collides with swipe_v3's Point and silently overwrites that page. Not $ref'd from swipe_v3 either: its point is an integer with minimum 0 (a tap coordinate), while an annotation point is a fractional position in a capture.",
+      "type": "object",
+      "description": "An absolute coordinate in the capture, in pixels from the top-left.",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d0bcea90fe810"
+      }
+    },
+    "d5db128324f6c": {
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/db945092c7d85"
+        },
+        {
+          "$ref": "#/x_dd_defs/d37560e3f963c"
+        }
+      ]
+    },
+    "d9f1f847e30f3": {
+      "position": {
+        "$ref": "#/x_dd_defs/d5db128324f6c"
+      }
+    },
+    "d578a02667b67": {
+      "title": "Target by position",
+      "type": "object",
+      "description": "A fixed spot in the capture, for annotations that aren't anchored to an element.",
+      "additionalProperties": false,
+      "required": [
+        "position"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d9f1f847e30f3"
+      }
+    },
+    "d0b1c893bdb0c": {
+      "type": "string",
+      "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
+    },
+    "d5b893ee88126": {
+      "type": "number",
+      "description": "Padding in pixels inside text boxes, and between an outline and its element.",
+      "minimum": 0
+    },
+    "d497de236fde2": {
+      "color": {
+        "type": "string",
+        "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
+      },
+      "background": {
+        "$ref": "#/x_dd_defs/d0b1c893bdb0c"
+      },
+      "strokeWidth": {
+        "type": "number",
+        "description": "Line width in pixels.",
+        "minimum": 0
+      },
+      "fontSize": {
+        "type": "number",
+        "description": "Font size in pixels.",
+        "minimum": 1
+      },
+      "fontFamily": {
+        "type": "string",
+        "description": "Font family. Falls back through the list as in CSS."
+      },
+      "opacity": {
+        "type": "number",
+        "description": "Opacity, from 0 (invisible) to 1 (opaque).",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "radius": {
+        "type": "number",
+        "description": "Corner radius in pixels, for boxes and text backgrounds.",
+        "minimum": 0
+      },
+      "padding": {
+        "$ref": "#/x_dd_defs/d5b893ee88126"
+      },
+      "maxWidth": {
+        "type": "number",
+        "description": "Maximum width in pixels for text before it wraps.",
+        "minimum": 1
+      },
+      "intensity": {
+        "type": "number",
+        "description": "Blur strength. Higher values obscure more.",
+        "minimum": 1
+      }
+    },
+    "d95b727d10bc1": {
+      "x": {
+        "type": "number",
+        "description": "Pixels to shift right. Negative values shift left."
+      },
+      "y": {
+        "type": "number",
+        "description": "Pixels to shift down. Negative values shift up."
+      }
+    },
+    "da720ed25a2f5": {
+      "type": "object",
+      "description": "Pixels to shift the annotation by.",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d95b727d10bc1"
+      }
+    },
+    "d13292eb239b1": {
+      "offset": {
+        "$ref": "#/x_dd_defs/da720ed25a2f5"
+      }
+    },
+    "db98d033d9f26": {
+      "title": "Annotation offset",
+      "type": "object",
+      "description": "A nudge in pixels from the annotation's default placement.",
+      "additionalProperties": false,
+      "required": [
+        "offset"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d13292eb239b1"
+      }
+    },
+    "df63b96f0db85": {
+      "type": "string",
+      "description": "How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.",
+      "enum": [
+        "none",
+        "fade",
+        "pop",
+        "draw"
+      ]
+    },
+    "d1e6599b52a8b": {
+      "enter": {
+        "$ref": "#/x_dd_defs/df63b96f0db85"
+      },
+      "exit": {
+        "type": "string",
+        "description": "How the annotation disappears.",
+        "enum": [
+          "none",
+          "fade"
+        ]
+      },
+      "durationMs": {
+        "type": "number",
+        "description": "Length of the enter and exit animations, in milliseconds.",
+        "minimum": 0
+      }
+    }
+  }
 }

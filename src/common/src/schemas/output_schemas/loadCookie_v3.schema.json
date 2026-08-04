@@ -4,6 +4,47 @@
   "description": "Load a specific cookie from a file or environment variable into the browser.",
   "anyOf": [
     {
+      "$ref": "#/x_dd_defs/d618d25bb7d2c"
+    },
+    {
+      "$ref": "#/x_dd_defs/dd0f94b6a33b7"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "$ref": "#/x_dd_defs/d618d25bb7d2c"
+      },
+      "object": {
+        "$ref": "#/x_dd_defs/dd0f94b6a33b7"
+      }
+    }
+  },
+  "examples": [
+    "session_token",
+    "./test-data/auth-session.txt",
+    "test_env_cookie",
+    {
+      "name": "auth_cookie",
+      "variable": "AUTH_COOKIE"
+    },
+    {
+      "name": "test_cookie",
+      "path": "test-cookie.txt"
+    },
+    {
+      "name": "session_token",
+      "path": "session-token.txt",
+      "directory": "./test-data"
+    },
+    {
+      "name": "user_session",
+      "path": "saved-cookies.txt",
+      "domain": "app.example.com"
+    }
+  ],
+  "x_dd_defs": {
+    "d618d25bb7d2c": {
       "type": "string",
       "title": "Cookie name or file path",
       "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
@@ -12,7 +53,68 @@
         "trim"
       ]
     },
-    {
+    "da35c20b15a45": {
+      "type": "string",
+      "title": "Cookie name",
+      "description": "Name of the specific cookie to load.",
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "transform": [
+        "trim"
+      ]
+    },
+    "dd2eac19da203": {
+      "type": "string",
+      "title": "Environment variable name",
+      "description": "Environment variable name containing the cookie as JSON string.",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "transform": [
+        "trim"
+      ]
+    },
+    "dd96b873325eb": {
+      "type": "string",
+      "title": "Cookie file path",
+      "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
+      "transform": [
+        "trim"
+      ]
+    },
+    "db723467fe052": {
+      "type": "string",
+      "title": "Cookie domain",
+      "description": "Specific domain to filter the cookie by when loading from multi-cookie file (optional).",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d10c45ecd6f41": {
+      "$schema": {
+        "description": "Optional self-describing schema URI for linters",
+        "type": "string",
+        "format": "uri-reference"
+      },
+      "name": {
+        "$ref": "#/x_dd_defs/da35c20b15a45"
+      },
+      "variable": {
+        "$ref": "#/x_dd_defs/dd2eac19da203"
+      },
+      "path": {
+        "$ref": "#/x_dd_defs/dd96b873325eb"
+      },
+      "directory": {
+        "type": "string",
+        "title": "Directory path",
+        "description": "Directory containing the cookie file.",
+        "transform": [
+          "trim"
+        ]
+      },
+      "domain": {
+        "$ref": "#/x_dd_defs/db723467fe052"
+      }
+    },
+    "dd0f94b6a33b7": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -50,179 +152,9 @@
         }
       ],
       "properties": {
-        "$schema": {
-          "description": "Optional self-describing schema URI for linters",
-          "type": "string",
-          "format": "uri-reference"
-        },
-        "name": {
-          "type": "string",
-          "title": "Cookie name",
-          "description": "Name of the specific cookie to load.",
-          "pattern": "^[A-Za-z0-9_.-]+$",
-          "transform": [
-            "trim"
-          ]
-        },
-        "variable": {
-          "type": "string",
-          "title": "Environment variable name",
-          "description": "Environment variable name containing the cookie as JSON string.",
-          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-          "transform": [
-            "trim"
-          ]
-        },
-        "path": {
-          "type": "string",
-          "title": "Cookie file path",
-          "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
-          "transform": [
-            "trim"
-          ]
-        },
-        "directory": {
-          "type": "string",
-          "title": "Directory path",
-          "description": "Directory containing the cookie file.",
-          "transform": [
-            "trim"
-          ]
-        },
-        "domain": {
-          "type": "string",
-          "title": "Cookie domain",
-          "description": "Specific domain to filter the cookie by when loading from multi-cookie file (optional).",
-          "transform": [
-            "trim"
-          ]
-        }
+        "$ref": "#/x_dd_defs/d10c45ecd6f41"
       },
       "title": "Load cookie (detailed)"
     }
-  ],
-  "components": {
-    "schemas": {
-      "string": {
-        "type": "string",
-        "title": "Cookie name or file path",
-        "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
-        "pattern": "^[A-Za-z0-9_./\\-]+$",
-        "transform": [
-          "trim"
-        ]
-      },
-      "object": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name"
-        ],
-        "anyOf": [
-          {
-            "required": [
-              "path"
-            ],
-            "not": {
-              "required": [
-                "variable"
-              ]
-            }
-          },
-          {
-            "required": [
-              "variable"
-            ],
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "path"
-                  ]
-                },
-                {
-                  "required": [
-                    "directory"
-                  ]
-                }
-              ]
-            }
-          }
-        ],
-        "properties": {
-          "$schema": {
-            "description": "Optional self-describing schema URI for linters",
-            "type": "string",
-            "format": "uri-reference"
-          },
-          "name": {
-            "type": "string",
-            "title": "Cookie name",
-            "description": "Name of the specific cookie to load.",
-            "pattern": "^[A-Za-z0-9_.-]+$",
-            "transform": [
-              "trim"
-            ]
-          },
-          "variable": {
-            "type": "string",
-            "title": "Environment variable name",
-            "description": "Environment variable name containing the cookie as JSON string.",
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-            "transform": [
-              "trim"
-            ]
-          },
-          "path": {
-            "type": "string",
-            "title": "Cookie file path",
-            "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
-            "transform": [
-              "trim"
-            ]
-          },
-          "directory": {
-            "type": "string",
-            "title": "Directory path",
-            "description": "Directory containing the cookie file.",
-            "transform": [
-              "trim"
-            ]
-          },
-          "domain": {
-            "type": "string",
-            "title": "Cookie domain",
-            "description": "Specific domain to filter the cookie by when loading from multi-cookie file (optional).",
-            "transform": [
-              "trim"
-            ]
-          }
-        },
-        "title": "Load cookie (detailed)"
-      }
-    }
-  },
-  "examples": [
-    "session_token",
-    "./test-data/auth-session.txt",
-    "test_env_cookie",
-    {
-      "name": "auth_cookie",
-      "variable": "AUTH_COOKIE"
-    },
-    {
-      "name": "test_cookie",
-      "path": "test-cookie.txt"
-    },
-    {
-      "name": "session_token",
-      "path": "session-token.txt",
-      "directory": "./test-data"
-    },
-    {
-      "name": "user_session",
-      "path": "saved-cookies.txt",
-      "domain": "app.example.com"
-    }
-  ]
+  }
 }

@@ -3,183 +3,19 @@
   "title": "checkLink",
   "anyOf": [
     {
-      "title": "Check link (detailed)",
-      "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
-      "type": "string",
-      "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
-      "transform": [
-        "trim"
-      ]
+      "$ref": "#/x_dd_defs/df5b29b549659"
     },
     {
-      "title": "Check link (detailed)",
-      "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "url"
-      ],
-      "properties": {
-        "url": {
-          "type": "string",
-          "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-          "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
-          "transform": [
-            "trim"
-          ]
-        },
-        "origin": {
-          "type": "string",
-          "description": "Protocol and domain to navigate to. Prepended to `url`.",
-          "transform": [
-            "trim"
-          ]
-        },
-        "params": {
-          "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "default": {}
-        },
-        "statusCodes": {
-          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  }
-                ]
-              }
-            }
-          ],
-          "default": [
-            200,
-            301,
-            302,
-            307,
-            308
-          ]
-        },
-        "headers": {
-          "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
-          "default": {},
-          "anyOf": [
-            {
-              "title": "Request headers (object)",
-              "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              },
-              "properties": {}
-            },
-            {
-              "title": "Request headers (string)",
-              "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
-              "type": "string"
-            }
-          ]
-        }
-      }
+      "$ref": "#/x_dd_defs/d6aad35fb7b45"
     }
   ],
   "components": {
     "schemas": {
       "string": {
-        "title": "Check link (detailed)",
-        "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
-        "type": "string",
-        "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
-        "transform": [
-          "trim"
-        ]
+        "$ref": "#/x_dd_defs/df5b29b549659"
       },
       "object": {
-        "title": "Check link (detailed)",
-        "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "url"
-        ],
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-            "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "origin": {
-            "type": "string",
-            "description": "Protocol and domain to navigate to. Prepended to `url`.",
-            "transform": [
-              "trim"
-            ]
-          },
-          "params": {
-            "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {}
-          },
-          "statusCodes": {
-            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    }
-                  ]
-                }
-              }
-            ],
-            "default": [
-              200,
-              301,
-              302,
-              307,
-              308
-            ]
-          },
-          "headers": {
-            "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
-            "default": {},
-            "anyOf": [
-              {
-                "title": "Request headers (object)",
-                "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "properties": {}
-              },
-              {
-                "title": "Request headers (string)",
-                "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
-                "type": "string"
-              }
-            ]
-          }
-        }
+        "$ref": "#/x_dd_defs/d6aad35fb7b45"
       }
     }
   },
@@ -204,5 +40,116 @@
         "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "df5b29b549659": {
+      "title": "Check link (detailed)",
+      "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+      "type": "string",
+      "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "dc61fce3f9f25": {
+      "type": "string",
+      "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
+      "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d44bde413aec6": {
+      "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {}
+    },
+    "d723a44d0e9a0": {
+      "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              }
+            ]
+          }
+        }
+      ],
+      "default": [
+        200,
+        301,
+        302,
+        307,
+        308
+      ]
+    },
+    "de910d694cf55": {
+      "title": "Request headers (object)",
+      "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "properties": {}
+    },
+    "d8a57c715f527": {
+      "title": "Request headers (string)",
+      "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
+      "type": "string"
+    },
+    "d95014b86ae45": {
+      "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+      "default": {},
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/de910d694cf55"
+        },
+        {
+          "$ref": "#/x_dd_defs/d8a57c715f527"
+        }
+      ]
+    },
+    "d319674bbc2b0": {
+      "url": {
+        "$ref": "#/x_dd_defs/dc61fce3f9f25"
+      },
+      "origin": {
+        "type": "string",
+        "description": "Protocol and domain to navigate to. Prepended to `url`.",
+        "transform": [
+          "trim"
+        ]
+      },
+      "params": {
+        "$ref": "#/x_dd_defs/d44bde413aec6"
+      },
+      "statusCodes": {
+        "$ref": "#/x_dd_defs/d723a44d0e9a0"
+      },
+      "headers": {
+        "$ref": "#/x_dd_defs/d95014b86ae45"
+      }
+    },
+    "d6aad35fb7b45": {
+      "title": "Check link (detailed)",
+      "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d319674bbc2b0"
+      }
+    }
+  }
 }

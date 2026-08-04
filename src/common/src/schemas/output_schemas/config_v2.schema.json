@@ -60,27 +60,10 @@
       "description": "Options for running tests. When running tests, values set here override general configuration options.",
       "properties": {
         "input": {
-          "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  }
-                ]
-              }
-            }
-          ]
+          "$ref": "#/x_dd_defs/d0b8757a08523"
         },
         "output": {
-          "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
-          "type": "string",
-          "default": "."
+          "$ref": "#/x_dd_defs/d01e9ab8bb4d0"
         },
         "setup": {
           "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
@@ -119,8 +102,7 @@
           ]
         },
         "recursive": {
-          "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
-          "type": "boolean"
+          "$ref": "#/x_dd_defs/d48055e1a6c68"
         },
         "detectSteps": {
           "type": "boolean",
@@ -303,53 +285,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "input": {
-          "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "output": {
-          "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
-          "type": "string",
-          "default": "."
-        },
-        "recursive": {
-          "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
-          "type": "boolean"
-        },
-        "markup": {
-          "default": [
-            "onscreenText",
-            "emphasis",
-            "image",
-            "hyperlink",
-            "codeInline",
-            "codeBlock",
-            "interaction"
-          ],
-          "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "string"
-              }
-            ]
-          }
-        }
+        "$ref": "#/x_dd_defs/d5b5e39f82a32"
       }
     },
     "suggestTests": {
@@ -357,53 +293,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "input": {
-          "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "output": {
-          "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
-          "type": "string",
-          "default": "."
-        },
-        "recursive": {
-          "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
-          "type": "boolean"
-        },
-        "markup": {
-          "default": [
-            "onscreenText",
-            "emphasis",
-            "image",
-            "hyperlink",
-            "codeInline",
-            "codeBlock",
-            "interaction"
-          ],
-          "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "string"
-              }
-            ]
-          }
-        }
+        "$ref": "#/x_dd_defs/d5b5e39f82a32"
       }
     },
     "fileTypes": {
@@ -686,27 +576,10 @@
                                         "additionalProperties": false,
                                         "properties": {
                                           "keys": {
-                                            "description": "String of keys to enter.",
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "array",
-                                                "items": {
-                                                  "oneOf": [
-                                                    {
-                                                      "type": "string"
-                                                    }
-                                                  ]
-                                                }
-                                              }
-                                            ]
+                                            "$ref": "#/x_dd_defs/d7472a08e9885"
                                           },
                                           "delay": {
-                                            "type": "number",
-                                            "description": "Delay in milliseconds between each key press. Only valid during a recording.",
-                                            "default": 100
+                                            "$ref": "#/x_dd_defs/d9a409331557d"
                                           }
                                         }
                                       }
@@ -886,79 +759,7 @@
                                   "openApi": {
                                     "allOf": [
                                       {
-                                        "version": "1.0.0",
-                                        "$schema": "http://json-schema.org/draft-07/schema#",
-                                        "title": "openApi",
-                                        "type": "object",
-                                        "description": "OpenAPI definition and configuration.",
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "name": {
-                                            "type": "string",
-                                            "description": "Name of the OpenAPI definition, as defined in your configuration."
-                                          },
-                                          "descriptionPath": {
-                                            "type": "string",
-                                            "description": "URL or local path to the OpenAPI definition."
-                                          },
-                                          "operationId": {
-                                            "type": "string",
-                                            "description": "ID of the operation to use for the request."
-                                          },
-                                          "server": {
-                                            "type": "string",
-                                            "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
-                                          },
-                                          "validateAgainstSchema": {
-                                            "type": "string",
-                                            "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
-                                            "enum": [
-                                              "request",
-                                              "response",
-                                              "both",
-                                              "none"
-                                            ],
-                                            "default": "both"
-                                          },
-                                          "mockResponse": {
-                                            "type": "boolean",
-                                            "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-                                          },
-                                          "statusCode": {
-                                            "type": "integer",
-                                            "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-                                          },
-                                          "useExample": {
-                                            "type": [
-                                              "string"
-                                            ],
-                                            "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                                            "enum": [
-                                              "request",
-                                              "response",
-                                              "both",
-                                              "none"
-                                            ],
-                                            "default": "none"
-                                          },
-                                          "exampleKey": {
-                                            "type": "string",
-                                            "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                                            "default": ""
-                                          },
-                                          "requestHeaders": {
-                                            "type": "object",
-                                            "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
-                                            "additionalProperties": {
-                                              "type": "string"
-                                            }
-                                          }
-                                        },
-                                        "examples": [
-                                          {
-                                            "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-                                          }
-                                        ]
+                                        "$ref": "#/x_dd_defs/dc63beec70639"
                                       },
                                       {
                                         "type": "object",
@@ -1055,25 +856,13 @@
                                     "description": "File path to save the command's output, relative to `saveDirectory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
                                   },
                                   "saveDirectory": {
-                                    "type": "string",
-                                    "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                    "$ref": "#/x_dd_defs/db7e6ccc6dd35"
                                   },
                                   "maxVariation": {
-                                    "type": "integer",
-                                    "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
-                                    "default": 0,
-                                    "minimum": 0,
-                                    "maximum": 100
+                                    "$ref": "#/x_dd_defs/de90b98de3583"
                                   },
                                   "overwrite": {
-                                    "type": "string",
-                                    "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
-                                    "enum": [
-                                      "true",
-                                      "false",
-                                      "byVariation"
-                                    ],
-                                    "default": "false"
+                                    "$ref": "#/x_dd_defs/da05e91d8175f"
                                   },
                                   "envsFromResponseData": {
                                     "description": "Environment variables to set based on response variables, as an object of the environment variable name and the jq filter applied to the response data to identify the variable's value.",
@@ -1311,25 +1100,13 @@
                                     "description": "File path to save the command's output, relative to `saveDirectory`."
                                   },
                                   "saveDirectory": {
-                                    "type": "string",
-                                    "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                    "$ref": "#/x_dd_defs/db7e6ccc6dd35"
                                   },
                                   "maxVariation": {
-                                    "type": "integer",
-                                    "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
-                                    "default": 0,
-                                    "minimum": 0,
-                                    "maximum": 100
+                                    "$ref": "#/x_dd_defs/de90b98de3583"
                                   },
                                   "overwrite": {
-                                    "type": "string",
-                                    "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
-                                    "enum": [
-                                      "true",
-                                      "false",
-                                      "byVariation"
-                                    ],
-                                    "default": "false"
+                                    "$ref": "#/x_dd_defs/da05e91d8175f"
                                   },
                                   "timeout": {
                                     "type": "integer",
@@ -1731,27 +1508,10 @@
                                     "description": "The action to perform."
                                   },
                                   "keys": {
-                                    "description": "String of keys to enter.",
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "array",
-                                        "items": {
-                                          "oneOf": [
-                                            {
-                                              "type": "string"
-                                            }
-                                          ]
-                                        }
-                                      }
-                                    ]
+                                    "$ref": "#/x_dd_defs/d7472a08e9885"
                                   },
                                   "delay": {
-                                    "type": "number",
-                                    "description": "Delay in milliseconds between each key press. Only valid during a recording.",
-                                    "default": 100
+                                    "$ref": "#/x_dd_defs/d9a409331557d"
                                   }
                                 },
                                 "dynamicDefaults": {
@@ -1899,13 +1659,7 @@
               ]
             },
             {
-              "name": "navigationLink",
-              "regex": [
-                "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "goTo"
-              ]
+              "$ref": "#/x_dd_defs/d4c44dc764b6e"
             },
             {
               "name": "orderedList",
@@ -1927,85 +1681,15 @@
               ]
             },
             {
-              "name": "interaction",
-              "regex": [
-                "[cC]lick",
-                "[tT]ap",
-                "[tT]ouch",
-                "[sS]elect",
-                "[cC]hoose",
-                "[tT]oggle",
-                "[eE]nable",
-                "[dD]isable",
-                "[tT]urn [oO][ff|n]",
-                "[tT]ype",
-                "[eE]nter",
-                "[sS]end",
-                "[aA]dd",
-                "[rR]emove",
-                "[dD]elete",
-                "[uU]pload",
-                "[dD]ownload",
-                "[sS]croll",
-                "[sS]earch",
-                "[fF]ilter",
-                "[sS]ort",
-                "[cC]opy",
-                "[pP]aste",
-                "[cC]ut",
-                "[rR]eplace",
-                "[cC]lear",
-                "[rR]efresh",
-                "[rR]evert",
-                "[rR]estore",
-                "[rR]eset",
-                "[lL]ogin",
-                "[lL]ogout",
-                "[sS]ign [iI]n",
-                "[sS]ign [oO]ut",
-                "[sS]ubmit",
-                "[cC]ancel",
-                "[cC]lose",
-                "[aA]ccept",
-                "[dD]ecline",
-                "[dD]eny",
-                "[rR]eject",
-                "[rR]etry",
-                "[rR]estart",
-                "[rR]esume"
-              ]
+              "$ref": "#/x_dd_defs/db0ff1dce5466"
             }
           ]
         },
         {
-          "name": "AsciiDoc",
-          "extensions": [
-            ".adoc",
-            ".asciidoc, .asc"
-          ],
-          "testStartStatementOpen": "// (test start",
-          "testStartStatementClose": ")",
-          "testIgnoreStatement": "// (test ignore)",
-          "testEndStatement": "// (test end)",
-          "stepStatementOpen": "// (step",
-          "stepStatementClose": ")",
-          "markup": []
+          "$ref": "#/x_dd_defs/d316d5d020cea"
         },
         {
-          "name": "HTML/XML",
-          "extensions": [
-            ".html",
-            ".htm",
-            ".xml",
-            ".xhtml"
-          ],
-          "testStartStatementOpen": "<!-- test start",
-          "testStartStatementClose": "-->",
-          "testIgnoreStatement": "<!-- test ignore -->",
-          "testEndStatement": "<!-- test end -->",
-          "stepStatementOpen": "<!-- step",
-          "stepStatementClose": "-->",
-          "markup": []
+          "$ref": "#/x_dd_defs/d5c49db90bf51"
         }
       ]
     },
@@ -2019,79 +1703,7 @@
           "items": {
             "allOf": [
               {
-                "version": "1.0.0",
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "title": "openApi",
-                "type": "object",
-                "description": "OpenAPI definition and configuration.",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the OpenAPI definition, as defined in your configuration."
-                  },
-                  "descriptionPath": {
-                    "type": "string",
-                    "description": "URL or local path to the OpenAPI definition."
-                  },
-                  "operationId": {
-                    "type": "string",
-                    "description": "ID of the operation to use for the request."
-                  },
-                  "server": {
-                    "type": "string",
-                    "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
-                  },
-                  "validateAgainstSchema": {
-                    "type": "string",
-                    "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
-                    "enum": [
-                      "request",
-                      "response",
-                      "both",
-                      "none"
-                    ],
-                    "default": "both"
-                  },
-                  "mockResponse": {
-                    "type": "boolean",
-                    "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-                  },
-                  "statusCode": {
-                    "type": "integer",
-                    "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-                  },
-                  "useExample": {
-                    "type": [
-                      "string"
-                    ],
-                    "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                    "enum": [
-                      "request",
-                      "response",
-                      "both",
-                      "none"
-                    ],
-                    "default": "none"
-                  },
-                  "exampleKey": {
-                    "type": "string",
-                    "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                    "default": ""
-                  },
-                  "requestHeaders": {
-                    "type": "object",
-                    "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "examples": [
-                  {
-                    "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-                  }
-                ]
+                "$ref": "#/x_dd_defs/dc63beec70639"
               },
               {
                 "type": "object",
@@ -2148,31 +1760,13 @@
   },
   "definitions": {
     "input": {
-      "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              }
-            ]
-          }
-        }
-      ]
+      "$ref": "#/x_dd_defs/d0b8757a08523"
     },
     "recursive": {
-      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
-      "type": "boolean"
+      "$ref": "#/x_dd_defs/d48055e1a6c68"
     },
     "output": {
-      "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
-      "type": "string",
-      "default": "."
+      "$ref": "#/x_dd_defs/d01e9ab8bb4d0"
     },
     "markupToInclude": {
       "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
@@ -2200,25 +1794,7 @@
       "recursive": true,
       "logLevel": "info",
       "runTests": {
-        "input": ".",
-        "output": ".",
-        "setup": "",
-        "cleanup": "",
-        "recursive": true,
-        "downloadDirectory": ".",
-        "contexts": [
-          {
-            "app": {
-              "name": "firefox",
-              "path": ""
-            },
-            "platforms": [
-              "linux",
-              "mac",
-              "windows"
-            ]
-          }
-        ]
+        "$ref": "#/x_dd_defs/da520c9e885f9"
       }
     },
     {
@@ -2240,25 +1816,7 @@
       "recursive": true,
       "logLevel": "info",
       "runTests": {
-        "input": ".",
-        "output": ".",
-        "setup": "",
-        "cleanup": "",
-        "recursive": true,
-        "downloadDirectory": ".",
-        "contexts": [
-          {
-            "app": {
-              "name": "firefox",
-              "path": ""
-            },
-            "platforms": [
-              "linux",
-              "mac",
-              "windows"
-            ]
-          }
-        ]
+        "$ref": "#/x_dd_defs/da520c9e885f9"
       },
       "runCoverage": {
         "recursive": true,
@@ -2268,136 +1826,7 @@
       },
       "fileTypes": [
         {
-          "name": "Markdown",
-          "extensions": [
-            ".md",
-            ".markdown",
-            ".mdx"
-          ],
-          "testStartStatementOpen": "[comment]: # (test start",
-          "testStartStatementClose": ")",
-          "testIgnoreStatement": "[comment]: # (test ignore)",
-          "testEndStatement": "[comment]: # (test end)",
-          "stepStatementOpen": "[comment]: # (step",
-          "stepStatementClose": ")",
-          "markup": [
-            {
-              "name": "onscreenText",
-              "regex": [
-                "\\*\\*.+?\\*\\*"
-              ],
-              "actions": [
-                "find"
-              ]
-            },
-            {
-              "name": "emphasis",
-              "regex": [
-                "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
-              ]
-            },
-            {
-              "name": "image",
-              "regex": [
-                "!\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "checkLink"
-              ]
-            },
-            {
-              "name": "hyperlink",
-              "regex": [
-                "(?<!!)\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "checkLink"
-              ]
-            },
-            {
-              "name": "navigationLink",
-              "regex": [
-                "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "goTo"
-              ]
-            },
-            {
-              "name": "orderedList",
-              "regex": [
-                "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
-              ]
-            },
-            {
-              "name": "unorderedList",
-              "regex": [
-                "(?<=\n) *?\\*.\\s*.*",
-                "(?<=\n) *?-.\\s*.*"
-              ]
-            },
-            {
-              "name": "codeInline",
-              "regex": [
-                "(?<!`)`(?!`).+?(?<!`)`(?!`)"
-              ]
-            },
-            {
-              "name": "codeBlock",
-              "regex": [
-                "(?=(```))(\\w|\\W)*(?<=```)"
-              ]
-            },
-            {
-              "name": "interaction",
-              "regex": [
-                "[cC]lick",
-                "[tT]ap",
-                "[tT]ouch",
-                "[sS]elect",
-                "[cC]hoose",
-                "[tT]oggle",
-                "[eE]nable",
-                "[dD]isable",
-                "[tT]urn [oO][ff|n]",
-                "[tT]ype",
-                "[eE]nter",
-                "[sS]end",
-                "[aA]dd",
-                "[rR]emove",
-                "[dD]elete",
-                "[uU]pload",
-                "[dD]ownload",
-                "[sS]croll",
-                "[sS]earch",
-                "[fF]ilter",
-                "[sS]ort",
-                "[cC]opy",
-                "[pP]aste",
-                "[cC]ut",
-                "[rR]eplace",
-                "[cC]lear",
-                "[rR]efresh",
-                "[rR]evert",
-                "[rR]estore",
-                "[rR]eset",
-                "[lL]ogin",
-                "[lL]ogout",
-                "[sS]ign [iI]n",
-                "[sS]ign [oO]ut",
-                "[sS]ubmit",
-                "[cC]ancel",
-                "[cC]lose",
-                "[aA]ccept",
-                "[dD]ecline",
-                "[dD]eny",
-                "[rR]eject",
-                "[rR]etry",
-                "[rR]estart",
-                "[rR]esume"
-              ]
-            }
-          ]
+          "$ref": "#/x_dd_defs/d0ce442be23fb"
         }
       ],
       "integrations": {},
@@ -2456,166 +1885,13 @@
       },
       "fileTypes": [
         {
-          "name": "Markdown",
-          "extensions": [
-            ".md",
-            ".markdown",
-            ".mdx"
-          ],
-          "testStartStatementOpen": "[comment]: # (test start",
-          "testStartStatementClose": ")",
-          "testIgnoreStatement": "[comment]: # (test ignore)",
-          "testEndStatement": "[comment]: # (test end)",
-          "stepStatementOpen": "[comment]: # (step",
-          "stepStatementClose": ")",
-          "markup": [
-            {
-              "name": "onscreenText",
-              "regex": [
-                "\\*\\*.+?\\*\\*"
-              ],
-              "actions": [
-                "find"
-              ]
-            },
-            {
-              "name": "emphasis",
-              "regex": [
-                "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
-              ]
-            },
-            {
-              "name": "image",
-              "regex": [
-                "!\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "checkLink"
-              ]
-            },
-            {
-              "name": "hyperlink",
-              "regex": [
-                "(?<!!)\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "checkLink"
-              ]
-            },
-            {
-              "name": "navigationLink",
-              "regex": [
-                "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
-              ],
-              "actions": [
-                "goTo"
-              ]
-            },
-            {
-              "name": "orderedList",
-              "regex": [
-                "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
-              ]
-            },
-            {
-              "name": "unorderedList",
-              "regex": [
-                "(?<=\n) *?\\*.\\s*.*",
-                "(?<=\n) *?-.\\s*.*"
-              ]
-            },
-            {
-              "name": "codeInline",
-              "regex": [
-                "(?<!`)`(?!`).+?(?<!`)`(?!`)"
-              ]
-            },
-            {
-              "name": "codeBlock",
-              "regex": [
-                "(?=(```))(\\w|\\W)*(?<=```)"
-              ]
-            },
-            {
-              "name": "interaction",
-              "regex": [
-                "[cC]lick",
-                "[tT]ap",
-                "[tT]ouch",
-                "[sS]elect",
-                "[cC]hoose",
-                "[tT]oggle",
-                "[eE]nable",
-                "[dD]isable",
-                "[tT]urn [oO][ff|n]",
-                "[tT]ype",
-                "[eE]nter",
-                "[sS]end",
-                "[aA]dd",
-                "[rR]emove",
-                "[dD]elete",
-                "[uU]pload",
-                "[dD]ownload",
-                "[sS]croll",
-                "[sS]earch",
-                "[fF]ilter",
-                "[sS]ort",
-                "[cC]opy",
-                "[pP]aste",
-                "[cC]ut",
-                "[rR]eplace",
-                "[cC]lear",
-                "[rR]efresh",
-                "[rR]evert",
-                "[rR]estore",
-                "[rR]eset",
-                "[lL]ogin",
-                "[lL]ogout",
-                "[sS]ign [iI]n",
-                "[sS]ign [oO]ut",
-                "[sS]ubmit",
-                "[cC]ancel",
-                "[cC]lose",
-                "[aA]ccept",
-                "[dD]ecline",
-                "[dD]eny",
-                "[rR]eject",
-                "[rR]etry",
-                "[rR]estart",
-                "[rR]esume"
-              ]
-            }
-          ]
+          "$ref": "#/x_dd_defs/d0ce442be23fb"
         },
         {
-          "name": "AsciiDoc",
-          "extensions": [
-            ".adoc",
-            ".asciidoc, .asc"
-          ],
-          "testStartStatementOpen": "// (test start",
-          "testStartStatementClose": ")",
-          "testIgnoreStatement": "// (test ignore)",
-          "testEndStatement": "// (test end)",
-          "stepStatementOpen": "// (step",
-          "stepStatementClose": ")",
-          "markup": []
+          "$ref": "#/x_dd_defs/d316d5d020cea"
         },
         {
-          "name": "HTML/XML",
-          "extensions": [
-            ".html",
-            ".htm",
-            ".xml",
-            ".xhtml"
-          ],
-          "testStartStatementOpen": "<!-- test start",
-          "testStartStatementClose": "-->",
-          "testIgnoreStatement": "<!-- test ignore -->",
-          "testEndStatement": "<!-- test end -->",
-          "stepStatementOpen": "<!-- step",
-          "stepStatementClose": "-->",
-          "markup": []
+          "$ref": "#/x_dd_defs/d5c49db90bf51"
         }
       ],
       "integrations": {},
@@ -2624,5 +1900,400 @@
         "userId": "Doc Detective"
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d0b8757a08523": {
+      "description": "Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "d01e9ab8bb4d0": {
+      "description": "Path of the of the file or directory in which to store the output of Doc Detective commands. If a file path is specified, the output is written to that file. If a file of that name already exists, Doc Detective creates appends an integer to the result file name. If a directory path is specified, the output file name is dependent on the command being run.",
+      "type": "string",
+      "default": "."
+    },
+    "d48055e1a6c68": {
+      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specificaions and source files.",
+      "type": "boolean"
+    },
+    "d8687846da6a2": {
+      "default": [
+        "onscreenText",
+        "emphasis",
+        "image",
+        "hyperlink",
+        "codeInline",
+        "codeBlock",
+        "interaction"
+      ],
+      "description": "Markup types to include when performing this operation. If no markup types are specified, the operation includes all markup types as defined in `fileTypes`.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "d5b5e39f82a32": {
+      "input": {
+        "$ref": "#/x_dd_defs/d0b8757a08523"
+      },
+      "output": {
+        "$ref": "#/x_dd_defs/d01e9ab8bb4d0"
+      },
+      "recursive": {
+        "$ref": "#/x_dd_defs/d48055e1a6c68"
+      },
+      "markup": {
+        "$ref": "#/x_dd_defs/d8687846da6a2"
+      }
+    },
+    "d7472a08e9885": {
+      "description": "String of keys to enter.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "d9a409331557d": {
+      "type": "number",
+      "description": "Delay in milliseconds between each key press. Only valid during a recording.",
+      "default": 100
+    },
+    "d7a93bbd08ad2": {
+      "type": "string",
+      "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
+    },
+    "d7cd6e0366288": {
+      "type": "string",
+      "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "both"
+    },
+    "dd7c96a5ad884": {
+      "type": "boolean",
+      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+    },
+    "d4eb39e541447": {
+      "type": "integer",
+      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+    },
+    "d69346ff2116b": {
+      "type": [
+        "string"
+      ],
+      "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "none"
+    },
+    "d518cbd0d0aa0": {
+      "type": "string",
+      "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
+      "default": ""
+    },
+    "d54603a4c8112": {
+      "type": "object",
+      "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "d3ebec546d383": {
+      "name": {
+        "type": "string",
+        "description": "Name of the OpenAPI definition, as defined in your configuration."
+      },
+      "descriptionPath": {
+        "type": "string",
+        "description": "URL or local path to the OpenAPI definition."
+      },
+      "operationId": {
+        "type": "string",
+        "description": "ID of the operation to use for the request."
+      },
+      "server": {
+        "$ref": "#/x_dd_defs/d7a93bbd08ad2"
+      },
+      "validateAgainstSchema": {
+        "$ref": "#/x_dd_defs/d7cd6e0366288"
+      },
+      "mockResponse": {
+        "$ref": "#/x_dd_defs/dd7c96a5ad884"
+      },
+      "statusCode": {
+        "$ref": "#/x_dd_defs/d4eb39e541447"
+      },
+      "useExample": {
+        "$ref": "#/x_dd_defs/d69346ff2116b"
+      },
+      "exampleKey": {
+        "$ref": "#/x_dd_defs/d518cbd0d0aa0"
+      },
+      "requestHeaders": {
+        "$ref": "#/x_dd_defs/d54603a4c8112"
+      }
+    },
+    "dc63beec70639": {
+      "version": "1.0.0",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "openApi",
+      "type": "object",
+      "description": "OpenAPI definition and configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d3ebec546d383"
+      },
+      "examples": [
+        {
+          "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
+        }
+      ]
+    },
+    "db7e6ccc6dd35": {
+      "type": "string",
+      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+    },
+    "de90b98de3583": {
+      "type": "integer",
+      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "da05e91d8175f": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
+      "enum": [
+        "true",
+        "false",
+        "byVariation"
+      ],
+      "default": "false"
+    },
+    "d4c44dc764b6e": {
+      "name": "navigationLink",
+      "regex": [
+        "(?:[Cc]hose|[Oo]pen|[Cc]lick|[Nn]avigate to|[Gg]o to)(?<!!)\\[.+?\\]\\(.+?\\)"
+      ],
+      "actions": [
+        "goTo"
+      ]
+    },
+    "db0ff1dce5466": {
+      "name": "interaction",
+      "regex": [
+        "[cC]lick",
+        "[tT]ap",
+        "[tT]ouch",
+        "[sS]elect",
+        "[cC]hoose",
+        "[tT]oggle",
+        "[eE]nable",
+        "[dD]isable",
+        "[tT]urn [oO][ff|n]",
+        "[tT]ype",
+        "[eE]nter",
+        "[sS]end",
+        "[aA]dd",
+        "[rR]emove",
+        "[dD]elete",
+        "[uU]pload",
+        "[dD]ownload",
+        "[sS]croll",
+        "[sS]earch",
+        "[fF]ilter",
+        "[sS]ort",
+        "[cC]opy",
+        "[pP]aste",
+        "[cC]ut",
+        "[rR]eplace",
+        "[cC]lear",
+        "[rR]efresh",
+        "[rR]evert",
+        "[rR]estore",
+        "[rR]eset",
+        "[lL]ogin",
+        "[lL]ogout",
+        "[sS]ign [iI]n",
+        "[sS]ign [oO]ut",
+        "[sS]ubmit",
+        "[cC]ancel",
+        "[cC]lose",
+        "[aA]ccept",
+        "[dD]ecline",
+        "[dD]eny",
+        "[rR]eject",
+        "[rR]etry",
+        "[rR]estart",
+        "[rR]esume"
+      ]
+    },
+    "d316d5d020cea": {
+      "name": "AsciiDoc",
+      "extensions": [
+        ".adoc",
+        ".asciidoc, .asc"
+      ],
+      "testStartStatementOpen": "// (test start",
+      "testStartStatementClose": ")",
+      "testIgnoreStatement": "// (test ignore)",
+      "testEndStatement": "// (test end)",
+      "stepStatementOpen": "// (step",
+      "stepStatementClose": ")",
+      "markup": []
+    },
+    "d5c49db90bf51": {
+      "name": "HTML/XML",
+      "extensions": [
+        ".html",
+        ".htm",
+        ".xml",
+        ".xhtml"
+      ],
+      "testStartStatementOpen": "<!-- test start",
+      "testStartStatementClose": "-->",
+      "testIgnoreStatement": "<!-- test ignore -->",
+      "testEndStatement": "<!-- test end -->",
+      "stepStatementOpen": "<!-- step",
+      "stepStatementClose": "-->",
+      "markup": []
+    },
+    "da520c9e885f9": {
+      "input": ".",
+      "output": ".",
+      "setup": "",
+      "cleanup": "",
+      "recursive": true,
+      "downloadDirectory": ".",
+      "contexts": [
+        {
+          "app": {
+            "name": "firefox",
+            "path": ""
+          },
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ]
+        }
+      ]
+    },
+    "d0ce442be23fb": {
+      "name": "Markdown",
+      "extensions": [
+        ".md",
+        ".markdown",
+        ".mdx"
+      ],
+      "testStartStatementOpen": "[comment]: # (test start",
+      "testStartStatementClose": ")",
+      "testIgnoreStatement": "[comment]: # (test ignore)",
+      "testEndStatement": "[comment]: # (test end)",
+      "stepStatementOpen": "[comment]: # (step",
+      "stepStatementClose": ")",
+      "markup": [
+        {
+          "name": "onscreenText",
+          "regex": [
+            "\\*\\*.+?\\*\\*"
+          ],
+          "actions": [
+            "find"
+          ]
+        },
+        {
+          "name": "emphasis",
+          "regex": [
+            "(?<!\\*)\\*(?!\\*).+?(?<!\\*)\\*(?!\\*)"
+          ]
+        },
+        {
+          "name": "image",
+          "regex": [
+            "!\\[.+?\\]\\(.+?\\)"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        },
+        {
+          "name": "hyperlink",
+          "regex": [
+            "(?<!!)\\[.+?\\]\\(.+?\\)"
+          ],
+          "actions": [
+            "checkLink"
+          ]
+        },
+        {
+          "$ref": "#/x_dd_defs/d4c44dc764b6e"
+        },
+        {
+          "name": "orderedList",
+          "regex": [
+            "(?<=\n) *?[0-9][0-9]?[0-9]?.\\s*.*"
+          ]
+        },
+        {
+          "name": "unorderedList",
+          "regex": [
+            "(?<=\n) *?\\*.\\s*.*",
+            "(?<=\n) *?-.\\s*.*"
+          ]
+        },
+        {
+          "name": "codeInline",
+          "regex": [
+            "(?<!`)`(?!`).+?(?<!`)`(?!`)"
+          ]
+        },
+        {
+          "name": "codeBlock",
+          "regex": [
+            "(?=(```))(\\w|\\W)*(?<=```)"
+          ]
+        },
+        {
+          "$ref": "#/x_dd_defs/db0ff1dce5466"
+        }
+      ]
+    }
+  }
 }

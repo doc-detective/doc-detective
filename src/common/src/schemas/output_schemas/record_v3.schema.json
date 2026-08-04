@@ -4,401 +4,10 @@
   "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
   "anyOf": [
     {
-      "title": "Record (simple)",
-      "type": "string",
-      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
-      "transform": [
-        "trim"
-      ]
+      "$ref": "#/x_dd_defs/d09dfa507567c"
     },
     {
-      "type": "object",
-      "properties": {
-        "surface": {
-          "description": "The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.",
-          "anyOf": [
-            {
-              "title": "Surface (by browser engine)",
-              "type": "string",
-              "enum": [
-                "chrome",
-                "firefox",
-                "safari",
-                "webkit",
-                "edge"
-              ],
-              "transform": [
-                "trim"
-              ],
-              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-            },
-            {
-              "title": "Browser surface",
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "browser"
-              ],
-              "properties": {
-                "browser": {
-                  "type": "string",
-                  "enum": [
-                    "chrome",
-                    "firefox",
-                    "safari",
-                    "webkit",
-                    "edge"
-                  ],
-                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                },
-                "name": {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                },
-                "window": {
-                  "description": "Which window to act on. Omit to use the active window.",
-                  "title": "Window/tab selector",
-                  "anyOf": [
-                    {
-                      "title": "By index",
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                    },
-                    {
-                      "title": "By name",
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                    },
-                    {
-                      "title": "By criteria",
-                      "type": "object",
-                      "additionalProperties": false,
-                      "minProperties": 1,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Name assigned when the window/tab was opened."
-                        },
-                        "index": {
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end."
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page title to match. Substring, or /regex/."
-                        },
-                        "url": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page URL to match. Substring, or /regex/."
-                        }
-                      }
-                    }
-                  ]
-                },
-                "tab": {
-                  "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                  "title": "Window/tab selector",
-                  "anyOf": [
-                    {
-                      "title": "By index",
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                    },
-                    {
-                      "title": "By name",
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                    },
-                    {
-                      "title": "By criteria",
-                      "type": "object",
-                      "additionalProperties": false,
-                      "minProperties": 1,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Name assigned when the window/tab was opened."
-                        },
-                        "index": {
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end."
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page title to match. Substring, or /regex/."
-                        },
-                        "url": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page URL to match. Substring, or /regex/."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "title": "App surface",
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "app"
-              ],
-              "properties": {
-                "app": {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                },
-                "window": {
-                  "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                  "title": "App window selector",
-                  "anyOf": [
-                    {
-                      "title": "By index",
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                    },
-                    {
-                      "title": "By name",
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                    },
-                    {
-                      "title": "By criteria",
-                      "type": "object",
-                      "additionalProperties": false,
-                      "minProperties": 1,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Assigned window name."
-                        },
-                        "index": {
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end."
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Window title to match. Substring, or /regex/."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        "path": {
-          "type": "string",
-          "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-          "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
-          "transform": [
-            "trim"
-          ]
-        },
-        "directory": {
-          "type": "string",
-          "description": "Directory of the file. If the directory doesn't exist, creates the directory.",
-          "transform": [
-            "trim"
-          ]
-        },
-        "overwrite": {
-          "type": "string",
-          "description": "If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — requires `checkpoints`, so it turns them on with defaults when `checkpoints` is omitted or `false`; set `checkpoints` to an object to tune `maxVariation` or `directory`.",
-          "enum": [
-            "true",
-            "false",
-            "aboveVariation"
-          ]
-        },
-        "name": {
-          "type": "string",
-          "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
-          "pattern": "\\S",
-          "transform": [
-            "trim"
-          ]
-        },
-        "engine": {
-          "title": "Recording engine",
-          "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
-          "anyOf": [
-            {
-              "title": "Recording engine (simple)",
-              "type": "string",
-              "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
-              "enum": [
-                "browser",
-                "ffmpeg"
-              ]
-            },
-            {
-              "title": "Recording engine (detailed)",
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
-                  "enum": [
-                    "browser",
-                    "ffmpeg"
-                  ]
-                },
-                "target": {
-                  "type": "string",
-                  "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
-                  "enum": [
-                    "display",
-                    "window",
-                    "viewport"
-                  ]
-                },
-                "fps": {
-                  "type": "integer",
-                  "description": "Capture frame rate for the `ffmpeg` engine.",
-                  "default": 30,
-                  "minimum": 1
-                }
-              }
-            }
-          ]
-        },
-        "verify": {
-          "title": "Recording verify guards",
-          "description": "Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.",
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "minDuration": {
-              "type": "number",
-              "description": "Fail if the video is shorter than this many seconds.",
-              "minimum": 0
-            },
-            "maxDuration": {
-              "type": "number",
-              "description": "Fail if the video is longer than this many seconds.",
-              "minimum": 0
-            },
-            "resolution": {
-              "description": "Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.",
-              "anyOf": [
-                {
-                  "type": "boolean",
-                  "title": "Verify resolution (boolean)"
-                },
-                {
-                  "type": "object",
-                  "title": "Verify resolution (detailed)",
-                  "additionalProperties": false,
-                  "required": [
-                    "width",
-                    "height"
-                  ],
-                  "properties": {
-                    "width": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "height": {
-                      "type": "integer",
-                      "minimum": 1
-                    }
-                  }
-                }
-              ]
-            },
-            "notBlack": {
-              "type": "boolean",
-              "description": "Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture."
-            }
-          }
-        },
-        "checkpoints": {
-          "title": "Recording checkpoints",
-          "description": "Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.",
-          "anyOf": [
-            {
-              "type": "boolean",
-              "title": "Recording checkpoints (boolean)",
-              "description": "If `true`, enables checkpoints with default settings."
-            },
-            {
-              "type": "object",
-              "title": "Recording checkpoints (detailed)",
-              "additionalProperties": false,
-              "properties": {
-                "maxVariation": {
-                  "type": "number",
-                  "description": "Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.",
-                  "default": 0.05,
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                "directory": {
-                  "type": "string",
-                  "description": "Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).",
-                  "transform": [
-                    "trim"
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      },
-      "title": "Record (detailed)"
+      "$ref": "#/x_dd_defs/d2597d21d1a0c"
     },
     {
       "type": "boolean",
@@ -409,449 +18,13 @@
   "components": {
     "schemas": {
       "string": {
-        "title": "Record (simple)",
-        "type": "string",
-        "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-        "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
-        "transform": [
-          "trim"
-        ]
+        "$ref": "#/x_dd_defs/d09dfa507567c"
       },
       "object": {
-        "type": "object",
-        "properties": {
-          "surface": {
-            "description": "The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.",
-            "anyOf": [
-              {
-                "title": "Surface (by browser engine)",
-                "type": "string",
-                "enum": [
-                  "chrome",
-                  "firefox",
-                  "safari",
-                  "webkit",
-                  "edge"
-                ],
-                "transform": [
-                  "trim"
-                ],
-                "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-              },
-              {
-                "title": "Browser surface",
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "browser"
-                ],
-                "properties": {
-                  "browser": {
-                    "type": "string",
-                    "enum": [
-                      "chrome",
-                      "firefox",
-                      "safari",
-                      "webkit",
-                      "edge"
-                    ],
-                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ],
-                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                  },
-                  "window": {
-                    "description": "Which window to act on. Omit to use the active window.",
-                    "title": "Window/tab selector",
-                    "anyOf": [
-                      {
-                        "title": "By index",
-                        "type": "integer",
-                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                      },
-                      {
-                        "title": "By name",
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                      },
-                      {
-                        "title": "By criteria",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Name assigned when the window/tab was opened."
-                          },
-                          "index": {
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end."
-                          },
-                          "title": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page title to match. Substring, or /regex/."
-                          },
-                          "url": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page URL to match. Substring, or /regex/."
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "tab": {
-                    "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                    "title": "Window/tab selector",
-                    "anyOf": [
-                      {
-                        "title": "By index",
-                        "type": "integer",
-                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                      },
-                      {
-                        "title": "By name",
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                      },
-                      {
-                        "title": "By criteria",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Name assigned when the window/tab was opened."
-                          },
-                          "index": {
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end."
-                          },
-                          "title": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page title to match. Substring, or /regex/."
-                          },
-                          "url": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page URL to match. Substring, or /regex/."
-                          }
-                        }
-                      }
-                    ]
-                  }
-                }
-              },
-              {
-                "title": "App surface",
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "app"
-                ],
-                "properties": {
-                  "app": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ],
-                    "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                  },
-                  "window": {
-                    "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                    "title": "App window selector",
-                    "anyOf": [
-                      {
-                        "title": "By index",
-                        "type": "integer",
-                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                      },
-                      {
-                        "title": "By name",
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                      },
-                      {
-                        "title": "By criteria",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Assigned window name."
-                          },
-                          "index": {
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end."
-                          },
-                          "title": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Window title to match. Substring, or /regex/."
-                          }
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          "path": {
-            "type": "string",
-            "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-            "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "directory": {
-            "type": "string",
-            "description": "Directory of the file. If the directory doesn't exist, creates the directory.",
-            "transform": [
-              "trim"
-            ]
-          },
-          "overwrite": {
-            "type": "string",
-            "description": "If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — requires `checkpoints`, so it turns them on with defaults when `checkpoints` is omitted or `false`; set `checkpoints` to an object to tune `maxVariation` or `directory`.",
-            "enum": [
-              "true",
-              "false",
-              "aboveVariation"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
-            "pattern": "\\S",
-            "transform": [
-              "trim"
-            ]
-          },
-          "engine": {
-            "title": "Recording engine",
-            "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
-            "anyOf": [
-              {
-                "title": "Recording engine (simple)",
-                "type": "string",
-                "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
-                "enum": [
-                  "browser",
-                  "ffmpeg"
-                ]
-              },
-              {
-                "title": "Recording engine (detailed)",
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "name"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
-                    "enum": [
-                      "browser",
-                      "ffmpeg"
-                    ]
-                  },
-                  "target": {
-                    "type": "string",
-                    "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
-                    "enum": [
-                      "display",
-                      "window",
-                      "viewport"
-                    ]
-                  },
-                  "fps": {
-                    "type": "integer",
-                    "description": "Capture frame rate for the `ffmpeg` engine.",
-                    "default": 30,
-                    "minimum": 1
-                  }
-                }
-              }
-            ]
-          },
-          "verify": {
-            "title": "Recording verify guards",
-            "description": "Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "minDuration": {
-                "type": "number",
-                "description": "Fail if the video is shorter than this many seconds.",
-                "minimum": 0
-              },
-              "maxDuration": {
-                "type": "number",
-                "description": "Fail if the video is longer than this many seconds.",
-                "minimum": 0
-              },
-              "resolution": {
-                "description": "Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.",
-                "anyOf": [
-                  {
-                    "type": "boolean",
-                    "title": "Verify resolution (boolean)"
-                  },
-                  {
-                    "type": "object",
-                    "title": "Verify resolution (detailed)",
-                    "additionalProperties": false,
-                    "required": [
-                      "width",
-                      "height"
-                    ],
-                    "properties": {
-                      "width": {
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "height": {
-                        "type": "integer",
-                        "minimum": 1
-                      }
-                    }
-                  }
-                ]
-              },
-              "notBlack": {
-                "type": "boolean",
-                "description": "Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture."
-              }
-            }
-          },
-          "checkpoints": {
-            "title": "Recording checkpoints",
-            "description": "Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.",
-            "anyOf": [
-              {
-                "type": "boolean",
-                "title": "Recording checkpoints (boolean)",
-                "description": "If `true`, enables checkpoints with default settings."
-              },
-              {
-                "type": "object",
-                "title": "Recording checkpoints (detailed)",
-                "additionalProperties": false,
-                "properties": {
-                  "maxVariation": {
-                    "type": "number",
-                    "description": "Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.",
-                    "default": 0.05,
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  "directory": {
-                    "type": "string",
-                    "description": "Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).",
-                    "transform": [
-                      "trim"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "title": "Record (detailed)"
+        "$ref": "#/x_dd_defs/d2597d21d1a0c"
       },
       "engine": {
-        "title": "Recording engine",
-        "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
-        "anyOf": [
-          {
-            "title": "Recording engine (simple)",
-            "type": "string",
-            "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
-            "enum": [
-              "browser",
-              "ffmpeg"
-            ]
-          },
-          {
-            "title": "Recording engine (detailed)",
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "name"
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
-                "enum": [
-                  "browser",
-                  "ffmpeg"
-                ]
-              },
-              "target": {
-                "type": "string",
-                "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
-                "enum": [
-                  "display",
-                  "window",
-                  "viewport"
-                ]
-              },
-              "fps": {
-                "type": "integer",
-                "description": "Capture frame rate for the `ffmpeg` engine.",
-                "default": 30,
-                "minimum": 1
-              }
-            }
-          }
-        ]
+        "$ref": "#/x_dd_defs/dd0134712a1a8"
       }
     }
   },
@@ -902,5 +75,496 @@
         "target": "display"
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d09dfa507567c": {
+      "title": "Record (simple)",
+      "type": "string",
+      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d81d8f452f557": {
+      "title": "Surface (by browser engine)",
+      "type": "string",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit",
+        "edge"
+      ],
+      "transform": [
+        "trim"
+      ],
+      "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+    },
+    "d23078c31e9af": {
+      "type": "string",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit",
+        "edge"
+      ],
+      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+    },
+    "d602d0d67985b": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+    },
+    "d34d60ebb0a88": {
+      "title": "By index",
+      "type": "integer",
+      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+    },
+    "dcef07241c15a": {
+      "title": "By name",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+    },
+    "db83479a87432": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened."
+    },
+    "d477cb6dfff92": {
+      "name": {
+        "$ref": "#/x_dd_defs/db83479a87432"
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index in creation order. Negative counts from the end."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page title to match. Substring, or /regex/."
+      },
+      "url": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page URL to match. Substring, or /regex/."
+      }
+    },
+    "d9e0c9a379818": {
+      "title": "By criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d477cb6dfff92"
+      }
+    },
+    "d75f5822b9926": {
+      "description": "Which window to act on. Omit to use the active window.",
+      "title": "Window/tab selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d34d60ebb0a88"
+        },
+        {
+          "$ref": "#/x_dd_defs/dcef07241c15a"
+        },
+        {
+          "$ref": "#/x_dd_defs/d9e0c9a379818"
+        }
+      ]
+    },
+    "df3616f3b9188": {
+      "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+      "title": "Window/tab selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d34d60ebb0a88"
+        },
+        {
+          "$ref": "#/x_dd_defs/dcef07241c15a"
+        },
+        {
+          "$ref": "#/x_dd_defs/d9e0c9a379818"
+        }
+      ]
+    },
+    "d231ddad27946": {
+      "browser": {
+        "$ref": "#/x_dd_defs/d23078c31e9af"
+      },
+      "name": {
+        "$ref": "#/x_dd_defs/d602d0d67985b"
+      },
+      "window": {
+        "$ref": "#/x_dd_defs/d75f5822b9926"
+      },
+      "tab": {
+        "$ref": "#/x_dd_defs/df3616f3b9188"
+      }
+    },
+    "df8c05c280185": {
+      "title": "Browser surface",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "browser"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d231ddad27946"
+      }
+    },
+    "db3f2339c2b53": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+    },
+    "d83377d9a9a23": {
+      "title": "By index",
+      "type": "integer",
+      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+    },
+    "d57cfe161492f": {
+      "title": "By name",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+    },
+    "d3cb303092c92": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S",
+        "transform": [
+          "trim"
+        ],
+        "description": "Assigned window name."
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index in creation order. Negative counts from the end."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Window title to match. Substring, or /regex/."
+      }
+    },
+    "d8b049785e1da": {
+      "title": "By criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d3cb303092c92"
+      }
+    },
+    "db6dbdcdc25c0": {
+      "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+      "title": "App window selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d83377d9a9a23"
+        },
+        {
+          "$ref": "#/x_dd_defs/d57cfe161492f"
+        },
+        {
+          "$ref": "#/x_dd_defs/d8b049785e1da"
+        }
+      ]
+    },
+    "d0a7dda51b51e": {
+      "app": {
+        "$ref": "#/x_dd_defs/db3f2339c2b53"
+      },
+      "window": {
+        "$ref": "#/x_dd_defs/db6dbdcdc25c0"
+      }
+    },
+    "d592ca27c16d4": {
+      "title": "App surface",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d0a7dda51b51e"
+      }
+    },
+    "d0fb57e601c1c": {
+      "description": "The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d81d8f452f557"
+        },
+        {
+          "$ref": "#/x_dd_defs/df8c05c280185"
+        },
+        {
+          "$ref": "#/x_dd_defs/d592ca27c16d4"
+        }
+      ]
+    },
+    "d866b81e7948a": {
+      "type": "string",
+      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
+      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d55cfd8d68e9d": {
+      "type": "string",
+      "description": "Directory of the file. If the directory doesn't exist, creates the directory.",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d547bbd398260": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — requires `checkpoints`, so it turns them on with defaults when `checkpoints` is omitted or `false`; set `checkpoints` to an object to tune `maxVariation` or `directory`.",
+      "enum": [
+        "true",
+        "false",
+        "aboveVariation"
+      ]
+    },
+    "d60a71d0b2572": {
+      "type": "string",
+      "description": "Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: \"<name>\"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.",
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d63554540cd11": {
+      "title": "Recording engine (simple)",
+      "type": "string",
+      "description": "`browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+      "enum": [
+        "browser",
+        "ffmpeg"
+      ]
+    },
+    "d47e99f1ce422": {
+      "type": "string",
+      "description": "Recording engine. `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.",
+      "enum": [
+        "browser",
+        "ffmpeg"
+      ]
+    },
+    "d491752fcc179": {
+      "type": "string",
+      "description": "What the `ffmpeg` engine captures. `display` records the full screen, `window` the active window, `viewport` the browser content area. Ignored by the `browser` engine, which always captures its tab. `window` and `viewport` are best-effort (captured full-screen, then cropped). If unset, defaults to `window` when the recording's `surface` is an app surface and to `display` otherwise. `viewport` doesn't apply to app surfaces (they have no browser viewport).",
+      "enum": [
+        "display",
+        "window",
+        "viewport"
+      ]
+    },
+    "d83d18b439047": {
+      "name": {
+        "$ref": "#/x_dd_defs/d47e99f1ce422"
+      },
+      "target": {
+        "$ref": "#/x_dd_defs/d491752fcc179"
+      },
+      "fps": {
+        "type": "integer",
+        "description": "Capture frame rate for the `ffmpeg` engine.",
+        "default": 30,
+        "minimum": 1
+      }
+    },
+    "d4312d32056f2": {
+      "title": "Recording engine (detailed)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d83d18b439047"
+      }
+    },
+    "dd0134712a1a8": {
+      "title": "Recording engine",
+      "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d63554540cd11"
+        },
+        {
+          "$ref": "#/x_dd_defs/d4312d32056f2"
+        }
+      ]
+    },
+    "d3edd26117e50": {
+      "type": "object",
+      "title": "Verify resolution (detailed)",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "dde35c53f72a1": {
+      "description": "Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.",
+      "anyOf": [
+        {
+          "type": "boolean",
+          "title": "Verify resolution (boolean)"
+        },
+        {
+          "$ref": "#/x_dd_defs/d3edd26117e50"
+        }
+      ]
+    },
+    "d9e188f97ec7e": {
+      "type": "boolean",
+      "description": "Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture."
+    },
+    "de6c54bcd36a8": {
+      "minDuration": {
+        "type": "number",
+        "description": "Fail if the video is shorter than this many seconds.",
+        "minimum": 0
+      },
+      "maxDuration": {
+        "type": "number",
+        "description": "Fail if the video is longer than this many seconds.",
+        "minimum": 0
+      },
+      "resolution": {
+        "$ref": "#/x_dd_defs/dde35c53f72a1"
+      },
+      "notBlack": {
+        "$ref": "#/x_dd_defs/d9e188f97ec7e"
+      }
+    },
+    "d1da68392cd8a": {
+      "title": "Recording verify guards",
+      "description": "Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/de6c54bcd36a8"
+      }
+    },
+    "d855ab0125644": {
+      "type": "boolean",
+      "title": "Recording checkpoints (boolean)",
+      "description": "If `true`, enables checkpoints with default settings."
+    },
+    "db4cfd1a15bad": {
+      "type": "number",
+      "description": "Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.",
+      "default": 0.05,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "d099fc52f65c1": {
+      "type": "string",
+      "description": "Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).",
+      "transform": [
+        "trim"
+      ]
+    },
+    "de91054bbe3ea": {
+      "maxVariation": {
+        "$ref": "#/x_dd_defs/db4cfd1a15bad"
+      },
+      "directory": {
+        "$ref": "#/x_dd_defs/d099fc52f65c1"
+      }
+    },
+    "d0fb1cd2da147": {
+      "type": "object",
+      "title": "Recording checkpoints (detailed)",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/de91054bbe3ea"
+      }
+    },
+    "d5e7f8207827e": {
+      "title": "Recording checkpoints",
+      "description": "Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d855ab0125644"
+        },
+        {
+          "$ref": "#/x_dd_defs/d0fb1cd2da147"
+        }
+      ]
+    },
+    "d883b4359d9e9": {
+      "surface": {
+        "$ref": "#/x_dd_defs/d0fb57e601c1c"
+      },
+      "path": {
+        "$ref": "#/x_dd_defs/d866b81e7948a"
+      },
+      "directory": {
+        "$ref": "#/x_dd_defs/d55cfd8d68e9d"
+      },
+      "overwrite": {
+        "$ref": "#/x_dd_defs/d547bbd398260"
+      },
+      "name": {
+        "$ref": "#/x_dd_defs/d60a71d0b2572"
+      },
+      "engine": {
+        "$ref": "#/x_dd_defs/dd0134712a1a8"
+      },
+      "verify": {
+        "$ref": "#/x_dd_defs/d1da68392cd8a"
+      },
+      "checkpoints": {
+        "$ref": "#/x_dd_defs/d5e7f8207827e"
+      }
+    },
+    "d2597d21d1a0c": {
+      "type": "object",
+      "properties": {
+        "$ref": "#/x_dd_defs/d883b4359d9e9"
+      },
+      "title": "Record (detailed)"
+    }
+  }
 }

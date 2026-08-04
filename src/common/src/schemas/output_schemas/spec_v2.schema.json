@@ -18,238 +18,11 @@
       "type": "array",
       "description": "Application/platform sets to run tests in. Overrides `contexts` defined at the config-level.",
       "items": {
-        "oneOf": [
-          {
-            "title": "context",
-            "type": "object",
-            "description": "An application and supported platforms.\n\nIf no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For browsers, context priority is Firefox > Chrome > Chromium.",
-            "properties": {
-              "app": {
-                "type": "object",
-                "description": "The application to run.",
-                "additionalProperties": false,
-                "required": [
-                  "name"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the application.",
-                    "enum": [
-                      "chrome",
-                      "firefox",
-                      "safari",
-                      "edge"
-                    ]
-                  },
-                  "path": {
-                    "type": "string",
-                    "description": "Absolute path or command for the application. If not specified, defaults to typical install paths per platform. If specified but the path is invalid, the context is skipped."
-                  },
-                  "options": {
-                    "type": "object",
-                    "description": "Options to pass to the app. Only works when `name` is `firefox` or `chrome`.",
-                    "additionalProperties": false,
-                    "properties": {
-                      "width": {
-                        "type": "integer",
-                        "description": "Width of the window in pixels."
-                      },
-                      "height": {
-                        "type": "integer",
-                        "description": "Height of the window in pixels."
-                      },
-                      "viewport_height": {
-                        "type": "integer",
-                        "description": "Height of the viewport in pixels. Overrides `height`."
-                      },
-                      "viewport_width": {
-                        "type": "integer",
-                        "description": "Width of the viewport in pixels. Overrides `width`."
-                      },
-                      "headless": {
-                        "type": "boolean",
-                        "description": "If `true`, runs the browser in headless mode. Not supported by Safari."
-                      },
-                      "driverPath": {
-                        "type": "string",
-                        "description": "Path to the browser driver. If not specified, defaults to internally managed dependencies."
-                      }
-                    }
-                  }
-                }
-              },
-              "platforms": {
-                "description": "Supported platforms for the application.",
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": [
-                    "linux",
-                    "mac",
-                    "windows"
-                  ]
-                }
-              }
-            },
-            "required": [
-              "app",
-              "platforms"
-            ],
-            "additionalProperties": false,
-            "examples": [
-              {
-                "app": {
-                  "name": "chrome"
-                },
-                "platforms": [
-                  "linux"
-                ]
-              },
-              {
-                "app": {
-                  "name": "chrome",
-                  "options": {
-                    "viewport_width": 800,
-                    "viewport_height": 600
-                  }
-                },
-                "platforms": [
-                  "linux"
-                ]
-              },
-              {
-                "app": {
-                  "name": "firefox",
-                  "options": {
-                    "width": 800,
-                    "height": 600,
-                    "headless": false,
-                    "driverPath": "/usr/bin/geckodriver"
-                  }
-                },
-                "platforms": [
-                  "linux",
-                  "windows",
-                  "mac"
-                ]
-              },
-              {
-                "app": {
-                  "name": "safari"
-                },
-                "platforms": [
-                  "mac"
-                ]
-              },
-              {
-                "app": {
-                  "name": "firefox",
-                  "path": "/usr/bin/firefox"
-                },
-                "platforms": [
-                  "linux"
-                ]
-              }
-            ]
-          }
-        ]
+        "$ref": "#/x_dd_defs/df9a8db78031c"
       }
     },
     "openApi": {
-      "type": "array",
-      "items": {
-        "allOf": [
-          {
-            "version": "1.0.0",
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "openApi",
-            "type": "object",
-            "description": "OpenAPI definition and configuration.",
-            "additionalProperties": false,
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Name of the OpenAPI definition, as defined in your configuration."
-              },
-              "descriptionPath": {
-                "type": "string",
-                "description": "URL or local path to the OpenAPI definition."
-              },
-              "operationId": {
-                "type": "string",
-                "description": "ID of the operation to use for the request."
-              },
-              "server": {
-                "type": "string",
-                "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
-              },
-              "validateAgainstSchema": {
-                "type": "string",
-                "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
-                "enum": [
-                  "request",
-                  "response",
-                  "both",
-                  "none"
-                ],
-                "default": "both"
-              },
-              "mockResponse": {
-                "type": "boolean",
-                "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-              },
-              "statusCode": {
-                "type": "integer",
-                "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-              },
-              "useExample": {
-                "type": [
-                  "string"
-                ],
-                "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                "enum": [
-                  "request",
-                  "response",
-                  "both",
-                  "none"
-                ],
-                "default": "none"
-              },
-              "exampleKey": {
-                "type": "string",
-                "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                "default": ""
-              },
-              "requestHeaders": {
-                "type": "object",
-                "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "examples": [
-              {
-                "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-              }
-            ]
-          },
-          {
-            "type": "object",
-            "properties": {
-              "operationId": {
-                "type": "null",
-                "$commment": "Only allow operationId at the step level."
-              }
-            },
-            "required": [
-              "name",
-              "descriptionPath"
-            ]
-          }
-        ]
-      }
+      "$ref": "#/x_dd_defs/da195b88c1664"
     },
     "tests": {
       "description": "[Tests](test) to perform.",
@@ -282,238 +55,11 @@
                 "type": "array",
                 "description": "Application/platform sets to run the test in. Overrides `contexts` defined at the config-level and spec-level.",
                 "items": {
-                  "oneOf": [
-                    {
-                      "title": "context",
-                      "type": "object",
-                      "description": "An application and supported platforms.\n\nIf no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For browsers, context priority is Firefox > Chrome > Chromium.",
-                      "properties": {
-                        "app": {
-                          "type": "object",
-                          "description": "The application to run.",
-                          "additionalProperties": false,
-                          "required": [
-                            "name"
-                          ],
-                          "properties": {
-                            "name": {
-                              "type": "string",
-                              "description": "Name of the application.",
-                              "enum": [
-                                "chrome",
-                                "firefox",
-                                "safari",
-                                "edge"
-                              ]
-                            },
-                            "path": {
-                              "type": "string",
-                              "description": "Absolute path or command for the application. If not specified, defaults to typical install paths per platform. If specified but the path is invalid, the context is skipped."
-                            },
-                            "options": {
-                              "type": "object",
-                              "description": "Options to pass to the app. Only works when `name` is `firefox` or `chrome`.",
-                              "additionalProperties": false,
-                              "properties": {
-                                "width": {
-                                  "type": "integer",
-                                  "description": "Width of the window in pixels."
-                                },
-                                "height": {
-                                  "type": "integer",
-                                  "description": "Height of the window in pixels."
-                                },
-                                "viewport_height": {
-                                  "type": "integer",
-                                  "description": "Height of the viewport in pixels. Overrides `height`."
-                                },
-                                "viewport_width": {
-                                  "type": "integer",
-                                  "description": "Width of the viewport in pixels. Overrides `width`."
-                                },
-                                "headless": {
-                                  "type": "boolean",
-                                  "description": "If `true`, runs the browser in headless mode. Not supported by Safari."
-                                },
-                                "driverPath": {
-                                  "type": "string",
-                                  "description": "Path to the browser driver. If not specified, defaults to internally managed dependencies."
-                                }
-                              }
-                            }
-                          }
-                        },
-                        "platforms": {
-                          "description": "Supported platforms for the application.",
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "linux",
-                              "mac",
-                              "windows"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "app",
-                        "platforms"
-                      ],
-                      "additionalProperties": false,
-                      "examples": [
-                        {
-                          "app": {
-                            "name": "chrome"
-                          },
-                          "platforms": [
-                            "linux"
-                          ]
-                        },
-                        {
-                          "app": {
-                            "name": "chrome",
-                            "options": {
-                              "viewport_width": 800,
-                              "viewport_height": 600
-                            }
-                          },
-                          "platforms": [
-                            "linux"
-                          ]
-                        },
-                        {
-                          "app": {
-                            "name": "firefox",
-                            "options": {
-                              "width": 800,
-                              "height": 600,
-                              "headless": false,
-                              "driverPath": "/usr/bin/geckodriver"
-                            }
-                          },
-                          "platforms": [
-                            "linux",
-                            "windows",
-                            "mac"
-                          ]
-                        },
-                        {
-                          "app": {
-                            "name": "safari"
-                          },
-                          "platforms": [
-                            "mac"
-                          ]
-                        },
-                        {
-                          "app": {
-                            "name": "firefox",
-                            "path": "/usr/bin/firefox"
-                          },
-                          "platforms": [
-                            "linux"
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                  "$ref": "#/x_dd_defs/df9a8db78031c"
                 }
               },
               "openApi": {
-                "type": "array",
-                "items": {
-                  "allOf": [
-                    {
-                      "version": "1.0.0",
-                      "$schema": "http://json-schema.org/draft-07/schema#",
-                      "title": "openApi",
-                      "type": "object",
-                      "description": "OpenAPI definition and configuration.",
-                      "additionalProperties": false,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "description": "Name of the OpenAPI definition, as defined in your configuration."
-                        },
-                        "descriptionPath": {
-                          "type": "string",
-                          "description": "URL or local path to the OpenAPI definition."
-                        },
-                        "operationId": {
-                          "type": "string",
-                          "description": "ID of the operation to use for the request."
-                        },
-                        "server": {
-                          "type": "string",
-                          "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
-                        },
-                        "validateAgainstSchema": {
-                          "type": "string",
-                          "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
-                          "enum": [
-                            "request",
-                            "response",
-                            "both",
-                            "none"
-                          ],
-                          "default": "both"
-                        },
-                        "mockResponse": {
-                          "type": "boolean",
-                          "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-                        },
-                        "statusCode": {
-                          "type": "integer",
-                          "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-                        },
-                        "useExample": {
-                          "type": [
-                            "string"
-                          ],
-                          "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                          "enum": [
-                            "request",
-                            "response",
-                            "both",
-                            "none"
-                          ],
-                          "default": "none"
-                        },
-                        "exampleKey": {
-                          "type": "string",
-                          "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                          "default": ""
-                        },
-                        "requestHeaders": {
-                          "type": "object",
-                          "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
-                          "additionalProperties": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "examples": [
-                        {
-                          "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "operationId": {
-                          "type": "null",
-                          "$commment": "Only allow operationId at the step level."
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "descriptionPath"
-                      ]
-                    }
-                  ]
-                }
+                "$ref": "#/x_dd_defs/da195b88c1664"
               },
               "setup": {
                 "type": "string",
@@ -700,79 +246,7 @@
                         "openApi": {
                           "allOf": [
                             {
-                              "version": "1.0.0",
-                              "$schema": "http://json-schema.org/draft-07/schema#",
-                              "title": "openApi",
-                              "type": "object",
-                              "description": "OpenAPI definition and configuration.",
-                              "additionalProperties": false,
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "description": "Name of the OpenAPI definition, as defined in your configuration."
-                                },
-                                "descriptionPath": {
-                                  "type": "string",
-                                  "description": "URL or local path to the OpenAPI definition."
-                                },
-                                "operationId": {
-                                  "type": "string",
-                                  "description": "ID of the operation to use for the request."
-                                },
-                                "server": {
-                                  "type": "string",
-                                  "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
-                                },
-                                "validateAgainstSchema": {
-                                  "type": "string",
-                                  "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
-                                  "enum": [
-                                    "request",
-                                    "response",
-                                    "both",
-                                    "none"
-                                  ],
-                                  "default": "both"
-                                },
-                                "mockResponse": {
-                                  "type": "boolean",
-                                  "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-                                },
-                                "statusCode": {
-                                  "type": "integer",
-                                  "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-                                },
-                                "useExample": {
-                                  "type": [
-                                    "string"
-                                  ],
-                                  "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                                  "enum": [
-                                    "request",
-                                    "response",
-                                    "both",
-                                    "none"
-                                  ],
-                                  "default": "none"
-                                },
-                                "exampleKey": {
-                                  "type": "string",
-                                  "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                                  "default": ""
-                                },
-                                "requestHeaders": {
-                                  "type": "object",
-                                  "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                }
-                              },
-                              "examples": [
-                                {
-                                  "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-                                }
-                              ]
+                              "$ref": "#/x_dd_defs/dc63beec70639"
                             },
                             {
                               "type": "object",
@@ -869,25 +343,13 @@
                           "description": "File path to save the command's output, relative to `saveDirectory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
                         },
                         "saveDirectory": {
-                          "type": "string",
-                          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                          "$ref": "#/x_dd_defs/db7e6ccc6dd35"
                         },
                         "maxVariation": {
-                          "type": "integer",
-                          "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
-                          "default": 0,
-                          "minimum": 0,
-                          "maximum": 100
+                          "$ref": "#/x_dd_defs/de90b98de3583"
                         },
                         "overwrite": {
-                          "type": "string",
-                          "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
-                          "enum": [
-                            "true",
-                            "false",
-                            "byVariation"
-                          ],
-                          "default": "false"
+                          "$ref": "#/x_dd_defs/da05e91d8175f"
                         },
                         "envsFromResponseData": {
                           "description": "Environment variables to set based on response variables, as an object of the environment variable name and the jq filter applied to the response data to identify the variable's value.",
@@ -951,21 +413,7 @@
                           }
                         },
                         {
-                          "action": "httpRequest",
-                          "url": "https://reqres.in/api/users",
-                          "method": "post",
-                          "requestData": {
-                            "name": "morpheus",
-                            "job": "leader"
-                          },
-                          "responseData": {
-                            "name": "morpheus",
-                            "job": "leader"
-                          },
-                          "statusCodes": [
-                            200,
-                            201
-                          ]
+                          "$ref": "#/x_dd_defs/d53a72147dd3a"
                         },
                         {
                           "action": "httpRequest",
@@ -1112,79 +560,29 @@
                           "default": "."
                         },
                         "exitCodes": {
-                          "type": "array",
-                          "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "type": "integer"
-                              }
-                            ]
-                          },
-                          "default": [
-                            0
-                          ]
+                          "$ref": "#/x_dd_defs/d30dc65edc421"
                         },
                         "output": {
-                          "type": "string",
-                          "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
+                          "$ref": "#/x_dd_defs/dff2864e5d280"
                         },
                         "savePath": {
                           "type": "string",
                           "description": "File path to save the command's output, relative to `saveDirectory`."
                         },
                         "saveDirectory": {
-                          "type": "string",
-                          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                          "$ref": "#/x_dd_defs/db7e6ccc6dd35"
                         },
                         "maxVariation": {
-                          "type": "integer",
-                          "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
-                          "default": 0,
-                          "minimum": 0,
-                          "maximum": 100
+                          "$ref": "#/x_dd_defs/de90b98de3583"
                         },
                         "overwrite": {
-                          "type": "string",
-                          "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
-                          "enum": [
-                            "true",
-                            "false",
-                            "byVariation"
-                          ],
-                          "default": "false"
+                          "$ref": "#/x_dd_defs/da05e91d8175f"
                         },
                         "timeout": {
-                          "type": "integer",
-                          "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.",
-                          "default": 60000
+                          "$ref": "#/x_dd_defs/d7b22d2df1bd3"
                         },
                         "setVariables": {
-                          "type": "array",
-                          "description": "Extract environment variables from the command's output.",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "description": "",
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "description": "Name of the environment variable to set.",
-                                    "type": "string"
-                                  },
-                                  "regex": {
-                                    "description": "Regex to extract the environment variable from the command's output.",
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "name",
-                                  "regex"
-                                ]
-                              }
-                            ]
-                          },
-                          "default": []
+                          "$ref": "#/x_dd_defs/db70e939add97"
                         },
                         "outputs": {
                           "type": "object",
@@ -1303,79 +701,29 @@
                           "default": "."
                         },
                         "exitCodes": {
-                          "type": "array",
-                          "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "type": "integer"
-                              }
-                            ]
-                          },
-                          "default": [
-                            0
-                          ]
+                          "$ref": "#/x_dd_defs/d30dc65edc421"
                         },
                         "output": {
-                          "type": "string",
-                          "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
+                          "$ref": "#/x_dd_defs/dff2864e5d280"
                         },
                         "savePath": {
                           "type": "string",
                           "description": "File path to save the command's output, relative to `saveDirectory`."
                         },
                         "saveDirectory": {
-                          "type": "string",
-                          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                          "$ref": "#/x_dd_defs/db7e6ccc6dd35"
                         },
                         "maxVariation": {
-                          "type": "integer",
-                          "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
-                          "default": 0,
-                          "minimum": 0,
-                          "maximum": 100
+                          "$ref": "#/x_dd_defs/de90b98de3583"
                         },
                         "overwrite": {
-                          "type": "string",
-                          "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
-                          "enum": [
-                            "true",
-                            "false",
-                            "byVariation"
-                          ],
-                          "default": "false"
+                          "$ref": "#/x_dd_defs/da05e91d8175f"
                         },
                         "timeout": {
-                          "type": "integer",
-                          "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.",
-                          "default": 60000
+                          "$ref": "#/x_dd_defs/d7b22d2df1bd3"
                         },
                         "setVariables": {
-                          "type": "array",
-                          "description": "Extract environment variables from the command's output.",
-                          "items": {
-                            "oneOf": [
-                              {
-                                "description": "",
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "description": "Name of the environment variable to set.",
-                                    "type": "string"
-                                  },
-                                  "regex": {
-                                    "description": "Regex to extract the environment variable from the command's output.",
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "name",
-                                  "regex"
-                                ]
-                              }
-                            ]
-                          },
-                          "default": []
+                          "$ref": "#/x_dd_defs/db70e939add97"
                         }
                       },
                       "dynamicDefaults": {
@@ -1745,27 +1093,10 @@
                           "description": "The action to perform."
                         },
                         "keys": {
-                          "description": "String of keys to enter.",
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  }
-                                ]
-                              }
-                            }
-                          ]
+                          "$ref": "#/x_dd_defs/d7472a08e9885"
                         },
                         "delay": {
-                          "type": "number",
-                          "description": "Delay in milliseconds between each key press. Only valid during a recording.",
-                          "default": 100
+                          "$ref": "#/x_dd_defs/d9a409331557d"
                         }
                       },
                       "dynamicDefaults": {
@@ -1872,27 +1203,10 @@
                               "additionalProperties": false,
                               "properties": {
                                 "keys": {
-                                  "description": "String of keys to enter.",
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "oneOf": [
-                                          {
-                                            "type": "string"
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
+                                  "$ref": "#/x_dd_defs/d7472a08e9885"
                                 },
                                 "delay": {
-                                  "type": "number",
-                                  "description": "Delay in milliseconds between each key press. Only valid during a recording.",
-                                  "default": 100
+                                  "$ref": "#/x_dd_defs/d9a409331557d"
                                 }
                               }
                             }
@@ -2094,38 +1408,14 @@
                     "url": "https://www.duckduckgo.com"
                   },
                   {
-                    "action": "httpRequest",
-                    "url": "https://reqres.in/api/users",
-                    "method": "post",
-                    "requestData": {
-                      "name": "morpheus",
-                      "job": "leader"
-                    },
-                    "responseData": {
-                      "name": "morpheus",
-                      "job": "leader"
-                    },
-                    "statusCodes": [
-                      200,
-                      201
-                    ]
+                    "$ref": "#/x_dd_defs/d53a72147dd3a"
                   },
                   {
                     "action": "goTo",
                     "url": "https://www.duckduckgo.com"
                   },
                   {
-                    "action": "find",
-                    "selector": "[title=Search]",
-                    "timeout": 10000,
-                    "matchText": "Search",
-                    "moveTo": true,
-                    "click": true,
-                    "typeKeys": {
-                      "keys": [
-                        "shorthair cat"
-                      ]
-                    }
+                    "$ref": "#/x_dd_defs/ddbd29ac7679e"
                   },
                   {
                     "action": "typeKeys",
@@ -2226,38 +1516,14 @@
               "url": "https://www.duckduckgo.com"
             },
             {
-              "action": "httpRequest",
-              "url": "https://reqres.in/api/users",
-              "method": "post",
-              "requestData": {
-                "name": "morpheus",
-                "job": "leader"
-              },
-              "responseData": {
-                "name": "morpheus",
-                "job": "leader"
-              },
-              "statusCodes": [
-                200,
-                201
-              ]
+              "$ref": "#/x_dd_defs/d53a72147dd3a"
             },
             {
               "action": "goTo",
               "url": "https://www.duckduckgo.com"
             },
             {
-              "action": "find",
-              "selector": "[title=Search]",
-              "timeout": 10000,
-              "matchText": "Search",
-              "moveTo": true,
-              "click": true,
-              "typeKeys": {
-                "keys": [
-                  "shorthair cat"
-                ]
-              }
+              "$ref": "#/x_dd_defs/ddbd29ac7679e"
             },
             {
               "action": "typeKeys",
@@ -2297,5 +1563,436 @@
         }
       ]
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d551847ad06e2": {
+      "type": "string",
+      "description": "Absolute path or command for the application. If not specified, defaults to typical install paths per platform. If specified but the path is invalid, the context is skipped."
+    },
+    "dac75fb77a3aa": {
+      "type": "string",
+      "description": "Path to the browser driver. If not specified, defaults to internally managed dependencies."
+    },
+    "d1ff74d4238e4": {
+      "width": {
+        "type": "integer",
+        "description": "Width of the window in pixels."
+      },
+      "height": {
+        "type": "integer",
+        "description": "Height of the window in pixels."
+      },
+      "viewport_height": {
+        "type": "integer",
+        "description": "Height of the viewport in pixels. Overrides `height`."
+      },
+      "viewport_width": {
+        "type": "integer",
+        "description": "Width of the viewport in pixels. Overrides `width`."
+      },
+      "headless": {
+        "type": "boolean",
+        "description": "If `true`, runs the browser in headless mode. Not supported by Safari."
+      },
+      "driverPath": {
+        "$ref": "#/x_dd_defs/dac75fb77a3aa"
+      }
+    },
+    "d3aa00c4e2700": {
+      "type": "object",
+      "description": "Options to pass to the app. Only works when `name` is `firefox` or `chrome`.",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d1ff74d4238e4"
+      }
+    },
+    "d32eaf58134ae": {
+      "name": {
+        "type": "string",
+        "description": "Name of the application.",
+        "enum": [
+          "chrome",
+          "firefox",
+          "safari",
+          "edge"
+        ]
+      },
+      "path": {
+        "$ref": "#/x_dd_defs/d551847ad06e2"
+      },
+      "options": {
+        "$ref": "#/x_dd_defs/d3aa00c4e2700"
+      }
+    },
+    "da6a0076942ae": {
+      "type": "object",
+      "description": "The application to run.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d32eaf58134ae"
+      }
+    },
+    "d78e4484f8433": {
+      "description": "Supported platforms for the application.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "linux",
+          "mac",
+          "windows"
+        ]
+      }
+    },
+    "d697d8e2f3716": {
+      "app": {
+        "$ref": "#/x_dd_defs/da6a0076942ae"
+      },
+      "platforms": {
+        "$ref": "#/x_dd_defs/d78e4484f8433"
+      }
+    },
+    "ddd893db1df78": {
+      "app": {
+        "name": "firefox",
+        "options": {
+          "width": 800,
+          "height": 600,
+          "headless": false,
+          "driverPath": "/usr/bin/geckodriver"
+        }
+      },
+      "platforms": [
+        "linux",
+        "windows",
+        "mac"
+      ]
+    },
+    "dd4bb93e49ea7": {
+      "title": "context",
+      "type": "object",
+      "description": "An application and supported platforms.\n\nIf no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For browsers, context priority is Firefox > Chrome > Chromium.",
+      "properties": {
+        "$ref": "#/x_dd_defs/d697d8e2f3716"
+      },
+      "required": [
+        "app",
+        "platforms"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "app": {
+            "name": "chrome"
+          },
+          "platforms": [
+            "linux"
+          ]
+        },
+        {
+          "app": {
+            "name": "chrome",
+            "options": {
+              "viewport_width": 800,
+              "viewport_height": 600
+            }
+          },
+          "platforms": [
+            "linux"
+          ]
+        },
+        {
+          "$ref": "#/x_dd_defs/ddd893db1df78"
+        },
+        {
+          "app": {
+            "name": "safari"
+          },
+          "platforms": [
+            "mac"
+          ]
+        },
+        {
+          "app": {
+            "name": "firefox",
+            "path": "/usr/bin/firefox"
+          },
+          "platforms": [
+            "linux"
+          ]
+        }
+      ]
+    },
+    "df9a8db78031c": {
+      "oneOf": [
+        {
+          "$ref": "#/x_dd_defs/dd4bb93e49ea7"
+        }
+      ]
+    },
+    "d7a93bbd08ad2": {
+      "type": "string",
+      "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI definition."
+    },
+    "d7cd6e0366288": {
+      "type": "string",
+      "description": "Validates the request and/or response against the schema in the OpenAPI definition. If the request or response doesn't match the schema, the step fails.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "both"
+    },
+    "dd7c96a5ad884": {
+      "type": "boolean",
+      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI definition as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+    },
+    "d4eb39e541447": {
+      "type": "integer",
+      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+    },
+    "d69346ff2116b": {
+      "type": [
+        "string"
+      ],
+      "description": "Uses the example from the OpenAPI definition as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "none"
+    },
+    "d518cbd0d0aa0": {
+      "type": "string",
+      "description": "Key of the example to use from the `examples` property in the OpenAPI definition. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
+      "default": ""
+    },
+    "d54603a4c8112": {
+      "type": "object",
+      "description": "Request headers to add to the request. If specified in both a config and a step, the step value overrides the config value.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "d3ebec546d383": {
+      "name": {
+        "type": "string",
+        "description": "Name of the OpenAPI definition, as defined in your configuration."
+      },
+      "descriptionPath": {
+        "type": "string",
+        "description": "URL or local path to the OpenAPI definition."
+      },
+      "operationId": {
+        "type": "string",
+        "description": "ID of the operation to use for the request."
+      },
+      "server": {
+        "$ref": "#/x_dd_defs/d7a93bbd08ad2"
+      },
+      "validateAgainstSchema": {
+        "$ref": "#/x_dd_defs/d7cd6e0366288"
+      },
+      "mockResponse": {
+        "$ref": "#/x_dd_defs/dd7c96a5ad884"
+      },
+      "statusCode": {
+        "$ref": "#/x_dd_defs/d4eb39e541447"
+      },
+      "useExample": {
+        "$ref": "#/x_dd_defs/d69346ff2116b"
+      },
+      "exampleKey": {
+        "$ref": "#/x_dd_defs/d518cbd0d0aa0"
+      },
+      "requestHeaders": {
+        "$ref": "#/x_dd_defs/d54603a4c8112"
+      }
+    },
+    "dc63beec70639": {
+      "version": "1.0.0",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "openApi",
+      "type": "object",
+      "description": "OpenAPI definition and configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d3ebec546d383"
+      },
+      "examples": [
+        {
+          "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
+        }
+      ]
+    },
+    "d3d629282343a": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "null",
+          "$commment": "Only allow operationId at the step level."
+        }
+      },
+      "required": [
+        "name",
+        "descriptionPath"
+      ]
+    },
+    "d51cbeb896e75": {
+      "allOf": [
+        {
+          "$ref": "#/x_dd_defs/dc63beec70639"
+        },
+        {
+          "$ref": "#/x_dd_defs/d3d629282343a"
+        }
+      ]
+    },
+    "da195b88c1664": {
+      "type": "array",
+      "items": {
+        "$ref": "#/x_dd_defs/d51cbeb896e75"
+      }
+    },
+    "db7e6ccc6dd35": {
+      "type": "string",
+      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+    },
+    "de90b98de3583": {
+      "type": "integer",
+      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `savePath`, this value is ignored.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "da05e91d8175f": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing output at `savePath` if it exists.\nIf `byVariation`, overwrites the existing output at `savePath` if the difference between the new output and the existing output is greater than `maxVariation`.",
+      "enum": [
+        "true",
+        "false",
+        "byVariation"
+      ],
+      "default": "false"
+    },
+    "d53a72147dd3a": {
+      "action": "httpRequest",
+      "url": "https://reqres.in/api/users",
+      "method": "post",
+      "requestData": {
+        "name": "morpheus",
+        "job": "leader"
+      },
+      "responseData": {
+        "name": "morpheus",
+        "job": "leader"
+      },
+      "statusCodes": [
+        200,
+        201
+      ]
+    },
+    "d30dc65edc421": {
+      "type": "array",
+      "description": "Expected exit codes of the command. If the command's actual exit code isn't in this list, the step fails.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "default": [
+        0
+      ]
+    },
+    "dff2864e5d280": {
+      "type": "string",
+      "description": "Content expected in the command's output. If the expected content can't be found in the command's output (either stdout or stderr), the step fails. Supports strings and regular expressions. To use a regular expression, the string must start and end with a forward slash, like in `/^hello-world.*/`."
+    },
+    "d7b22d2df1bd3": {
+      "type": "integer",
+      "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails.",
+      "default": 60000
+    },
+    "d46a456fe6640": {
+      "name": {
+        "description": "Name of the environment variable to set.",
+        "type": "string"
+      },
+      "regex": {
+        "description": "Regex to extract the environment variable from the command's output.",
+        "type": "string"
+      }
+    },
+    "dbf519eb4954a": {
+      "description": "",
+      "type": "object",
+      "properties": {
+        "$ref": "#/x_dd_defs/d46a456fe6640"
+      },
+      "required": [
+        "name",
+        "regex"
+      ]
+    },
+    "d907cba285b18": {
+      "oneOf": [
+        {
+          "$ref": "#/x_dd_defs/dbf519eb4954a"
+        }
+      ]
+    },
+    "db70e939add97": {
+      "type": "array",
+      "description": "Extract environment variables from the command's output.",
+      "items": {
+        "$ref": "#/x_dd_defs/d907cba285b18"
+      },
+      "default": []
+    },
+    "d7472a08e9885": {
+      "description": "String of keys to enter.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "d9a409331557d": {
+      "type": "number",
+      "description": "Delay in milliseconds between each key press. Only valid during a recording.",
+      "default": 100
+    },
+    "ddbd29ac7679e": {
+      "action": "find",
+      "selector": "[title=Search]",
+      "timeout": 10000,
+      "matchText": "Search",
+      "moveTo": true,
+      "click": true,
+      "typeKeys": {
+        "keys": [
+          "shorthair cat"
+        ]
+      }
+    }
+  }
 }
