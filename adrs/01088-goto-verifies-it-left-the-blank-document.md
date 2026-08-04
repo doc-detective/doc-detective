@@ -64,8 +64,9 @@ step. That cost this investigation two wrong diagnoses.
 
 ## Considered Options
 
-* **A. `goTo` checks, after its waits, that the session left `data:,`; re-issue
-  once, then FAIL** (chosen).
+* **A. `goTo` checks, immediately after `driver.url()`, that the session left
+  `data:,`; re-issue once, then FAIL after the waits if it never moved**
+  (chosen).
 * **B. Extend 01084's liveness probe from the primary session to all sessions.**
 * **C. Compare the post-navigation URL to the requested URL.**
 * **D. Nothing in product code; keep hardening the fixture.**
@@ -92,7 +93,9 @@ session does not exist once a `goTo` has run — an intentionally-blank tab is o
 nobody navigated.
 
 `about:blank` is excluded, inheriting 01084's deliberate narrowing: it is a URL
-a test may navigate to on purpose. Only `/^data:,?$/` matches.
+a test may navigate to on purpose. Only `/^data:,?$/i` matches — the predicate
+is `isPageUnnavigated` in `src/core/utils.ts`, reused rather than reimplemented,
+so the two call sites cannot disagree about what "unnavigated" means.
 
 ### Consequences
 
