@@ -446,11 +446,13 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         }
       }
       if (observedUrl !== null && isInitialBlankDocument(observedUrl)) {
-        // Redact both URLs: step descriptions land in reports, logs and CI
-        // artifacts, and a target URL can carry tokens or signed query params.
-        const stuckOn = observedUrl
-          ? redactUrlForOutput(observedUrl)
-          : "its initial blank document";
+        // No fallback needed: reaching here means isInitialBlankDocument
+        // matched, so observedUrl is a non-empty `data:` / `data:,`.
+        //
+        // Redact both URLs anyway: step descriptions land in reports, logs and
+        // CI artifacts, and a target URL can carry tokens or signed query
+        // params.
+        const stuckOn = redactUrlForOutput(observedUrl);
         result.status = "FAIL";
         result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${redactUrlForOutput(step.goTo.url)} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
         return result;
