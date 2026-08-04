@@ -5,6 +5,7 @@ import {
   isDeviceWebContext,
   computeSettleCeiling,
   isPageUnnavigated,
+  isInitialBlankDocument,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -430,16 +431,21 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       //
       // Gated so the healthy path pays exactly one extra `getUrl()`: if the
       // pre-wait probe already saw a navigated page, re-probing proves nothing.
-      if (retriedNavigation && (await isPageUnnavigated(driver))) {
-        // Report the document it's actually stuck on rather than assuming a
-        // spelling: the predicate matches both `data:` and `data:,`.
-        let stuckOn = "its initial blank document";
+      // Read the URL ONCE and both decide and report from it. Probing twice
+      // (predicate, then again for the message) can decide on one URL and print
+      // another if the page moves in between.
+      let observedUrl: string | null = null;
+      if (retriedNavigation) {
         try {
-          const url = String((await driver.getUrl()) ?? "").trim();
-          if (url) stuckOn = url;
+          observedUrl = String((await driver.getUrl()) ?? "").trim();
         } catch {
-          // Keep the generic wording — the diagnostic still stands.
+          // Unreadable URL is not evidence of anything; leave the page alone,
+          // matching isPageUnnavigated's own swallow-and-return-false.
+          observedUrl = null;
         }
+      }
+      if (observedUrl !== null && isInitialBlankDocument(observedUrl)) {
+        const stuckOn = observedUrl || "its initial blank document";
         result.status = "FAIL";
         result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${step.goTo.url} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
         return result;

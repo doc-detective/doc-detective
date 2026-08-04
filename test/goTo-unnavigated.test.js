@@ -83,10 +83,18 @@ describe("goTo: browser never left its initial blank document", function () {
   it("FAILs instead of reporting success when the session stays on data:,", async function () {
     // Every getUrl reports the empty data URL: the navigation silently did not
     // take. Reporting PASS here is what made #696 undiagnosable for days.
-    const { driver } = makeDriver({ urls: ["data:,"] });
+    const { driver, record } = makeDriver({ urls: ["data:,"] });
     const result = await goTo({ config: {}, step: step(), driver });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /never left|blank document|didn't navigate|did not navigate/i);
+    // Exactly two probes: one pre-wait decision, one for the guard that both
+    // decides AND supplies the reported URL. A third would mean the guard is
+    // deciding on one observation and printing another.
+    assert.equal(
+      record.getUrlCalls,
+      2,
+      "guard must decide and report from a single URL read"
+    );
   });
 
   it("retries the navigation once and PASSes when the retry takes", async function () {
