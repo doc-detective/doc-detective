@@ -185,8 +185,10 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     // the real page — retrying afterwards would leave the step reporting "all
     // wait conditions met" for conditions that were only ever checked against
     // the blank document.
+    let retriedNavigation = false;
     if (await isPageUnnavigated(driver)) {
       await driver.url(step.goTo.url);
+      retriedNavigation = true;
     }
 
     // Wait for page to load with wait logic
@@ -418,14 +420,17 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         }
       }
 
-      // Final guard: the retry above already ran, so still sitting on the
-      // initial blank document means the navigation never took. Reporting PASS
-      // here would strand the failure on whatever step next needs the page — a
-      // `find` timing out against a page that was never loaded, with nothing
-      // pointing at the navigation (issue #696). ADR 01084's retry covers the
-      // context's PRIMARY session only, so a secondary session opened by
-      // `startSurface` reaches here unprotected.
-      if (await isPageUnnavigated(driver)) {
+      // Final guard, only when the retry above actually fired: still sitting on
+      // the initial blank document then means the navigation never took.
+      // Reporting PASS would strand the failure on whatever step next needs the
+      // page — a `find` timing out against a page that was never loaded, with
+      // nothing pointing at the navigation (issue #696). ADR 01084's retry
+      // covers the context's PRIMARY session only, so a secondary session
+      // opened by `startSurface` reaches here unprotected.
+      //
+      // Gated so the healthy path pays exactly one extra `getUrl()`: if the
+      // pre-wait probe already saw a navigated page, re-probing proves nothing.
+      if (retriedNavigation && (await isPageUnnavigated(driver))) {
         // Report the document it's actually stuck on rather than assuming a
         // spelling: the predicate matches both `data:` and `data:,`.
         let stuckOn = "its initial blank document";

@@ -102,7 +102,9 @@ a test may navigate to on purpose. Only `/^data:,?$/` matches.
 * Good, because the retry heals the transient case rather than only reporting
   it: the observed mode is a one-off, and the second navigation takes.
 * Good, because healthy navigations are unaffected — one extra `getUrl()` call,
-  no extra navigation. Covered by a regression test.
+  no extra navigation. The post-wait guard is gated on the retry having fired,
+  precisely so a clean navigation pays a single probe rather than two; a
+  regression test pins the call count.
 * Neutral, because a genuinely unnavigable target now costs one extra navigation
   attempt before failing. It still FAILs.
 * Bad/limit, because this treats the symptom. Why Chromium occasionally leaves a

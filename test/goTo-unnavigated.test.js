@@ -35,7 +35,7 @@ function uninstallBrowserStub() {
 function makeDriver({ urls }) {
   // `urls` is the sequence getUrl() returns, one per call; the last value
   // repeats once exhausted.
-  const record = { navigations: [], order: [] };
+  const record = { navigations: [], order: [], getUrlCalls: 0 };
   let i = 0;
   const driver = {
     capabilities: { browserName: "chrome" },
@@ -46,6 +46,7 @@ function makeDriver({ urls }) {
       return u;
     },
     getUrl: async () => {
+      record.getUrlCalls++;
       const v = urls[Math.min(i, urls.length - 1)];
       i++;
       return v;
@@ -111,6 +112,14 @@ describe("goTo: browser never left its initial blank document", function () {
     const result = await goTo({ config: {}, step: step(), driver });
     assert.equal(result.status, "PASS");
     assert.equal(record.navigations.length, 1);
+    // ADR 01088 claims the healthy path costs exactly one extra getUrl(). Pin
+    // it: the post-wait guard is gated on a retry having fired, so a clean
+    // navigation must not pay a second probe.
+    assert.equal(
+      record.getUrlCalls,
+      1,
+      "healthy navigation must probe the URL exactly once"
+    );
   });
 
   it("re-navigates BEFORE the wait conditions run, not after", async function () {
