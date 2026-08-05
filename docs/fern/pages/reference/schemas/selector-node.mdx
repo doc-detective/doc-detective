@@ -10,13 +10,13 @@ description: "Reference for the `Selector node` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-comment | object([Content filter selector](/reference/schemas/content-filter-selector)) | Optional. Match comment nodes (non-rendered author notes). | —
+comment | object([Content filter selector](/reference/schemas/content-filter-selector)) | Optional. Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers. | —
 codeBlock | one of:<br/>- string<br/>- object([Code block selector](/reference/schemas/code-block-selector)) | Optional. Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`. | —
-link | object([Link selector (chained)](/reference/schemas/link-selector-chained)) | Optional. Match hyperlink nodes. | —
-image | object([Image selector (chained)](/reference/schemas/image-selector-chained)) | Optional. Match image nodes. | —
-strong | object([Strong/emphasis selector (chained)](/reference/schemas/strong-emphasis-selector-chained)) | Optional. Match bold/strong text nodes. | —
-emphasis | object([Strong/emphasis selector (chained)](/reference/schemas/strong-emphasis-selector-chained)) | Optional. Match italic/emphasis text nodes. | —
-text | object([Content filter selector](/reference/schemas/content-filter-selector)) | Optional. Match prose text runs (never inside code blocks or comments). | —
+link | object([Link selector (chained)](/reference/schemas/link-selector-chained)) | Optional. Match a hyperlink node. Used for `followedBy.then` chaining and statement containers. | —
+image | object([Image selector (chained)](/reference/schemas/image-selector-chained)) | Optional. Match an image node. Used for `followedBy.then` chaining and statement containers. | —
+strong | object([Strong/emphasis selector (chained)](/reference/schemas/strong-emphasis-selector-chained)) | Optional. Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers. | —
+emphasis | object([Strong/emphasis selector (chained)](/reference/schemas/strong-emphasis-selector-chained)) | Optional. Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers. | —
+text | object([Content filter selector](/reference/schemas/content-filter-selector)) | Optional. Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers. | —
 element | one of:<br/>- string<br/>- object([Element selector (chained)](/reference/schemas/element-selector-chained)) | Optional. Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`. | —
 
 ## Examples
