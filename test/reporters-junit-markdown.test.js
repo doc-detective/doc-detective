@@ -134,9 +134,98 @@ describe("junit and markdown reporters", function () {
       assert.match(buildJunitXml(dirty), /\u{1F600}/u);
     });
 
+    it("falls back to ids, then to generic labels, when descriptions are absent", function () {
+      const bare = {
+        specs: [
+          {
+            result: "FAIL",
+            specId: "spec-id-only",
+            tests: [
+              {
+                result: "FAIL",
+                testId: "test-id-only",
+                contexts: [{ result: "FAIL", steps: [{ result: "FAIL" }] }],
+              },
+            ],
+          },
+          {
+            result: "PASS",
+            tests: [{ result: "PASS", contexts: [{ result: "PASS", steps: [] }] }],
+          },
+        ],
+        summary: {},
+      };
+      const xml = buildJunitXml(bare);
+      assert.doesNotThrow(() => parser.parse(xml));
+      // ids stand in for descriptions...
+      assert.match(xml, /name="test-id-only"/);
+      assert.match(xml, /classname="spec-id-only"/);
+      // ...and generic labels stand in when there is no id either.
+      assert.match(xml, /name="test"/);
+      assert.match(xml, /name="spec"/);
+      // No browser and no platform means no bracketed suffix at all.
+      assert.equal(xml.includes("[]"), false);
+      // A failing step with no stepId and no description still renders.
+      assert.match(xml, /step/);
+    });
+
+    it("falls back through step, context, then a generic failure message", function () {
+      const noStepReason = structuredClone(results);
+      const ctx = noStepReason.specs[1].tests[0].contexts[0];
+      ctx.steps = [];
+      ctx.resultDescription = "context-level reason";
+      assert.match(buildJunitXml(noStepReason), /message="context-level reason"/);
+
+      delete ctx.resultDescription;
+      assert.match(buildJunitXml(noStepReason), /message="Test failed"/);
+    });
+
+    it("emits an empty suite for a spec with no tests", function () {
+      const xml = buildJunitXml({ specs: [{ specId: "empty", result: "SKIPPED" }], summary: {} });
+      assert.match(xml, /<testsuite name="empty" tests="0">\s*<\/testsuite>/);
+      assert.doesNotThrow(() => parser.parse(xml));
+    });
+
+    it("emits a skipped element with an empty message when no reason is given", function () {
+      const noReason = structuredClone(results);
+      delete noReason.specs[1].tests[0].contexts[1].resultDescription;
+      assert.match(buildJunitXml(noReason), /<skipped message=""\/>/);
+    });
+
+    it("treats a missing or negative duration as zero seconds", function () {
+      const odd = structuredClone(results);
+      odd.durationMs = -5;
+      odd.specs[0].tests[0].contexts[0].durationMs = "not a number";
+      const doc = parser.parse(buildJunitXml(odd));
+      assert.equal(doc.testsuites["@_time"], "0.000");
+    });
+
     it("emits a valid empty document for a run with no specs", function () {
       const doc = parser.parse(buildJunitXml({ specs: [], summary: {} }));
       assert.equal(Number(doc.testsuites["@_tests"]), 0);
+    });
+
+    it("tolerates specs, tests and contexts that omit their child arrays", function () {
+      const ragged = {
+        summary: {},
+        specs: [
+          { result: "FAIL", specId: "no-tests" },
+          { result: "FAIL", specId: "no-contexts", tests: [{ testId: "t" }] },
+          {
+            result: "FAIL",
+            specId: "no-steps",
+            tests: [{ testId: "t", contexts: [{ result: "FAIL" }] }],
+          },
+          {
+            result: "FAIL",
+            specId: "bare-step",
+            tests: [{ testId: "t", contexts: [{ result: "FAIL", steps: [{ result: "FAIL" }] }] }],
+          },
+        ],
+      };
+      const xml = buildJunitXml(ragged);
+      assert.doesNotThrow(() => parser.parse(xml));
+      assert.equal(Number(parser.parse(xml).testsuites["@_failures"]), 2);
     });
 
     it("survives null results and holes in contexts", function () {
@@ -221,6 +310,44 @@ describe("junit and markdown reporters", function () {
       assert.match(md, /…/);
     });
 
+    it("falls back to the context reason when no step is marked failed", function () {
+      const noSteps = structuredClone(results);
+      const ctx = noSteps.specs[1].tests[0].contexts[0];
+      ctx.steps = [];
+      ctx.resultDescription = "context-level reason";
+      assert.match(buildMarkdown(noSteps), /context-level reason/);
+
+      delete ctx.resultDescription;
+      assert.match(buildMarkdown(noSteps), /Context failed/);
+    });
+
+    it("falls back to ids when specs and tests have no description", function () {
+      const bare = structuredClone(results);
+      delete bare.specs[1].description;
+      delete bare.specs[1].tests[0].description;
+      const md = buildMarkdown(bare);
+      assert.match(md, /spec-fail/);
+      assert.match(md, /t2/);
+    });
+
+    it("omits the artifacts line when the run has no runDir", function () {
+      const noDir = structuredClone(results);
+      delete noDir.runDir;
+      assert.equal(buildMarkdown(noDir).includes("Run artifacts"), false);
+    });
+
+    it("caps the failure list and reports how many were dropped", function () {
+      const many = structuredClone(results);
+      many.specs[1].tests[0].contexts = Array.from({ length: 150 }, (_, i) => ({
+        result: "FAIL",
+        platform: "linux",
+        durationMs: 1,
+        steps: [{ result: "FAIL", stepId: `s-${i}`, resultDescription: "boom" }],
+      }));
+      const md = buildMarkdown(many);
+      assert.match(md, /and 50 more failures/);
+    });
+
     it("produces a valid summary for an empty run", function () {
       const md = buildMarkdown({ specs: [], summary: {} });
       assert.match(md, /No tests ran/);
@@ -229,6 +356,38 @@ describe("junit and markdown reporters", function () {
 
     it("survives null results", function () {
       assert.ok(buildMarkdown(null).length > 0);
+    });
+
+    it("tolerates ragged specs and uses the singular for a one-spec run", function () {
+      const md = buildMarkdown({
+        summary: { specs: { fail: 1 } },
+        specs: [
+          { result: "FAIL", specId: "no-tests" },
+          { result: "FAIL", specId: "no-contexts", tests: [{ testId: "t" }] },
+          {
+            result: "FAIL",
+            specId: "no-steps",
+            tests: [{ testId: "t", contexts: [{ result: "FAIL" }] }],
+          },
+          {
+            result: "FAIL",
+            specId: "bare-step",
+            tests: [{ testId: "t", contexts: [{ result: "FAIL", steps: [{ result: "FAIL" }] }] }],
+          },
+        ],
+      });
+      assert.match(md, /1 of 1 spec failed/);
+      // Same singular treatment on the passing verdict, and the plural form.
+      assert.match(
+        buildMarkdown({ summary: { specs: { pass: 1 } }, specs: [] }),
+        /\*\*Passed\*\* — 1 spec\./
+      );
+      assert.match(
+        buildMarkdown({ summary: { specs: { pass: 2 } }, specs: [] }),
+        /\*\*Passed\*\* — 2 specs\./
+      );
+      assert.match(md, /Context failed/);
+      assert.match(md, /step/);
     });
   });
 
@@ -279,6 +438,29 @@ describe("junit and markdown reporters", function () {
         await junitReporter({}, fresh, results, {}),
         path.join(fresh, "junit.xml")
       );
+    });
+
+    it("writes beside an existing file that has no report extension", async function () {
+      // Resolution falls through to what's on disk: an existing plain file is
+      // a file, so the report lands next to it.
+      const plain = path.join(tmpDir, "notes");
+      fs.writeFileSync(plain, "a file, not a directory");
+      assert.equal(
+        await junitReporter({}, plain, results, {}),
+        path.join(tmpDir, "junit.xml")
+      );
+    });
+
+    it("defaults a nullish or empty output to the working directory", async function () {
+      const cwd = process.cwd();
+      process.chdir(tmpDir);
+      try {
+        const expected = path.join(fs.realpathSync(tmpDir), "junit.xml");
+        assert.equal(await junitReporter({}, undefined, results, {}), expected);
+        assert.equal(await junitReporter({}, "", results, {}), expected);
+      } finally {
+        process.chdir(cwd);
+      }
     });
 
     it("returns null instead of throwing when the path can't be written", async function () {
