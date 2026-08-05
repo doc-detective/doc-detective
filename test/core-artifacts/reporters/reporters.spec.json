@@ -1,0 +1,66 @@
+{
+  "specId": "reporters",
+  "description": "End-to-end coverage of the `junit` and `markdown` reporters through the real CLI. A reporter only runs after every spec in its own run finishes, so a spec can never observe its own reporter output — each test seeds a tiny inner spec, spawns a nested `doc-detective` run with both reporters selected, and asserts on the files it wrote. Everything is `node -e` shell work, so no browser or device is needed and every permutation runs on Windows, macOS and Linux. Scratch output goes to `.tmp/` at the repo root, never inside `test/core-artifacts/`: a stray `.doc-detective/` breaks the fixture-bundle coverage test, and `.xml`/`.md` leftovers would be detected as documentation on later runs.",
+  "tests": [
+    {
+      "testId": "reporters-passing-run",
+      "description": "Both reporters are selectable and write parseable output for a passing run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/pass';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-pass',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/pass/inner.spec.json --output .tmp/fixture-reporters/pass/out --reporters junit markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/pass/out/';const d=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_'}).parse(fs.readFileSync(b+'junit.xml','utf8'));const t=Number(d.testsuites['@_tests']);if(!(t>=1)){console.error('expected at least one testcase, got '+t);process.exit(1)}if(Number(d.testsuites['@_failures'])!==0){console.error('expected no failures');process.exit(1)}const m=fs.readFileSync(b+'doc-detective-summary.md','utf8');if(m.indexOf('# Doc Detective results')!==0){console.error('missing summary title');process.exit(1)}if(m.indexOf('| Steps |')<0){console.error('missing summary table');process.exit(1)}console.log('passing-run ok, testcases: '+t)\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reporters-failing-run",
+      "description": "A failing inner run produces a `<failure>` element and a markdown failures section. The inner run deliberately omits `--exit-on-fail`, so a FAILed inner test still exits 0 and this outer step passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/fail';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-fail',tests:[{testId:'inner-failing-test',steps:[{runShell:'exit 3'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/fail/inner.spec.json --output .tmp/fixture-reporters/fail/out --reporters junit markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/fail/out/';const x=fs.readFileSync(b+'junit.xml','utf8');const d=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_'}).parse(x);if(Number(d.testsuites['@_failures'])<1){console.error('expected a failure count in junit.xml');process.exit(1)}if(x.indexOf('<failure')<0){console.error('expected a failure element');process.exit(1)}const m=fs.readFileSync(b+'doc-detective-summary.md','utf8');if(m.indexOf('## Failures')<0){console.error('expected a failures section');process.exit(1)}console.log('failing-run ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
