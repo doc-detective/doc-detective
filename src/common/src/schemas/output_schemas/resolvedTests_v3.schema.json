@@ -957,10 +957,11 @@
                                 {
                                   "type": "object",
                                   "additionalProperties": false,
+                                  "$comment": "Kind keys are bare $refs (no sibling description) so the shared selector components keep their own neutral, match-oriented descriptions on the generated reference pages. The statement-extraction context is conveyed by the `in` property description above.",
                                   "properties": {
                                     "comment": {
-                                      "description": "Read statements from comment nodes (non-rendered author notes).",
                                       "title": "Content filter selector",
+                                      "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -977,7 +978,6 @@
                                       }
                                     },
                                     "codeBlock": {
-                                      "description": "Read statements from fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
                                       "anyOf": [
                                         {
                                           "type": "string"
@@ -1047,8 +1047,8 @@
                                       ]
                                     },
                                     "link": {
-                                      "description": "Read statements from hyperlink nodes.",
                                       "title": "Link selector (chained)",
+                                      "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -1081,8 +1081,8 @@
                                       }
                                     },
                                     "image": {
-                                      "description": "Read statements from image nodes.",
                                       "title": "Image selector (chained)",
+                                      "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -1115,8 +1115,8 @@
                                       }
                                     },
                                     "strong": {
-                                      "description": "Read statements from bold/strong text nodes.",
                                       "title": "Strong/emphasis selector (chained)",
+                                      "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -1128,8 +1128,8 @@
                                       }
                                     },
                                     "emphasis": {
-                                      "description": "Read statements from italic/emphasis text nodes.",
                                       "title": "Strong/emphasis selector (chained)",
+                                      "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -1141,8 +1141,8 @@
                                       }
                                     },
                                     "text": {
-                                      "description": "Read statements from prose text runs (never inside code blocks or comments).",
                                       "title": "Content filter selector",
+                                      "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -1159,7 +1159,6 @@
                                       }
                                     },
                                     "element": {
-                                      "description": "Read statements from a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
                                       "anyOf": [
                                         {
                                           "type": "string",
@@ -1167,6 +1166,7 @@
                                         },
                                         {
                                           "title": "Element selector (chained)",
+                                          "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1430,8 +1430,8 @@
                               ]
                             },
                             "comment": {
-                              "description": "Match comment nodes (non-rendered author notes).",
                               "title": "Content filter selector",
+                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                               "type": "object",
                               "additionalProperties": false,
                               "properties": {
@@ -1589,8 +1589,8 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "comment": {
-                                              "description": "Match comment nodes (non-rendered author notes).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -1677,8 +1677,8 @@
                                               ]
                                             },
                                             "link": {
-                                              "description": "Match hyperlink nodes.",
                                               "title": "Link selector (chained)",
+                                              "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -1711,8 +1711,8 @@
                                               }
                                             },
                                             "image": {
-                                              "description": "Match image nodes.",
                                               "title": "Image selector (chained)",
+                                              "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -1745,8 +1745,8 @@
                                               }
                                             },
                                             "strong": {
-                                              "description": "Match bold/strong text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -1758,8 +1758,8 @@
                                               }
                                             },
                                             "emphasis": {
-                                              "description": "Match italic/emphasis text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -1771,8 +1771,8 @@
                                               }
                                             },
                                             "text": {
-                                              "description": "Match prose text runs (never inside code blocks or comments).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -1797,6 +1797,7 @@
                                                 },
                                                 {
                                                   "title": "Element selector (chained)",
+                                                  "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -1971,8 +1972,8 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "comment": {
-                                              "description": "Match comment nodes (non-rendered author notes).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2059,8 +2060,8 @@
                                               ]
                                             },
                                             "link": {
-                                              "description": "Match hyperlink nodes.",
                                               "title": "Link selector (chained)",
+                                              "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2093,8 +2094,8 @@
                                               }
                                             },
                                             "image": {
-                                              "description": "Match image nodes.",
                                               "title": "Image selector (chained)",
+                                              "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2127,8 +2128,8 @@
                                               }
                                             },
                                             "strong": {
-                                              "description": "Match bold/strong text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2140,8 +2141,8 @@
                                               }
                                             },
                                             "emphasis": {
-                                              "description": "Match italic/emphasis text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2153,8 +2154,8 @@
                                               }
                                             },
                                             "text": {
-                                              "description": "Match prose text runs (never inside code blocks or comments).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2179,6 +2180,7 @@
                                                 },
                                                 {
                                                   "title": "Element selector (chained)",
+                                                  "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -2332,8 +2334,8 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "comment": {
-                                              "description": "Match comment nodes (non-rendered author notes).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2420,8 +2422,8 @@
                                               ]
                                             },
                                             "link": {
-                                              "description": "Match hyperlink nodes.",
                                               "title": "Link selector (chained)",
+                                              "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2454,8 +2456,8 @@
                                               }
                                             },
                                             "image": {
-                                              "description": "Match image nodes.",
                                               "title": "Image selector (chained)",
+                                              "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2488,8 +2490,8 @@
                                               }
                                             },
                                             "strong": {
-                                              "description": "Match bold/strong text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2501,8 +2503,8 @@
                                               }
                                             },
                                             "emphasis": {
-                                              "description": "Match italic/emphasis text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2514,8 +2516,8 @@
                                               }
                                             },
                                             "text": {
-                                              "description": "Match prose text runs (never inside code blocks or comments).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2540,6 +2542,7 @@
                                                 },
                                                 {
                                                   "title": "Element selector (chained)",
+                                                  "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -2693,8 +2696,8 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "comment": {
-                                              "description": "Match comment nodes (non-rendered author notes).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2781,8 +2784,8 @@
                                               ]
                                             },
                                             "link": {
-                                              "description": "Match hyperlink nodes.",
                                               "title": "Link selector (chained)",
+                                              "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2815,8 +2818,8 @@
                                               }
                                             },
                                             "image": {
-                                              "description": "Match image nodes.",
                                               "title": "Image selector (chained)",
+                                              "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2849,8 +2852,8 @@
                                               }
                                             },
                                             "strong": {
-                                              "description": "Match bold/strong text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2862,8 +2865,8 @@
                                               }
                                             },
                                             "emphasis": {
-                                              "description": "Match italic/emphasis text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
+                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2875,8 +2878,8 @@
                                               }
                                             },
                                             "text": {
-                                              "description": "Match prose text runs (never inside code blocks or comments).",
                                               "title": "Content filter selector",
+                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -2901,6 +2904,7 @@
                                                 },
                                                 {
                                                   "title": "Element selector (chained)",
+                                                  "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3004,8 +3008,8 @@
                               }
                             },
                             "text": {
-                              "description": "Match prose text runs (never inside code blocks or comments).",
                               "title": "Content filter selector",
+                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                               "type": "object",
                               "additionalProperties": false,
                               "properties": {
@@ -3118,8 +3122,8 @@
                                               "additionalProperties": false,
                                               "properties": {
                                                 "comment": {
-                                                  "description": "Match comment nodes (non-rendered author notes).",
                                                   "title": "Content filter selector",
+                                                  "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3206,8 +3210,8 @@
                                                   ]
                                                 },
                                                 "link": {
-                                                  "description": "Match hyperlink nodes.",
                                                   "title": "Link selector (chained)",
+                                                  "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3240,8 +3244,8 @@
                                                   }
                                                 },
                                                 "image": {
-                                                  "description": "Match image nodes.",
                                                   "title": "Image selector (chained)",
+                                                  "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3274,8 +3278,8 @@
                                                   }
                                                 },
                                                 "strong": {
-                                                  "description": "Match bold/strong text nodes.",
                                                   "title": "Strong/emphasis selector (chained)",
+                                                  "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3287,8 +3291,8 @@
                                                   }
                                                 },
                                                 "emphasis": {
-                                                  "description": "Match italic/emphasis text nodes.",
                                                   "title": "Strong/emphasis selector (chained)",
+                                                  "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3300,8 +3304,8 @@
                                                   }
                                                 },
                                                 "text": {
-                                                  "description": "Match prose text runs (never inside code blocks or comments).",
                                                   "title": "Content filter selector",
+                                                  "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                                   "type": "object",
                                                   "additionalProperties": false,
                                                   "properties": {
@@ -3326,6 +3330,7 @@
                                                     },
                                                     {
                                                       "title": "Element selector (chained)",
+                                                      "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                                       "type": "object",
                                                       "additionalProperties": false,
                                                       "properties": {
@@ -61754,8 +61759,8 @@
                 ]
               },
               "comment": {
-                "description": "Match comment nodes (non-rendered author notes).",
                 "title": "Content filter selector",
+                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -61913,8 +61918,8 @@
                             "additionalProperties": false,
                             "properties": {
                               "comment": {
-                                "description": "Match comment nodes (non-rendered author notes).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62001,8 +62006,8 @@
                                 ]
                               },
                               "link": {
-                                "description": "Match hyperlink nodes.",
                                 "title": "Link selector (chained)",
+                                "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62035,8 +62040,8 @@
                                 }
                               },
                               "image": {
-                                "description": "Match image nodes.",
                                 "title": "Image selector (chained)",
+                                "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62069,8 +62074,8 @@
                                 }
                               },
                               "strong": {
-                                "description": "Match bold/strong text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62082,8 +62087,8 @@
                                 }
                               },
                               "emphasis": {
-                                "description": "Match italic/emphasis text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62095,8 +62100,8 @@
                                 }
                               },
                               "text": {
-                                "description": "Match prose text runs (never inside code blocks or comments).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62121,6 +62126,7 @@
                                   },
                                   {
                                     "title": "Element selector (chained)",
+                                    "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -62295,8 +62301,8 @@
                             "additionalProperties": false,
                             "properties": {
                               "comment": {
-                                "description": "Match comment nodes (non-rendered author notes).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62383,8 +62389,8 @@
                                 ]
                               },
                               "link": {
-                                "description": "Match hyperlink nodes.",
                                 "title": "Link selector (chained)",
+                                "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62417,8 +62423,8 @@
                                 }
                               },
                               "image": {
-                                "description": "Match image nodes.",
                                 "title": "Image selector (chained)",
+                                "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62451,8 +62457,8 @@
                                 }
                               },
                               "strong": {
-                                "description": "Match bold/strong text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62464,8 +62470,8 @@
                                 }
                               },
                               "emphasis": {
-                                "description": "Match italic/emphasis text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62477,8 +62483,8 @@
                                 }
                               },
                               "text": {
-                                "description": "Match prose text runs (never inside code blocks or comments).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62503,6 +62509,7 @@
                                   },
                                   {
                                     "title": "Element selector (chained)",
+                                    "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -62656,8 +62663,8 @@
                             "additionalProperties": false,
                             "properties": {
                               "comment": {
-                                "description": "Match comment nodes (non-rendered author notes).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62744,8 +62751,8 @@
                                 ]
                               },
                               "link": {
-                                "description": "Match hyperlink nodes.",
                                 "title": "Link selector (chained)",
+                                "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62778,8 +62785,8 @@
                                 }
                               },
                               "image": {
-                                "description": "Match image nodes.",
                                 "title": "Image selector (chained)",
+                                "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62812,8 +62819,8 @@
                                 }
                               },
                               "strong": {
-                                "description": "Match bold/strong text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62825,8 +62832,8 @@
                                 }
                               },
                               "emphasis": {
-                                "description": "Match italic/emphasis text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62838,8 +62845,8 @@
                                 }
                               },
                               "text": {
-                                "description": "Match prose text runs (never inside code blocks or comments).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -62864,6 +62871,7 @@
                                   },
                                   {
                                     "title": "Element selector (chained)",
+                                    "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63017,8 +63025,8 @@
                             "additionalProperties": false,
                             "properties": {
                               "comment": {
-                                "description": "Match comment nodes (non-rendered author notes).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63105,8 +63113,8 @@
                                 ]
                               },
                               "link": {
-                                "description": "Match hyperlink nodes.",
                                 "title": "Link selector (chained)",
+                                "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63139,8 +63147,8 @@
                                 }
                               },
                               "image": {
-                                "description": "Match image nodes.",
                                 "title": "Image selector (chained)",
+                                "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63173,8 +63181,8 @@
                                 }
                               },
                               "strong": {
-                                "description": "Match bold/strong text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63186,8 +63194,8 @@
                                 }
                               },
                               "emphasis": {
-                                "description": "Match italic/emphasis text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
+                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63199,8 +63207,8 @@
                                 }
                               },
                               "text": {
-                                "description": "Match prose text runs (never inside code blocks or comments).",
                                 "title": "Content filter selector",
+                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63225,6 +63233,7 @@
                                   },
                                   {
                                     "title": "Element selector (chained)",
+                                    "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63328,8 +63337,8 @@
                 }
               },
               "text": {
-                "description": "Match prose text runs (never inside code blocks or comments).",
                 "title": "Content filter selector",
+                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -63442,8 +63451,8 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "comment": {
-                                    "description": "Match comment nodes (non-rendered author notes).",
                                     "title": "Content filter selector",
+                                    "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63530,8 +63539,8 @@
                                     ]
                                   },
                                   "link": {
-                                    "description": "Match hyperlink nodes.",
                                     "title": "Link selector (chained)",
+                                    "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63564,8 +63573,8 @@
                                     }
                                   },
                                   "image": {
-                                    "description": "Match image nodes.",
                                     "title": "Image selector (chained)",
+                                    "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63598,8 +63607,8 @@
                                     }
                                   },
                                   "strong": {
-                                    "description": "Match bold/strong text nodes.",
                                     "title": "Strong/emphasis selector (chained)",
+                                    "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63611,8 +63620,8 @@
                                     }
                                   },
                                   "emphasis": {
-                                    "description": "Match italic/emphasis text nodes.",
                                     "title": "Strong/emphasis selector (chained)",
+                                    "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63624,8 +63633,8 @@
                                     }
                                   },
                                   "text": {
-                                    "description": "Match prose text runs (never inside code blocks or comments).",
                                     "title": "Content filter selector",
+                                    "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
@@ -63650,6 +63659,7 @@
                                       },
                                       {
                                         "title": "Element selector (chained)",
+                                        "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                         "type": "object",
                                         "additionalProperties": false,
                                         "properties": {
@@ -177264,6 +177274,7 @@
           },
           "selectorContentFilter": {
             "title": "Content filter selector",
+            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -177428,8 +177439,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
-                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177516,8 +177527,8 @@
                             ]
                           },
                           "link": {
-                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
+                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177550,8 +177561,8 @@
                             }
                           },
                           "image": {
-                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
+                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177584,8 +177595,8 @@
                             }
                           },
                           "strong": {
-                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177597,8 +177608,8 @@
                             }
                           },
                           "emphasis": {
-                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177610,8 +177621,8 @@
                             }
                           },
                           "text": {
-                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177636,6 +177647,7 @@
                               },
                               {
                                 "title": "Element selector (chained)",
+                                "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -177809,8 +177821,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
-                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177897,8 +177909,8 @@
                             ]
                           },
                           "link": {
-                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
+                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177931,8 +177943,8 @@
                             }
                           },
                           "image": {
-                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
+                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177965,8 +177977,8 @@
                             }
                           },
                           "strong": {
-                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177978,8 +177990,8 @@
                             }
                           },
                           "emphasis": {
-                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177991,8 +178003,8 @@
                             }
                           },
                           "text": {
-                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178017,6 +178029,7 @@
                               },
                               {
                                 "title": "Element selector (chained)",
+                                "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -178169,8 +178182,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
-                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178257,8 +178270,8 @@
                             ]
                           },
                           "link": {
-                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
+                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178291,8 +178304,8 @@
                             }
                           },
                           "image": {
-                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
+                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178325,8 +178338,8 @@
                             }
                           },
                           "strong": {
-                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178338,8 +178351,8 @@
                             }
                           },
                           "emphasis": {
-                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178351,8 +178364,8 @@
                             }
                           },
                           "text": {
-                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178377,6 +178390,7 @@
                               },
                               {
                                 "title": "Element selector (chained)",
+                                "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -178569,8 +178583,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
-                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178657,8 +178671,8 @@
                             ]
                           },
                           "link": {
-                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
+                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178691,8 +178705,8 @@
                             }
                           },
                           "image": {
-                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
+                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178725,8 +178739,8 @@
                             }
                           },
                           "strong": {
-                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178738,8 +178752,8 @@
                             }
                           },
                           "emphasis": {
-                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
+                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178751,8 +178765,8 @@
                             }
                           },
                           "text": {
-                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
+                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -178777,6 +178791,7 @@
                               },
                               {
                                 "title": "Element selector (chained)",
+                                "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -178919,8 +178934,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "comment": {
-                        "description": "Match comment nodes (non-rendered author notes).",
                         "title": "Content filter selector",
+                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -179007,8 +179022,8 @@
                         ]
                       },
                       "link": {
-                        "description": "Match hyperlink nodes.",
                         "title": "Link selector (chained)",
+                        "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -179041,8 +179056,8 @@
                         }
                       },
                       "image": {
-                        "description": "Match image nodes.",
                         "title": "Image selector (chained)",
+                        "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -179075,8 +179090,8 @@
                         }
                       },
                       "strong": {
-                        "description": "Match bold/strong text nodes.",
                         "title": "Strong/emphasis selector (chained)",
+                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -179088,8 +179103,8 @@
                         }
                       },
                       "emphasis": {
-                        "description": "Match italic/emphasis text nodes.",
                         "title": "Strong/emphasis selector (chained)",
+                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -179101,8 +179116,8 @@
                         }
                       },
                       "text": {
-                        "description": "Match prose text runs (never inside code blocks or comments).",
                         "title": "Content filter selector",
+                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -179127,6 +179142,7 @@
                           },
                           {
                             "title": "Element selector (chained)",
+                            "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -179241,8 +179257,8 @@
             "additionalProperties": false,
             "properties": {
               "comment": {
-                "description": "Match comment nodes (non-rendered author notes).",
                 "title": "Content filter selector",
+                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179329,8 +179345,8 @@
                 ]
               },
               "link": {
-                "description": "Match hyperlink nodes.",
                 "title": "Link selector (chained)",
+                "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179363,8 +179379,8 @@
                 }
               },
               "image": {
-                "description": "Match image nodes.",
                 "title": "Image selector (chained)",
+                "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179397,8 +179413,8 @@
                 }
               },
               "strong": {
-                "description": "Match bold/strong text nodes.",
                 "title": "Strong/emphasis selector (chained)",
+                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179410,8 +179426,8 @@
                 }
               },
               "emphasis": {
-                "description": "Match italic/emphasis text nodes.",
                 "title": "Strong/emphasis selector (chained)",
+                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179423,8 +179439,8 @@
                 }
               },
               "text": {
-                "description": "Match prose text runs (never inside code blocks or comments).",
                 "title": "Content filter selector",
+                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179449,6 +179465,7 @@
                   },
                   {
                     "title": "Element selector (chained)",
+                    "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179547,6 +179564,7 @@
           },
           "selectorLinkCore": {
             "title": "Link selector (chained)",
+            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179580,6 +179598,7 @@
           },
           "selectorImageCore": {
             "title": "Image selector (chained)",
+            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179613,6 +179632,7 @@
           },
           "selectorEmphasisCore": {
             "title": "Strong/emphasis selector (chained)",
+            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179625,6 +179645,7 @@
           },
           "selectorElementCore": {
             "title": "Element selector (chained)",
+            "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179689,10 +179710,11 @@
               {
                 "type": "object",
                 "additionalProperties": false,
+                "$comment": "Kind keys are bare $refs (no sibling description) so the shared selector components keep their own neutral, match-oriented descriptions on the generated reference pages. The statement-extraction context is conveyed by the `in` property description above.",
                 "properties": {
                   "comment": {
-                    "description": "Read statements from comment nodes (non-rendered author notes).",
                     "title": "Content filter selector",
+                    "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179709,7 +179731,6 @@
                     }
                   },
                   "codeBlock": {
-                    "description": "Read statements from fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
                     "anyOf": [
                       {
                         "type": "string"
@@ -179779,8 +179800,8 @@
                     ]
                   },
                   "link": {
-                    "description": "Read statements from hyperlink nodes.",
                     "title": "Link selector (chained)",
+                    "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179813,8 +179834,8 @@
                     }
                   },
                   "image": {
-                    "description": "Read statements from image nodes.",
                     "title": "Image selector (chained)",
+                    "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179847,8 +179868,8 @@
                     }
                   },
                   "strong": {
-                    "description": "Read statements from bold/strong text nodes.",
                     "title": "Strong/emphasis selector (chained)",
+                    "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179860,8 +179881,8 @@
                     }
                   },
                   "emphasis": {
-                    "description": "Read statements from italic/emphasis text nodes.",
                     "title": "Strong/emphasis selector (chained)",
+                    "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179873,8 +179894,8 @@
                     }
                   },
                   "text": {
-                    "description": "Read statements from prose text runs (never inside code blocks or comments).",
                     "title": "Content filter selector",
+                    "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179891,7 +179912,6 @@
                     }
                   },
                   "element": {
-                    "description": "Read statements from a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
                     "anyOf": [
                       {
                         "type": "string",
@@ -179899,6 +179919,7 @@
                       },
                       {
                         "title": "Element selector (chained)",
+                        "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -180066,10 +180087,11 @@
                     {
                       "type": "object",
                       "additionalProperties": false,
+                      "$comment": "Kind keys are bare $refs (no sibling description) so the shared selector components keep their own neutral, match-oriented descriptions on the generated reference pages. The statement-extraction context is conveyed by the `in` property description above.",
                       "properties": {
                         "comment": {
-                          "description": "Read statements from comment nodes (non-rendered author notes).",
                           "title": "Content filter selector",
+                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -180086,7 +180108,6 @@
                           }
                         },
                         "codeBlock": {
-                          "description": "Read statements from fenced/source code blocks. A string is shorthand for `{ \"language\": \"<value>\" }`.",
                           "anyOf": [
                             {
                               "type": "string"
@@ -180156,8 +180177,8 @@
                           ]
                         },
                         "link": {
-                          "description": "Read statements from hyperlink nodes.",
                           "title": "Link selector (chained)",
+                          "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -180190,8 +180211,8 @@
                           }
                         },
                         "image": {
-                          "description": "Read statements from image nodes.",
                           "title": "Image selector (chained)",
+                          "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -180224,8 +180245,8 @@
                           }
                         },
                         "strong": {
-                          "description": "Read statements from bold/strong text nodes.",
                           "title": "Strong/emphasis selector (chained)",
+                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -180237,8 +180258,8 @@
                           }
                         },
                         "emphasis": {
-                          "description": "Read statements from italic/emphasis text nodes.",
                           "title": "Strong/emphasis selector (chained)",
+                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -180250,8 +180271,8 @@
                           }
                         },
                         "text": {
-                          "description": "Read statements from prose text runs (never inside code blocks or comments).",
                           "title": "Content filter selector",
+                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -180268,7 +180289,6 @@
                           }
                         },
                         "element": {
-                          "description": "Read statements from a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ \"tag\": \"<value>\" }`.",
                           "anyOf": [
                             {
                               "type": "string",
@@ -180276,6 +180296,7 @@
                             },
                             {
                               "title": "Element selector (chained)",
+                              "description": "Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.",
                               "type": "object",
                               "additionalProperties": false,
                               "properties": {

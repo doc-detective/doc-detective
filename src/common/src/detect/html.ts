@@ -62,7 +62,7 @@ export function parseHtml(content: string): SemanticNode[] {
   const nodes: SemanticNode[] = [];
   let nextBlockId = 0;
 
-  const walk = (node: any, blockId: number) => {
+  const walk = (node: any, blockId: number, withinInline: boolean) => {
     // parse5 always materializes childNodes on documents and elements.
     for (const child of node.childNodes) {
       const nodeName = child.nodeName;
@@ -82,6 +82,9 @@ export function parseHtml(content: string): SemanticNode[] {
         continue;
       }
       if (nodeName === "#text") {
+        // Text nested inside a link/emphasis is that node's display text, not
+        // a standalone prose run — same rule as the markdown backend.
+        if (withinInline) continue;
         const loc = child.sourceCodeLocation;
         /* c8 ignore next - parse5 locates every authored text node */
         if (!loc) continue;
@@ -146,6 +149,10 @@ export function parseHtml(content: string): SemanticNode[] {
           };
           if (attributes) semantic.attributes = attributes;
           nodes.push(semantic);
+          // Recurse so nested constructs (strong/emphasis/elements) inside the
+          // anchor still surface, matching the markdown/mdx backends. Nested
+          // text is suppressed (withinInline) — it's the link's display text.
+          walk(child, blockId, true);
           continue;
         }
         if (tag === "img") {
@@ -173,6 +180,9 @@ export function parseHtml(content: string): SemanticNode[] {
             followingText: "",
             blockId,
           });
+          // Recurse for nested constructs (e.g. a link inside <strong>);
+          // nested text stays suppressed as the emphasis display text.
+          walk(child, blockId, true);
           continue;
         }
         const semantic: SemanticNode = {
@@ -188,11 +198,13 @@ export function parseHtml(content: string): SemanticNode[] {
         if (attributes) semantic.attributes = attributes;
         nodes.push(semantic);
       }
-      walk(child, ownBlockId);
+      // Propagate withinInline so text nested under an element that is itself
+      // inside a link/emphasis stays suppressed.
+      walk(child, ownBlockId, withinInline);
     }
   };
 
-  walk(doc, ++nextBlockId);
+  walk(doc, ++nextBlockId, false);
   nodes.sort((a, b) => a.startIndex - b.startIndex);
 
   // Context pass, same contract as the markdown backend.

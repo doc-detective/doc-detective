@@ -55,6 +55,24 @@ describe("detect: html backend", function () {
     ]);
   });
 
+  it("surfaces nested constructs inside a link, matching the markdown backend", function () {
+    // The anchor's children are walked so a nested <strong> emits its own
+    // node; the anchor's text is not double-emitted as a standalone run.
+    const html =
+      '<p>Go to <a href="https://x.com">the <strong>Console</strong></a> now.</p>\n';
+    const nodes = parseHtml(html);
+    const link = first(nodes, "link");
+    expect(link.url).to.equal("https://x.com");
+    expect(link.text).to.equal("the Console");
+    const strong = first(nodes, "strong");
+    expect(strong, "nested <strong> should surface").to.exist;
+    expect(strong.text).to.equal("Console");
+    // "the Console" is the link's display text, not a standalone prose run.
+    expect(all(nodes, "text").map((n) => n.text.trim())).to.not.include(
+      "the Console"
+    );
+  });
+
   it("maps pre>code with a language- class to codeBlock nodes", function () {
     const html =
       '<pre><code class="language-bash">curl https://x.com/health</code></pre>\n' +
