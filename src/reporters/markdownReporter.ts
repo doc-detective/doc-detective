@@ -10,6 +10,9 @@ const LEVELS = ["specs", "tests", "contexts", "steps"];
 // its stdout), so cell length has to be bounded too.
 const MAX_FAILURES = 100;
 const MAX_CELL = 300;
+// One context can fail an unbounded number of steps, so the row count and the
+// cell clamp together still leave `detail` unbounded without this.
+const MAX_STEPS_PER_FAILURE = 5;
 
 // A `|` splits a table cell and a newline ends a row, and the same
 // resultDescription is rendered in both places. A raw `<` is also load-bearing:
@@ -18,6 +21,11 @@ const MAX_CELL = 300;
 function cell(value: any): string {
   const text = String(value ?? "")
     .replace(/</g, "&lt;")
+    // Backslash first: escaping `|` inserts one, and a backslash already in
+    // the text would otherwise consume the escape and let the pipe split the
+    // cell anyway (`a\|b` -> `a\\|b`, which renders as a literal `\` and a
+    // cell break).
+    .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
     .trim();
   const clamped = text.length > MAX_CELL ? `${text.slice(0, MAX_CELL)}…` : text;
@@ -65,10 +73,14 @@ function buildMarkdown(results: any): string {
       for (const ctx of (test.contexts || []).filter(Boolean)) {
         if (ctx.result !== "FAIL") continue;
         const steps = (ctx.steps || []).filter((s: any) => s && s.result === "FAIL");
-        const detail = steps.length
-          ? steps
-              .map((s: any) => `${cell(s.stepId || "step")} — ${cell(s.resultDescription)}`)
-              .join("<br>")
+        const shown = steps
+          .slice(0, MAX_STEPS_PER_FAILURE)
+          .map((s: any) => `${cell(s.stepId || "step")} — ${cell(s.resultDescription)}`);
+        if (steps.length > MAX_STEPS_PER_FAILURE) {
+          shown.push(`…and ${steps.length - MAX_STEPS_PER_FAILURE} more failed steps`);
+        }
+        const detail = shown.length
+          ? shown.join("<br>")
           : cell(ctx.resultDescription || "Context failed");
         failures.push(
           `| ${cell(spec.description || spec.specId)} | ${cell(

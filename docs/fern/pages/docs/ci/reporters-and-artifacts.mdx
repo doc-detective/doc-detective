@@ -22,12 +22,12 @@ Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `jun
 | `json` | A flat JSON results file with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser. |
 | `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
-| `junit` | A `junit.xml` file that CI platforms render in their test summary views. |
+| `junit` | A `junit.xml` report that CI platforms render in their test summary views. |
 | `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. |
 
-The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` is a file path, they write beside it.
+The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
 
-On GitLab, point the test summary at the JUnit file:
+On GitLab, point the test summary at the `junit.xml` file:
 
 ```yaml title=".gitlab-ci.yml"
 doc-tests:

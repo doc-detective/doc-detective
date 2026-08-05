@@ -3,12 +3,18 @@ import path from "node:path";
 
 export { junitReporter, buildJunitXml };
 
-// Escape the five XML entities and drop characters that are illegal in XML 1.0
-// even when escaped. Driver errors carry ANSI escapes (\x1B), and one of them
-// makes the whole file unparseable — which CI reports as "no tests found".
+// Escape the XML entities and drop characters that are illegal in XML 1.0 even
+// when escaped: C0 controls (driver errors carry ANSI escapes, \x1B), DEL, the
+// noncharacters U+FFFE/U+FFFF, and unpaired surrogates. One of them makes the
+// whole file unparseable — which CI reports as "no tests found", and that looks
+// the same as a green run.
 function esc(value: any): string {
   return String(value ?? "")
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\uFFFE\uFFFF]/g, "")
+    .replace(
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+      ""
+    )
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

@@ -120,6 +120,20 @@ describe("junit and markdown reporters", function () {
       assert.equal(buildJunitXml(dirty).includes("\u001B"), false);
     });
 
+    it("strips noncharacters and unpaired surrogates that XML 1.0 forbids", function () {
+      const dirty = structuredClone(results);
+      dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription =
+        "a\uFFFEb\uFFFFc\uD800d\uDC00e";
+      const xml = buildJunitXml(dirty);
+      assert.doesNotThrow(() => parser.parse(xml));
+      for (const bad of ["\uFFFE", "\uFFFF", "\uD800", "\uDC00"]) {
+        assert.equal(xml.includes(bad), false, `expected ${escape(bad)} to be stripped`);
+      }
+      // A valid pair is not a lone surrogate and must survive.
+      dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription = "ok \u{1F600}";
+      assert.match(buildJunitXml(dirty), /\u{1F600}/u);
+    });
+
     it("emits a valid empty document for a run with no specs", function () {
       const doc = parser.parse(buildJunitXml({ specs: [], summary: {} }));
       assert.equal(Number(doc.testsuites["@_tests"]), 0);
@@ -165,6 +179,35 @@ describe("junit and markdown reporters", function () {
       assert.match(md, /before the timeout/);
     });
 
+    it("bounds the summary when one context fails an unbounded number of steps", function () {
+      // MAX_FAILURES caps failing *contexts*; a single context can still fail
+      // thousands of steps, and every one of them lands in the same cell.
+      const many = structuredClone(results);
+      many.specs[1].tests[0].contexts[0].steps = Array.from({ length: 5000 }, (_, i) => ({
+        result: "FAIL",
+        stepId: `step-${i}`,
+        resultDescription: "y".repeat(200),
+      }));
+      const md = buildMarkdown(many);
+      assert.ok(
+        Buffer.byteLength(md, "utf8") < 1024 * 1024,
+        `summary was ${Buffer.byteLength(md, "utf8")} bytes`
+      );
+      assert.match(md, /and 4995 more failed steps/);
+    });
+
+    it("escapes a backslash so it can't consume the pipe escape", function () {
+      // `a\|b` would otherwise render as a literal backslash followed by a
+      // cell break.
+      const dirty = structuredClone(results);
+      dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription = "a\\|b";
+      const md = buildMarkdown(dirty);
+      // `a\|b` must become `a\\\|b`: the backslash escaped to a literal
+      // backslash, then the pipe escaped separately. Without the first
+      // replacement it would be `a\\|b` — a literal backslash and a cell break.
+      assert.ok(md.includes("a\\\\\\|b"), `expected an escaped backslash and pipe in: ${md}`);
+    });
+
     it("bounds the summary size when a description carries captured output", function () {
       // A failed runShell step embeds its stdout in resultDescription, so a
       // row-count cap alone can't keep the summary under GitHub's 1 MiB limit.
@@ -203,10 +246,15 @@ describe("junit and markdown reporters", function () {
     });
 
     it("writes beside a file output rather than inside it", async function () {
-      // `--output results.json --reporters json junit` must not have junit
-      // create a directory where the json reporter writes a file.
+      // `--output results.json --reporters json junit markdown` must not have
+      // either reporter create a directory where the json reporter writes a
+      // file.
       const target = path.join(tmpDir, "results.json");
       assert.equal(await junitReporter({}, target, results, {}), path.join(tmpDir, "junit.xml"));
+      assert.equal(
+        await markdownReporter({}, target, results, {}),
+        path.join(tmpDir, "doc-detective-summary.md")
+      );
       assert.equal(fs.existsSync(target), false);
     });
 

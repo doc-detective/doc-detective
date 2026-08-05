@@ -33,6 +33,36 @@
       ]
     },
     {
+      "testId": "reporters-file-valued-output",
+      "description": "When `--output` names a file (the natural `--reporters json junit markdown` invocation), both reporters write their fixed filename beside it rather than treating the path as a directory.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/file-output';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d+'/out',{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-pass',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/file-output/inner.spec.json --output .tmp/fixture-reporters/file-output/out/results.json --reporters json junit markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/file-output/out/';if(!fs.statSync(b+'results.json').isFile()){console.error('results.json is not a file');process.exit(1)}new XMLParser().parse(fs.readFileSync(b+'junit.xml','utf8'));const m=fs.readFileSync(b+'doc-detective-summary.md','utf8');if(m.indexOf('# Doc Detective results')!==0){console.error('missing summary title');process.exit(1)}console.log('file-output ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
       "testId": "reporters-failing-run",
       "description": "A failing inner run produces a `<failure>` element and a markdown failures section. The inner run deliberately omits `--exit-on-fail`, so a FAILed inner test still exits 0 and this outer step passes.",
       "steps": [
