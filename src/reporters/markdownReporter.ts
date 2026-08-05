@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { reportOutputDir } from "./outputDir.js";
+
 export { markdownReporter, buildMarkdown };
 
 const LEVELS = ["specs", "tests", "contexts", "steps"];
@@ -114,8 +116,7 @@ async function markdownReporter(
 ): Promise<string | null> {
   // Namespaced rather than `summary.md`: `output` defaults to `"."`, so a bare
   // `--reporters markdown` writes into the repo root.
-  const resolved = path.resolve(String(outputPath ?? "."));
-  const dir = path.extname(resolved) ? path.dirname(resolved) : resolved;
+  const dir = reportOutputDir(outputPath);
   const outputFile = path.resolve(dir, "doc-detective-summary.md");
 
   try {

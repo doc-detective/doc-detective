@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { reportOutputDir } from "./outputDir.js";
+
 export { junitReporter, buildJunitXml };
 
 // Escape the XML entities and drop characters that are illegal in XML 1.0 even
@@ -90,8 +92,7 @@ async function junitReporter(
   // `output` may be a directory or a file path meant for another reporter.
   // Either way JUnit writes a conventional `junit.xml` so a CI artifact glob
   // has a stable path to point at.
-  const resolved = path.resolve(String(outputPath ?? "."));
-  const dir = path.extname(resolved) ? path.dirname(resolved) : resolved;
+  const dir = reportOutputDir(outputPath);
   const outputFile = path.resolve(dir, "junit.xml");
 
   try {

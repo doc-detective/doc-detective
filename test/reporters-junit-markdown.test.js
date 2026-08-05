@@ -258,6 +258,29 @@ describe("junit and markdown reporters", function () {
       assert.equal(fs.existsSync(target), false);
     });
 
+    it("treats a dotted directory as a directory, not a file", async function () {
+      // `path.extname` alone would call `reports.v1` a file and write to the
+      // parent. Matches runFolderBaseDir, which resolves by what's on disk.
+      const dotted = path.join(tmpDir, "reports.v1");
+      fs.mkdirSync(dotted);
+      assert.equal(
+        await junitReporter({}, dotted, results, {}),
+        path.join(dotted, "junit.xml")
+      );
+      assert.equal(
+        await markdownReporter({}, dotted, results, {}),
+        path.join(dotted, "doc-detective-summary.md")
+      );
+    });
+
+    it("treats a not-yet-created path without a report extension as a directory", async function () {
+      const fresh = path.join(tmpDir, "nested", "out");
+      assert.equal(
+        await junitReporter({}, fresh, results, {}),
+        path.join(fresh, "junit.xml")
+      );
+    });
+
     it("returns null instead of throwing when the path can't be written", async function () {
       // Reporters run under Promise.all; a rejection skips the CLI exit gate.
       const blocked = path.join(tmpDir, "blocked");

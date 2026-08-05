@@ -46,11 +46,12 @@ path, writes, and returns `null` on failure rather than throwing.
 
 Four behaviors are deliberate rather than incidental, because each prevents a broken artifact:
 
-- **Control characters are stripped from the XML.** `\x00-\x08`, `\x0B`, `\x0C`, `\x0E-\x1F` and
-  `\x7F` are illegal in XML 1.0 even when escaped, and driver errors routinely carry ANSI escapes
-  (`\x1B` falls in that range). One of them makes the whole file unparseable.
-- **`|` and newlines are escaped in Markdown** — a pipe splits a table cell and a newline ends a
-  row, and the same `resultDescription` renders in both a cell and a list.
+- **Characters XML 1.0 forbids are stripped.** C0 controls, `\x7F`, the noncharacters U+FFFE and
+  U+FFFF, and unpaired surrogates are illegal even when escaped, and driver errors routinely carry
+  ANSI escapes (`\x1B`). One of them makes the whole file unparseable.
+- **`\`, `|`, newlines and `<` are escaped in Markdown** — a pipe splits a table cell, a newline
+  ends a row, a backslash already in the text would consume the pipe's escape, and a description
+  naming an element (`Couldn't find '<button>'`) would swallow the rest of the cell as a tag.
 - **`contexts` is filtered for holes.** The array is pre-allocated with `new Array(n)` and filled as
   contexts finish, so an aborted run leaves `undefined` entries.
 - **Each reporter writes a fixed filename and writes *beside* `output` when `output` names a file.**
@@ -82,8 +83,8 @@ turn a build red.
   step summary over 1 MiB outright rather than truncating it, so bounding both the row count and the
   cell length is what keeps a large run's summary uploadable at all — a row cap alone is not enough,
   because a failed `runShell` step embeds its captured stdout in `resultDescription`.
-* Neutral, because a path with any extension is treated as a file, so an `output` directory named
-  with a dot (`reports.v1`) resolves to its parent.
+* Neutral, because `output` is resolved the same way `runFolderBaseDir` resolves it: a known report
+  extension always means a file, and anything else is resolved by what is on disk.
 * Neutral, because both reporters log `See … report/summary at` rather than `… results at`: the
   doc-detective GitHub Action splits stdout on `"results at "` and `require()`s the trailing path.
 
