@@ -1,3 +1,24 @@
+## [4.37.3](https://github.com/doc-detective/doc-detective/compare/v4.37.2...v4.37.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **goTo:** fail when the browser never left its initial blank document ([#695](https://github.com/doc-detective/doc-detective/issues/695)) ([f1444ad](https://github.com/doc-detective/doc-detective/commit/f1444adac0c79193c8b0d7e01bb7642e19fbcadf))
+
+## [4.37.2](https://github.com/doc-detective/doc-detective/compare/v4.37.1...v4.37.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **surfaces:** honor timeout 0 and stop deleting unadjudicated surfaces ([#697](https://github.com/doc-detective/doc-detective/issues/697)) ([8a4a8dc](https://github.com/doc-detective/doc-detective/commit/8a4a8dcd0f97b6167600df4cb3e3d6fc0ac91243))
+
+## [4.37.1](https://github.com/doc-detective/doc-detective/compare/v4.37.0...v4.37.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **platform:** resolve symlinks in the runner bin entry guard ([#698](https://github.com/doc-detective/doc-detective/issues/698)) ([851f2c5](https://github.com/doc-detective/doc-detective/commit/851f2c536cbf2b9fae0837117244f100ed7fb165))
+
 # [4.37.0](https://github.com/doc-detective/doc-detective/compare/v4.36.0...v4.37.0) (2026-07-26)
 
 
