@@ -261,6 +261,41 @@ describe("reporters/markdownReporter", function () {
       assert.match(md, /\| Steps \|/);
     });
 
+    it("stays under the cap across a sweep of failure-block sizes", function () {
+      // The cap is a hard ceiling, not a target: GitHub rejects the entire
+      // step-summary upload past 1 MiB rather than truncating it, so one byte
+      // over means no summary at all. The budget is accounted in whole blocks,
+      // so the slack at truncation varies with block size; this sweeps block
+      // sizes to keep that accounting honest as the builder changes. It is a
+      // guard, not a reproducer — the known MAX+1 boundary needs the budget to
+      // land exactly on the cap, which no size in this sweep does.
+      for (let width = 1; width <= 64; width++) {
+        const results = makeResults();
+        const contexts = [];
+        for (let i = 0; i < 6000; i++) {
+          contexts.push({
+            result: "FAIL",
+            contextId: `ctx-${i}`,
+            platform: "linux",
+            durationMs: 1,
+            steps: [
+              {
+                result: "FAIL",
+                stepId: `step-${i}`,
+                resultDescription: "x".repeat(width),
+              },
+            ],
+          });
+        }
+        results.specs[1].tests[0].contexts = contexts;
+        const size = Buffer.byteLength(buildMarkdown(results), "utf8");
+        assert.ok(
+          size <= MAX_SUMMARY_BYTES,
+          `width ${width} produced ${size} bytes, ${size - MAX_SUMMARY_BYTES} over the cap`
+        );
+      }
+    });
+
     it("never splits a multi-byte character", function () {
       const results = makeResults();
       const contexts = [];

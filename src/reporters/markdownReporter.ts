@@ -161,6 +161,9 @@ function buildSpecOpen(failure: Failure): string {
 }
 
 const SPEC_CLOSE = "</details>\n\n";
+// Joins the failures body to the tail sections in the rendered summary. Named
+// so the byte budget can account for it.
+const BODY_TAIL_SEPARATOR = "\n";
 
 function buildSlowest(slow: Slow[]): string {
   if (!slow.length) return "";
@@ -220,15 +223,21 @@ function buildMarkdown(results: any): string {
   }
   const tail = tailParts.filter(Boolean).join("\n");
 
-  if (!failures.length) return `${header}\n${tail}`;
+  if (!failures.length) return `${header}${BODY_TAIL_SEPARATOR}${tail}`;
 
   const footer = (remaining: number) =>
     `\n_… and ${remaining} more failures. See the JSON report for the full list._\n`;
   // Reserved up front so truncation can never eat the tail sections or the
   // footer. Worst case: every failure ends up in the footer count. At most one
-  // spec block is open at a time, so one closing tag is always affordable.
+  // spec block is open at a time, so one closing tag is always affordable, and
+  // the final `\n` joining body to tail has to be counted too — without it the
+  // summary can land at exactly MAX + 1 bytes, and GitHub rejects the whole
+  // upload past the cap rather than truncating it.
   const reserved =
-    bytes(tail) + bytes(footer(failures.length)) + bytes(SPEC_CLOSE);
+    bytes(tail) +
+    bytes(footer(failures.length)) +
+    bytes(SPEC_CLOSE) +
+    bytes(BODY_TAIL_SEPARATOR);
 
   let body = "\n## Failures\n\n";
   let used = bytes(header) + bytes(body) + reserved;
@@ -253,7 +262,7 @@ function buildMarkdown(results: any): string {
   const remaining = failures.length - emitted;
   if (remaining > 0) body += footer(remaining);
 
-  return `${header}${body}\n${tail}`;
+  return `${header}${body}${BODY_TAIL_SEPARATOR}${tail}`;
 }
 
 async function markdownReporter(
