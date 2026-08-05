@@ -67,6 +67,10 @@ that path to the first run's results. This is a deliberate exception to
 [ADR 00084](./00084-outputresults-file-or-directory.md), which still governs `json` and `html` —
 their job is a historical archive, and the per-run `runFolder` remains the way to keep history.
 
+Per-suite `failures`/`skipped`/`errors`/`time` are emitted on `<testsuite>` as well as on
+`<testsuites>`, because GitLab builds its suite-level rollup from the per-suite attributes rather
+than from the `<testcase>` children.
+
 `WARNING` maps to a **passing** JUnit test case: JUnit has no warning state, and a warning must not
 turn a build red.
 

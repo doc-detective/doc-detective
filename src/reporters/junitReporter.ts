@@ -38,6 +38,12 @@ function buildJunitXml(results: any): string {
 
   for (const spec of specs) {
     const cases: string[] = [];
+    // Per-suite counters as well as the run totals: GitLab's test-summary
+    // widget reads `failures`/`errors` straight off `<testsuite>` to build the
+    // suite rollup, and shows 0 per suite without them even when the
+    // `<testcase>` children carry `<failure>`.
+    let suiteFailures = 0;
+    let suiteSkipped = 0;
     for (const test of (spec.tests || []).filter(Boolean)) {
       // `contexts` is pre-allocated and filled as contexts finish, so an
       // aborted run leaves holes.
@@ -50,6 +56,7 @@ function buildJunitXml(results: any): string {
         let body = "";
         if (ctx.result === "FAIL") {
           failures++;
+          suiteFailures++;
           const failed = steps.filter((s: any) => s.result === "FAIL");
           const message = failed[0]?.resultDescription || ctx.resultDescription || "Test failed";
           const detail = failed
@@ -58,6 +65,7 @@ function buildJunitXml(results: any): string {
           body = `<failure message="${esc(message)}">${esc(detail || message)}</failure>`;
         } else if (ctx.result === "SKIPPED") {
           skipped++;
+          suiteSkipped++;
           body = `<skipped message="${esc(ctx.resultDescription || "")}"/>`;
         }
 
@@ -69,7 +77,9 @@ function buildJunitXml(results: any): string {
       }
     }
     suites.push(
-      `  <testsuite name="${esc(spec.description || spec.specId || "spec")}" tests="${cases.length}">\n` +
+      `  <testsuite name="${esc(spec.description || spec.specId || "spec")}"` +
+        ` tests="${cases.length}" failures="${suiteFailures}" errors="0"` +
+        ` skipped="${suiteSkipped}" time="${secs(spec.durationMs)}">\n` +
         `${cases.join("\n")}${cases.length ? "\n" : ""}  </testsuite>`
     );
   }
@@ -78,7 +88,7 @@ function buildJunitXml(results: any): string {
   // reports it as "no tests found", which looks the same as a green run.
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<testsuites tests="${tests}" failures="${failures}" skipped="${skipped}" time="${secs(results?.durationMs)}">\n` +
+    `<testsuites tests="${tests}" failures="${failures}" errors="0" skipped="${skipped}" time="${secs(results?.durationMs)}">\n` +
     `${suites.join("\n")}${suites.length ? "\n" : ""}</testsuites>\n`
   );
 }

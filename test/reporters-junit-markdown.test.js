@@ -104,7 +104,9 @@ describe("junit and markdown reporters", function () {
 
     it("renders FAIL as <failure> with the step's resultDescription", function () {
       const xml = buildJunitXml(results);
-      assert.match(xml, /<failure message="Couldn&apos;t find &apos;Sign in&apos;"|<failure message="Couldn't find 'Sign in'"/);
+      // Attribute values are double-quoted, so `esc()` deliberately leaves a
+      // raw apostrophe alone — pin that rather than accepting either form.
+      assert.match(xml, /<failure message="Couldn't find 'Sign in'">/);
       assert.match(xml, /s3/);
     });
 
@@ -182,8 +184,11 @@ describe("junit and markdown reporters", function () {
 
     it("emits an empty suite for a spec with no tests", function () {
       const xml = buildJunitXml({ specs: [{ specId: "empty", result: "SKIPPED" }], summary: {} });
-      assert.match(xml, /<testsuite name="empty" tests="0">\s*<\/testsuite>/);
-      assert.doesNotThrow(() => parser.parse(xml));
+      assert.match(xml, /<testsuite name="empty" tests="0"[^>]*>\s*<\/testsuite>/);
+      // A single child parses as an object, not an array.
+      const suite = parser.parse(xml).testsuites.testsuite;
+      assert.equal(Number(suite["@_failures"]), 0);
+      assert.equal(Number(suite["@_skipped"]), 0);
     });
 
     it("emits a skipped element with an empty message when no reason is given", function () {
@@ -257,6 +262,16 @@ describe("junit and markdown reporters", function () {
       dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription = "a | b\nc";
       const md = buildMarkdown(dirty);
       assert.match(md, /a \\\| b<br>c/);
+    });
+
+    it("converts a bare carriage return, not just newlines", function () {
+      // Captured stdout from a progress bar is full of bare \r, and one would
+      // end the table row exactly as a newline does.
+      const dirty = structuredClone(results);
+      dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription = "10%\r50%\r\n100%\ndone";
+      const md = buildMarkdown(dirty);
+      assert.match(md, /10%<br>50%<br>100%<br>done/);
+      assert.equal(/[\r\n]done/.test(md), false);
     });
 
     it("escapes a raw < so a description naming an element doesn't swallow the cell", function () {

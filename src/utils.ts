@@ -525,7 +525,12 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // are unaffected.
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
-  const reportFileExtensions = [".json", ".html", ".htm"];
+  // Must match the lists in getRunOutputDir (src/core/utils.ts) and
+  // reportOutputDir (src/reporters/outputDir.ts). If `.xml`/`.md` were missing
+  // here, `--output junit.xml --reporters runFolder junit` would have the
+  // junit reporter write the file while this resolver tried to create a
+  // directory of the same name — concurrently, under Promise.all.
+  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     return path.dirname(base);
   }

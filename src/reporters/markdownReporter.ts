@@ -31,7 +31,9 @@ function cell(value: any): string {
     .replace(/\|/g, "\\|")
     .trim();
   const clamped = text.length > MAX_CELL ? `${text.slice(0, MAX_CELL)}…` : text;
-  return clamped.replace(/\r?\n/g, "<br>");
+  // A bare `\r` counts too: captured stdout from a progress bar is full of
+  // them, and one would end the table row just as a newline does.
+  return clamped.replace(/\r\n|\r|\n/g, "<br>");
 }
 
 // Turn the results object into a run summary for a CI job summary
@@ -68,12 +70,18 @@ function buildMarkdown(results: any): string {
 
   // Failures get named; passes and skips stay as counts, so the summary stays
   // skimmable.
+  // Count every failure but only build rows for the ones that get printed —
+  // a 5,000-failure run would otherwise allocate every row just to slice them
+  // away. `totalFailures` keeps the footer count honest.
   const failures: string[] = [];
+  let totalFailures = 0;
   for (const spec of (results?.specs || []).filter(Boolean)) {
     for (const test of (spec.tests || []).filter(Boolean)) {
       // `contexts` is pre-allocated and filled as contexts finish.
       for (const ctx of (test.contexts || []).filter(Boolean)) {
         if (ctx.result !== "FAIL") continue;
+        totalFailures++;
+        if (failures.length >= MAX_FAILURES) continue;
         const steps = (ctx.steps || []).filter((s: any) => s && s.result === "FAIL");
         const shown = steps
           .slice(0, MAX_STEPS_PER_FAILURE)
@@ -95,11 +103,11 @@ function buildMarkdown(results: any): string {
 
   if (failures.length) {
     lines.push("", "## Failures", "", "| Spec | Test | Details |", "| --- | --- | --- |");
-    lines.push(...failures.slice(0, MAX_FAILURES));
-    if (failures.length > MAX_FAILURES) {
+    lines.push(...failures);
+    if (totalFailures > failures.length) {
       lines.push(
         "",
-        `_… and ${failures.length - MAX_FAILURES} more failures. See the JSON report for the full list._`
+        `_… and ${totalFailures - failures.length} more failures. See the JSON report for the full list._`
       );
     }
   }
