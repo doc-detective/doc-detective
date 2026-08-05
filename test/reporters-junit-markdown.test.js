@@ -316,6 +316,14 @@ describe("junit and markdown reporters", function () {
       assert.match(md, /before the timeout/);
     });
 
+    it("escapes an ampersand so an entity in the text isn't decoded away", function () {
+      const dirty = structuredClone(results);
+      dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription = "expected a &lt; b, got AT&T";
+      const md = buildMarkdown(dirty);
+      // The literal entity survives as text rather than rendering as `a < b`.
+      assert.match(md, /expected a &amp;lt; b, got AT&amp;T/);
+    });
+
     it("bounds the summary when one context fails an unbounded number of steps", function () {
       // MAX_FAILURES caps failing *contexts*; a single context can still fail
       // thousands of steps, and every one of them lands in the same cell.

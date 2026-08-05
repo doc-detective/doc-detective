@@ -22,6 +22,11 @@ const MAX_STEPS_PER_FAILURE = 5;
 // swallow the rest of the cell as an unknown HTML tag.
 function cell(value: any): string {
   const text = String(value ?? "")
+    // `&` before `<`, or the ampersand of the entity we just inserted would be
+    // escaped again. Without this, a description that already contains an
+    // entity (`expected a &lt; b`) renders as `a < b` — the renderer decodes
+    // it and the original text is lost.
+    .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     // Backslash first: escaping `|` inserts one, and a backslash already in
     // the text would otherwise consume the escape and let the pipe split the
