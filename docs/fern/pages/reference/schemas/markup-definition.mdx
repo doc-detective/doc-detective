@@ -32,20 +32,32 @@ actions | one of:<br/>- string<br/>- array of one of: string, object | Optional.
 
 ```json
 {
-  "name": "example",
-  "regex": "example",
-  "comment": {
-    "matches": "example",
-    "excludes": "example"
+  "name": "runCode",
+  "codeBlock": {
+    "language": [
+      "bash",
+      "python"
+    ],
+    "metaExcludes": "testIgnore"
   },
-  "codeBlock": "example",
-  "text": {
-    "matches": "example",
-    "excludes": "example"
-  },
-  "element": "example",
-  "captures": [],
-  "batchMatches": false,
-  "actions": "annotate"
+  "captures": [
+    "language",
+    "content"
+  ],
+  "actions": [
+    "runCode"
+  ]
+}
+```
+
+```json
+{
+  "name": "checkHyperlink",
+  "regex": [
+    "\\[[^\\]]+\\]\\(\\s*(https?://[^\\s)]+)\\s*\\)"
+  ],
+  "actions": [
+    "checkLink"
+  ]
 }
 ```
