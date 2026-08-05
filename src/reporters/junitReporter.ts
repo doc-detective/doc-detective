@@ -67,6 +67,17 @@ function buildJunitXml(results: any): string {
           skipped++;
           suiteSkipped++;
           body = `<skipped message="${esc(ctx.resultDescription || "")}"/>`;
+        } else if (ctx.result === "WARNING") {
+          // JUnit has no warning state, so the case stays passing — a warning
+          // must not turn a build red — but the detail rides along in
+          // system-out instead of being dropped.
+          const warned = steps
+            .filter((s: any) => s.result === "WARNING")
+            .map((s: any) => `${s.stepId || "step"}: ${s.resultDescription || ""}`)
+            .join("\n");
+          body = `<system-out>${esc(
+            warned || ctx.resultDescription || "Completed with warnings"
+          )}</system-out>`;
         }
 
         const attrs =

@@ -110,6 +110,39 @@ describe("junit and markdown reporters", function () {
       assert.match(xml, /s3/);
     });
 
+    it("renders WARNING as a passing case that still carries its detail", function () {
+      // JUnit has no warning state: the case must not count as a failure, but
+      // dropping the detail entirely would lose the only record of it.
+      const warned = structuredClone(results);
+      warned.specs[0].tests[0].contexts[0].result = "WARNING";
+      warned.specs[0].tests[0].contexts[0].steps = [
+        { result: "WARNING", stepId: "s-warn", resultDescription: "Screenshot varied by 3%" },
+      ];
+      const xml = buildJunitXml(warned);
+      const doc = parser.parse(xml);
+      assert.equal(Number(doc.testsuites["@_failures"]), 1); // unchanged
+      const suite = doc.testsuites.testsuite.find((s) => s["@_name"] === "Quickstart");
+      assert.equal(Number(suite["@_failures"]), 0);
+      assert.equal(Number(suite["@_skipped"]), 0);
+      assert.match(xml, /<system-out>s-warn: Screenshot varied by 3%<\/system-out>/);
+
+      // A warned step with neither an id nor a description still renders.
+      warned.specs[0].tests[0].contexts[0].steps = [{ result: "WARNING" }];
+      assert.match(buildJunitXml(warned), /<system-out>step: <\/system-out>/);
+    });
+
+    it("falls back to a generic note when a WARNING context has no warned steps", function () {
+      const warned = structuredClone(results);
+      warned.specs[0].tests[0].contexts[0].result = "WARNING";
+      warned.specs[0].tests[0].contexts[0].steps = [];
+      // Context-level reason first...
+      warned.specs[0].tests[0].contexts[0].resultDescription = "context-level warning";
+      assert.match(buildJunitXml(warned), /<system-out>context-level warning<\/system-out>/);
+      // ...then a generic note when there is none.
+      delete warned.specs[0].tests[0].contexts[0].resultDescription;
+      assert.match(buildJunitXml(warned), /<system-out>Completed with warnings<\/system-out>/);
+    });
+
     it("renders SKIPPED as <skipped>", function () {
       assert.match(buildJunitXml(results), /<skipped message="No matching platform"\/>/);
     });
@@ -371,6 +404,17 @@ describe("junit and markdown reporters", function () {
       }));
       const md = buildMarkdown(many);
       assert.match(md, /and 50 more failures/);
+    });
+
+    it("calls out an all-skipped run instead of reporting it as passed", function () {
+      // Matches the terminal reporter: a green "Passed" should imply that
+      // something actually passed.
+      const md = buildMarkdown({
+        summary: { specs: { pass: 0, fail: 0, warning: 0, skipped: 3 } },
+        specs: [],
+      });
+      assert.match(md, /All items were skipped/);
+      assert.equal(/\*\*Passed\*\*/.test(md), false);
     });
 
     it("produces a valid summary for an empty run", function () {

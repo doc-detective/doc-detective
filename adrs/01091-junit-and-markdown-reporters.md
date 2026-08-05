@@ -71,8 +71,8 @@ Per-suite `failures`/`skipped`/`errors`/`time` are emitted on `<testsuite>` as w
 `<testsuites>`, because GitLab builds its suite-level rollup from the per-suite attributes rather
 than from the `<testcase>` children.
 
-`WARNING` maps to a **passing** JUnit test case: JUnit has no warning state, and a warning must not
-turn a build red.
+`WARNING` maps to a **passing** JUnit test case carrying its detail in `<system-out>`: JUnit has no
+warning state, and a warning must not turn a build red.
 
 ### Consequences
 

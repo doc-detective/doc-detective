@@ -59,6 +59,11 @@ function buildMarkdown(results: any): string {
   });
 
   const failed = (summary.specs?.fail || 0) > 0;
+  const allSkipped =
+    (summary.specs?.skipped || 0) > 0 &&
+    (summary.specs?.pass || 0) === 0 &&
+    (summary.specs?.fail || 0) === 0 &&
+    (summary.specs?.warning || 0) === 0;
   const total =
     (summary.specs?.pass || 0) +
     (summary.specs?.fail || 0) +
@@ -72,6 +77,10 @@ function buildMarkdown(results: any): string {
       ? "**No tests ran.**"
       : failed
       ? `**Failed** — ${summary.specs.fail} of ${total} ${total === 1 ? "spec" : "specs"} failed.`
+      : allSkipped
+      ? // Matches the terminal reporter, which calls this out rather than
+        // letting a green verdict imply something actually passed.
+        `**All items were skipped.** No specs passed or failed.`
       : `**Passed** — ${total} ${total === 1 ? "spec" : "specs"}.`,
     "",
     "| Level | Pass | Fail | Warning | Skipped | Total |",
