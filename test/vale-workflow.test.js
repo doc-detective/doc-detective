@@ -39,7 +39,7 @@ function resolveValeFiles(filesRaw, separatorRaw, dir) {
 describe("vale workflow changed-file scoping", function () {
   describe("vale-action files-input contract", function () {
     it("legacy wiring (space-separated list + whitespace separator) falls back to whole-repo lint", function () {
-      // The pre-#694 wiring: tj-actions' default space-separated output with
+      // The pre-fix wiring: tj-actions' default space-separated output with
       // `separator: " "`. getInput() trims the separator to "", JSON.parse
       // throws on the list, and the action lints "." — the observed failure.
       const args = resolveValeFiles(
