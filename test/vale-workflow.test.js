@@ -14,7 +14,7 @@ const workflowPath = path.join(repoRoot, ".github", "workflows", "vale.yml");
 //      so a `separator: " "` arrives as "" and the split branch never runs.
 //   2. When no separator survives, the list must parse as a JSON array; on
 //      failure the action silently falls back to linting the whole repo (".").
-// See adrs/01087-vale-changed-files-as-json-array.md.
+// See adrs/01089-vale-changed-files-as-json-array.md.
 function resolveValeFiles(filesRaw, separatorRaw, dir) {
   const getInput = (v) => (v || "").trim();
   let args = [];
