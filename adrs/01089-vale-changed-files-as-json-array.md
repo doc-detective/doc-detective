@@ -59,7 +59,8 @@ vale-action's `lib/input.js` resolution (including `getInput()` trimming) and as
 space-separated wiring falls back to whole-repo lint, that a JSON array — spaced paths included —
 resolves to per-file args, that escaped JSON re-breaks parsing, and that
 [vale.yml](../.github/workflows/vale.yml) keeps `json: true` + `escape_json: false` with no
-whitespace separator. The test fails against the pre-fix workflow and passes against this one.
+`separator` input at all (any separator surviving the trim would split the JSON text itself).
+The test fails against the pre-fix workflow and passes against this one.
 Post-merge, the "Run vale" step log should show per-file arguments and no
 `falling back to 'all'` warning.
 

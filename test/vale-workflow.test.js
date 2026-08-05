@@ -92,17 +92,15 @@ describe("vale workflow changed-file scoping", function () {
         String(runVale.with.files),
         /steps\.changed-files\.outputs\.all_changed_files/
       );
-      const separator = runVale.with.separator;
-      // No separator at all is the intended wiring; if one is ever
-      // reintroduced it must survive getInput()'s trim, or the action
-      // silently reverts to linting the entire repo.
-      if (separator !== undefined) {
-        assert.notEqual(
-          String(separator).trim(),
-          "",
-          "whitespace-only separator is trimmed to '' by @actions/core getInput() and silently disables scoping"
-        );
-      }
+      // The separator must stay absent entirely: with a JSON-array files
+      // input, any separator that survives getInput()'s trim splits the JSON
+      // text itself into garbage path fragments, and a whitespace one is
+      // trimmed to "" and silently reverts to linting the entire repo.
+      assert.equal(
+        runVale.with.separator,
+        undefined,
+        "separator is incompatible with the JSON-array files wiring"
+      );
       assert.match(String(runVale.if), /any_changed == 'true'/);
     });
   });
