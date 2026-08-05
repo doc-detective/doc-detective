@@ -110,7 +110,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML at <output>/junit.xml), markdown (a run summary at <output>/doc-detective-summary.md). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -544,6 +544,18 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   htmlReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
     const { htmlReporter } = await import("./reporters/htmlReporter.js");
     return htmlReporter(config, outputPath, results, options);
+  },
+
+  // JUnit reporter: writes `junit.xml` for CI test-summary widgets
+  junitReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { junitReporter } = await import("./reporters/junitReporter.js");
+    return junitReporter(config, outputPath, results, options);
+  },
+
+  // Markdown reporter: writes a run summary for CI job summaries and comments
+  markdownReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { markdownReporter } = await import("./reporters/markdownReporter.js");
+    return markdownReporter(config, outputPath, results, options);
   },
 
   // JSON reporter: outputs results to a JSON file
@@ -1245,6 +1257,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
+          case "junit":
+            return "junitReporter";
+          case "markdown":
+            return "markdownReporter";
           default:
             return reporter;
         }
