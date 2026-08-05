@@ -21,7 +21,7 @@ const BUNDLES = [
   { name: "nav-capture", dirs: ["navigation", "capture"] },
   { name: "interactions", dirs: ["interactions"] },
   { name: "web-plumbing", dirs: ["routing", "http", "guards"] },
-  { name: "proc-sessions", dirs: ["process", "sessions"] },
+  { name: "proc-sessions", dirs: ["process", "sessions", "detection"] },
   { name: "recording", dirs: ["recording"] },
   { name: "apps", dirs: ["apps"], timeout: 30 },
   { name: "android-skip", dirs: ["apps-android", "mobile-web-android"], android: true },

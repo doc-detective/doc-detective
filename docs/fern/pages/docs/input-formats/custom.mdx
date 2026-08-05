@@ -6,6 +6,10 @@ description: Define custom input formats and markup patterns for your documentat
 
 You can define custom input formats and extend existing formats by modifying your [configuration file](/reference/schemas/config). This allows you to support new file types or customize test detection for your specific documentation patterns.
 
+<Note>
+For Markdown, MDX, HTML, DITA/XML, and AsciiDoc files, prefer [selector-based detection](/docs/input-formats/selectors): it matches document structure (comments, code blocks, links, images, elements) instead of raw text, which eliminates whole classes of regular-expression false positives. The regex patterns on this page remain fully supported and are the escape hatch for anything selectors don't cover.
+</Note>
+
 ## Creating a custom file type
 
 To define a custom file type, add an entry to the `fileTypes` array in your configuration:
