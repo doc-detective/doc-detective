@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-07-27
-decision-makers: [hawkeyexl, claude]
+decision-makers: [hawkeyexl]
 ---
 
 # Pass Vale's changed-file list as a JSON array, not a space-separated string
