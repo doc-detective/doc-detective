@@ -345,6 +345,16 @@ describe("junit and markdown reporters", function () {
       assert.match(md, /t2/);
     });
 
+    it("leaves a Windows path readable in the artifacts code span", function () {
+      // Inside an inline-code span Markdown processes no escapes, so the table
+      // cell's backslash doubling would render `C:\Users\…` as `C:\\Users\\…`.
+      const win = structuredClone(results);
+      win.runDir = "C:\\Users\\me\\out\\.doc-detective\\runs\\2026-08-05";
+      const md = buildMarkdown(win);
+      assert.match(md, /Run artifacts: `C:\\Users\\me\\out\\\.doc-detective\\runs\\2026-08-05`/);
+      assert.equal(md.includes("\\\\Users"), false);
+    });
+
     it("omits the artifacts line when the run has no runDir", function () {
       const noDir = structuredClone(results);
       delete noDir.runDir;

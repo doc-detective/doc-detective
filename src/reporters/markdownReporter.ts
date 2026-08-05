@@ -36,6 +36,17 @@ function cell(value: any): string {
   return clamped.replace(/\r\n|\r|\n/g, "<br>");
 }
 
+// Inside an inline-code span Markdown processes no escapes, so `cell()`'s
+// backslash doubling would render a Windows path as `C:\\Users\\…`. Only a
+// backtick can break out of the span, and a newline would end the line.
+// Only called behind a truthiness guard, so no nullish default is needed.
+function codeSpan(value: any): string {
+  return String(value)
+    .replace(/`/g, "'")
+    .replace(/\r\n|\r|\n/g, " ")
+    .trim();
+}
+
 // Turn the results object into a run summary for a CI job summary
 // ($GITHUB_STEP_SUMMARY) or a merge request comment.
 function buildMarkdown(results: any): string {
@@ -112,7 +123,7 @@ function buildMarkdown(results: any): string {
     }
   }
 
-  if (results?.runDir) lines.push("", `Run artifacts: \`${cell(results.runDir)}\``);
+  if (results?.runDir) lines.push("", `Run artifacts: \`${codeSpan(results.runDir)}\``);
   return lines.join("\n") + "\n";
 }
 
