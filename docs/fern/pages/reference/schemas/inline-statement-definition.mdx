@@ -27,11 +27,25 @@ step | one of:<br/>- string<br/>- array of string | Optional. Regular expression
 
 ```json
 {
-  "in": [],
-  "testStart": "example",
-  "testEnd": "example",
-  "ignoreStart": "example",
-  "ignoreEnd": "example",
-  "step": "example"
+  "in": [
+    "comment"
+  ]
+}
+```
+
+```json
+{
+  "in": [
+    "comment",
+    {
+      "element": {
+        "tag": "data",
+        "attributes": {
+          "name": "doc-detective"
+        }
+      },
+      "value": "attributes.value"
+    }
+  ]
 }
 ```

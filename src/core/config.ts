@@ -107,6 +107,26 @@ function deepMerge(target: any, override: any): any {
   return result;
 }
 
+/**
+ * Deterministic JSON serialization with recursively sorted object keys, so two
+ * structurally equal values produce the same string regardless of key order.
+ * Used to dedupe inlineStatements containers during `extends` merges.
+ */
+function stableStringify(value: any): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return "[" + value.map(stableStringify).join(",") + "]";
+  }
+  return (
+    "{" +
+    Object.keys(value)
+      .sort()
+      .map((k) => JSON.stringify(k) + ":" + stableStringify(value[k]))
+      .join(",") +
+    "}"
+  );
+}
+
 // Map of Node-detected platforms to common-term equivalents
 const platformMap: any = {
   darwin: "mac",
@@ -283,10 +303,13 @@ async function setConfig({ config }: any) {
               // Dedupe by value; `in` entries can be objects (selector
               // containers), so identity-based Set dedup isn't enough —
               // a duplicated container would detect every statement twice.
+              // Serialize with sorted keys so containers that differ only in
+              // key order (e.g. { element, value } vs { value, element }) are
+              // treated as equal.
               const seen = new Set<string>();
               fileType.inlineStatements[key] = merged.filter((entry: any) => {
                 const id =
-                  typeof entry === "string" ? entry : JSON.stringify(entry);
+                  typeof entry === "string" ? entry : stableStringify(entry);
                 if (seen.has(id)) return false;
                 seen.add(id);
                 return true;

@@ -903,6 +903,27 @@
                   },
                   "inlineStatements": {
                     "description": "Statements to include tests and steps inside the content of the file, such as within Markdown.",
+                    "examples": [
+                      {
+                        "in": [
+                          "comment"
+                        ]
+                      },
+                      {
+                        "in": [
+                          "comment",
+                          {
+                            "element": {
+                              "tag": "data",
+                              "attributes": {
+                                "name": "doc-detective"
+                              }
+                            },
+                            "value": "attributes.value"
+                          }
+                        ]
+                      }
+                    ],
                     "type": "object",
                     "properties": {
                       "in": {
@@ -1341,6 +1362,34 @@
                     "items": {
                       "title": "Markup definition",
                       "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
+                      "examples": [
+                        {
+                          "name": "runCode",
+                          "codeBlock": {
+                            "language": [
+                              "bash",
+                              "python"
+                            ],
+                            "metaExcludes": "testIgnore"
+                          },
+                          "captures": [
+                            "language",
+                            "content"
+                          ],
+                          "actions": [
+                            "runCode"
+                          ]
+                        },
+                        {
+                          "name": "checkHyperlink",
+                          "regex": [
+                            "\\[[^\\]]+\\]\\(\\s*(https?://[^\\s)]+)\\s*\\)"
+                          ],
+                          "actions": [
+                            "checkLink"
+                          ]
+                        }
+                      ],
                       "type": "object",
                       "additionalProperties": false,
                       "properties": {
@@ -1516,6 +1565,13 @@
                                     "then": {
                                       "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                                       "title": "Selector node",
+                                      "examples": [
+                                        {
+                                          "element": {
+                                            "tag": "uicontrol"
+                                          }
+                                        }
+                                      ],
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -1891,6 +1947,13 @@
                                     "then": {
                                       "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                                       "title": "Selector node",
+                                      "examples": [
+                                        {
+                                          "element": {
+                                            "tag": "uicontrol"
+                                          }
+                                        }
+                                      ],
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -2245,6 +2308,13 @@
                                     "then": {
                                       "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                                       "title": "Selector node",
+                                      "examples": [
+                                        {
+                                          "element": {
+                                            "tag": "uicontrol"
+                                          }
+                                        }
+                                      ],
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -2599,6 +2669,13 @@
                                     "then": {
                                       "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                                       "title": "Selector node",
+                                      "examples": [
+                                        {
+                                          "element": {
+                                            "tag": "uicontrol"
+                                          }
+                                        }
+                                      ],
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
@@ -3017,6 +3094,13 @@
                                         "then": {
                                           "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                                           "title": "Selector node",
+                                          "examples": [
+                                            {
+                                              "element": {
+                                                "tag": "uicontrol"
+                                              }
+                                            }
+                                          ],
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -61602,6 +61686,34 @@
       "markupDefinition": {
         "title": "Markup definition",
         "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
+        "examples": [
+          {
+            "name": "runCode",
+            "codeBlock": {
+              "language": [
+                "bash",
+                "python"
+              ],
+              "metaExcludes": "testIgnore"
+            },
+            "captures": [
+              "language",
+              "content"
+            ],
+            "actions": [
+              "runCode"
+            ]
+          },
+          {
+            "name": "checkHyperlink",
+            "regex": [
+              "\\[[^\\]]+\\]\\(\\s*(https?://[^\\s)]+)\\s*\\)"
+            ],
+            "actions": [
+              "checkLink"
+            ]
+          }
+        ],
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -61777,6 +61889,13 @@
                       "then": {
                         "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                         "title": "Selector node",
+                        "examples": [
+                          {
+                            "element": {
+                              "tag": "uicontrol"
+                            }
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -62152,6 +62271,13 @@
                       "then": {
                         "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                         "title": "Selector node",
+                        "examples": [
+                          {
+                            "element": {
+                              "tag": "uicontrol"
+                            }
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -62506,6 +62632,13 @@
                       "then": {
                         "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                         "title": "Selector node",
+                        "examples": [
+                          {
+                            "element": {
+                              "tag": "uicontrol"
+                            }
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -62860,6 +62993,13 @@
                       "then": {
                         "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                         "title": "Selector node",
+                        "examples": [
+                          {
+                            "element": {
+                              "tag": "uicontrol"
+                            }
+                          }
+                        ],
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -63278,6 +63418,13 @@
                           "then": {
                             "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                             "title": "Selector node",
+                            "examples": [
+                              {
+                                "element": {
+                                  "tag": "uicontrol"
+                                }
+                              }
+                            ],
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -177257,6 +177404,13 @@
                   "then": {
                     "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                     "title": "Selector node",
+                    "examples": [
+                      {
+                        "element": {
+                          "tag": "uicontrol"
+                        }
+                      }
+                    ],
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -177631,6 +177785,13 @@
                   "then": {
                     "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                     "title": "Selector node",
+                    "examples": [
+                      {
+                        "element": {
+                          "tag": "uicontrol"
+                        }
+                      }
+                    ],
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -177984,6 +178145,13 @@
                   "then": {
                     "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                     "title": "Selector node",
+                    "examples": [
+                      {
+                        "element": {
+                          "tag": "uicontrol"
+                        }
+                      }
+                    ],
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -178377,6 +178545,13 @@
                   "then": {
                     "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                     "title": "Selector node",
+                    "examples": [
+                      {
+                        "element": {
+                          "tag": "uicontrol"
+                        }
+                      }
+                    ],
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -178720,6 +178895,13 @@
               "then": {
                 "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
                 "title": "Selector node",
+                "examples": [
+                  {
+                    "element": {
+                      "tag": "uicontrol"
+                    }
+                  }
+                ],
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -179035,6 +179217,13 @@
       "selectorNode": {
         "$comment": "A bare selector (exactly one kind key, no captures/actions). Used for followedBy.then chaining and statement containers. Kind options here exclude precededBy/followedBy to keep chains single-level.",
         "title": "Selector node",
+        "examples": [
+          {
+            "element": {
+              "tag": "uicontrol"
+            }
+          }
+        ],
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -179823,6 +180012,27 @@
       },
       "inlineStatements": {
         "description": "Statements to include tests and steps inside the content of the file, such as within Markdown.",
+        "examples": [
+          {
+            "in": [
+              "comment"
+            ]
+          },
+          {
+            "in": [
+              "comment",
+              {
+                "element": {
+                  "tag": "data",
+                  "attributes": {
+                    "name": "doc-detective"
+                  }
+                },
+                "value": "attributes.value"
+              }
+            ]
+          }
+        ],
         "type": "object",
         "properties": {
           "in": {

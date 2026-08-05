@@ -647,6 +647,42 @@ describe("config.ts — setConfig", function () {
     assert.deepEqual(ft.inlineStatements.in, ["comment"]);
   });
 
+  it("dedupes object containers regardless of key order", async function () {
+    // The dita built-in carries a { element, value } data-element container.
+    // An override repeating it with the keys in a different order is the same
+    // container and must collapse — a key-order-sensitive dedupe would keep
+    // both and detect every <data> statement twice.
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [
+          {
+            extends: "dita",
+            extensions: ["ditakey"],
+            inlineStatements: {
+              in: [
+                {
+                  value: "attributes.value",
+                  element: {
+                    tag: "data",
+                    attributes: { name: "doc-detective" },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+    const ft = config.fileTypes[0];
+    const dataContainers = ft.inlineStatements.in.filter(
+      (c) => typeof c === "object" && c.element?.tag === "data"
+    );
+    assert.equal(dataContainers.length, 1, "key-order variants must dedupe");
+  });
+
   it("rejects a fileType that extends an unknown definition at validation", async function () {
     // Schema validation rejects unknown `extends` values before the runtime
     // extends-merge guard can fire (the enum only lists known definitions).
