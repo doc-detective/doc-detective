@@ -93,6 +93,14 @@ When `validate()` is called:
 2. Add/update `examples` array (required for tests)
 3. If adding new file, add to `files` array in `dereferenceSchemas.js`
 4. Run `npm run build` (`dereferenceSchemas` + `generate:types` + `compile`; it does NOT run tests — run `npm run test:coverage` separately, per ADR 01057)
+
+> **Don't refactor `build` or `compile` back into nested `npm run` calls.** They inline their steps
+> on purpose: every nested `npm run` prepends ~1 KB of `node_modules/.bin` entries to `PATH`, and
+> past cmd.exe's 8191-character limit the Node install falls off the end, so the deepest script
+> dies with `'node' is not recognized`. See [ADR 01093](../../adrs/01093-flatten-npm-script-nesting.md);
+> [test/build-scripts.test.js](../../test/build-scripts.test.js) enforces both the depth ceiling and
+> that the inlined commands stay identical to their standalone `clean` / `dereferenceSchemas` /
+> `generate:types` / `compile` scripts.
 5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)
