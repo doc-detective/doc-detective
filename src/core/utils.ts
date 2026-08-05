@@ -56,6 +56,7 @@ export {
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
+  isInitialBlankDocument,
   classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
@@ -922,11 +923,19 @@ const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
 async function isPageUnnavigated(driver: any): Promise<boolean> {
   if (!driver || typeof driver.getUrl !== "function") return false;
   try {
-    const url = String((await driver.getUrl()) ?? "").trim();
-    return INITIAL_BLANK_DOCUMENT.test(url);
+    return isInitialBlankDocument(await driver.getUrl());
   } catch {
     return false;
   }
+}
+
+// Pure form of the same test, for a caller that already holds the URL. Lets a
+// diagnostic decide and report from ONE observation: probing twice can decide
+// on one URL and print another if the page moves in between, which reads as the
+// tool contradicting itself. Sharing the predicate keeps the two call sites
+// from drifting on what "unnavigated" means.
+function isInitialBlankDocument(url: unknown): boolean {
+  return INITIAL_BLANK_DOCUMENT.test(String(url ?? "").trim());
 }
 
 export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
