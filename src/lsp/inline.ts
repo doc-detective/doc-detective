@@ -296,10 +296,14 @@ export function computeInlineDiagnostics(
 
   const fromSelectors = selectorStatements(text, fileType, doc.uri);
   const ignore = ignoreRanges(text, fileType);
-  // Pair selector ignoreStart/ignoreEnd offsets the same way the regex path does.
+  // Pair selector ignoreStart/ignoreEnd offsets the same way the regex path
+  // does. Sort the ends ascending so `find(e => e >= start)` returns the
+  // NEAREST ignoreEnd, not merely the first in emission order — matching
+  // collectMatchOffsets, which sorts for the same reason.
   const selEnds = fromSelectors
     .filter((s) => s.type === "ignoreEnd")
-    .map((s) => s._startIndex);
+    .map((s) => s._startIndex)
+    .sort((a, b) => a - b);
   for (const s of fromSelectors) {
     if (s.type !== "ignoreStart") continue;
     const end = selEnds.find((e) => e >= s._startIndex);
