@@ -156,6 +156,28 @@ describe("junit and markdown reporters", function () {
       assert.match(md, /a \\\| b<br>c/);
     });
 
+    it("escapes a raw < so a description naming an element doesn't swallow the cell", function () {
+      const dirty = structuredClone(results);
+      dirty.specs[1].tests[0].contexts[0].steps[1].resultDescription =
+        "Couldn't find '<button>' before the timeout";
+      const md = buildMarkdown(dirty);
+      assert.match(md, /&lt;button&gt;|&lt;button>/);
+      assert.match(md, /before the timeout/);
+    });
+
+    it("bounds the summary size when a description carries captured output", function () {
+      // A failed runShell step embeds its stdout in resultDescription, so a
+      // row-count cap alone can't keep the summary under GitHub's 1 MiB limit.
+      const huge = structuredClone(results);
+      huge.specs[1].tests[0].contexts[0].steps[1].resultDescription = "x".repeat(3_000_000);
+      const md = buildMarkdown(huge);
+      assert.ok(
+        Buffer.byteLength(md, "utf8") < 1024 * 1024,
+        `summary was ${Buffer.byteLength(md, "utf8")} bytes`
+      );
+      assert.match(md, /…/);
+    });
+
     it("produces a valid summary for an empty run", function () {
       const md = buildMarkdown({ specs: [], summary: {} });
       assert.match(md, /No tests ran/);

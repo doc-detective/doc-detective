@@ -78,8 +78,10 @@ turn a build red.
 * Bad, because two runs sharing an output directory overwrite each other's `junit.xml` and
   `doc-detective-summary.md`.
 * Bad, because the Markdown reporter lists at most 100 failures before emitting a
-  `… and N more failures` footer. GitHub rejects a job step summary over 1 MiB outright rather than
-  truncating it, so a bounded list is what keeps a large run's summary uploadable at all.
+  `… and N more failures` footer, and clamps each table cell to 300 characters. GitHub rejects a job
+  step summary over 1 MiB outright rather than truncating it, so bounding both the row count and the
+  cell length is what keeps a large run's summary uploadable at all — a row cap alone is not enough,
+  because a failed `runShell` step embeds its captured stdout in `resultDescription`.
 * Neutral, because a path with any extension is treated as a file, so an `output` directory named
   with a dot (`reports.v1`) resolves to its parent.
 * Neutral, because both reporters log `See … report/summary at` rather than `… results at`: the

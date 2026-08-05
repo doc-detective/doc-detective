@@ -5,13 +5,23 @@ export { markdownReporter, buildMarkdown };
 
 const LEVELS = ["specs", "tests", "contexts", "steps"];
 // GitHub rejects a job step summary larger than 1 MiB outright rather than
-// truncating it, so cap the number of failures listed.
+// truncating it. Bounding the row count is not enough on its own: a single
+// `resultDescription` carries captured output (a failed `runShell` step embeds
+// its stdout), so cell length has to be bounded too.
 const MAX_FAILURES = 100;
+const MAX_CELL = 300;
 
-// A `|` splits a table cell and a newline ends a row or a list item, and the
-// same resultDescription is rendered in both places.
+// A `|` splits a table cell and a newline ends a row, and the same
+// resultDescription is rendered in both places. A raw `<` is also load-bearing:
+// a description naming an element (`Couldn't find '<button>'`) would otherwise
+// swallow the rest of the cell as an unknown HTML tag.
 function cell(value: any): string {
-  return String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>").trim();
+  const text = String(value ?? "")
+    .replace(/</g, "&lt;")
+    .replace(/\|/g, "\\|")
+    .trim();
+  const clamped = text.length > MAX_CELL ? `${text.slice(0, MAX_CELL)}…` : text;
+  return clamped.replace(/\r?\n/g, "<br>");
 }
 
 // Turn the results object into a run summary for a CI job summary
