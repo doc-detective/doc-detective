@@ -3,6 +3,7 @@ import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir } from "./core/utils.js";
+import { hasReportFileExtension } from "./reportExtensions.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -110,7 +111,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML at <output>/junit.xml for CI test-summary widgets), markdown (a run summary at <output>/doc-detective-summary.md for CI job summaries and merge request comments). The junit and markdown reporters overwrite their file on each run so a CI artifact path stays stable. Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -513,7 +514,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // the reporter also accepts a file path (e.g. `results.json`), in which case
 // the run folder belongs *beside* the file, not inside it.
 //
-// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
+// A report-file extension (REPORT_FILE_EXTENSIONS) always resolves to the
 // parent, matching getRunOutputDir exactly — even for an existing directory
 // oddly named `reports.json` — so the archive root never diverges from the
 // stamped runDir (a divergence would reject the stamp and break runId/runDir
@@ -525,8 +526,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // are unaffected.
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
-  const reportFileExtensions = [".json", ".html", ".htm"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+  if (hasReportFileExtension(base)) {
     return path.dirname(base);
   }
   try {
@@ -544,6 +544,22 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   htmlReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
     const { htmlReporter } = await import("./reporters/htmlReporter.js");
     return htmlReporter(config, outputPath, results, options);
+  },
+
+  // JUnit reporter: outputs results as JUnit XML for CI test-summary widgets
+  // (GitLab's `artifacts:reports:junit`, GitHub, Jenkins, CircleCI). Writes a
+  // conventional `junit.xml` so an artifact glob has a stable path to point
+  // at — and therefore overwrites rather than suffixing. See ADR 01091.
+  junitReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { junitReporter } = await import("./reporters/junitReporter.js");
+    return junitReporter(config, outputPath, results, options);
+  },
+
+  // Markdown reporter: outputs a compact run summary for a CI job summary
+  // ($GITHUB_STEP_SUMMARY) or a merge request comment. See ADR 01092.
+  markdownReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { markdownReporter } = await import("./reporters/markdownReporter.js");
+    return markdownReporter(config, outputPath, results, options);
   },
 
   // JSON reporter: outputs results to a JSON file
@@ -1245,6 +1261,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
+          case "junit":
+            return "junitReporter";
+          case "markdown":
+            return "markdownReporter";
           default:
             return reporter;
         }

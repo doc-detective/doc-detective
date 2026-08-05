@@ -655,6 +655,20 @@ describe("utils.ts coverage", function () {
       assert.ok(terminalStub.calledOnce);
     });
 
+    it("normalizes the junit shorthand", async function () {
+      captureConsole(sandbox);
+      const junitStub = sandbox.stub(reporters, "junitReporter").resolves();
+      await outputResults({ reporters: ["junit"] }, "out", { summary: {} }, {});
+      assert.ok(junitStub.calledOnce);
+    });
+
+    it("normalizes the markdown shorthand", async function () {
+      captureConsole(sandbox);
+      const markdownStub = sandbox.stub(reporters, "markdownReporter").resolves();
+      await outputResults({ reporters: ["markdown"] }, "out", { summary: {} }, {});
+      assert.ok(markdownStub.calledOnce);
+    });
+
     it("prefers config.reporters over options.reporters", async function () {
       captureConsole(sandbox);
       const terminalStub = sandbox.stub(reporters, "terminalReporter").resolves();

@@ -12,6 +12,7 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
+import { hasReportFileExtension } from "../reportExtensions.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -1894,8 +1895,7 @@ function getRunOutputDir(
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
   let base = String(config?.output || ".");
-  const reportFileExtensions = [".json", ".html", ".htm"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
+  if (hasReportFileExtension(base)) {
     base = path.dirname(base);
   }
   const runsRoot = path.resolve(base, ".doc-detective", "runs");

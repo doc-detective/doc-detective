@@ -14,7 +14,7 @@ For the full list of reporter and output options, see the [`config`](/reference/
 
 ## Step 1: Choose your reporters
 
-Doc Detective ships four reporters: `terminal`, `json`, `html`, and `runFolder`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
+Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
 
 | Reporter | Output |
 |---|---|
@@ -22,6 +22,8 @@ Doc Detective ships four reporters: `terminal`, `json`, `html`, and `runFolder`.
 | `json` | A flat JSON results file with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser. |
 | `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
+| `junit` | A JUnit XML file that CI platforms render in their test-summary views. |
+| `markdown` | A run summary you can paste into a CI job summary or a pull request comment. |
 
 Select reporters on the command line:
 
@@ -48,7 +50,7 @@ The `json` reporter writes the full results to a file:
 - If `output` ends in `.json`, Doc Detective writes to that path, adding a numeric suffix (`-0.json`, `-1.json`, …) to avoid overwriting an existing file.
 - Otherwise it writes `testResults-<timestamp>.json` in the output directory.
 
-The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail)).
+The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-8-fail-ci-when-tests-fail)).
 
 ### Find slow specs with `durationMs`
 
@@ -136,7 +138,56 @@ The `runFolder` reporter archives each run into its own folder so you can attach
 
 The file names inside the folder are constant—the run ID lives in the folder name—so two run folders compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder, which makes the whole folder a single artifact to upload from CI for reviewers to inspect.
 
-## Step 6: Fail CI when tests fail
+## Step 6: Show failures in your CI test summary
+
+The `junit` reporter writes JUnit XML, the format CI platforms read to populate their test-summary views. GitLab renders it in the merge request test summary, and GitHub, Jenkins, CircleCI, and Bitbucket consume the same format. Reviewers see which doc tests failed without opening the job log.
+
+```bash
+doc-detective --input ./docs --reporters terminal junit --output ./reports
+```
+
+The reporter writes `junit.xml` in the output directory. If `output` ends in `.xml`, it writes to that exact path instead.
+
+Unlike the `json` and `html` reporters, `junit` **overwrites** its file on each run rather than adding a numeric suffix. A CI artifact declaration names one path, so a suffix would leave that path pinned to the first run's results. To keep a history of runs, use the `runFolder` reporter.
+
+Point your CI at the file. On GitLab:
+
+```yaml title=".gitlab-ci.yml"
+doc-tests:
+  script:
+    - doc-detective --input ./docs --reporters terminal junit --output ./reports
+  artifacts:
+    reports:
+      junit: reports/junit.xml
+```
+
+Each spec becomes a test suite and each test–context pair becomes a test case, with the browser and platform in the case name so matrix runs stay distinguishable. Failures carry the failing step's result description, along with the source file and line so the summary links back to the documentation that broke. JUnit has no warning state, so a `WARNING` result reports as a passing test case with its detail attached—warnings never turn a build red.
+
+## Step 7: Post a summary to a job summary or comment
+
+The `markdown` reporter writes a compact run summary for the places people read: a GitHub job summary, a merge request note, or a chat message.
+
+```bash
+doc-detective --input ./docs --reporters terminal markdown --output ./reports
+```
+
+The reporter writes `doc-detective-summary.md` in the output directory, or to the exact path when `output` ends in `.md`. Like `junit`, it overwrites its file on each run.
+
+On GitHub Actions, append it to the job summary:
+
+```yaml title=".github/workflows/docs.yml"
+- name: Run doc tests
+  run: doc-detective --input ./docs --reporters terminal markdown --output ./reports
+- name: Publish summary
+  if: always()
+  run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
+```
+
+The summary leads with the run's verdict and a counts table, then lists each failure—spec, test, context, and the failing step's result description—inside collapsible sections. Passing and skipped results are rolled up to counts rather than listed, so the failures stay visible.
+
+GitHub rejects a job summary larger than 1 MiB, so the reporter caps its output and ends with `… and N more failures` when a run has more failures than fit. Read the `json` reporter's results file for the complete list.
+
+## Step 8: Fail CI when tests fail
 
 This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
 
@@ -169,6 +220,8 @@ After a run, confirm that:
 - The terminal shows the summary you expect.
 - The `json` reporter wrote a results file at the path you configured.
 - If you enabled `runFolder`, a `.doc-detective/runs/<runId>/` folder exists with `testResults.json` and any captured screenshots or recordings.
+- If you enabled `junit`, a `junit.xml` file exists and your CI shows the run in its test summary.
+- If you enabled `markdown`, a `doc-detective-summary.md` file exists and opens with the run's verdict.
 
 ## What's next
 

@@ -112,11 +112,18 @@ Jenkins, Bitbucket.
   `FAIL` → `<failure message={resultDescription}>`; `SKIPPED` → `<skipped>`; `WARNING` → passing testcase
   with `<system-out>` (JUnit has no "warning"). Step-level `resultDescription`s go into the `<failure>`
   body for triage.
-- **Registration:** new entry in the `reporters` map (`src/utils.ts:532`), shorthand `junit` in the
-  normalizer (`src/utils.ts:1227`), and an enum-description line in the `reporters` schema field.
-- **Output path:** see §4.4 — writes `junit.xml` in the output dir by convention.
+- **Registration:** new entry in the `reporters` map, shorthand `junit` in the normalizer (both in
+  `src/utils.ts`), and a description line in the `reporters` schema field (the field has no enum).
+- **Output path:** see §4.3 — writes `junit.xml` in the output dir by convention.
 - **Empty-run behavior:** emit a valid `<testsuites tests="0">` (never a zero-byte file) so GitLab's
   parser doesn't choke, consistent with the "empty run never looks green" principle in `terminalReporter`.
+
+**Shipped** in [ADR 01091](../../adrs/01091-junit-reporter.md), which also records two decisions this
+section left open: the reporter **overwrites** `junit.xml` rather than collision-suffixing it (a
+suffix would pin `artifacts:reports:junit` to the first run's results forever), and the
+file/directory discriminator moved to a shared `REPORT_FILE_EXTENSIONS` so `junit` writes *beside*
+an `--output results.json` instead of creating a directory over it. The mapping also gained `file`
+and `line` attributes, which let the widget link a failure to the source doc line.
 
 ### 4.3 Cross-cutting: reporter output path
 
@@ -147,6 +154,28 @@ surface area for the delta. It was fully independent of the other phases, so not
 Revisit only if users ask for failures pinned to the exact doc line **in the diff view** and say the test
 widget isn't enough. If it comes back, name it for what it does (`gitlab-annotations`), not for GitLab's
 feature name.
+
+### 4.5 `markdown` reporter (primitive #3, added during Phase 2)
+
+`junit` answers "which doc tests failed?" for a machine. Nothing answered it for a human in the
+place they read results: GitHub renders Markdown written to `$GITHUB_STEP_SUMMARY` on the run page,
+and GitLab renders Markdown in MR notes — which is exactly where the component's `comment_on_mr`
+wants to post a failure summary. Both surfaces were left hand-rolling a summary from the `json`
+reporter, so the two reporters shipped together
+([#684](https://github.com/doc-detective/doc-detective/issues/684)).
+
+- **Content:** title and verdict; a counts table straight from `results.summary`; failures detailed
+  spec → test → context → failing step inside collapsible `<details>` (rendered by both GitHub and
+  GitLab); passes and skips rolled up to counts; a top-5 slowest-contexts table from `durationMs`;
+  a pointer to the run artifacts.
+- **Size:** GitHub rejects a step summary over **1 MiB** outright — past the cap there is no summary
+  at all, not a truncated one. The reporter appends whole failure blocks only while the byte budget
+  allows, then emits `… and N more failures`.
+- **Output path:** §4.3 Option A, with the filename namespaced as `doc-detective-summary.md` rather
+  than `summary.md`, because `output` defaults to `"."` and a bare run must not clobber a file the
+  user owns.
+
+**Shipped** in [ADR 01092](../../adrs/01092-markdown-reporter.md).
 
 ## 5. Layer 2 — the GitLab CI/CD Component (separate repo)
 
@@ -276,7 +305,7 @@ Per `CLAUDE.md` this feature has clear user-facing impact; docs travel with it. 
 |---|---|---|---|
 | **0** | This design + alignment | this repo (`docs/design/`) | — |
 | **1** ✅ | `--exit-on-fail` / `exitOnFail` (ADR + fixtures + docs) | this repo | 0 |
-| **2** | `junit` reporter (ADR + fixtures + docs) | this repo | 0 |
+| **2** ✅ | `junit` reporter, plus a `markdown` reporter for job summaries and MR notes (ADRs + fixtures + docs) | this repo | 0 |
 | **3** | GitLab CI/CD Component: inputs, artifact wiring, MR/issue creation, **integrations handoff** | new repo `doc-detective/gitlab-component` | 1–2 |
 | **4** | Docs: new GitLab page + overview/reporters/integrations updates | this repo | 1–3 |
 

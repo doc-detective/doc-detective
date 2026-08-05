@@ -2350,6 +2350,33 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
+  it("addJunitReporterForCi: fires on github when junit is missing", function () {
+    const h = findHint("addJunitReporterForCi");
+    expect(h.priority).to.equal(20);
+    expect(
+      h.when(
+        fakeCtx({ config: { reporters: ["terminal"] }, isGitHubRepo: true })
+      )
+    ).to.equal(true);
+    // Already selected — nothing to suggest.
+    expect(
+      h.when(
+        fakeCtx({
+          config: { reporters: ["terminal", "junit"] },
+          isGitHubRepo: true,
+        })
+      )
+    ).to.equal(false);
+    // Not a GitHub repo — no CI test widget to feed.
+    expect(
+      h.when(
+        fakeCtx({ config: { reporters: ["terminal"] }, isGitHubRepo: false })
+      )
+    ).to.equal(false);
+    // Reporters left at the default: the config carries no array to inspect.
+    expect(h.when(fakeCtx({ config: {}, isGitHubRepo: true }))).to.equal(false);
+  });
+
   it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
     const h = findHint("setOutputDir");
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);

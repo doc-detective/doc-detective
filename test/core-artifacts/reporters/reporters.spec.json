@@ -1,0 +1,156 @@
+{
+  "specId": "reporters",
+  "description": "End-to-end coverage of the `junit` and `markdown` reporters through the real CLI. A reporter only runs after every spec in its own run finishes, so a spec can never observe its own reporter output — each test seeds a tiny inner spec, spawns a nested `doc-detective` run with the reporter selected, and asserts on the file it wrote. Everything is shell-only (`node -e`), so no browser, driver or device is needed and every permutation runs on Windows, macOS and Linux. All scratch output lands in `.tmp/` at the repo root, never inside `test/core-artifacts/`: a stray `.doc-detective/` would break the fixture-bundle coverage test, and `.xml`/`.md` leftovers would be detected as documentation on later runs.",
+  "tests": [
+    {
+      "testId": "junit-reporter-directory-output",
+      "description": "`--reporters junit` with a directory output writes a parseable `junit.xml` containing a testcase per context.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/junit-dir';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-pass',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/junit-dir/inner.spec.json --output .tmp/fixture-reporters/junit-dir/out --reporters junit",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const x=fs.readFileSync('.tmp/fixture-reporters/junit-dir/out/junit.xml','utf8');const d=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_'}).parse(x);const t=Number(d.testsuites['@_tests']);if(!(t>=1)){console.error('expected at least one testcase, got '+t);process.exit(1)}if(Number(d.testsuites['@_failures'])!==0){console.error('expected no failures');process.exit(1)}console.log('junit-dir ok, testcases: '+t)\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "markdown-reporter-directory-output",
+      "description": "`--reporters markdown` with a directory output writes `doc-detective-summary.md` with the summary table.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/md-dir';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-pass',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/md-dir/inner.spec.json --output .tmp/fixture-reporters/md-dir/out --reporters markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');const m=fs.readFileSync('.tmp/fixture-reporters/md-dir/out/doc-detective-summary.md','utf8');if(m.indexOf('# Doc Detective results')!==0){console.error('missing title');process.exit(1)}if(m.indexOf('| Steps |')<0){console.error('missing summary table');process.exit(1)}console.log('md-dir ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "both-reporters-file-output",
+      "description": "Both reporters together with an explicit `.xml` output: `junit` honors the exact path it was given, and `markdown` writes its fixed name beside it rather than treating the `.xml` path as a directory.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/both-file';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d+'/out',{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-pass',tests:[{testId:'inner-test',steps:[{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/both-file/inner.spec.json --output .tmp/fixture-reporters/both-file/out/report.xml --reporters junit markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/both-file/out/';const x=fs.readFileSync(b+'report.xml','utf8');new XMLParser().parse(x);if(!fs.statSync(b+'report.xml').isFile()){console.error('report.xml is not a file');process.exit(1)}fs.readFileSync(b+'doc-detective-summary.md','utf8');console.log('both-file ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "junit-reporter-records-failures",
+      "description": "A failing inner run produces a `<failure>` element and a markdown summary naming the failing step. The inner run deliberately omits `--exit-on-fail`, so a FAILed inner test still exits 0 and this outer step passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/junit-fail';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-fail',tests:[{testId:'inner-failing-test',steps:[{runShell:'exit 3'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/junit-fail/inner.spec.json --output .tmp/fixture-reporters/junit-fail/out --reporters junit markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/junit-fail/out/';const x=fs.readFileSync(b+'junit.xml','utf8');const d=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_'}).parse(x);if(Number(d.testsuites['@_failures'])<1){console.error('expected a failure in junit.xml');process.exit(1)}if(x.indexOf('<failure')<0){console.error('expected a failure element');process.exit(1)}const m=fs.readFileSync(b+'doc-detective-summary.md','utf8');if(m.indexOf('## Failures')<0){console.error('expected a failures section');process.exit(1)}console.log('junit-fail ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reporters-emit-valid-output-for-an-empty-run",
+      "description": "A run that matches no tests still emits a parseable `<testsuites tests=\"0\">` and a non-empty markdown summary. A zero-byte file is what a CI JUnit parser rejects, and a rejected file reads as 'no tests ran' rather than as an error.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters/empty';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d+'/input',{recursive:true})\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/empty/input --output .tmp/fixture-reporters/empty/out --reporters junit markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),{XMLParser}=require('fast-xml-parser');const b='.tmp/fixture-reporters/empty/out/';const x=fs.readFileSync(b+'junit.xml','utf8');if(x.length===0){console.error('junit.xml is empty');process.exit(1)}const d=new XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_'}).parse(x);if(Number(d.testsuites['@_tests'])!==0){console.error('expected tests=0');process.exit(1)}const m=fs.readFileSync(b+'doc-detective-summary.md','utf8');if(m.trim().length===0){console.error('markdown summary is empty');process.exit(1)}console.log('empty-run ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

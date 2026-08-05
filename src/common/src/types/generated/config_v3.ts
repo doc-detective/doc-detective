@@ -61,7 +61,7 @@ export interface Config {
    */
   output?: string;
   /**
-   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.
+   * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, `markdown`. The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. The `junit` reporter writes JUnit XML to `<output>/junit.xml` for CI test-summary widgets, and the `markdown` reporter writes a run summary to `<output>/doc-detective-summary.md` for CI job summaries and merge request comments; both overwrite their file on each run so a CI artifact path stays stable. You can also reference custom reporters registered via `registerReporter()` by name.
    */
   reporters?: string[];
   /**

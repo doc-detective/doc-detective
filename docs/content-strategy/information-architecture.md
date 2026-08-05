@@ -197,7 +197,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Track overview / start here (new) | P1 | ★ | |
 | CI/CD: GitHub Action recipe | P1 | ★ | |
 | CI recipes: other platforms (new) | P1 | | Fills the GitHub-only gap. |
-| Reporters & artifacts (new) | P1 | ★ | terminal/json/html/runFolder + run-folder layout. |
+| Reporters & artifacts (new) | P1 | ★ | terminal/json/html/runFolder/junit/markdown + run-folder layout. |
 | Docker & headless (new) | P2 | ★ | |
 | Concurrency & performance (new) | P2 | | `concurrentRunners`, recording serialization. |
 | Orchestrate distributed runs (new) | P3 | | `doc-detective-runner`, orchestration API. |

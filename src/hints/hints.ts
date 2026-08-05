@@ -69,6 +69,29 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // addJunitReporterForCi (output & reporting)
+  // ------------------------------------------------------------------
+  {
+    id: "addJunitReporterForCi",
+    priority: 20,
+    markdown: [
+      "On GitHub? Add the JUnit reporter so failed doc tests show up in the CI test summary instead of only in the job log:",
+      "",
+      "```bash",
+      "doc-detective --reporters terminal junit",
+      "```",
+    ].join("\n"),
+    when: (ctx) => {
+      const reporters = ctx.config?.reporters;
+      return (
+        Array.isArray(reporters) &&
+        !reporters.includes("junit") &&
+        ctx.isGitHubRepo
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------
   // addNpmScript (onboarding)
   // ------------------------------------------------------------------
   {
