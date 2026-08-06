@@ -324,6 +324,59 @@ describe("junit and markdown reporters", function () {
       assert.match(md, /expected a &amp;lt; b, got AT&amp;T/);
     });
 
+    it("bounds cell length after expanding line breaks, not before", function () {
+      // Each break expands from one character to four. Clamping before the
+      // expansion let a break-dense description grow past MAX_CELL, so the
+      // overall size guarantee depended on how many newlines the input had.
+      const dense = "a\n".repeat(400);
+      const contexts = Array.from({ length: 150 }, () => ({
+        result: "FAIL",
+        platform: "linux",
+        durationMs: 1,
+        steps: Array.from({ length: 8 }, () => ({
+          result: "FAIL",
+          stepId: dense,
+          resultDescription: dense,
+        })),
+      }));
+      const md = buildMarkdown({
+        summary: { specs: { fail: 1 } },
+        specs: [{ result: "FAIL", specId: dense, tests: [{ testId: dense, contexts }] }],
+      });
+      assert.ok(
+        Buffer.byteLength(md, "utf8") < 1024 * 1024,
+        `summary was ${Buffer.byteLength(md, "utf8")} bytes`
+      );
+      // A cut that lands inside an inserted <br> must not leave `<b`.
+      assert.equal(/<b?r?…/.test(md), false);
+
+      // Pin the per-value bound directly: one failure, one step, every value
+      // break-dense. Each of the four values clamps to MAX_CELL + the ellipsis
+      // regardless of how many breaks it expanded into.
+      const single = buildMarkdown({
+        summary: { specs: { fail: 1 } },
+        specs: [
+          {
+            result: "FAIL",
+            specId: dense,
+            tests: [
+              {
+                testId: dense,
+                contexts: [
+                  {
+                    result: "FAIL",
+                    steps: [{ result: "FAIL", stepId: dense, resultDescription: dense }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      const row = single.split("\n").find((line) => line.startsWith("| a"));
+      assert.ok(row.length <= 4 * 301 + 16, `row was ${row.length} characters`);
+    });
+
     it("bounds the summary when one context fails an unbounded number of steps", function () {
       // MAX_FAILURES caps failing *contexts*; a single context can still fail
       // thousands of steps, and every one of them lands in the same cell.

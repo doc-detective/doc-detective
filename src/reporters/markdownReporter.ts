@@ -34,11 +34,19 @@ function cell(value: any): string {
     // cell break).
     .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
+    // A bare `\r` counts too: captured stdout from a progress bar is full of
+    // them, and one would end the table row just as a newline does.
+    .replace(/\r\n|\r|\n/g, "<br>")
     .trim();
-  const clamped = text.length > MAX_CELL ? `${text.slice(0, MAX_CELL)}…` : text;
-  // A bare `\r` counts too: captured stdout from a progress bar is full of
-  // them, and one would end the table row just as a newline does.
-  return clamped.replace(/\r\n|\r|\n/g, "<br>");
+  if (text.length <= MAX_CELL) return text;
+  // Clamp AFTER expanding breaks, so MAX_CELL bounds what is actually emitted.
+  // Clamping first would let a break-dense value grow 4x past the limit once
+  // expanded, which made the overall size guarantee depend on how many
+  // newlines the input happened to contain.
+  //
+  // The cut can land inside an inserted `<br>`; drop that fragment rather than
+  // emit `<b`.
+  return `${text.slice(0, MAX_CELL).replace(/<b?r?$/, "")}…`;
 }
 
 // Inside an inline-code span Markdown processes no escapes, so `cell()`'s
