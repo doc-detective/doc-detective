@@ -110,7 +110,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -525,7 +525,12 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // are unaffected.
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
-  const reportFileExtensions = [".json", ".html", ".htm"];
+  // Must match the lists in getRunOutputDir (src/core/utils.ts) and
+  // reportOutputDir (src/reporters/outputDir.ts). If `.xml`/`.md` were missing
+  // here, `--output junit.xml --reporters runFolder junit` would have the
+  // junit reporter write the file while this resolver tried to create a
+  // directory of the same name — concurrently, under Promise.all.
+  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     return path.dirname(base);
   }
@@ -544,6 +549,18 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   htmlReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
     const { htmlReporter } = await import("./reporters/htmlReporter.js");
     return htmlReporter(config, outputPath, results, options);
+  },
+
+  // JUnit reporter: writes `junit.xml` for CI test-summary widgets
+  junitReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { junitReporter } = await import("./reporters/junitReporter.js");
+    return junitReporter(config, outputPath, results, options);
+  },
+
+  // Markdown reporter: writes a run summary for CI job summaries and comments
+  markdownReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { markdownReporter } = await import("./reporters/markdownReporter.js");
+    return markdownReporter(config, outputPath, results, options);
   },
 
   // JSON reporter: outputs results to a JSON file
@@ -1245,6 +1262,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
+          case "junit":
+            return "junitReporter";
+          case "markdown":
+            return "markdownReporter";
           default:
             return reporter;
         }
