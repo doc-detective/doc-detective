@@ -1,3 +1,10 @@
+## [4.37.4](https://github.com/doc-detective/doc-detective/compare/v4.37.3...v4.37.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **lsp:** import the vscode-languageserver v10 ./node subpath ([#703](https://github.com/doc-detective/doc-detective/issues/703)) ([b887754](https://github.com/doc-detective/doc-detective/commit/b887754d702f76a13c85445cc541263acb2091e2))
+
 ## [4.37.3](https://github.com/doc-detective/doc-detective/compare/v4.37.2...v4.37.3) (2026-08-05)
 
 
