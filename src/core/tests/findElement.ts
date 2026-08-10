@@ -377,7 +377,10 @@ async function findElement({ config, step, driver, click, appSession, processReg
   step.find = {
     ...step.find,
     selector: step.find.selector || "",
-    timeout: step.find.timeout || 5000,
+    // ?? not ||, matching the app path above: an explicit `timeout: 0` is a
+    // valid schema value meaning "check once, now", and || would clobber it
+    // to the 5s default.
+    timeout: step.find.timeout ?? 5000,
     elementText: step.find.elementText || "",
     moveTo: step.find.moveTo || false,
     click: step.find.click || false,

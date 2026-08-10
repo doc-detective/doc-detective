@@ -9162,9 +9162,9 @@
                                                                                 "description": "Fixed delay (ms)."
                                                                               },
                                                                               "find": {
+                                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                 "title": "Element criteria",
                                                                                 "type": "object",
-                                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                 "additionalProperties": false,
                                                                                 "anyOf": [
                                                                                   {
@@ -9862,9 +9862,9 @@
                                                                               "description": "Fixed delay (ms)."
                                                                             },
                                                                             "find": {
+                                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                               "title": "Element criteria",
                                                                               "type": "object",
-                                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                               "additionalProperties": false,
                                                                               "anyOf": [
                                                                                 {
@@ -11187,9 +11187,9 @@
                                                                                   "description": "Fixed delay (ms)."
                                                                                 },
                                                                                 "find": {
+                                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                   "title": "Element criteria",
                                                                                   "type": "object",
-                                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                   "additionalProperties": false,
                                                                                   "anyOf": [
                                                                                     {
@@ -11887,9 +11887,9 @@
                                                                                 "description": "Fixed delay (ms)."
                                                                               },
                                                                               "find": {
+                                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                 "title": "Element criteria",
                                                                                 "type": "object",
-                                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                 "additionalProperties": false,
                                                                                 "anyOf": [
                                                                                   {
@@ -14630,9 +14630,9 @@
                                                                                   "description": "Fixed delay (ms)."
                                                                                 },
                                                                                 "find": {
+                                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                   "title": "Element criteria",
                                                                                   "type": "object",
-                                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                   "additionalProperties": false,
                                                                                   "anyOf": [
                                                                                     {
@@ -15330,9 +15330,9 @@
                                                                                 "description": "Fixed delay (ms)."
                                                                               },
                                                                               "find": {
+                                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                 "title": "Element criteria",
                                                                                 "type": "object",
-                                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                 "additionalProperties": false,
                                                                                 "anyOf": [
                                                                                   {
@@ -16655,9 +16655,9 @@
                                                                                     "description": "Fixed delay (ms)."
                                                                                   },
                                                                                   "find": {
+                                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                     "title": "Element criteria",
                                                                                     "type": "object",
-                                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                     "additionalProperties": false,
                                                                                     "anyOf": [
                                                                                       {
@@ -17355,9 +17355,9 @@
                                                                                   "description": "Fixed delay (ms)."
                                                                                 },
                                                                                 "find": {
+                                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                   "title": "Element criteria",
                                                                                   "type": "object",
-                                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                   "additionalProperties": false,
                                                                                   "anyOf": [
                                                                                     {
@@ -28100,9 +28100,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -28800,9 +28800,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -30125,9 +30125,9 @@
                                                                       "description": "Fixed delay (ms)."
                                                                     },
                                                                     "find": {
+                                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                       "title": "Element criteria",
                                                                       "type": "object",
-                                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                       "additionalProperties": false,
                                                                       "anyOf": [
                                                                         {
@@ -30825,9 +30825,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -50437,6 +50437,7 @@
                                                         "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                                       },
                                                       "waitUntil": {
+                                                        "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                         "title": "App readiness",
                                                         "type": "object",
                                                         "additionalProperties": false,
@@ -50448,9 +50449,9 @@
                                                             "description": "Fixed delay (ms)."
                                                           },
                                                           "find": {
+                                                            "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                             "title": "Element criteria",
                                                             "type": "object",
-                                                            "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                             "additionalProperties": false,
                                                             "anyOf": [
                                                               {
@@ -50631,8 +50632,7 @@
                                                               }
                                                             }
                                                           }
-                                                        },
-                                                        "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                        }
                                                       },
                                                       "timeout": {
                                                         "type": "integer",
@@ -50942,6 +50942,7 @@
                                                               "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                                             },
                                                             "waitUntil": {
+                                                              "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                               "title": "App readiness",
                                                               "type": "object",
                                                               "additionalProperties": false,
@@ -50953,9 +50954,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -51136,8 +51137,7 @@
                                                                     }
                                                                   }
                                                                 }
-                                                              },
-                                                              "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                              }
                                                             },
                                                             "timeout": {
                                                               "type": "integer",
@@ -51629,6 +51629,7 @@
                                                           "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                                         },
                                                         "waitUntil": {
+                                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                           "title": "App readiness",
                                                           "type": "object",
                                                           "additionalProperties": false,
@@ -51640,9 +51641,9 @@
                                                               "description": "Fixed delay (ms)."
                                                             },
                                                             "find": {
+                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                               "title": "Element criteria",
                                                               "type": "object",
-                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                               "additionalProperties": false,
                                                               "anyOf": [
                                                                 {
@@ -51823,8 +51824,7 @@
                                                                 }
                                                               }
                                                             }
-                                                          },
-                                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                          }
                                                         },
                                                         "timeout": {
                                                           "type": "integer",
@@ -76443,9 +76443,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -77143,9 +77143,9 @@
                                                                 "description": "Fixed delay (ms)."
                                                               },
                                                               "find": {
+                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                 "title": "Element criteria",
                                                                 "type": "object",
-                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                 "additionalProperties": false,
                                                                 "anyOf": [
                                                                   {
@@ -78468,9 +78468,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -79168,9 +79168,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -81911,9 +81911,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -82611,9 +82611,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -83936,9 +83936,9 @@
                                                                       "description": "Fixed delay (ms)."
                                                                     },
                                                                     "find": {
+                                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                       "title": "Element criteria",
                                                                       "type": "object",
-                                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                       "additionalProperties": false,
                                                                       "anyOf": [
                                                                         {
@@ -84636,9 +84636,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -95381,9 +95381,9 @@
                                                       "description": "Fixed delay (ms)."
                                                     },
                                                     "find": {
+                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                       "title": "Element criteria",
                                                       "type": "object",
-                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                       "additionalProperties": false,
                                                       "anyOf": [
                                                         {
@@ -96081,9 +96081,9 @@
                                                     "description": "Fixed delay (ms)."
                                                   },
                                                   "find": {
+                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                     "title": "Element criteria",
                                                     "type": "object",
-                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                     "additionalProperties": false,
                                                     "anyOf": [
                                                       {
@@ -97406,9 +97406,9 @@
                                                         "description": "Fixed delay (ms)."
                                                       },
                                                       "find": {
+                                                        "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                         "title": "Element criteria",
                                                         "type": "object",
-                                                        "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                         "additionalProperties": false,
                                                         "anyOf": [
                                                           {
@@ -98106,9 +98106,9 @@
                                                       "description": "Fixed delay (ms)."
                                                     },
                                                     "find": {
+                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                       "title": "Element criteria",
                                                       "type": "object",
-                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                       "additionalProperties": false,
                                                       "anyOf": [
                                                         {
@@ -117718,6 +117718,7 @@
                                           "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                         },
                                         "waitUntil": {
+                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                           "title": "App readiness",
                                           "type": "object",
                                           "additionalProperties": false,
@@ -117729,9 +117730,9 @@
                                               "description": "Fixed delay (ms)."
                                             },
                                             "find": {
+                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                               "title": "Element criteria",
                                               "type": "object",
-                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                               "additionalProperties": false,
                                               "anyOf": [
                                                 {
@@ -117912,8 +117913,7 @@
                                                 }
                                               }
                                             }
-                                          },
-                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                          }
                                         },
                                         "timeout": {
                                           "type": "integer",
@@ -118223,6 +118223,7 @@
                                                 "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                               },
                                               "waitUntil": {
+                                                "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                 "title": "App readiness",
                                                 "type": "object",
                                                 "additionalProperties": false,
@@ -118234,9 +118235,9 @@
                                                     "description": "Fixed delay (ms)."
                                                   },
                                                   "find": {
+                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                     "title": "Element criteria",
                                                     "type": "object",
-                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                     "additionalProperties": false,
                                                     "anyOf": [
                                                       {
@@ -118417,8 +118418,7 @@
                                                       }
                                                     }
                                                   }
-                                                },
-                                                "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                }
                                               },
                                               "timeout": {
                                                 "type": "integer",
@@ -118910,6 +118910,7 @@
                                             "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                           },
                                           "waitUntil": {
+                                            "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                             "title": "App readiness",
                                             "type": "object",
                                             "additionalProperties": false,
@@ -118921,9 +118922,9 @@
                                                 "description": "Fixed delay (ms)."
                                               },
                                               "find": {
+                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                 "title": "Element criteria",
                                                 "type": "object",
-                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                 "additionalProperties": false,
                                                 "anyOf": [
                                                   {
@@ -119104,8 +119105,7 @@
                                                   }
                                                 }
                                               }
-                                            },
-                                            "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                            }
                                           },
                                           "timeout": {
                                             "type": "integer",
