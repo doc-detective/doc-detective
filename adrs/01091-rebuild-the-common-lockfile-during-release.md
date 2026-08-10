@@ -18,7 +18,7 @@ The dependency tree therefore never moved. Every `chore(release)` commit faithfu
 version onto a lockfile whose dependencies no longer satisfied its own `package.json`, and the file
 accumulated drift release after release. On `main` at 4.37.4, `npm ci` inside `src/common` fails:
 
-```
+```text
 npm error code EUSAGE
 npm error Invalid: lock file's @apidevtools/json-schema-ref-parser@15.3.5 does not satisfy @apidevtools/json-schema-ref-parser@15.5.1
 npm error Invalid: lock file's @types/node@25.9.2 does not satisfy @types/node@26.2.0
@@ -48,6 +48,26 @@ the root manifest, and treats the invocation as a workspace operation: it rewrit
 Since `@semantic-release/git` commits both files, the naive version would ship a root lockfile
 silently rewritten by a step that was supposed to touch only `src/common`.
 
+### The root lockfile is collateral
+
+`npm version --workspace src/common` does not only stamp versions — it rewrites the **root**
+`package-lock.json` as a side effect, and `@semantic-release/git` commits that too, unverified.
+
+This is not hypothetical. The 4.37.4 release emitted a root lockfile missing
+`conventional-commits-filter@6.0.1` and `conventional-commits-parser@7.1.2`, which broke `npm ci` on
+`main` for every CI job, every contributor, and the release job itself (repaired by hand in #705).
+Bisection put the breakage squarely on the `chore(release)` commit, not on the dependency refresh
+that preceded it:
+
+| commit | `npm ci` |
+|---|---|
+| `87786b2a` — `ci(vale): …` | OK |
+| `b887754d` — `fix(lsp): … (#703)` | OK |
+| `4bdbe34c` — `chore(release): 4.37.4` | **fails** |
+
+A release step that rewrites a lockfile and commits it without ever checking that it installs is the
+underlying defect, and it predates this ADR.
+
 ## Decision Drivers
 
 * The committed lockfile should agree with the manifest beside it, or it should not be committed.
@@ -67,10 +87,32 @@ silently rewritten by a step that was supposed to touch only `src/common`.
 ## Decision Outcome
 
 Chosen option: **1**. `sync-common-version.js` now returns an ordered command plan from a pure
-exported `buildSyncCommands(version)` and executes it: stamp the version, then
-`npm install --package-lock-only --ignore-scripts --no-audit --no-fund --no-workspaces` with cwd
-`src/common`. Order matters — stamping first means the rebuilt lockfile carries the release version
-rather than the previous one.
+exported `buildSyncCommands(version, repoRoot)` and executes it:
+
+1. `npm version <v> --workspace src/common --no-git-tag-version --allow-same-version` from the root.
+2. `npm install --package-lock-only --ignore-scripts --no-audit --no-fund --no-workspaces` with cwd
+   `src/common`.
+3. `npm install --package-lock-only --ignore-scripts --no-audit --no-fund` from the root, **twice**.
+4. `npm ci --dry-run --ignore-scripts --no-audit --no-fund` from the root.
+
+Order matters — stamping first means the rebuilt lockfile carries the release version rather than
+the previous one, and the verification runs last so it sees the final state.
+
+Steps 3 and 4 address the root-lockfile collateral above. Measured on npm 10 (node 22, the release
+job's runtime), starting from a root lockfile where `npm ci` passes, running the step-1 stamp *alone*
+leaves `npm ci` failing with `EBADPLATFORM`. The corruption is deterministic, not a one-off: without
+step 3, the repair in #705 would be undone by the very next release.
+
+The two passes are the recipe already documented in
+[docs/maintenance/release-operations.md](../docs/maintenance/release-operations.md) — the second pass
+drops the platform-gated `"extraneous"` entries that make `npm ci` fail on other OSes. Crucially
+`--package-lock-only` resolves the tree *without* materializing `node_modules`, so it does not prune
+the cross-platform optional set the way a plain `npm install` on a Linux runner would. Confirmed by
+taking the Linux-produced lockfile and running `npm ci --dry-run` against it on Windows.
+
+Step 4 is the backstop. `npm ci --dry-run` is the check every CI job performs, it writes nothing, and
+it exits non-zero on any `Missing`/`Invalid`/`EBADPLATFORM` entry — so if the reconcile ever fails to
+produce an installable tree, the release stops rather than committing the damage.
 
 The file is already in the `@semantic-release/git` assets, so no `.releaserc.json` or workflow
 change was needed; the release job already invokes this script.
@@ -82,6 +124,14 @@ at the next release instead of waiting for someone to notice.
 
 * Good: the committed lockfile matches its manifest from the next release onward; `cd src/common &&
   npm ci --no-workspaces` works.
+* Good: a release now *repairs* the root lockfile instead of corrupting it. Verified end-to-end from
+  the broken `main` state: `npm ci` fails with EUSAGE before the prepare step and passes after.
+* Good: a release can no longer commit a root lockfile that fails to install — the class of failure
+  that produced #705 stops the release instead of landing on `main`.
+* Neutral: step 4 can fail a release. That is the intent; the alternative is shipping the corruption.
+  Recovery is the documented regeneration recipe, then re-running the release.
+* Neutral: the root lockfile will now show real dependency churn in `chore(release)` commits rather
+  than only version stamps. That churn was always happening — it was simply unverified.
 * Good: no new workflow, job, or minutes — one extra npm resolve inside an existing step.
 * Neutral: the first release after this lands carries a large one-time catch-up diff in
   `src/common/package-lock.json` (roughly 800 lines), including major transitive moves such as
@@ -99,9 +149,14 @@ at the next release instead of waiting for someone to notice.
 * Red→green integration check in a `node:22` container against the tree as shipped on `main`:
   `npm ci --ignore-scripts --no-workspaces` inside `src/common` fails with the EUSAGE above before
   running the prepare step, and succeeds after.
-* Isolation check: after the prepare step, the root `package-lock.json` is byte-identical apart from
-  the reconciliation `npm version` already performed (release 4.37.4 shows this pre-existing churn
-  at 3250/273 lines, independent of this change).
+* End-to-end from the broken `main` state (4bdbe34c), in the same container: `npm ci` at the root
+  fails with EUSAGE before the prepare step and passes after it, and `npm ci --no-workspaces` in
+  `src/common` passes too, with both manifests stamped to the release version.
+* Isolation check on the step-2 flag: with `--no-workspaces` the root lockfile is untouched and
+  `src/common`'s is rebuilt; without it the two swap, which is the regression the unit test pins.
+* Cross-platform check: the lockfile produced by the Linux reconcile passes
+  `npm ci --ignore-scripts --dry-run` on a Windows host, confirming the optional-dependency tree
+  survives the two passes.
 * Unit tests in [test/sync-common-version.test.js](../test/sync-common-version.test.js) pin the
   command plan, including a dedicated case asserting `--no-workspaces` is present — the flag whose
   omission silently corrupts the root lockfile.

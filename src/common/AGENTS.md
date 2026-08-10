@@ -210,7 +210,7 @@ Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 2. `npx semantic-release` analyzes commits since the last tag, then:
    - Computes the next semver from commit types (`fix` → patch, `feat` → minor, `!` or `BREAKING CHANGE` → major)
    - Updates `CHANGELOG.md` (root)
-   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`, then rebuild `src/common/package-lock.json` so its dependency tree matches that manifest (see [ADR 01091](../../adrs/01091-rebuild-the-common-lockfile-during-release.md))
+   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`, then rebuilds `src/common/package-lock.json` so its dependency tree matches that manifest, and verifies the root lockfile still installs (see [ADR 01091](../../adrs/01091-rebuild-the-common-lockfile-during-release.md))
    - Publishes both `doc-detective` (root) and `doc-detective-common` (this package) to the channel's dist-tag
    - Commits the version bump + changelog back to the branch with `chore(release): X.Y.Z [skip ci]`
    - Creates the git tag `vX.Y.Z` and a GitHub Release

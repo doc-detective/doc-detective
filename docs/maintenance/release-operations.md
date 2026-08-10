@@ -125,6 +125,20 @@ Regeneration recipe (Docker, repo mounted; on Windows Bash prefix commands with
 Local-dev workaround while a lockfile is broken: `npm install --no-save --package-lock=false`.
 Commit only `package.json`/lockfile/src-common dep changes; discard generated-file CRLF churn.
 
+### `npm version --workspace` corrupts the root lockfile
+
+`npm version <v> --workspace src/common` rewrites the **root** `package-lock.json` as a side effect,
+and the tree it emits does not install. Measured on npm 10 (node 22): from a root lockfile where
+`npm ci` passes, the stamp alone leaves `npm ci` failing with `EBADPLATFORM`.
+
+This is what broke `main` at 4.37.4 — `@semantic-release/git` committed the result unverified, and
+`npm ci` failed for every job and contributor until it was repaired by hand (#705).
+
+The release prepare step now reconciles (two `--package-lock-only` passes) and then verifies
+(`npm ci --dry-run`) after every version stamp, so a release repairs the root lockfile rather than
+corrupting it. **If you ever run `npm version --workspace` by hand, run the two-pass reconcile
+afterwards and verify with `npm ci` before committing.**
+
 ### The src/common lockfile is release-managed
 
 `src/common/package-lock.json` is rebuilt on every release by
