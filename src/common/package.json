@@ -40,15 +40,15 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective/tree/main/src/common#readme",
   "devDependencies": {
-    "@apidevtools/json-schema-ref-parser": "^15.4.0",
-    "@types/node": "^26.0.1",
-    "c8": "^11.0.0",
-    "esbuild": "^0.28.1",
+    "@apidevtools/json-schema-ref-parser": "^15.5.1",
+    "@types/node": "^26.2.0",
+    "c8": "^12.0.0",
+    "esbuild": "^0.28.2",
     "chai": "^6.2.2",
     "json-schema-to-typescript": "^15.0.4",
-    "mocha": "^11.7.6",
-    "sinon": "^22.0.0",
-    "typescript": "^6.0.3"
+    "mocha": "^11.8.0",
+    "sinon": "^22.1.0",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "ajv": "^8.20.0",
