@@ -18,7 +18,15 @@
 
 const fs = require("fs");
 const path = require("path");
-const ts = require("typescript");
+// TypeScript 7's `typescript` package ships only the native tsc shim — the
+// JS compiler API (createSourceFile/ScriptTarget) this script parses
+// src/utils.ts with no longer exists there. Fall back to the pinned
+// API-bearing alias (`typescript-api`, npm:typescript@5) when the primary
+// package has no API, so the generator survives either resolution.
+let ts = require("typescript");
+if (!ts.ScriptTarget) {
+  ts = require("typescript-api");
+}
 
 const repoRoot = path.resolve(__dirname, "../..");
 const srcDir = path.join(repoRoot, "src");
