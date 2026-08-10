@@ -478,3 +478,159 @@ async function makeTemplate() {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Driver-coupled helpers: hermetic fakes for the branches the browser
+// integration tests don't reach.
+// ---------------------------------------------------------------------------
+
+describe("visualMatch driver helpers", function () {
+  it("elementAtPoint wraps a raw W3C element reference via driver.$", async function () {
+    const { elementAtPoint } = await import("../dist/core/tests/visualMatch.js");
+    const wrapped = { elementId: "wrapped-1" };
+    const driver = {
+      execute: async () => ({ "element-6066-11e4-a52e-4f735466cecf": "abc" }),
+      $: async (ref) => {
+        assert.equal(ref["element-6066-11e4-a52e-4f735466cecf"], "abc");
+        return wrapped;
+      },
+    };
+    assert.equal(await elementAtPoint(driver, 10, 10), wrapped);
+  });
+
+  it("elementAtPoint returns null when nothing sits at the point or execute throws", async function () {
+    const { elementAtPoint } = await import("../dist/core/tests/visualMatch.js");
+    assert.equal(
+      await elementAtPoint({ execute: async () => null }, 1, 1),
+      null
+    );
+    assert.equal(
+      await elementAtPoint(
+        {
+          execute: async () => {
+            throw new Error("boom");
+          },
+        },
+        1,
+        1
+      ),
+      null
+    );
+    // A reference that fails to wrap also resolves to null.
+    assert.equal(
+      await elementAtPoint(
+        {
+          execute: async () => ({ ELEMENT: "legacy" }),
+          $: async () => ({}),
+        },
+        1,
+        1
+      ),
+      null
+    );
+  });
+
+  (sharp ? it : it.skip)(
+    "captureForMatch hides and restores the recording cursor overlay",
+    async function () {
+      const { captureForMatch } = await import(
+        "../dist/core/tests/visualMatch.js"
+      );
+      // Capture width (160) deliberately differs from innerWidth (80) so the
+      // asserted scale of 2 is distinguishable from the 1:1 fallback.
+      const png = await sharp({
+        create: { width: 160, height: 80, channels: 3, background: { r: 9, g: 9, b: 9 } },
+      })
+        .png()
+        .toBuffer();
+      const calls = [];
+      const driver = {
+        // isRecordingActive reads driver.state.recordings (LIFO stack).
+        state: { recordings: [{ engine: "ffmpeg" }] },
+        takeScreenshot: async () => png.toString("base64"),
+        execute: async (fn) => {
+          const src = String(fn);
+          calls.push(src);
+          if (src.includes("innerWidth")) return 80;
+          return null;
+        },
+      };
+      const { buffer, captureScale } = await captureForMatch({ driver });
+      assert.equal(captureScale, 2);
+      assert.ok(buffer.length > 0);
+      const pointerCalls = calls.filter((s) => s.includes("dd-mouse-pointer"));
+      assert.equal(pointerCalls.length, 2, "hide + restore");
+    }
+  );
+
+  (sharp ? it : it.skip)(
+    "captureForMatch degrades to 1:1 scale on a junk innerWidth",
+    async function () {
+      const { captureForMatch } = await import(
+        "../dist/core/tests/visualMatch.js"
+      );
+      const png = await sharp({
+        create: { width: 60, height: 30, channels: 3, background: { r: 1, g: 2, b: 3 } },
+      })
+        .png()
+        .toBuffer();
+      const driver = {
+        takeScreenshot: async () => png.toString("base64"),
+        execute: async () => {
+          throw new Error("no window");
+        },
+      };
+      const { captureScale } = await captureForMatch({ driver });
+      assert.equal(captureScale, 1);
+    }
+  );
+
+  (sharp ? it : it.skip)(
+    "writeMissDiagnostic writes an annotated PNG and tolerates a null capture",
+    async function () {
+      const { writeMissDiagnostic } = await import(
+        "../dist/core/tests/visualMatch.js"
+      );
+      const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-vm-miss-"));
+      try {
+        const capture = await sharp({
+          create: { width: 120, height: 90, channels: 3, background: { r: 200, g: 200, b: 200 } },
+        })
+          .png()
+          .toBuffer();
+        const written = await writeMissDiagnostic({
+          config: { output: outDir },
+          capture,
+          bestCandidate: {
+            rect: { x: 10, y: 10, width: 30, height: 20 },
+            score: 0.42,
+            scaleUsed: 1,
+          },
+          threshold: 0.8,
+          stepId: "unit-miss",
+        });
+        assert.ok(written && fs.existsSync(written), "diagnostic must exist");
+        // Candidate-less and capture-less calls are best-effort no-ops.
+        const noCandidate = await writeMissDiagnostic({
+          config: { output: outDir },
+          capture,
+          bestCandidate: null,
+          threshold: 0.8,
+          stepId: "unit-miss-2",
+        });
+        assert.ok(noCandidate && fs.existsSync(noCandidate));
+        assert.equal(
+          await writeMissDiagnostic({
+            config: { output: outDir },
+            capture: null,
+            bestCandidate: null,
+            threshold: 0.8,
+          }),
+          null
+        );
+      } finally {
+        fs.rmSync(outDir, { recursive: true, force: true });
+      }
+    }
+  );
+});

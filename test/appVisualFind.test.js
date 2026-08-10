@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { findAppElement } from "../dist/core/tests/appSurface.js";
+import { findElement } from "../dist/core/tests/findElement.js";
 
 const require = createRequire(import.meta.url);
 
@@ -231,5 +232,211 @@ const baseVisual = (driver, config = {}) => ({
 
     assert.ok(result.error);
     assert.match(result.error, /best visual candidate scored/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findElement app-branch integration: rect-only contract, coordinate-tap
+// fallback, and the sub-effect guards. Uses a Windows-platform fake surface
+// (activeAppWindow returns null off macOS, so no window enumeration runs).
+// ---------------------------------------------------------------------------
+
+function makeAppContext(driver, { name = "fakeapp" } = {}) {
+  const entry = { platform: "windows", driver, name };
+  const tracker = { mru: [{ kind: "app", name }] };
+  const appSession = {
+    surfaces: new Map([[name, entry]]),
+    activeApp: name,
+    tracker,
+  };
+  return { entry, appSession, tracker };
+}
+
+function makeRecordingAppDriver({
+  scene,
+  pageSource = WINDOWS_XML_ELSEWHERE,
+  recoveredElement = null,
+} = {}) {
+  const driver = makeAppDriver({ scene, pageSource, recoveredElement });
+  driver.__executes = [];
+  const baseExecute = driver.execute;
+  driver.execute = async (cmd, args) => {
+    driver.__executes.push({ cmd, args });
+    return baseExecute(cmd, args);
+  };
+  return driver;
+}
+
+(sharp && opencv ? describe : describe.skip)("findElement app image criterion", function () {
+  this.timeout(180000);
+
+  let tmpDir, template, foreignFile;
+  before(async function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-app-fe-visual-"));
+    const scene = await makeScene();
+    fs.writeFileSync(
+      (template = path.join(tmpDir, "glyph.png")),
+      await sharp(scene).extract({ left: 300, top: 200, width: 48, height: 48 }).png().toBuffer()
+    );
+    fs.writeFileSync(
+      (foreignFile = path.join(tmpDir, "foreign.png")),
+      await sharp(
+        Buffer.from(
+          `<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" fill="#111"/><circle cx="24" cy="24" r="16" fill="#0f0"/></svg>`
+        )
+      ).png().toBuffer()
+    );
+  });
+  after(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("rect-only match PASSes with imageMatch outputs and taps by coordinates on click", async function () {
+    const scene = await makeScene();
+    const driver = makeRecordingAppDriver({ scene });
+    const { appSession, tracker } = makeAppContext(driver);
+
+    const result = await findElement({
+      config: { logLevel: "silent" },
+      step: {
+        find: {
+          image: template,
+          surface: { app: "fakeapp" },
+          click: true,
+          timeout: 5000,
+        },
+      },
+      driver: null,
+      appSession,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(result.outputs.found, true);
+    assert.ok(result.outputs.imageMatch, "expected imageMatch outputs");
+    assert.match(result.description, /coordinates/i);
+    // Windows tapAtPoint = windows: click at SCREEN coords: window origin
+    // (100,50 from getWindowRect) + match center (324,224).
+    const tap = driver.__executes.find((e) => e.cmd === "windows: click");
+    assert.ok(tap, "expected a coordinate tap");
+    assert.equal(tap.args.x, 424);
+    assert.equal(tap.args.y, 274);
+  });
+
+  it("rect-only match FAILs a non-left click with guidance", async function () {
+    const scene = await makeScene();
+    const driver = makeRecordingAppDriver({ scene });
+    const { appSession, tracker } = makeAppContext(driver);
+
+    const result = await findElement({
+      config: { logLevel: "silent" },
+      step: {
+        find: {
+          image: template,
+          surface: { app: "fakeapp" },
+          click: { button: "right" },
+          timeout: 5000,
+        },
+      },
+      driver: null,
+      appSession,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /recovered element/i);
+  });
+
+  it("rect-only match FAILs the type sub-effect with the app-surface message", async function () {
+    const scene = await makeScene();
+    const driver = makeRecordingAppDriver({ scene });
+    const { appSession, tracker } = makeAppContext(driver);
+
+    const result = await findElement({
+      config: { logLevel: "silent" },
+      step: {
+        find: {
+          image: template,
+          surface: { app: "fakeapp" },
+          type: "hello",
+          timeout: 5000,
+        },
+      },
+      driver: null,
+      appSession,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /type/i);
+  });
+
+  it("recovered element PASSes and clicks through the element", async function () {
+    const scene = await makeScene();
+    const recovered = makeAppElement({ elementId: "gear" });
+    let clicked = 0;
+    recovered.click = async () => {
+      clicked++;
+    };
+    const driver = makeRecordingAppDriver({
+      scene,
+      pageSource: WINDOWS_XML,
+      recoveredElement: recovered,
+    });
+    const { appSession, tracker } = makeAppContext(driver);
+
+    const result = await findElement({
+      config: { logLevel: "silent" },
+      step: {
+        find: {
+          image: template,
+          surface: { app: "fakeapp" },
+          click: true,
+          timeout: 5000,
+        },
+      },
+      driver: null,
+      appSession,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "PASS", result.description);
+    assert.ok(result.outputs.imageMatch);
+    // The UIA Invoke path runs first (fake execute resolves), so either the
+    // invoke fired or the element click did — assert the click landed at all.
+    const invoked = driver.__executes.some((e) => e.cmd === "windows: invoke");
+    assert.ok(invoked || clicked > 0, "expected an element-based click");
+    // The discriminating contract: a recovered element means the
+    // coordinate-tap fallback must NOT run.
+    assert.ok(
+      !driver.__executes.some((e) => e.cmd === "windows: click"),
+      "expected no coordinate-tap fallback"
+    );
+  });
+
+  it("a visual miss FAILs with structured imageMiss outputs", async function () {
+    const scene = await makeScene();
+    const driver = makeRecordingAppDriver({ scene });
+    const { appSession, tracker } = makeAppContext(driver);
+    const outDir = fs.mkdtempSync(path.join(tmpDir, "out-"));
+
+    const result = await findElement({
+      config: { logLevel: "silent", output: outDir },
+      step: {
+        find: {
+          image: foreignFile,
+          surface: { app: "fakeapp" },
+          timeout: 1200,
+        },
+      },
+      driver: null,
+      appSession,
+      surfaceTracker: tracker,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /best visual candidate scored/i);
+    assert.ok(result.outputs.imageMiss, "expected imageMiss outputs");
+    assert.ok(result.outputs.imageMiss.bestScore < 0.8);
   });
 });

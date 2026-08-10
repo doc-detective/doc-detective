@@ -159,3 +159,44 @@ describe("recoverAppElement", function () {
     assert.match(result.reason, /session died/);
   });
 });
+
+describe("recoverAppElement re-find branches", function () {
+  const point = { x: 124, y: 124 };
+
+  it("returns the element when the lazy handle resolves via waitForExist", async function () {
+    const lazy = {
+      elementId: undefined,
+      waitForExist: async () => true,
+    };
+    const driver = { getPageSource: async () => WINDOWS_XML, $: async () => lazy };
+    const result = await recoverAppElement({ driver, platform: "windows", point });
+    assert.equal(result.element, lazy);
+  });
+
+  it("reports a miss when the lazy handle never resolves", async function () {
+    const lazy = {
+      elementId: undefined,
+      waitForExist: async () => {
+        throw new Error("timeout");
+      },
+    };
+    const driver = { getPageSource: async () => WINDOWS_XML, $: async () => lazy };
+    const result = await recoverAppElement({ driver, platform: "windows", point });
+    assert.equal(result.element, null);
+    assert.match(result.reason, /missed/i);
+  });
+
+  it("reports a miss when driver.$ returns nothing", async function () {
+    const driver = { getPageSource: async () => WINDOWS_XML, $: async () => null };
+    const result = await recoverAppElement({ driver, platform: "windows", point });
+    assert.equal(result.element, null);
+    assert.match(result.reason, /returned nothing/i);
+  });
+
+  it("reports a parse failure on junk source", async function () {
+    const driver = { getPageSource: async () => "not xml at all <" };
+    const result = await recoverAppElement({ driver, platform: "windows", point });
+    assert.equal(result.element, null);
+    assert.match(result.reason, /parse/i);
+  });
+});

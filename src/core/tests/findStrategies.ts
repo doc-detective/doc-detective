@@ -289,7 +289,10 @@ async function findElementBySelectorAndText({
     return { element: null, foundBy: null }; // No selector or text
   }
   const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
+  // do/while so `timeout: 0` means "check once, now" rather than "never check
+  // at all". For any positive timeout this is unchanged: the first iteration
+  // always ran anyway.
+  do {
     const candidates = await driver.$$(selector);
     elements = [];
     for (const el of candidates) {
@@ -313,9 +316,12 @@ async function findElementBySelectorAndText({
     if (elements.length > 0) {
       break;
     }
+    // Budget already spent — return now rather than sleeping first, or
+    // `timeout: 0` would mean "in 100ms" instead of "now".
+    if (Date.now() - startTime >= timeout) break;
     // Wait 100ms before trying again
     await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  } while (Date.now() - startTime < timeout);
   if (elements.length === 0) {
     return { element: null, foundBy: null }; // No matching elements
   }
@@ -588,8 +594,10 @@ async function findElementByCriteria({
   const startTime = Date.now();
   const pollingInterval = 100; // Check every 100ms
 
-  // Poll for elements until timeout
-  while (Date.now() - startTime < timeout) {
+  // Poll for elements until timeout. do/while so `timeout: 0` means "check
+  // once, now" rather than "never check at all"; for any positive timeout the
+  // first iteration always ran anyway, so behavior there is unchanged.
+  do {
     let candidates: any[] = [];
     // Template matches for THIS iteration, in logical units. Populated only
     // when an image criterion is present; the capture+match cost naturally
@@ -775,6 +783,9 @@ async function findElementByCriteria({
 
       // Skip if no candidates found
       if (candidates.length === 0) {
+        // Same immediate-return rule as the tail of the loop: don't sleep out
+        // a budget that's already gone.
+        if (Date.now() - startTime >= timeout) break;
         await new Promise((resolve) => setTimeout(resolve, pollingInterval));
         continue;
       }
@@ -954,9 +965,12 @@ async function findElementByCriteria({
       console.error("Error finding elements:", error);
     }
 
-    // No matching elements found, wait before retrying
+    // No matching elements found. Return now if the budget is spent, so
+    // `timeout: 0` is a genuine immediate check.
+    if (Date.now() - startTime >= timeout) break;
+    // Wait before retrying
     await new Promise((resolve) => setTimeout(resolve, pollingInterval));
-  }
+  } while (Date.now() - startTime < timeout);
 
   // Timeout reached, return error
   if (visual) {
