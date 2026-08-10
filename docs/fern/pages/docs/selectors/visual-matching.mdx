@@ -11,7 +11,7 @@ The `image` criterion works in every element-finding action and sub-action—[`f
 
 The `image` value accepts:
 
-- **A file path**, resolved relative to your spec like other paths: `"image": "images/gear-icon.png"`
+- **A path**, resolved relative to your spec like other paths: `"image": "images/gear-icon.png"`
 - **An inline data URI**: `"image": "data:image/png;base64,iVBORw0K…"`
 - **An object** with options:
 
@@ -53,12 +53,12 @@ The most reliable template is a **crop from a screenshot Doc Detective itself to
 
 ## How matching works
 
-Doc Detective screenshots the surface and runs OpenCV template matching against it, polling until the element appears or the step times out.
+Doc Detective screenshots the surface and runs OpenCV template matching against it, and polls until the element appears or the step times out.
 
 - **Scaling is automatic.** Displays differ (Retina, Windows 125–200% scaling), and a template taken at one scale fails completely against a screen at another. Doc Detective derives the scale of the screenshot it takes and tries the template at a ladder of candidate scales—including the common display ratios—so a template taken on a differently scaled machine still matches. The step reports the matched scale in `outputs.imageMatch.scaleUsed`.
 - **The match becomes a real element wherever possible.** On browser surfaces, Doc Detective resolves the element under the matched region's center with `document.elementFromPoint`, so every interaction (`click` with buttons and durations, `moveTo`, `type`) and all `outputs.element` details work exactly as with any other criterion. On native app surfaces, Doc Detective recovers the element from the app's accessibility tree. When that isn't possible, the find still succeeds with the matched region's geometry in `outputs.imageMatch`, and a left click falls back to tapping the region's center.
 - **Combining criteria narrows geometrically.** When you combine `image` with other criteria (`elementText`, `selector`, and so on), the matched element must satisfy them all: its bounds must contain a visual match's center *and* it must match the other criteria. This is how you tell apart two identical icons with different labels.
-- **Ambiguity fails loudly.** If two or more regions match the template and nothing tells them apart, the step fails and names the count, scores, and locations—Doc Detective never silently clicks the first lookalike. Add another criterion or a `region` to narrow the search.
+- **Ambiguity fails loudly.** If two or more regions match the template and no other criterion distinguishes them, the step fails and names the count, scores, and locations—Doc Detective never silently clicks the first lookalike. Add another criterion or a `region` to narrow the search.
 
 ## Tune the match threshold
 
@@ -81,10 +81,10 @@ Higher values are stricter (`1` demands a near pixel-perfect match). Lower value
 
 ## Diagnose a miss
 
-When a visual find times out, the failure reports how close the best candidate came (for example, `Best visual candidate scored 0.71 against threshold 0.8`) and writes an annotated screenshot with the best-candidate region boxed into the run's artifact folder. The outputs also carry `outputs.imageMiss` with the best score and rect. Common causes:
+When a visual find times out, the failure reports how close the highest-scoring candidate came (for example, `Best visual candidate scored 0.71 against threshold 0.8`) and writes an annotated screenshot with the highest-scoring region boxed into the run's artifact folder. The outputs also carry `outputs.imageMiss` with the top score and rect. Common causes:
 
 - **The template is stale**—the UI changed. Take a fresh template screenshot.
-- **The element is below the fold**—browser matching sees only the current viewport, and visual finds don't auto-scroll. Scroll first, or use a DOM criterion (which does scroll) alongside the image.
+- **The element is below the fold**—browser matching covers only the current viewport, and visual finds don't auto-scroll. Scroll first, or use a DOM criterion (which does scroll) alongside the image.
 - **The threshold is too strict** for the rendering variation between the template's source and the current surface.
 
 ## Limitations

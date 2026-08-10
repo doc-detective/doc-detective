@@ -1291,6 +1291,12 @@ async function findAppElementVisually({
     }
   };
 
+  // Resolve sharp ONCE before polling — loadHeavyDep re-resolves module
+  // paths per call, and paying that inside every capture+match round would
+  // dilute the poll cadence for nothing (the module itself never changes).
+  const sharpMod = await loadHeavyDep<any>("sharp", { ctx });
+  const sharp = sharpMod && (sharpMod.default ?? sharpMod);
+
   // do/while so an explicit `timeout: 0` (the locator path's immediate-check
   // semantics) still runs one capture+match round instead of always missing.
   do {
@@ -1319,13 +1325,9 @@ async function findAppElementVisually({
     }
     let matchResult;
     try {
-      const sharpMeta = await (async () => {
-        // matchTemplate reads its own metadata; here we only need the width
-        // for the capture scale, so lean on it via a tiny local decode.
-        const sharpMod = await loadHeavyDep<any>("sharp", { ctx });
-        const sharp = sharpMod && (sharpMod.default ?? sharpMod);
-        return await sharp(capture).metadata();
-      })();
+      // Only the capture width is needed here (for the capture scale);
+      // matchTemplate reads its own metadata for the match itself.
+      const sharpMeta = await sharp(capture).metadata();
       const captureScale =
         typeof logicalWidth === "number" &&
         Number.isFinite(logicalWidth) &&

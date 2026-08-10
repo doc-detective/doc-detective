@@ -318,8 +318,17 @@ function exampleValue(propSchema, depth = 0) {
     case "string":
       return "example";
     case "number":
-    case "integer":
-      return 42;
+    case "integer": {
+      // Clamp the placeholder into the schema's declared bounds so a
+      // constrained field (e.g. a 0–1 threshold) never renders an example
+      // its own validation would reject.
+      let value = 42;
+      const max = propSchema.maximum ?? propSchema.exclusiveMaximum;
+      const min = propSchema.minimum ?? propSchema.exclusiveMinimum;
+      if (typeof max === "number" && value > max) value = max;
+      if (typeof min === "number" && value < min) value = min;
+      return value;
+    }
     case "boolean":
       return true;
     case "array":
@@ -332,7 +341,11 @@ function exampleValue(propSchema, depth = 0) {
   // invalid when required fields exist, and noisy otherwise).
   const eff = getEffectiveProperties(propSchema);
   if (propSchema.type === "object" || eff) {
-    if (!eff) return {};
+    // An empty object would be invalid against minProperties; omit the
+    // property instead of rendering an example validation rejects.
+    if (!eff) {
+      return propSchema.minProperties >= 1 ? undefined : {};
+    }
     const required = eff.required || [];
     if (required.length > 0) {
       const obj = {};
