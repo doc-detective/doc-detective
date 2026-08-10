@@ -125,6 +125,23 @@ Regeneration recipe (Docker, repo mounted; on Windows Bash prefix commands with
 Local-dev workaround while a lockfile is broken: `npm install --no-save --package-lock=false`.
 Commit only `package.json`/lockfile/src-common dep changes; discard generated-file CRLF churn.
 
+### The src/common lockfile is release-managed
+
+`src/common/package-lock.json` is rebuilt on every release by
+[scripts/sync-common-version.js](../../scripts/sync-common-version.js) (ADR 01091), so you normally
+don't touch it — bump `src/common/package.json` and the lockfile catches up at the next release.
+
+If you must regenerate it by hand, run npm from inside `src/common` **with `--no-workspaces`**:
+
+```bash
+cd src/common && npm install --package-lock-only --ignore-scripts --no-audit --no-fund --no-workspaces
+```
+
+Without `--no-workspaces` npm walks up, finds `workspaces: ["src/common"]` in the root manifest, and
+rewrites the **root** `package-lock.json` while leaving `src/common`'s byte-identical — the inverse
+of what you asked for. Same trap when verifying: `npm ci` inside `src/common` validates the *root*
+lockfile unless you pass `--no-workspaces`.
+
 ## Working in git worktrees
 
 Worktrees have no `node_modules`, so the husky `commit-msg` hook's `npx commitlint` fails ("npx
