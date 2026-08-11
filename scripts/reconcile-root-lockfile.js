@@ -3,12 +3,15 @@
 //
 // Every plugin that stamps a version rewrites the root package-lock.json as a
 // side effect, and the tree npm emits can drop entries the manifest still
-// requires. Twice now that produced a root lockfile which fails `npm ci`, was
+// requires. Three times now that produced a root lockfile which fails `npm ci`, was
 // committed by @semantic-release/git, and broke main for every job and every
 // contributor:
 //
 //   4.37.4 -> repaired deliberately, in #705
 //   4.37.5 -> repaired by accident, when #702 landed a healthy lockfile
+//   4.38.0 -> broke again ~4h later; merging #702 is what triggered that
+//             release, so the accidental repair and the next breakage were the
+//             same event
 //
 // Both times the same two `"optional": true, "peer": true` entries under
 // @commitlint/read/node_modules were pruned.

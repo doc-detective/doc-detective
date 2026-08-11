@@ -11,22 +11,28 @@ decision-makers: doc-detective maintainers
 Two consecutive releases committed a root `package-lock.json` that does not install, breaking `main`
 for every CI job and every contributor:
 
+**Three** consecutive releases committed a root `package-lock.json` that does not install, breaking
+`main` for every CI job and every contributor:
+
 | release | symptom | repaired by |
 |---|---|---|
 | 4.37.4 | `npm ci` → `EUSAGE Missing: conventional-commits-filter@6.0.1` | #705, deliberately |
 | 4.37.5 | identical | #702, incidentally |
+| 4.38.0 | identical | this change |
 
-Both times the same two `"optional": true, "peer": true` entries under
+Every time, the same two `"optional": true, "peer": true` entries under
 `@commitlint/read/node_modules/` were pruned from the tree.
 
-The second repair is worth dwelling on, because it is the reason this ADR is not simply "fix the
-lockfile again." Nobody fixed it. #702 was a reporters feature that happened to carry a lockfile
-regenerated from a healthy tree, and merging it restored the missing entries as a side effect. Had
-that PR not landed when it did, `main` would still be red. **The repo recovered by luck**, which is
-not a property anyone can rely on twice.
+The middle row is the one to dwell on, and the last row is why. Nobody fixed 4.37.5: #702 was a
+reporters feature that happened to carry a lockfile regenerated from a healthy tree, and merging it
+restored the entries as a side effect. **The repo recovered by luck.**
 
-That is also why this change carries no `package-lock.json` edit: by the time it was rebased, there
-was nothing left to repair. Only the guard remains — and the guard is the point.
+That luck held for about four hours. Merging #702 is what triggered the 4.38.0 release, and 4.38.0
+pruned the same two entries again — while this ADR sat unmerged, describing the guard that would have
+caught it. The accidental repair and the next breakage were the same event.
+
+So the case does not rest on argument any more. Three releases, one signature, one of them repaired
+purely by chance: **a lockfile that is committed without being verified will keep being wrong.**
 
 [ADR 01091](01091-rebuild-the-common-lockfile-during-release.md) added a root reconcile and an
 `npm ci --dry-run` backstop to [scripts/sync-common-version.js](../scripts/sync-common-version.js),

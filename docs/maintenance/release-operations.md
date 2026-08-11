@@ -131,14 +131,19 @@ Commit only `package.json`/lockfile/src-common dep changes; discard generated-fi
 and the tree it emits does not install. Measured on npm 10 (node 22): from a root lockfile where
 `npm ci` passes, the stamp alone leaves `npm ci` failing with `EBADPLATFORM`.
 
-This broke `main` twice — 4.37.4 and 4.37.5 — with the same two `"optional": true, "peer": true`
-entries under `@commitlint/read/node_modules/` pruned each time. `@semantic-release/git` committed
-the result unverified, and `npm ci` failed for every job and every contributor.
+This broke `main` three times — 4.37.4, 4.37.5, and 4.38.0 — with the same two
+`"optional": true, "peer": true` entries under `@commitlint/read/node_modules/` pruned each time.
+`@semantic-release/git` committed the result unverified, and `npm ci` failed for every job and every
+contributor.
 
 4.37.4 was repaired by hand in #705. 4.37.5 was repaired by *accident*: #702, an unrelated reporters
 feature, happened to carry a lockfile regenerated from a healthy tree, and merging it restored the
-entries. Don't count on that a third time — if you find `main` red this way, regenerate deliberately
-using the recipe above.
+entries. That merge is also what triggered the 4.38.0 release, which pruned them again about four
+hours later — the accidental repair and the next breakage were the same event.
+
+**If you find `main` red this way, regenerate deliberately using the recipe above.** Waiting for
+another PR to carry a healthy lockfile is not a plan; it happened once, by chance, and it did not
+last a day.
 
 [scripts/reconcile-root-lockfile.js](../../scripts/reconcile-root-lockfile.js) reconciles (two
 `--package-lock-only` passes) and then verifies (`npm ci --dry-run`) as the **last** prepare step
