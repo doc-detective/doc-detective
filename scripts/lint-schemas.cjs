@@ -628,4 +628,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inertDefaults };
+module.exports = { inertDefaults, escapeData, escapeProperty, pageSchemas };
