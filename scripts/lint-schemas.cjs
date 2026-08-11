@@ -427,9 +427,14 @@ function lintUniqueTitles() {
  * `moveTo: true` for five years while the runtime used `false` (ADR 01086).
  *
  * NOT `then`/`else`, despite their sitting in the same family as `if`: Ajv
- * applies defaults from whichever branch is selected, so those are live. See
- * COMPOSITION_KEYWORDS for the measured table — this list must not drift from
- * it, and said `then/else` here while the constant said otherwise.
+ * applies defaults from whichever branch is selected, so those are live. Named
+ * here rather than left out because assuming the family behaves uniformly is
+ * the mistake this rule already made once.
+ *
+ * COMPOSITION_KEYWORDS holds the measured table and is the source of truth. The
+ * two must not drift — this comment listed `then`/`else` as skipped while the
+ * constant said otherwise, so the file contradicted itself on the one fact the
+ * rule rests on.
  *
  * Inertness alone is not the defect: annotation_v3's `timeout` is inert ON
  * PURPOSE, to populate the Default column on its generated reference page while
