@@ -557,13 +557,14 @@ async function lintExamples() {
   const parser = require("@apidevtools/json-schema-ref-parser");
 
   for (const file of schemaFiles()) {
-    let raw;
-    try {
-      raw = readSchema(file);
-    } catch (error) {
-      report("examples-validate", file, "", `Not parseable as JSON: ${error.message}`);
-      continue;
-    }
+    // Unguarded, like the two passes above. This one used to catch parse errors
+    // and report them, which was dead code: lintInertDefaults reads the same
+    // schemaFiles() set unguarded and runs first, so an unparseable schema has
+    // already stopped the run before reaching here. Dead code that looks like a
+    // safety net is worse than none -- it invites the assumption that this pass
+    // is covered independently. If the pass order ever changes, readSchema still
+    // throws naming the file, so the behavior is preserved either way.
+    const raw = readSchema(file);
     if (!Array.isArray(raw.examples) || raw.examples.length === 0) continue;
 
     let schema;
@@ -703,10 +704,37 @@ function runSpectral(format) {
   return result.status === 0;
 }
 
+/**
+ * Read `--format <value>` out of argv, or throw.
+ *
+ * A bare `--format` used to yield `undefined`, and `--format --skip-spectral`
+ * used to yield `"--skip-spectral"`. Both are quiet: the first drops back to
+ * plain text, the second hands Spectral a nonsense formatter. In CI the visible
+ * result is a job that produces NO inline annotations while still reporting
+ * whatever exit code the rules produced -- the check looks like it ran and
+ * enforced nothing, which is the failure mode this tool keeps rediscovering.
+ *
+ * Exported for tests; `undefined` (no `--format` at all) stays valid.
+ *
+ * @param {string[]} argv
+ * @returns {string|undefined}
+ */
+function parseFormat(argv) {
+  const i = argv.indexOf("--format");
+  if (i < 0) return undefined;
+  const value = argv[i + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(
+      `--format requires a value (got ${value === undefined ? "nothing" : `\`${value}\``}). ` +
+        `Use e.g. \`--format github-actions\`, or omit the flag for plain text.`
+    );
+  }
+  return value;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
-  const formatIndex = argv.indexOf("--format");
-  const format = formatIndex >= 0 ? argv[formatIndex + 1] : undefined;
+  const format = parseFormat(argv);
 
   const spectralOk = argv.includes("--skip-spectral") ? true : runSpectral(format);
 
@@ -757,4 +785,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inertDefaults, escapeData, escapeProperty, pageSchemas, readJson, readSchema, SRC_SCHEMAS };
+module.exports = { inertDefaults, parseFormat, escapeData, escapeProperty, pageSchemas, readJson, readSchema, SRC_SCHEMAS };

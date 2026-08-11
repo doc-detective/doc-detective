@@ -25,6 +25,7 @@ const require = createRequire(import.meta.url);
 const { execFileSync } = require("node:child_process");
 const {
   inertDefaults,
+  parseFormat,
   escapeData,
   escapeProperty,
   pageSchemas,
@@ -269,6 +270,34 @@ describe("scripts/lint-schemas COMPOSITION_KEYWORDS vs the real Ajv", function (
       examples: [{ properties: { x: { default: "not a schema" } } }],
     };
     expect(inertDefaults(schema)).to.deep.equal([]);
+  });
+});
+
+describe("scripts/lint-schemas parseFormat", function () {
+  // `--format github-actions` is what turns findings into inline PR
+  // annotations. A bare `--format` used to yield undefined and
+  // `--format --skip-spectral` used to yield "--skip-spectral"; both produce a
+  // CI job that emits NO annotations while still reporting an exit code, so the
+  // check looks like it ran and enforced nothing.
+
+  it("reads the value after the flag", function () {
+    expect(parseFormat(["--format", "github-actions"])).to.equal("github-actions");
+    expect(parseFormat(["--skip-spectral", "--format", "json"])).to.equal("json");
+  });
+
+  it("returns undefined when the flag is absent", function () {
+    expect(parseFormat([])).to.equal(undefined);
+    expect(parseFormat(["--skip-spectral"])).to.equal(undefined);
+  });
+
+  it("throws on a trailing `--format` with no value", function () {
+    expect(() => parseFormat(["--format"])).to.throw(/--format requires a value/);
+  });
+
+  it("throws when the next argument is another flag, not a value", function () {
+    // The nastier of the two: this one silently made "--skip-spectral" the
+    // formatter name and passed it to Spectral.
+    expect(() => parseFormat(["--format", "--skip-spectral"])).to.throw(/--format requires a value/);
   });
 });
 
