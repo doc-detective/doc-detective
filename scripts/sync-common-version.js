@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 // semantic-release `prepare` step for the doc-detective-common workspace.
 //
-// Four things happen before @semantic-release/git commits its assets:
+// Two things happen here:
 //   1. Stamp the release version onto src/common (package.json + its lockfile).
 //   2. Rebuild src/common/package-lock.json so its dependency tree matches
 //      src/common/package.json.
-//   3. Reconcile the ROOT lockfile, which step 1 corrupts as a side effect.
-//   4. Verify the ROOT lockfile installs, and fail the release if not.
 //
 // Step 2 exists because `npm version` only rewrites the `version` fields. For a
 // long time that was the ONLY thing that ever touched src/common's lockfile, so
@@ -16,22 +14,13 @@
 // installs from the ROOT lockfile and runs the src/common scripts against the
 // hoisted workspace node_modules.
 //
-// Steps 3 and 4 exist because step 1 has a side effect: `npm version
-// --workspace` rewrites the ROOT lockfile too, and the tree it emits does not
-// install. Measured on npm 10 (node 22, the release job's runtime): starting
-// from a root lockfile where `npm ci` passes, running the step-1 stamp alone
-// leaves `npm ci` failing with EBADPLATFORM. In the 4.37.4 release that broken
-// lockfile was committed by @semantic-release/git and `npm ci` broke on main
-// for every job and every contributor (repaired by hand in #705).
-//
-// The two `--package-lock-only` passes in step 3 are the same recipe as
-// docs/maintenance/release-operations.md: the second pass drops the
-// platform-gated "extraneous" entries that make `npm ci` fail with EBADPLATFORM
-// on other OSes. Verified to restore a working lockfile from both a healthy and
-// an already-broken starting point, so a release now self-heals the root
-// lockfile instead of corrupting it. Step 4 is the backstop -- if the reconcile
-// ever fails to produce an installable tree, the release stops instead of
-// committing the damage.
+// The ROOT lockfile is deliberately NOT handled here. Every version stamp --
+// this script's, and @semantic-release/npm's afterward -- rewrites it, so any
+// reconcile done at this point is invalidated by the plugin that runs next.
+// That is exactly how 4.37.5 shipped a broken root lockfile even though this
+// script verified successfully. Root reconciliation and verification now live
+// in scripts/reconcile-root-lockfile.js, wired as the last prepare step before
+// @semantic-release/git commits. See ADR 01093.
 //
 // See ADR 01091.
 
@@ -92,26 +81,6 @@ export function buildSyncCommands(version, repoRoot = REPO_ROOT) {
         // files, so omitting this flag ships a corrupted root lockfile.
         '--no-workspaces',
       ],
-    },
-    // Reconcile the root lockfile that step 1 corrupted. Two passes, per
-    // docs/maintenance/release-operations.md -- a single pass leaves the
-    // platform-gated "extraneous" entries that fail `npm ci` with EBADPLATFORM
-    // on other OSes. `--package-lock-only` resolves without materializing
-    // node_modules, so it does not prune the cross-platform optional tree the
-    // way a plain `npm install` on a Linux runner would.
-    ...[1, 2].map(() => ({
-      cmd: 'npm',
-      cwd: repoRoot,
-      args: ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'],
-    })),
-    {
-      cmd: 'npm',
-      // Backstop, not a mutation: `ci --dry-run` resolves the root lockfile
-      // against the root manifest and exits non-zero on any Missing/Invalid/
-      // EBADPLATFORM entry, without writing anything. This is the check every
-      // CI job performs, run before the commit rather than after it.
-      cwd: repoRoot,
-      args: ['ci', '--dry-run', '--ignore-scripts', '--no-audit', '--no-fund'],
     },
   ];
 }

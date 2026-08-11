@@ -54,36 +54,18 @@ describe("scripts/sync-common-version buildSyncCommands", function () {
     expect(lockStep.args).to.include("--no-fund");
   });
 
-  it("reconciles the ROOT lockfile twice, because the version stamp corrupts it", function () {
-    // `npm version --workspace` (step 1) rewrites the root lockfile as a side
-    // effect and the tree it emits does not install -- measured on npm 10, a
-    // healthy lockfile goes to EBADPLATFORM from the stamp alone. That is what
-    // shipped in 4.37.4 and broke `npm ci` on main (#705).
-    //
-    // TWO passes, per docs/maintenance/release-operations.md: the second drops
-    // the platform-gated "extraneous" entries a single pass leaves behind.
-    // Dropping to one pass silently reintroduces the EBADPLATFORM failure on
-    // other OSes, so the count is asserted.
+  it("does NOT touch the root lockfile -- that moved to reconcile-root-lockfile.js", function () {
+    // Any root reconcile done here is invalidated by @semantic-release/npm's
+    // version stamp, which runs afterward in the prepare sequence. That is how
+    // 4.37.5 shipped a broken root lockfile despite this script verifying
+    // successfully (#706). Root work now runs as the last prepare step.
     const steps = buildSyncCommands("4.37.5", ROOT);
-    const reconcile = steps.slice(2, 4);
-    expect(reconcile).to.have.lengthOf(2);
-    for (const step of reconcile) {
-      expect(step.cmd).to.equal("npm");
-      expect(step.cwd).to.equal(ROOT);
-      expect(step.args).to.include("--package-lock-only");
-      expect(step.args).to.not.include("--no-workspaces");
-    }
-  });
-
-  it("verifies the ROOT lockfile last, without mutating it", function () {
-    const steps = buildSyncCommands("4.37.5", ROOT);
-    expect(steps).to.have.lengthOf(5);
-    const verifyStep = steps[4];
-    expect(verifyStep.cmd).to.equal("npm");
-    expect(verifyStep.args.slice(0, 2)).to.deep.equal(["ci", "--dry-run"]);
-    expect(verifyStep.cwd).to.equal(ROOT);
-    // --dry-run is what makes this a backstop rather than another rebuild.
-    expect(verifyStep.args).to.not.include("--package-lock-only");
+    expect(steps).to.have.lengthOf(2);
+    expect(steps.filter((s) => s.args[0] === "ci")).to.have.lengthOf(0);
+    const rootInstalls = steps.filter(
+      (s) => s.cwd === ROOT && s.args[0] === "install"
+    );
+    expect(rootInstalls).to.have.lengthOf(0);
   });
 
   it("threads any valid semver through unchanged, including prereleases", function () {
