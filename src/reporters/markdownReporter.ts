@@ -151,8 +151,11 @@ function buildMarkdown(results: any): string {
           ? shown.join("<br>")
           : cell(ctx.resultDescription || "Context failed");
         failures.push(
-          `| ${cell(spec.description || spec.specId)} | ${cell(
-            test.description || test.testId
+          // `description` and the ids are all optional, so fall through to a
+          // generic label rather than emit `|  |  | … |`, which reads as a
+          // malformed row. Matches the junit reporter's fallback chain.
+          `| ${cell(spec.description || spec.specId || "spec")} | ${cell(
+            test.description || test.testId || "test"
           )} | ${detail} |`
         );
       }

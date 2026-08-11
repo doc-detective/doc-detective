@@ -449,6 +449,28 @@ describe("junit and markdown reporters", function () {
       assert.equal(md.includes("\\\\Users"), false);
     });
 
+    it("labels a failure whose spec and test have neither description nor id", function () {
+      // Both fields are optional in the v3 schemas; without a fallback the row
+      // renders as `|  |  | … |`, which reads as a malformed table row.
+      const md = buildMarkdown({
+        summary: { specs: { fail: 1 } },
+        specs: [
+          {
+            result: "FAIL",
+            tests: [
+              {
+                contexts: [
+                  { result: "FAIL", steps: [{ result: "FAIL", stepId: "s", resultDescription: "boom" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      const row = md.split("\n").find((line) => line.includes("boom"));
+      assert.equal(row, "| spec | test | s — boom |");
+    });
+
     it("omits the artifacts line when the run has no runDir", function () {
       const noDir = structuredClone(results);
       delete noDir.runDir;
