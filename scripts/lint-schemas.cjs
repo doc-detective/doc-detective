@@ -468,8 +468,13 @@ function lintInertDefaults() {
  * declares it and would be re-checked once per inlining consumer.
  */
 async function lintExamples() {
-  // Dereference in memory exactly as dereferenceSchemas.cjs does — set `$id` to
-  // the absolute source path, then hand it to the same ref parser.
+  // Dereference in memory with the same ref parser the build uses, BY PATH
+  // rather than by handing over a parsed object. The path is what makes relative
+  // refs like "surface_v3.schema.json#" resolve against the document's own
+  // location; passing the object leaves the parser resolving them against
+  // process.cwd(). dereferenceSchemas.cjs reaches the same place by a different
+  // route — stamping `$id` onto a copy in a build directory first — because it
+  // needs the rewritten file on disk. This doesn't.
   //
   // Validating the raw sources instead produces false failures: Ajv resolves
   // cross-file and `#/components/...` refs differently than the bundle that
