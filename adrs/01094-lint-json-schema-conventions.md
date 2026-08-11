@@ -104,6 +104,14 @@ would have pushed live ones into the acknowledgement file as though they were de
 The table is pinned by tests that run a live Ajv, so an upgrade that changes default application
 fails in one place rather than silently re-misclassifying every schema in the repo.
 
+One more Ajv behavior the analysis depends on: a `default` **beside** a `$ref` rather than below it.
+Draft-07 says `$ref` siblings are ignored, but Ajv's `useDefaults` acts at the `properties` level and
+applies it anyway. That makes such a default ordinary — live when uncomposed, inert when composed —
+so it is recorded before the `$ref` is followed rather than special-cased. `config_v2` has five, e.g.
+`"input": { "$ref": "#/definitions/input", "default": "." }`; all five are uncomposed and therefore
+live. Also asserted against a live Ajv, because if a future version honors the spec here those five
+become inert and the registry needs to grow.
+
 ### Acknowledgement, not prohibition
 
 Inertness alone is not a defect. `annotation_v3`'s `timeout` is inert **on purpose**: it populates

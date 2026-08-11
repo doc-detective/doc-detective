@@ -98,6 +98,34 @@ describe("scripts/lint-schemas inertDefaults", function () {
     expect(inertDefaults(schema)).to.deep.equal([]);
   });
 
+  it("records a `default` that sits BESIDE a $ref, not just below it", function () {
+    // The $ref branch returns, so recording the node's own default after it
+    // dropped every `{ "$ref": …, "default": … }` node on the floor. config_v2
+    // has five of these -- `input` is
+    // `{ "$ref": "#/definitions/input", "default": "." }` -- and a missed inert
+    // default is exactly the moveTo class of bug this rule exists to catch.
+    const composed = {
+      type: "object",
+      definitions: { input: { type: "string" } },
+      anyOf: [{ properties: { input: { $ref: "#/definitions/input", default: "." } } }],
+    };
+    expect(inertPointers(composed)).to.deep.equal(["/anyOf/0/properties/input"]);
+  });
+
+  it("leaves an uncomposed $ref-sibling default alone, because Ajv applies it", function () {
+    // Draft-07 says $ref siblings are ignored, so the tempting fix is to call
+    // every such default inert. Ajv disagrees: useDefaults acts at the
+    // `properties` level and the sibling DOES land -- pinned against a live
+    // validator below. Reporting it would have been a false positive on all
+    // five of config_v2's, which are reachable without composition.
+    const uncomposed = {
+      type: "object",
+      definitions: { input: { type: "string" } },
+      properties: { input: { $ref: "#/definitions/input", default: "." } },
+    };
+    expect(inertDefaults(uncomposed)).to.deep.equal([]);
+  });
+
   it("survives a circular internal $ref", function () {
     const schema = {
       anyOf: [{ $ref: "#/components/schemas/node" }],
@@ -213,6 +241,20 @@ describe("scripts/lint-schemas COMPOSITION_KEYWORDS vs the real Ajv", function (
       expect(applyDefaults(schema, { ...seed }).x).to.equal("V");
     });
   }
+
+  it("applies a `default` that is a SIBLING of $ref, contrary to draft-07", function () {
+    // Draft-07 says $ref siblings are ignored. Ajv's useDefaults acts at the
+    // `properties` level and applies it anyway. The detector's treatment of
+    // config_v2's five such nodes as live rests entirely on this, so it is
+    // asserted rather than assumed -- if a future Ajv honors the spec here,
+    // those five become inert and this test says so.
+    const schema = {
+      type: "object",
+      definitions: { input: { type: "string" } },
+      properties: { input: { $ref: "#/definitions/input", default: "." } },
+    };
+    expect(applyDefaults(schema, {})).to.deep.equal({ input: "." });
+  });
 
   it("reports a default under not", function () {
     const schema = { type: "object", not: { properties: { a: { default: "N" } } } };

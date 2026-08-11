@@ -235,17 +235,30 @@ function inertDefaults(schema) {
       return;
     }
 
-    if (typeof node.$ref === "string" && node.$ref.startsWith("#")) {
-      const target = resolvePointer(node.$ref);
-      if (target) visit(target.node, target.pointer, composed);
-      return;
-    }
-
+    // Record this node's OWN default before following any `$ref`.
+    //
+    // Ordering matters: the `$ref` branch below returns, so doing this after it
+    // silently dropped every `{ "$ref": …, "default": … }` node. That shape is
+    // real here -- config_v2 has five, e.g. `input` as
+    // `{ "$ref": "#/definitions/input", "default": "." }` -- and a missed inert
+    // default is precisely the moveTo class of bug this rule exists to catch.
+    //
+    // Draft-07 says `$ref` siblings are ignored, but Ajv applies `useDefaults`
+    // at the `properties` level, so the sibling default DOES land (measured, and
+    // pinned in the tests). It is therefore live when uncomposed and inert when
+    // composed, exactly like any other default -- which is why it is recorded
+    // here rather than special-cased.
     if (Object.prototype.hasOwnProperty.call(node, "default")) {
       const entry = state.get(pointer) || { live: false, composed: false, value: node.default };
       if (composed) entry.composed = true;
       else entry.live = true;
       state.set(pointer, entry);
+    }
+
+    if (typeof node.$ref === "string" && node.$ref.startsWith("#")) {
+      const target = resolvePointer(node.$ref);
+      if (target) visit(target.node, target.pointer, composed);
+      return;
     }
 
     // Descend ONLY through keywords Ajv actually applies. Walking every key
