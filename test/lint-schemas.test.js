@@ -146,23 +146,29 @@ describe("scripts/lint-schemas readJson", function () {
     })();
     expect(bare).to.not.contain(".json");
 
-    const file = path.join(os.tmpdir(), `lint-schemas-readjson-${process.pid}.json`);
-    fs.writeFileSync(file, "{ broken");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-schemas-"));
     try {
+      const file = path.join(dir, "broken.json");
+      fs.writeFileSync(file, "{ broken");
+      // The filename assertion is the point of the test. Checking only the
+      // label and the phrase would still pass if readJson stopped naming the
+      // file — which is the exact regression this guards.
+      expect(() => readJson(file, "The test fixture")).to.throw(path.basename(file));
       expect(() => readJson(file, "The test fixture")).to.throw(/The test fixture/);
       expect(() => readJson(file, "The test fixture")).to.throw(/is not valid JSON/);
     } finally {
-      fs.rmSync(file, { force: true });
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
   it("returns parsed content when the file is valid", function () {
-    const file = path.join(os.tmpdir(), `lint-schemas-readjson-ok-${process.pid}.json`);
-    fs.writeFileSync(file, '{"a":1}');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-schemas-"));
     try {
+      const file = path.join(dir, "ok.json");
+      fs.writeFileSync(file, '{"a":1}');
       expect(readJson(file, "The test fixture")).to.deep.equal({ a: 1 });
     } finally {
-      fs.rmSync(file, { force: true });
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
