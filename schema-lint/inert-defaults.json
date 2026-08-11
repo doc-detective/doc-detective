@@ -2,8 +2,8 @@
   "annotation_v3.schema.json": {
     "/components/schemas/target_element_shape/properties/timeout": {
       "value": 5000,
-      "runtime": "UNVERIFIED",
-      "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
+      "runtime": "src/core/annotations/geometry.ts — criteriaFromTarget passes `timeout: target?.timeout` through to findElement, which applies `?? 5000` (src/core/tests/findElement.ts).",
+      "why": "Runtime owns the 5000 ms; the schema default documents it on the annotate reference page. Inert because target_element_shape sits inside the root anyOf (ADR 01085)."
     }
   },
   "checkLink_v3.schema.json": {

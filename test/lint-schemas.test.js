@@ -125,19 +125,94 @@ describe("scripts/lint-schemas inertDefaults", function () {
     expect(inertPointers(schema)).to.deep.equal(["/properties/click/oneOf/0"]);
   });
 
-  it("reports defaults under if / then / else", function () {
+  it("reports a default under `if`, but NOT under `then` or `else`", function () {
+    // The if/then/else family does not behave uniformly, which is the trap this
+    // pins. `if` is evaluated only as a predicate, so its own defaults never
+    // land. `then`/`else` are ordinary subschemas applied when their branch is
+    // selected, so their defaults DO land -- conditionally, but conditional
+    // liveness is still liveness.
+    //
+    // Reported as inert here originally. That was a false positive on every
+    // such default in the repo, and it pushed live ones into
+    // inert-defaults.json as though they were dead.
     const schema = {
       type: "object",
       if: { properties: { a: { default: "I" } } },
       then: { properties: { b: { default: "T" } } },
       else: { properties: { c: { default: "E" } } },
     };
-    expect(inertPointers(schema)).to.deep.equal([
-      "/else/properties/c",
-      "/if/properties/a",
-      "/then/properties/b",
-    ]);
+    expect(inertPointers(schema)).to.deep.equal(["/if/properties/a"]);
   });
+
+  it("still reports a `then` default when a composition keyword sits above it", function () {
+    // Nesting composes: `then` does not block, but the `anyOf` above it does.
+    const schema = {
+      type: "object",
+      anyOf: [{ if: { properties: { k: { const: "a" } } }, then: { properties: { deep: { default: "D" } } } }],
+    };
+    expect(inertPointers(schema)).to.deep.equal(["/anyOf/0/then/properties/deep"]);
+  });
+});
+
+describe("scripts/lint-schemas COMPOSITION_KEYWORDS vs the real Ajv", function () {
+  // The classification above is only as good as its agreement with the Ajv the
+  // repo actually validates with. These assertions run a live validator so an
+  // Ajv upgrade that changes default application fails HERE -- loudly, in one
+  // place -- instead of silently re-misclassifying every schema in the repo.
+  //
+  // Ajv's own strict-mode warning is not usable as this oracle: it flags
+  // httpRequest_v3's `statusCodes` but stays silent on find_v3's `moveTo`. See
+  // the header of this file.
+
+  /** Validate `data` against `schema` with the repo's mutating Ajv settings. */
+  function applyDefaults(schema, data) {
+    const Ajv = require("ajv");
+    // Mirrors src/common/src/validate.ts's mutating instance for the settings
+    // that decide default application.
+    new Ajv({ useDefaults: true, strict: false }).validate(schema, data);
+    return data;
+  }
+
+  const BLOCKS = [
+    ["anyOf", { type: "object", anyOf: [{ properties: { x: { default: "V" } } }] }],
+    ["oneOf", { type: "object", oneOf: [{ properties: { x: { default: "V" } } }] }],
+    ["not", { type: "object", not: { properties: { x: { default: "V" } }, required: ["nope"] } }],
+    ["if", { type: "object", if: { properties: { x: { default: "V" } } }, then: {} }],
+  ];
+
+  for (const [keyword, schema] of BLOCKS) {
+    it(`Ajv does NOT apply a default under \`${keyword}\``, function () {
+      expect(applyDefaults(schema, {})).to.deep.equal({});
+    });
+  }
+
+  const APPLIES = [
+    ["allOf", { type: "object", allOf: [{ properties: { x: { default: "V" } } }] }, {}],
+    [
+      "then",
+      {
+        type: "object",
+        if: { properties: { k: { const: "a" } }, required: ["k"] },
+        then: { properties: { x: { default: "V" } } },
+      },
+      { k: "a" },
+    ],
+    [
+      "else",
+      {
+        type: "object",
+        if: { properties: { k: { const: "a" } }, required: ["k"] },
+        else: { properties: { x: { default: "V" } } },
+      },
+      { k: "z" },
+    ],
+  ];
+
+  for (const [keyword, schema, seed] of APPLIES) {
+    it(`Ajv DOES apply a default under \`${keyword}\``, function () {
+      expect(applyDefaults(schema, { ...seed }).x).to.equal("V");
+    });
+  }
 
   it("reports a default under not", function () {
     const schema = { type: "object", not: { properties: { a: { default: "N" } } } };
@@ -221,6 +296,10 @@ describe("scripts/lint-schemas readJson", function () {
 });
 
 describe("scripts/lint-schemas malformed schemas", function () {
+  // Generous even though this path fails fast: on a cold cache the spawn plus
+  // module load has been seen past mocha's 10s default on Windows CI.
+  this.timeout(120000);
+
   // Both custom passes used to wrap readSchema in `catch { continue; }`, so a
   // schema that would not parse was skipped in silence. Skipping an input is
   // indistinguishable from passing on it: the lint reported "no findings" for a
@@ -274,6 +353,90 @@ describe("scripts/lint-schemas malformed schemas", function () {
       // from the module's own location and cannot be redirected. Removed even
       // if the assertions throw, so a failure here cannot break every later run.
       fs.rmSync(planted, { force: true });
+    }
+  });
+});
+
+describe("scripts/lint-schemas inert-default registrations", function () {
+  // These spawn a full lint, which compiles all 69 schemas through Ajv in
+  // lintExamples -- comfortably past mocha's 10s default. The malformed-schema
+  // test nearby doesn't need this because it crashes before reaching that pass.
+  this.timeout(120000);
+
+  const ACK = path.join(REPO_ROOT, "schema-lint", "inert-defaults.json");
+
+  /** Run the lint with the custom passes only; return {failed, output}. */
+  function runLint() {
+    try {
+      execFileSync(process.execPath, ["scripts/lint-schemas.cjs", "--skip-spectral"], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+      return { failed: false, output: "" };
+    } catch (error) {
+      return { failed: true, output: `${error.stdout || ""}${error.stderr || ""}` };
+    }
+  }
+
+  it("every shipped registration carries a runtime and a why", function () {
+    // These two fields ARE the gate. Registering a moveTo twin is only caught
+    // because doing so forces someone to write the runtime's real behavior
+    // beside the declared default, where the contradiction is visible. An entry
+    // of just `{ "value": … }` would pass every other check while recording
+    // nothing, which turns the acknowledgement file into a suppression list.
+    const ack = JSON.parse(fs.readFileSync(ACK, "utf8"));
+    const bad = [];
+    for (const [file, pointers] of Object.entries(ack)) {
+      for (const [pointer, entry] of Object.entries(pointers)) {
+        for (const field of ["runtime", "why"]) {
+          if (typeof entry[field] !== "string" || !entry[field].trim()) bad.push(`${file}${pointer} (${field})`);
+        }
+      }
+    }
+    expect(bad, `registrations missing metadata:\n${bad.join("\n")}`).to.deep.equal([]);
+  });
+
+  it("fails the lint when a registration drops its runtime", function () {
+    // Asserted end-to-end rather than by reading the source, because the check
+    // being present is not the same as the check being reached: the value and
+    // orphan branches both `continue` before it in earlier drafts.
+    const original = fs.readFileSync(ACK, "utf8");
+    try {
+      const ack = JSON.parse(original);
+      const [file] = Object.keys(ack);
+      const [pointer] = Object.keys(ack[file]);
+      delete ack[file][pointer].runtime;
+      fs.writeFileSync(ACK, JSON.stringify(ack, null, 2));
+
+      const { failed, output } = runLint();
+      expect(failed, "lint must reject a registration with no runtime").to.equal(true);
+      expect(output).to.contain("has no `runtime`");
+      expect(output).to.contain(pointer);
+    } finally {
+      fs.writeFileSync(ACK, original);
+    }
+  });
+
+  it("fails the lint on a registration whose pointer no longer exists", function () {
+    // The claim the ADR makes about stale entries. Unpinned, the file could
+    // quietly accumulate assertions about schemas that have since changed.
+    const original = fs.readFileSync(ACK, "utf8");
+    try {
+      const ack = JSON.parse(original);
+      const [file] = Object.keys(ack);
+      ack[file]["/properties/thisPointerDoesNotExist"] = {
+        value: "x",
+        runtime: "nowhere",
+        why: "orphan probe",
+      };
+      fs.writeFileSync(ACK, JSON.stringify(ack, null, 2));
+
+      const { failed, output } = runLint();
+      expect(failed).to.equal(true);
+      expect(output).to.contain("no longer has an inert default");
+    } finally {
+      fs.writeFileSync(ACK, original);
     }
   });
 });

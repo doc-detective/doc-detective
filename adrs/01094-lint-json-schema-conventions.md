@@ -21,7 +21,7 @@ Surveying for the general case found more than the bug that prompted it:
 | Class | Found | Notes |
 |---|---|---|
 | TypeScript type-collapse | 17 | **4 confirmed erased in published types** |
-| Inert `default` (never applied) | 63 | 39 have a matching runtime fallback; 24 need review |
+| Inert `default` (never applied) | 63 | 25 cite a matching runtime fallback; 38 are `UNVERIFIED` |
 | Properties with no `description` | 170 | Blank cells on generated reference pages |
 | Title collisions among page-producing schemas | 24 | Generator keys pages by title and overwrites |
 | `additionalProperties: false` across `allOf` branches | 0 | Rule written; the existing shape+guard pattern is correct |
@@ -87,18 +87,41 @@ path from the root reaches it without crossing a composition keyword. It follows
 descends only through keywords Ajv actually applies (notably *not* `components`, which Ajv ignores),
 and treats a node reached by both a composed and an uncomposed path as live.
 
+Which keywords block is **measured, not read off the specification**:
+
+| Keyword | Default applied? | Blocks |
+|---|---|---|
+| `anyOf`, `oneOf`, `not`, `if` | no | yes |
+| `then`, `else` | **yes**, when that branch is selected | no |
+| `allOf` | yes | no |
+
+The `if`/`then`/`else` split is the counter-intuitive one and was got wrong at first, by assuming the
+family behaved uniformly. It does not: `if` is evaluated only as a predicate so its own defaults never
+land, while `then`/`else` are ordinary subschemas applied when their branch is chosen. **Conditional
+liveness is still liveness** — treating them as blockers made every such default a false positive and
+would have pushed live ones into the acknowledgement file as though they were dead.
+
+The table is pinned by tests that run a live Ajv, so an upgrade that changes default application
+fails in one place rather than silently re-misclassifying every schema in the repo.
+
 ### Acknowledgement, not prohibition
 
 Inertness alone is not a defect. `annotation_v3`'s `timeout` is inert **on purpose**: it populates
 the Default column on the generated reference page while the runtime owns the value. Banning inert
 defaults would delete real documentation.
 
-So `schema-lint/inert-defaults.json` registers each one with the runtime counterpart it mirrors.
-Unregistered entries fail; a registered value that no longer matches the schema fails; a registration
-whose pointer disappeared fails. **This is what catches a `moveTo` twin** — registering it forces
-someone to write the runtime's actual behavior beside the declared default, where the contradiction
-is visible. Verified: reintroducing `"default": true` on `moveTo` fails the build with that pointer
-named.
+So `schema-lint/inert-defaults.json` registers each one with the runtime counterpart it mirrors. Four
+things fail the lint: an unregistered inert default; a registered `value` that no longer matches the
+schema; a registration whose pointer disappeared; and a registration missing `runtime` or `why`.
+
+That last one is not bookkeeping. **It is what makes this a gate rather than a suppression list** —
+registering a `moveTo` twin only catches anything because it forces someone to write the runtime's
+actual behavior beside the declared default, where the contradiction becomes visible. An entry of
+`{ "value": true }` alone would satisfy every other check while recording nothing, so the fields are
+enforced. `"UNVERIFIED"` is an accepted value: it says *nobody found the runtime*, which is a claim
+someone can act on, unlike an absent field.
+
+Verified: reintroducing `"default": true` on `moveTo` fails the build with that pointer named.
 
 ### Gating the build
 
@@ -106,7 +129,7 @@ The ROOT `build` runs `lint:schemas` **before** `build:common`. The dereferenced
 the generated types, and the docs reference pages are all derived from these sources; linting after
 generation means generating from input already known to be bad and laundering the mistake into three
 artifacts. Confirmed: with a violation present, `npm run build` exits 1 and `output_schemas/`
-is byte-identical afterwards.
+is byte-identical afterward.
 
 The root, specifically, and not `src/common`'s own `build` — where it sat first. `src/common` ships a
 maintained standalone lockfile ([ADR 01091](01091-rebuild-the-common-lockfile-during-release.md)), so
@@ -121,8 +144,11 @@ The CI job is *not* the enforcement — it reports in about a minute and produce
 ### Consequences
 
 * Good: the four erased public types are now visible and gated against recurrence.
-* Good: 63 inert defaults are documented with their runtime counterparts; 24 without an identified
-  counterpart are flagged for review rather than assumed benign.
+* Good: 63 inert defaults are registered; 25 cite the runtime that owns the value.
+* Bad/limit, and the honest reading of that number: **38 are `UNVERIFIED`** — nobody located a runtime
+  counterpart for them. Each is a possible `moveTo` twin, and they are recorded as open questions
+  rather than waved through. The gate's value here is that they are now enumerated instead of
+  invisible; retiring them is follow-up work, not something this ADR claims to have done.
 * Good: no rule depends on build output, so the lint can gate the build.
 * Neutral: `require-description` (170) and `camelcase-property-names` are warnings — real signal, but
   not worth blocking a build over, and they surface as PR annotations on lines being touched.
@@ -139,6 +165,10 @@ The CI job is *not* the enforcement — it reports in about a minute and produce
 
 * `npm run lint:schemas` exits 0 on the tree as shipped.
 * Reintroducing `moveTo: true` fails, naming the pointer — run before trusting the gate.
+* The block/apply table is asserted against a live Ajv, and each remaining gate branch is asserted
+  end-to-end: dropping a registration's `runtime`, planting an orphan pointer, and planting an
+  unparseable schema each fail the lint. Checked by mutation rather than by reading the source — a
+  branch can exist and still be unreachable behind an earlier `continue`.
 * `npm run build` with a violation exits 1 leaving `output_schemas/` untouched.
 * `examples-validate` reports zero: every schema's examples validate against its own dereferenced
   form. It reached zero only after dereferencing in memory the way the build does — validating raw

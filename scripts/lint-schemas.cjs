@@ -34,13 +34,36 @@ const ACK_FILE = path.join(REPO_ROOT, "schema-lint", "inert-defaults.json");
 const BASELINE_FILE = path.join(REPO_ROOT, "schema-lint", "baseline.json");
 const DOCS_GENERATOR = path.join(REPO_ROOT, "docs", ".scripts", "buildSchemaReferencesV4.js");
 
-const COMPOSITION_KEYWORDS = ["anyOf", "oneOf", "not", "if", "then", "else"];
+// Keywords that BLOCK default application, so a `default` underneath one is
+// dead. Measured against the repo's Ajv (8.20, `useDefaults: true`), not taken
+// from the documentation — see test/lint-schemas.test.js, which pins each of
+// these against a live validator so an Ajv upgrade that changes the behavior
+// fails the suite rather than silently mis-classifying every schema.
+//
+//   anyOf / oneOf / not / if  ->  default NOT applied      (listed here)
+//   then / else               ->  default IS applied       (deliberately absent)
+//   allOf                     ->  default IS applied       (deliberately absent)
+//
+// `then`/`else` were wrongly listed here at first, on the assumption that
+// everything in the if/then/else family behaved like `if`. It does not: Ajv
+// applies defaults from whichever branch is SELECTED. That made every such
+// default a false positive, and forced real ones into the acknowledgement file
+// as though they were dead. `if` stays because its subschema is evaluated only
+// as a predicate — its own defaults never land.
+//
+// Conditional liveness is still liveness. A `then` default applies whenever its
+// branch is taken, so it is not dead and must not be reported.
+const COMPOSITION_KEYWORDS = ["anyOf", "oneOf", "not", "if"];
 
 // Keywords Ajv actually descends into when validating. `components` and
 // `definitions` are deliberately absent: they're containers reachable only by
 // `$ref`, so treating them as traversable invents validation paths that don't
-// exist. `allOf` IS an applicator but is NOT a composition keyword for default
-// purposes — Ajv applies defaults through allOf.
+// exist.
+//
+// Broader than COMPOSITION_KEYWORDS on purpose: `allOf`, `then`, and `else`
+// are traversed (defaults below them are live and must be reachable) but do not
+// block, so they are listed here and not above. Nesting still composes — a
+// `then` under an `anyOf` is dead, because the `anyOf` blocks it.
 const APPLICATORS = new Set([
   "properties",
   "patternProperties",
@@ -52,6 +75,8 @@ const APPLICATORS = new Set([
   "dependencies",
   "dependentSchemas",
   "allOf",
+  "then",
+  "else",
   ...COMPOSITION_KEYWORDS,
 ]);
 // Applicators whose value is a map of NAME -> schema rather than a schema.
@@ -442,6 +467,23 @@ function lintInertDefaults() {
         `Registered as \`${JSON.stringify(entry.value)}\` in schema-lint/inert-defaults.json but the ` +
           `schema now says \`${JSON.stringify(hit.value)}\`. One of them moved without the other; the ` +
           `registration records that this mirrors ${entry.runtime}.`
+      );
+    }
+    // `runtime` and `why` are the entire point of the acknowledgement -- the
+    // gate catches a moveTo twin only because registering one FORCES someone to
+    // write the runtime's real behavior next to the declared default, where the
+    // contradiction becomes visible. `{ "value": true }` alone would satisfy
+    // every other check here while recording nothing, turning the gate back
+    // into a suppression list. Enforced, not assumed.
+    for (const field of ["runtime", "why"]) {
+      if (typeof entry[field] === "string" && entry[field].trim()) continue;
+      report(
+        "no-inert-default",
+        hit.file,
+        hit.pointer,
+        `The registration in schema-lint/inert-defaults.json has no \`${field}\`. Record where the ` +
+          `real default lives and why this one is inert — an entry without it suppresses the finding ` +
+          `while documenting nothing. Use "UNVERIFIED" if you genuinely could not locate the runtime.`
       );
     }
   }
