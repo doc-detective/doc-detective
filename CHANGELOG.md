@@ -1,3 +1,10 @@
+# [4.38.0](https://github.com/doc-detective/doc-detective/compare/v4.37.5...v4.38.0) (2026-08-11)
+
+
+### Features
+
+* **reporters:** add junit and markdown reporters ([#702](https://github.com/doc-detective/doc-detective/issues/702)) ([f6dc3b2](https://github.com/doc-detective/doc-detective/commit/f6dc3b22b9a88ac5c6c83d944276ea77ddf548e5)), closes [#683](https://github.com/doc-detective/doc-detective/issues/683) [#684](https://github.com/doc-detective/doc-detective/issues/684)
+
 ## [4.37.5](https://github.com/doc-detective/doc-detective/compare/v4.37.4...v4.37.5) (2026-08-11)
 
 
