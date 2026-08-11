@@ -13,9 +13,25 @@ import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// This suite is ESM, so there is no __dirname. Spelling it out rather than
+// reaching for one: a bare `__dirname` here throws a ReferenceError that an
+// enclosing catch swallows, which is how the subprocess test below first
+// "failed to spawn" while looking like the lint had simply printed nothing.
+const REPO_ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 
 const require = createRequire(import.meta.url);
-const { inertDefaults, escapeData, escapeProperty, pageSchemas, readJson } = require("../scripts/lint-schemas.cjs");
+const { execFileSync } = require("node:child_process");
+const {
+  inertDefaults,
+  escapeData,
+  escapeProperty,
+  pageSchemas,
+  readJson,
+  readSchema,
+  SRC_SCHEMAS,
+} = require("../scripts/lint-schemas.cjs");
 
 before(async function () {
   const { expect } = await import("chai");
@@ -200,6 +216,64 @@ describe("scripts/lint-schemas readJson", function () {
       expect(readJson(file, "The test fixture")).to.deep.equal({ a: 1 });
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("scripts/lint-schemas malformed schemas", function () {
+  // Both custom passes used to wrap readSchema in `catch { continue; }`, so a
+  // schema that would not parse was skipped in silence. Skipping an input is
+  // indistinguishable from passing on it: the lint reported "no findings" for a
+  // file it never read, and `--skip-spectral` removed the only other reader.
+  // That is the same silent-no-op class as the zero-match glob and the missing
+  // baseline, and it is why neither call site catches any more.
+
+  it("names the offending schema rather than a character offset", function () {
+    // The seam both passes go through. Ajv-style "position 2" with no filename
+    // is useless across 69 schemas -- see the sibling readJson test.
+    expect(() => readSchema("definitely-not-a-real.schema.json")).to.throw();
+    try {
+      readSchema("definitely-not-a-real.schema.json");
+    } catch (error) {
+      expect(error.message).to.contain("definitely-not-a-real.schema.json");
+    }
+  });
+
+  it("fails the whole lint on an unparseable schema, even with --skip-spectral", function () {
+    // End-to-end on purpose. A unit test on readSchema alone would still have
+    // passed with the `catch { continue; }` in place -- the defect was in the
+    // callers, not the reader. --skip-spectral proves the CUSTOM passes catch
+    // it, with Spectral (which would also reject the file) taken out of play.
+    //
+    // Covers the lintInertDefaults call site specifically: lintUniqueTitles
+    // only reads page-producing schemas, and a planted file is not one, so no
+    // fixture can reach that branch from outside. The reader is shared and the
+    // test above pins it.
+    const planted = path.join(SRC_SCHEMAS, "zz-lint-selftest-malformed.schema.json");
+    fs.writeFileSync(planted, '{ "title": "broken",');
+    try {
+      let failed = false;
+      let output = "";
+      try {
+        execFileSync(process.execPath, ["scripts/lint-schemas.cjs", "--skip-spectral"], {
+          cwd: REPO_ROOT,
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      } catch (error) {
+        failed = true;
+        // Asserting on the OUTPUT, not just the exit code. A non-zero exit
+        // alone would also be satisfied by the harness failing to spawn node at
+        // all -- which is exactly what happened on the first run of this test.
+        output = `${error.stdout || ""}${error.stderr || ""}`;
+      }
+      expect(failed, "lint must exit non-zero on an unparseable schema").to.equal(true);
+      expect(output).to.contain("zz-lint-selftest-malformed.schema.json");
+    } finally {
+      // Planted inside the real schema directory because SRC_SCHEMAS is derived
+      // from the module's own location and cannot be redirected. Removed even
+      // if the assertions throw, so a failure here cannot break every later run.
+      fs.rmSync(planted, { force: true });
     }
   });
 });

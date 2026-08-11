@@ -73,8 +73,18 @@ function schemaFiles() {
   return fs.readdirSync(SRC_SCHEMAS).filter((f) => f.endsWith(".json")).sort();
 }
 
+/**
+ * Parse an authored schema, or throw naming the file.
+ *
+ * Goes through readJson rather than JSON.parse for the reason recorded there:
+ * Node's SyntaxError carries a character offset and no filename, so a bare parse
+ * of one of 69 schemas reports "position 2" and leaves you guessing which.
+ *
+ * Callers deliberately do NOT catch. A schema that will not parse is a lint
+ * failure, not a file to skip -- see the comment at lintUniqueTitles' loop.
+ */
 function readSchema(file) {
-  return JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, file), "utf8"));
+  return readJson(path.join(SRC_SCHEMAS, file), `The schema ${file}`);
 }
 
 /**
@@ -334,12 +344,12 @@ function lintUniqueTitles() {
 
   for (const file of schemaFiles()) {
     if (!emitted.has(file)) continue;
-    let schema;
-    try {
-      schema = readSchema(file);
-    } catch {
-      continue;
-    }
+    // No try/catch. A malformed schema used to be skipped silently here, which
+    // turned "this file could not be read" into "this file has no titles" --
+    // and with --skip-spectral nothing else would have noticed. Skipping the
+    // input is indistinguishable from passing on it, and that has been this
+    // tool's recurring failure mode. readSchema throws naming the file.
+    const schema = readSchema(file);
     walk(schema, "", (node, pointer) => {
       if (typeof node.title !== "string" || !node.title.trim()) return;
       if (!index.has(node.title)) index.set(node.title, []);
@@ -393,12 +403,9 @@ function lintInertDefaults() {
   // find_v3's `moveTo`, the very bug this rule exists to catch.
   const walkerHits = [];
   for (const file of schemaFiles()) {
-    let schema;
-    try {
-      schema = readSchema(file);
-    } catch {
-      continue;
-    }
+    // Deliberately unguarded, as in lintUniqueTitles: a schema that will not
+    // parse must fail the lint, not quietly contribute zero inert defaults.
+    const schema = readSchema(file);
     for (const hit of inertDefaults(schema)) {
       walkerHits.push({ file, pointer: hit.pointer, value: hit.value });
     }
@@ -685,4 +692,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inertDefaults, escapeData, escapeProperty, pageSchemas, readJson };
+module.exports = { inertDefaults, escapeData, escapeProperty, pageSchemas, readJson, readSchema, SRC_SCHEMAS };
