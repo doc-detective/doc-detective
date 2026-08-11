@@ -14,7 +14,7 @@ For the full list of reporter and output options, see the [`config`](/reference/
 
 ## Step 1: Choose your reporters
 
-Doc Detective ships four reporters: `terminal`, `json`, `html`, and `runFolder`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
+Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
 
 | Reporter | Output |
 |---|---|
@@ -22,6 +22,29 @@ Doc Detective ships four reporters: `terminal`, `json`, `html`, and `runFolder`.
 | `json` | A flat JSON results file with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser. |
 | `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
+| `junit` | A `junit.xml` report that CI platforms render in their test summary views. |
+| `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. |
+
+The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
+
+On GitLab, point the test summary at the `junit.xml` file:
+
+```yaml title=".gitlab-ci.yml"
+doc-tests:
+  script:
+    - doc-detective --input ./docs --reporters terminal junit --output ./reports
+  artifacts:
+    reports:
+      junit: reports/junit.xml
+```
+
+On GitHub Actions, append the Markdown summary to the job summary:
+
+```yaml title=".github/workflows/docs.yml"
+- run: doc-detective --input ./docs --reporters terminal markdown --output ./reports
+- if: always()
+  run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
+```
 
 Select reporters on the command line:
 
