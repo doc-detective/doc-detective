@@ -97,6 +97,37 @@ describe("scripts/lint-schemas inertDefaults", function () {
     expect(inertPointers(schema)).to.deep.equal(["/components/schemas/node/properties/x"]);
   });
 
+  it("reports a default under oneOf", function () {
+    // Not hypothetical: find_v2's `click` default is reached this way and is
+    // registered in inert-defaults.json today. Only anyOf and allOf were pinned
+    // before, so a regression dropping oneOf from COMPOSITION_KEYWORDS would
+    // have gone unnoticed.
+    const schema = {
+      type: "object",
+      properties: { click: { oneOf: [{ type: "boolean", default: false }] } },
+    };
+    expect(inertPointers(schema)).to.deep.equal(["/properties/click/oneOf/0"]);
+  });
+
+  it("reports defaults under if / then / else", function () {
+    const schema = {
+      type: "object",
+      if: { properties: { a: { default: "I" } } },
+      then: { properties: { b: { default: "T" } } },
+      else: { properties: { c: { default: "E" } } },
+    };
+    expect(inertPointers(schema)).to.deep.equal([
+      "/else/properties/c",
+      "/if/properties/a",
+      "/then/properties/b",
+    ]);
+  });
+
+  it("reports a default under not", function () {
+    const schema = { type: "object", not: { properties: { a: { default: "N" } } } };
+    expect(inertPointers(schema)).to.deep.equal(["/not/properties/a"]);
+  });
+
   it("ignores `default` keys that are data rather than schema keywords", function () {
     // A user's `examples` entry can contain a literal `default` key; descending
     // into it would invent findings from documentation.
