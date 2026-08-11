@@ -401,9 +401,34 @@ describe("scripts/lint-schemas malformed schemas", function () {
     // the acknowledgement tests avoid the problem entirely via SCHEMA_LINT_ACK,
     // but SRC_SCHEMAS is derived from the module's own location and the file has
     // to be inside it for the pass to read it.
+    //
+    // SIGTERM as well as SIGINT: Node does not emit `exit` for signal
+    // termination, so the `exit` hook covers neither, and CI runners send
+    // SIGTERM on cancellation and step timeouts -- the likeliest way this test
+    // ever gets killed mid-flight.
+    //
+    // Each handler exits explicitly rather than only sweeping. Registering a
+    // listener REPLACES Node's default action for that signal, so a sweep-only
+    // handler would leave Ctrl+C deleting a file while the process ran on.
+    // 128+signo is the conventional status a shell reports for signal death.
+    //
+    // Honest scope: this is a POSIX backstop. Measured on Windows, `kill -TERM`
+    // left the planted file behind -- Node does not deliver SIGTERM listeners
+    // there, and its SIGINT emulation only fires for a real console Ctrl+C, not
+    // a signal from another process. The load-bearing cleanup on every platform
+    // is the `finally` below plus the `exit` hook; these handlers extend that to
+    // signal death on Linux and macOS, which is where CI cancels jobs.
     const sweep = () => fs.rmSync(planted, { force: true });
+    const SIGNALS = { SIGINT: 2, SIGTERM: 15 };
+    const onSignal = {};
     process.once("exit", sweep);
-    process.once("SIGINT", sweep);
+    for (const [name, signo] of Object.entries(SIGNALS)) {
+      onSignal[name] = () => {
+        sweep();
+        process.exit(128 + signo);
+      };
+      process.once(name, onSignal[name]);
+    }
     fs.writeFileSync(planted, '{ "title": "broken",');
     try {
       let failed = false;
@@ -426,7 +451,7 @@ describe("scripts/lint-schemas malformed schemas", function () {
     } finally {
       sweep();
       process.off("exit", sweep);
-      process.off("SIGINT", sweep);
+      for (const name of Object.keys(SIGNALS)) process.off(name, onSignal[name]);
     }
   });
 });
