@@ -405,3 +405,44 @@ const baseConfig = { logLevel: "silent" };
     assert.ok(hit.outputs.imageMatch.score >= 0.5);
   });
 });
+
+// Appended: the timeout verdict must reflect the FINAL observed state.
+(sharp && opencv ? describe : describe.skip)("findElement image ambiguity settling", function () {
+  this.timeout(180000);
+
+  it("reports a miss (not ambiguity) when duplicate matches settle to zero before timeout", async function () {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-settle-"));
+    try {
+      const duoScene = await makeScene([
+        { x: 100, y: 100 },
+        { x: 500, y: 400 },
+      ]);
+      // A scene with no glyph at all: the transient duplicates disappeared.
+      const emptyScene = await sharp(
+        Buffer.from(
+          `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/></svg>`
+        )
+      )
+        .png()
+        .toBuffer();
+      const template = await makeTemplateFile(tmpDir);
+      const scenes = [duoScene];
+      const driver = makeDriver({ scene: duoScene });
+      driver.takeScreenshot = async () =>
+        (scenes.shift() ?? emptyScene).toString("base64");
+
+      const result = await findElement({
+        config: baseConfig,
+        step: { find: { image: template, timeout: 2500 } },
+        driver,
+      });
+
+      assert.equal(result.status, "FAIL");
+      // Final state was zero matches -> miss diagnostics, NOT the ambiguity error.
+      assert.doesNotMatch(result.description, /regions matched the template/);
+      assert.match(result.description, /visual candidate|no candidate/i);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});

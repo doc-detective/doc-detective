@@ -634,6 +634,10 @@ async function findElementByCriteria({
           visual.bestEver = { ...matchResult.bestCandidate, captureScale };
         }
         if (!matchResult.matches.length) {
+          // The timeout report must reflect the FINAL observed state: a
+          // previously-ambiguous frame that settled to zero matches is a
+          // miss (with best-candidate diagnostics), not an ambiguity.
+          visual.ambiguous = null;
           await new Promise((resolve) => setTimeout(resolve, pollingInterval));
           continue;
         }

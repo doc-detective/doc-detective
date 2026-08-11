@@ -1294,8 +1294,20 @@ async function findAppElementVisually({
   // Resolve sharp ONCE before polling — loadHeavyDep re-resolves module
   // paths per call, and paying that inside every capture+match round would
   // dilute the poll cadence for nothing (the module itself never changes).
-  const sharpMod = await loadHeavyDep<any>("sharp", { ctx });
-  const sharp = sharpMod && (sharpMod.default ?? sharpMod);
+  // A missing/uninstallable dep must honor this function's structured-error
+  // contract (actionable { error }), not escape as a thrown exception.
+  let sharp: any;
+  try {
+    const sharpMod = await loadHeavyDep<any>("sharp", { ctx });
+    sharp = sharpMod && (sharpMod.default ?? sharpMod);
+    if (!sharp) throw new Error("sharp resolved to an empty module");
+  } catch (error: any) {
+    return {
+      error:
+        `Visual matching requires the optional sharp dependency. Install it ` +
+        `with \`doc-detective install\`. Original error: ${error?.message ?? error}`,
+    };
+  }
 
   // do/while so an explicit `timeout: 0` (the locator path's immediate-check
   // semantics) still runs one capture+match round instead of always missing.
