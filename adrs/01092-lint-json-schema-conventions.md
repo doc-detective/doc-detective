@@ -45,6 +45,13 @@ in a `$comment` — the convention existed, nothing enforced it.
 * Findings must land on the line an author can edit, or they get ignored.
 * The rules encode *this repo's* toolchain behavior, not generic JSON Schema style.
 
+## Considered Options
+
+1. **Spectral for structural rules, plus custom passes** for the two classes it can't express
+   (cross-file identity, Ajv semantics).
+2. **Custom-only** — a bespoke rule registry with no new dependency.
+3. **Spectral-only** — adopt the standard engine wholesale and accept the gaps.
+
 ## Decision Outcome
 
 **Spectral for structural rules, custom passes for what Spectral cannot see, gating the build.**
