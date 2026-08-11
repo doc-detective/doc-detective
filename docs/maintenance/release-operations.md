@@ -137,7 +137,7 @@ This is what broke `main` at 4.37.4 — `@semantic-release/git` committed the re
 The release prepare step now reconciles (two `--package-lock-only` passes) and then verifies
 (`npm ci --dry-run`) after every version stamp, so a release repairs the root lockfile rather than
 corrupting it. **If you ever run `npm version --workspace` by hand, run the two-pass reconcile
-afterwards and verify with `npm ci` before committing.**
+afterward and verify with `npm ci` before committing.**
 
 ### The src/common lockfile is release-managed
 
