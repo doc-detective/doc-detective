@@ -238,14 +238,28 @@ function walk(node, pointer, visit) {
 }
 
 /**
- * Build an Ajv instance matching `src/common/src/validate.ts`.
+ * Build an Ajv instance whose VALIDATION behavior matches
+ * `src/common/src/validate.ts` — not a byte-for-byte copy of its options.
  *
- * This mirroring is not optional. Measured on these schemas: a bare instance
- * emits 489 strict warnings of which only 61 are relevant (the rest are the
- * repo's own `transform`/`components`/`dynamicDefaults` keywords reported as
- * unknown), and registering the plugins WITHOUT the `uuid` dynamic default
- * leaves 23 schemas failing to compile — silently unscanned, which is the
- * failure mode this whole tool exists to prevent.
+ * What must match, and why: the keyword registrations. Measured on these
+ * schemas, a bare instance emits 489 strict warnings of which only 61 are
+ * relevant (the rest are the repo's own `transform`/`components`/
+ * `dynamicDefaults` keywords reported as unknown), and registering the plugins
+ * WITHOUT the `uuid` dynamic default leaves 23 schemas failing to compile —
+ * silently unscanned, which is the failure mode this whole tool exists to
+ * prevent. `useDefaults` and `coerceTypes` match for the same reason: they
+ * decide what `examples-validate` actually sees.
+ *
+ * Where it deliberately differs:
+ *
+ * - `strictSchema: "log"` vs validate.ts's `false`. The lint WANTS the strict
+ *   diagnostics; the runtime validator suppresses them so authored `$comment`s
+ *   and custom keywords don't spam users.
+ * - `validateSchema: false`, which validate.ts doesn't set. These schemas are
+ *   linted as documents, and meta-schema validation would reject the repo's
+ *   own `components`/`transform` vocabulary before any rule ran.
+ * - No `ajv-errors`. It only rewrites error MESSAGES; the lint reports
+ *   validity, not prose.
  *
  * @param {(msg: string) => void} onStrictWarning
  */

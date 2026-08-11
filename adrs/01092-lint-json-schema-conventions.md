@@ -102,11 +102,19 @@ named.
 
 ### Gating the build
 
-`src/common`'s `build` runs `lint:schemas` **before** `dereferenceSchemas`. The dereferenced output,
+The ROOT `build` runs `lint:schemas` **before** `build:common`. The dereferenced output,
 the generated types, and the docs reference pages are all derived from these sources; linting after
 generation means generating from input already known to be bad and laundering the mistake into three
-artifacts. Confirmed: with a violation present, `npm run build:common` exits 1 and `output_schemas/`
+artifacts. Confirmed: with a violation present, `npm run build` exits 1 and `output_schemas/`
 is byte-identical afterwards.
+
+The root, specifically, and not `src/common`'s own `build` — where it sat first. `src/common` ships a
+maintained standalone lockfile ([ADR 01091](01091-rebuild-the-common-lockfile-during-release.md)), so
+`cd src/common && npm ci && npm run build` is a real flow, and Spectral lives in the root's
+dependencies. Adding it to `src/common` wouldn't have helped either: `scripts/lint-schemas.cjs` sits
+at the repo root, so Node resolves its `require`s from `<repo>/node_modules` and never from
+`src/common/node_modules`. Gating at the root keeps the check on the build everyone actually runs
+(and on every CI cell, which builds from the root) without breaking the standalone path.
 
 The CI job is *not* the enforcement — it reports in about a minute and produces inline PR annotations.
 
@@ -131,7 +139,7 @@ The CI job is *not* the enforcement — it reports in about a minute and produce
 
 * `npm run lint:schemas` exits 0 on the tree as shipped.
 * Reintroducing `moveTo: true` fails, naming the pointer — run before trusting the gate.
-* `npm run build:common` with a violation exits 1 leaving `output_schemas/` untouched.
+* `npm run build` with a violation exits 1 leaving `output_schemas/` untouched.
 * `examples-validate` reports zero: every schema's examples validate against its own dereferenced
   form. It reached zero only after dereferencing in memory the way the build does — validating raw
   sources produced false failures on `annotation_v3`'s position-target example, which the real
