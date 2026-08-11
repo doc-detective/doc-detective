@@ -29,6 +29,7 @@ const {
   escapeData,
   escapeProperty,
   pageSchemas,
+  parsePageSchemas,
   readJson,
   readSchema,
   SRC_SCHEMAS,
@@ -608,6 +609,39 @@ describe("scripts/lint-schemas inert-default registrations", function () {
       ack[file]["/properties/anotherOrphan"] = { value: 1, runtime: "n/a", why: "probe" };
     });
     expect(fs.readFileSync(ACK, "utf8")).to.equal(before);
+  });
+});
+
+describe("scripts/lint-schemas parsePageSchemas", function () {
+  const list = (names) => `const schemasToGenerate = [${names.map((n) => `"${n}"`).join(", ")}];`;
+
+  it("matches multi-digit versions, not just v0-v9", function () {
+    // `_v\d` required the closing quote right after a single digit, so
+    // `"foo_v10"` matched NOTHING and dropped out of the set entirely. The
+    // effect is not a wrong filename -- it is unique-title silently skipping
+    // that schema and reporting no collisions for it, while every other name
+    // still matched and kept the emptiness guard quiet.
+    //
+    // Latent today: nothing is past v3. Tested here because reading the real
+    // generator can only exercise the versions that happen to exist, which is
+    // exactly how this stayed invisible.
+    const emitted = parsePageSchemas(list(["find_v3", "foo_v10", "bar_v12"]), "synthetic.js");
+    expect([...emitted].sort()).to.deep.equal([
+      "bar_v12.schema.json",
+      "find_v3.schema.json",
+      "foo_v10.schema.json",
+    ]);
+  });
+
+  it("throws naming the source when the marker is gone", function () {
+    expect(() => parsePageSchemas("nothing here", "synthetic.js")).to.throw("synthetic.js");
+  });
+
+  it("throws naming the source when the list parses to nothing", function () {
+    // Distinct from the marker check: the literal is present but its format
+    // changed. Degrading to an empty Set would make unique-title scan zero
+    // files and exit 0.
+    expect(() => parsePageSchemas(list([]), "synthetic.js")).to.throw("synthetic.js");
   });
 });
 

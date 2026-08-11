@@ -131,7 +131,20 @@ function readSchema(file) {
  * @returns {Set<string>}
  */
 function pageSchemas() {
-  const source = fs.readFileSync(DOCS_GENERATOR, "utf8");
+  return parsePageSchemas(fs.readFileSync(DOCS_GENERATOR, "utf8"), DOCS_GENERATOR);
+}
+
+/**
+ * The parsing half of pageSchemas(), split out so the version-matching can be
+ * tested against a synthetic list. Reading the real generator can only ever
+ * exercise the versions that happen to exist today (all v3), which is exactly
+ * how the `_v\d` bug below stayed invisible.
+ *
+ * @param {string} source Contents of the docs generator.
+ * @param {string} label Path used in error messages.
+ * @returns {Set<string>}
+ */
+function parsePageSchemas(source, label) {
   const marker = "const schemasToGenerate = [";
   const start = source.indexOf(marker);
   // Fail loudly. Without this, renaming or reformatting that literal makes
@@ -141,14 +154,20 @@ function pageSchemas() {
   // safety net, because it still looks green.
   if (start === -1) {
     throw new Error(
-      `Could not find "${marker}" in ${DOCS_GENERATOR}. The unique-title rule reads that list to ` +
+      `Could not find "${marker}" in ${label}. The unique-title rule reads that list to ` +
         `know which schemas become reference pages; update the marker here if the generator changed.`
     );
   }
   const list = source.slice(start, source.indexOf("]", start));
-  const emitted = new Set([...list.matchAll(/"([A-Za-z0-9_]+_v\d)"/g)].map((m) => `${m[1]}.schema.json`));
+  // `\d+`, not `\d`. With a single `\d` the closing quote has to follow the
+  // digit, so `"foo_v10"` matched NOTHING and dropped out of the set entirely --
+  // unique-title would then skip that schema and report no collisions for it,
+  // while every other name still matched and kept the emptiness guard below
+  // quiet. Latent today (nothing is past v3) and invisible when it fires, which
+  // is the combination worth spending a character on.
+  const emitted = new Set([...list.matchAll(/"([A-Za-z0-9_]+_v\d+)"/g)].map((m) => `${m[1]}.schema.json`));
   if (emitted.size === 0) {
-    throw new Error(`Parsed "${marker}" in ${DOCS_GENERATOR} but found no schema names — the list format changed.`);
+    throw new Error(`Parsed "${marker}" in ${label} but found no schema names — the list format changed.`);
   }
   return emitted;
 }
@@ -793,4 +812,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inertDefaults, parseFormat, escapeData, escapeProperty, pageSchemas, readJson, readSchema, SRC_SCHEMAS };
+module.exports = { inertDefaults, parseFormat, parsePageSchemas, escapeData, escapeProperty, pageSchemas, readJson, readSchema, SRC_SCHEMAS };
