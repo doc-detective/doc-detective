@@ -918,7 +918,7 @@ export type ElementCriteria = {
     }
 );
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria1 = {
   /**
@@ -1940,7 +1940,7 @@ export type ElementCriteria2 = {
     }
 );
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria3 = {
   /**
@@ -3151,7 +3151,7 @@ export type Routing63 =
 export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName1 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria4 = {
   /**
@@ -3218,7 +3218,7 @@ export type ParallelSurfaces = [
 ];
 export type DeviceByName2 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria5 = {
   /**
@@ -5507,7 +5507,7 @@ export type ElementCriteria6 = {
     }
 );
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria7 = {
   /**
@@ -6529,7 +6529,7 @@ export type ElementCriteria8 = {
     }
 );
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria9 = {
   /**
@@ -7740,7 +7740,7 @@ export type Routing147 =
 export type StartSurface3 = AppDescriptor2 | BrowserDescriptor2 | ProcessDescriptor2 | ParallelSurfaces1;
 export type DeviceByName3 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria10 = {
   /**
@@ -7807,7 +7807,7 @@ export type ParallelSurfaces1 = [
 ];
 export type DeviceByName4 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria11 = {
   /**
