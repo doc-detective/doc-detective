@@ -111,20 +111,35 @@ function pageSchemas() {
 }
 
 /**
+ * Parse a JSON file, naming it if the parse fails.
+ *
+ * Node's `JSON.parse` SyntaxError reports only a character offset — "Expected
+ * property name or '}' in JSON at position 2" — with no filename. Left bare,
+ * a corrupt baseline or acknowledgement file surfaces as a stack trace that
+ * doesn't say which file to look at.
+ */
+function readJson(file, label) {
+  const text = fs.readFileSync(file, "utf8");
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${label} (${path.relative(REPO_ROOT, file)}) is not valid JSON: ${error.message}`);
+  }
+}
+
+/**
  * Findings recorded when this lint was introduced, shared with the Spectral
  * ruleset. Baselining rather than fixing keeps the tooling change reviewable on
  * its own; the list only shrinks, because deleting an entry that is still
  * violated fails the build.
  *
  * `existsSync` distinguishes "no baseline yet" (a legitimate state, returns {})
- * from "baseline present but unreadable". The `JSON.parse` is deliberately NOT
- * wrapped: a truncated or malformed file would otherwise yield an empty set and
- * re-fire every baselined finding at once, with nothing naming the real cause.
- * Let the SyntaxError carry the filename. The Spectral ruleset's twin does the
- * same.
+ * from "baseline present but unreadable". A malformed file must NOT degrade to
+ * an empty set — that would silently re-fire every baselined finding at once —
+ * so the parse error propagates, now carrying the filename.
  */
 function loadBaseline() {
-  return fs.existsSync(BASELINE_FILE) ? JSON.parse(fs.readFileSync(BASELINE_FILE, "utf8")) : {};
+  return fs.existsSync(BASELINE_FILE) ? readJson(BASELINE_FILE, "The schema-lint baseline") : {};
 }
 
 /** Remove every `$id` in place. Mirrors deleteDollarIds in dereferenceSchemas.cjs. */
@@ -392,7 +407,7 @@ function lintInertDefaults() {
   // --- step 2: the acknowledgement gate -----------------------------------
   let ack = {};
   if (fs.existsSync(ACK_FILE)) {
-    ack = JSON.parse(fs.readFileSync(ACK_FILE, "utf8"));
+    ack = readJson(ACK_FILE, "The inert-default acknowledgements");
   }
 
   const seen = new Set();
@@ -650,4 +665,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inertDefaults, escapeData, escapeProperty, pageSchemas };
+module.exports = { inertDefaults, escapeData, escapeProperty, pageSchemas, readJson };

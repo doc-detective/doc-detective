@@ -10,9 +10,12 @@
 // of the distinctions those attempts got wrong.
 
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const { inertDefaults, escapeData, escapeProperty, pageSchemas } = require("../scripts/lint-schemas.cjs");
+const { inertDefaults, escapeData, escapeProperty, pageSchemas, readJson } = require("../scripts/lint-schemas.cjs");
 
 before(async function () {
   const { expect } = await import("chai");
@@ -124,6 +127,43 @@ describe("scripts/lint-schemas workflow-command escaping", function () {
   it("leaves ordinary text untouched", function () {
     expect(escapeData("no-inert-default")).to.equal("no-inert-default");
     expect(escapeProperty("src/common/x.schema.json")).to.equal("src/common/x.schema.json");
+  });
+});
+
+describe("scripts/lint-schemas readJson", function () {
+  it("names the offending file when JSON is malformed", function () {
+    // Node's own SyntaxError reports only a character offset — "Expected
+    // property name or '}' in JSON at position 2" — with no filename, so a
+    // corrupt baseline used to surface as a stack trace that didn't say which
+    // file to open. Pinned because the code comment previously claimed the
+    // opposite and nothing checked it.
+    const bare = (() => {
+      try {
+        JSON.parse("{ broken");
+      } catch (error) {
+        return error.message;
+      }
+    })();
+    expect(bare).to.not.contain(".json");
+
+    const file = path.join(os.tmpdir(), `lint-schemas-readjson-${process.pid}.json`);
+    fs.writeFileSync(file, "{ broken");
+    try {
+      expect(() => readJson(file, "The test fixture")).to.throw(/The test fixture/);
+      expect(() => readJson(file, "The test fixture")).to.throw(/is not valid JSON/);
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
+  });
+
+  it("returns parsed content when the file is valid", function () {
+    const file = path.join(os.tmpdir(), `lint-schemas-readjson-ok-${process.pid}.json`);
+    fs.writeFileSync(file, '{"a":1}');
+    try {
+      expect(readJson(file, "The test fixture")).to.deep.equal({ a: 1 });
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
   });
 });
 

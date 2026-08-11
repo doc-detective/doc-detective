@@ -51,10 +51,15 @@ function loadBaseline() {
     if (error && error.code === "ENOENT") return {};
     throw error;
   }
-  // Deliberately NOT caught. A truncated or malformed baseline would otherwise
-  // yield an empty set, re-firing all 17 baselined findings at once with nothing
-  // pointing at the real culprit. Let the SyntaxError name the file.
-  return JSON.parse(raw);
+  // A malformed baseline must NOT degrade to an empty set — that would re-fire
+  // every baselined finding at once with nothing pointing at the real culprit.
+  // Rethrown rather than left bare: Node's JSON.parse SyntaxError reports only a
+  // character offset ("...at position 2") and never the filename.
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`The schema-lint baseline (${file}) is not valid JSON: ${error.message}`);
+  }
 }
 
 const baselinedCollapse = new Set(loadBaseline()["no-type-collapse"] ?? []);
