@@ -18,15 +18,21 @@
 
 const fs = require("fs");
 const path = require("path");
-// TypeScript 7's `typescript` package ships only the native tsc shim — the
-// JS compiler API (createSourceFile/ScriptTarget) this script parses
-// src/utils.ts with no longer exists there. Fall back to the pinned
-// API-bearing alias (`typescript-api`, npm:typescript@5) when the primary
-// package has no API, so the generator survives either resolution.
-let ts = require("typescript");
-if (!ts.ScriptTarget) {
-  ts = require("typescript-api");
-}
+// Pinned TypeScript 6 alias, NOT the `typescript` the repo builds with.
+//
+// TypeScript 7 is the native port: `require("typescript")` resolves to
+// lib/version.cjs and exports only { version, versionMajorMinor }. The
+// syntactic compiler API this script relies on — createSourceFile,
+// forEachChild, the isX type guards — is gone from that entry point. What TS 7
+// offers instead lives under `typescript/unstable/*`: an ESM, project-oriented
+// API that spawns the native binary and has no drop-in for parsing one file
+// into a walkable AST.
+//
+// Rewriting this generator against an explicitly unstable API would risk
+// changing its output, and docs-cli-ref.yml compares the generated page
+// byte-for-byte. Pinning the parser instead keeps the output identical and
+// leaves the repo's own TypeScript free to move.
+const ts = require("typescript-compiler-api");
 
 const repoRoot = path.resolve(__dirname, "../..");
 const srcDir = path.join(repoRoot, "src");

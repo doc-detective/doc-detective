@@ -210,12 +210,14 @@ Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 2. `npx semantic-release` analyzes commits since the last tag, then:
    - Computes the next semver from commit types (`fix` → patch, `feat` → minor, `!` or `BREAKING CHANGE` → major)
    - Updates `CHANGELOG.md` (root)
-   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`
+   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`, then rebuilds `src/common/package-lock.json` so its dependency tree matches that manifest, and verifies the root lockfile still installs (see [ADR 01091](../../adrs/01091-rebuild-the-common-lockfile-during-release.md))
    - Publishes both `doc-detective` (root) and `doc-detective-common` (this package) to the channel's dist-tag
    - Commits the version bump + changelog back to the branch with `chore(release): X.Y.Z [skip ci]`
    - Creates the git tag `vX.Y.Z` and a GitHub Release
 
 **No human ever edits `version` in either `package.json`.** The sync script overwrites `src/common/package.json` during release.
+
+**`src/common/package-lock.json` is release-managed too.** The sync script regenerates it every release, so it self-heals: if you bump a dependency in `src/common/package.json`, the lockfile catches up at the next release rather than needing a hand-run `npm install`. If you *do* regenerate it manually, run npm from inside `src/common` **with `--no-workspaces`** — without that flag npm walks up, finds `workspaces: ["src/common"]` in the root manifest, and rewrites the **root** `package-lock.json` instead, leaving this one untouched.
 
 #### Downstream (`.github/workflows/npm-test.yaml`)
 

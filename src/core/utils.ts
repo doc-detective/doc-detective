@@ -1894,7 +1894,10 @@ function getRunOutputDir(
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
   let base = String(config?.output || ".");
-  const reportFileExtensions = [".json", ".html", ".htm"];
+  // Must match the lists in runFolderBaseDir (src/utils.ts) and
+  // reportOutputDir (src/reporters/outputDir.ts) — a divergence would place
+  // the run folder inside a path another reporter writes as a file.
+  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     base = path.dirname(base);
   }
