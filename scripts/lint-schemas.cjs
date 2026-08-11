@@ -502,6 +502,30 @@ async function lintExamples() {
 // Runner
 // ---------------------------------------------------------------------------
 
+/**
+ * Escape a workflow-command DATA payload (the part after `::`).
+ *
+ * Per the workflow-command spec, `%`, CR and LF must be encoded. `%` has to go
+ * first or it would double-encode the escapes introduced after it. These
+ * messages routinely carry both: findings embed JSON targets like
+ * `{"elementTestId":"late-panel"}` and multi-line collision lists, and an
+ * unescaped newline silently truncates the annotation at that point.
+ */
+function escapeData(value) {
+  return String(value).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+
+/**
+ * Escape a workflow-command PROPERTY value (`file=`, `title=`).
+ *
+ * Properties additionally need `:` and `,` encoded, since both are structural
+ * in the property list — an unescaped one would split a value into a bogus
+ * extra property.
+ */
+function escapeProperty(value) {
+  return escapeData(value).replace(/:/g, "%3A").replace(/,/g, "%2C");
+}
+
 function runSpectral(format) {
   // Spawn Spectral's CLI entry with THIS node binary rather than `npx`, and with
   // no shell.
@@ -573,9 +597,10 @@ async function main() {
     for (const f of findings) {
       if (annotate) {
         const file = path.relative(REPO_ROOT, path.join(SRC_SCHEMAS, f.file)).split(path.sep).join("/");
-        // Newlines terminate an annotation, so collapse the message onto one line.
-        const message = `${f.rule}: ${f.pointer ? `${f.pointer} — ` : ""}${f.message}`.replace(/\s*\n\s*/g, " ");
-        console.log(`::error file=${file},title=${f.rule}::${message}`);
+        const message = `${f.rule}: ${f.pointer ? `${f.pointer} — ` : ""}${f.message}`;
+        console.log(
+          `::error file=${escapeProperty(file)},title=${escapeProperty(f.rule)}::${escapeData(message)}`
+        );
       }
       console.error(`  error  ${f.rule}  ${f.file}${f.pointer}`);
       console.error(`         ${f.message}`);
