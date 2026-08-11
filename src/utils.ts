@@ -513,16 +513,18 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // the reporter also accepts a file path (e.g. `results.json`), in which case
 // the run folder belongs *beside* the file, not inside it.
 //
-// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
-// parent, matching getRunOutputDir exactly — even for an existing directory
-// oddly named `reports.json` — so the archive root never diverges from the
-// stamped runDir (a divergence would reject the stamp and break runId/runDir
-// correlation with autoScreenshot). Any other path is then resolved by real
-// filesystem type: an existing file (any extension) archives beside it, an
-// existing or not-yet-created directory (including a dotted name like
-// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
-// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
-// are unaffected.
+// A report-file extension (`.json`/`.html`/`.htm`/`.xml`/`.md`) always
+// resolves to the parent, matching getRunOutputDir exactly — even for an
+// existing directory oddly named `reports.json` — so the archive root never
+// diverges from the stamped runDir (a divergence would reject the stamp and
+// break runId/runDir correlation with autoScreenshot). Any other path is then
+// resolved by real filesystem type: an existing file (any extension) archives
+// beside it, an existing or not-yet-created directory (including a dotted name
+// like `reports.v1`) archives inside it.
+//
+// `.xml`/`.md` joined the list when the junit and markdown reporters landed;
+// getRunOutputDir carries the same two so the three resolvers stay in
+// agreement (see the note on the list below).
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
   // Must match the lists in getRunOutputDir (src/core/utils.ts) and

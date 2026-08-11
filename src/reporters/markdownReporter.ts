@@ -140,7 +140,10 @@ function buildMarkdown(results: any): string {
     if (totalFailures > failures.length) {
       lines.push(
         "",
-        `_… and ${totalFailures - failures.length} more failures. See the JSON report for the full list._`
+        // Deliberately doesn't name the JSON report: `--reporters terminal
+        // markdown` is a documented combination, and that user has no JSON
+        // file to look in.
+        `_… and ${totalFailures - failures.length} more failures not shown._`
       );
     }
   }
