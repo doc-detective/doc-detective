@@ -142,7 +142,7 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # Schema lint for src/common/src/schemas/src_schemas (ADR 01087).
+  # Schema lint for src/common/src/schemas/src_schemas (ADR 01092).
   #
   # NOT the enforcement — `npm run build:common` already gates on this, so every
   # matrix cell above fails on a violation too. This job exists for speed and
