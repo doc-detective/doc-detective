@@ -423,8 +423,13 @@ function lintUniqueTitles() {
 
 /**
  * A `default` under a composition keyword is never applied — Ajv skips defaults
- * inside anyOf/oneOf/not/if/then/else. That is how find_v3 advertised
+ * inside `anyOf`/`oneOf`/`not`/`if`. That is how find_v3 advertised
  * `moveTo: true` for five years while the runtime used `false` (ADR 01086).
+ *
+ * NOT `then`/`else`, despite their sitting in the same family as `if`: Ajv
+ * applies defaults from whichever branch is selected, so those are live. See
+ * COMPOSITION_KEYWORDS for the measured table — this list must not drift from
+ * it, and said `then/else` here while the constant said otherwise.
  *
  * Inertness alone is not the defect: annotation_v3's `timeout` is inert ON
  * PURPOSE, to populate the Default column on its generated reference page while
