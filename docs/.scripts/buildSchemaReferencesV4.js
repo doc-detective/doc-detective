@@ -321,12 +321,48 @@ function exampleValue(propSchema, depth = 0) {
     case "integer": {
       // Clamp the placeholder into the schema's declared bounds so a
       // constrained field (e.g. a 0–1 threshold) never renders an example
-      // its own validation would reject.
+      // its own validation would reject. Exclusive bounds must not clamp
+      // onto the excluded boundary itself: integers step one inward, and
+      // numbers land on the midpoint of the known range (or step a fraction
+      // inward when only one bound exists).
+      const isInt = propSchema.type === "integer";
+      const upper =
+        propSchema.maximum !== undefined
+          ? { bound: propSchema.maximum, inclusive: true }
+          : propSchema.exclusiveMaximum !== undefined
+            ? { bound: propSchema.exclusiveMaximum, inclusive: false }
+            : null;
+      const lower =
+        propSchema.minimum !== undefined
+          ? { bound: propSchema.minimum, inclusive: true }
+          : propSchema.exclusiveMinimum !== undefined
+            ? { bound: propSchema.exclusiveMinimum, inclusive: false }
+            : null;
+      const tooHigh = (v) =>
+        upper && (v > upper.bound || (!upper.inclusive && v === upper.bound));
+      const tooLow = (v) =>
+        lower && (v < lower.bound || (!lower.inclusive && v === lower.bound));
       let value = 42;
-      const max = propSchema.maximum ?? propSchema.exclusiveMaximum;
-      const min = propSchema.minimum ?? propSchema.exclusiveMinimum;
-      if (typeof max === "number" && value > max) value = max;
-      if (typeof min === "number" && value < min) value = min;
+      if (tooHigh(value)) {
+        value = upper.inclusive
+          ? upper.bound
+          : isInt
+            ? upper.bound - 1
+            : upper.bound - 0.1;
+      }
+      if (tooLow(value)) {
+        value = lower.inclusive
+          ? lower.bound
+          : isInt
+            ? lower.bound + 1
+            : lower.bound + 0.1;
+      }
+      // A single inward step can overshoot a tight range; the midpoint of a
+      // fully-bounded range always validates.
+      if (lower && upper && (tooHigh(value) || tooLow(value))) {
+        value = (lower.bound + upper.bound) / 2;
+        if (isInt) value = Math.round(value);
+      }
       return value;
     }
     case "boolean":
