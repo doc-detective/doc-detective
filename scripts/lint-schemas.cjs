@@ -30,7 +30,15 @@ const { spawnSync } = require("child_process");
 const REPO_ROOT = path.resolve(__dirname, "..");
 const SRC_SCHEMAS = path.join(REPO_ROOT, "src", "common", "src", "schemas", "src_schemas");
 const RULESET = path.join(REPO_ROOT, "schema-lint", "ruleset.mjs");
-const ACK_FILE = path.join(REPO_ROOT, "schema-lint", "inert-defaults.json");
+// Overridable so tests can exercise the acknowledgement gate's failure branches
+// WITHOUT mutating the tracked file, mirroring SCHEMA_LINT_BASELINE below.
+//
+// The tests previously wrote a broken copy over schema-lint/inert-defaults.json
+// and restored it in `finally`. That works right up until the run is killed --
+// Ctrl+C, a CI timeout, a crash in the spawned lint -- at which point `finally`
+// never runs and a tracked file is left corrupt in the working tree. A cleanup
+// that silently doesn't happen is the failure mode this whole lint is about.
+const ACK_FILE = process.env.SCHEMA_LINT_ACK || path.join(REPO_ROOT, "schema-lint", "inert-defaults.json");
 const BASELINE_FILE = path.join(REPO_ROOT, "schema-lint", "baseline.json");
 const DOCS_GENERATOR = path.join(REPO_ROOT, "docs", ".scripts", "buildSchemaReferencesV4.js");
 

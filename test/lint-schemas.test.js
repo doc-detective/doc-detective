@@ -381,12 +381,7 @@ describe("scripts/lint-schemas malformed schemas", function () {
   it("names the offending schema rather than a character offset", function () {
     // The seam both passes go through. Ajv-style "position 2" with no filename
     // is useless across 69 schemas -- see the sibling readJson test.
-    expect(() => readSchema("definitely-not-a-real.schema.json")).to.throw();
-    try {
-      readSchema("definitely-not-a-real.schema.json");
-    } catch (error) {
-      expect(error.message).to.contain("definitely-not-a-real.schema.json");
-    }
+    expect(() => readSchema("definitely-not-a-real.schema.json")).to.throw("definitely-not-a-real.schema.json");
   });
 
   it("fails the whole lint on an unparseable schema, even with --skip-spectral", function () {
@@ -400,6 +395,15 @@ describe("scripts/lint-schemas malformed schemas", function () {
     // fixture can reach that branch from outside. The reader is shared and the
     // test above pins it.
     const planted = path.join(SRC_SCHEMAS, "zz-lint-selftest-malformed.schema.json");
+    // Backstop for the `finally` below, which does not run if this process is
+    // killed (Ctrl+C, CI timeout). A leftover unparseable schema would then fail
+    // EVERY later lint and build in this checkout until someone spotted it --
+    // the acknowledgement tests avoid the problem entirely via SCHEMA_LINT_ACK,
+    // but SRC_SCHEMAS is derived from the module's own location and the file has
+    // to be inside it for the pass to read it.
+    const sweep = () => fs.rmSync(planted, { force: true });
+    process.once("exit", sweep);
+    process.once("SIGINT", sweep);
     fs.writeFileSync(planted, '{ "title": "broken",');
     try {
       let failed = false;
@@ -420,10 +424,9 @@ describe("scripts/lint-schemas malformed schemas", function () {
       expect(failed, "lint must exit non-zero on an unparseable schema").to.equal(true);
       expect(output).to.contain("zz-lint-selftest-malformed.schema.json");
     } finally {
-      // Planted inside the real schema directory because SRC_SCHEMAS is derived
-      // from the module's own location and cannot be redirected. Removed even
-      // if the assertions throw, so a failure here cannot break every later run.
-      fs.rmSync(planted, { force: true });
+      sweep();
+      process.off("exit", sweep);
+      process.off("SIGINT", sweep);
     }
   });
 });
@@ -437,16 +440,39 @@ describe("scripts/lint-schemas inert-default registrations", function () {
   const ACK = path.join(REPO_ROOT, "schema-lint", "inert-defaults.json");
 
   /** Run the lint with the custom passes only; return {failed, output}. */
-  function runLint() {
+  /**
+   * Run the lint against a MUTATED COPY of the acknowledgement file.
+   *
+   * The tracked `schema-lint/inert-defaults.json` is never written to. Earlier
+   * versions of these tests overwrote it and restored in `finally`, which holds
+   * only while the process exits normally -- Ctrl+C, a CI timeout, or a crash
+   * skips `finally` and leaves a tracked file corrupt in the working tree. On a
+   * PR about checks that silently don't happen, a cleanup that silently doesn't
+   * happen was the wrong thing to ship.
+   *
+   * Also removes any question about parallel runners sharing state: nothing is
+   * shared. Each call gets its own temp directory.
+   *
+   * @param {(ack: object) => void} mutate Applied to a parsed copy.
+   */
+  function runLintWithAck(mutate) {
+    const ack = JSON.parse(fs.readFileSync(ACK, "utf8"));
+    mutate(ack);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-schemas-ack-"));
+    const ackPath = path.join(dir, "inert-defaults.json");
+    fs.writeFileSync(ackPath, JSON.stringify(ack, null, 2));
     try {
       execFileSync(process.execPath, ["scripts/lint-schemas.cjs", "--skip-spectral"], {
         cwd: REPO_ROOT,
         encoding: "utf8",
         stdio: "pipe",
+        env: { ...process.env, SCHEMA_LINT_ACK: ackPath },
       });
       return { failed: false, output: "" };
     } catch (error) {
       return { failed: true, output: `${error.stdout || ""}${error.stderr || ""}` };
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   }
 
@@ -472,43 +498,42 @@ describe("scripts/lint-schemas inert-default registrations", function () {
     // Asserted end-to-end rather than by reading the source, because the check
     // being present is not the same as the check being reached: the value and
     // orphan branches both `continue` before it in earlier drafts.
-    const original = fs.readFileSync(ACK, "utf8");
-    try {
-      const ack = JSON.parse(original);
+    let pointer;
+    const { failed, output } = runLintWithAck((ack) => {
       const [file] = Object.keys(ack);
-      const [pointer] = Object.keys(ack[file]);
+      [pointer] = Object.keys(ack[file]);
       delete ack[file][pointer].runtime;
-      fs.writeFileSync(ACK, JSON.stringify(ack, null, 2));
-
-      const { failed, output } = runLint();
-      expect(failed, "lint must reject a registration with no runtime").to.equal(true);
-      expect(output).to.contain("has no `runtime`");
-      expect(output).to.contain(pointer);
-    } finally {
-      fs.writeFileSync(ACK, original);
-    }
+    });
+    expect(failed, "lint must reject a registration with no runtime").to.equal(true);
+    expect(output).to.contain("has no `runtime`");
+    expect(output).to.contain(pointer);
   });
 
   it("fails the lint on a registration whose pointer no longer exists", function () {
     // The claim the ADR makes about stale entries. Unpinned, the file could
     // quietly accumulate assertions about schemas that have since changed.
-    const original = fs.readFileSync(ACK, "utf8");
-    try {
-      const ack = JSON.parse(original);
+    const { failed, output } = runLintWithAck((ack) => {
       const [file] = Object.keys(ack);
       ack[file]["/properties/thisPointerDoesNotExist"] = {
         value: "x",
         runtime: "nowhere",
         why: "orphan probe",
       };
-      fs.writeFileSync(ACK, JSON.stringify(ack, null, 2));
+    });
+    expect(failed).to.equal(true);
+    expect(output).to.contain("no longer has an inert default");
+  });
 
-      const { failed, output } = runLint();
-      expect(failed).to.equal(true);
-      expect(output).to.contain("no longer has an inert default");
-    } finally {
-      fs.writeFileSync(ACK, original);
-    }
+  it("leaves the tracked acknowledgement file untouched", function () {
+    // The guarantee the override exists for. Asserted rather than assumed --
+    // if someone reintroduces a direct write to ACK, this catches it here
+    // instead of via a mysteriously dirty working tree.
+    const before = fs.readFileSync(ACK, "utf8");
+    runLintWithAck((ack) => {
+      const [file] = Object.keys(ack);
+      ack[file]["/properties/anotherOrphan"] = { value: 1, runtime: "n/a", why: "probe" };
+    });
+    expect(fs.readFileSync(ACK, "utf8")).to.equal(before);
   });
 });
 

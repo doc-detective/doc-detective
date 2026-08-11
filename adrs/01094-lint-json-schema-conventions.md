@@ -118,9 +118,10 @@ Inertness alone is not a defect. `annotation_v3`'s `timeout` is inert **on purpo
 the Default column on the generated reference page while the runtime owns the value. Banning inert
 defaults would delete real documentation.
 
-So `schema-lint/inert-defaults.json` registers each one with the runtime counterpart it mirrors. Four
-things fail the lint: an unregistered inert default; a registered `value` that no longer matches the
-schema; a registration whose pointer disappeared; and a registration missing `runtime` or `why`.
+So `schema-lint/inert-defaults.json` registers each one with **either** the runtime counterpart it
+mirrors **or** an explicit `UNVERIFIED` marker plus a `why` saying nobody located one. Four things
+fail the lint: an unregistered inert default; a registered `value` that no longer matches the schema;
+a registration whose pointer disappeared; and a registration missing `runtime` or `why`.
 
 That last one is not bookkeeping. **It is what makes this a gate rather than a suppression list** —
 registering a `moveTo` twin only catches anything because it forces someone to write the runtime's
@@ -168,6 +169,15 @@ The CI job is *not* the enforcement — it reports in about a minute and produce
 * Bad/limit: `camelcase-property-names` is scoped to v3 inside the rule function rather than through
   Spectral's `overrides`, whose `files` globs resolve relative to the ruleset file and so cannot reach
   the schemas.
+* Bad/limit, accepted knowingly: **the standalone `cd src/common && npm run build` is not gated.**
+  That path can still generate types and dereferenced output from schemas this lint would reject.
+  Gating it is not possible without breaking it — `src/common` declares `ajv` but not Spectral, so a
+  standalone install has no `@stoplight/*` to run, and `scripts/lint-schemas.cjs` resolves its
+  `require`s from `<repo>/node_modules`, which that flow never populates. Making the step conditional
+  would be worse than leaving it out: a lint that skips itself when its dependencies are missing is
+  the silent no-op this ADR exists to prevent. Residual risk is small because every CI cell and every
+  release builds from the root, where the gate does run; the exposure is a contributor building
+  `src/common` alone and shipping nothing from it.
 
 ### Confirmation
 
