@@ -12,9 +12,10 @@
  *        - no-inert-default   needs Ajv's verdict, not a structural guess
  *        - examples-validate  needs Ajv to actually validate
  *
- * Gates `npm run build` (see src/common/package.json), and deliberately runs
- * BEFORE dereferenceSchemas: the dereferenced output, the generated TypeScript
- * types, and the docs reference pages are all derived from these sources, so
+ * Gates the ROOT `npm run build` (see the repo-root package.json), running
+ * BEFORE `build:common`, and therefore before dereferenceSchemas: the
+ * dereferenced output, the generated TypeScript types, and the docs reference
+ * pages are all derived from these sources, so
  * generating from input already known to be bad just launders the mistake into
  * three more artifacts.
  *
@@ -114,6 +115,13 @@ function pageSchemas() {
  * ruleset. Baselining rather than fixing keeps the tooling change reviewable on
  * its own; the list only shrinks, because deleting an entry that is still
  * violated fails the build.
+ *
+ * `existsSync` distinguishes "no baseline yet" (a legitimate state, returns {})
+ * from "baseline present but unreadable". The `JSON.parse` is deliberately NOT
+ * wrapped: a truncated or malformed file would otherwise yield an empty set and
+ * re-fire every baselined finding at once, with nothing naming the real cause.
+ * Let the SyntaxError carry the filename. The Spectral ruleset's twin does the
+ * same.
  */
 function loadBaseline() {
   return fs.existsSync(BASELINE_FILE) ? JSON.parse(fs.readFileSync(BASELINE_FILE, "utf8")) : {};
