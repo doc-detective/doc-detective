@@ -7,8 +7,8 @@
 // committed by @semantic-release/git, and broke main for every job and every
 // contributor:
 //
-//   4.37.4 -> repaired in #705
-//   4.37.5 -> repaired in #707
+//   4.37.4 -> repaired deliberately, in #705
+//   4.37.5 -> repaired by accident, when #702 landed a healthy lockfile
 //
 // Both times the same two `"optional": true, "peer": true` entries under
 // @commitlint/read/node_modules were pruned.

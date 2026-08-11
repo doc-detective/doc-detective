@@ -11,13 +11,22 @@ decision-makers: doc-detective maintainers
 Two consecutive releases committed a root `package-lock.json` that does not install, breaking `main`
 for every CI job and every contributor:
 
-| release | symptom | repaired in |
+| release | symptom | repaired by |
 |---|---|---|
-| 4.37.4 | `npm ci` → `EUSAGE Missing: conventional-commits-filter@6.0.1` | #705 |
-| 4.37.5 | identical | #707 |
+| 4.37.4 | `npm ci` → `EUSAGE Missing: conventional-commits-filter@6.0.1` | #705, deliberately |
+| 4.37.5 | identical | #702, incidentally |
 
 Both times the same two `"optional": true, "peer": true` entries under
 `@commitlint/read/node_modules/` were pruned from the tree.
+
+The second repair is worth dwelling on, because it is the reason this ADR is not simply "fix the
+lockfile again." Nobody fixed it. #702 was a reporters feature that happened to carry a lockfile
+regenerated from a healthy tree, and merging it restored the missing entries as a side effect. Had
+that PR not landed when it did, `main` would still be red. **The repo recovered by luck**, which is
+not a property anyone can rely on twice.
+
+That is also why this change carries no `package-lock.json` edit: by the time it was rebased, there
+was nothing left to repair. Only the guard remains — and the guard is the point.
 
 [ADR 01091](01091-rebuild-the-common-lockfile-during-release.md) added a root reconcile and an
 `npm ci --dry-run` backstop to [scripts/sync-common-version.js](../scripts/sync-common-version.js),
@@ -97,7 +106,11 @@ platform-gated `"extraneous"` entries that fail `npm ci` with EBADPLATFORM elsew
   `@semantic-release/git` in `.releaserc.json`.
 * [test/sync-common-version.test.js](../test/sync-common-version.test.js) asserts that script no
   longer issues any root-directory `install` or `ci`, so the responsibility cannot drift back.
-* The repaired 4.37.5 lockfile installs under node:22 and node:24 Linux.
+* `npm ci` on `main` resolves 1136 packages into an empty directory under npm 10.9.8 (the release
+  job's npm), so the tree this guard now protects is known-good as of the rebase.
+* Moving the `prepareCmd` back before `@semantic-release/npm` fails the suite — checked by mutating
+  `.releaserc.json`, not assumed. Without that, the wiring test would pass on the exact defect it
+  exists to catch.
 * Residual risk, stated plainly: the end-to-end behavior of the *new ordering* is only exercised by
   a real release. Local replays of the prepare sequence — including with `node_modules` present, as
   in the release job — did not reproduce the pruning, so the next release is the real test. The
