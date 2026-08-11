@@ -1388,6 +1388,10 @@ async function findAppElementVisually({
       bestEver = { ...matchResult.bestCandidate, captureScale: lastScale };
     }
     if (!matchResult.matches.length) {
+      // Mirror the browser path: the timeout verdict reflects the FINAL
+      // observed state, so transient duplicates that settled to zero
+      // matches report a miss (with diagnostics), not a stale ambiguity.
+      ambiguous = null;
       await pollDelay();
       continue;
     }

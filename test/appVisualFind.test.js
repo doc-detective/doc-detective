@@ -440,3 +440,49 @@ function makeRecordingAppDriver({
     assert.ok(result.outputs.imageMiss.bestScore < 0.8);
   });
 });
+
+// Appended: the app-path timeout verdict must also reflect the FINAL state.
+(sharp && opencv ? describe : describe.skip)("findAppElement ambiguity settling", function () {
+  this.timeout(180000);
+
+  it("reports a miss (not ambiguity) when duplicate matches settle to zero", async function () {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-app-settle-"));
+    try {
+      const duoScene = await makeScene([
+        { x: 100, y: 100 },
+        { x: 500, y: 400 },
+      ]);
+      const emptyScene = await sharp(
+        Buffer.from(
+          `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/></svg>`
+        )
+      )
+        .png()
+        .toBuffer();
+      const template = path.join(tmpDir, "glyph.png");
+      fs.writeFileSync(
+        template,
+        await sharp(duoScene).extract({ left: 100, top: 100, width: 48, height: 48 }).png().toBuffer()
+      );
+      const scenes = [duoScene];
+      const driver = makeAppDriver({ scene: duoScene });
+      driver.saveScreenshot = async (filePath) => {
+        fs.writeFileSync(filePath, scenes.shift() ?? emptyScene);
+      };
+
+      const result = await findAppElement({
+        driver,
+        criteria: { image: template },
+        timeout: 2500,
+        platform: "windows",
+        visual: baseVisual(driver),
+      });
+
+      assert.ok(result.error, "expected a not-found error");
+      assert.doesNotMatch(result.error, /regions matched the template/);
+      assert.match(result.error, /visual candidate|no candidate/i);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
