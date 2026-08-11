@@ -14,7 +14,7 @@ for every CI job and every contributor:
 | release | symptom | repaired in |
 |---|---|---|
 | 4.37.4 | `npm ci` → `EUSAGE Missing: conventional-commits-filter@6.0.1` | #705 |
-| 4.37.5 | identical | #706 |
+| 4.37.5 | identical | #707 |
 
 Both times the same two `"optional": true, "peer": true` entries under
 `@commitlint/read/node_modules/` were pruned from the tree.

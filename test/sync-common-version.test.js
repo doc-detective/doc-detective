@@ -58,7 +58,7 @@ describe("scripts/sync-common-version buildSyncCommands", function () {
     // Any root reconcile done here is invalidated by @semantic-release/npm's
     // version stamp, which runs afterward in the prepare sequence. That is how
     // 4.37.5 shipped a broken root lockfile despite this script verifying
-    // successfully (#706). Root work now runs as the last prepare step.
+    // successfully (#707). Root work now runs as the last prepare step.
     const steps = buildSyncCommands("4.37.5", ROOT);
     expect(steps).to.have.lengthOf(2);
     expect(steps.filter((s) => s.args[0] === "ci")).to.have.lengthOf(0);

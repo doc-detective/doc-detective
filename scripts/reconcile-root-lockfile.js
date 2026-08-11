@@ -8,7 +8,7 @@
 // contributor:
 //
 //   4.37.4 -> repaired in #705
-//   4.37.5 -> repaired in #706
+//   4.37.5 -> repaired in #707
 //
 // Both times the same two `"optional": true, "peer": true` entries under
 // @commitlint/read/node_modules were pruned.

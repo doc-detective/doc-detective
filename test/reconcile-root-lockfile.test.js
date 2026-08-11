@@ -58,7 +58,7 @@ describe("scripts/reconcile-root-lockfile buildReconcileCommands", function () {
   it("is wired as a prepareCmd AFTER @semantic-release/npm", function () {
     // Order is the whole point: a reconcile that runs before the npm plugin's
     // version stamp is invalidated by it, which is how 4.37.5 shipped a broken
-    // root lockfile (#706). This asserts the wiring, not just the script.
+    // root lockfile (#707). This asserts the wiring, not just the script.
     const rc = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ".releaserc.json"), "utf8"));
     const names = rc.plugins.map((p) => (Array.isArray(p) ? p[0] : p));
     const npmIdx = names.indexOf("@semantic-release/npm");
