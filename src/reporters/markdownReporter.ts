@@ -15,6 +15,10 @@ const MAX_CELL = 300;
 // One context can fail an unbounded number of steps, so the row count and the
 // cell clamp together still leave `detail` unbounded without this.
 const MAX_STEPS_PER_FAILURE = 5;
+// GitHub rejects a job step summary larger than 1 MiB outright rather than
+// truncating it, so the whole artifact is lost if we go over by a byte.
+const MAX_SUMMARY_BYTES = 1024 * 1024;
+const TRUNCATION_NOTE = "\n_… summary truncated to fit the 1 MiB limit._\n";
 
 // A `|` splits a table cell and a newline ends a row, and the same
 // resultDescription is rendered in both places. A raw `<` is also load-bearing:
@@ -58,6 +62,27 @@ function codeSpan(value: any): string {
     .replace(/`/g, "'")
     .replace(/\r\n|\r|\n/g, " ")
     .trim();
+}
+
+// Last line of defence on size.
+//
+// MAX_FAILURES, MAX_CELL and MAX_STEPS_PER_FAILURE all count UTF-16 code
+// units, but the limit GitHub enforces is UTF-8 bytes. A CJK character is one
+// code unit and three bytes, so a run whose descriptions are Chinese, Japanese
+// or Korean — entirely ordinary for a documentation tool — can clear every
+// character clamp and still land ~1.09 MB. Measured, not hypothesised.
+//
+// Truncating on a byte offset can split a multi-byte character; Node decodes
+// the remainder as U+FFFD, so strip any trailing replacement characters rather
+// than emit them.
+function capBytes(text: string): string {
+  if (Buffer.byteLength(text, "utf8") <= MAX_SUMMARY_BYTES) return text;
+  const budget = MAX_SUMMARY_BYTES - Buffer.byteLength(TRUNCATION_NOTE, "utf8");
+  const truncated = Buffer.from(text, "utf8")
+    .subarray(0, budget)
+    .toString("utf8")
+    .replace(/\uFFFD+$/, "");
+  return truncated + TRUNCATION_NOTE;
 }
 
 // Turn the results object into a run summary for a CI job summary
@@ -149,7 +174,7 @@ function buildMarkdown(results: any): string {
   }
 
   if (results?.runDir) lines.push("", `Run artifacts: \`${codeSpan(results.runDir)}\``);
-  return lines.join("\n") + "\n";
+  return capBytes(lines.join("\n") + "\n");
 }
 
 async function markdownReporter(

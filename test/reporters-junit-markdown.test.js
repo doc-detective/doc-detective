@@ -478,6 +478,40 @@ describe("junit and markdown reporters", function () {
       assert.equal(/\*\*Passed\*\*/.test(md), false);
     });
 
+    it("stays under 1 MiB when every value is multi-byte", function () {
+      // The row/cell/step clamps all count UTF-16 code units, but GitHub's
+      // limit is UTF-8 bytes. A CJK character is one unit and three bytes, so
+      // this shape clears every character clamp and still measured 1,092,178
+      // bytes before the byte guard existed.
+      const cjk = "一".repeat(400);
+      const contexts = Array.from({ length: 150 }, () => ({
+        result: "FAIL",
+        platform: "linux",
+        durationMs: 1,
+        steps: Array.from({ length: 8 }, () => ({
+          result: "FAIL",
+          stepId: cjk,
+          resultDescription: cjk,
+        })),
+      }));
+      const md = buildMarkdown({
+        summary: { specs: { fail: 1 } },
+        specs: [{ result: "FAIL", specId: cjk, tests: [{ testId: cjk, contexts }] }],
+      });
+
+      const bytes = Buffer.byteLength(md, "utf8");
+      assert.ok(bytes <= 1024 * 1024, `summary was ${bytes} bytes`);
+      assert.match(md, /summary truncated to fit the 1 MiB limit/);
+      // Truncating on a byte offset can split a character; the guard must not
+      // leave a replacement character behind.
+      assert.equal(md.includes("\uFFFD"), false);
+    });
+
+    it("leaves an already-small summary untouched by the byte guard", function () {
+      const md = buildMarkdown(results);
+      assert.equal(/summary truncated/.test(md), false);
+    });
+
     it("produces a valid summary for an empty run", function () {
       const md = buildMarkdown({ specs: [], summary: {} });
       assert.match(md, /No tests ran/);
