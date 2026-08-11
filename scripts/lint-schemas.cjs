@@ -590,7 +590,22 @@ function runSpectral(format) {
     return false;
   }
 
-  const args = [cli, "lint", "--ruleset", RULESET, "--fail-severity", "error", path.join(SRC_SCHEMAS, "*.json")];
+  // Pass the files EXPLICITLY rather than a glob.
+  //
+  // A glob has one failure mode this tool cannot afford: match nothing, lint
+  // nothing, exit 0. The gate would look green while enforcing nothing — the
+  // same silent no-op guarded against in pageSchemas() and loadBaseline(). It
+  // also sidesteps the question of whether Spectral's glob parser wants
+  // `/` separators when path.join() produces `\` on Windows. (Measured: it
+  // handles native separators fine — 170 findings across 26 files — but an
+  // explicit list makes the question moot rather than relying on that.)
+  const targets = schemaFiles().map((f) => path.join(SRC_SCHEMAS, f));
+  if (targets.length === 0) {
+    console.error(`Schema lint found no schemas in ${SRC_SCHEMAS}. That is not a clean run.`);
+    return false;
+  }
+
+  const args = [cli, "lint", "--ruleset", RULESET, "--fail-severity", "error", ...targets];
   if (format) args.push("--format", format);
 
   const result = spawnSync(process.execPath, args, {
