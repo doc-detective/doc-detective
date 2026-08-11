@@ -2,7 +2,7 @@
   "annotation_v3.schema.json": {
     "/components/schemas/target_element_shape/properties/timeout": {
       "value": 5000,
-      "runtime": "src/core/annotations/geometry.ts — criteriaFromTarget passes `timeout: target?.timeout` through to findElement, which applies `?? 5000` (src/core/tests/findElement.ts).",
+      "runtime": "src/core/annotations/geometry.ts — `timeout: target?.timeout` — then src/core/tests/findElement.ts — `timeout: step.find.timeout ?? 5000`",
       "why": "Runtime owns the 5000 ms; the schema default documents it on the annotate reference page. Inert because target_element_shape sits inside the root anyOf (ADR 01085)."
     }
   },
@@ -60,8 +60,8 @@
   "find_v3.schema.json": {
     "/components/schemas/object/properties/timeout": {
       "value": 5000,
-      "runtime": "src/core/tests/findElement.ts — `timeout: step.find.timeout || 5000`",
-      "why": "Runtime owns the 5000 ms; the schema default documents it on the reference page."
+      "runtime": "src/core/tests/findElement.ts — `timeout: step.find.timeout ?? 5000`",
+      "why": "Runtime owns the 5000 ms; the schema default documents it on the reference page. `??` not `||`: an explicit `timeout: 0` means \"check once, now\" and must survive."
     },
     "/components/schemas/object/properties/moveTo": {
       "value": false,

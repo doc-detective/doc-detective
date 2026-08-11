@@ -494,6 +494,55 @@ describe("scripts/lint-schemas inert-default registrations", function () {
     expect(bad, `registrations missing metadata:\n${bad.join("\n")}`).to.deep.equal([]);
   });
 
+  it("every cited runtime snippet still exists in a cited file", function () {
+    // The gate's whole premise is that a registration records the runtime's
+    // REAL behavior beside the declared default, so a contradiction is visible.
+    // A citation that has drifted from the code documents a falsehood and reads
+    // as confirmation -- worse than no citation at all.
+    //
+    // Not hypothetical: find_v3's `timeout` was registered as
+    // `step.find.timeout || 5000` while the code says `?? 5000`. The difference
+    // is the whole point of that line -- `||` clobbers an explicit `timeout: 0`,
+    // which is a valid value meaning "check once, now".
+    //
+    // Snippets are the backticked spans; files are every `src/**.ts` path named
+    // in the citation. A snippet must appear in at least ONE of them, since a
+    // value can be threaded through several (annotation_v3's timeout starts in
+    // geometry.ts and lands on findElement.ts).
+    const ack = JSON.parse(fs.readFileSync(ACK, "utf8"));
+    const sources = new Map();
+    const readSource = (rel) => {
+      if (!sources.has(rel)) {
+        const abs = path.join(REPO_ROOT, rel);
+        sources.set(rel, fs.existsSync(abs) ? fs.readFileSync(abs, "utf8").replace(/\s+/g, " ") : null);
+      }
+      return sources.get(rel);
+    };
+
+    const problems = [];
+    for (const [schema, pointers] of Object.entries(ack)) {
+      for (const [pointer, entry] of Object.entries(pointers)) {
+        if (entry.runtime === "UNVERIFIED" || entry.runtime.startsWith("UNVERIFIED")) continue;
+        const files = [...entry.runtime.matchAll(/(src\/[A-Za-z0-9_/.-]+\.ts)/g)].map((m) => m[1]);
+        if (files.length === 0) continue; // prose-only citation; nothing to check
+        for (const rel of files) {
+          if (readSource(rel) === null) problems.push(`${schema}${pointer}: cites missing file ${rel}`);
+        }
+        const bodies = files.map(readSource).filter(Boolean);
+        if (bodies.length === 0) continue;
+        for (const snippet of [...entry.runtime.matchAll(/`([^`]+)`/g)].map((m) => m[1])) {
+          const needle = snippet.replace(/\s+/g, " ").trim().replace(/[,;]$/, "");
+          // Short spans like `??` are prose emphasis, not locatable code.
+          if (needle.length <= 6) continue;
+          if (!bodies.some((b) => b.includes(needle))) {
+            problems.push(`${schema}${pointer}: cites \`${needle}\`, absent from ${files.join(", ")}`);
+          }
+        }
+      }
+    }
+    expect(problems, `stale runtime citations:\n${problems.join("\n")}`).to.deep.equal([]);
+  });
+
   it("fails the lint when a registration drops its runtime", function () {
     // Asserted end-to-end rather than by reading the source, because the check
     // being present is not the same as the check being reached: the value and
