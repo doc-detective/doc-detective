@@ -1,3 +1,17 @@
+## [4.37.5](https://github.com/doc-detective/doc-detective/compare/v4.37.4...v4.37.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **release:** rebuild the common lockfile and reconcile the root one during prepare ([#704](https://github.com/doc-detective/doc-detective/issues/704)) ([5155306](https://github.com/doc-detective/doc-detective/commit/5155306df71e7b41d65d06530abe9f2be39649ab)), closes [#705](https://github.com/doc-detective/doc-detective/issues/705)
+
+## [4.37.4](https://github.com/doc-detective/doc-detective/compare/v4.37.3...v4.37.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **lsp:** import the vscode-languageserver v10 ./node subpath ([#703](https://github.com/doc-detective/doc-detective/issues/703)) ([b887754](https://github.com/doc-detective/doc-detective/commit/b887754d702f76a13c85445cc541263acb2091e2))
+
 ## [4.37.3](https://github.com/doc-detective/doc-detective/compare/v4.37.2...v4.37.3) (2026-08-05)
 
 
