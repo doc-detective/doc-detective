@@ -4,799 +4,19 @@
   "description": "Perform a generic HTTP request, for example to an API.",
   "anyOf": [
     {
-      "title": "HTTP request (simple)",
-      "type": "string",
-      "description": "URL for the HTTP request.",
-      "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-      "transform": [
-        "trim"
-      ]
+      "$ref": "#/x_dd_defs/d9ba75f937ed4"
     },
     {
-      "title": "HTTP request (detailed)",
-      "type": "object",
-      "anyOf": [
-        {
-          "required": [
-            "url"
-          ]
-        },
-        {
-          "required": [
-            "openApi"
-          ]
-        }
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "url": {
-          "title": "HTTP request (simple)",
-          "type": "string",
-          "description": "URL for the HTTP request.",
-          "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-          "transform": [
-            "trim"
-          ]
-        },
-        "openApi": {
-          "anyOf": [
-            {
-              "allOf": [
-                {
-                  "type": "string",
-                  "description": "ID of the operation to use for the request."
-                },
-                {
-                  "title": "Operation ID",
-                  "description": "Operation ID from the OpenAPI schema. Only valid if the OpenAPI description path is specified elsewhere and the operation ID is unique among all specified OpenAPI descriptions."
-                }
-              ]
-            },
-            {
-              "allOf": [
-                {
-                  "version": "1.0.0",
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "title": "openApi",
-                  "type": "object",
-                  "description": "OpenAPI description and configuration.",
-                  "additionalProperties": false,
-                  "anyOf": [
-                    {
-                      "required": [
-                        "descriptionPath"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "operationId"
-                      ]
-                    }
-                  ],
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the OpenAPI description, as defined in your configuration."
-                    },
-                    "descriptionPath": {
-                      "type": "string",
-                      "description": "URL or local path to the OpenAPI description."
-                    },
-                    "definition": {
-                      "type": "object",
-                      "readOnly": true,
-                      "description": "OpenAPI definition object loaded from the `descriptionPath`. This is a resolved version of the OpenAPI description and should not be user-defined.",
-                      "additionalProperties": true,
-                      "title": "OpenAPI definition"
-                    },
-                    "operationId": {
-                      "type": "string",
-                      "description": "ID of the operation to use for the request."
-                    },
-                    "server": {
-                      "type": "string",
-                      "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI description."
-                    },
-                    "validateAgainstSchema": {
-                      "type": "string",
-                      "description": "Validates the request and/or response against the schema in the OpenAPI description. If the request or response doesn't match the schema, the step fails.",
-                      "enum": [
-                        "request",
-                        "response",
-                        "both",
-                        "none"
-                      ],
-                      "default": "both"
-                    },
-                    "mockResponse": {
-                      "type": "boolean",
-                      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-                    },
-                    "statusCode": {
-                      "type": "integer",
-                      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-                    },
-                    "useExample": {
-                      "type": [
-                        "string"
-                      ],
-                      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                      "enum": [
-                        "request",
-                        "response",
-                        "both",
-                        "none"
-                      ],
-                      "default": "none"
-                    },
-                    "exampleKey": {
-                      "type": "string",
-                      "description": "Key of the example to use from the `examples` property in the OpenAPI description. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                      "default": ""
-                    },
-                    "headers": {
-                      "type": "object",
-                      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "title": "OpenAPI request headers"
-                    }
-                  },
-                  "components": {
-                    "schemas": {
-                      "operationId": {
-                        "type": "string",
-                        "description": "ID of the operation to use for the request."
-                      },
-                      "descriptionPath": {
-                        "type": "string",
-                        "description": "URL or local path to the OpenAPI description."
-                      }
-                    }
-                  },
-                  "examples": [
-                    {
-                      "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-                    },
-                    {
-                      "name": "Reqres",
-                      "operationId": "getUserById"
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "getUserById"
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "createUser",
-                      "useExample": "both"
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "createUser",
-                      "useExample": "both",
-                      "exampleKey": "example1"
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "createUser",
-                      "useExample": "both",
-                      "exampleKey": "example1",
-                      "statusCode": 201
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "createUser",
-                      "useExample": "both",
-                      "exampleKey": "example1",
-                      "statusCode": 201,
-                      "validateAgainstSchema": "none"
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "createUser",
-                      "useExample": "both",
-                      "exampleKey": "example1",
-                      "statusCode": 201,
-                      "validateAgainstSchema": "none",
-                      "mockResponse": true
-                    },
-                    {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "createUser",
-                      "useExample": "both",
-                      "exampleKey": "example1",
-                      "statusCode": 201,
-                      "validateAgainstSchema": "none",
-                      "mockResponse": true,
-                      "headers": {
-                        "Authorization": "Bearer 12345"
-                      }
-                    }
-                  ]
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "operationId"
-                  ],
-                  "title": "OpenAPI definition (httpRequest)"
-                }
-              ]
-            }
-          ]
-        },
-        "statusCodes": {
-          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "integer"
-              }
-            ]
-          },
-          "default": [
-            200,
-            201
-          ]
-        },
-        "method": {
-          "type": "string",
-          "description": "Method of the HTTP request",
-          "enum": [
-            "get",
-            "put",
-            "post",
-            "patch",
-            "delete"
-          ],
-          "transform": [
-            "trim",
-            "toEnumCase"
-          ],
-          "default": "get"
-        },
-        "timeout": {
-          "type": "integer",
-          "description": "Timeout for the HTTP request, in milliseconds.",
-          "default": 60000
-        },
-        "request": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "headers": {
-              "description": "Headers to include in the HTTP request.",
-              "default": {},
-              "anyOf": [
-                {
-                  "title": "Request headers (object)",
-                  "description": "Headers to include in the HTTP request, in key/value format.",
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {}
-                },
-                {
-                  "title": "Request headers (string)",
-                  "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
-                  "type": "string"
-                }
-              ]
-            },
-            "parameters": {
-              "description": "URL parameters to include in the HTTP request, in key/value format.",
-              "type": "object",
-              "additionalProperties": true,
-              "default": {},
-              "properties": {},
-              "title": "Request parameters"
-            },
-            "body": {
-              "description": "The body of the HTTP request.",
-              "anyOf": [
-                {
-                  "title": "Request body (object)",
-                  "description": "JSON object to include as the body of the HTTP request.",
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {}
-                },
-                {
-                  "title": "Request body (array)",
-                  "description": "JSON array to include as the body of the HTTP request.",
-                  "type": "array",
-                  "items": {}
-                },
-                {
-                  "title": "Request body (string)",
-                  "description": "String to include as the body of the HTTP request.",
-                  "type": "string"
-                }
-              ],
-              "default": {}
-            }
-          },
-          "title": "Request"
-        },
-        "response": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "headers": {
-              "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
-              "type": "object",
-              "additionalProperties": true,
-              "properties": {},
-              "default": {},
-              "title": "Response headers"
-            },
-            "body": {
-              "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
-              "anyOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "properties": {},
-                  "title": "Response body object",
-                  "description": "JSON key/value pairs expected in the response."
-                },
-                {
-                  "title": "Response body array",
-                  "description": "JSON array expected in the response.",
-                  "type": "array",
-                  "items": {}
-                },
-                {
-                  "title": "Response body string",
-                  "description": "String expected in the response.",
-                  "type": "string"
-                }
-              ],
-              "default": {}
-            },
-            "required": {
-              "type": "array",
-              "description": "Array of field paths that must exist in the response body. Uses dot notation for nested fields (e.g., 'user.name') and bracket notation for array indices (e.g., 'items[0].id'). Fields must be present but may have any value including null.",
-              "items": {
-                "type": "string"
-              },
-              "default": []
-            }
-          },
-          "title": "Response"
-        },
-        "allowAdditionalFields": {
-          "type": "boolean",
-          "description": "If `false`, the step fails when the response data contains fields not specified in the response body.",
-          "default": true
-        },
-        "path": {
-          "type": "string",
-          "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
-        },
-        "directory": {
-          "type": "string",
-          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
-        },
-        "maxVariation": {
-          "type": "number",
-          "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
-          "default": 0,
-          "minimum": 0,
-          "maximum": 1
-        },
-        "overwrite": {
-          "type": "string",
-          "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
-          "enum": [
-            "true",
-            "false",
-            "aboveVariation"
-          ],
-          "default": "aboveVariation"
-        }
-      }
+      "$ref": "#/x_dd_defs/d5696955c91fb"
     }
   ],
   "components": {
     "schemas": {
       "url": {
-        "title": "HTTP request (simple)",
-        "type": "string",
-        "description": "URL for the HTTP request.",
-        "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-        "transform": [
-          "trim"
-        ]
+        "$ref": "#/x_dd_defs/d9ba75f937ed4"
       },
       "object": {
-        "title": "HTTP request (detailed)",
-        "type": "object",
-        "anyOf": [
-          {
-            "required": [
-              "url"
-            ]
-          },
-          {
-            "required": [
-              "openApi"
-            ]
-          }
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "url": {
-            "title": "HTTP request (simple)",
-            "type": "string",
-            "description": "URL for the HTTP request.",
-            "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "openApi": {
-            "anyOf": [
-              {
-                "allOf": [
-                  {
-                    "type": "string",
-                    "description": "ID of the operation to use for the request."
-                  },
-                  {
-                    "title": "Operation ID",
-                    "description": "Operation ID from the OpenAPI schema. Only valid if the OpenAPI description path is specified elsewhere and the operation ID is unique among all specified OpenAPI descriptions."
-                  }
-                ]
-              },
-              {
-                "allOf": [
-                  {
-                    "version": "1.0.0",
-                    "$schema": "http://json-schema.org/draft-07/schema#",
-                    "title": "openApi",
-                    "type": "object",
-                    "description": "OpenAPI description and configuration.",
-                    "additionalProperties": false,
-                    "anyOf": [
-                      {
-                        "required": [
-                          "descriptionPath"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "operationId"
-                        ]
-                      }
-                    ],
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "Name of the OpenAPI description, as defined in your configuration."
-                      },
-                      "descriptionPath": {
-                        "type": "string",
-                        "description": "URL or local path to the OpenAPI description."
-                      },
-                      "definition": {
-                        "type": "object",
-                        "readOnly": true,
-                        "description": "OpenAPI definition object loaded from the `descriptionPath`. This is a resolved version of the OpenAPI description and should not be user-defined.",
-                        "additionalProperties": true,
-                        "title": "OpenAPI definition"
-                      },
-                      "operationId": {
-                        "type": "string",
-                        "description": "ID of the operation to use for the request."
-                      },
-                      "server": {
-                        "type": "string",
-                        "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI description."
-                      },
-                      "validateAgainstSchema": {
-                        "type": "string",
-                        "description": "Validates the request and/or response against the schema in the OpenAPI description. If the request or response doesn't match the schema, the step fails.",
-                        "enum": [
-                          "request",
-                          "response",
-                          "both",
-                          "none"
-                        ],
-                        "default": "both"
-                      },
-                      "mockResponse": {
-                        "type": "boolean",
-                        "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
-                      },
-                      "statusCode": {
-                        "type": "integer",
-                        "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
-                      },
-                      "useExample": {
-                        "type": [
-                          "string"
-                        ],
-                        "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
-                        "enum": [
-                          "request",
-                          "response",
-                          "both",
-                          "none"
-                        ],
-                        "default": "none"
-                      },
-                      "exampleKey": {
-                        "type": "string",
-                        "description": "Key of the example to use from the `examples` property in the OpenAPI description. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
-                        "default": ""
-                      },
-                      "headers": {
-                        "type": "object",
-                        "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                        "additionalProperties": {
-                          "type": "string"
-                        },
-                        "title": "OpenAPI request headers"
-                      }
-                    },
-                    "components": {
-                      "schemas": {
-                        "operationId": {
-                          "type": "string",
-                          "description": "ID of the operation to use for the request."
-                        },
-                        "descriptionPath": {
-                          "type": "string",
-                          "description": "URL or local path to the OpenAPI description."
-                        }
-                      }
-                    },
-                    "examples": [
-                      {
-                        "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
-                      },
-                      {
-                        "name": "Reqres",
-                        "operationId": "getUserById"
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "getUserById"
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "createUser",
-                        "useExample": "both"
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "createUser",
-                        "useExample": "both",
-                        "exampleKey": "example1"
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "createUser",
-                        "useExample": "both",
-                        "exampleKey": "example1",
-                        "statusCode": 201
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "createUser",
-                        "useExample": "both",
-                        "exampleKey": "example1",
-                        "statusCode": 201,
-                        "validateAgainstSchema": "none"
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "createUser",
-                        "useExample": "both",
-                        "exampleKey": "example1",
-                        "statusCode": 201,
-                        "validateAgainstSchema": "none",
-                        "mockResponse": true
-                      },
-                      {
-                        "descriptionPath": "https://api.example.com/openapi.json",
-                        "operationId": "createUser",
-                        "useExample": "both",
-                        "exampleKey": "example1",
-                        "statusCode": 201,
-                        "validateAgainstSchema": "none",
-                        "mockResponse": true,
-                        "headers": {
-                          "Authorization": "Bearer 12345"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "operationId"
-                    ],
-                    "title": "OpenAPI definition (httpRequest)"
-                  }
-                ]
-              }
-            ]
-          },
-          "statusCodes": {
-            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "default": [
-              200,
-              201
-            ]
-          },
-          "method": {
-            "type": "string",
-            "description": "Method of the HTTP request",
-            "enum": [
-              "get",
-              "put",
-              "post",
-              "patch",
-              "delete"
-            ],
-            "transform": [
-              "trim",
-              "toEnumCase"
-            ],
-            "default": "get"
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Timeout for the HTTP request, in milliseconds.",
-            "default": 60000
-          },
-          "request": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "headers": {
-                "description": "Headers to include in the HTTP request.",
-                "default": {},
-                "anyOf": [
-                  {
-                    "title": "Request headers (object)",
-                    "description": "Headers to include in the HTTP request, in key/value format.",
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {}
-                  },
-                  {
-                    "title": "Request headers (string)",
-                    "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
-                    "type": "string"
-                  }
-                ]
-              },
-              "parameters": {
-                "description": "URL parameters to include in the HTTP request, in key/value format.",
-                "type": "object",
-                "additionalProperties": true,
-                "default": {},
-                "properties": {},
-                "title": "Request parameters"
-              },
-              "body": {
-                "description": "The body of the HTTP request.",
-                "anyOf": [
-                  {
-                    "title": "Request body (object)",
-                    "description": "JSON object to include as the body of the HTTP request.",
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {}
-                  },
-                  {
-                    "title": "Request body (array)",
-                    "description": "JSON array to include as the body of the HTTP request.",
-                    "type": "array",
-                    "items": {}
-                  },
-                  {
-                    "title": "Request body (string)",
-                    "description": "String to include as the body of the HTTP request.",
-                    "type": "string"
-                  }
-                ],
-                "default": {}
-              }
-            },
-            "title": "Request"
-          },
-          "response": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "headers": {
-                "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
-                "type": "object",
-                "additionalProperties": true,
-                "properties": {},
-                "default": {},
-                "title": "Response headers"
-              },
-              "body": {
-                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {},
-                    "title": "Response body object",
-                    "description": "JSON key/value pairs expected in the response."
-                  },
-                  {
-                    "title": "Response body array",
-                    "description": "JSON array expected in the response.",
-                    "type": "array",
-                    "items": {}
-                  },
-                  {
-                    "title": "Response body string",
-                    "description": "String expected in the response.",
-                    "type": "string"
-                  }
-                ],
-                "default": {}
-              },
-              "required": {
-                "type": "array",
-                "description": "Array of field paths that must exist in the response body. Uses dot notation for nested fields (e.g., 'user.name') and bracket notation for array indices (e.g., 'items[0].id'). Fields must be present but may have any value including null.",
-                "items": {
-                  "type": "string"
-                },
-                "default": []
-              }
-            },
-            "title": "Response"
-          },
-          "allowAdditionalFields": {
-            "type": "boolean",
-            "description": "If `false`, the step fails when the response data contains fields not specified in the response body.",
-            "default": true
-          },
-          "path": {
-            "type": "string",
-            "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
-          },
-          "directory": {
-            "type": "string",
-            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
-          },
-          "maxVariation": {
-            "type": "number",
-            "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
-            "default": 0,
-            "minimum": 0,
-            "maximum": 1
-          },
-          "overwrite": {
-            "type": "string",
-            "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
-            "enum": [
-              "true",
-              "false",
-              "aboveVariation"
-            ],
-            "default": "aboveVariation"
-          }
-        }
+        "$ref": "#/x_dd_defs/d5696955c91fb"
       }
     }
   },
@@ -990,5 +210,529 @@
         }
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d9ba75f937ed4": {
+      "title": "HTTP request (simple)",
+      "type": "string",
+      "description": "URL for the HTTP request.",
+      "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d1db7bbdb9d32": {
+      "title": "Operation ID",
+      "description": "Operation ID from the OpenAPI schema. Only valid if the OpenAPI description path is specified elsewhere and the operation ID is unique among all specified OpenAPI descriptions."
+    },
+    "d7dad08126d05": {
+      "allOf": [
+        {
+          "type": "string",
+          "description": "ID of the operation to use for the request."
+        },
+        {
+          "$ref": "#/x_dd_defs/d1db7bbdb9d32"
+        }
+      ]
+    },
+    "d226d550fdda8": {
+      "type": "object",
+      "readOnly": true,
+      "description": "OpenAPI definition object loaded from the `descriptionPath`. This is a resolved version of the OpenAPI description and should not be user-defined.",
+      "additionalProperties": true,
+      "title": "OpenAPI definition"
+    },
+    "d372951a1d2f6": {
+      "type": "string",
+      "description": "Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI description."
+    },
+    "d0ad51f75c374": {
+      "type": "string",
+      "description": "Validates the request and/or response against the schema in the OpenAPI description. If the request or response doesn't match the schema, the step fails.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "both"
+    },
+    "d1e49c229d5f2": {
+      "type": "boolean",
+      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+    },
+    "d4eb39e541447": {
+      "type": "integer",
+      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+    },
+    "de7fc7be9c286": {
+      "type": [
+        "string"
+      ],
+      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+      "enum": [
+        "request",
+        "response",
+        "both",
+        "none"
+      ],
+      "default": "none"
+    },
+    "d15aae5b6e3e2": {
+      "type": "string",
+      "description": "Key of the example to use from the `examples` property in the OpenAPI description. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.",
+      "default": ""
+    },
+    "d9fc2671eae6f": {
+      "type": "object",
+      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "OpenAPI request headers"
+    },
+    "d28124f65bd11": {
+      "name": {
+        "type": "string",
+        "description": "Name of the OpenAPI description, as defined in your configuration."
+      },
+      "descriptionPath": {
+        "type": "string",
+        "description": "URL or local path to the OpenAPI description."
+      },
+      "definition": {
+        "$ref": "#/x_dd_defs/d226d550fdda8"
+      },
+      "operationId": {
+        "type": "string",
+        "description": "ID of the operation to use for the request."
+      },
+      "server": {
+        "$ref": "#/x_dd_defs/d372951a1d2f6"
+      },
+      "validateAgainstSchema": {
+        "$ref": "#/x_dd_defs/d0ad51f75c374"
+      },
+      "mockResponse": {
+        "$ref": "#/x_dd_defs/d1e49c229d5f2"
+      },
+      "statusCode": {
+        "$ref": "#/x_dd_defs/d4eb39e541447"
+      },
+      "useExample": {
+        "$ref": "#/x_dd_defs/de7fc7be9c286"
+      },
+      "exampleKey": {
+        "$ref": "#/x_dd_defs/d15aae5b6e3e2"
+      },
+      "headers": {
+        "$ref": "#/x_dd_defs/d9fc2671eae6f"
+      }
+    },
+    "d4370c7f3be7d": {
+      "operationId": {
+        "type": "string",
+        "description": "ID of the operation to use for the request."
+      },
+      "descriptionPath": {
+        "type": "string",
+        "description": "URL or local path to the OpenAPI description."
+      }
+    },
+    "dd2ae6e25f4b3": {
+      "schemas": {
+        "$ref": "#/x_dd_defs/d4370c7f3be7d"
+      }
+    },
+    "dc6c0829b8661": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1"
+    },
+    "dc664cf1497d6": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201
+    },
+    "d0ba9725af517": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201,
+      "validateAgainstSchema": "none"
+    },
+    "dc740fb752c9d": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201,
+      "validateAgainstSchema": "none",
+      "mockResponse": true
+    },
+    "dbe2d37d4540d": {
+      "descriptionPath": "https://api.example.com/openapi.json",
+      "operationId": "createUser",
+      "useExample": "both",
+      "exampleKey": "example1",
+      "statusCode": 201,
+      "validateAgainstSchema": "none",
+      "mockResponse": true,
+      "headers": {
+        "Authorization": "Bearer 12345"
+      }
+    },
+    "d54fd70f72c65": {
+      "version": "1.0.0",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "openApi",
+      "type": "object",
+      "description": "OpenAPI description and configuration.",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "descriptionPath"
+          ]
+        },
+        {
+          "required": [
+            "operationId"
+          ]
+        }
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d28124f65bd11"
+      },
+      "components": {
+        "$ref": "#/x_dd_defs/dd2ae6e25f4b3"
+      },
+      "examples": [
+        {
+          "descriptionPath": "https://petstore.swagger.io/v2/swagger.json"
+        },
+        {
+          "name": "Reqres",
+          "operationId": "getUserById"
+        },
+        {
+          "descriptionPath": "https://api.example.com/openapi.json",
+          "operationId": "getUserById"
+        },
+        {
+          "descriptionPath": "https://api.example.com/openapi.json",
+          "operationId": "createUser",
+          "useExample": "both"
+        },
+        {
+          "$ref": "#/x_dd_defs/dc6c0829b8661"
+        },
+        {
+          "$ref": "#/x_dd_defs/dc664cf1497d6"
+        },
+        {
+          "$ref": "#/x_dd_defs/d0ba9725af517"
+        },
+        {
+          "$ref": "#/x_dd_defs/dc740fb752c9d"
+        },
+        {
+          "$ref": "#/x_dd_defs/dbe2d37d4540d"
+        }
+      ]
+    },
+    "d445d9b1ea68e": {
+      "allOf": [
+        {
+          "$ref": "#/x_dd_defs/d54fd70f72c65"
+        },
+        {
+          "type": "object",
+          "required": [
+            "operationId"
+          ],
+          "title": "OpenAPI definition (httpRequest)"
+        }
+      ]
+    },
+    "d1987745100dd": {
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d7dad08126d05"
+        },
+        {
+          "$ref": "#/x_dd_defs/d445d9b1ea68e"
+        }
+      ]
+    },
+    "d07d95bb2868f": {
+      "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "default": [
+        200,
+        201
+      ]
+    },
+    "d44eda059509a": {
+      "type": "string",
+      "description": "Method of the HTTP request",
+      "enum": [
+        "get",
+        "put",
+        "post",
+        "patch",
+        "delete"
+      ],
+      "transform": [
+        "trim",
+        "toEnumCase"
+      ],
+      "default": "get"
+    },
+    "df9eb69de1c40": {
+      "title": "Request headers (object)",
+      "description": "Headers to include in the HTTP request, in key/value format.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {}
+    },
+    "da3ed5334776b": {
+      "title": "Request headers (string)",
+      "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
+      "type": "string"
+    },
+    "d735e718fa102": {
+      "description": "Headers to include in the HTTP request.",
+      "default": {},
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/df9eb69de1c40"
+        },
+        {
+          "$ref": "#/x_dd_defs/da3ed5334776b"
+        }
+      ]
+    },
+    "d4d3ccc768689": {
+      "description": "URL parameters to include in the HTTP request, in key/value format.",
+      "type": "object",
+      "additionalProperties": true,
+      "default": {},
+      "properties": {},
+      "title": "Request parameters"
+    },
+    "d55658f708fe7": {
+      "title": "Request body (object)",
+      "description": "JSON object to include as the body of the HTTP request.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {}
+    },
+    "de24a3bfdb0fe": {
+      "title": "Request body (array)",
+      "description": "JSON array to include as the body of the HTTP request.",
+      "type": "array",
+      "items": {}
+    },
+    "d514319316378": {
+      "description": "The body of the HTTP request.",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d55658f708fe7"
+        },
+        {
+          "$ref": "#/x_dd_defs/de24a3bfdb0fe"
+        },
+        {
+          "title": "Request body (string)",
+          "description": "String to include as the body of the HTTP request.",
+          "type": "string"
+        }
+      ],
+      "default": {}
+    },
+    "d95b0d3fda426": {
+      "headers": {
+        "$ref": "#/x_dd_defs/d735e718fa102"
+      },
+      "parameters": {
+        "$ref": "#/x_dd_defs/d4d3ccc768689"
+      },
+      "body": {
+        "$ref": "#/x_dd_defs/d514319316378"
+      }
+    },
+    "dd5dbdce0fde0": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d95b0d3fda426"
+      },
+      "title": "Request"
+    },
+    "de1bd75b1f0f1": {
+      "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {},
+      "default": {},
+      "title": "Response headers"
+    },
+    "d54af6523956b": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {},
+      "title": "Response body object",
+      "description": "JSON key/value pairs expected in the response."
+    },
+    "dff49c74cbf69": {
+      "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d54af6523956b"
+        },
+        {
+          "title": "Response body array",
+          "description": "JSON array expected in the response.",
+          "type": "array",
+          "items": {}
+        },
+        {
+          "title": "Response body string",
+          "description": "String expected in the response.",
+          "type": "string"
+        }
+      ],
+      "default": {}
+    },
+    "de362fa182bf4": {
+      "type": "array",
+      "description": "Array of field paths that must exist in the response body. Uses dot notation for nested fields (e.g., 'user.name') and bracket notation for array indices (e.g., 'items[0].id'). Fields must be present but may have any value including null.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "d37cbd276bb16": {
+      "headers": {
+        "$ref": "#/x_dd_defs/de1bd75b1f0f1"
+      },
+      "body": {
+        "$ref": "#/x_dd_defs/dff49c74cbf69"
+      },
+      "required": {
+        "$ref": "#/x_dd_defs/de362fa182bf4"
+      }
+    },
+    "de63d69717106": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d37cbd276bb16"
+      },
+      "title": "Response"
+    },
+    "d465f434f6a6b": {
+      "type": "boolean",
+      "description": "If `false`, the step fails when the response data contains fields not specified in the response body.",
+      "default": true
+    },
+    "d0a16e61e2d97": {
+      "type": "string",
+      "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+    },
+    "db7e6ccc6dd35": {
+      "type": "string",
+      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+    },
+    "dfc51a0f1ad3c": {
+      "type": "number",
+      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "d67323486122f": {
+      "type": "string",
+      "description": "If `true`, overwrites the existing output at `path` if it exists.\nIf `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.",
+      "enum": [
+        "true",
+        "false",
+        "aboveVariation"
+      ],
+      "default": "aboveVariation"
+    },
+    "d01596d225f92": {
+      "url": {
+        "$ref": "#/x_dd_defs/d9ba75f937ed4"
+      },
+      "openApi": {
+        "$ref": "#/x_dd_defs/d1987745100dd"
+      },
+      "statusCodes": {
+        "$ref": "#/x_dd_defs/d07d95bb2868f"
+      },
+      "method": {
+        "$ref": "#/x_dd_defs/d44eda059509a"
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Timeout for the HTTP request, in milliseconds.",
+        "default": 60000
+      },
+      "request": {
+        "$ref": "#/x_dd_defs/dd5dbdce0fde0"
+      },
+      "response": {
+        "$ref": "#/x_dd_defs/de63d69717106"
+      },
+      "allowAdditionalFields": {
+        "$ref": "#/x_dd_defs/d465f434f6a6b"
+      },
+      "path": {
+        "$ref": "#/x_dd_defs/d0a16e61e2d97"
+      },
+      "directory": {
+        "$ref": "#/x_dd_defs/db7e6ccc6dd35"
+      },
+      "maxVariation": {
+        "$ref": "#/x_dd_defs/dfc51a0f1ad3c"
+      },
+      "overwrite": {
+        "$ref": "#/x_dd_defs/d67323486122f"
+      }
+    },
+    "d5696955c91fb": {
+      "title": "HTTP request (detailed)",
+      "type": "object",
+      "anyOf": [
+        {
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "required": [
+            "openApi"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d01596d225f92"
+      }
+    }
+  }
 }

@@ -6,24 +6,7 @@
   "additionalProperties": false,
   "properties": {
     "if": {
-      "title": "Condition",
-      "description": "A condition expression, or an array of expressions combined with logical AND.",
-      "oneOf": [
-        {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "\\S"
-        },
-        {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "\\S"
-          }
-        }
-      ]
+      "$ref": "#/x_dd_defs/d44e5c1a71f13"
     },
     "continue": {
       "description": "Continue execution with the next step. Use to explicitly suppress a default handler behavior.",
@@ -112,24 +95,7 @@
   "components": {
     "schemas": {
       "condition": {
-        "title": "Condition",
-        "description": "A condition expression, or an array of expressions combined with logical AND.",
-        "oneOf": [
-          {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "\\S"
-          },
-          {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "pattern": "\\S"
-            }
-          }
-        ]
+        "$ref": "#/x_dd_defs/d44e5c1a71f13"
       }
     }
   },
@@ -163,5 +129,27 @@
         "limit": 1
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d44e5c1a71f13": {
+      "title": "Condition",
+      "description": "A condition expression, or an array of expressions combined with logical AND.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      ]
+    }
+  }
 }

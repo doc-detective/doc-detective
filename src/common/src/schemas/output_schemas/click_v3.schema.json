@@ -4,11 +4,394 @@
   "description": "Click or tap an element.",
   "anyOf": [
     {
+      "$ref": "#/x_dd_defs/db031325276b7"
+    },
+    {
+      "$ref": "#/x_dd_defs/d4e6c822f0bfa"
+    },
+    {
+      "type": "boolean"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "$ref": "#/x_dd_defs/db031325276b7"
+      },
+      "button": {
+        "description": "Kind of click to perform.",
+        "type": "string",
+        "enum": [
+          "left",
+          "right",
+          "middle"
+        ]
+      },
+      "duration": {
+        "$ref": "#/x_dd_defs/d5238dde3c7ea"
+      },
+      "object": {
+        "$ref": "#/x_dd_defs/d4e6c822f0bfa"
+      }
+    }
+  },
+  "examples": [
+    true,
+    "Submit",
+    {
+      "button": "left",
+      "elementText": "Element text"
+    },
+    {
+      "selector": "#elementToScreenshot",
+      "elementText": "Element text",
+      "button": "middle"
+    }
+  ],
+  "x_dd_defs": {
+    "db031325276b7": {
       "title": "Click element (simple)",
       "type": "string",
       "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
     },
-    {
+    "d5238dde3c7ea": {
+      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "d81d8f452f557": {
+      "title": "Surface (by browser engine)",
+      "type": "string",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit",
+        "edge"
+      ],
+      "transform": [
+        "trim"
+      ],
+      "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+    },
+    "d23078c31e9af": {
+      "type": "string",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit",
+        "edge"
+      ],
+      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+    },
+    "d602d0d67985b": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+    },
+    "d34d60ebb0a88": {
+      "title": "By index",
+      "type": "integer",
+      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+    },
+    "dcef07241c15a": {
+      "title": "By name",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+    },
+    "db83479a87432": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened."
+    },
+    "d477cb6dfff92": {
+      "name": {
+        "$ref": "#/x_dd_defs/db83479a87432"
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index in creation order. Negative counts from the end."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page title to match. Substring, or /regex/."
+      },
+      "url": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page URL to match. Substring, or /regex/."
+      }
+    },
+    "d9e0c9a379818": {
+      "title": "By criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d477cb6dfff92"
+      }
+    },
+    "d75f5822b9926": {
+      "description": "Which window to act on. Omit to use the active window.",
+      "title": "Window/tab selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d34d60ebb0a88"
+        },
+        {
+          "$ref": "#/x_dd_defs/dcef07241c15a"
+        },
+        {
+          "$ref": "#/x_dd_defs/d9e0c9a379818"
+        }
+      ]
+    },
+    "df3616f3b9188": {
+      "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+      "title": "Window/tab selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d34d60ebb0a88"
+        },
+        {
+          "$ref": "#/x_dd_defs/dcef07241c15a"
+        },
+        {
+          "$ref": "#/x_dd_defs/d9e0c9a379818"
+        }
+      ]
+    },
+    "d231ddad27946": {
+      "browser": {
+        "$ref": "#/x_dd_defs/d23078c31e9af"
+      },
+      "name": {
+        "$ref": "#/x_dd_defs/d602d0d67985b"
+      },
+      "window": {
+        "$ref": "#/x_dd_defs/d75f5822b9926"
+      },
+      "tab": {
+        "$ref": "#/x_dd_defs/df3616f3b9188"
+      }
+    },
+    "df8c05c280185": {
+      "title": "Browser surface",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "browser"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d231ddad27946"
+      }
+    },
+    "db3f2339c2b53": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
+    },
+    "d83377d9a9a23": {
+      "title": "By index",
+      "type": "integer",
+      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
+    },
+    "d57cfe161492f": {
+      "title": "By name",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+    },
+    "d3cb303092c92": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S",
+        "transform": [
+          "trim"
+        ],
+        "description": "Assigned window name."
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index in creation order. Negative counts from the end."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Window title to match. Substring, or /regex/."
+      }
+    },
+    "d8b049785e1da": {
+      "title": "By criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d3cb303092c92"
+      }
+    },
+    "db6dbdcdc25c0": {
+      "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
+      "title": "App window selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d83377d9a9a23"
+        },
+        {
+          "$ref": "#/x_dd_defs/d57cfe161492f"
+        },
+        {
+          "$ref": "#/x_dd_defs/d8b049785e1da"
+        }
+      ]
+    },
+    "d0a7dda51b51e": {
+      "app": {
+        "$ref": "#/x_dd_defs/db3f2339c2b53"
+      },
+      "window": {
+        "$ref": "#/x_dd_defs/db6dbdcdc25c0"
+      }
+    },
+    "d592ca27c16d4": {
+      "title": "App surface",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d0a7dda51b51e"
+      }
+    },
+    "d967656263652": {
+      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d81d8f452f557"
+        },
+        {
+          "$ref": "#/x_dd_defs/df8c05c280185"
+        },
+        {
+          "$ref": "#/x_dd_defs/d592ca27c16d4"
+        }
+      ]
+    },
+    "dfa40cfe601d5": {
+      "type": "string",
+      "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
+    },
+    "d5f8dd8aaa8c9": {
+      "type": "string",
+      "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
+    },
+    "dddb601f768f6": {
+      "type": "string",
+      "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d56d6086f72d0": {
+      "type": "string",
+      "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d36879a346bf0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+    },
+    "df5fb044d9398": {
+      "type": "object",
+      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "da993bab30b8c": {
+      "type": "string",
+      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d2023f28e6dff": {
+      "button": {
+        "description": "Kind of click to perform.",
+        "type": "string",
+        "enum": [
+          "left",
+          "right",
+          "middle"
+        ]
+      },
+      "duration": {
+        "$ref": "#/x_dd_defs/d5238dde3c7ea"
+      },
+      "surface": {
+        "$ref": "#/x_dd_defs/d967656263652"
+      },
+      "elementText": {
+        "$ref": "#/x_dd_defs/dfa40cfe601d5"
+      },
+      "selector": {
+        "$ref": "#/x_dd_defs/d5f8dd8aaa8c9"
+      },
+      "elementId": {
+        "$ref": "#/x_dd_defs/dddb601f768f6"
+      },
+      "elementTestId": {
+        "$ref": "#/x_dd_defs/d56d6086f72d0"
+      },
+      "elementClass": {
+        "$ref": "#/x_dd_defs/d36879a346bf0"
+      },
+      "elementAttribute": {
+        "$ref": "#/x_dd_defs/df5fb044d9398"
+      },
+      "elementAria": {
+        "$ref": "#/x_dd_defs/da993bab30b8c"
+      }
+    },
+    "d4e6c822f0bfa": {
       "title": "Click element (detailed)",
       "type": "object",
       "anyOf": [
@@ -49,659 +432,8 @@
         }
       ],
       "properties": {
-        "button": {
-          "description": "Kind of click to perform.",
-          "type": "string",
-          "enum": [
-            "left",
-            "right",
-            "middle"
-          ]
-        },
-        "duration": {
-          "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-          "type": "integer",
-          "minimum": 1
-        },
-        "surface": {
-          "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-          "anyOf": [
-            {
-              "title": "Surface (by browser engine)",
-              "type": "string",
-              "enum": [
-                "chrome",
-                "firefox",
-                "safari",
-                "webkit",
-                "edge"
-              ],
-              "transform": [
-                "trim"
-              ],
-              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-            },
-            {
-              "title": "Browser surface",
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "browser"
-              ],
-              "properties": {
-                "browser": {
-                  "type": "string",
-                  "enum": [
-                    "chrome",
-                    "firefox",
-                    "safari",
-                    "webkit",
-                    "edge"
-                  ],
-                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                },
-                "name": {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                },
-                "window": {
-                  "description": "Which window to act on. Omit to use the active window.",
-                  "title": "Window/tab selector",
-                  "anyOf": [
-                    {
-                      "title": "By index",
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                    },
-                    {
-                      "title": "By name",
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                    },
-                    {
-                      "title": "By criteria",
-                      "type": "object",
-                      "additionalProperties": false,
-                      "minProperties": 1,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Name assigned when the window/tab was opened."
-                        },
-                        "index": {
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end."
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page title to match. Substring, or /regex/."
-                        },
-                        "url": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page URL to match. Substring, or /regex/."
-                        }
-                      }
-                    }
-                  ]
-                },
-                "tab": {
-                  "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                  "title": "Window/tab selector",
-                  "anyOf": [
-                    {
-                      "title": "By index",
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                    },
-                    {
-                      "title": "By name",
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                    },
-                    {
-                      "title": "By criteria",
-                      "type": "object",
-                      "additionalProperties": false,
-                      "minProperties": 1,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Name assigned when the window/tab was opened."
-                        },
-                        "index": {
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end."
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page title to match. Substring, or /regex/."
-                        },
-                        "url": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Page URL to match. Substring, or /regex/."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "title": "App surface",
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "app"
-              ],
-              "properties": {
-                "app": {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                },
-                "window": {
-                  "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                  "title": "App window selector",
-                  "anyOf": [
-                    {
-                      "title": "By index",
-                      "type": "integer",
-                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                    },
-                    {
-                      "title": "By name",
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                    },
-                    {
-                      "title": "By criteria",
-                      "type": "object",
-                      "additionalProperties": false,
-                      "minProperties": 1,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Assigned window name."
-                        },
-                        "index": {
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end."
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Window title to match. Substring, or /regex/."
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        "elementText": {
-          "type": "string",
-          "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-        },
-        "selector": {
-          "type": "string",
-          "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-        },
-        "elementId": {
-          "type": "string",
-          "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-        },
-        "elementTestId": {
-          "type": "string",
-          "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-        },
-        "elementClass": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          ],
-          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-        },
-        "elementAttribute": {
-          "type": "object",
-          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              }
-            ]
-          }
-        },
-        "elementAria": {
-          "type": "string",
-          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-        }
-      }
-    },
-    {
-      "type": "boolean"
-    }
-  ],
-  "components": {
-    "schemas": {
-      "string": {
-        "title": "Click element (simple)",
-        "type": "string",
-        "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
-      },
-      "button": {
-        "description": "Kind of click to perform.",
-        "type": "string",
-        "enum": [
-          "left",
-          "right",
-          "middle"
-        ]
-      },
-      "duration": {
-        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-        "type": "integer",
-        "minimum": 1
-      },
-      "object": {
-        "title": "Click element (detailed)",
-        "type": "object",
-        "anyOf": [
-          {
-            "required": [
-              "selector"
-            ]
-          },
-          {
-            "required": [
-              "elementText"
-            ]
-          },
-          {
-            "required": [
-              "elementId"
-            ]
-          },
-          {
-            "required": [
-              "elementTestId"
-            ]
-          },
-          {
-            "required": [
-              "elementClass"
-            ]
-          },
-          {
-            "required": [
-              "elementAttribute"
-            ]
-          },
-          {
-            "required": [
-              "elementAria"
-            ]
-          }
-        ],
-        "properties": {
-          "button": {
-            "description": "Kind of click to perform.",
-            "type": "string",
-            "enum": [
-              "left",
-              "right",
-              "middle"
-            ]
-          },
-          "duration": {
-            "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-            "type": "integer",
-            "minimum": 1
-          },
-          "surface": {
-            "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-            "anyOf": [
-              {
-                "title": "Surface (by browser engine)",
-                "type": "string",
-                "enum": [
-                  "chrome",
-                  "firefox",
-                  "safari",
-                  "webkit",
-                  "edge"
-                ],
-                "transform": [
-                  "trim"
-                ],
-                "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-              },
-              {
-                "title": "Browser surface",
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "browser"
-                ],
-                "properties": {
-                  "browser": {
-                    "type": "string",
-                    "enum": [
-                      "chrome",
-                      "firefox",
-                      "safari",
-                      "webkit",
-                      "edge"
-                    ],
-                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ],
-                    "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                  },
-                  "window": {
-                    "description": "Which window to act on. Omit to use the active window.",
-                    "title": "Window/tab selector",
-                    "anyOf": [
-                      {
-                        "title": "By index",
-                        "type": "integer",
-                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                      },
-                      {
-                        "title": "By name",
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                      },
-                      {
-                        "title": "By criteria",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Name assigned when the window/tab was opened."
-                          },
-                          "index": {
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end."
-                          },
-                          "title": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page title to match. Substring, or /regex/."
-                          },
-                          "url": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page URL to match. Substring, or /regex/."
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "tab": {
-                    "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                    "title": "Window/tab selector",
-                    "anyOf": [
-                      {
-                        "title": "By index",
-                        "type": "integer",
-                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                      },
-                      {
-                        "title": "By name",
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                      },
-                      {
-                        "title": "By criteria",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Name assigned when the window/tab was opened."
-                          },
-                          "index": {
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end."
-                          },
-                          "title": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page title to match. Substring, or /regex/."
-                          },
-                          "url": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Page URL to match. Substring, or /regex/."
-                          }
-                        }
-                      }
-                    ]
-                  }
-                }
-              },
-              {
-                "title": "App surface",
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "app"
-                ],
-                "properties": {
-                  "app": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ],
-                    "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                  },
-                  "window": {
-                    "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                    "title": "App window selector",
-                    "anyOf": [
-                      {
-                        "title": "By index",
-                        "type": "integer",
-                        "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                      },
-                      {
-                        "title": "By name",
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                      },
-                      {
-                        "title": "By criteria",
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Assigned window name."
-                          },
-                          "index": {
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end."
-                          },
-                          "title": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Window title to match. Substring, or /regex/."
-                          }
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          "elementText": {
-            "type": "string",
-            "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-          },
-          "selector": {
-            "type": "string",
-            "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-          },
-          "elementAttribute": {
-            "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
-            }
-          },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          }
-        }
+        "$ref": "#/x_dd_defs/d2023f28e6dff"
       }
     }
-  },
-  "examples": [
-    true,
-    "Submit",
-    {
-      "button": "left",
-      "elementText": "Element text"
-    },
-    {
-      "selector": "#elementToScreenshot",
-      "elementText": "Element text",
-      "button": "middle"
-    }
-  ]
+  }
 }

@@ -1,6 +1,7 @@
 const parser = require("@apidevtools/json-schema-ref-parser");
 const path = require("path");
 const fs = require("fs");
+const { compressSchema, expandSchema } = require("./dedupe.cjs");
 
 (async () => {
   await dereferenceSchemas();
@@ -129,10 +130,38 @@ async function dereferenceSchemas() {
       // Delete $id attributes
       schema = deleteDollarIds(schema);
 
+      // Compress: hoist repeated subtrees into internal refs so the
+      // committed artifacts stay small — full inlining duplicated shared
+      // components thousands of times and brushed GitHub's 100 MB file
+      // limit. Consumers receive the EXPANDED form via schemas/index.ts /
+      // the generators, so this is an on-disk encoding, not a shape change.
+      // Self-verifying: the build fails when expansion doesn't reproduce
+      // the dereferenced tree exactly. EVERY dedupe-step error is fatal
+      // (namespace collisions from assertNamespaceFree included) — the
+      // output file hasn't been written yet, so swallowing one would leave
+      // a stale artifact on disk while the build reports success.
+      let compressed;
+      try {
+        compressed = compressSchema(schema);
+        const roundTrip = expandSchema(JSON.parse(JSON.stringify(compressed)));
+        if (JSON.stringify(roundTrip) !== JSON.stringify(schema)) {
+          throw new Error(`Dedupe round-trip mismatch for ${file}`);
+        }
+      } catch (err) {
+        err.fatalDedupeError = true;
+        throw err;
+      }
+
       // Write to file
-      fs.writeFileSync(outputFilePath, JSON.stringify(schema, null, 2));
+      fs.writeFileSync(outputFilePath, JSON.stringify(compressed, null, 2));
     } catch (err) {
       console.error(`Error processing ${file}:`, err);
+      // Per-file processing errors are historically tolerated (logged and
+      // skipped), but any failed dedupe step means a wrong or stale
+      // artifact would ship — that must fail the build.
+      if (err && err.fatalDedupeError) {
+        throw err;
+      }
     }
   }
   // Build final schemas.json file

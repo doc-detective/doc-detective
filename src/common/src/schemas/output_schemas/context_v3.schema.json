@@ -51,158 +51,20 @@
       "description": "Browsers to run tests on. On a mobile (`android`/`ios`) platform entry, the browser runs on the managed device: `chrome` on Android, `safari` on iOS (other combinations skip the context), and it fills in automatically when omitted. Device browsers don't take desktop display config: authored `window`/`viewport` dimensions and `headless: false` are rejected on mobile entries (the device owns its display — control it via the device descriptor's `headless`/`deviceType`); `headless: true` matches this schema's default and is ignored.",
       "anyOf": [
         {
-          "type": "string",
-          "description": "Name of the browser.",
-          "enum": [
-            "chrome",
-            "firefox",
-            "safari",
-            "webkit"
-          ],
-          "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
+          "$ref": "#/x_dd_defs/d56d3f2bbe135"
         },
         {
-          "type": "object",
-          "description": "Browser configuration.",
-          "required": [
-            "name"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Name of the browser.",
-              "enum": [
-                "chrome",
-                "firefox",
-                "safari",
-                "webkit"
-              ],
-              "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
-            },
-            "explicit": {
-              "type": "boolean",
-              "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
-              "readOnly": true
-            },
-            "headless": {
-              "type": "boolean",
-              "description": "If `true`, runs the browser in headless mode.",
-              "default": true
-            },
-            "window": {
-              "type": "object",
-              "description": "Browser dimensions.",
-              "additionalProperties": false,
-              "properties": {
-                "width": {
-                  "type": "integer",
-                  "description": "Width of the browser window in pixels."
-                },
-                "height": {
-                  "type": "integer",
-                  "description": "Height of the browser window in pixels."
-                }
-              },
-              "title": "Browser Window"
-            },
-            "viewport": {
-              "type": "object",
-              "description": "Viewport dimensions.",
-              "additionalProperties": false,
-              "properties": {
-                "width": {
-                  "type": "integer",
-                  "description": "Width of the viewport in pixels."
-                },
-                "height": {
-                  "type": "integer",
-                  "description": "Height of the viewport in pixels."
-                }
-              },
-              "title": "Browser Viewport"
-            }
-          },
-          "title": "Browser"
+          "$ref": "#/x_dd_defs/de7689d368752"
         },
         {
           "type": "array",
           "items": {
             "anyOf": [
               {
-                "type": "string",
-                "description": "Name of the browser.",
-                "enum": [
-                  "chrome",
-                  "firefox",
-                  "safari",
-                  "webkit"
-                ],
-                "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
+                "$ref": "#/x_dd_defs/d56d3f2bbe135"
               },
               {
-                "type": "object",
-                "description": "Browser configuration.",
-                "required": [
-                  "name"
-                ],
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the browser.",
-                    "enum": [
-                      "chrome",
-                      "firefox",
-                      "safari",
-                      "webkit"
-                    ],
-                    "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
-                  },
-                  "explicit": {
-                    "type": "boolean",
-                    "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
-                    "readOnly": true
-                  },
-                  "headless": {
-                    "type": "boolean",
-                    "description": "If `true`, runs the browser in headless mode.",
-                    "default": true
-                  },
-                  "window": {
-                    "type": "object",
-                    "description": "Browser dimensions.",
-                    "additionalProperties": false,
-                    "properties": {
-                      "width": {
-                        "type": "integer",
-                        "description": "Width of the browser window in pixels."
-                      },
-                      "height": {
-                        "type": "integer",
-                        "description": "Height of the browser window in pixels."
-                      }
-                    },
-                    "title": "Browser Window"
-                  },
-                  "viewport": {
-                    "type": "object",
-                    "description": "Viewport dimensions.",
-                    "additionalProperties": false,
-                    "properties": {
-                      "width": {
-                        "type": "integer",
-                        "description": "Width of the viewport in pixels."
-                      },
-                      "height": {
-                        "type": "integer",
-                        "description": "Height of the viewport in pixels."
-                      }
-                    },
-                    "title": "Browser Viewport"
-                  }
-                },
-                "title": "Browser"
+                "$ref": "#/x_dd_defs/de7689d368752"
               }
             ]
           }
@@ -441,79 +303,10 @@
         ]
       },
       "browserName": {
-        "type": "string",
-        "description": "Name of the browser.",
-        "enum": [
-          "chrome",
-          "firefox",
-          "safari",
-          "webkit"
-        ],
-        "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
+        "$ref": "#/x_dd_defs/d56d3f2bbe135"
       },
       "browser": {
-        "type": "object",
-        "description": "Browser configuration.",
-        "required": [
-          "name"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the browser.",
-            "enum": [
-              "chrome",
-              "firefox",
-              "safari",
-              "webkit"
-            ],
-            "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
-          },
-          "explicit": {
-            "type": "boolean",
-            "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
-            "readOnly": true
-          },
-          "headless": {
-            "type": "boolean",
-            "description": "If `true`, runs the browser in headless mode.",
-            "default": true
-          },
-          "window": {
-            "type": "object",
-            "description": "Browser dimensions.",
-            "additionalProperties": false,
-            "properties": {
-              "width": {
-                "type": "integer",
-                "description": "Width of the browser window in pixels."
-              },
-              "height": {
-                "type": "integer",
-                "description": "Height of the browser window in pixels."
-              }
-            },
-            "title": "Browser Window"
-          },
-          "viewport": {
-            "type": "object",
-            "description": "Viewport dimensions.",
-            "additionalProperties": false,
-            "properties": {
-              "width": {
-                "type": "integer",
-                "description": "Width of the viewport in pixels."
-              },
-              "height": {
-                "type": "integer",
-                "description": "Height of the viewport in pixels."
-              }
-            },
-            "title": "Browser Viewport"
-          }
-        },
-        "title": "Browser"
+        "$ref": "#/x_dd_defs/de7689d368752"
       }
     }
   },
@@ -629,5 +422,92 @@
         "deviceType": "phone"
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d56d3f2bbe135": {
+      "type": "string",
+      "description": "Name of the browser.",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit"
+      ],
+      "$comment": "On desktop platforms `safari` is a shortcut for the `webkit` engine. On an `ios` platform entry, `safari` means the real Safari browser on the managed simulator (`webkit` is not supported there). On `android`, `chrome` is the supported browser."
+    },
+    "d3309acf1b015": {
+      "type": "boolean",
+      "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+      "readOnly": true
+    },
+    "d032c237fb683": {
+      "width": {
+        "type": "integer",
+        "description": "Width of the browser window in pixels."
+      },
+      "height": {
+        "type": "integer",
+        "description": "Height of the browser window in pixels."
+      }
+    },
+    "dc7e632ac14d3": {
+      "type": "object",
+      "description": "Browser dimensions.",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d032c237fb683"
+      },
+      "title": "Browser Window"
+    },
+    "db1a5d9558dc8": {
+      "width": {
+        "type": "integer",
+        "description": "Width of the viewport in pixels."
+      },
+      "height": {
+        "type": "integer",
+        "description": "Height of the viewport in pixels."
+      }
+    },
+    "daeafb5f4cd58": {
+      "type": "object",
+      "description": "Viewport dimensions.",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/db1a5d9558dc8"
+      },
+      "title": "Browser Viewport"
+    },
+    "da8f9f7b8b050": {
+      "name": {
+        "$ref": "#/x_dd_defs/d56d3f2bbe135"
+      },
+      "explicit": {
+        "$ref": "#/x_dd_defs/d3309acf1b015"
+      },
+      "headless": {
+        "type": "boolean",
+        "description": "If `true`, runs the browser in headless mode.",
+        "default": true
+      },
+      "window": {
+        "$ref": "#/x_dd_defs/dc7e632ac14d3"
+      },
+      "viewport": {
+        "$ref": "#/x_dd_defs/daeafb5f4cd58"
+      }
+    },
+    "de7689d368752": {
+      "type": "object",
+      "description": "Browser configuration.",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/da8f9f7b8b050"
+      },
+      "title": "Browser"
+    }
+  }
 }

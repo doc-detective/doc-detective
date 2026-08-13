@@ -3,1065 +3,19 @@
   "title": "goTo",
   "anyOf": [
     {
-      "title": "Go to URL (simple)",
-      "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
-      "type": "string",
-      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-      "transform": [
-        "trim"
-      ]
+      "$ref": "#/x_dd_defs/db33747f4bfe7"
     },
     {
-      "description": "Navigate to an HTTP or HTTPS URL.",
-      "title": "Go to URL (detailed)",
-      "allOf": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "url"
-          ],
-          "properties": {
-            "surface": {
-              "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
-              "anyOf": [
-                {
-                  "title": "Surface (by browser engine)",
-                  "type": "string",
-                  "enum": [
-                    "chrome",
-                    "firefox",
-                    "safari",
-                    "webkit",
-                    "edge"
-                  ],
-                  "transform": [
-                    "trim"
-                  ],
-                  "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-                },
-                {
-                  "title": "Browser surface",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "browser"
-                  ],
-                  "properties": {
-                    "browser": {
-                      "type": "string",
-                      "enum": [
-                        "chrome",
-                        "firefox",
-                        "safari",
-                        "webkit",
-                        "edge"
-                      ],
-                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                    },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                    },
-                    "window": {
-                      "description": "Which window to act on. Omit to use the active window.",
-                      "title": "Window/tab selector",
-                      "anyOf": [
-                        {
-                          "title": "By index",
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                        },
-                        {
-                          "title": "By name",
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                        },
-                        {
-                          "title": "By criteria",
-                          "type": "object",
-                          "additionalProperties": false,
-                          "minProperties": 1,
-                          "properties": {
-                            "name": {
-                              "type": "string",
-                              "minLength": 1,
-                              "pattern": "\\S",
-                              "transform": [
-                                "trim"
-                              ],
-                              "description": "Name assigned when the window/tab was opened."
-                            },
-                            "index": {
-                              "type": "integer",
-                              "description": "Index in creation order. Negative counts from the end."
-                            },
-                            "title": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "Page title to match. Substring, or /regex/."
-                            },
-                            "url": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "Page URL to match. Substring, or /regex/."
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    "tab": {
-                      "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                      "title": "Window/tab selector",
-                      "anyOf": [
-                        {
-                          "title": "By index",
-                          "type": "integer",
-                          "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                        },
-                        {
-                          "title": "By name",
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "\\S",
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                        },
-                        {
-                          "title": "By criteria",
-                          "type": "object",
-                          "additionalProperties": false,
-                          "minProperties": 1,
-                          "properties": {
-                            "name": {
-                              "type": "string",
-                              "minLength": 1,
-                              "pattern": "\\S",
-                              "transform": [
-                                "trim"
-                              ],
-                              "description": "Name assigned when the window/tab was opened."
-                            },
-                            "index": {
-                              "type": "integer",
-                              "description": "Index in creation order. Negative counts from the end."
-                            },
-                            "title": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "Page title to match. Substring, or /regex/."
-                            },
-                            "url": {
-                              "type": "string",
-                              "minLength": 1,
-                              "description": "Page URL to match. Substring, or /regex/."
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  }
-                }
-              ]
-            },
-            "newTab": {
-              "description": "Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.",
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "minProperties": 1,
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name for the new tab."
-                    }
-                  }
-                }
-              ]
-            },
-            "newWindow": {
-              "description": "Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.",
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "transform": [
-                    "trim"
-                  ]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "minProperties": 1,
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name for the new window."
-                    },
-                    "tab": {
-                      "type": "string",
-                      "minLength": 1,
-                      "pattern": "\\S",
-                      "transform": [
-                        "trim"
-                      ],
-                      "description": "Name for the new window's first tab."
-                    }
-                  }
-                }
-              ]
-            },
-            "url": {
-              "type": "string",
-              "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-              "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-              "transform": [
-                "trim"
-              ]
-            },
-            "origin": {
-              "type": "string",
-              "description": "Protocol and domain to navigate to. Prepended to `url`.",
-              "transform": [
-                "trim"
-              ]
-            },
-            "params": {
-              "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              },
-              "default": {}
-            },
-            "timeout": {
-              "type": "integer",
-              "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
-              "default": 30000,
-              "minimum": 0
-            },
-            "waitUntil": {
-              "type": "object",
-              "description": "Configuration for waiting conditions after navigation.",
-              "additionalProperties": false,
-              "properties": {
-                "networkIdleTime": {
-                  "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).",
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "default": 500
-                },
-                "domIdleTime": {
-                  "description": "Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).",
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "default": 1000
-                },
-                "find": {
-                  "type": "object",
-                  "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
-                  "additionalProperties": false,
-                  "anyOf": [
-                    {
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ],
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "CSS selector for the element to wait for."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
-                        ]
-                      }
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "title": "newTab and newWindow are mutually exclusive",
-          "if": {
-            "required": [
-              "newTab",
-              "newWindow"
-            ],
-            "properties": {
-              "newTab": {
-                "not": {
-                  "const": false
-                }
-              },
-              "newWindow": {
-                "not": {
-                  "const": false
-                }
-              }
-            }
-          },
-          "then": {
-            "not": {
-              "required": [
-                "newTab"
-              ]
-            }
-          }
-        },
-        {
-          "title": "newTab conflicts with a surface tab selector",
-          "if": {
-            "required": [
-              "newTab",
-              "surface"
-            ],
-            "properties": {
-              "newTab": {
-                "not": {
-                  "const": false
-                }
-              },
-              "surface": {
-                "type": "object",
-                "required": [
-                  "tab"
-                ]
-              }
-            }
-          },
-          "then": {
-            "not": {
-              "required": [
-                "newTab"
-              ]
-            }
-          }
-        },
-        {
-          "title": "newWindow conflicts with a surface window or tab selector",
-          "if": {
-            "required": [
-              "newWindow",
-              "surface"
-            ],
-            "properties": {
-              "newWindow": {
-                "not": {
-                  "const": false
-                }
-              },
-              "surface": {
-                "type": "object",
-                "anyOf": [
-                  {
-                    "required": [
-                      "window"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "tab"
-                    ]
-                  }
-                ]
-              }
-            }
-          },
-          "then": {
-            "not": {
-              "required": [
-                "newWindow"
-              ]
-            }
-          }
-        }
-      ],
-      "examples": [
-        {
-          "url": "https://www.google.com"
-        },
-        {
-          "url": "/checkout",
-          "origin": "https://my-app.com",
-          "newTab": "cart"
-        },
-        {
-          "url": "/admin",
-          "origin": "https://my-app.com",
-          "newWindow": {
-            "name": "admin",
-            "tab": "overview"
-          }
-        },
-        {
-          "url": "/orders",
-          "surface": {
-            "browser": "chrome",
-            "window": "admin",
-            "tab": "overview"
-          }
-        }
-      ]
+      "$ref": "#/x_dd_defs/da43ed78494c8"
     }
   ],
   "components": {
     "schemas": {
       "string": {
-        "title": "Go to URL (simple)",
-        "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
-        "type": "string",
-        "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-        "transform": [
-          "trim"
-        ]
+        "$ref": "#/x_dd_defs/db33747f4bfe7"
       },
       "object": {
-        "description": "Navigate to an HTTP or HTTPS URL.",
-        "title": "Go to URL (detailed)",
-        "allOf": [
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "url"
-            ],
-            "properties": {
-              "surface": {
-                "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
-                "anyOf": [
-                  {
-                    "title": "Surface (by browser engine)",
-                    "type": "string",
-                    "enum": [
-                      "chrome",
-                      "firefox",
-                      "safari",
-                      "webkit",
-                      "edge"
-                    ],
-                    "transform": [
-                      "trim"
-                    ],
-                    "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-                  },
-                  {
-                    "title": "Browser surface",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "browser"
-                    ],
-                    "properties": {
-                      "browser": {
-                        "type": "string",
-                        "enum": [
-                          "chrome",
-                          "firefox",
-                          "safari",
-                          "webkit",
-                          "edge"
-                        ],
-                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                      },
-                      "name": {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                      },
-                      "window": {
-                        "description": "Which window to act on. Omit to use the active window.",
-                        "title": "Window/tab selector",
-                        "anyOf": [
-                          {
-                            "title": "By index",
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                          },
-                          {
-                            "title": "By name",
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                          },
-                          {
-                            "title": "By criteria",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "minProperties": 1,
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
-                                "transform": [
-                                  "trim"
-                                ],
-                                "description": "Name assigned when the window/tab was opened."
-                              },
-                              "index": {
-                                "type": "integer",
-                                "description": "Index in creation order. Negative counts from the end."
-                              },
-                              "title": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Page title to match. Substring, or /regex/."
-                              },
-                              "url": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Page URL to match. Substring, or /regex/."
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "tab": {
-                        "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                        "title": "Window/tab selector",
-                        "anyOf": [
-                          {
-                            "title": "By index",
-                            "type": "integer",
-                            "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                          },
-                          {
-                            "title": "By name",
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                          },
-                          {
-                            "title": "By criteria",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "minProperties": 1,
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
-                                "transform": [
-                                  "trim"
-                                ],
-                                "description": "Name assigned when the window/tab was opened."
-                              },
-                              "index": {
-                                "type": "integer",
-                                "description": "Index in creation order. Negative counts from the end."
-                              },
-                              "title": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Page title to match. Substring, or /regex/."
-                              },
-                              "url": {
-                                "type": "string",
-                                "minLength": 1,
-                                "description": "Page URL to match. Substring, or /regex/."
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              },
-              "newTab": {
-                "description": "Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.",
-                "anyOf": [
-                  {
-                    "type": "boolean"
-                  },
-                  {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "minProperties": 1,
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name for the new tab."
-                      }
-                    }
-                  }
-                ]
-              },
-              "newWindow": {
-                "description": "Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.",
-                "anyOf": [
-                  {
-                    "type": "boolean"
-                  },
-                  {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "minProperties": 1,
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name for the new window."
-                      },
-                      "tab": {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ],
-                        "description": "Name for the new window's first tab."
-                      }
-                    }
-                  }
-                ]
-              },
-              "url": {
-                "type": "string",
-                "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-                "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "origin": {
-                "type": "string",
-                "description": "Protocol and domain to navigate to. Prepended to `url`.",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "params": {
-                "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "default": {}
-              },
-              "timeout": {
-                "type": "integer",
-                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
-                "default": 30000,
-                "minimum": 0
-              },
-              "waitUntil": {
-                "type": "object",
-                "description": "Configuration for waiting conditions after navigation.",
-                "additionalProperties": false,
-                "properties": {
-                  "networkIdleTime": {
-                    "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).",
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "default": 500
-                  },
-                  "domIdleTime": {
-                    "description": "Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).",
-                    "anyOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "default": 1000
-                  },
-                  "find": {
-                    "type": "object",
-                    "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
-                    "additionalProperties": false,
-                    "anyOf": [
-                      {
-                        "required": [
-                          "selector"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementText"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementTestId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementClass"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAttribute"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAria"
-                        ]
-                      }
-                    ],
-                    "properties": {
-                      "selector": {
-                        "type": "string",
-                        "description": "CSS selector for the element to wait for."
-                      },
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                      },
-                      "elementAttribute": {
-                        "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ]
-                        }
-                      },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          {
-            "title": "newTab and newWindow are mutually exclusive",
-            "if": {
-              "required": [
-                "newTab",
-                "newWindow"
-              ],
-              "properties": {
-                "newTab": {
-                  "not": {
-                    "const": false
-                  }
-                },
-                "newWindow": {
-                  "not": {
-                    "const": false
-                  }
-                }
-              }
-            },
-            "then": {
-              "not": {
-                "required": [
-                  "newTab"
-                ]
-              }
-            }
-          },
-          {
-            "title": "newTab conflicts with a surface tab selector",
-            "if": {
-              "required": [
-                "newTab",
-                "surface"
-              ],
-              "properties": {
-                "newTab": {
-                  "not": {
-                    "const": false
-                  }
-                },
-                "surface": {
-                  "type": "object",
-                  "required": [
-                    "tab"
-                  ]
-                }
-              }
-            },
-            "then": {
-              "not": {
-                "required": [
-                  "newTab"
-                ]
-              }
-            }
-          },
-          {
-            "title": "newWindow conflicts with a surface window or tab selector",
-            "if": {
-              "required": [
-                "newWindow",
-                "surface"
-              ],
-              "properties": {
-                "newWindow": {
-                  "not": {
-                    "const": false
-                  }
-                },
-                "surface": {
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "required": [
-                        "window"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "tab"
-                      ]
-                    }
-                  ]
-                }
-              }
-            },
-            "then": {
-              "not": {
-                "required": [
-                  "newWindow"
-                ]
-              }
-            }
-          }
-        ],
-        "examples": [
-          {
-            "url": "https://www.google.com"
-          },
-          {
-            "url": "/checkout",
-            "origin": "https://my-app.com",
-            "newTab": "cart"
-          },
-          {
-            "url": "/admin",
-            "origin": "https://my-app.com",
-            "newWindow": {
-              "name": "admin",
-              "tab": "overview"
-            }
-          },
-          {
-            "url": "/orders",
-            "surface": {
-              "browser": "chrome",
-              "window": "admin",
-              "tab": "overview"
-            }
-          }
-        ]
+        "$ref": "#/x_dd_defs/da43ed78494c8"
       }
     }
   },
@@ -1164,5 +118,625 @@
         }
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "db33747f4bfe7": {
+      "title": "Go to URL (simple)",
+      "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+      "type": "string",
+      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d81d8f452f557": {
+      "title": "Surface (by browser engine)",
+      "type": "string",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit",
+        "edge"
+      ],
+      "transform": [
+        "trim"
+      ],
+      "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
+    },
+    "d23078c31e9af": {
+      "type": "string",
+      "enum": [
+        "chrome",
+        "firefox",
+        "safari",
+        "webkit",
+        "edge"
+      ],
+      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+    },
+    "d602d0d67985b": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
+    },
+    "d34d60ebb0a88": {
+      "title": "By index",
+      "type": "integer",
+      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
+    },
+    "dcef07241c15a": {
+      "title": "By name",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
+    },
+    "db83479a87432": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name assigned when the window/tab was opened."
+    },
+    "d477cb6dfff92": {
+      "name": {
+        "$ref": "#/x_dd_defs/db83479a87432"
+      },
+      "index": {
+        "type": "integer",
+        "description": "Index in creation order. Negative counts from the end."
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page title to match. Substring, or /regex/."
+      },
+      "url": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Page URL to match. Substring, or /regex/."
+      }
+    },
+    "d9e0c9a379818": {
+      "title": "By criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d477cb6dfff92"
+      }
+    },
+    "d75f5822b9926": {
+      "description": "Which window to act on. Omit to use the active window.",
+      "title": "Window/tab selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d34d60ebb0a88"
+        },
+        {
+          "$ref": "#/x_dd_defs/dcef07241c15a"
+        },
+        {
+          "$ref": "#/x_dd_defs/d9e0c9a379818"
+        }
+      ]
+    },
+    "df3616f3b9188": {
+      "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
+      "title": "Window/tab selector",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d34d60ebb0a88"
+        },
+        {
+          "$ref": "#/x_dd_defs/dcef07241c15a"
+        },
+        {
+          "$ref": "#/x_dd_defs/d9e0c9a379818"
+        }
+      ]
+    },
+    "d231ddad27946": {
+      "browser": {
+        "$ref": "#/x_dd_defs/d23078c31e9af"
+      },
+      "name": {
+        "$ref": "#/x_dd_defs/d602d0d67985b"
+      },
+      "window": {
+        "$ref": "#/x_dd_defs/d75f5822b9926"
+      },
+      "tab": {
+        "$ref": "#/x_dd_defs/df3616f3b9188"
+      }
+    },
+    "df8c05c280185": {
+      "title": "Browser surface",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "browser"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d231ddad27946"
+      }
+    },
+    "db24d831a036a": {
+      "description": "The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.",
+      "anyOf": [
+        {
+          "$ref": "#/x_dd_defs/d81d8f452f557"
+        },
+        {
+          "$ref": "#/x_dd_defs/df8c05c280185"
+        }
+      ]
+    },
+    "dcdb93d9cb927": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ],
+          "description": "Name for the new tab."
+        }
+      }
+    },
+    "d26b53b8a4ff3": {
+      "description": "Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ]
+        },
+        {
+          "$ref": "#/x_dd_defs/dcdb93d9cb927"
+        }
+      ]
+    },
+    "d7e2cb136eed5": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "transform": [
+        "trim"
+      ],
+      "description": "Name for the new window's first tab."
+    },
+    "d6bb1376ded34": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S",
+        "transform": [
+          "trim"
+        ],
+        "description": "Name for the new window."
+      },
+      "tab": {
+        "$ref": "#/x_dd_defs/d7e2cb136eed5"
+      }
+    },
+    "d23db322dcfef": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "$ref": "#/x_dd_defs/d6bb1376ded34"
+      }
+    },
+    "d88b4c283f887": {
+      "description": "Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ]
+        },
+        {
+          "$ref": "#/x_dd_defs/d23db322dcfef"
+        }
+      ]
+    },
+    "dd9ba3b57c1b1": {
+      "type": "string",
+      "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
+      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+      "transform": [
+        "trim"
+      ]
+    },
+    "d44bde413aec6": {
+      "description": "Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {}
+    },
+    "d7af993af5919": {
+      "type": "integer",
+      "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+      "default": 30000,
+      "minimum": 0
+    },
+    "d8648bb1354ec": {
+      "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).",
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": 500
+    },
+    "dbcb924065e54": {
+      "description": "Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).",
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": 1000
+    },
+    "dc7cfabbebd23": {
+      "type": "string",
+      "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
+    },
+    "d51f552441335": {
+      "type": "string",
+      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "de98afd642d66": {
+      "type": "string",
+      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d36879a346bf0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+    },
+    "df5fb044d9398": {
+      "type": "object",
+      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "da993bab30b8c": {
+      "type": "string",
+      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+    },
+    "d375571c6200f": {
+      "selector": {
+        "type": "string",
+        "description": "CSS selector for the element to wait for."
+      },
+      "elementText": {
+        "$ref": "#/x_dd_defs/dc7cfabbebd23"
+      },
+      "elementId": {
+        "$ref": "#/x_dd_defs/d51f552441335"
+      },
+      "elementTestId": {
+        "$ref": "#/x_dd_defs/de98afd642d66"
+      },
+      "elementClass": {
+        "$ref": "#/x_dd_defs/d36879a346bf0"
+      },
+      "elementAttribute": {
+        "$ref": "#/x_dd_defs/df5fb044d9398"
+      },
+      "elementAria": {
+        "$ref": "#/x_dd_defs/da993bab30b8c"
+      }
+    },
+    "d9f986a91df40": {
+      "type": "object",
+      "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "selector"
+          ]
+        },
+        {
+          "required": [
+            "elementText"
+          ]
+        },
+        {
+          "required": [
+            "elementId"
+          ]
+        },
+        {
+          "required": [
+            "elementTestId"
+          ]
+        },
+        {
+          "required": [
+            "elementClass"
+          ]
+        },
+        {
+          "required": [
+            "elementAttribute"
+          ]
+        },
+        {
+          "required": [
+            "elementAria"
+          ]
+        }
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d375571c6200f"
+      }
+    },
+    "d762f6555ec9b": {
+      "networkIdleTime": {
+        "$ref": "#/x_dd_defs/d8648bb1354ec"
+      },
+      "domIdleTime": {
+        "$ref": "#/x_dd_defs/dbcb924065e54"
+      },
+      "find": {
+        "$ref": "#/x_dd_defs/d9f986a91df40"
+      }
+    },
+    "d1afcee2dbb9d": {
+      "type": "object",
+      "description": "Configuration for waiting conditions after navigation.",
+      "additionalProperties": false,
+      "properties": {
+        "$ref": "#/x_dd_defs/d762f6555ec9b"
+      }
+    },
+    "d4d473be3918a": {
+      "surface": {
+        "$ref": "#/x_dd_defs/db24d831a036a"
+      },
+      "newTab": {
+        "$ref": "#/x_dd_defs/d26b53b8a4ff3"
+      },
+      "newWindow": {
+        "$ref": "#/x_dd_defs/d88b4c283f887"
+      },
+      "url": {
+        "$ref": "#/x_dd_defs/dd9ba3b57c1b1"
+      },
+      "origin": {
+        "type": "string",
+        "description": "Protocol and domain to navigate to. Prepended to `url`.",
+        "transform": [
+          "trim"
+        ]
+      },
+      "params": {
+        "$ref": "#/x_dd_defs/d44bde413aec6"
+      },
+      "timeout": {
+        "$ref": "#/x_dd_defs/d7af993af5919"
+      },
+      "waitUntil": {
+        "$ref": "#/x_dd_defs/d1afcee2dbb9d"
+      }
+    },
+    "db9a8d6a58024": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/d4d473be3918a"
+      }
+    },
+    "da9ed4d71f5d9": {
+      "title": "newTab and newWindow are mutually exclusive",
+      "if": {
+        "required": [
+          "newTab",
+          "newWindow"
+        ],
+        "properties": {
+          "newTab": {
+            "not": {
+              "const": false
+            }
+          },
+          "newWindow": {
+            "not": {
+              "const": false
+            }
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "newTab"
+          ]
+        }
+      }
+    },
+    "dcef92f73a2fd": {
+      "required": [
+        "newTab",
+        "surface"
+      ],
+      "properties": {
+        "newTab": {
+          "not": {
+            "const": false
+          }
+        },
+        "surface": {
+          "type": "object",
+          "required": [
+            "tab"
+          ]
+        }
+      }
+    },
+    "d6b2de5099144": {
+      "title": "newTab conflicts with a surface tab selector",
+      "if": {
+        "$ref": "#/x_dd_defs/dcef92f73a2fd"
+      },
+      "then": {
+        "not": {
+          "required": [
+            "newTab"
+          ]
+        }
+      }
+    },
+    "debd2422257e8": {
+      "newWindow": {
+        "not": {
+          "const": false
+        }
+      },
+      "surface": {
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "window"
+            ]
+          },
+          {
+            "required": [
+              "tab"
+            ]
+          }
+        ]
+      }
+    },
+    "daf7d3df8a8bb": {
+      "required": [
+        "newWindow",
+        "surface"
+      ],
+      "properties": {
+        "$ref": "#/x_dd_defs/debd2422257e8"
+      }
+    },
+    "d8a2e08530a3d": {
+      "title": "newWindow conflicts with a surface window or tab selector",
+      "if": {
+        "$ref": "#/x_dd_defs/daf7d3df8a8bb"
+      },
+      "then": {
+        "not": {
+          "required": [
+            "newWindow"
+          ]
+        }
+      }
+    },
+    "da43ed78494c8": {
+      "description": "Navigate to an HTTP or HTTPS URL.",
+      "title": "Go to URL (detailed)",
+      "allOf": [
+        {
+          "$ref": "#/x_dd_defs/db9a8d6a58024"
+        },
+        {
+          "$ref": "#/x_dd_defs/da9ed4d71f5d9"
+        },
+        {
+          "$ref": "#/x_dd_defs/d6b2de5099144"
+        },
+        {
+          "$ref": "#/x_dd_defs/d8a2e08530a3d"
+        }
+      ],
+      "examples": [
+        {
+          "url": "https://www.google.com"
+        },
+        {
+          "url": "/checkout",
+          "origin": "https://my-app.com",
+          "newTab": "cart"
+        },
+        {
+          "url": "/admin",
+          "origin": "https://my-app.com",
+          "newWindow": {
+            "name": "admin",
+            "tab": "overview"
+          }
+        },
+        {
+          "url": "/orders",
+          "surface": {
+            "browser": "chrome",
+            "window": "admin",
+            "tab": "overview"
+          }
+        }
+      ]
+    }
+  }
 }

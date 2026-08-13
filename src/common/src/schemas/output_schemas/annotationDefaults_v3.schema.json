@@ -61,54 +61,7 @@
       "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
       "additionalProperties": false,
       "properties": {
-        "color": {
-          "type": "string",
-          "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-        },
-        "background": {
-          "type": "string",
-          "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-        },
-        "strokeWidth": {
-          "type": "number",
-          "description": "Line width in pixels.",
-          "minimum": 0
-        },
-        "fontSize": {
-          "type": "number",
-          "description": "Font size in pixels.",
-          "minimum": 1
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Font family. Falls back through the list as in CSS."
-        },
-        "opacity": {
-          "type": "number",
-          "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "radius": {
-          "type": "number",
-          "description": "Corner radius in pixels, for boxes and text backgrounds.",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "number",
-          "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "description": "Maximum width in pixels for text before it wraps.",
-          "minimum": 1
-        },
-        "intensity": {
-          "type": "number",
-          "description": "Blur strength. Higher values obscure more.",
-          "minimum": 1
-        }
+        "$ref": "#/x_dd_defs/d497de236fde2"
       }
     },
     "arrow": {
@@ -118,54 +71,7 @@
       "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
       "additionalProperties": false,
       "properties": {
-        "color": {
-          "type": "string",
-          "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-        },
-        "background": {
-          "type": "string",
-          "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-        },
-        "strokeWidth": {
-          "type": "number",
-          "description": "Line width in pixels.",
-          "minimum": 0
-        },
-        "fontSize": {
-          "type": "number",
-          "description": "Font size in pixels.",
-          "minimum": 1
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Font family. Falls back through the list as in CSS."
-        },
-        "opacity": {
-          "type": "number",
-          "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "radius": {
-          "type": "number",
-          "description": "Corner radius in pixels, for boxes and text backgrounds.",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "number",
-          "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "description": "Maximum width in pixels for text before it wraps.",
-          "minimum": 1
-        },
-        "intensity": {
-          "type": "number",
-          "description": "Blur strength. Higher values obscure more.",
-          "minimum": 1
-        }
+        "$ref": "#/x_dd_defs/d497de236fde2"
       }
     },
     "badge": {
@@ -175,54 +81,7 @@
       "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
       "additionalProperties": false,
       "properties": {
-        "color": {
-          "type": "string",
-          "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-        },
-        "background": {
-          "type": "string",
-          "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-        },
-        "strokeWidth": {
-          "type": "number",
-          "description": "Line width in pixels.",
-          "minimum": 0
-        },
-        "fontSize": {
-          "type": "number",
-          "description": "Font size in pixels.",
-          "minimum": 1
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Font family. Falls back through the list as in CSS."
-        },
-        "opacity": {
-          "type": "number",
-          "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "radius": {
-          "type": "number",
-          "description": "Corner radius in pixels, for boxes and text backgrounds.",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "number",
-          "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "description": "Maximum width in pixels for text before it wraps.",
-          "minimum": 1
-        },
-        "intensity": {
-          "type": "number",
-          "description": "Blur strength. Higher values obscure more.",
-          "minimum": 1
-        }
+        "$ref": "#/x_dd_defs/d497de236fde2"
       }
     },
     "callout": {
@@ -232,54 +91,7 @@
       "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
       "additionalProperties": false,
       "properties": {
-        "color": {
-          "type": "string",
-          "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-        },
-        "background": {
-          "type": "string",
-          "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-        },
-        "strokeWidth": {
-          "type": "number",
-          "description": "Line width in pixels.",
-          "minimum": 0
-        },
-        "fontSize": {
-          "type": "number",
-          "description": "Font size in pixels.",
-          "minimum": 1
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Font family. Falls back through the list as in CSS."
-        },
-        "opacity": {
-          "type": "number",
-          "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "radius": {
-          "type": "number",
-          "description": "Corner radius in pixels, for boxes and text backgrounds.",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "number",
-          "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "description": "Maximum width in pixels for text before it wraps.",
-          "minimum": 1
-        },
-        "intensity": {
-          "type": "number",
-          "description": "Blur strength. Higher values obscure more.",
-          "minimum": 1
-        }
+        "$ref": "#/x_dd_defs/d497de236fde2"
       }
     },
     "blur": {
@@ -289,54 +101,7 @@
       "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
       "additionalProperties": false,
       "properties": {
-        "color": {
-          "type": "string",
-          "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-        },
-        "background": {
-          "type": "string",
-          "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-        },
-        "strokeWidth": {
-          "type": "number",
-          "description": "Line width in pixels.",
-          "minimum": 0
-        },
-        "fontSize": {
-          "type": "number",
-          "description": "Font size in pixels.",
-          "minimum": 1
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Font family. Falls back through the list as in CSS."
-        },
-        "opacity": {
-          "type": "number",
-          "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "radius": {
-          "type": "number",
-          "description": "Corner radius in pixels, for boxes and text backgrounds.",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "number",
-          "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "description": "Maximum width in pixels for text before it wraps.",
-          "minimum": 1
-        },
-        "intensity": {
-          "type": "number",
-          "description": "Blur strength. Higher values obscure more.",
-          "minimum": 1
-        }
+        "$ref": "#/x_dd_defs/d497de236fde2"
       }
     },
     "text": {
@@ -346,54 +111,7 @@
       "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
       "additionalProperties": false,
       "properties": {
-        "color": {
-          "type": "string",
-          "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-        },
-        "background": {
-          "type": "string",
-          "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-        },
-        "strokeWidth": {
-          "type": "number",
-          "description": "Line width in pixels.",
-          "minimum": 0
-        },
-        "fontSize": {
-          "type": "number",
-          "description": "Font size in pixels.",
-          "minimum": 1
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Font family. Falls back through the list as in CSS."
-        },
-        "opacity": {
-          "type": "number",
-          "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "radius": {
-          "type": "number",
-          "description": "Corner radius in pixels, for boxes and text backgrounds.",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "number",
-          "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "description": "Maximum width in pixels for text before it wraps.",
-          "minimum": 1
-        },
-        "intensity": {
-          "type": "number",
-          "description": "Blur strength. Higher values obscure more.",
-          "minimum": 1
-        }
+        "$ref": "#/x_dd_defs/d497de236fde2"
       }
     },
     "transition": {
@@ -402,29 +120,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enter": {
-          "type": "string",
-          "description": "How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.",
-          "enum": [
-            "none",
-            "fade",
-            "pop",
-            "draw"
-          ]
-        },
-        "exit": {
-          "type": "string",
-          "description": "How the annotation disappears.",
-          "enum": [
-            "none",
-            "fade"
-          ]
-        },
-        "durationMs": {
-          "type": "number",
-          "description": "Length of the enter and exit animations, in milliseconds.",
-          "minimum": 0
-        }
+        "$ref": "#/x_dd_defs/d1e6599b52a8b"
       }
     }
   },
@@ -437,54 +133,7 @@
         "$comment": "Deliberately free of `default` keywords. This schema is shared by annotation objects and by the annotationDefaults theme at the config, spec, and test levels; AJV's useDefaults would inject any default here into all of them, populating the spec/test levels and destroying the 'absent means defer to the level above' cascade. The built-in theme lives in the runtime instead.",
         "additionalProperties": false,
         "properties": {
-          "color": {
-            "type": "string",
-            "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
-          },
-          "background": {
-            "type": "string",
-            "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
-          },
-          "strokeWidth": {
-            "type": "number",
-            "description": "Line width in pixels.",
-            "minimum": 0
-          },
-          "fontSize": {
-            "type": "number",
-            "description": "Font size in pixels.",
-            "minimum": 1
-          },
-          "fontFamily": {
-            "type": "string",
-            "description": "Font family. Falls back through the list as in CSS."
-          },
-          "opacity": {
-            "type": "number",
-            "description": "Opacity, from 0 (invisible) to 1 (opaque).",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "radius": {
-            "type": "number",
-            "description": "Corner radius in pixels, for boxes and text backgrounds.",
-            "minimum": 0
-          },
-          "padding": {
-            "type": "number",
-            "description": "Padding in pixels inside text boxes, and between an outline and its element.",
-            "minimum": 0
-          },
-          "maxWidth": {
-            "type": "number",
-            "description": "Maximum width in pixels for text before it wraps.",
-            "minimum": 1
-          },
-          "intensity": {
-            "type": "number",
-            "description": "Blur strength. Higher values obscure more.",
-            "minimum": 1
-          }
+          "$ref": "#/x_dd_defs/d497de236fde2"
         }
       },
       "transition": {
@@ -493,29 +142,7 @@
         "description": "How an annotation enters and leaves during a recording.",
         "additionalProperties": false,
         "properties": {
-          "enter": {
-            "type": "string",
-            "description": "How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.",
-            "enum": [
-              "none",
-              "fade",
-              "pop",
-              "draw"
-            ]
-          },
-          "exit": {
-            "type": "string",
-            "description": "How the annotation disappears.",
-            "enum": [
-              "none",
-              "fade"
-            ]
-          },
-          "durationMs": {
-            "type": "number",
-            "description": "Length of the enter and exit animations, in milliseconds.",
-            "minimum": 0
-          }
+          "$ref": "#/x_dd_defs/d1e6599b52a8b"
         }
       }
     }
@@ -541,5 +168,91 @@
         "durationMs": 250
       }
     }
-  ]
+  ],
+  "x_dd_defs": {
+    "d0b1c893bdb0c": {
+      "type": "string",
+      "description": "Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none."
+    },
+    "d5b893ee88126": {
+      "type": "number",
+      "description": "Padding in pixels inside text boxes, and between an outline and its element.",
+      "minimum": 0
+    },
+    "d497de236fde2": {
+      "color": {
+        "type": "string",
+        "description": "Foreground color — strokes, arrowheads, and text (hex, rgb, or named color)."
+      },
+      "background": {
+        "$ref": "#/x_dd_defs/d0b1c893bdb0c"
+      },
+      "strokeWidth": {
+        "type": "number",
+        "description": "Line width in pixels.",
+        "minimum": 0
+      },
+      "fontSize": {
+        "type": "number",
+        "description": "Font size in pixels.",
+        "minimum": 1
+      },
+      "fontFamily": {
+        "type": "string",
+        "description": "Font family. Falls back through the list as in CSS."
+      },
+      "opacity": {
+        "type": "number",
+        "description": "Opacity, from 0 (invisible) to 1 (opaque).",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "radius": {
+        "type": "number",
+        "description": "Corner radius in pixels, for boxes and text backgrounds.",
+        "minimum": 0
+      },
+      "padding": {
+        "$ref": "#/x_dd_defs/d5b893ee88126"
+      },
+      "maxWidth": {
+        "type": "number",
+        "description": "Maximum width in pixels for text before it wraps.",
+        "minimum": 1
+      },
+      "intensity": {
+        "type": "number",
+        "description": "Blur strength. Higher values obscure more.",
+        "minimum": 1
+      }
+    },
+    "df63b96f0db85": {
+      "type": "string",
+      "description": "How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.",
+      "enum": [
+        "none",
+        "fade",
+        "pop",
+        "draw"
+      ]
+    },
+    "d1e6599b52a8b": {
+      "enter": {
+        "$ref": "#/x_dd_defs/df63b96f0db85"
+      },
+      "exit": {
+        "type": "string",
+        "description": "How the annotation disappears.",
+        "enum": [
+          "none",
+          "fade"
+        ]
+      },
+      "durationMs": {
+        "type": "number",
+        "description": "Length of the enter and exit animations, in milliseconds.",
+        "minimum": 0
+      }
+    }
+  }
 }
