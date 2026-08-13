@@ -45,7 +45,7 @@
     "compile": "tsc && node scripts/createCjsWrapper.js",
     "watch": "nodemon --watch src --ext ts --exec \"npm run compile\"",
     "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const s=p.join('src','common','src','schemas','schemas.json');const d=p.join('dist','common','src','schemas','schemas.json');fs.mkdirSync(p.dirname(d),{recursive:true});fs.copyFileSync(s,d);\"",
-    "build": "npm run build:common && npm run compile && npm run copy:schemas",
+    "build": "npm run lint:schemas && npm run build:common && npm run compile && npm run copy:schemas",
     "mocha": "mocha",
     "test": "mocha --exit test/*.test.js && npm run test:common",
     "test:common": "cd src/common && npm test",
@@ -59,7 +59,8 @@
     "container:rebuild": "node src/container/scripts/build.cjs --no-cache",
     "container:build:base": "node src/container/scripts/build.cjs --target=base",
     "container:build:base:push": "node src/container/scripts/build.cjs --target=base --push",
-    "container:test": "mocha src/container/test/*.test.cjs --timeout 0"
+    "container:test": "mocha src/container/test/*.test.cjs --timeout 0",
+    "lint:schemas": "node scripts/lint-schemas.cjs"
   },
   "repository": {
     "type": "git",
@@ -130,6 +131,9 @@
     "@semantic-release/github": "^12.0.9",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.1",
+    "@stoplight/spectral-cli": "^6.16.2",
+    "@stoplight/spectral-core": "^1.23.1",
+    "@stoplight/spectral-functions": "^1.10.5",
     "@types/adm-zip": "^0.5.8",
     "@types/node": "^26.2.0",
     "@types/yargs": "^17.0.35",

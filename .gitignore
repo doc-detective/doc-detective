@@ -154,3 +154,8 @@ src/common/node_modules/
 
 # Agent/dev scratch space (see CLAUDE.md "Testing behavior")
 .tmp/
+
+# Scratch files the mocha suite writes into test/ and deletes again. One got
+# committed by a `git add -A`; ignoring them keeps a mid-run working tree from
+# sweeping machine-local absolute paths into the repo.
+test/temp-*

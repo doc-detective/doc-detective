@@ -27,7 +27,8 @@
     "test:coverage": "c8 mocha",
     "test:coverage:html": "c8 --reporter=html mocha",
     "test:coverage:check": "c8 check-coverage",
-    "test:coverage:ratchet": "node ../../scripts/check-coverage-ratchet.cjs"
+    "test:coverage:ratchet": "node ../../scripts/check-coverage-ratchet.cjs",
+    "lint:schemas": "node ../../scripts/lint-schemas.cjs"
   },
   "repository": {
     "type": "git",
