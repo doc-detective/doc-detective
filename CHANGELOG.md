@@ -1,3 +1,10 @@
+## [4.38.1](https://github.com/doc-detective/doc-detective/compare/v4.38.0...v4.38.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **release:** verify the root lockfile as the last prepare step ([#707](https://github.com/doc-detective/doc-detective/issues/707)) ([c8aab4b](https://github.com/doc-detective/doc-detective/commit/c8aab4b55386dd51e2adeddb0e1374b6db664ec8)), closes [#705](https://github.com/doc-detective/doc-detective/issues/705) [#702](https://github.com/doc-detective/doc-detective/issues/702) [#702](https://github.com/doc-detective/doc-detective/issues/702)
+
 # [4.38.0](https://github.com/doc-detective/doc-detective/compare/v4.37.5...v4.38.0) (2026-08-11)
 
 
