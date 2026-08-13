@@ -515,7 +515,8 @@ async function typeKeys({
       step.type.elementText ||
       step.type.elementId ||
       step.type.elementTestId ||
-      step.type.elementAria;
+      step.type.elementAria ||
+      step.type.image;
     if (!hasAppElementCriteria && textRuns.length) {
       // Text needs a destination. Android can type into the focused element
       // (mobile: type); iOS can't (XCUITest's mobile: keys is iPad-only), and
@@ -552,10 +553,23 @@ async function typeKeys({
         timeout: step.type.timeout ?? 5000,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
+        visual: {
+          entry: appRef.entry!,
+          windowTarget,
+          config,
+          stepId: step.stepId,
+        },
       });
       if (found.error) {
         result.status = "FAIL";
         result.description = found.error;
+        return result;
+      }
+      if (!found.element && found.imageMatch) {
+        // Rect-only visual match: typing needs a real element to focus.
+        result.status = "FAIL";
+        result.description =
+          "Matched the template visually, but no element could be recovered from the page source — typing needs a real element. Add another criterion so the element resolves.";
         return result;
       }
       element = found.element;
@@ -599,6 +613,12 @@ async function typeKeys({
         timeout: step.type.timeout ?? 5000,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
+        visual: {
+          entry: appRef.entry!,
+          windowTarget,
+          config,
+          stepId: step.stepId,
+        },
       });
       if (ready.error) {
         result.status = "FAIL";
@@ -654,7 +674,7 @@ async function typeKeys({
   const hasElementCriteria = step.type.selector || step.type.elementText ||
                              step.type.elementId || step.type.elementTestId ||
                              step.type.elementClass || step.type.elementAttribute ||
-                             step.type.elementAria;
+                             step.type.elementAria || step.type.image;
 
   if (hasElementCriteria) {
     const { element: foundElement, error } = await findElementByCriteria({
@@ -665,8 +685,11 @@ async function typeKeys({
       elementClass: step.type.elementClass,
       elementAttribute: step.type.elementAttribute,
       elementAria: step.type.elementAria,
+      image: step.type.image,
       timeout: 5000,
       driver,
+      config,
+      stepId: step.stepId,
     });
 
     // Compute the existence output and evaluate the implicit assertion through
@@ -774,6 +797,8 @@ async function typeKeys({
       driver,
       waitUntil: step.type.waitUntil,
       timeout: typeof step.type.timeout === "number" ? step.type.timeout : 5000,
+      config,
+      stepId: step.stepId,
     });
     if (!readiness.ok) {
       result.status = "FAIL";
@@ -795,9 +820,16 @@ async function waitForBrowserReadiness({
   driver,
   waitUntil,
   timeout,
+  config,
+  stepId,
 }: {
   driver: any;
   waitUntil: any;
+  // Threaded to findElementByCriteria for the image criterion's
+  // config-level matchThreshold default and step-derived miss-diagnostic
+  // filenames.
+  config?: any;
+  stepId?: string;
   timeout: number;
 }): Promise<{ ok: boolean; message: string }> {
   const failures: string[] = [];
@@ -837,8 +869,11 @@ async function waitForBrowserReadiness({
           elementClass: find.elementClass,
           elementAttribute: find.elementAttribute,
           elementAria: find.elementAria,
+          image: find.image,
           timeout,
           driver,
+          config,
+          stepId,
         });
         if (!element) {
           const message = `element not found (${JSON.stringify(waitUntil.find)})`;

@@ -55,6 +55,11 @@
             "required": [
               "elementAria"
             ]
+          },
+          {
+            "required": [
+              "image"
+            ]
           }
         ],
         "additionalProperties": false,
@@ -124,6 +129,9 @@
             "type": "string",
             "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
           },
+          "image": {
+            "$ref": "elementImage_v3.schema.json#"
+          },
           "timeout": {
             "type": "integer",
             "description": "Max duration in milliseconds to wait for the element to exist.",
@@ -171,7 +179,8 @@
                     "elementTestId",
                     "elementClass",
                     "elementAttribute",
-                    "elementAria"
+                    "elementAria",
+                    "image"
                   ],
                   "title": "Find element and type"
                 }
@@ -226,6 +235,10 @@
       },
       "timeout": 8000,
       "moveTo": false
+    },
+    {
+      "image": "images/gear-icon.png",
+      "click": true
     }
   ]
 }

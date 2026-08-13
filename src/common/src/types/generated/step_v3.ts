@@ -261,7 +261,7 @@ export type GoToURLDetailed = {
      */
     domIdleTime?: number | null;
     /**
-     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
+     * Wait for a matching element or visual match to be available on the page. At least one element-finding field (selector, elementText, image, …) must be specified.
      */
     find?: {
       [k: string]: unknown;
@@ -570,6 +570,7 @@ export type TypeKeysDetailed = {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image;
 } & WaitUntilRequiresASurface &
   AProcessSurfaceForbidsElementTargeting &
   AProcessSurfaceTakesProcessReadiness &
@@ -631,11 +632,19 @@ export type ElementCriteria = {
   [k: string]: unknown;
 };
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria1 = {
   [k: string]: unknown;
 };
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image = ImageSimple | ImageDetailed;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -740,9 +749,17 @@ export type Annotation = AnnotationFields & ExactlyOneAnnotationType;
  */
 export type TargetByElementSimple = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed = ElementFindingFields & AtLeastOneElementFindingField;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image1 = ImageSimple1 | ImageDetailed1;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple1 = string;
 export type AtLeastOneElementFindingField = {
   [k: string]: unknown;
 };
@@ -764,9 +781,17 @@ export type NamedRegion =
  */
 export type TargetByElementSimple1 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed1 = ElementFindingFields1 & AtLeastOneElementFindingField1;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image2 = ImageSimple2 | ImageDetailed2;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple2 = string;
 export type AtLeastOneElementFindingField1 = {
   [k: string]: unknown;
 };
@@ -788,9 +813,17 @@ export type NamedRegion1 =
  */
 export type TargetByElementSimple2 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed2 = ElementFindingFields2 & AtLeastOneElementFindingField2;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image3 = ImageSimple3 | ImageDetailed3;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple3 = string;
 export type AtLeastOneElementFindingField2 = {
   [k: string]: unknown;
 };
@@ -812,9 +845,17 @@ export type NamedRegion2 =
  */
 export type TargetByElementSimple3 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed3 = ElementFindingFields3 & AtLeastOneElementFindingField3;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image4 = ImageSimple4 | ImageDetailed4;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple4 = string;
 export type AtLeastOneElementFindingField3 = {
   [k: string]: unknown;
 };
@@ -836,9 +877,17 @@ export type NamedRegion3 =
  */
 export type TargetByElementSimple4 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed4 = ElementFindingFields4 & AtLeastOneElementFindingField4;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image5 = ImageSimple5 | ImageDetailed5;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple5 = string;
 export type AtLeastOneElementFindingField4 = {
   [k: string]: unknown;
 };
@@ -860,9 +909,17 @@ export type NamedRegion4 =
  */
 export type TargetByElementSimple5 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed5 = ElementFindingFields5 & AtLeastOneElementFindingField5;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image6 = ImageSimple6 | ImageDetailed6;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple6 = string;
 export type AtLeastOneElementFindingField5 = {
   [k: string]: unknown;
 };
@@ -1253,7 +1310,7 @@ export type Routing59 = {
 export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria2 = {
   [k: string]: unknown;
@@ -1269,9 +1326,12 @@ export type ParallelSurfaces = [
 ];
 export type DeviceByName1 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria3 =
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -1654,9 +1714,17 @@ export type Annotation1 = AnnotationFields1 & ExactlyOneAnnotationType1;
  */
 export type TargetByElementSimple6 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image7 = ImageSimple7 | ImageDetailed7;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple7 = string;
 export type AtLeastOneElementFindingField6 = {
   [k: string]: unknown;
 };
@@ -1678,9 +1746,17 @@ export type NamedRegion7 =
  */
 export type TargetByElementSimple7 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed7 = ElementFindingFields7 & AtLeastOneElementFindingField7;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image8 = ImageSimple8 | ImageDetailed8;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple8 = string;
 export type AtLeastOneElementFindingField7 = {
   [k: string]: unknown;
 };
@@ -1702,9 +1778,17 @@ export type NamedRegion8 =
  */
 export type TargetByElementSimple8 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed8 = ElementFindingFields8 & AtLeastOneElementFindingField8;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image9 = ImageSimple9 | ImageDetailed9;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple9 = string;
 export type AtLeastOneElementFindingField8 = {
   [k: string]: unknown;
 };
@@ -1726,9 +1810,17 @@ export type NamedRegion9 =
  */
 export type TargetByElementSimple9 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed9 = ElementFindingFields9 & AtLeastOneElementFindingField9;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image10 = ImageSimple10 | ImageDetailed10;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple10 = string;
 export type AtLeastOneElementFindingField9 = {
   [k: string]: unknown;
 };
@@ -1750,9 +1842,17 @@ export type NamedRegion10 =
  */
 export type TargetByElementSimple10 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed10 = ElementFindingFields10 & AtLeastOneElementFindingField10;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image11 = ImageSimple11 | ImageDetailed11;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple11 = string;
 export type AtLeastOneElementFindingField10 = {
   [k: string]: unknown;
 };
@@ -1774,9 +1874,17 @@ export type NamedRegion11 =
  */
 export type TargetByElementSimple11 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed11 = ElementFindingFields11 & AtLeastOneElementFindingField11;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image12 = ImageSimple12 | ImageDetailed12;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple12 = string;
 export type AtLeastOneElementFindingField11 = {
   [k: string]: unknown;
 };
@@ -1822,9 +1930,17 @@ export type Annotation2 = AnnotationFields2 & ExactlyOneAnnotationType2;
  */
 export type TargetByElementSimple12 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed12 = ElementFindingFields12 & AtLeastOneElementFindingField12;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image13 = ImageSimple13 | ImageDetailed13;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple13 = string;
 export type AtLeastOneElementFindingField12 = {
   [k: string]: unknown;
 };
@@ -1846,9 +1962,17 @@ export type NamedRegion14 =
  */
 export type TargetByElementSimple13 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed13 = ElementFindingFields13 & AtLeastOneElementFindingField13;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image14 = ImageSimple14 | ImageDetailed14;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple14 = string;
 export type AtLeastOneElementFindingField13 = {
   [k: string]: unknown;
 };
@@ -1870,9 +1994,17 @@ export type NamedRegion15 =
  */
 export type TargetByElementSimple14 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed14 = ElementFindingFields14 & AtLeastOneElementFindingField14;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image15 = ImageSimple15 | ImageDetailed15;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple15 = string;
 export type AtLeastOneElementFindingField14 = {
   [k: string]: unknown;
 };
@@ -1894,9 +2026,17 @@ export type NamedRegion16 =
  */
 export type TargetByElementSimple15 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed15 = ElementFindingFields15 & AtLeastOneElementFindingField15;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image16 = ImageSimple16 | ImageDetailed16;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple16 = string;
 export type AtLeastOneElementFindingField15 = {
   [k: string]: unknown;
 };
@@ -1918,9 +2058,17 @@ export type NamedRegion17 =
  */
 export type TargetByElementSimple16 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed16 = ElementFindingFields16 & AtLeastOneElementFindingField16;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image17 = ImageSimple17 | ImageDetailed17;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple17 = string;
 export type AtLeastOneElementFindingField16 = {
   [k: string]: unknown;
 };
@@ -1942,9 +2090,17 @@ export type NamedRegion18 =
  */
 export type TargetByElementSimple17 = string;
 /**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`, `image`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed17 = ElementFindingFields17 & AtLeastOneElementFindingField17;
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image18 = ImageSimple18 | ImageDetailed18;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple18 = string;
 export type AtLeastOneElementFindingField17 = {
   [k: string]: unknown;
 };
@@ -3809,6 +3965,22 @@ export interface AppReadiness {
   delayMs?: number;
   find?: ElementCriteria1;
 }
+export interface ImageDetailed {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
+}
 export interface WaitUntilRequiresASurface {
   [k: string]: unknown;
 }
@@ -4158,10 +4330,27 @@ export interface ElementFindingFields {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image1;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed1 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4213,10 +4402,27 @@ export interface ElementFindingFields1 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image2;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed2 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4268,10 +4474,27 @@ export interface ElementFindingFields2 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image3;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed3 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4323,10 +4546,27 @@ export interface ElementFindingFields3 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image4;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed4 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4378,10 +4618,27 @@ export interface ElementFindingFields4 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image5;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed5 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -4433,10 +4690,27 @@ export interface ElementFindingFields5 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image6;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed6 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7303,10 +7577,27 @@ export interface ElementFindingFields6 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image7;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed7 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7358,10 +7649,27 @@ export interface ElementFindingFields7 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image8;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed8 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7413,10 +7721,27 @@ export interface ElementFindingFields8 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image9;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed9 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7468,10 +7793,27 @@ export interface ElementFindingFields9 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image10;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed10 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7523,10 +7865,27 @@ export interface ElementFindingFields10 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image11;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed11 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7578,10 +7937,27 @@ export interface ElementFindingFields11 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image12;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed12 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7778,10 +8154,27 @@ export interface ElementFindingFields12 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image13;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed13 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7833,10 +8226,27 @@ export interface ElementFindingFields13 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image14;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed14 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7888,10 +8298,27 @@ export interface ElementFindingFields14 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image15;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed15 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7943,10 +8370,27 @@ export interface ElementFindingFields15 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image16;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed16 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -7998,10 +8442,27 @@ export interface ElementFindingFields16 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image17;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed17 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -8053,10 +8514,27 @@ export interface ElementFindingFields17 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image18;
   /**
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
+}
+export interface ImageDetailed18 {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.

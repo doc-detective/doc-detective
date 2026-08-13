@@ -16,6 +16,7 @@ import {
   resolveHeavyDepPathInCache,
   resolveHeavyDepSource,
   ensureRuntimeInstalled,
+  loadHeavyDep,
 } from "../../runtime/loader.js";
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
@@ -29,7 +30,20 @@ import {
   snapshotAppWindows,
   rewriteXPathForScopedFind,
   appWindowRect,
+  captureAppWindowBuffer,
 } from "./appWindows.js";
+import {
+  normalizeImageCriterion,
+  resolveMatchThreshold,
+  loadTemplateBuffer,
+  matchTemplate,
+  captureRectToLogical,
+  rectCenter,
+  rectContainsPoint,
+  writeMissDiagnostic,
+} from "./visualMatch.js";
+import type { Rect, VisualMatch } from "./visualMatch.js";
+import { recoverAppElement } from "./pageSourceRecovery.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
@@ -1132,7 +1146,438 @@ function buildAppLocator(
 // and so fixtures can reason about worst-case scroll depth.
 export const MAX_FIND_SCROLLS = 5;
 
+// Context for VISUAL matching on app surfaces (the image criterion): the
+// surface entry (window capture + rect), the resolved window target, and the
+// config/stepId for thresholds and miss diagnostics. Callers that have an
+// app surface in hand pass it; findAppElement rejects an image criterion
+// without it rather than silently ignoring the field.
+type AppVisualContext = {
+  entry: AppSurfaceEntry;
+  windowTarget?: any;
+  config?: any;
+  stepId?: string;
+};
+
+// Result shape for visual finds: `imageMatch` reports the matched region in
+// LOGICAL units (window-relative on desktop, device px/points on mobile).
+// `recovered: false` marks the rect-only contract — the match succeeded but
+// no real element could be recovered from the page source; callers fall back
+// to coordinate interactions (ADR 01087).
+type AppFindResult = {
+  element?: any;
+  error?: string;
+  imageMatch?: VisualMatch & { center: { x: number; y: number } };
+  recovered?: boolean;
+  recoveryReason?: string;
+  // Structured miss diagnostics (visual finds only) — mirrors the browser
+  // path so app users can branch on $$imageMiss.bestScore too.
+  imageMiss?: {
+    bestScore: number | null;
+    bestRect: Rect | null;
+    diagnosticPath: string | null;
+  };
+};
+
 async function findAppElement({
+  driver,
+  criteria,
+  timeout = 5000,
+  platform,
+  root,
+  visual,
+}: {
+  driver: any;
+  criteria: any;
+  timeout?: number;
+  platform?: string;
+  // A window element to scope the find to (macOS window selectors, ADR
+  // 01036). Compiled `//…` locators are re-anchored to `.//` so they stay
+  // inside the window subtree.
+  root?: any;
+  visual?: AppVisualContext;
+}): Promise<AppFindResult> {
+  const { image, ...locatorCriteria } = criteria ?? {};
+  if (image) {
+    return await findAppElementVisually({
+      driver,
+      image,
+      locatorCriteria,
+      timeout,
+      platform: platform ?? "windows",
+      root,
+      visual,
+    });
+  }
+  return await findAppElementByLocator({
+    driver,
+    criteria: locatorCriteria,
+    timeout,
+    platform,
+    root,
+  });
+}
+
+// The visual-matching flow: capture the window, template-match, then either
+// verify a locator-found element geometrically (AND semantics) or recover
+// the element under the single match's center from the page source.
+async function findAppElementVisually({
+  driver,
+  image,
+  locatorCriteria,
+  timeout,
+  platform,
+  root,
+  visual,
+}: {
+  driver: any;
+  image: any;
+  locatorCriteria: any;
+  timeout: number;
+  platform: string;
+  root?: any;
+  visual?: AppVisualContext;
+}): Promise<AppFindResult> {
+  if (!visual?.entry) {
+    return {
+      error:
+        "The image criterion on an app surface requires the app window context; target the app with `surface` on a find/click/type step.",
+    };
+  }
+  let template: Buffer;
+  let criterion: any;
+  try {
+    criterion = normalizeImageCriterion(image);
+    template = await loadTemplateBuffer(criterion);
+  } catch (error: any) {
+    return { error: error?.message ?? String(error) };
+  }
+  const threshold = resolveMatchThreshold(criterion.matchThreshold, visual.config);
+  const ctx = { cacheDir: visual.config?.cacheDir };
+  const isMobile = isMobileTargetPlatform(platform);
+  // Every non-image criterion counts — including elementClass/elementAttribute
+  // and CSS selectors, which app surfaces REJECT: routing them into the
+  // locator compile below surfaces buildAppLocator's precise error instead of
+  // silently taking the image-only path and matching the wrong element.
+  const hasLocatorCriteria = Boolean(
+    locatorCriteria?.selector ||
+      locatorCriteria?.elementText ||
+      locatorCriteria?.elementId ||
+      locatorCriteria?.elementTestId ||
+      locatorCriteria?.elementAria ||
+      locatorCriteria?.elementClass ||
+      locatorCriteria?.elementAttribute
+  );
+  if (hasLocatorCriteria) {
+    const compiled = buildAppLocator(locatorCriteria, platform);
+    if ("error" in compiled) return { error: compiled.error };
+  }
+
+  const cache: { scaledTemplates?: Map<number, Buffer> } = {};
+  let bestEver: (VisualMatch & { captureScale: number }) | null = null;
+  let lastCapture: Buffer | null = null;
+  let lastScale = 1;
+  let ambiguous: VisualMatch[] | null = null;
+  const start = Date.now();
+  const pollInterval = 250;
+  // Sleep only within the remaining budget: an immediate check (`timeout: 0`)
+  // or a nearly-expired timeout must not pad the step with a full interval
+  // before the loop condition exits.
+  const pollDelay = async () => {
+    const remaining = timeout - (Date.now() - start);
+    if (remaining > 0) {
+      await new Promise((r) =>
+        setTimeout(r, Math.min(pollInterval, remaining))
+      );
+    }
+  };
+
+  // Resolve sharp ONCE before polling — loadHeavyDep re-resolves module
+  // paths per call, and paying that inside every capture+match round would
+  // dilute the poll cadence for nothing (the module itself never changes).
+  // A missing/uninstallable dep must honor this function's structured-error
+  // contract (actionable { error }), not escape as a thrown exception.
+  let sharp: any;
+  try {
+    const sharpMod = await loadHeavyDep<any>("sharp", { ctx });
+    sharp = sharpMod && (sharpMod.default ?? sharpMod);
+    if (!sharp) throw new Error("sharp resolved to an empty module");
+  } catch (error: any) {
+    return {
+      error:
+        `Visual matching requires the optional sharp dependency. Install it ` +
+        `with \`doc-detective install\`. Original error: ${error?.message ?? error}`,
+    };
+  }
+
+  // do/while so an explicit `timeout: 0` (the locator path's immediate-check
+  // semantics) still runs one capture+match round instead of always missing.
+  do {
+    // Capture the window and derive the capture scale from it (annotations'
+    // computeScale posture: junk logical width degrades to 1:1).
+    let capture: Buffer;
+    try {
+      capture = await captureAppWindowBuffer(visual.entry, visual.windowTarget);
+    } catch (error: any) {
+      return {
+        error: `Couldn't capture the app window for image matching: ${error?.message ?? error}`,
+      };
+    }
+    let windowRect: { x: number; y: number; w: number; h: number } | null = null;
+    let logicalWidth: number | undefined;
+    if (isMobile) {
+      try {
+        const rect = await driver.getWindowRect();
+        logicalWidth = rect?.width;
+      } catch {
+        // 1:1 fallback below.
+      }
+    } else {
+      windowRect = await appWindowRect(visual.entry, visual.windowTarget);
+      logicalWidth = windowRect?.w;
+    }
+    let matchResult;
+    try {
+      // Only the capture width is needed here (for the capture scale);
+      // matchTemplate reads its own metadata for the match itself.
+      const sharpMeta = await sharp(capture).metadata();
+      const captureScale =
+        typeof logicalWidth === "number" &&
+        Number.isFinite(logicalWidth) &&
+        logicalWidth > 0 &&
+        sharpMeta.width
+          ? sharpMeta.width / logicalWidth
+          : 1;
+      lastScale = captureScale;
+      lastCapture = capture;
+      // Region scoping (logical units -> capture px). A criteria region
+      // resolves an element and uses its rect; unresolvable this round =
+      // keep polling.
+      let regionPx: Rect | undefined;
+      if (criterion.region) {
+        const resolved = await resolveAppRegionPx({
+          region: criterion.region,
+          driver,
+          platform,
+          root,
+          windowRect,
+          captureScale,
+        });
+        if (resolved === null) {
+          await pollDelay();
+          continue;
+        }
+        regionPx = resolved;
+      }
+      matchResult = await matchTemplate({
+        capture,
+        template,
+        threshold,
+        captureScale,
+        regionPx,
+        collectBestCandidate: true,
+        cache,
+        ctx,
+      });
+    } catch (error: any) {
+      return { error: error?.message ?? String(error) };
+    }
+    if (
+      matchResult.bestCandidate &&
+      (!bestEver || matchResult.bestCandidate.score > bestEver.score)
+    ) {
+      bestEver = { ...matchResult.bestCandidate, captureScale: lastScale };
+    }
+    if (!matchResult.matches.length) {
+      // Mirror the browser path: the timeout verdict reflects the FINAL
+      // observed state, so transient duplicates that settled to zero
+      // matches report a miss (with diagnostics), not a stale ambiguity.
+      ambiguous = null;
+      await pollDelay();
+      continue;
+    }
+    const logicalMatches = matchResult.matches.map((m) => ({
+      ...m,
+      rect: captureRectToLogical(m.rect, lastScale),
+    }));
+
+    if (hasLocatorCriteria) {
+      // AND semantics: the locator-found element must contain a match
+      // center. Element rects are window-relative on Windows, screen coords
+      // on macOS (rebase onto the window), device px/points on mobile —
+      // logical match rects are in the same space after the macOS rebase.
+      const located = await findAppElementByLocator({
+        driver,
+        criteria: locatorCriteria,
+        timeout: Math.min(1500, Math.max(1, timeout - (Date.now() - start))),
+        platform,
+        root,
+      });
+      if (located.element) {
+        let elementRect: any = null;
+        try {
+          elementRect = await driver.getElementRect(located.element.elementId);
+        } catch {
+          // Treat an unreadable rect as a miss this round.
+        }
+        if (elementRect) {
+          if (platform === "mac" && windowRect) {
+            elementRect = {
+              ...elementRect,
+              x: elementRect.x - windowRect.x,
+              y: elementRect.y - windowRect.y,
+            };
+          }
+          const hit = logicalMatches.find((m) =>
+            rectContainsPoint(elementRect, rectCenter(m.rect))
+          );
+          if (hit) {
+            return {
+              element: located.element,
+              imageMatch: { ...hit, center: rectCenter(hit.rect) },
+            };
+          }
+        }
+      }
+      await pollDelay();
+      continue;
+    }
+
+    // Image-only: multiple qualifying regions keep polling (transient
+    // duplicates may settle) and fail loudly at timeout.
+    if (logicalMatches.length > 1) {
+      ambiguous = logicalMatches;
+      await pollDelay();
+      continue;
+    }
+    ambiguous = null;
+    const match = logicalMatches[0];
+    const center = rectCenter(match.rect);
+    // Convert the match center into the platform's page-source coordinate
+    // space: NovaWindows source is window-relative (same as logical),
+    // Mac2 source is screen coords (add the window origin), Android bounds
+    // are device px, iOS attrs are points — both same as logical.
+    const sourcePoint =
+      platform === "mac" && windowRect
+        ? { x: center.x + windowRect.x, y: center.y + windowRect.y }
+        : center;
+    const recovery = await recoverAppElement({
+      driver,
+      platform,
+      point: sourcePoint,
+    });
+    const imageMatch = { ...match, center };
+    if (recovery.element) {
+      return { element: recovery.element, imageMatch, recovered: true };
+    }
+    // Rect-only contract: the visual match SUCCEEDED; only element recovery
+    // failed. Callers interact by coordinates.
+    return {
+      element: null,
+      imageMatch,
+      recovered: false,
+      recoveryReason: recovery.reason,
+    };
+  } while (Date.now() - start < timeout);
+
+  if (ambiguous) {
+    const rects = ambiguous.map((m) => ({
+      x: Math.round(m.rect.x),
+      y: Math.round(m.rect.y),
+      width: Math.round(m.rect.width),
+      height: Math.round(m.rect.height),
+      score: Number(m.score.toFixed(3)),
+    }));
+    return {
+      error:
+        `${ambiguous.length} regions matched the template ` +
+        `(${JSON.stringify(rects)}). Add another criterion (elementText, ` +
+        `elementId, …) or a region to disambiguate.`,
+    };
+  }
+  const bestScore = bestEver ? Number(bestEver.score.toFixed(3)) : null;
+  const diagnosticPath = await writeMissDiagnostic({
+    config: visual.config,
+    capture: lastCapture,
+    bestCandidate: bestEver,
+    threshold,
+    stepId: visual.stepId,
+    ctx,
+  });
+  // Convert with the scale of the iteration that PRODUCED the candidate —
+  // the capture scale can drift between polls.
+  const bestRect = bestEver
+    ? captureRectToLogical(bestEver.rect, bestEver.captureScale)
+    : null;
+  const scoreSentence =
+    bestScore !== null
+      ? `Best visual candidate scored ${bestScore} against threshold ${threshold}.`
+      : `No candidate region found at any scale (threshold ${threshold}).`;
+  return {
+    error: `Element not found within timeout. ${scoreSentence}${
+      diagnosticPath ? ` Annotated screenshot: ${diagnosticPath}.` : ""
+    }`,
+    imageMiss: { bestScore, bestRect, diagnosticPath },
+  };
+}
+
+// Resolve an image-criterion region to CAPTURE pixels on an app surface.
+// Returns undefined for a malformed region shape (schema should prevent it),
+// null when a criteria region can't be resolved right now.
+async function resolveAppRegionPx({
+  region,
+  driver,
+  platform,
+  root,
+  windowRect,
+  captureScale,
+}: {
+  region: any;
+  driver: any;
+  platform: string;
+  root?: any;
+  windowRect: { x: number; y: number; w: number; h: number } | null;
+  captureScale: number;
+}): Promise<Rect | null | undefined> {
+  if (
+    typeof region.x === "number" &&
+    typeof region.y === "number" &&
+    typeof region.width === "number" &&
+    typeof region.height === "number"
+  ) {
+    return {
+      x: region.x * captureScale,
+      y: region.y * captureScale,
+      width: region.width * captureScale,
+      height: region.height * captureScale,
+    };
+  }
+  const sub = await findAppElementByLocator({
+    driver,
+    criteria: region,
+    timeout: 500,
+    platform,
+    root,
+  });
+  if (!sub.element) return null;
+  let rect: any = null;
+  try {
+    rect = await driver.getElementRect(sub.element.elementId);
+  } catch {
+    return null;
+  }
+  if (!rect) return null;
+  if (platform === "mac" && windowRect) {
+    rect = { ...rect, x: rect.x - windowRect.x, y: rect.y - windowRect.y };
+  }
+  return {
+    x: rect.x * captureScale,
+    y: rect.y * captureScale,
+    width: rect.width * captureScale,
+    height: rect.height * captureScale,
+  };
+}
+
+async function findAppElementByLocator({
   driver,
   criteria,
   timeout = 5000,
@@ -1143,9 +1588,6 @@ async function findAppElement({
   criteria: any;
   timeout?: number;
   platform?: string;
-  // A window element to scope the find to (macOS window selectors, ADR
-  // 01036). Compiled `//…` locators are re-anchored to `.//` so they stay
-  // inside the window subtree.
   root?: any;
 }): Promise<{ element?: any; error?: string }> {
   const locator = buildAppLocator(criteria, platform);

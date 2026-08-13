@@ -74,6 +74,12 @@ interface AppGestureAdapter {
   // feedback channel, so its row always returns true and the caller's attempt
   // bound is the only stop). Mobile rows only.
   scrollStep?(driver: any): Promise<boolean>;
+  // Tap/click at a POINT — the rect-only fallback for visual matches whose
+  // element couldn't be recovered from the page source (ADR 01087). The
+  // caller owns the coordinate transform: Windows and macOS take absolute
+  // SCREEN coordinates (Nova's bare x/y click moves the real cursor;
+  // macos: click is screen-based), Android takes device px, iOS takes points.
+  tapAtPoint(driver: any, x: number, y: number): Promise<void>;
 }
 
 // Android KeyEvent codes (https://developer.android.com/reference/android/view/KeyEvent).
@@ -258,6 +264,9 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
     async typeFocused(driver, text) {
       await driver.execute("mobile: type", { text });
     },
+    async tapAtPoint(driver, x, y) {
+      await driver.execute("mobile: clickGesture", { x, y });
+    },
     async scrollStep(driver) {
       const area = await insetWindowArea(driver);
       // scrollGesture's direction is the CONTENT direction: scrolling "down"
@@ -323,6 +332,9 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
     },
     // No typeFocused: XCUITest's `mobile: keys` is iPad-only (Xcode 15+), so
     // iOS text typing keeps requiring element criteria.
+    async tapAtPoint(driver, x, y) {
+      await driver.execute("mobile: tap", { x, y });
+    },
     async scrollStep(driver) {
       const rect = await driver.getWindowRect();
       const { from, to } = directionToPoints("up", 0.7);
@@ -394,6 +406,11 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
         await element.click();
       }
     },
+    async tapAtPoint(driver, x, y) {
+      // Nova's bare-x/y click is real mouse input at absolute SCREEN
+      // coordinates (mouseMoveAbsolute) — the caller supplies screen coords.
+      await driver.execute("windows: click", { x, y });
+    },
   },
 
   mac: {
@@ -454,6 +471,10 @@ export const APP_GESTURES: Record<string, AppGestureAdapter> = {
       return {
         error: `${button}-click isn't supported on macOS app surfaces — the Mac2 driver has no ${button}-click. Use a left click or a right-click.`,
       };
+    },
+    async tapAtPoint(driver, x, y) {
+      // macos: click takes absolute screen coordinates.
+      await driver.execute("macos: click", { x, y });
     },
   },
 };

@@ -318,8 +318,63 @@ function exampleValue(propSchema, depth = 0) {
     case "string":
       return "example";
     case "number":
-    case "integer":
-      return 42;
+    case "integer": {
+      // Clamp the placeholder into the schema's declared bounds so a
+      // constrained field (e.g. a 0–1 threshold) never renders an example
+      // its own validation would reject. Exclusive bounds must not clamp
+      // onto the excluded boundary itself: integers step one inward, and
+      // numbers land on the midpoint of the known range (or step a fraction
+      // inward when only one bound exists).
+      const isInt = propSchema.type === "integer";
+      const upper =
+        propSchema.maximum !== undefined
+          ? { bound: propSchema.maximum, inclusive: true }
+          : propSchema.exclusiveMaximum !== undefined
+            ? { bound: propSchema.exclusiveMaximum, inclusive: false }
+            : null;
+      const lower =
+        propSchema.minimum !== undefined
+          ? { bound: propSchema.minimum, inclusive: true }
+          : propSchema.exclusiveMinimum !== undefined
+            ? { bound: propSchema.exclusiveMinimum, inclusive: false }
+            : null;
+      const tooHigh = (v) =>
+        upper && (v > upper.bound || (!upper.inclusive && v === upper.bound));
+      const tooLow = (v) =>
+        lower && (v < lower.bound || (!lower.inclusive && v === lower.bound));
+      if (isInt) {
+        // Compute the valid integer window directly: fractional and
+        // exclusive bounds round INWARD, and an empty window means no valid
+        // integer example exists (omit the property).
+        const hi = upper
+          ? upper.inclusive
+            ? Math.floor(upper.bound)
+            : Math.ceil(upper.bound) - 1
+          : Infinity;
+        const lo = lower
+          ? lower.inclusive
+            ? Math.ceil(lower.bound)
+            : Math.floor(lower.bound) + 1
+          : -Infinity;
+        if (lo > hi) return undefined;
+        return Math.min(Math.max(42, lo), hi);
+      }
+      let value = 42;
+      if (tooHigh(value)) {
+        value = upper.inclusive ? upper.bound : upper.bound - 0.1;
+      }
+      if (tooLow(value)) {
+        value = lower.inclusive ? lower.bound : lower.bound + 0.1;
+      }
+      // A single inward step can overshoot a tight range; the midpoint of a
+      // fully-bounded range always validates for numbers.
+      if (lower && upper && (tooHigh(value) || tooLow(value))) {
+        value = (lower.bound + upper.bound) / 2;
+      }
+      // Degenerate ranges (e.g. exclusive bounds with no room) get no example.
+      if (tooHigh(value) || tooLow(value)) return undefined;
+      return value;
+    }
     case "boolean":
       return true;
     case "array":
@@ -332,7 +387,11 @@ function exampleValue(propSchema, depth = 0) {
   // invalid when required fields exist, and noisy otherwise).
   const eff = getEffectiveProperties(propSchema);
   if (propSchema.type === "object" || eff) {
-    if (!eff) return {};
+    // An empty object would be invalid against minProperties; omit the
+    // property instead of rendering an example validation rejects.
+    if (!eff) {
+      return propSchema.minProperties >= 1 ? undefined : {};
+    }
     const required = eff.required || [];
     if (required.length > 0) {
       const obj = {};
@@ -340,10 +399,11 @@ function exampleValue(propSchema, depth = 0) {
         const v = exampleValue(eff.properties[key], depth + 1);
         if (v !== undefined) obj[key] = v;
       }
-      return obj;
+      return meetsMinProperties(obj, propSchema) ? obj : undefined;
     }
     if (Object.keys(eff.properties).length <= 2) {
-      return buildExampleObject(eff, depth + 1);
+      const obj = buildExampleObject(eff, depth + 1);
+      return meetsMinProperties(obj, propSchema) ? obj : undefined;
     }
     return undefined; // omit complex optional object
   }
@@ -369,11 +429,19 @@ function buildExampleObject(eff, depth = 0) {
   return example;
 }
 
+// A generated object must carry at least `minProperties` entries, or the
+// rendered example would contradict the schema it documents.
+function meetsMinProperties(obj, schema) {
+  const min = schema && schema.minProperties;
+  return !(typeof min === "number" && Object.keys(obj).length < min);
+}
+
 // Function to generate an example from a schema
 function generateExampleFromSchema(schema) {
   const eff = getEffectiveProperties(schema);
   if (!eff) return {};
-  return buildExampleObject(eff);
+  const example = buildExampleObject(eff);
+  return meetsMinProperties(example, schema) ? example : {};
 }
 
 // Function to generate a property row for the fields table

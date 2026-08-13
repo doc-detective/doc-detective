@@ -469,6 +469,7 @@ async function saveScreenshot({
           elementClass: step.screenshot.crop?.elementClass,
           elementAttribute: step.screenshot.crop?.elementAttribute,
           elementAria: step.screenshot.crop?.elementAria,
+          image: step.screenshot.crop?.image,
           timeout: step.screenshot.crop?.timeout,
         },
       };

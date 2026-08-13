@@ -27,6 +27,10 @@
 // Windows the session root is inherently sticky; on macOS the element is
 // stored on the surface entry.
 
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import crypto from "node:crypto";
 import { matchesExpectedOutput } from "../utils.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
 
@@ -37,6 +41,7 @@ export {
   defaultAppWindow,
   appWindowRect,
   appWindowScreenshot,
+  captureAppWindowBuffer,
   scopedFindRoot,
   closeAppWindow,
   unsupportedWindowSelectorMessage,
@@ -694,6 +699,31 @@ async function appWindowScreenshot(
     return;
   }
   await entry.driver.saveScreenshot(filePath);
+}
+
+// Buffer-based wrapper over appWindowScreenshot: the window-strategy capture
+// is file-based (the drivers' API here writes files), so stage it in a
+// short-lived scratch file, read it back, and delete it. Shared by the
+// screenshot pipeline and visual matching so the two can never disagree on
+// what a "window capture" is.
+async function captureAppWindowBuffer(
+  entry: any,
+  target: AppWindowTarget | null | undefined
+): Promise<Buffer> {
+  const scratchPath = path.join(
+    os.tmpdir(),
+    `dd-appcapture-${crypto.randomBytes(6).toString("hex")}.png`
+  );
+  try {
+    await appWindowScreenshot(entry, target, scratchPath);
+    return fs.readFileSync(scratchPath);
+  } finally {
+    try {
+      fs.unlinkSync(scratchPath);
+    } catch {
+      // Scratch cleanup is non-essential.
+    }
+  }
 }
 
 // The root for element finds scoped to the selected window: the window

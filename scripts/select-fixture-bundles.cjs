@@ -19,7 +19,7 @@
 // android, prebootIos) travel with each bundle into the matrix.
 const BUNDLES = [
   { name: "nav-capture", dirs: ["navigation", "capture"] },
-  { name: "interactions", dirs: ["interactions"] },
+  { name: "interactions", dirs: ["interactions", "visual-find"] },
   // `reporters` is shell-only (it spawns a nested CLI run), so it needs no
   // browser or device and rides along with the other fast, headless groups.
   { name: "web-plumbing", dirs: ["routing", "http", "guards", "reporters"] },

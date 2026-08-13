@@ -1,0 +1,87 @@
+{
+  "specId": "visual-find",
+  "description": "Visual element matching (image criterion) core permutations, self-seeded: a screenshot crop of the target glyph becomes the template consumed by find/click in the same run, so the template is at capture scale by construction and rendering differences between engines/platforms never enter the comparison. Covers: bare-string path template, image-only find with real-element recovery, the click sub-effect through a visual match, the variables bridge from a prior screenshot's outputs, and a data-URI template built from the seeded file.",
+  "tests": [
+    {
+      "testId": "visual-find-selfseed",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/visual-find.html"
+        },
+        {
+          "stepId": "visual-seed",
+          "screenshot": {
+            "path": "visual-glyph.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#glyph"
+          },
+          "variables": {
+            "VF_TEMPLATE": "$$screenshotPath"
+          }
+        },
+        {
+          "stepId": "visual-find-path",
+          "find": {
+            "image": "static/images/visual-glyph.png",
+            "timeout": 15000
+          }
+        },
+        {
+          "stepId": "visual-find-variable-bridge",
+          "find": {
+            "image": "$VF_TEMPLATE",
+            "timeout": 15000
+          }
+        },
+        {
+          "stepId": "visual-click",
+          "click": {
+            "image": "static/images/visual-glyph.png",
+            "timeout": 15000
+          }
+        },
+        {
+          "find": "Visual click OK"
+        }
+      ]
+    },
+    {
+      "testId": "visual-find-datauri",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/visual-find.html"
+        },
+        {
+          "stepId": "visual-datauri-seed",
+          "screenshot": {
+            "path": "visual-glyph-datauri.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#glyph"
+          },
+          "variables": {
+            "VF_DATAURI_TEMPLATE": "$$screenshotPath"
+          }
+        },
+        {
+          "stepId": "visual-datauri-encode",
+          "runCode": {
+            "language": "javascript",
+            "code": "process.stdout.write('data:image/png;base64,' + require('fs').readFileSync(process.env.VF_DATAURI_TEMPLATE).toString('base64'))"
+          },
+          "variables": {
+            "VF_DATAURI": "$$stdio.stdout"
+          }
+        },
+        {
+          "stepId": "visual-find-datauri",
+          "find": {
+            "image": "$VF_DATAURI",
+            "timeout": 15000
+          }
+        }
+      ]
+    }
+  ]
+}

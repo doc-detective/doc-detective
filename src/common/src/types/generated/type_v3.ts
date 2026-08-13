@@ -57,6 +57,7 @@ export type TypeKeysDetailed = {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  image?: Image;
 } & WaitUntilRequiresASurface &
   AProcessSurfaceForbidsElementTargeting &
   AProcessSurfaceTakesProcessReadiness &
@@ -118,11 +119,19 @@ export type ElementCriteria = {
   [k: string]: unknown;
 };
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria1 = {
   [k: string]: unknown;
 };
+/**
+ * Locate the element visually by template image (OpenCV template matching, auto-scaled across display scales). Combinable with other element criteria.
+ */
+export type Image = ImageSimple | ImageDetailed;
+/**
+ * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+ */
+export type ImageSimple = string;
 
 export interface ProcessSurface {
   /**
@@ -226,6 +235,22 @@ export interface AppReadiness {
    */
   delayMs?: number;
   find?: ElementCriteria1;
+}
+export interface ImageDetailed {
+  /**
+   * Template image: a PNG/JPEG file path (resolved relative to the spec) or a data:image/…;base64 URI.
+   */
+  path: string;
+  /**
+   * Minimum normalized match score (0–1). Defaults to the config-level `imageMatching.matchThreshold` (0.8).
+   */
+  matchThreshold?: number;
+  /**
+   * Search area: a rect ({x, y, width, height} in logical units) or element criteria (selector, elementText, …) whose match's bounds become the search area. Shape is validated at runtime; a nested `image` is rejected.
+   */
+  region?: {
+    [k: string]: unknown;
+  };
 }
 export interface WaitUntilRequiresASurface {
   [k: string]: unknown;
