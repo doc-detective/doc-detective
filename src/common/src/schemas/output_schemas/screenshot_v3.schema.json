@@ -283,133 +283,141 @@
                 },
                 {
                   "title": "Crop by element (detailed)",
-                  "type": "object",
                   "description": "Crop the screenshot to a specific element.",
-                  "additionalProperties": false,
-                  "anyOf": [
+                  "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+                  "allOf": [
                     {
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ],
-                  "properties": {
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to screenshot."
-                    },
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to screenshot."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                    },
-                    "elementAttribute": {
                       "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
+                      "additionalProperties": false,
+                      "properties": {
+                        "elementText": {
+                          "type": "string",
+                          "description": "Display text of the element to screenshot."
+                        },
+                        "selector": {
+                          "type": "string",
+                          "description": "Selector of the element to screenshot."
+                        },
+                        "elementId": {
+                          "type": "string",
+                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementTestId": {
+                          "type": "string",
+                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementClass": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        },
+                        "elementAttribute": {
+                          "type": "object",
+                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
                           }
-                        ]
+                        },
+                        "elementAria": {
+                          "type": "string",
+                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "padding": {
+                          "anyOf": [
+                            {
+                              "title": "Padding (simple)",
+                              "type": "number",
+                              "description": "Padding in pixels to add to the bounds of the element.",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "properties": {
+                                "top": {
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "right": {
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "bottom": {
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "left": {
+                                  "type": "number",
+                                  "minimum": 0
+                                }
+                              },
+                              "title": "Padding (detailed)",
+                              "description": "Padding in pixels to add to the bounds of the element."
+                            }
+                          ]
+                        }
                       }
                     },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "padding": {
+                    {
+                      "type": "object",
                       "anyOf": [
                         {
-                          "title": "Padding (simple)",
-                          "type": "number",
-                          "description": "Padding in pixels to add to the bounds of the element.",
-                          "minimum": 0
+                          "required": [
+                            "selector"
+                          ]
                         },
                         {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "top": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "right": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "bottom": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "left": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "title": "Padding (detailed)",
-                          "description": "Padding in pixels to add to the bounds of the element."
+                          "required": [
+                            "elementText"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementTestId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementClass"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAttribute"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAria"
+                          ]
                         }
                       ]
                     }
-                  }
+                  ]
                 }
               ]
             },
@@ -2895,133 +2903,141 @@
                   },
                   {
                     "title": "Crop by element (detailed)",
-                    "type": "object",
                     "description": "Crop the screenshot to a specific element.",
-                    "additionalProperties": false,
-                    "anyOf": [
+                    "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+                    "allOf": [
                       {
-                        "required": [
-                          "selector"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementText"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementTestId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementClass"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAttribute"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAria"
-                        ]
-                      }
-                    ],
-                    "properties": {
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to screenshot."
-                      },
-                      "selector": {
-                        "type": "string",
-                        "description": "Selector of the element to screenshot."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                      },
-                      "elementAttribute": {
                         "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
+                        "additionalProperties": false,
+                        "properties": {
+                          "elementText": {
+                            "type": "string",
+                            "description": "Display text of the element to screenshot."
+                          },
+                          "selector": {
+                            "type": "string",
+                            "description": "Selector of the element to screenshot."
+                          },
+                          "elementId": {
+                            "type": "string",
+                            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementTestId": {
+                            "type": "string",
+                            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ],
+                            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                }
+                              ]
                             }
-                          ]
+                          },
+                          "elementAria": {
+                            "type": "string",
+                            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "padding": {
+                            "anyOf": [
+                              {
+                                "title": "Padding (simple)",
+                                "type": "number",
+                                "description": "Padding in pixels to add to the bounds of the element.",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "top": {
+                                    "type": "number",
+                                    "minimum": 0
+                                  },
+                                  "right": {
+                                    "type": "number",
+                                    "minimum": 0
+                                  },
+                                  "bottom": {
+                                    "type": "number",
+                                    "minimum": 0
+                                  },
+                                  "left": {
+                                    "type": "number",
+                                    "minimum": 0
+                                  }
+                                },
+                                "title": "Padding (detailed)",
+                                "description": "Padding in pixels to add to the bounds of the element."
+                              }
+                            ]
+                          }
                         }
                       },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "padding": {
+                      {
+                        "type": "object",
                         "anyOf": [
                           {
-                            "title": "Padding (simple)",
-                            "type": "number",
-                            "description": "Padding in pixels to add to the bounds of the element.",
-                            "minimum": 0
+                            "required": [
+                              "selector"
+                            ]
                           },
                           {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                              "top": {
-                                "type": "number",
-                                "minimum": 0
-                              },
-                              "right": {
-                                "type": "number",
-                                "minimum": 0
-                              },
-                              "bottom": {
-                                "type": "number",
-                                "minimum": 0
-                              },
-                              "left": {
-                                "type": "number",
-                                "minimum": 0
-                              }
-                            },
-                            "title": "Padding (detailed)",
-                            "description": "Padding in pixels to add to the bounds of the element."
+                            "required": [
+                              "elementText"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementTestId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementClass"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAttribute"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAria"
+                            ]
                           }
                         ]
                       }
-                    }
+                    ]
                   }
                 ]
               },
@@ -5486,133 +5502,141 @@
               },
               {
                 "title": "Crop by element (detailed)",
-                "type": "object",
                 "description": "Crop the screenshot to a specific element.",
-                "additionalProperties": false,
-                "anyOf": [
+                "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+                "allOf": [
                   {
-                    "required": [
-                      "selector"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "elementText"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "elementId"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "elementTestId"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "elementClass"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "elementAttribute"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "elementAria"
-                    ]
-                  }
-                ],
-                "properties": {
-                  "elementText": {
-                    "type": "string",
-                    "description": "Display text of the element to screenshot."
-                  },
-                  "selector": {
-                    "type": "string",
-                    "description": "Selector of the element to screenshot."
-                  },
-                  "elementId": {
-                    "type": "string",
-                    "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementTestId": {
-                    "type": "string",
-                    "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "elementClass": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ],
-                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                  },
-                  "elementAttribute": {
                     "type": "object",
-                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                    "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
+                    "additionalProperties": false,
+                    "properties": {
+                      "elementText": {
+                        "type": "string",
+                        "description": "Display text of the element to screenshot."
+                      },
+                      "selector": {
+                        "type": "string",
+                        "description": "Selector of the element to screenshot."
+                      },
+                      "elementId": {
+                        "type": "string",
+                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementTestId": {
+                        "type": "string",
+                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "elementClass": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ],
+                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                      },
+                      "elementAttribute": {
+                        "type": "object",
+                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                        "additionalProperties": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
                         }
-                      ]
+                      },
+                      "elementAria": {
+                        "type": "string",
+                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      },
+                      "padding": {
+                        "anyOf": [
+                          {
+                            "title": "Padding (simple)",
+                            "type": "number",
+                            "description": "Padding in pixels to add to the bounds of the element.",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "top": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "right": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "bottom": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "left": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "title": "Padding (detailed)",
+                            "description": "Padding in pixels to add to the bounds of the element."
+                          }
+                        ]
+                      }
                     }
                   },
-                  "elementAria": {
-                    "type": "string",
-                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                  },
-                  "padding": {
+                  {
+                    "type": "object",
                     "anyOf": [
                       {
-                        "title": "Padding (simple)",
-                        "type": "number",
-                        "description": "Padding in pixels to add to the bounds of the element.",
-                        "minimum": 0
+                        "required": [
+                          "selector"
+                        ]
                       },
                       {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "top": {
-                            "type": "number",
-                            "minimum": 0
-                          },
-                          "right": {
-                            "type": "number",
-                            "minimum": 0
-                          },
-                          "bottom": {
-                            "type": "number",
-                            "minimum": 0
-                          },
-                          "left": {
-                            "type": "number",
-                            "minimum": 0
-                          }
-                        },
-                        "title": "Padding (detailed)",
-                        "description": "Padding in pixels to add to the bounds of the element."
+                        "required": [
+                          "elementText"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementTestId"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementClass"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementAttribute"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementAria"
+                        ]
                       }
                     ]
                   }
-                }
+                ]
               }
             ]
           },
@@ -7785,133 +7809,141 @@
       },
       "crop_element": {
         "title": "Crop by element (detailed)",
-        "type": "object",
         "description": "Crop the screenshot to a specific element.",
-        "additionalProperties": false,
-        "anyOf": [
+        "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+        "allOf": [
           {
-            "required": [
-              "selector"
-            ]
-          },
-          {
-            "required": [
-              "elementText"
-            ]
-          },
-          {
-            "required": [
-              "elementId"
-            ]
-          },
-          {
-            "required": [
-              "elementTestId"
-            ]
-          },
-          {
-            "required": [
-              "elementClass"
-            ]
-          },
-          {
-            "required": [
-              "elementAttribute"
-            ]
-          },
-          {
-            "required": [
-              "elementAria"
-            ]
-          }
-        ],
-        "properties": {
-          "elementText": {
-            "type": "string",
-            "description": "Display text of the element to screenshot."
-          },
-          "selector": {
-            "type": "string",
-            "description": "Selector of the element to screenshot."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-          },
-          "elementAttribute": {
             "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
+            "additionalProperties": false,
+            "properties": {
+              "elementText": {
+                "type": "string",
+                "description": "Display text of the element to screenshot."
+              },
+              "selector": {
+                "type": "string",
+                "description": "Selector of the element to screenshot."
+              },
+              "elementId": {
+                "type": "string",
+                "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementTestId": {
+                "type": "string",
+                "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementClass": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+              },
+              "elementAttribute": {
+                "type": "object",
+                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
                 }
-              ]
+              },
+              "elementAria": {
+                "type": "string",
+                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "padding": {
+                "anyOf": [
+                  {
+                    "title": "Padding (simple)",
+                    "type": "number",
+                    "description": "Padding in pixels to add to the bounds of the element.",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "top": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "right": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "bottom": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "left": {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    },
+                    "title": "Padding (detailed)",
+                    "description": "Padding in pixels to add to the bounds of the element."
+                  }
+                ]
+              }
             }
           },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "padding": {
+          {
+            "type": "object",
             "anyOf": [
               {
-                "title": "Padding (simple)",
-                "type": "number",
-                "description": "Padding in pixels to add to the bounds of the element.",
-                "minimum": 0
+                "required": [
+                  "selector"
+                ]
               },
               {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "top": {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  "right": {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  "bottom": {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  "left": {
-                    "type": "number",
-                    "minimum": 0
-                  }
-                },
-                "title": "Padding (detailed)",
-                "description": "Padding in pixels to add to the bounds of the element."
+                "required": [
+                  "elementText"
+                ]
+              },
+              {
+                "required": [
+                  "elementId"
+                ]
+              },
+              {
+                "required": [
+                  "elementTestId"
+                ]
+              },
+              {
+                "required": [
+                  "elementClass"
+                ]
+              },
+              {
+                "required": [
+                  "elementAttribute"
+                ]
+              },
+              {
+                "required": [
+                  "elementAria"
+                ]
               }
             ]
           }
-        }
+        ]
       },
       "padding": {
         "type": "object",

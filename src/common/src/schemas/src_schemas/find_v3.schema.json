@@ -19,166 +19,174 @@
       },
       "object": {
         "title": "Find element (detailed)",
-        "type": "object",
-        "anyOf": [
+        "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+        "allOf": [
           {
-            "required": [
-              "selector"
-            ]
-          },
-          {
-            "required": [
-              "elementText"
-            ]
-          },
-          {
-            "required": [
-              "elementId"
-            ]
-          },
-          {
-            "required": [
-              "elementTestId"
-            ]
-          },
-          {
-            "required": [
-              "elementClass"
-            ]
-          },
-          {
-            "required": [
-              "elementAttribute"
-            ]
-          },
-          {
-            "required": [
-              "elementAria"
-            ]
-          }
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "surface": {
-            "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-            "anyOf": [
-              {
-                "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
-              },
-              {
-                "$ref": "surface_v3.schema.json#/components/schemas/browser"
-              },
-              {
-                "$ref": "surface_v3.schema.json#/components/schemas/app"
-              }
-            ]
-          },
-          "elementText": {
-            "type": "string",
-            "description": "Display text of the element to find. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed to single spaces), so text a framework splits across several nodes still matches and a driver's surrounding whitespace doesn't cause a miss. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text. If combined with other element finding fields, the element must match all specified criteria."
-          },
-          "selector": {
-            "type": "string",
-            "description": "Selector of the element to find. If combined with other element finding fields, the element must match all specified criteria."
-          },
-          "elementId": {
-            "type": "string",
-            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementTestId": {
-            "type": "string",
-            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "elementClass": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ],
-            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-          },
-          "elementAttribute": {
             "type": "object",
-            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
+            "additionalProperties": false,
+            "properties": {
+              "surface": {
+                "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
+                "anyOf": [
+                  {
+                    "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
+                  },
+                  {
+                    "$ref": "surface_v3.schema.json#/components/schemas/browser"
+                  },
+                  {
+                    "$ref": "surface_v3.schema.json#/components/schemas/app"
+                  }
+                ]
+              },
+              "elementText": {
+                "type": "string",
+                "description": "Display text of the element to find. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed to single spaces), so text a framework splits across several nodes still matches and a driver's surrounding whitespace doesn't cause a miss. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text. If combined with other element finding fields, the element must match all specified criteria."
+              },
+              "selector": {
+                "type": "string",
+                "description": "Selector of the element to find. If combined with other element finding fields, the element must match all specified criteria."
+              },
+              "elementId": {
+                "type": "string",
+                "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementTestId": {
+                "type": "string",
+                "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "elementClass": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+              },
+              "elementAttribute": {
+                "type": "object",
+                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
                 }
-              ]
+              },
+              "elementAria": {
+                "type": "string",
+                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+              },
+              "timeout": {
+                "type": "integer",
+                "description": "Max duration in milliseconds to wait for the element to exist.",
+                "default": 5000
+              },
+              "moveTo": {
+                "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
+                "type": "boolean",
+                "default": false,
+                "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
+              },
+              "click": {
+                "description": "Click the element.",
+                "anyOf": [
+                  {
+                    "$ref": "click_v3.schema.json#"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "button": {
+                        "$ref": "click_v3.schema.json#/components/schemas/button"
+                      },
+                      "duration": {
+                        "$ref": "click_v3.schema.json#/components/schemas/duration"
+                      }
+                    },
+                    "title": "Find element and click"
+                  }
+                ]
+              },
+              "type": {
+                "description": "Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`type`](type). To type in the element, make the element active with the `click` parameter.",
+                "allOf": [
+                  {
+                    "$ref": "type_v3.schema.json#"
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "selector",
+                        "elementText",
+                        "elementId",
+                        "elementTestId",
+                        "elementClass",
+                        "elementAttribute",
+                        "elementAria"
+                      ],
+                      "title": "Find element and type"
+                    }
+                  }
+                ]
+              }
             }
           },
-          "elementAria": {
-            "type": "string",
-            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-          },
-          "timeout": {
-            "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
-            "default": 5000
-          },
-          "moveTo": {
-            "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
-            "type": "boolean",
-            "default": false,
-            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
-          },
-          "click": {
-            "description": "Click the element.",
+          {
+            "type": "object",
             "anyOf": [
               {
-                "$ref": "click_v3.schema.json#"
+                "required": [
+                  "selector"
+                ]
               },
               {
-                "type": "object",
-                "properties": {
-                  "button": {
-                    "$ref": "click_v3.schema.json#/components/schemas/button"
-                  },
-                  "duration": {
-                    "$ref": "click_v3.schema.json#/components/schemas/duration"
-                  }
-                },
-                "title": "Find element and click"
-              }
-            ]
-          },
-          "type": {
-            "description": "Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`type`](type). To type in the element, make the element active with the `click` parameter.",
-            "allOf": [
-              {
-                "$ref": "type_v3.schema.json#"
+                "required": [
+                  "elementText"
+                ]
               },
               {
-                "not": {
-                  "type": "object",
-                  "required": [
-                    "selector",
-                    "elementText",
-                    "elementId",
-                    "elementTestId",
-                    "elementClass",
-                    "elementAttribute",
-                    "elementAria"
-                  ],
-                  "title": "Find element and type"
-                }
+                "required": [
+                  "elementId"
+                ]
+              },
+              {
+                "required": [
+                  "elementTestId"
+                ]
+              },
+              {
+                "required": [
+                  "elementClass"
+                ]
+              },
+              {
+                "required": [
+                  "elementAttribute"
+                ]
+              },
+              {
+                "required": [
+                  "elementAria"
+                ]
               }
             ]
           }
-        }
+        ]
       }
     }
   },

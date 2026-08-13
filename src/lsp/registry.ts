@@ -42,12 +42,34 @@ export interface Registry {
   byKey: Map<string, ActionInfo>;
 }
 
-/** Collect the candidate sub-schemas of a schema: itself plus anyOf/oneOf/allOf. */
+/**
+ * Collect the candidate sub-schemas of a schema: itself plus anyOf/oneOf/allOf,
+ * followed transitively.
+ *
+ * Composition nests. An object written as `anyOf: [string, { allOf: [shape,
+ * guard] }]` — the wrapping that stops the TypeScript generator collapsing it to
+ * an index signature — keeps `properties` two levels down, where a single-level
+ * scan finds nothing and completion silently offers no fields for that action.
+ *
+ * BREADTH-FIRST, and that matters: `primitiveKindOf` takes the FIRST primitive
+ * it encounters, so the order of this list is part of the contract. A queue
+ * reproduces the old single-level order exactly as its prefix and appends deeper
+ * branches after it. Draining a stack instead reverses each level, which flips
+ * `timeout` from number to boolean.
+ */
 export function branchesOf(schema: any): any[] {
   if (!schema || typeof schema !== "object") return [];
-  const out = [schema];
-  for (const key of ["anyOf", "oneOf", "allOf"]) {
-    if (Array.isArray(schema[key])) out.push(...schema[key]);
+  const out: any[] = [];
+  const queue = [schema];
+  const seen = new Set<any>();
+  while (queue.length > 0) {
+    const node = queue.shift();
+    if (!node || typeof node !== "object" || seen.has(node)) continue;
+    seen.add(node);
+    out.push(node);
+    for (const key of ["anyOf", "oneOf", "allOf"]) {
+      if (Array.isArray(node[key])) queue.push(...node[key]);
+    }
   }
   return out;
 }

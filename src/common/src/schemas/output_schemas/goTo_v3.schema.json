@@ -310,99 +310,107 @@
                   "default": 1000
                 },
                 "find": {
-                  "type": "object",
                   "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
-                  "additionalProperties": false,
-                  "anyOf": [
+                  "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+                  "allOf": [
                     {
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ],
-                  "properties": {
-                    "selector": {
-                      "type": "string",
-                      "description": "CSS selector for the element to wait for."
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                    },
-                    "elementAttribute": {
                       "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
+                      "additionalProperties": false,
+                      "properties": {
+                        "selector": {
+                          "type": "string",
+                          "description": "CSS selector for the element to wait for."
+                        },
+                        "elementText": {
+                          "type": "string",
+                          "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
+                        },
+                        "elementId": {
+                          "type": "string",
+                          "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementTestId": {
+                          "type": "string",
+                          "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                        },
+                        "elementClass": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                        },
+                        "elementAttribute": {
+                          "type": "object",
+                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
                           }
-                        ]
+                        },
+                        "elementAria": {
+                          "type": "string",
+                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                        }
                       }
                     },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                    {
+                      "type": "object",
+                      "anyOf": [
+                        {
+                          "required": [
+                            "selector"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementText"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementTestId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementClass"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAttribute"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAria"
+                          ]
+                        }
+                      ]
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -842,99 +850,107 @@
                     "default": 1000
                   },
                   "find": {
-                    "type": "object",
                     "description": "Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.",
-                    "additionalProperties": false,
-                    "anyOf": [
+                    "$comment": "Wrapped as allOf [shape, guard] rather than `properties` beside a sibling composition keyword: the TypeScript generator collapses the latter to `{ [k: string]: unknown }`, erasing every field from the published type. Validation is unchanged — the guard branch declares no `properties`, so the shape branch's `additionalProperties: false` still sees only its own.",
+                    "allOf": [
                       {
-                        "required": [
-                          "selector"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementText"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementTestId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementClass"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAttribute"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAria"
-                        ]
-                      }
-                    ],
-                    "properties": {
-                      "selector": {
-                        "type": "string",
-                        "description": "CSS selector for the element to wait for."
-                      },
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                      },
-                      "elementAttribute": {
                         "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
+                        "additionalProperties": false,
+                        "properties": {
+                          "selector": {
+                            "type": "string",
+                            "description": "CSS selector for the element to wait for."
+                          },
+                          "elementText": {
+                            "type": "string",
+                            "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
+                          },
+                          "elementId": {
+                            "type": "string",
+                            "description": "ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementTestId": {
+                            "type": "string",
+                            "description": "data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax."
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ],
+                            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                }
+                              ]
                             }
-                          ]
+                          },
+                          "elementAria": {
+                            "type": "string",
+                            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                          }
                         }
                       },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                      {
+                        "type": "object",
+                        "anyOf": [
+                          {
+                            "required": [
+                              "selector"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementText"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementTestId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementClass"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAttribute"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAria"
+                            ]
+                          }
+                        ]
                       }
-                    }
+                    ]
                   }
                 }
               }

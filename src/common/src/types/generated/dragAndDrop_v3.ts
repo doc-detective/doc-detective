@@ -9,6 +9,42 @@
  */
 export type ElementSimple = string;
 export type ElementDetailed = {
+  /**
+   * Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element. If combined with `elementText`, the element must match both the text and the selector.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  [k: string]: unknown;
+} & {
   [k: string]: unknown;
 };
 /**
@@ -16,6 +52,42 @@ export type ElementDetailed = {
  */
 export type ElementSimple1 = string;
 export type ElementDetailed1 = {
+  /**
+   * Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element. If combined with `elementText`, the element must match both the text and the selector.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  [k: string]: unknown;
+} & {
   [k: string]: unknown;
 };
 /**

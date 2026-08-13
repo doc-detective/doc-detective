@@ -25,6 +25,26 @@ const FIND_V3 = JSON.parse(
   )
 );
 
+/**
+ * find's declared `moveTo`, located by SEARCHING the detailed object's branches
+ * rather than by a fixed path.
+ *
+ * The object is wrapped as `allOf: [shape, guard]` so the TypeScript generator
+ * doesn't collapse it to an index signature, which puts `properties` one level
+ * deeper than the obvious `components.schemas.object.properties`. Hard-coding
+ * either shape makes this test fail the next time the wrapping is revisited,
+ * for a reason that has nothing to do with what it is asserting.
+ */
+function declaredMoveTo() {
+  const object = FIND_V3.components.schemas.object;
+  const branches = [object, ...(object.allOf ?? []), ...(object.anyOf ?? []), ...(object.oneOf ?? [])];
+  for (const branch of branches) {
+    const prop = branch?.properties?.moveTo;
+    if (prop && Object.prototype.hasOwnProperty.call(prop, "default")) return prop.default;
+  }
+  throw new Error("find_v3 declares no moveTo default — the schema shape changed");
+}
+
 // Helper: find the implicit assertion whose statement CONTAINS `needle`. Under
 // the unified model `statement` is a runtime `$$` expression, so we match on the
 // distinguishing output reference (here, "found").
@@ -226,7 +246,7 @@ describe("findElement unified assertion model", function () {
   // docs advertised `true` while every run behaved as `false`. These pin them
   // together so the next divergence fails here instead of shipping.
   it("moveTo's declared default is false", function () {
-    assert.equal(FIND_V3.components.schemas.object.properties.moveTo.default, false);
+    assert.equal(declaredMoveTo(), false);
   });
 
   it("a bare find performs no moveTo, matching the declared default", async () => {
@@ -249,7 +269,7 @@ describe("findElement unified assertion model", function () {
     );
     assert.equal(
       movedAtRuntime,
-      FIND_V3.components.schemas.object.properties.moveTo.default,
+      declaredMoveTo(),
       "find_v3's declared moveTo default no longer matches what a bare find does"
     );
   });

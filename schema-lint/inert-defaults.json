@@ -44,7 +44,7 @@
     }
   },
   "dragAndDrop_v3.schema.json": {
-    "/components/schemas/object/properties/timeout": {
+    "/components/schemas/object/allOf/0/properties/timeout": {
       "value": 5000,
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
@@ -58,12 +58,12 @@
     }
   },
   "find_v3.schema.json": {
-    "/components/schemas/object/properties/timeout": {
+    "/components/schemas/object/allOf/0/properties/timeout": {
       "value": 5000,
       "runtime": "src/core/tests/findElement.ts — `timeout: step.find.timeout ?? 5000`",
       "why": "Runtime owns the 5000 ms; the schema default documents it on the reference page. `??` not `||`: an explicit `timeout: 0` means \"check once, now\" and must survive."
     },
-    "/components/schemas/object/properties/moveTo": {
+    "/components/schemas/object/allOf/0/properties/moveTo": {
       "value": false,
       "runtime": "src/core/tests/findElement.ts — `moveTo: step.find.moveTo || false` in the step normalization block",
       "why": "ADR 01086: the runtime owns this default. The schema said true here for five years while the runtime used false; this registration is what makes that divergence fail the build."
@@ -92,7 +92,7 @@
     }
   },
   "httpRequest_v3.schema.json": {
-    "/components/schemas/object/properties/statusCodes": {
+    "/components/schemas/object/allOf/0/properties/statusCodes": {
       "value": [
         200,
         201
@@ -100,57 +100,57 @@
       "runtime": "src/core/tests/httpRequest.ts — statusCodes: step.httpRequest.statusCodes || [200, 201],",
       "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
     },
-    "/components/schemas/object/properties/method": {
+    "/components/schemas/object/allOf/0/properties/method": {
       "value": "get",
       "runtime": "src/core/tests/httpRequest.ts — method: step.httpRequest.method || \"get\",",
       "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
     },
-    "/components/schemas/object/properties/timeout": {
+    "/components/schemas/object/allOf/0/properties/timeout": {
       "value": 60000,
       "runtime": "src/core/tests/httpRequest.ts — timeout: step.httpRequest.timeout || 60000,",
       "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
     },
-    "/components/schemas/object/properties/request/properties/headers": {
+    "/components/schemas/object/allOf/0/properties/request/properties/headers": {
       "value": {},
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/request/properties/parameters": {
+    "/components/schemas/object/allOf/0/properties/request/properties/parameters": {
       "value": {},
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/request/properties/body": {
+    "/components/schemas/object/allOf/0/properties/request/properties/body": {
       "value": {},
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/response/properties/headers": {
+    "/components/schemas/object/allOf/0/properties/response/properties/headers": {
       "value": {},
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/response/properties/body": {
+    "/components/schemas/object/allOf/0/properties/response/properties/body": {
       "value": {},
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/response/properties/required": {
+    "/components/schemas/object/allOf/0/properties/response/properties/required": {
       "value": [],
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/allowAdditionalFields": {
+    "/components/schemas/object/allOf/0/properties/allowAdditionalFields": {
       "value": true,
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."
     },
-    "/components/schemas/object/properties/maxVariation": {
+    "/components/schemas/object/allOf/0/properties/maxVariation": {
       "value": 0,
       "runtime": "src/core/tests/httpRequest.ts — maxVariation: step.httpRequest.maxVariation || 0,",
       "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
     },
-    "/components/schemas/object/properties/overwrite": {
+    "/components/schemas/object/allOf/0/properties/overwrite": {
       "value": "aboveVariation",
       "runtime": "src/core/tests/httpRequest.ts — overwrite: step.httpRequest.overwrite || \"aboveVariation\",",
       "why": "Runtime supplies its own value; the schema default only documents it on the reference page."
@@ -269,7 +269,7 @@
     }
   },
   "saveCookie_v3.schema.json": {
-    "/components/schemas/object/properties/overwrite": {
+    "/components/schemas/object/allOf/0/properties/overwrite": {
       "value": false,
       "runtime": "UNVERIFIED",
       "why": "UNVERIFIED - no runtime fallback located. Review before trusting; may be a moveTo twin."

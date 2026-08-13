@@ -79,6 +79,37 @@ export type GoToURLDetailed = {
      * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
      */
     find?: {
+      /**
+       * CSS selector for the element to wait for.
+       */
+      selector?: string;
+      /**
+       * Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text.
+       */
+      elementText?: string;
+      /**
+       * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementId?: string;
+      /**
+       * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementTestId?: string;
+      /**
+       * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+       */
+      elementClass?: string | string[];
+      /**
+       * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+       */
+      elementAttribute?: {
+        [k: string]: string | number | boolean;
+      };
+      /**
+       * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementAria?: string;
+    } & {
       [k: string]: unknown;
     };
   };
