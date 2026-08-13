@@ -66,6 +66,12 @@ describe("scripts/reconcile-root-lockfile buildReconcileCommands", function () {
     const reconcileIdx = rc.plugins.findIndex(
       (p) => Array.isArray(p) && /reconcile-root-lockfile/.test(p[1]?.prepareCmd ?? "")
     );
+    // Assert presence FIRST. indexOf returns -1 for a missing plugin, which
+    // would turn `greaterThan(npmIdx)` into `greaterThan(-1)` -- vacuously true
+    // for any wiring, including one placed before npm. Without these the guard
+    // passes on the exact defect it exists to catch.
+    expect(npmIdx, "@semantic-release/npm must be present in .releaserc.json").to.be.greaterThan(-1);
+    expect(gitIdx, "@semantic-release/git must be present in .releaserc.json").to.be.greaterThan(-1);
     expect(reconcileIdx, "reconcile prepareCmd must be wired in .releaserc.json").to.be.greaterThan(-1);
     expect(reconcileIdx).to.be.greaterThan(npmIdx);
     expect(reconcileIdx).to.be.lessThan(gitIdx);

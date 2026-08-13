@@ -44,7 +44,7 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
  *
  * Order matters: the version stamp must land before the lockfile rebuild, so
  * the regenerated lockfile carries the release version rather than the previous
- * one, and the root verification must come last so it sees the final state.
+ * one.
  */
 export function buildSyncCommands(version, repoRoot = REPO_ROOT) {
   const commonDir = path.join(repoRoot, 'src', 'common');
@@ -52,8 +52,9 @@ export function buildSyncCommands(version, repoRoot = REPO_ROOT) {
     {
       cmd: 'npm',
       // Run from the repo root so `--workspace` resolves. Side effect: this
-      // also rewrites the root lockfile's entry for the workspace, which is
-      // why step 3 below verifies the result.
+      // also rewrites the root lockfile's entry for the workspace; root
+      // reconciliation and verification happen afterward, in
+      // scripts/reconcile-root-lockfile.js.
       cwd: repoRoot,
       args: [
         'version',
