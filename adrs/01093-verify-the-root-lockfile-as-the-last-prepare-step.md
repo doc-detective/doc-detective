@@ -8,9 +8,6 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Two consecutive releases committed a root `package-lock.json` that does not install, breaking `main`
-for every CI job and every contributor:
-
 **Three** consecutive releases committed a root `package-lock.json` that does not install, breaking
 `main` for every CI job and every contributor:
 

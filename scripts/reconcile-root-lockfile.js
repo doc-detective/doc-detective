@@ -13,7 +13,7 @@
 //             release, so the accidental repair and the next breakage were the
 //             same event
 //
-// Both times the same two `"optional": true, "peer": true` entries under
+// Every time, the same two `"optional": true, "peer": true` entries under
 // @commitlint/read/node_modules were pruned.
 //
 // ORDER IS THE WHOLE POINT. scripts/sync-common-version.js runs earlier in the
