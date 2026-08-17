@@ -85,7 +85,7 @@ export function isSuppressedByActionKeyed(
 export function computeDiagnostics(doc: TextDocument): Diagnostic[] {
   const text = doc.getText();
 
-  // Markup files (markdown/asciidoc/html/dita) carry tests inline, not as a
+  // Markup files (markdown/mdx/asciidoc/html/dita) carry tests inline, not as a
   // whole-file spec — route them to the inline pipeline. Naturally silent on
   // files without any Doc Detective statements.
   const markupFileType = fileTypeForUri(doc.uri);

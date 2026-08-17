@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="detection-dita">
+  <title>Structural statement detection: DITA</title>
+  <body>
+    <!-- test {"testId": "detection-dita-comments"} -->
+    <p>XML comments and data elements are statement containers.</p>
+    <!-- step {"checkLink": "http://localhost:8092"} -->
+    <p><data name="doc-detective" value='step {"wait": 100}'/>Data-element step.</p>
+    <!-- test ignore start -->
+    <!-- step {"httpRequest": {"url": "http://localhost:9/unreachable"}} -->
+    <!-- test ignore end -->
+    <!-- step {"wait": 50} -->
+    <!-- test end -->
+    <?doc-detective test {"testId": "detection-dita-pi-legacy"}?>
+    <p>The processing-instruction channel stays on the legacy regex path.</p>
+    <?doc-detective step {"wait": 40}?>
+    <?doc-detective test end?>
+  </body>
+</topic>

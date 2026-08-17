@@ -616,16 +616,76 @@ describe("config.ts — setConfig", function () {
     });
     const ft = config.fileTypes[0];
     assert.equal(ft.name, "markdown");
-    // inlineStatements were initialized and populated from the parent.
-    assert.ok(Array.isArray(ft.inlineStatements.testStart));
-    assert.ok(ft.inlineStatements.testStart.length > 0);
+    // inlineStatements were initialized and populated from the parent —
+    // the migrated markdown built-in carries selector containers, not
+    // statement regexes.
+    assert.deepEqual(ft.inlineStatements.in, ["comment"]);
     // markup array initialized and populated from the parent.
     assert.ok(Array.isArray(ft.markup));
     assert.ok(ft.markup.some((m) => m.name === "findOnscreenText"));
     assert.ok(ft.extensions.includes("mdbare"));
   });
 
-  it("throws when a fileType extends an unknown definition", async function () {
+  it("dedupes selector containers when an extending fileType repeats them", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [
+          {
+            extends: "markdown",
+            extensions: ["mdup"],
+            inlineStatements: { in: ["comment"] },
+          },
+        ],
+      },
+    });
+    const ft = config.fileTypes[0];
+    // A duplicated container must not survive the merge — it would detect
+    // every inline statement twice.
+    assert.deepEqual(ft.inlineStatements.in, ["comment"]);
+  });
+
+  it("dedupes object containers regardless of key order", async function () {
+    // The dita built-in carries a { element, value } data-element container.
+    // An override repeating it with the keys in a different order is the same
+    // container and must collapse — a key-order-sensitive dedupe would keep
+    // both and detect every <data> statement twice.
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [
+          {
+            extends: "dita",
+            extensions: ["ditakey"],
+            inlineStatements: {
+              in: [
+                {
+                  value: "attributes.value",
+                  element: {
+                    tag: "data",
+                    attributes: { name: "doc-detective" },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+    const ft = config.fileTypes[0];
+    const dataContainers = ft.inlineStatements.in.filter(
+      (c) => typeof c === "object" && c.element?.tag === "data"
+    );
+    assert.equal(dataContainers.length, 1, "key-order variants must dedupe");
+  });
+
+  it("rejects a fileType that extends an unknown definition at validation", async function () {
+    // Schema validation rejects unknown `extends` values before the runtime
+    // extends-merge guard can fire (the enum only lists known definitions).
     await assert.rejects(
       () =>
         setConfig({
@@ -636,7 +696,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /references unknown fileType definition/
+      /Invalid config object/
     );
   });
 
