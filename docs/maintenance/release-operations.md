@@ -125,6 +125,54 @@ Regeneration recipe (Docker, repo mounted; on Windows Bash prefix commands with
 Local-dev workaround while a lockfile is broken: `npm install --no-save --package-lock=false`.
 Commit only `package.json`/lockfile/src-common dep changes; discard generated-file CRLF churn.
 
+### `npm version --workspace` corrupts the root lockfile
+
+`npm version <v> --workspace src/common` rewrites the **root** `package-lock.json` as a side effect,
+and the tree it emits does not install. Measured on npm 10 (node 22): from a root lockfile where
+`npm ci` passes, the stamp alone leaves `npm ci` failing with `EBADPLATFORM`.
+
+This broke `main` three times — 4.37.4, 4.37.5, and 4.38.0 — with the same two
+`"optional": true, "peer": true` entries under `@commitlint/read/node_modules/` pruned each time.
+`@semantic-release/git` committed the result unverified, and `npm ci` failed for every job and every
+contributor.
+
+4.37.4 was repaired by hand in #705. 4.37.5 was repaired by *accident*: #702, an unrelated reporters
+feature, happened to carry a lockfile regenerated from a healthy tree, and merging it restored the
+entries. That merge is also what triggered the 4.38.0 release, which pruned them again about four
+hours later — the accidental repair and the next breakage were the same event.
+
+**If you find `main` red this way, regenerate deliberately using the recipe above.** Waiting for
+another PR to carry a healthy lockfile is not a plan; it happened once, by chance, and it did not
+last a day.
+
+[scripts/reconcile-root-lockfile.js](../../scripts/reconcile-root-lockfile.js) reconciles (two
+`--package-lock-only` passes) and then verifies (`npm ci --dry-run`) as the **last** prepare step
+before `@semantic-release/git` commits. **If you ever run `npm version --workspace` by hand, run the
+two-pass reconcile afterward and verify with `npm ci` before committing.**
+
+That ordering is load-bearing, and getting it wrong is how 4.37.5 broke despite a guard being in
+place (ADR 01093): the reconcile originally lived in `sync-common-version.js`, which runs *before*
+`@semantic-release/npm` stamps the root version — so the check passed and the lockfile was rewritten
+afterward. **Any new lockfile check must be wired after every plugin that stamps a version.** A unit
+test asserts that position in `.releaserc.json`, so reordering the plugin list fails the suite.
+
+### The src/common lockfile is release-managed
+
+`src/common/package-lock.json` is rebuilt on every release by
+[scripts/sync-common-version.js](../../scripts/sync-common-version.js) (ADR 01091), so you normally
+don't touch it — bump `src/common/package.json` and the lockfile catches up at the next release.
+
+If you must regenerate it by hand, run npm from inside `src/common` **with `--no-workspaces`**:
+
+```bash
+cd src/common && npm install --package-lock-only --ignore-scripts --no-audit --no-fund --no-workspaces
+```
+
+Without `--no-workspaces` npm walks up, finds `workspaces: ["src/common"]` in the root manifest, and
+rewrites the **root** `package-lock.json` while leaving `src/common`'s byte-identical — the inverse
+of what you asked for. Same trap when verifying: `npm ci` inside `src/common` validates the *root*
+lockfile unless you pass `--no-workspaces`.
+
 ## Working in git worktrees
 
 Worktrees have no `node_modules`, so the husky `commit-msg` hook's `npx commitlint` fails ("npx

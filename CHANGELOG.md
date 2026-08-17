@@ -1,3 +1,31 @@
+## [4.38.1](https://github.com/doc-detective/doc-detective/compare/v4.38.0...v4.38.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **release:** verify the root lockfile as the last prepare step ([#707](https://github.com/doc-detective/doc-detective/issues/707)) ([c8aab4b](https://github.com/doc-detective/doc-detective/commit/c8aab4b55386dd51e2adeddb0e1374b6db664ec8)), closes [#705](https://github.com/doc-detective/doc-detective/issues/705) [#702](https://github.com/doc-detective/doc-detective/issues/702) [#702](https://github.com/doc-detective/doc-detective/issues/702)
+
+# [4.38.0](https://github.com/doc-detective/doc-detective/compare/v4.37.5...v4.38.0) (2026-08-11)
+
+
+### Features
+
+* **reporters:** add junit and markdown reporters ([#702](https://github.com/doc-detective/doc-detective/issues/702)) ([f6dc3b2](https://github.com/doc-detective/doc-detective/commit/f6dc3b22b9a88ac5c6c83d944276ea77ddf548e5)), closes [#683](https://github.com/doc-detective/doc-detective/issues/683) [#684](https://github.com/doc-detective/doc-detective/issues/684)
+
+## [4.37.5](https://github.com/doc-detective/doc-detective/compare/v4.37.4...v4.37.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **release:** rebuild the common lockfile and reconcile the root one during prepare ([#704](https://github.com/doc-detective/doc-detective/issues/704)) ([5155306](https://github.com/doc-detective/doc-detective/commit/5155306df71e7b41d65d06530abe9f2be39649ab)), closes [#705](https://github.com/doc-detective/doc-detective/issues/705)
+
+## [4.37.4](https://github.com/doc-detective/doc-detective/compare/v4.37.3...v4.37.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **lsp:** import the vscode-languageserver v10 ./node subpath ([#703](https://github.com/doc-detective/doc-detective/issues/703)) ([b887754](https://github.com/doc-detective/doc-detective/commit/b887754d702f76a13c85445cc541263acb2091e2))
+
 ## [4.37.3](https://github.com/doc-detective/doc-detective/compare/v4.37.2...v4.37.3) (2026-08-05)
 
 

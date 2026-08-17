@@ -35,6 +35,7 @@
     [
       "@semantic-release/exec",
       {
+        "prepareCmd": "node scripts/reconcile-root-lockfile.js",
         "publishCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
         "successCmd": "echo 'version=${nextRelease.version}' >> \"$GITHUB_OUTPUT\" && echo 'channel=${nextRelease.channel || \"\"}' >> \"$GITHUB_OUTPUT\" && echo 'published=true' >> \"$GITHUB_OUTPUT\""
       }

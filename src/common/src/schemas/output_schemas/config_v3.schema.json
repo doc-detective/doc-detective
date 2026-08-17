@@ -50,7 +50,7 @@
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`. The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
       "type": "array",
       "items": {
         "type": "string",
@@ -1417,8 +1417,8 @@
                           ]
                         },
                         "comment": {
+                          "description": "Match comment nodes (non-rendered author notes).",
                           "title": "Content filter selector",
-                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -1576,8 +1576,8 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         "comment": {
+                                          "description": "Match comment nodes (non-rendered author notes).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1664,8 +1664,8 @@
                                           ]
                                         },
                                         "link": {
+                                          "description": "Match hyperlink nodes.",
                                           "title": "Link selector (chained)",
-                                          "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1698,8 +1698,8 @@
                                           }
                                         },
                                         "image": {
+                                          "description": "Match image nodes.",
                                           "title": "Image selector (chained)",
-                                          "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1732,8 +1732,8 @@
                                           }
                                         },
                                         "strong": {
+                                          "description": "Match bold/strong text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1745,8 +1745,8 @@
                                           }
                                         },
                                         "emphasis": {
+                                          "description": "Match italic/emphasis text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1758,8 +1758,8 @@
                                           }
                                         },
                                         "text": {
+                                          "description": "Match prose text runs (never inside code blocks or comments).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -1959,8 +1959,8 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         "comment": {
+                                          "description": "Match comment nodes (non-rendered author notes).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2047,8 +2047,8 @@
                                           ]
                                         },
                                         "link": {
+                                          "description": "Match hyperlink nodes.",
                                           "title": "Link selector (chained)",
-                                          "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2081,8 +2081,8 @@
                                           }
                                         },
                                         "image": {
+                                          "description": "Match image nodes.",
                                           "title": "Image selector (chained)",
-                                          "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2115,8 +2115,8 @@
                                           }
                                         },
                                         "strong": {
+                                          "description": "Match bold/strong text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2128,8 +2128,8 @@
                                           }
                                         },
                                         "emphasis": {
+                                          "description": "Match italic/emphasis text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2141,8 +2141,8 @@
                                           }
                                         },
                                         "text": {
+                                          "description": "Match prose text runs (never inside code blocks or comments).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2321,8 +2321,8 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         "comment": {
+                                          "description": "Match comment nodes (non-rendered author notes).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2409,8 +2409,8 @@
                                           ]
                                         },
                                         "link": {
+                                          "description": "Match hyperlink nodes.",
                                           "title": "Link selector (chained)",
-                                          "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2443,8 +2443,8 @@
                                           }
                                         },
                                         "image": {
+                                          "description": "Match image nodes.",
                                           "title": "Image selector (chained)",
-                                          "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2477,8 +2477,8 @@
                                           }
                                         },
                                         "strong": {
+                                          "description": "Match bold/strong text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2490,8 +2490,8 @@
                                           }
                                         },
                                         "emphasis": {
+                                          "description": "Match italic/emphasis text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2503,8 +2503,8 @@
                                           }
                                         },
                                         "text": {
+                                          "description": "Match prose text runs (never inside code blocks or comments).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2683,8 +2683,8 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         "comment": {
+                                          "description": "Match comment nodes (non-rendered author notes).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2771,8 +2771,8 @@
                                           ]
                                         },
                                         "link": {
+                                          "description": "Match hyperlink nodes.",
                                           "title": "Link selector (chained)",
-                                          "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2805,8 +2805,8 @@
                                           }
                                         },
                                         "image": {
+                                          "description": "Match image nodes.",
                                           "title": "Image selector (chained)",
-                                          "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2839,8 +2839,8 @@
                                           }
                                         },
                                         "strong": {
+                                          "description": "Match bold/strong text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2852,8 +2852,8 @@
                                           }
                                         },
                                         "emphasis": {
+                                          "description": "Match italic/emphasis text nodes.",
                                           "title": "Strong/emphasis selector (chained)",
-                                          "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2865,8 +2865,8 @@
                                           }
                                         },
                                         "text": {
+                                          "description": "Match prose text runs (never inside code blocks or comments).",
                                           "title": "Content filter selector",
-                                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
@@ -2995,8 +2995,8 @@
                           }
                         },
                         "text": {
+                          "description": "Match prose text runs (never inside code blocks or comments).",
                           "title": "Content filter selector",
-                          "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                           "type": "object",
                           "additionalProperties": false,
                           "properties": {
@@ -3109,8 +3109,8 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "comment": {
+                                              "description": "Match comment nodes (non-rendered author notes).",
                                               "title": "Content filter selector",
-                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -3197,8 +3197,8 @@
                                               ]
                                             },
                                             "link": {
+                                              "description": "Match hyperlink nodes.",
                                               "title": "Link selector (chained)",
-                                              "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -3231,8 +3231,8 @@
                                               }
                                             },
                                             "image": {
+                                              "description": "Match image nodes.",
                                               "title": "Image selector (chained)",
-                                              "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -3265,8 +3265,8 @@
                                               }
                                             },
                                             "strong": {
+                                              "description": "Match bold/strong text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
-                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -3278,8 +3278,8 @@
                                               }
                                             },
                                             "emphasis": {
+                                              "description": "Match italic/emphasis text nodes.",
                                               "title": "Strong/emphasis selector (chained)",
-                                              "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -3291,8 +3291,8 @@
                                               }
                                             },
                                             "text": {
+                                              "description": "Match prose text runs (never inside code blocks or comments).",
                                               "title": "Content filter selector",
-                                              "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                               "type": "object",
                                               "additionalProperties": false,
                                               "properties": {
@@ -11037,9 +11037,9 @@
                                                                                 "description": "Fixed delay (ms)."
                                                                               },
                                                                               "find": {
+                                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                 "title": "Element criteria",
                                                                                 "type": "object",
-                                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                 "additionalProperties": false,
                                                                                 "anyOf": [
                                                                                   {
@@ -11473,9 +11473,9 @@
                                                                               "description": "Fixed delay (ms)."
                                                                             },
                                                                             "find": {
+                                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                               "title": "Element criteria",
                                                                               "type": "object",
-                                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                               "additionalProperties": false,
                                                                               "anyOf": [
                                                                                 {
@@ -12534,9 +12534,9 @@
                                                                                   "description": "Fixed delay (ms)."
                                                                                 },
                                                                                 "find": {
+                                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                   "title": "Element criteria",
                                                                                   "type": "object",
-                                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                   "additionalProperties": false,
                                                                                   "anyOf": [
                                                                                     {
@@ -12970,9 +12970,9 @@
                                                                                 "description": "Fixed delay (ms)."
                                                                               },
                                                                               "find": {
+                                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                 "title": "Element criteria",
                                                                                 "type": "object",
-                                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                 "additionalProperties": false,
                                                                                 "anyOf": [
                                                                                   {
@@ -15184,9 +15184,9 @@
                                                                                   "description": "Fixed delay (ms)."
                                                                                 },
                                                                                 "find": {
+                                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                   "title": "Element criteria",
                                                                                   "type": "object",
-                                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                   "additionalProperties": false,
                                                                                   "anyOf": [
                                                                                     {
@@ -15620,9 +15620,9 @@
                                                                                 "description": "Fixed delay (ms)."
                                                                               },
                                                                               "find": {
+                                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                 "title": "Element criteria",
                                                                                 "type": "object",
-                                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                 "additionalProperties": false,
                                                                                 "anyOf": [
                                                                                   {
@@ -16681,9 +16681,9 @@
                                                                                     "description": "Fixed delay (ms)."
                                                                                   },
                                                                                   "find": {
+                                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                     "title": "Element criteria",
                                                                                     "type": "object",
-                                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                     "additionalProperties": false,
                                                                                     "anyOf": [
                                                                                       {
@@ -17117,9 +17117,9 @@
                                                                                   "description": "Fixed delay (ms)."
                                                                                 },
                                                                                 "find": {
+                                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                                   "title": "Element criteria",
                                                                                   "type": "object",
-                                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                                   "additionalProperties": false,
                                                                                   "anyOf": [
                                                                                     {
@@ -27409,9 +27409,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -27845,9 +27845,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -28906,9 +28906,9 @@
                                                                       "description": "Fixed delay (ms)."
                                                                     },
                                                                     "find": {
+                                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                       "title": "Element criteria",
                                                                       "type": "object",
-                                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                       "additionalProperties": false,
                                                                       "anyOf": [
                                                                         {
@@ -29342,9 +29342,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -46023,6 +46023,7 @@
                                                         "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                                       },
                                                       "waitUntil": {
+                                                        "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                         "title": "App readiness",
                                                         "type": "object",
                                                         "additionalProperties": false,
@@ -46034,9 +46035,9 @@
                                                             "description": "Fixed delay (ms)."
                                                           },
                                                           "find": {
+                                                            "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                             "title": "Element criteria",
                                                             "type": "object",
-                                                            "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                             "additionalProperties": false,
                                                             "anyOf": [
                                                               {
@@ -46129,8 +46130,7 @@
                                                               }
                                                             }
                                                           }
-                                                        },
-                                                        "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                        }
                                                       },
                                                       "timeout": {
                                                         "type": "integer",
@@ -46440,6 +46440,7 @@
                                                               "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                                             },
                                                             "waitUntil": {
+                                                              "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                               "title": "App readiness",
                                                               "type": "object",
                                                               "additionalProperties": false,
@@ -46451,9 +46452,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -46546,8 +46547,7 @@
                                                                     }
                                                                   }
                                                                 }
-                                                              },
-                                                              "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                              }
                                                             },
                                                             "timeout": {
                                                               "type": "integer",
@@ -47039,6 +47039,7 @@
                                                           "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                                         },
                                                         "waitUntil": {
+                                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                           "title": "App readiness",
                                                           "type": "object",
                                                           "additionalProperties": false,
@@ -47050,9 +47051,9 @@
                                                               "description": "Fixed delay (ms)."
                                                             },
                                                             "find": {
+                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                               "title": "Element criteria",
                                                               "type": "object",
-                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                               "additionalProperties": false,
                                                               "anyOf": [
                                                                 {
@@ -47145,8 +47146,7 @@
                                                                 }
                                                               }
                                                             }
-                                                          },
-                                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                          }
                                                         },
                                                         "timeout": {
                                                           "type": "integer",
@@ -61746,8 +61746,8 @@
             ]
           },
           "comment": {
+            "description": "Match comment nodes (non-rendered author notes).",
             "title": "Content filter selector",
-            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -61905,8 +61905,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
+                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -61993,8 +61993,8 @@
                             ]
                           },
                           "link": {
+                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
-                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62027,8 +62027,8 @@
                             }
                           },
                           "image": {
+                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
-                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62061,8 +62061,8 @@
                             }
                           },
                           "strong": {
+                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62074,8 +62074,8 @@
                             }
                           },
                           "emphasis": {
+                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62087,8 +62087,8 @@
                             }
                           },
                           "text": {
+                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62288,8 +62288,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
+                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62376,8 +62376,8 @@
                             ]
                           },
                           "link": {
+                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
-                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62410,8 +62410,8 @@
                             }
                           },
                           "image": {
+                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
-                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62444,8 +62444,8 @@
                             }
                           },
                           "strong": {
+                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62457,8 +62457,8 @@
                             }
                           },
                           "emphasis": {
+                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62470,8 +62470,8 @@
                             }
                           },
                           "text": {
+                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62650,8 +62650,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
+                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62738,8 +62738,8 @@
                             ]
                           },
                           "link": {
+                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
-                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62772,8 +62772,8 @@
                             }
                           },
                           "image": {
+                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
-                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62806,8 +62806,8 @@
                             }
                           },
                           "strong": {
+                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62819,8 +62819,8 @@
                             }
                           },
                           "emphasis": {
+                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -62832,8 +62832,8 @@
                             }
                           },
                           "text": {
+                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63012,8 +63012,8 @@
                         "additionalProperties": false,
                         "properties": {
                           "comment": {
+                            "description": "Match comment nodes (non-rendered author notes).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63100,8 +63100,8 @@
                             ]
                           },
                           "link": {
+                            "description": "Match hyperlink nodes.",
                             "title": "Link selector (chained)",
-                            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63134,8 +63134,8 @@
                             }
                           },
                           "image": {
+                            "description": "Match image nodes.",
                             "title": "Image selector (chained)",
-                            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63168,8 +63168,8 @@
                             }
                           },
                           "strong": {
+                            "description": "Match bold/strong text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63181,8 +63181,8 @@
                             }
                           },
                           "emphasis": {
+                            "description": "Match italic/emphasis text nodes.",
                             "title": "Strong/emphasis selector (chained)",
-                            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63194,8 +63194,8 @@
                             }
                           },
                           "text": {
+                            "description": "Match prose text runs (never inside code blocks or comments).",
                             "title": "Content filter selector",
-                            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
@@ -63324,8 +63324,8 @@
             }
           },
           "text": {
+            "description": "Match prose text runs (never inside code blocks or comments).",
             "title": "Content filter selector",
-            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -63438,8 +63438,8 @@
                             "additionalProperties": false,
                             "properties": {
                               "comment": {
+                                "description": "Match comment nodes (non-rendered author notes).",
                                 "title": "Content filter selector",
-                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63526,8 +63526,8 @@
                                 ]
                               },
                               "link": {
+                                "description": "Match hyperlink nodes.",
                                 "title": "Link selector (chained)",
-                                "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63560,8 +63560,8 @@
                                 }
                               },
                               "image": {
+                                "description": "Match image nodes.",
                                 "title": "Image selector (chained)",
-                                "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63594,8 +63594,8 @@
                                 }
                               },
                               "strong": {
+                                "description": "Match bold/strong text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
-                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63607,8 +63607,8 @@
                                 }
                               },
                               "emphasis": {
+                                "description": "Match italic/emphasis text nodes.",
                                 "title": "Strong/emphasis selector (chained)",
-                                "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -63620,8 +63620,8 @@
                                 }
                               },
                               "text": {
+                                "description": "Match prose text runs (never inside code blocks or comments).",
                                 "title": "Content filter selector",
-                                "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
@@ -71366,9 +71366,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -71802,9 +71802,9 @@
                                                                 "description": "Fixed delay (ms)."
                                                               },
                                                               "find": {
+                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                 "title": "Element criteria",
                                                                 "type": "object",
-                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                 "additionalProperties": false,
                                                                 "anyOf": [
                                                                   {
@@ -72863,9 +72863,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -73299,9 +73299,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -75513,9 +75513,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -75949,9 +75949,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -77010,9 +77010,9 @@
                                                                       "description": "Fixed delay (ms)."
                                                                     },
                                                                     "find": {
+                                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                       "title": "Element criteria",
                                                                       "type": "object",
-                                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                       "additionalProperties": false,
                                                                       "anyOf": [
                                                                         {
@@ -77446,9 +77446,9 @@
                                                                     "description": "Fixed delay (ms)."
                                                                   },
                                                                   "find": {
+                                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                     "title": "Element criteria",
                                                                     "type": "object",
-                                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                     "additionalProperties": false,
                                                                     "anyOf": [
                                                                       {
@@ -87738,9 +87738,9 @@
                                                       "description": "Fixed delay (ms)."
                                                     },
                                                     "find": {
+                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                       "title": "Element criteria",
                                                       "type": "object",
-                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                       "additionalProperties": false,
                                                       "anyOf": [
                                                         {
@@ -88174,9 +88174,9 @@
                                                     "description": "Fixed delay (ms)."
                                                   },
                                                   "find": {
+                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                     "title": "Element criteria",
                                                     "type": "object",
-                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                     "additionalProperties": false,
                                                     "anyOf": [
                                                       {
@@ -89235,9 +89235,9 @@
                                                         "description": "Fixed delay (ms)."
                                                       },
                                                       "find": {
+                                                        "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                         "title": "Element criteria",
                                                         "type": "object",
-                                                        "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                         "additionalProperties": false,
                                                         "anyOf": [
                                                           {
@@ -89671,9 +89671,9 @@
                                                       "description": "Fixed delay (ms)."
                                                     },
                                                     "find": {
+                                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                       "title": "Element criteria",
                                                       "type": "object",
-                                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                       "additionalProperties": false,
                                                       "anyOf": [
                                                         {
@@ -106352,6 +106352,7 @@
                                           "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                         },
                                         "waitUntil": {
+                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                           "title": "App readiness",
                                           "type": "object",
                                           "additionalProperties": false,
@@ -106363,9 +106364,9 @@
                                               "description": "Fixed delay (ms)."
                                             },
                                             "find": {
+                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                               "title": "Element criteria",
                                               "type": "object",
-                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                               "additionalProperties": false,
                                               "anyOf": [
                                                 {
@@ -106458,8 +106459,7 @@
                                                 }
                                               }
                                             }
-                                          },
-                                          "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                          }
                                         },
                                         "timeout": {
                                           "type": "integer",
@@ -106769,6 +106769,7 @@
                                                 "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                               },
                                               "waitUntil": {
+                                                "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                                 "title": "App readiness",
                                                 "type": "object",
                                                 "additionalProperties": false,
@@ -106780,9 +106781,9 @@
                                                     "description": "Fixed delay (ms)."
                                                   },
                                                   "find": {
+                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                     "title": "Element criteria",
                                                     "type": "object",
-                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                     "additionalProperties": false,
                                                     "anyOf": [
                                                       {
@@ -106875,8 +106876,7 @@
                                                       }
                                                     }
                                                   }
-                                                },
-                                                "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                                }
                                               },
                                               "timeout": {
                                                 "type": "integer",
@@ -107368,6 +107368,7 @@
                                             "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                           },
                                           "waitUntil": {
+                                            "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                             "title": "App readiness",
                                             "type": "object",
                                             "additionalProperties": false,
@@ -107379,9 +107380,9 @@
                                                 "description": "Fixed delay (ms)."
                                               },
                                               "find": {
+                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                 "title": "Element criteria",
                                                 "type": "object",
-                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                 "additionalProperties": false,
                                                 "anyOf": [
                                                   {
@@ -107474,8 +107475,7 @@
                                                   }
                                                 }
                                               }
-                                            },
-                                            "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                            }
                                           },
                                           "timeout": {
                                             "type": "integer",
@@ -128140,9 +128140,9 @@
                                                               "description": "Fixed delay (ms)."
                                                             },
                                                             "find": {
+                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                               "title": "Element criteria",
                                                               "type": "object",
-                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                               "additionalProperties": false,
                                                               "anyOf": [
                                                                 {
@@ -128576,9 +128576,9 @@
                                                             "description": "Fixed delay (ms)."
                                                           },
                                                           "find": {
+                                                            "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                             "title": "Element criteria",
                                                             "type": "object",
-                                                            "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                             "additionalProperties": false,
                                                             "anyOf": [
                                                               {
@@ -129637,9 +129637,9 @@
                                                                 "description": "Fixed delay (ms)."
                                                               },
                                                               "find": {
+                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                 "title": "Element criteria",
                                                                 "type": "object",
-                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                 "additionalProperties": false,
                                                                 "anyOf": [
                                                                   {
@@ -130073,9 +130073,9 @@
                                                               "description": "Fixed delay (ms)."
                                                             },
                                                             "find": {
+                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                               "title": "Element criteria",
                                                               "type": "object",
-                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                               "additionalProperties": false,
                                                               "anyOf": [
                                                                 {
@@ -132287,9 +132287,9 @@
                                                                 "description": "Fixed delay (ms)."
                                                               },
                                                               "find": {
+                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                 "title": "Element criteria",
                                                                 "type": "object",
-                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                 "additionalProperties": false,
                                                                 "anyOf": [
                                                                   {
@@ -132723,9 +132723,9 @@
                                                               "description": "Fixed delay (ms)."
                                                             },
                                                             "find": {
+                                                              "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                               "title": "Element criteria",
                                                               "type": "object",
-                                                              "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                               "additionalProperties": false,
                                                               "anyOf": [
                                                                 {
@@ -133784,9 +133784,9 @@
                                                                   "description": "Fixed delay (ms)."
                                                                 },
                                                                 "find": {
+                                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                   "title": "Element criteria",
                                                                   "type": "object",
-                                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                   "additionalProperties": false,
                                                                   "anyOf": [
                                                                     {
@@ -134220,9 +134220,9 @@
                                                                 "description": "Fixed delay (ms)."
                                                               },
                                                               "find": {
+                                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                                 "title": "Element criteria",
                                                                 "type": "object",
-                                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                                 "additionalProperties": false,
                                                                 "anyOf": [
                                                                   {
@@ -144512,9 +144512,9 @@
                                                   "description": "Fixed delay (ms)."
                                                 },
                                                 "find": {
+                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                   "title": "Element criteria",
                                                   "type": "object",
-                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                   "additionalProperties": false,
                                                   "anyOf": [
                                                     {
@@ -144948,9 +144948,9 @@
                                                 "description": "Fixed delay (ms)."
                                               },
                                               "find": {
+                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                 "title": "Element criteria",
                                                 "type": "object",
-                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                 "additionalProperties": false,
                                                 "anyOf": [
                                                   {
@@ -146009,9 +146009,9 @@
                                                     "description": "Fixed delay (ms)."
                                                   },
                                                   "find": {
+                                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                     "title": "Element criteria",
                                                     "type": "object",
-                                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                     "additionalProperties": false,
                                                     "anyOf": [
                                                       {
@@ -146445,9 +146445,9 @@
                                                   "description": "Fixed delay (ms)."
                                                 },
                                                 "find": {
+                                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                   "title": "Element criteria",
                                                   "type": "object",
-                                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                   "additionalProperties": false,
                                                   "anyOf": [
                                                     {
@@ -163126,6 +163126,7 @@
                                       "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                     },
                                     "waitUntil": {
+                                      "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                       "title": "App readiness",
                                       "type": "object",
                                       "additionalProperties": false,
@@ -163137,9 +163138,9 @@
                                           "description": "Fixed delay (ms)."
                                         },
                                         "find": {
+                                          "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                           "title": "Element criteria",
                                           "type": "object",
-                                          "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                           "additionalProperties": false,
                                           "anyOf": [
                                             {
@@ -163232,8 +163233,7 @@
                                             }
                                           }
                                         }
-                                      },
-                                      "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                      }
                                     },
                                     "timeout": {
                                       "type": "integer",
@@ -163543,6 +163543,7 @@
                                             "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                           },
                                           "waitUntil": {
+                                            "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                             "title": "App readiness",
                                             "type": "object",
                                             "additionalProperties": false,
@@ -163554,9 +163555,9 @@
                                                 "description": "Fixed delay (ms)."
                                               },
                                               "find": {
+                                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                                 "title": "Element criteria",
                                                 "type": "object",
-                                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                                 "additionalProperties": false,
                                                 "anyOf": [
                                                   {
@@ -163649,8 +163650,7 @@
                                                   }
                                                 }
                                               }
-                                            },
-                                            "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                            }
                                           },
                                           "timeout": {
                                             "type": "integer",
@@ -164142,6 +164142,7 @@
                                         "description": "Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly."
                                       },
                                       "waitUntil": {
+                                        "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.",
                                         "title": "App readiness",
                                         "type": "object",
                                         "additionalProperties": false,
@@ -164153,9 +164154,9 @@
                                             "description": "Fixed delay (ms)."
                                           },
                                           "find": {
+                                            "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                             "title": "Element criteria",
                                             "type": "object",
-                                            "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                             "additionalProperties": false,
                                             "anyOf": [
                                               {
@@ -164248,8 +164249,7 @@
                                               }
                                             }
                                           }
-                                        },
-                                        "description": "Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default."
+                                        }
                                       },
                                       "timeout": {
                                         "type": "integer",
@@ -177426,8 +177426,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "comment": {
+                        "description": "Match comment nodes (non-rendered author notes).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177514,8 +177514,8 @@
                         ]
                       },
                       "link": {
+                        "description": "Match hyperlink nodes.",
                         "title": "Link selector (chained)",
-                        "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177548,8 +177548,8 @@
                         }
                       },
                       "image": {
+                        "description": "Match image nodes.",
                         "title": "Image selector (chained)",
-                        "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177582,8 +177582,8 @@
                         }
                       },
                       "strong": {
+                        "description": "Match bold/strong text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177595,8 +177595,8 @@
                         }
                       },
                       "emphasis": {
+                        "description": "Match italic/emphasis text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177608,8 +177608,8 @@
                         }
                       },
                       "text": {
+                        "description": "Match prose text runs (never inside code blocks or comments).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177808,8 +177808,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "comment": {
+                        "description": "Match comment nodes (non-rendered author notes).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177896,8 +177896,8 @@
                         ]
                       },
                       "link": {
+                        "description": "Match hyperlink nodes.",
                         "title": "Link selector (chained)",
-                        "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177930,8 +177930,8 @@
                         }
                       },
                       "image": {
+                        "description": "Match image nodes.",
                         "title": "Image selector (chained)",
-                        "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177964,8 +177964,8 @@
                         }
                       },
                       "strong": {
+                        "description": "Match bold/strong text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177977,8 +177977,8 @@
                         }
                       },
                       "emphasis": {
+                        "description": "Match italic/emphasis text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -177990,8 +177990,8 @@
                         }
                       },
                       "text": {
+                        "description": "Match prose text runs (never inside code blocks or comments).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178169,8 +178169,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "comment": {
+                        "description": "Match comment nodes (non-rendered author notes).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178257,8 +178257,8 @@
                         ]
                       },
                       "link": {
+                        "description": "Match hyperlink nodes.",
                         "title": "Link selector (chained)",
-                        "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178291,8 +178291,8 @@
                         }
                       },
                       "image": {
+                        "description": "Match image nodes.",
                         "title": "Image selector (chained)",
-                        "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178325,8 +178325,8 @@
                         }
                       },
                       "strong": {
+                        "description": "Match bold/strong text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178338,8 +178338,8 @@
                         }
                       },
                       "emphasis": {
+                        "description": "Match italic/emphasis text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178351,8 +178351,8 @@
                         }
                       },
                       "text": {
+                        "description": "Match prose text runs (never inside code blocks or comments).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178570,8 +178570,8 @@
                     "additionalProperties": false,
                     "properties": {
                       "comment": {
+                        "description": "Match comment nodes (non-rendered author notes).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178658,8 +178658,8 @@
                         ]
                       },
                       "link": {
+                        "description": "Match hyperlink nodes.",
                         "title": "Link selector (chained)",
-                        "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178692,8 +178692,8 @@
                         }
                       },
                       "image": {
+                        "description": "Match image nodes.",
                         "title": "Image selector (chained)",
-                        "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178726,8 +178726,8 @@
                         }
                       },
                       "strong": {
+                        "description": "Match bold/strong text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178739,8 +178739,8 @@
                         }
                       },
                       "emphasis": {
+                        "description": "Match italic/emphasis text nodes.",
                         "title": "Strong/emphasis selector (chained)",
-                        "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178752,8 +178752,8 @@
                         }
                       },
                       "text": {
+                        "description": "Match prose text runs (never inside code blocks or comments).",
                         "title": "Content filter selector",
-                        "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
@@ -178921,8 +178921,8 @@
                 "additionalProperties": false,
                 "properties": {
                   "comment": {
+                    "description": "Match comment nodes (non-rendered author notes).",
                     "title": "Content filter selector",
-                    "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179009,8 +179009,8 @@
                     ]
                   },
                   "link": {
+                    "description": "Match hyperlink nodes.",
                     "title": "Link selector (chained)",
-                    "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179043,8 +179043,8 @@
                     }
                   },
                   "image": {
+                    "description": "Match image nodes.",
                     "title": "Image selector (chained)",
-                    "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179077,8 +179077,8 @@
                     }
                   },
                   "strong": {
+                    "description": "Match bold/strong text nodes.",
                     "title": "Strong/emphasis selector (chained)",
-                    "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179090,8 +179090,8 @@
                     }
                   },
                   "emphasis": {
+                    "description": "Match italic/emphasis text nodes.",
                     "title": "Strong/emphasis selector (chained)",
-                    "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179103,8 +179103,8 @@
                     }
                   },
                   "text": {
+                    "description": "Match prose text runs (never inside code blocks or comments).",
                     "title": "Content filter selector",
-                    "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
@@ -179244,8 +179244,8 @@
         "additionalProperties": false,
         "properties": {
           "comment": {
+            "description": "Match comment nodes (non-rendered author notes).",
             "title": "Content filter selector",
-            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179332,8 +179332,8 @@
             ]
           },
           "link": {
+            "description": "Match hyperlink nodes.",
             "title": "Link selector (chained)",
-            "description": "Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179366,8 +179366,8 @@
             }
           },
           "image": {
+            "description": "Match image nodes.",
             "title": "Image selector (chained)",
-            "description": "Match an image node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179400,8 +179400,8 @@
             }
           },
           "strong": {
+            "description": "Match bold/strong text nodes.",
             "title": "Strong/emphasis selector (chained)",
-            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179413,8 +179413,8 @@
             }
           },
           "emphasis": {
+            "description": "Match italic/emphasis text nodes.",
             "title": "Strong/emphasis selector (chained)",
-            "description": "Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -179426,8 +179426,8 @@
             }
           },
           "text": {
+            "description": "Match prose text runs (never inside code blocks or comments).",
             "title": "Content filter selector",
-            "description": "Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.",
             "type": "object",
             "additionalProperties": false,
             "properties": {

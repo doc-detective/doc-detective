@@ -20,7 +20,9 @@
 const BUNDLES = [
   { name: "nav-capture", dirs: ["navigation", "capture"] },
   { name: "interactions", dirs: ["interactions"] },
-  { name: "web-plumbing", dirs: ["routing", "http", "guards"] },
+  // `reporters` is shell-only (it spawns a nested CLI run), so it needs no
+  // browser or device and rides along with the other fast, headless groups.
+  { name: "web-plumbing", dirs: ["routing", "http", "guards", "reporters"] },
   { name: "proc-sessions", dirs: ["process", "sessions", "detection"] },
   { name: "recording", dirs: ["recording"] },
   { name: "apps", dirs: ["apps"], timeout: 30 },
