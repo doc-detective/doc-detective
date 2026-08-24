@@ -39,8 +39,9 @@ Two questions follow: what should the range be, and how do we stop it rotting ag
 
 * The declared support contract should be true; a wrong `engines` is worse than a loose one,
   because it converts a clear failure into a contradiction.
-* Node 23 is not merely "above the floor" — the appium family and `yargs` exclude that line
-  outright, so a simple minimum version cannot express the real support set.
+* Node 23 is not merely "above the floor" — the appium family excludes that line outright
+  (`^20.19.0 || ^22.12.0 || >=24.0.0`), so a simple minimum version cannot express the real
+  support set.
 * The check must be mechanical. The rot happened precisely because keeping the number current was
   a manual step nobody owned.
 * CI must keep passing on the Node lines it already tests (22 and 24).
@@ -59,14 +60,21 @@ Chosen option: **A**.
 
 `engines.node` becomes `^22.22.0 || >=24.0.0`. That is the widest range every production dependency
 actually supports, and it matches the Node lines CI tests. The two-branch form is not cosmetic: a
-flat `>=22.22.0` admits Node 23, which `appium` (`^20.19.0 || ^22.12.0 || >=24.0.0`) and `yargs`
-(`^20.19.0 || ^22.12.0 || >=23`) do not agree on, so the excluded line has to be stated.
+flat `>=22.22.0` admits Node 23, which the appium family (`^20.19.0 || ^22.12.0 || >=24.0.0`) does
+not support, so the excluded line has to be stated.
 
 [test/engines-floor.test.js](../test/engines-floor.test.js) makes the invariant executable. For each
 package in `dependencies` and `optionalDependencies` it reads the *installed* copy's `engines.node`
 and asserts `semver.subset(declared, dependencyRange)` — every Node version we admit must be one the
 dependency admits. Subset, not a floor comparison, because the Node 23 gap above is invisible to a
 minimum-version check.
+
+`semver.subset` is a conservative decision procedure: on some unions of ranges it answers `false`
+for a pair that is in fact a subset. `yargs` (`^20.19.0 || ^22.12.0 || >=23`) is one such case —
+probing it version by version shows it accepts every Node release `>=22.22.0`, yet `subset` reports
+a violation against that range. The imprecision only ever errs toward "tighten `engines`", never
+toward a false pass, which is the safe direction for a guard; and it does not fire against the
+range chosen here. Read a failure as "prove this is still compatible", not as proof of breakage.
 
 `devDependencies` are excluded deliberately. They do not reach consumers, and their engines
 routinely outrun ours — `@semantic-release/git` currently wants `^22.22.2 || >=24.15` — which says
@@ -109,7 +117,7 @@ resolves today — both satisfy the new range.
 ### B. `>=22.22.0`, no test
 
 * Good: one-line change; fixes today's inaccuracy.
-* Bad: still wrong for Node 23, which appium and yargs exclude.
+* Bad: still wrong for Node 23, which the appium family excludes.
 * Bad: no guard, so it rots again on the next bump — the failure mode this ADR exists to end.
 
 ### C. Hold dependencies back

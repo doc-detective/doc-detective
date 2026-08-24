@@ -14,6 +14,11 @@
 // naive minimum comparison would not notice. Every version our `engines` admits
 // must be a version the dependency admits.
 //
+// `semver.subset` is conservative — on some unions it answers `false` for a
+// pair that is genuinely a subset (`yargs` is one such case). It therefore errs
+// toward "tighten `engines`" and never toward a false pass, which is the safe
+// direction here. Read a failure as "prove this is still compatible".
+//
 // Only `dependencies` and `optionalDependencies` count. devDependencies do not
 // reach consumers, and their engines routinely outrun ours (semantic-release in
 // particular) without saying anything about what the published package needs.
@@ -33,13 +38,13 @@ function readJson(...segments) {
 // The installed copy is the source of truth for a dependency's engines: the
 // manifest only records a range, and which version that resolves to is the
 // lockfile's business.
+//
+// Returns the declared range, or null when the package declares no `engines`.
+// Throws when the package cannot be read at all — the caller decides whether
+// that is fatal, which depends on whether the dependency is optional.
 function installedEngines(name) {
-  try {
-    return readJson("node_modules", ...name.split("/"), "package.json").engines
-      ?.node;
-  } catch {
-    return undefined; // not installed (optional dep skipped on this platform)
-  }
+  return readJson("node_modules", ...name.split("/"), "package.json").engines
+    ?.node ?? null;
 }
 
 describe("engines.node", function () {
@@ -55,27 +60,47 @@ describe("engines.node", function () {
   });
 
   it("admits only node versions every production dependency supports", function () {
-    const names = [
-      ...Object.keys(manifest.dependencies ?? {}),
-      ...Object.keys(manifest.optionalDependencies ?? {}),
-    ].sort();
+    // The whole suite runs against an installed tree; if there isn't one there
+    // is nothing to compare against. This is the ONLY skip condition — a
+    // dependency missing from an otherwise-installed tree is a real failure
+    // below, not a reason to pass quietly.
+    if (!fs.existsSync(path.join(repoRoot, "node_modules"))) {
+      this.skip();
+    }
 
-    const checked = [];
+    const required = Object.keys(manifest.dependencies ?? {}).sort();
+    // Optional dependencies are legitimately absent when npm skips them for
+    // this platform, so only those may go uninspected.
+    const optional = Object.keys(manifest.optionalDependencies ?? {}).sort();
+
     const violations = [];
+    const unreadable = [];
+    let inspected = 0;
 
-    for (const name of names) {
-      const range = installedEngines(name);
+    for (const name of [...required, ...optional]) {
+      let range;
+      try {
+        range = installedEngines(name);
+      } catch (error) {
+        if (required.includes(name)) {
+          unreadable.push(`  ${name} (${error.code ?? error.message})`);
+        }
+        continue; // optional dep not installed on this platform
+      }
       if (!range || !semver.validRange(range)) continue;
-      checked.push(name);
+      inspected += 1;
       if (!semver.subset(declared, range)) {
         violations.push(`  ${name} supports "${range}"`);
       }
     }
 
-    if (checked.length === 0) {
-      // Dependencies aren't installed; nothing to compare against.
-      this.skip();
-    }
+    assert.deepEqual(
+      unreadable,
+      [],
+      `these non-optional dependencies could not be read from node_modules, so their engines went unchecked:\n${unreadable.join(
+        "\n"
+      )}\nReinstall (npm ci) before trusting this test.`
+    );
 
     assert.deepEqual(
       violations,
@@ -83,6 +108,13 @@ describe("engines.node", function () {
       `engines.node is "${declared}", which admits node versions these dependencies do not support:\n${violations.join(
         "\n"
       )}\nEither raise engines.node or hold the dependency back.`
+    );
+
+    // A tree where nothing declares engines would pass both assertions above
+    // while proving nothing.
+    assert.ok(
+      inspected > 0,
+      "no installed production dependency declared engines.node; the comparison above was vacuous"
     );
   });
 });
