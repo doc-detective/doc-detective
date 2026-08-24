@@ -1287,7 +1287,7 @@ export type ElementCriteria =
       [k: string]: unknown;
     };
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria1 =
   | {
@@ -1515,15 +1515,7 @@ export type AtLeastOneElementFindingField =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -1558,15 +1550,7 @@ export type AtLeastOneElementFindingField1 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion1 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -1601,15 +1585,7 @@ export type AtLeastOneElementFindingField2 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion2 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -1644,15 +1620,7 @@ export type AtLeastOneElementFindingField3 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion3 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -1687,15 +1655,7 @@ export type AtLeastOneElementFindingField4 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion4 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -1730,28 +1690,12 @@ export type AtLeastOneElementFindingField5 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion5 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion6 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType =
   | {
       [k: string]: unknown;
@@ -2393,7 +2337,7 @@ export type Routing63 =
 export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName1 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria2 =
   | {
@@ -2428,7 +2372,7 @@ export type ParallelSurfaces = [
 ];
 export type DeviceByName2 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria3 =
   | {
@@ -3196,15 +3140,7 @@ export type AtLeastOneElementFindingField6 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion7 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3239,15 +3175,7 @@ export type AtLeastOneElementFindingField7 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion8 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3282,15 +3210,7 @@ export type AtLeastOneElementFindingField8 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion9 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3325,15 +3245,7 @@ export type AtLeastOneElementFindingField9 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion10 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3368,15 +3280,7 @@ export type AtLeastOneElementFindingField10 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion11 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3411,28 +3315,12 @@ export type AtLeastOneElementFindingField11 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion12 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion13 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType1 =
   | {
       [k: string]: unknown;
@@ -3494,15 +3382,7 @@ export type AtLeastOneElementFindingField12 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion14 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3537,15 +3417,7 @@ export type AtLeastOneElementFindingField13 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion15 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3580,15 +3452,7 @@ export type AtLeastOneElementFindingField14 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion16 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3623,15 +3487,7 @@ export type AtLeastOneElementFindingField15 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion17 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3666,15 +3522,7 @@ export type AtLeastOneElementFindingField16 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion18 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -3709,28 +3557,12 @@ export type AtLeastOneElementFindingField17 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion19 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion20 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType2 =
   | {
       [k: string]: unknown;
@@ -4949,7 +4781,7 @@ export type ElementCriteria4 =
       [k: string]: unknown;
     };
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria5 =
   | {
@@ -5177,15 +5009,7 @@ export type AtLeastOneElementFindingField18 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion21 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -5220,15 +5044,7 @@ export type AtLeastOneElementFindingField19 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion22 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -5263,15 +5079,7 @@ export type AtLeastOneElementFindingField20 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion23 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -5306,15 +5114,7 @@ export type AtLeastOneElementFindingField21 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion24 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -5349,15 +5149,7 @@ export type AtLeastOneElementFindingField22 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion25 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -5392,28 +5184,12 @@ export type AtLeastOneElementFindingField23 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion26 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion27 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType3 =
   | {
       [k: string]: unknown;
@@ -6055,7 +5831,7 @@ export type Routing147 =
 export type StartSurface3 = AppDescriptor2 | BrowserDescriptor2 | ProcessDescriptor2 | ParallelSurfaces1;
 export type DeviceByName3 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria6 =
   | {
@@ -6090,7 +5866,7 @@ export type ParallelSurfaces1 = [
 ];
 export type DeviceByName4 = string;
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria7 =
   | {
@@ -6858,15 +6634,7 @@ export type AtLeastOneElementFindingField24 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion28 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -6901,15 +6669,7 @@ export type AtLeastOneElementFindingField25 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion29 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -6944,15 +6704,7 @@ export type AtLeastOneElementFindingField26 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion30 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -6987,15 +6739,7 @@ export type AtLeastOneElementFindingField27 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion31 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7030,15 +6774,7 @@ export type AtLeastOneElementFindingField28 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion32 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7073,28 +6809,12 @@ export type AtLeastOneElementFindingField29 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion33 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion34 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType4 =
   | {
       [k: string]: unknown;
@@ -7156,15 +6876,7 @@ export type AtLeastOneElementFindingField30 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion35 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7199,15 +6911,7 @@ export type AtLeastOneElementFindingField31 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion36 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7242,15 +6946,7 @@ export type AtLeastOneElementFindingField32 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion37 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7285,15 +6981,7 @@ export type AtLeastOneElementFindingField33 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion38 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7328,15 +7016,7 @@ export type AtLeastOneElementFindingField34 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion39 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -7371,28 +7051,12 @@ export type AtLeastOneElementFindingField35 =
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion40 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion41 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType5 =
   | {
       [k: string]: unknown;

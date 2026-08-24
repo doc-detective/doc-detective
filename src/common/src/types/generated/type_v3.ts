@@ -118,7 +118,7 @@ export type ElementCriteria = {
   [k: string]: unknown;
 };
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria1 = {
   [k: string]: unknown;
