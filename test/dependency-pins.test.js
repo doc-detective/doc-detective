@@ -37,7 +37,7 @@ describe("deliberate dependency pins", function () {
     assert.match(
       range,
       /^\d+\.\d+\.\d+$/,
-      `vscode-languageserver-textdocument must be an exact version, got "${range}". A range resolves to the highest published version, which is the next-tagged 1.0.13 rather than the latest-tagged release.`
+      `vscode-languageserver-textdocument must be an exact version, got "${range}". A range resolves to the highest published version regardless of dist-tag, which pulls in the next-tagged build rather than the latest-tagged release — see the comment at the top of this file.`
     );
   });
 });
