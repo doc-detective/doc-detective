@@ -1,0 +1,16 @@
+# The slang vocabulary, counted three ways: per sentence (Density), per
+# paragraph (Budget), and for presence (Presence). Each counter extends this
+# fragment, so the list has one home; the underscore keeps the directory
+# inert, and `extends` resolves it by path.
+#
+# Three terms carry guards, because a max rule turns a false positive into a
+# fabricated violation rather than into noise. "mid" and "based" are excluded
+# next to a hyphen ("mid-size", "cloud-based") and "based" before "on|upon|in".
+# "W" and "L" need a modifier in front ("massive W", "took the L"); bare
+# letters match units and list labels. Bare "cap" is gone entirely -- as slang
+# it appears as "no cap", and as a noun it is everywhere in technical prose.
+extends: occurrence
+# Never reported: the chain's root must carry a message, and every rule
+# extending this one overrides it.
+message: "Slang usage is out of budget."
+token: '\b(?:cooked|rizz|no cap|fr fr|aura|delulu|skibidi|bussin|goated|lowkey|highkey|glazing)\b|(?<!-)\bmid\b(?!-)|(?<!-)\bbased\b(?!\s+(?:on|upon|in))|\b(?:a|an|the|big|huge|massive|major|another|clean|absolute|straight|took the|take the)\s+[WL]\b'

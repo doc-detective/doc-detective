@@ -1,0 +1,14 @@
+# Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
+# Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
+#
+extends: substitution
+message: "Weak verb phrase: use '%s' instead of '%s'."
+level: error
+ignorecase: true
+action:
+  name: replace
+swap:
+  'ma(?:ke|de) a decision': decided
+  'ha(?:s|ve|d) the ability to': can
+  'is able to': can
+  'in order to': to

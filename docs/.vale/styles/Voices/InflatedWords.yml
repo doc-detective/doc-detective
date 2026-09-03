@@ -1,0 +1,48 @@
+# Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
+# Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
+#
+# The half of the inflated vocabulary that has one right answer. A
+# `substitution` rule carries `action: replace` and the exact span, so an agent
+# applies these without spending a turn deciding anything, and the alert costs
+# nothing to act on.
+#
+# `Banned` keeps the rest. "Delve", "harness" and "paradigm shift" need a
+# rewrite rather than a swap, and a fix applied without thought has to be right
+# every time or it is worse than no fix at all.
+extends: substitution
+message: "Inflated word: use '%s' instead of '%s'."
+level: error
+ignorecase: true
+action:
+  name: replace
+# The verbs carry their inflections, each with its own replacement: a fix
+# applied without thought has to agree in tense, or "leveraging" would come
+# back as "use".
+swap:
+  utilize: use
+  utilizes: uses
+  utilized: used
+  utilizing: using
+  leverage: use
+  leverages: uses
+  leveraged: used
+  leveraging: using
+  facilitate: help
+  facilitates: helps
+  facilitated: helped
+  facilitating: helping
+  streamline: simplify
+  streamlines: simplifies
+  streamlined: simplified
+  streamlining: simplifying
+  elevate: raise
+  elevates: raises
+  elevated: raised
+  elevating: raising
+  supercharge: speed up
+  supercharges: speeds up
+  supercharged: sped up
+  supercharging: speeding up
+  robust: strong
+  meticulous: careful
+  intricate: complex

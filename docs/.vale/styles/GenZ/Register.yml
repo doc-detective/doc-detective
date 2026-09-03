@@ -1,0 +1,13 @@
+extends: existence
+message: "Corporate register: '%s'. Not this voice."
+level: error
+ignorecase: true
+tokens:
+  - furthermore
+  - moreover
+  - thus
+  - hence
+  - it is imperative
+  - please be advised
+  - as per
+  - kindly note

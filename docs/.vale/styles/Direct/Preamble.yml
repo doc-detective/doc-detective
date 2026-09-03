@@ -1,0 +1,8 @@
+extends: existence
+message: "Preamble: '%s'. Lead with the finding."
+level: error
+ignorecase: true
+tokens:
+  - 'the reason (?:that |why )?[\w\s]{0,20} is'
+  - what this means is
+  - "in this (?:article|post|section)"

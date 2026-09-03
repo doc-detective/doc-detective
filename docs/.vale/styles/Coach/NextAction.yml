@@ -1,0 +1,9 @@
+# One next action -- not zero, not a list. `min` and `max` on one rule make
+# "exactly one" expressible, which no prompt can verify about its own output.
+extends: occurrence
+message: "Found %d 'Next:' lines. A coaching note ends with exactly one."
+level: error
+scope: raw
+min: 1
+max: 1
+token: '(?m)^Next: '

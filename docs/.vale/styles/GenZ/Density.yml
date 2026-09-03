@@ -1,0 +1,11 @@
+# "One slang hit per sentence, max." The source style asks the model to check
+# this by re-reading its own draft and counting. Counting is the one thing a
+# rule does exactly.
+#
+# The vocabulary itself lives in `_shared/Slang.yml`, one home for the three
+# rules that count it.
+extends: GenZ._shared.Slang
+message: "%d slang terms in one sentence. Budget is one."
+level: error
+scope: sentence
+max: 1

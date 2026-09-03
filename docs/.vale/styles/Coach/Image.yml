@@ -1,0 +1,9 @@
+# "One note, one image." An image either is there or is not; the rule holds
+# the half of the style a model forgets by the end of a long answer.
+extends: occurrence
+message: "Found %d images. A coaching note carries exactly one."
+level: error
+scope: raw
+min: 1
+max: 1
+token: '!\['

@@ -1,0 +1,9 @@
+# House rule. Voices has no em-dash check, and the fix for an em dash is a
+# rewrite, not a different punctuation mark.
+extends: existence
+message: "Em dash. Split or restructure the sentence rather than swapping punctuation."
+level: error
+nonword: true
+tokens:
+  - '—'
+  - ' -- '
