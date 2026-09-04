@@ -51,3 +51,5 @@ which Direct/Length.yml extends, comes from errata-ai/IBM. Moose change:
 
   Std/Usage/GenderedTerms.yml  removed a stray `name: replace` swap entry that
                                flagged every occurrence of the word "name"
+  Std/Usage/GenderedTerms.yml  `door(?:m[ae]|wom[ae]n)` lacked the final `n`,
+                               so "doorman" never matched; fixed

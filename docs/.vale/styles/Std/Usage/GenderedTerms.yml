@@ -1,7 +1,8 @@
 # Extracted from errata-ai/Google and errata-ai/Microsoft (MIT). See NOTICE.
 #
 # Moose: upstream carried a stray `name: replace` entry inside `swap`, which
-# flagged every occurrence of the word "name". Removed.
+# flagged every occurrence of the word "name". Removed. The `door` pattern
+# was missing the final `n`, so "doorman" never matched. Fixed.
 #
 extends: substitution
 message: "Consider '%s' instead of '%s'."
@@ -17,7 +18,7 @@ swap:
   authoress: author
   camera(?:m[ae]n|wom[ae]n): camera operator(s)
   chair(?:m[ae]n|wom[ae]n): chair
-  door(?:m[ae]|wom[ae]n): concierge(s)
+  door(?:m[ae]n|wom[ae]n): concierge(s)
   draft(?:m[ae]n|wom[ae]n): drafter(s)
   fire(?:m[ae]n|wom[ae]n): firefighter(s)
   fisher(?:m[ae]n|wom[ae]n): fisher(s)
@@ -67,3 +68,10 @@ tests:
     input: >
       Set the file name and the parameter name.
     want: ""
+
+  # Moose: guards the corrected `door` pattern.
+  - name: doorman is flagged
+    input: >
+      Ask the doorman.
+    want: |
+      1:9:Std.Usage.GenderedTerms:Consider 'concierge(s)' instead of 'doorman'.
