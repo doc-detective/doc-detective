@@ -10,8 +10,9 @@ decision-makers: doc-detective maintainers
 
 Element-targeting actions (`find`, `click`, `screenshot`, `type`, `dragAndDrop`) located elements by
 CSS selector or visible text. Real documentation often needs to target an element by other stable
-attributes — its `id`, a test id, a class, an arbitrary attribute, or an ARIA role/label — and a
-plain string shorthand should "just find it" without the author specifying which attribute matched.
+attributes. Those are its `id`, a test id, a class, an arbitrary attribute, or an ARIA role or
+label. A plain string shorthand should "just find it", without the author specifying which
+attribute matched.
 How should the object form express these additional criteria, and what should the bare-string
 shorthand mean?
 
@@ -24,16 +25,16 @@ shorthand mean?
 
 ## Considered Options
 
-* **A. Add `elementId`/`elementTestId`/`elementClass`/`elementAttribute`/`elementAria` criteria
-  (string or array, regex, presence) to every element object form; make the string shorthand a
-  multi-field OR; the runner resolves criteria in parallel as an OR** (chosen).
+* **A. Add `elementId`/`elementTestId`/`elementClass`/`elementAttribute`/`elementAria` criteria to
+  every element object form, each taking a string or array, with regex and presence support. Make
+  the string shorthand a multi-field OR, resolved in parallel by the runner** (chosen).
 * **B. Keep selector/text only and require authors to write CSS/XPath for everything else.**
 * **C. Add a single generic `elementMatch` map of attribute→value pairs.**
 
 ## Decision Outcome
 
 Chosen option: **A**, because first-class named criteria read clearly and the OR semantics make the
-bare-string shorthand robust. The contract: the object form of `find`/`click`/`screenshot`/`type`/
+bare-string shorthand dependable. The contract: the object form of `find`/`click`/`screenshot`/`type`/
 `dragAndDrop` gains `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and
 `elementAria`, each accepting a string or array, supporting regex and presence checks. A bare-string
 shorthand is treated as a multi-field OR across these criteria (plus selector/text). The runner's
@@ -70,5 +71,5 @@ Schema fields land across `doc-detective-common` `158a270`, `c6376be`, `2c07987`
 
 Recorded retrospectively (ADR backfill). Origin: `doc-detective-common` commits `158a270`,
 `c6376be`, `2c07987` and `doc-detective-core` commit `983de50`. Inventory ref: BACKFILL-INVENTORY.md
-Seq 194. Related: `00048`/`00100` (find redesigns), `00158` (origin/params — sibling element/URL
-contract work).
+Seq 194. Related: `00048`/`00100` (find redesigns), and `00158` (origin/params, sibling element and
+URL contract work).
