@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective resolves relative URLs against a configured `origin` (`00065`), but there was
-no way to attach query parameters — such as a shared auth token, feature flag, or locale —
-to every origin-resolved URL, nor to add per-step query params on `goTo`/`checkLink` without
+Doc Detective resolves relative URLs against a configured `origin` (`00065`). But there was
+no way to attach query parameters to every origin-resolved URL, such as a shared auth token,
+feature flag, or locale. Nor could you add per-step query params on `goTo`/`checkLink` without
 hand-editing each URL string. Authors who needed `?token=…` or `?preview=true` on every
 navigation had to bake it into each documented link. How should global and per-step query
 parameters be declared and merged into resolved URLs?
@@ -30,11 +30,11 @@ parameters be declared and merged into resolved URLs?
 
 ## Decision Outcome
 
-Chosen option: **A**, because query params have both a run-wide dimension (a token for the
-whole site) and a per-link dimension (one step needs an extra flag), so both a global and a
-step-level surface are warranted. A new `config.originParams` and step-level `params` on
-`goTo`/`checkLink` auto-append query parameters to origin-resolved URLs via an
-`appendQueryParams()` helper using merge semantics: existing query keys are preserved,
+Chosen option: **A**. Query params have a run-wide dimension, such as a token for the
+whole site. They also have a per-link dimension, where one step needs an extra flag. So both a
+global and a step-level surface are warranted. A new `config.originParams` and step-level `params` on
+`goTo`/`checkLink` auto-append query parameters to origin-resolved URLs, through an
+`appendQueryParams()` helper. Merge semantics apply: existing query keys are preserved,
 duplicates are de-duplicated, and any URL fragment is kept. The contract was added to
 `config_v3`, `goTo_v3`, and `checkLink_v3`.
 
@@ -44,7 +44,7 @@ duplicates are de-duplicated, and any URL fragment is kept. The contract was add
 * Good: per-step `params` add or override for a single navigation.
 * Good: merge semantics preserve existing query keys and the fragment, with dedup.
 * Neutral: precedence/merge of global vs. step params is defined by the helper.
-* Bad: a global `originParams` silently affects every origin-resolved URL — authors must be
+* Bad: a global `originParams` silently affects every origin-resolved URL, so authors must be
   aware it is applied run-wide.
 
 ### Confirmation
@@ -57,7 +57,7 @@ schema validation.
 
 ### A. originParams + step params, merged
 * Good: covers both run-wide and per-step needs; predictable merge.
-* Bad: global param applies everywhere — easy to forget.
+* Bad: global param applies everywhere, which is easy to forget.
 
 ### B. Bake into each URL
 * Good: explicit per URL.
