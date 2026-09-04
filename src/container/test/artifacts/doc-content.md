@@ -6,8 +6,8 @@ detectSteps: false
 -->
 
 The container tests serve the same `test/server/public/` fixtures
-the main test suite uses. It serves them from a sidecar container on a
-shared docker network. The test container reaches it by docker DNS name
+the main test suite uses. A sidecar container on a shared docker network
+hosts those fixtures. The test container reaches it by docker DNS name
 (`dd-test-server`).
 
 <!-- step checkLink: "http://dd-test-server:8092" -->
