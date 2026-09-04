@@ -56,8 +56,8 @@ silently rewritten by a step that was supposed to touch only `src/common`.
 
 This is not hypothetical. The 4.37.4 release emitted a root lockfile missing
 `conventional-commits-filter@6.0.1` and `conventional-commits-parser@7.1.2`. That broke `npm ci` on
-`main` for every CI job, every contributor, and the release job itself. It was repaired by hand in
-#705. Bisection put the breakage squarely on the `chore(release)` commit, rather than on the
+`main` for every CI job, every contributor, and the release job itself. It was repaired by hand
+in #705. Bisection put the breakage squarely on the `chore(release)` commit, rather than on the
 dependency refresh that preceded it:
 
 | commit | `npm ci` |

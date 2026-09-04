@@ -274,8 +274,8 @@ roadmap, not here.
 ## Closing surfaces: `closeSurface`, which replaces `stopProcess`
 
 This is the symmetric partner of `startSurface`. It takes a `surface`
-**reference**, is progressive, and never fails on a missing surface, inheriting
-#385. The array form closes several.
+**reference**, is progressive, and never fails on a missing surface,
+inheriting #385. The array form closes several.
 
 ```jsonc
 "closeSurface": "web"                                  // close the surface named "web", any kind

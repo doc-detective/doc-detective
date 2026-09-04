@@ -39,8 +39,8 @@ single-package install.
 `appium-chromium-driver` v3, `appium-geckodriver` v3, `appium-safari-driver` v5 (and future
 majors) are native ESM: `exports["."]` has only `types` + `import`, so `require.resolve(name)`
 throws `ERR_PACKAGE_PATH_NOT_EXPORTED`. The loader falls back to resolving
-`<name>/package.json` and deriving the entry from `exports["."].import`/`main` (ADR 01006, PR
-#391).
+`<name>/package.json` and deriving the entry from `exports["."].import`/`main` (ADR 01006,
+PR #391).
 
 Diagnostic: `Could not find a driver for automationName '<X>'` right after a driver version bump
 is almost always this resolution failure. The `automationName` values don't change across driver

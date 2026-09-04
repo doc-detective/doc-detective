@@ -92,9 +92,9 @@ thread**, with a ~15 s budget that `DOC_DETECTIVE_PTY_PROBE_TIMEOUT_MS` override
 the process state a child process wouldn't. An off-thread probe is the only shape that can observe
 a synchronous main-thread freeze. There are three outcomes. Healthy proceeds. *Inconclusive*
 also proceeds, since the watchdog never removes capability, and covers a worker that errored or
-cannot host the addon. **Wedged**, meaning no verdict in budget, SKIPs. This layer no longer carries
-#501 by itself, since layer 1 catches the known mechanism. But it bounds the documented upstream
-freeze class, and any future unknown wedge.
+cannot host the addon. **Wedged**, meaning no verdict in budget, SKIPs. This layer no longer
+carries #501 by itself, since layer 1 catches the known mechanism. But it bounds the documented
+upstream freeze class, and any future unknown wedge.
 
 The app-session teardown additionally sweeps console orphans the server tree-kill missed. That's
 `snapshotAppServerDescendants` and `reapConsoleOrphans` in
