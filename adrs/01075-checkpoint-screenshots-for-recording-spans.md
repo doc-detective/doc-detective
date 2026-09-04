@@ -8,13 +8,13 @@ decision-makers: [hawkeyexl]
 
 ## Context and Problem Statement
 
-A recording documents a flow, but nothing tells its author when the flow's *content* has drifted since the video was captured — the steps still pass while the recording quietly goes stale. Screenshots already solve this for single frames: `saveScreenshot` compares a fresh capture against a reference with `maxVariation` and surfaces drift as a WARNING. How do we detect content drift across a whole recording *span* (the steps between `record` and `stopRecord`), with baselines that persist across runs?
+A recording documents a flow. But nothing tells its author when the flow's *content* has drifted since the video was captured. The steps still pass while the recording quietly goes stale. Screenshots already solve this for single frames. `saveScreenshot` compares a fresh capture against a reference with `maxVariation`, and surfaces drift as a WARNING. How do we detect content drift across a whole recording *span*, the steps between `record` and `stopRecord`? The baselines must persist across runs.
 
 ## Decision Drivers
 
-- Drift detection must compare against **persistent, committable baselines** — per-run artifacts (like `autoScreenshot`'s) can't anchor a comparison.
+- Drift detection must compare against **persistent, committable baselines**. Per-run artifacts, like `autoScreenshot`'s, can't anchor a comparison.
 - Comparison noise must not fail tests: screenshots' `maxVariation` overage is a WARNING, and checkpoints must mirror that (fixtures stay PASS/SKIPPED-only).
-- Baselines and the recording must stay **in sync**: a baseline that self-updates mid-span while the video stays stale would mask drift forever. All baseline writes belong to `stopRecord` (and, later, to the `overwrite: "aboveVariation"` promote decision — ADR 01078).
+- Baselines and the recording must stay **in sync**. A baseline that self-updates mid-span while the video stays stale would mask drift forever. All baseline writes belong to `stopRecord`, and later to the `overwrite: "aboveVariation"` promote decision in ADR 01078.
 - Reuse the screenshot pipeline (sharp + pixelmatch + implicit assertions) rather than building a parallel comparator.
 - Steps edited by an author should invalidate their own checkpoint naturally.
 
@@ -26,34 +26,34 @@ A recording documents a flow, but nothing tells its author when the flow's *cont
 
 ## Decision Outcome
 
-Chosen option: **1 — post-step checkpoints with compare-only semantics**, because it detects drift in the *scene the recording shows* without video-encoding noise (lossless PNG captures, so the screenshot pipeline's default tolerance applies), and reuses `saveScreenshot` end to end. The comparison *mechanism* also works headless, which video capture doesn't — that asymmetry is what ADR 01079 later builds headless staleness detection on. It doesn't make this layer headless-capable: a checkpoint span still needs an active recording, and recording is headed-only, so headless runs skip these spans entirely (the fixture's headless legs land SKIPPED).
+Chosen option: **1, post-step checkpoints with compare-only semantics**. It detects drift in the *scene the recording shows*, without video-encoding noise. Captures are lossless PNGs, so the screenshot pipeline's default tolerance applies, and it reuses `saveScreenshot` end to end. The comparison *mechanism* also works headless, which video capture doesn't. That asymmetry is what ADR 01079 later builds headless staleness detection on. It doesn't make this layer headless-capable. A checkpoint span still needs an active recording, and recording is headed-only. So headless runs skip these spans entirely, and the fixture's headless legs land SKIPPED.
 
 Mechanics:
 
 - **Opt-in** via a new `checkpoints` field on the `record` object: `true` or `{ maxVariation, directory }` (default `maxVariation` 0.05, matching screenshots).
 - **Capture points:** the post-step hook (beside `autoScreenshot`'s, final attempt only) captures once per active checkpoint-enabled recording handle after every step. The `record` step's own post-step capture is the opening bookend; the last capture before `stopRecord` is the closing bookend.
 - **Baseline location:** `<recording path including extension>.checkpoints/` beside the recording target (e.g. `demo.mp4.checkpoints/`), so baselines travel with the video they describe and `demo.mp4` / `demo.gif` never share a directory. Overridable via `checkpoints.directory`.
-- **Naming:** the same `NN-<action>-<stepRef>.png` scheme as `autoScreenshot` (shared helper). Generated stepIds are content-hash-derived, so an edited step changes its checkpoint filename — a built-in change signal.
+- **Naming:** the same `NN-<action>-<stepRef>.png` scheme as `autoScreenshot`, through a shared helper. Generated stepIds are content-hash-derived, so an edited step changes its checkpoint filename. That's a built-in change signal.
 - **Compare-only during the span:** checkpoints never write baselines mid-span. `saveScreenshot` gains an internal `compareOnly` option (not a schema field) that suppresses both baseline-write sites; fresh captures persist to a per-handle staging directory. At `stopRecord`, missing baselines are seeded from staging (first run); existing baselines are never modified by this layer.
-- **Severity:** `stopRecord` reports `outputs.checkpoints` (per-checkpoint variation) and `outputs.maxCheckpointVariation`, and evaluates one WARNING-severity implicit assertion (`maxCheckpointVariation <= maxVariation`) through the shared engine — drift is a WARNING, never a FAIL, mirroring screenshot semantics.
+- **Severity:** `stopRecord` reports `outputs.checkpoints`, the per-checkpoint variation, and `outputs.maxCheckpointVariation`. It evaluates one WARNING-severity implicit assertion, `maxCheckpointVariation <= maxVariation`, through the shared engine. Drift is a WARNING, never a FAIL, mirroring screenshot semantics.
 - **Exclusions:** synthetic `autoRecord` handles are excluded (their targets live in per-run output folders, so baselines could never persist). Contexts without a browser driver skip checkpoint capture with a debug log (app-surface checkpoints are a follow-up).
 
 ### Consequences
 
 - Good, because recording staleness becomes observable: per-step variation lands in the results JSON with persistent baselines the author can commit and review.
-- Good, because the comparison is screenshot-to-screenshot — no video-codec noise, no timing jitter, works headless.
+- Good, because the comparison is screenshot-to-screenshot. There's no video-codec noise and no timing jitter, and it works headless.
 - Good, because atomic-at-stop baseline handling leaves no window where baselines and recording disagree.
 - Neutral, because each step inside a span costs one extra WebDriver screenshot per checkpoint-enabled handle.
 - Bad, because dynamic pages (animations, ads, clocks) produce WARNING noise; authors tune `checkpoints.maxVariation` or disable checkpoints for those spans (documented).
-- Bad, because a step revisited via `goToStep` overwrites its earlier staged capture (latest visit wins — same accepted behavior as `autoScreenshot`).
-- Bad, because checkpoint steps flow through `screenshot` (step_v3) validation, whose non-Windows absolute-path pattern rejects paths containing spaces or other non-`[A-Za-z0-9_./-]` characters — on such macOS/Linux paths every checkpoint records an error (surfaced via `checkpointErrors` → WARNING, never silent). `autoScreenshot` shares the same pre-existing limitation; loosening the `screenshot_v3` path pattern is tracked separately.
-- Bad, because checkpoints capture through the active browser session's driver: a span recording an app surface in a mixed browser+app context baselines the browser viewport, not the app window (app-surface checkpoints are the documented follow-up), and a mid-span focus switch to another browser surface baselines the newly-focused surface.
+- Bad, because a step revisited through `goToStep` overwrites its earlier staged capture. The latest visit wins, the same accepted behavior as `autoScreenshot`.
+- Bad, because checkpoint steps flow through `screenshot` (step_v3) validation. Its non-Windows absolute-path pattern rejects paths containing spaces, or other non-`[A-Za-z0-9_./-]` characters. On such macOS and Linux paths every checkpoint records an error, surfaced through `checkpointErrors` → WARNING, never silent. `autoScreenshot` shares the same pre-existing limitation. Loosening the `screenshot_v3` path pattern is tracked separately.
+- Bad, because checkpoints capture through the active browser session's driver. A span recording an app surface, in a mixed browser and app context, baselines the browser viewport rather than the app window. App-surface checkpoints are the documented follow-up. A mid-span focus switch to another browser surface also baselines the newly-focused surface.
 
 ### Confirmation
 
-- Unit tests in `test/recording-checkpoints.test.js`: the extracted naming helper produces byte-identical names to `autoScreenshot`'s previous output; `saveScreenshot` compareOnly leaves an existing baseline untouched above-variation, stages the capture, and reports `baselineMissing` without writing when no baseline exists; `captureRecordingCheckpoints` accumulates entries per handle, skips synthetic handles, and records errors without throwing; `stopRecording` seeds missing baselines, reports `outputs.checkpoints`/`maxCheckpointVariation`/`seededBaselines`, and lands WARNING (never FAIL) on drift through the shared assertion engine.
+- Unit tests live in `test/recording-checkpoints.test.js`. The extracted naming helper produces byte-identical names to `autoScreenshot`'s previous output. `saveScreenshot` compareOnly leaves an existing baseline untouched above-variation, stages the capture, and reports `baselineMissing` without writing when no baseline exists. `captureRecordingCheckpoints` accumulates entries per handle, skips synthetic handles, and records errors without throwing. `stopRecording` seeds missing baselines, reports `outputs.checkpoints`/`maxCheckpointVariation`/`seededBaselines`, and lands WARNING rather than FAIL on drift, through the shared assertion engine.
 - Schema tests: positive and negative `checkpoints` cases in `src/common/test/validate.test.js`.
-- Feature fixture `test/core-artifacts/recording/checkpoints.spec.json` (headed Windows/macOS): one test per permutation — boolean form, object form (`maxVariation` + relative `directory`), and the disabling `false` form. Baselines persist between tests/reruns and tests aren't contractually ordered, so each assert accepts either clean outcome (seeded: `seededBaselines >= 2` + variation 0; compared: `seededBaselines == 0` + variation within tolerance) with `checkpointErrors == 0`, and fails on unresolved outputs (NaN guard) — i.e. it always proves checkpoints ran and ran cleanly, regardless of run order or reruns. Headless legs land SKIPPED. (End-to-end checkpoint capture requires a headed recording span, so there is no headless `runTests` programmatic test; the hook body is unit-tested directly.)
+- Feature fixture `test/core-artifacts/recording/checkpoints.spec.json` runs on headed Windows and macOS. There's one test per permutation: the boolean form, the object form with `maxVariation` and a relative `directory`, and the disabling `false` form. Baselines persist between tests and reruns, and tests aren't contractually ordered. So each assert accepts either clean outcome. Seeded means `seededBaselines >= 2` with variation 0; compared means `seededBaselines == 0` with variation within tolerance. Both require `checkpointErrors == 0`, and unresolved outputs fail through a NaN guard. It always proves checkpoints ran, and ran cleanly, regardless of run order or reruns. Headless legs land SKIPPED. End-to-end checkpoint capture requires a headed recording span, so there is no headless `runTests` programmatic test. The hook body is unit-tested directly.
 
 ## Pros and Cons of the Options
 
