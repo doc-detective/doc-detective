@@ -1,12 +1,16 @@
 # Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
 # Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
 #
+# Moose: the bounded clause is [^\n,.;] rather than [\w\s], so hyphenated and
+# possessive phrases ("user-facing", "the team's") still match and the pattern
+# never crosses a line break.
+#
 extends: existence
 message: "Binary contrast: '%s'. State the second half directly."
 level: error
 ignorecase: true
 nonword: true
 tokens:
-  - '\b(?:is|are|it.s|that.s) not (?:just )?[\w\s]{1,30}?[,.;] (?:it.s|but|they.re)\b'
-  - '\b(?:isn.t|aren.t) (?:just )?[\w\s]{1,30}?[,.;] (?:it.s|but|they.re)\b'
-  - '\bthe question is(?:n.t| not) [\w\s]{1,30}?[,.] it.s\b'
+  - '\b(?:is|are|it.s|that.s) not (?:just )?[^\n,.;]{1,30}?[,.;] (?:it.s|but|they.re)\b'
+  - '\b(?:isn.t|aren.t) (?:just )?[^\n,.;]{1,30}?[,.;] (?:it.s|but|they.re)\b'
+  - '\bthe question is(?:n.t| not) [^\n,.;]{1,30}?[,.] it.s\b'

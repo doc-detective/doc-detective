@@ -1,4 +1,9 @@
-extends: Std.Readability.SentenceLength
+# Upstream, this rule extends Std.Readability.SentenceLength (itself extracted
+# from errata-ai/IBM, MIT). Moose inlines the parent so the package has no
+# dependency on Std; the check is the same occurrence count over a sentence.
+extends: occurrence
 message: "Sentence runs to %d words. Split it."
 level: error
+scope: sentence
 max: 25
+token: \b(\w+)\b

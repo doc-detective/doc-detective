@@ -8,9 +8,12 @@
 # "Why it matters:" is deliberately not on that list. Smart Brevity requires
 # the section this rule forbids, and the conflict is real: `Brevity` settles it
 # with `Voices.ColonReveal = NO` in the config, where a reader can see it.
+#
+# Moose: the phrase class is [\w \t], not [\w\s], so a match cannot run from
+# the end of one line into the next.
 extends: existence
 message: "Colon reveal: '%s'. Rewrite as a plain sentence."
 level: warning
 nonword: true
 tokens:
-  - '(?m)^(?!(?:Note|Tip|Warning|Caution|Important|Example|Related|See also|TODO|Update|Requirements?|Default|Usage)\b)[A-Z][\w\s]{2,40}: [a-z]'
+  - '(?m)^(?!(?:Note|Tip|Warning|Caution|Important|Example|Related|See also|TODO|Update|Requirements?|Default|Usage)\b)[A-Z][\w \t]{2,40}: [a-z]'

@@ -13,6 +13,9 @@ extends: substitution
 message: "Inflated word: use '%s' instead of '%s'."
 level: error
 ignorecase: true
+# Moose: the auto-fix keeps the matched word's case, so a sentence-initial
+# "Utilize" becomes "Use", not "use".
+capitalize: true
 action:
   name: replace
 # The verbs carry their inflections, each with its own replacement: a fix

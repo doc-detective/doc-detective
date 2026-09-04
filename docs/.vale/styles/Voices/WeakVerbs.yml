@@ -1,14 +1,26 @@
 # Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
 # Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
 #
+# Moose: each inflection carries its own replacement, so the auto-fix agrees
+# in tense and number ("make a decision" becomes "decide", not "decided"),
+# and `capitalize` keeps a sentence-initial match capitalized.
 extends: substitution
 message: "Weak verb phrase: use '%s' instead of '%s'."
 level: error
 ignorecase: true
+capitalize: true
 action:
   name: replace
 swap:
-  'ma(?:ke|de) a decision': decided
-  'ha(?:s|ve|d) the ability to': can
-  'is able to': can
-  'in order to': to
+  make a decision: decide
+  makes a decision: decides
+  made a decision: decided
+  making a decision: deciding
+  has the ability to: can
+  have the ability to: can
+  had the ability to: could
+  is able to: can
+  are able to: can
+  was able to: could
+  were able to: could
+  in order to: to
