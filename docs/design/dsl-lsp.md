@@ -263,9 +263,10 @@ ADRs are the record until then.
 
 Someone reaching for the LSP through `npx doc-detective lsp` should not pay for
 the heavy browser and driver runtime the postinstall normally pre-warms. That
-applies to a user and to the plugin shim alike. The server needs none of it. `scripts/postinstall.js` detects this
-invocation, and skips both the runtime pre-warm and the agent-install prompt. The
-runtime still lazy-installs on the first actual test run. Detection can't read the
+applies to a user and to the plugin shim alike. The server needs none of it.
+`scripts/postinstall.js` detects this invocation, and skips both the runtime
+pre-warm and the agent-install prompt. The runtime still lazy-installs on the
+first actual test run. Detection can't read the
 `lsp` subcommand from npm's environment, since there's no `npm_config_argv` on npm
 7+. It therefore inspects the process ancestry for a `doc-detective lsp` command.
 It does that only for npx, where `npm_command === "exec"`. A plain `npm install`
