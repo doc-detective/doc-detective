@@ -81,8 +81,8 @@ the reuse-or-create device descriptor with an abstract `deviceType`.
 
 ### Schema
 
-- `context.platforms` enum gains **`android`** and **`ios`** (both ship now, schema-first; A3a runs
-  neither — ios SKIPs pointing at A4).
+- `context.platforms` enum gains **`android`** and **`ios`**. Both ship now, schema-first, and A3a
+  runs neither. Ios SKIPs pointing at A4.
 - New optional `context.device` (`$ref` the device descriptor, `platform` implied by the context).
 - The `deviceDescriptor` drops the reserved **`type`** field (`emulator`/`simulator`/`device`) and
   adds **`deviceType`** (`phone` | `tablet`). `name` becomes reuse-or-create; `osVersion`/`deviceType`
