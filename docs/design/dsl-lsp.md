@@ -261,9 +261,9 @@ ADRs are the record until then.
 
 ### Install weight: `npx doc-detective lsp` stays light
 
-Someone reaching for the LSP through `npx doc-detective lsp`, whether a user or
-the plugin shim, should not pay for the heavy browser and driver runtime the
-postinstall normally pre-warms. The server needs none of it. `scripts/postinstall.js` detects this
+Someone reaching for the LSP through `npx doc-detective lsp` should not pay for
+the heavy browser and driver runtime the postinstall normally pre-warms. That
+applies to a user and to the plugin shim alike. The server needs none of it. `scripts/postinstall.js` detects this
 invocation, and skips both the runtime pre-warm and the agent-install prompt. The
 runtime still lazy-installs on the first actual test run. Detection can't read the
 `lsp` subcommand from npm's environment, since there's no `npm_config_argv` on npm

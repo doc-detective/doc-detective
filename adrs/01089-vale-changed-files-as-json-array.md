@@ -1,10 +1,16 @@
 ---
-status: accepted
+status: superseded by ADR 01096
 date: 2026-07-27
 decision-makers: [hawkeyexl]
 ---
 
 # Pass Vale's changed-file list as a JSON array, not a space-separated string
+
+> **Superseded by [ADR 01096](01096-vale-gates-the-whole-repo-and-fails-on-errors.md).** The Vale
+> check now lints the whole repository and fails on any error. There is no changed-file list to
+> marshal, and the `tj-actions/changed-files` step this decision wired up has been removed. The
+> analysis below is kept because it records why a whitespace `separator` can never work with
+> vale-action. That's worth knowing if changed-file scoping is ever revisited.
 
 ## Context and Problem Statement
 
