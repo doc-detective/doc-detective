@@ -105,13 +105,14 @@ Mechanism:
 
 ## Confirmation
 
-* Unit tests in `test/browserSurface.test.js` cover the retry. A tab that appears only after N
-  `getWindowHandles` calls resolves within the bounded window. A selector that never matches returns
-  the not-found message after the full bound elapses, using small `opts.maxWaitMs` and
-  `pollIntervalMs` to keep the test fast. A selector that matches on the first attempt resolves
-  without the retry loop sleeping, verified through call-count rather than wall-clock, to avoid
-  timing flakiness. Existing negative-match tests pass `opts: { maxWaitMs: 0 }`, preserving their
-  original instant-fail assertions.
+* Unit tests in `test/browserSurface.test.js` cover the retry:
+  - A tab that appears only after N `getWindowHandles` calls resolves within the bounded window.
+  - A selector that never matches returns the not-found message after the full bound elapses. Small
+    `opts.maxWaitMs` and `pollIntervalMs` values keep that test fast.
+  - A selector that matches on the first attempt resolves without the retry loop sleeping. That's
+    verified through call-count rather than wall-clock, to avoid timing flakiness.
+  - Existing negative-match tests pass `opts: { maxWaitMs: 0 }`, preserving their original
+    instant-fail assertions.
 * One step-level test uses `sinon` fake timers to fast-forward the retry loop's `setTimeout`-based
   sleep, rather than threading `opts` through the step-level orchestrator. That's the `closeSurface`
   re-close idempotency test in `test/goTo-openers.test.js`. It's consistent with the existing
