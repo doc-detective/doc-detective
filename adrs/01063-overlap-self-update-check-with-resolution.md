@@ -81,8 +81,8 @@ Option **C** keeps today's cost for no benefit.
 * Neutral: the update's *effect* (re-exec on newer) is unchanged and still precedes the run; only its
   *latency* moved.
 * Bad, accepted and negligible. On a pending-update run the parent may do slightly more work before
-  re-execing than the old serial path did, namely the API fetch above. The child re-does it, and no
-  test runs twice.
+  re-execing than the old serial path did. That extra work is the API fetch above. The child re-does
+  it, and no test runs twice.
 
 ### Confirmation
 

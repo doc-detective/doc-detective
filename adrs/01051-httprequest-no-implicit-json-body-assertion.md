@@ -60,9 +60,8 @@ Chosen option: **A**. The body-match check already has the right guard
 (`typeof ... !== "undefined"`). The bug is that the value was never allowed to BE `undefined`. Not
 defaulting it removes the false assumption at its source, instead of adding a second layer of
 special-casing on top of it (Option B). It also doesn't require parsing or trusting response headers
-to decide whether an assertion applies (Option C). Option C also doesn't fully resolve the "was this
-the default or did the user ask for it" ambiguity, for a JSON endpoint that returns a top-level
-string.
+to decide whether an assertion applies (Option C). Option C leaves another gap. For a JSON endpoint
+that returns a top-level string, it can't tell the default from what the user asked for.
 
 Implementation: removed `body: {}` from the `response` defaults spread in `httpRequest.ts`. `headers`
 and `required` keep their defaults, `{}` and `[]`. The checks that read them
