@@ -1,9 +1,0 @@
-# The other half of a budget: a voice that never spends it is not the voice.
-# `min` makes absence a violation, so the rule fires on plain prose too --
-# once per paragraph that falls short, at that paragraph's own position.
-# The vocabulary lives in `_shared/Slang.yml`.
-extends: GenZ._shared.Slang
-message: "A paragraph here has no slang. This voice is not off."
-level: suggestion
-scope: paragraph
-min: 1

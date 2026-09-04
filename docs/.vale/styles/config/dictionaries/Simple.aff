@@ -1,5 +1,0 @@
-# The word list is already expanded to every form it accepts, so this file
-# carries no affix rules -- only the encoding and the keyboard hints Hunspell
-# uses to order suggestions.
-SET UTF-8
-TRY esianrtolcdugmphbyfvkwzxjq

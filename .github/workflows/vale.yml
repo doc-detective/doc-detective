@@ -4,8 +4,8 @@ on:
     paths:
       - '**.mdx'
       - '**.md'
-      - '.vale/**'
-      - '.vale.ini'
+      - 'docs/.vale/**'
+      - 'docs/.vale.ini'
       - '!**/changelog/**'
 
 permissions:

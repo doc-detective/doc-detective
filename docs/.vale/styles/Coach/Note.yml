@@ -1,6 +1,0 @@
-extends: occurrence
-message: "%d words. One note means one hundred words."
-level: error
-scope: raw
-max: 100
-token: '\b\w+\b'

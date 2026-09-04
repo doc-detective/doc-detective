@@ -1,0 +1,42 @@
+Moose Vale package
+Copyright (c) 2026 Manny Silva
+
+------------------------------------------------------------------------------
+Vale Voices
+------------------------------------------------------------------------------
+
+The rules under Moose/styles/Voices/ and Moose/styles/Direct/ are copied from
+Vale Voices (https://github.com/jdkato/voices), Copyright (c) 2026 Joseph Kato
+and contributors, licensed under the MIT License. They were taken from commit
+511491f9d65c (2026-09-03). Moose changes, each marked in the rule file:
+
+  Voices/BinaryContrast.yml  bounded clause allows punctuation, never a newline
+  Voices/ColonReveal.yml     horizontal whitespace only, no cross-line matches
+  Voices/InflatedWords.yml   capitalize: true so auto-fixes keep the case
+  Voices/WeakVerbs.yml       one replacement per inflection, always grammatical
+  Direct/Length.yml          parent rule inlined; no dependency on Std
+
+Vale Voices carries the following notices, reproduced here because the
+copied rules derive from those works.
+
+no-ai-slop: This product includes rule definitions derived from no-ai-slop
+(https://github.com/petergyang/no-ai-slop), Copyright (c) 2026 Peter Yang,
+licensed under the MIT License. The word list split across Voices/Banned.yml
+and Voices/InflatedWords.yml, and the patterns in Voices/BinaryContrast.yml,
+Voices/ThroatClearing.yml, Voices/Puffery.yml, Voices/Weasel.yml,
+Voices/Recap.yml, Voices/SuperficialAnalysis.yml, Voices/ColonReveal.yml and
+Voices/WeakVerbs.yml were transcribed from that project's SKILL.md.
+
+awesome-claude-output-styles: This product includes voice definitions shaped
+after the output styles catalogued in awesome-claude-output-styles
+(https://github.com/smixs/awesome-claude-output-styles), Copyright (c) 2026
+Serge Shima, licensed under the MIT License. Direct takes the constraint its
+entry describes, a sentence budget, and states it as a Vale rule.
+
+------------------------------------------------------------------------------
+Std
+------------------------------------------------------------------------------
+
+Direct/Length.yml inlines Std.Readability.SentenceLength from Vale's standard
+library (https://github.com/vale-cli/Std, MIT), which was extracted from
+errata-ai/IBM (MIT).

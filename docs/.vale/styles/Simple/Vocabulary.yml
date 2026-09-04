@@ -1,9 +1,0 @@
-# Ogden's Basic English (C. K. Ogden, 1930): 850 root words, expanded here to
-# the regular forms the system allows. The dictionary is the rule -- anything
-# outside it is flagged, which is the constraint a model cannot hold and a
-# lookup table gets exactly right.
-extends: spelling
-message: "'%s' is outside Basic English. Say it in shorter words."
-level: warning
-dictionaries:
-  - Simple

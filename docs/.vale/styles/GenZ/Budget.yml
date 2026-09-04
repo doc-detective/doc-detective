@@ -1,8 +1,0 @@
-# "Two per paragraph." Same token, wider scope -- the pair is what keeps the
-# voice from collapsing into noise. The vocabulary lives in
-# `_shared/Slang.yml`.
-extends: GenZ._shared.Slang
-message: "%d slang terms in one paragraph. Budget is two."
-level: error
-scope: paragraph
-max: 2
