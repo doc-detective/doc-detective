@@ -13,8 +13,8 @@ defined by the `*_v3` schemas in `doc-detective-common`: `spec_v3`, `test_v3`, `
 per-action schemas. Feedback arrives only at run time. An author, human or AI agent, writes
 a spec, runs `runTests` or `validate`, then maps AJV errors back to the file by hand. That loop is
 slow for humans and token-expensive for agents. It also produces one persistent failure class the
-project already fights on two fronts. There's prose in the Claude plugin's skills, **and** a
-single-pattern write-blocking hook, `pre-edit-block-action-antipattern.js`, which fired on the first
+project already fights on two fronts. There's prose in the Claude plugin's skills. There's **also** a
+single-pattern write-blocking hook, `pre-edit-block-action-antipattern.js`. It fired on the first
 draft of this very ADR. The antipattern is writing a step as an object keyed on `action`, carrying
 the action name as a *value* under an `action` key. The v3 compact form instead makes the action
 name **the** key, as in `{"goTo": …}`.

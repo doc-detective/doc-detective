@@ -24,9 +24,9 @@ That spawn is **~17 s by its own comment**, and runs on every driver-touching ru
 and the **same module already resolves package presence directly**. It does so for the diagnostic
 dump (`getBrowserDiagnostics`'s `npmInstalled` → `resolveHeavyDepPath(name, { cacheDir })`), and for
 the JIT installer's already-up-to-date check (`ensureRuntimeInstalled`). A `require.resolve`-style
-lookup answers instantly and offline. Spawning a whole Node process plus Appium's CLI, then parsing
-a human-formatted table, is the single largest avoidable fixed cost in the startup path. See the
-design doc `docs/design/run-performance.md`, item 2.1.
+lookup answers instantly and offline. Spawning a whole Node process plus Appium's CLI is expensive.
+Parsing a human-formatted table on top of that is the single largest avoidable fixed cost in the
+startup path. See the design doc `docs/design/run-performance.md`, item 2.1.
 
 The tension: presence-on-disk is *cheaper information* than what a spawn learns, but is it
 *equivalent enough*? `appium driver list` in principle reflects Appium's own view of a driver home.
