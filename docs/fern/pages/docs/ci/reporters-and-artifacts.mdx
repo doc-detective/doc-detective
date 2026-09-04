@@ -3,7 +3,7 @@ title: Reporters and artifacts
 description: Choose output formats, find the run folder, and gate CI on the results of a run.
 ---
 
-Every Doc Detective run produces output: a summary in your terminal, machine-readable results, and—when your tests capture them—screenshots and recordings. This guide shows you how to choose which reporters run, where each one writes its output, and how to fail a CI build when tests fail.
+Every Doc Detective run produces output. That means a summary in your terminal, machine-readable results, and, when your tests capture them, screenshots and recordings. This guide covers choosing which reporters run, where each one writes its output, and how to fail a CI build.
 
 For the full list of reporter and output options, see the [`config`](/reference/schemas/config) reference.
 
@@ -62,7 +62,7 @@ Or set them in your config file so every run uses the same combination:
 
 ## Step 2: Read the terminal summary
 
-The `terminal` reporter prints a summary grouped by specs, tests, contexts, and steps, with counts for passed, failed, warnings, and skipped. When everything passes and at least one test ran, it prints a success banner. When no tests run—because of an empty input or an active filter—it prints a warning instead of a success message, so an empty run never looks like a green run.
+The `terminal` reporter prints a summary grouped by specs, tests, contexts, and steps, with counts for passed, failed, warnings, and skipped. When everything passes and at least one test ran, it prints a success banner. When no tests run, whether from an empty input or an active filter, it prints a warning instead. An empty run therefore never looks like a green run.
 
 ## Step 3: Find the JSON results
 
@@ -71,11 +71,11 @@ The `json` reporter writes the full results to a file:
 - If `output` ends in `.json`, Doc Detective writes to that path, adding a numeric suffix (`-0.json`, `-1.json`, …) to avoid overwriting an existing file.
 - Otherwise it writes `testResults-<timestamp>.json` in the output directory.
 
-The results file carries a `summary` object with the pass, fail, warning, and skipped counts, followed by the per-spec, per-test, per-context, and per-step detail. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file (see [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail)).
+The results file carries a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
 
 ### Find slow specs with `durationMs`
 
-Every node in the results—the run, each spec, each test, each context, and each step—carries a `durationMs` field in whole milliseconds. Doc Detective populates it. You never set it yourself.
+Every node in the results carries a `durationMs` field in whole milliseconds. That covers the run, each spec, each test, each context, and each step. Doc Detective populates it. You never set it yourself.
 
 ```json
 {
@@ -100,7 +100,7 @@ The meaning shifts slightly by level, and the difference matters when you run te
 | Context | Elapsed time for the context, covering setup, every step, and cleanup. |
 | Step | Elapsed time for the step. |
 
-Spec and test durations are **sums of work**, not elapsed spans. Contexts from every test run through the same set of concurrent runners, so an elapsed span for a spec would count time while unrelated specs were running. Summing keeps the number stable no matter what you set [`concurrentRunners`](/reference/schemas/config) to, which is what you want when comparing specs to each other.
+Spec and test durations are **sums of work**, not elapsed spans. Contexts from every test run through the same set of concurrent runners. An elapsed span for a spec would therefore count time while unrelated specs were running. Summing keeps the number stable no matter what you set [`concurrentRunners`](/reference/schemas/config) to. That's what you want when comparing specs to each other.
 
 The consequence: when `concurrentRunners` is greater than 1, the run's `durationMs` is *less* than the sum of its specs' durations, because specs overlapped. That's expected. Read the run value as elapsed wall-clock time, and the spec values as where the work went.
 
@@ -110,16 +110,16 @@ To find the specs slowing your CI down, sort the specs by `durationMs`:
 jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' testResults-*.json
 ```
 
-Anything that runs more than once reports the **final attempt** in `durationMs`—the attempt the reported result describes. What that costs you depends on which kind of retry happened:
+Anything that runs more than once reports the **final attempt** in `durationMs`. That's the attempt the reported result describes. What that costs you depends on which kind of retry happened:
 
-- A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt, but the enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though: the difference between a context and the sum of its steps also includes ordinary setup and cleanup, so read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
-- A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt, and no other field absorbs the earlier ones—so the time spent on abandoned context attempts appears nowhere in the totals. The `retries` count is your signal that it happened.
+- A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt. The enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though. The difference between a context and the sum of its steps also includes ordinary setup and cleanup. Read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
+- A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt, and no other field absorbs the earlier ones. The time spent on abandoned context attempts therefore appears nowhere in the totals. The `retries` count is your signal that it happened.
 
-A step that never ran—skipped, guarded off, or downstream of a failure—reports `0`.
+A step that never ran reports `0`. That covers a step that was skipped, guarded off, or downstream of a failure.
 
 ### Read the warm-phase timings
 
-The results also carry a `warm` object that records what the run provisioned before executing tests. At the start of every run, Doc Detective front-loads the setup its tests would otherwise pay one at a time—browser and driver installs, simulator and emulator boots, and related downloads—and runs those tasks concurrently. Each entry lists the task, its outcome, and how long it took:
+The results also carry a `warm` object that records what the run provisioned before executing tests. At the start of every run, Doc Detective front-loads setup the tests would otherwise pay one at a time. It runs those tasks concurrently. That setup covers browser and driver installs, simulator and emulator boots, and related downloads. Each entry lists the task, its outcome, and how long it took:
 
 ```json
 "warm": {
@@ -131,7 +131,7 @@ The results also carry a `warm` object that records what the run provisioned bef
 }
 ```
 
-Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to do, or the environment handles it later), and `failed`. The warm phase is best-effort: a `failed` task logs a warning and never fails the run—the affected test context retries or skips with its normal behavior and reason. Use the timings to spot provisioning costs in slow CI runs: a long `warmed` task on every run usually means the [runtime cache](/docs/ci/docker-and-headless#step-3-warm-runtime-assets) isn't persisted between runs.
+Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to do, or the environment handles it later), and `failed`. The warm phase is best-effort. A `failed` task logs a warning and never fails the run. The affected test context retries or skips with its normal behavior and reason. Use the timings to spot provisioning costs in slow CI runs. A long `warmed` task on every run usually means the [runtime cache](/docs/ci/docker-and-headless#step-3-warm-runtime-assets) isn't persisted between runs.
 
 ## Step 4: Find the HTML report
 
@@ -140,7 +140,7 @@ The `html` reporter writes a self-contained HTML report you can open in a browse
 - If `output` ends in `.html` or `.htm`, Doc Detective writes to that path, adding a numeric suffix (`-0.html`, `-1.html`, …) to avoid overwriting an existing file.
 - Otherwise it treats `output` as a directory and writes `testResults-<timestamp>.html` there (or `coverageResults-<timestamp>.html` for a coverage run).
 
-The report embeds the same results the `json` reporter produces, so a single file is enough to share a run with someone who doesn't have Doc Detective installed.
+The report embeds the same results the `json` reporter produces. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
 
 ## Step 5: Collect the run folder and artifacts
 
@@ -157,19 +157,19 @@ The `runFolder` reporter archives each run into its own folder so you can attach
             └── recordings/<contextId>.mp4
 ```
 
-The file names inside the folder are constant—the run ID lives in the folder name—so two run folders compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder, which makes the whole folder a single artifact to upload from CI for reviewers to inspect.
+The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
 
 ## Step 6: Fail CI when tests fail
 
 This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
 
 <Warning>
-By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code reports success even when documentation tests failed—unless you opt in with `--exit-on-fail`.
+By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code therefore reports success even when documentation tests failed. Opt in with `--exit-on-fail` to change that.
 </Warning>
 
 To gate your build, choose one of these approaches:
 
-- **Set `--exit-on-fail` (least setup, works on any CI).** Pass the flag (or set `exitOnFail: true` in your config) and the CLI exits with code `1` whenever a spec fails, so the job fails like a broken unit test. `WARNING` results are non-fatal and never trigger a non-zero exit. It works the same everywhere—GitLab CI, Jenkins, CircleCI, or a bare shell.
+- **Set `--exit-on-fail` (least setup, works on any CI).** Pass the flag, or set `exitOnFail: true` in your config. The CLI then exits with code `1` whenever a spec fails, so the job fails like a broken unit test. `WARNING` results are non-fatal and never trigger a non-zero exit. It works the same everywhere, including GitLab CI, Jenkins, CircleCI, and a bare shell.
 
 ```bash
 doc-detective --input ./docs --exit-on-fail
@@ -183,7 +183,7 @@ doc-detective --input ./docs --reporters json --output results.json && \
   node -e "process.exit(require('./results.json').summary.specs.fail > 0 ? 1 : 0)"
 ```
 
-The `&&` runs the check only if Doc Detective itself exited cleanly, so a crash or a broken config (a non-zero exit) still fails the step—the results parse never hides it.
+The `&&` runs the check only if Doc Detective itself exited cleanly. A crash or a broken config still fails the step, and the results parse never hides it.
 
 ## Verify it works
 

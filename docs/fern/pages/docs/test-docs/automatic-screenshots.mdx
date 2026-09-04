@@ -14,11 +14,11 @@ Make sure you have the following:
 - A directory where you can create a `.spec.json` file.
 - Browser-driven steps in your test, since automatic screenshots capture after each one.
 
-The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
 ## Capture screenshots automatically
 
-Turn on `autoScreenshot` to build a visual record without adding a `screenshot` step to every part of a test. Doc Detective then captures a screenshot after every browser-driven step. Unlike video recording, screenshots (including `autoScreenshot`) capture fine in a headless or CI context, so this works on a headless runner. Automatic screenshots capture an image after every step but don't compare it against a reference, so to gate on drift you add an explicit `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).
+Turn on `autoScreenshot` to build a visual record without adding a `screenshot` step to every part of a test. Doc Detective then captures a screenshot after every browser-driven step. Unlike video recording, screenshots (including `autoScreenshot`) capture fine in a headless or CI context, so this works on a headless runner. Automatic screenshots capture an image after every step but don't compare it against a reference. To gate on drift, add an explicit `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).
 
 Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
 
@@ -61,7 +61,7 @@ Auto screenshots land under the per-run artifact tree, on a stable path derived 
 <output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-<hash>.png
 ```
 
-Because the IDs come from file paths and content hashes rather than random values, the same step produces the same relative path in every run. You can diff two run folders and spot UI changes over time. Doc Detective skips a step that already defines an explicit `screenshot` (it already produces an image), and it still captures a step that failed—the failure frame is usually the most useful one for debugging.
+Because the IDs come from file paths and content hashes rather than random values, the same step produces the same relative path in every run. You can diff two run folders and spot UI changes over time. Doc Detective skips a step that already defines an explicit `screenshot`, since that step already produces an image. It still captures a step that failed, because the failure frame is usually the most useful one for debugging.
 
 For where the artifacts land and how to consume them, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts) and the [`config`](/reference/schemas/config) schema. For the automatic-screenshot mechanics, see [Automatic screenshots](/docs/actions/screenshot#automatic-screenshots).
 

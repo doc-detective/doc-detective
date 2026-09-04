@@ -116,7 +116,7 @@ You can append query parameters to a URL using the `params` option. This is usef
 - **Step-level `params`:** An object specifying query parameters to append to the URL. Applies to all URLs, both relative and absolute. Values support environment variable substitution with `$VAR` syntax.
 - **Config-level `originParams`:** Default query parameters in your configuration file that apply to relative URLs resolved against `origin`. Step-level `params` merge on top, with step keys taking precedence on collision.
 
-If your URL contains a fragment (e.g., `/page#section`), query parameters are inserted before the fragment (e.g., `/page?token=value#section`).
+When your URL contains a fragment such as `/page#section`, query parameters are inserted before the fragment, giving `/page?token=value#section`.
 
 <Warning>
 Values in `params` and `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields.
@@ -184,7 +184,7 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 - `newTab`: Open the URL in a new tab of the target window and focus it. `true` opens an anonymous tab; a string (or `{ "name": … }`) names the tab. `false` disables.
 - `newWindow`: Open the URL in a new window and focus it. `true`, a name string, or `{ "name": …, "tab": … }`, where `tab` names the window's first tab. `false` disables.
 - `newTab` and `newWindow` are mutually exclusive on one step.
-- `surface`: Without an opener, selects the browser (and window or tab) to navigate — opening the browser if it isn't running yet. With `newTab`, selects the window the tab opens in.
+- `surface`: Without an opener, this selects the browser, window, or tab to navigate. It opens the browser if it isn't running yet. With `newTab`, it selects the window the tab opens in.
 
 ### Open a second browser
 
@@ -277,7 +277,7 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 }
 ```
 
-For the full selector grammar (names, indexes, `-1` for newest, title/URL criteria), how to address tabs a page opens itself, and driving multiple browsers at once, see [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
+See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) for the full selector grammar. It covers names, indexes, `-1` for newest, and title and URL criteria. It also covers addressing tabs a page opens itself, and driving multiple browsers at once.
 
 ## Wait conditions
 
@@ -287,7 +287,7 @@ When using the object format, you can configure:
 
 - `timeout`: (Optional) Maximum time in milliseconds to wait for all conditions to be met. If exceeded, the goTo action fails (default: 30000).
 - `waitUntil`: (Optional) Object specifying conditions to wait for:
-  - `networkIdleTime`: (Optional) Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes rather than waiting for a quiet period (default: 500).
+  - `networkIdleTime`: (Optional) Wait for network activity to be idle, meaning no new requests, for this duration in milliseconds. This check always runs and you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes, rather than waiting for a quiet period. Defaults to `500`.
   - `domIdleTime`: (Optional) Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes rather than waiting for a quiet period (default: 1000).
 - `find`: (Optional) Wait for a specific element to be present in the DOM. At least one of `selector` or `elementText` must be specified.
   - `selector`: (Optional) CSS selector for the element to wait for.

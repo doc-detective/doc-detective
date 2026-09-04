@@ -4,7 +4,9 @@ This sample test fills in every field on the Watson and Holmes intake form, then
 
 It runs against a copy of the intake form served at `http://localhost:8080/watson_and_holmes_intake_form.html`. For how to serve the form locally, see the "Set up your test environment" guide at https://docs.doc-detective.com/docs/ci/set-up-environment.
 
+<!-- vale off -->
 {/* test {"testId":"form-filler2","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true,"window":{"width":1200,"height":1500},"viewport":{"width":1180,"height":1480}}}]} */}
+<!-- vale on -->
 
 1. Open the intake form.
 

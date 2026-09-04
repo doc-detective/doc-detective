@@ -8,20 +8,20 @@ realities around them.
 
 ## Merge gating on `main`
 
-- `main` has no classic branch protection — the gate is a repository **ruleset** ("main"). Its
-  real blockers: `code_quality` (CodeQL code scanning at severity=errors) plus a `pull_request`
-  rule (1 approving review; `require_code_owner_review` is vacuous because there's no CODEOWNERS
-  file). **CodeQL is the only CI signal that truly blocks merge.**
-- Non-blocking checks that look scary but aren't: the `review` check is the "Claude PR Review -
-  Auto" workflow (often errors on infra, unrelated to content; also fails on bot-authored head
-  commits because secrets aren't injected for bot-triggered runs), and `vale` runs reviewdog with
+- `main` has no classic branch protection. The gate is a repository **ruleset** ("main"). Its
+  real blockers are `code_quality`, meaning CodeQL code scanning at severity=errors, plus a
+  `pull_request` rule requiring 1 approving review. `require_code_owner_review` is vacuous, because
+  there's no CODEOWNERS file. **CodeQL is the only CI signal that truly blocks merge.**
+- Some checks look scary but don't block. The `review` check is the "Claude PR Review - Auto"
+  workflow. It often errors on infra, unrelated to content. It also fails on bot-authored head
+  commits, because secrets aren't injected for bot-triggered runs. `vale` runs reviewdog with
   `fail_on_error: false`. A red `review` or vale annotation is not a merge blocker.
 - The repo owner (hawkeyexl) is admin: `gh pr merge <n> --merge --admin --delete-branch` bypasses
   the approval gate. `--delete-branch` prints a harmless "failed to delete local branch" when the
   branch is checked out in another worktree; the remote branch still gets deleted.
 - Stale CodeQL on old branches clears by merging current `origin/main` into the branch.
-  `reviewDecision: CHANGES_REQUESTED` persists even after fixes — only an APPROVED review or a
-  dismissal clears it, a later COMMENTED review does not.
+  `reviewDecision: CHANGES_REQUESTED` persists even after fixes. Only an APPROVED review or a
+  dismissal clears it. A later COMMENTED review does not.
 
 ## Promptless docs bot
 
@@ -35,28 +35,29 @@ realities around them.
   (`gh api -X PATCH .../pulls/<top> -f base=main`), merge that one, and close the rest as "rolled
   up into #<top>".
 - **Draft PRs usually document an unmerged feature PR.** Do not merge them until the feature
-  lands — documenting unmerged behavior is the #1 Promptless failure mode. Also watch for
-  superseded drafts whose docs already shipped inside a feature PR (close them).
+  lands. Documenting unmerged behavior is the #1 Promptless failure mode. Also watch for
+  superseded drafts whose docs already shipped inside a feature PR, and close those.
 - **Verify every concrete claim against source.** The bot hallucinates: wrong CLI subcommands,
   inverted precedence, non-existent shorthands, wrong output namespaces. Review the PR's net
-  change vs current main (`git diff origin/main...origin/<branch>`), not the whole file — main
+  change against current main (`git diff origin/main...origin/<branch>`), not the whole file. Main
   often already moved ahead.
 - **Vale vocab path (version-dependent):** with Vale 3.x pinned in `.github/workflows/vale.yml`,
   the active accepted-spelling list is `docs/.vale/styles/config/vocabularies/Docs/accept.txt`;
   terms added only to the legacy `docs/.vale/styles/Vocab/Docs/accept.txt` do nothing. Safest is
   to add new terms to both until the legacy dir is deleted. `docs/.vale.ini` (the config the
-  workflow runs, via `--config=docs/.vale.ini`) exempts generated schema reference pages — fix
-  prose flagged there at the JSON-schema source under `src/`, not the generated `.md`. Note reviewdog re-posts stale annotation batches per push; verify HEAD is
-  actually clean before assuming a real miss.
+  workflow runs, through `--config=docs/.vale.ini`) exempts generated schema reference pages. Fix
+  prose flagged there at the JSON-schema source under `src/`, not the generated `.md`. Note that
+  reviewdog re-posts stale annotation batches per push. Verify HEAD is actually clean before
+  assuming a real miss.
 
 ## `next` → `main` promotion
 
 - The commitlint workflow validates the **entire `base.sha..head.sha` range** on a PR, so a
   promotion PR re-lints every commit in `main..next`. Non-conventional direct commits (often made
   via the GitHub web UI) resurface as failures only at promotion time. Squash-merge bodies used to
-  trip `body-max-line-length` too (GitHub concatenates the branch's commit messages into the
-  squash body, never linted pre-merge) — `commitlint.config.cjs` now disables body/footer line
-  length for this reason; don't re-enable.
+  trip `body-max-line-length` too, because GitHub concatenates the branch's commit messages into
+  the squash body, which is never linted pre-merge. `commitlint.config.cjs` now disables body and
+  footer line length for this reason. Don't re-enable it.
 - Pre-check before opening the PR: `npx commitlint --from origin/main --to origin/next`. Fix
   headers by rewording in place (`filter-branch --msg-filter` keyed on `$GIT_COMMIT` preserves
   bodies byte-for-byte) and force-pushing.
@@ -71,14 +72,14 @@ The release pipeline promotes `@latest` only after `promote.yml`'s "Smoke-test s
 passes. If that job fails, the version is published to `staging-<version>` (and `@next`) but
 `@latest` silently stays behind.
 
-- **Detect:** `npm view doc-detective dist-tags` — `latest` lagging behind a `staging-<version>`
+- **Detect:** run `npm view doc-detective dist-tags`. `latest` lagging behind a `staging-<version>`
   entry means the promote job failed. Read the failed run's smoke-test job log.
-- **Recover:** fix the cause on `main`, then `gh workflow run promote.yml -f version=<X.Y.Z>` —
-  the smoke→promote→docker chain re-runs and the promote step is an idempotent
+- **Recover:** fix the cause on `main`, then run `gh workflow run promote.yml -f version=<X.Y.Z>`.
+  The smoke→promote→docker chain re-runs, and the promote step is an idempotent
   `npm dist-tag add`.
-- Historical example: a committed screenshot baseline (`reference.png`) drifted from what headless
-  Chrome captures on CI and blocked two releases; removed in #395. Keep smoke-test fixtures
-  baseline-free — the smoke test's purpose is exercising the action end-to-end, not visual
+- One historical example: a committed screenshot baseline (`reference.png`) drifted from what
+  headless Chrome captures on CI, and blocked two releases. It was removed in #395. Keep smoke-test
+  fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
   regression.
 
 ## Promoting stale `claude/*` feature branches
@@ -90,32 +91,32 @@ Correct flow: `git branch backup <tip>` → `git reset --hard main` → `git mer
 resolve conflicts → build/test → one clean conventional commit. This 3-way merges the feature onto
 main and preserves everything the branch predates.
 
-To force a non-major release when a branch carries `refactor!:`/`fix!:` commits, squash into a
-single non-`!` commit — semantic-release reads every commit merged to main, so the `!` history
+To force a non-major release when a branch carries `refactor!:` or `fix!:` commits, squash into a
+single non-`!` commit. semantic-release reads every commit merged to main, so the `!` history
 must not survive.
 
-Windows gotcha: `npm run build:common` rewrites generated schema/type files with CRLF. Harmless —
-`core.autocrlf=true` normalizes on `git add`; verify with
+Windows gotcha: `npm run build:common` rewrites generated schema and type files with CRLF. That's
+harmless, because `core.autocrlf=true` normalizes on `git add`. Verify with
 `git diff --cached --stat --ignore-cr-at-eol`.
 
 ## Cross-platform lockfile regeneration
 
 `package-lock.json` must contain the full cross-platform optional-dep tree or CI's `npm ci` fails
 with `EUSAGE … Missing: <pkg> from lock file`. A Windows `npm install` prunes platform-inapplicable
-optionals (consistently `appium` and `proxy-agent`, plus other platforms' nested `@img/sharp-*`
-binaries) — the lockfile looks fine locally but breaks Linux CI.
+optionals, consistently `appium` and `proxy-agent`, plus other platforms' nested `@img/sharp-*`
+binaries. The lockfile looks fine locally but breaks Linux CI.
 
-Before regenerating anything: **`git diff origin/main -- package.json` first.** A stale branch
-manifest (e.g. a dependency line main deliberately moved to `ddRuntimeDependencies`) masquerades as
-a lockfile break; main's lockfile may never have been wrong.
+Before regenerating anything, run **`git diff origin/main -- package.json` first.** A stale branch
+manifest masquerades as a lockfile break. One example is a dependency line main deliberately moved
+to `ddRuntimeDependencies`. Main's lockfile may never have been wrong.
 
 Regeneration recipe (Docker, repo mounted; on Windows Bash prefix commands with
 `MSYS_NO_PATHCONV=1`):
 
 1. Start from a complete base (`git checkout origin/main -- package-lock.json`).
-2. In a **`node:22`** container (CI's setup-node bundles npm 10; npm 11 builds a different ideal
-   tree), copy `package.json` + `src/common` to a scratch dir and run
-   `npm install --package-lock-only --ignore-scripts --no-audit --no-fund` **twice** — the second
+2. Work in a **`node:22`** container, because CI's setup-node bundles npm 10 and npm 11 builds a
+   different ideal tree. Copy `package.json` and `src/common` to a scratch dir, then run
+   `npm install --package-lock-only --ignore-scripts --no-audit --no-fund` **twice**. The second
    reconcile pass drops platform-gated `"extraneous"` entries that make `npm ci` fail with
    EBADPLATFORM on other OSes. A reconcile-only pass over an incomplete lockfile is NOT
    sufficient.
@@ -131,15 +132,15 @@ Commit only `package.json`/lockfile/src-common dep changes; discard generated-fi
 and the tree it emits does not install. Measured on npm 10 (node 22): from a root lockfile where
 `npm ci` passes, the stamp alone leaves `npm ci` failing with `EBADPLATFORM`.
 
-This broke `main` three times — 4.37.4, 4.37.5, and 4.38.0 — with the same two
-`"optional": true, "peer": true` entries under `@commitlint/read/node_modules/` pruned each time.
+This broke `main` three times, at 4.37.4, 4.37.5, and 4.38.0. The same two
+`"optional": true, "peer": true` entries under `@commitlint/read/node_modules/` were pruned each time.
 `@semantic-release/git` committed the result unverified, and `npm ci` failed for every job and every
 contributor.
 
-4.37.4 was repaired by hand in #705. 4.37.5 was repaired by *accident*: #702, an unrelated reporters
+4.37.4 was repaired by hand in #705. 4.37.5 was repaired by *accident*. #702, an unrelated reporters
 feature, happened to carry a lockfile regenerated from a healthy tree, and merging it restored the
 entries. That merge is also what triggered the 4.38.0 release, which pruned them again about four
-hours later — the accidental repair and the next breakage were the same event.
+hours later. The accidental repair and the next breakage were the same event.
 
 **If you find `main` red this way, regenerate deliberately using the recipe above.** Waiting for
 another PR to carry a healthy lockfile is not a plan; it happened once, by chance, and it did not
@@ -151,16 +152,16 @@ before `@semantic-release/git` commits. **If you ever run `npm version --workspa
 two-pass reconcile afterward and verify with `npm ci` before committing.**
 
 That ordering is load-bearing, and getting it wrong is how 4.37.5 broke despite a guard being in
-place (ADR 01093): the reconcile originally lived in `sync-common-version.js`, which runs *before*
-`@semantic-release/npm` stamps the root version — so the check passed and the lockfile was rewritten
-afterward. **Any new lockfile check must be wired after every plugin that stamps a version.** A unit
+place (ADR 01093). The reconcile originally lived in `sync-common-version.js`, which runs *before*
+`@semantic-release/npm` stamps the root version. The check therefore passed, and the lockfile was
+rewritten afterward. **Any new lockfile check must be wired after every plugin that stamps a version.** A unit
 test asserts that position in `.releaserc.json`, so reordering the plugin list fails the suite.
 
 ### The src/common lockfile is release-managed
 
 `src/common/package-lock.json` is rebuilt on every release by
 [scripts/sync-common-version.js](../../scripts/sync-common-version.js) (ADR 01091), so you normally
-don't touch it — bump `src/common/package.json` and the lockfile catches up at the next release.
+don't touch it. Bump `src/common/package.json`, and the lockfile catches up at the next release.
 
 If you must regenerate it by hand, run npm from inside `src/common` **with `--no-workspaces`**:
 
@@ -169,9 +170,9 @@ cd src/common && npm install --package-lock-only --ignore-scripts --no-audit --n
 ```
 
 Without `--no-workspaces` npm walks up, finds `workspaces: ["src/common"]` in the root manifest, and
-rewrites the **root** `package-lock.json` while leaving `src/common`'s byte-identical — the inverse
-of what you asked for. Same trap when verifying: `npm ci` inside `src/common` validates the *root*
-lockfile unless you pass `--no-workspaces`.
+rewrites the **root** `package-lock.json` while leaving `src/common`'s byte-identical. That's the
+inverse of what you asked for. The same trap applies when verifying. `npm ci` inside `src/common`
+validates the *root* lockfile unless you pass `--no-workspaces`.
 
 ## Working in git worktrees
 

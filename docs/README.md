@@ -24,7 +24,7 @@ Visit `http://localhost:3000` to see your changes live.
 
 Did you find a typo, a broken link, or another item with an obvious quick fix?
 
-If you can see what the problem is, and you know how to fix it, then you can make a pull request with the change and contribute to the docs repo yourself.
+If you can see the problem and know the fix, open a pull request and contribute to the docs repo yourself.
 
 You can also [see existing issues or create a new one](https://github.com/doc-detective/docs/issues) to alert us of the problem.
 

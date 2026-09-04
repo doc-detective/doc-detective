@@ -55,7 +55,7 @@ A single action within a [test](#test). Each step performs one action and acts a
 
 ## Surface
 
-An addressable target a step acts on: a browser (a whole session, a window, or a tab) or a background process. Steps select a surface with the `surface` field; omitting it acts on the active surface — the most recently opened or focused one. `goTo` opens browser surfaces; `runShell`/`runCode` start process surfaces; `closeSurface` closes any of them. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
+An addressable target a step acts on. It's either a browser (a whole session, a window, or a tab) or a background process. Steps select a surface with the `surface` field. Omitting it acts on the active surface, which is the most recently opened or focused one. `goTo` opens browser surfaces, `runShell` and `runCode` start process surfaces, and `closeSurface` closes any of them. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 ## Test
 
