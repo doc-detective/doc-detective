@@ -61,3 +61,9 @@ tests:
     input: >
       The chair asked the firefighters about workforce needs.
     want: ""
+
+  # Moose: guards the removed stray swap entry; "name" must stay clean.
+  - name: name is not flagged
+    input: >
+      Set the file name and the parameter name.
+    want: ""
