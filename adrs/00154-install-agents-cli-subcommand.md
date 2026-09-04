@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Coding agents (Claude Code, Codex, Copilot CLI, Gemini CLI, opencode, Qwen Code) each expect
-project-local configuration — skills, instructions, or agent definitions — in a tool-specific
-location and format. Authors who wanted Doc Detective's agent integrations had no
+Coding agents each expect project-local configuration in a tool-specific location and format. That
+covers skills, instructions, or agent definitions, across Claude Code, Codex, Copilot CLI, Gemini
+CLI, opencode, and Qwen Code. Authors who wanted Doc Detective's agent integrations had no
 first-class way to install them; they had to copy files by hand per agent. The audit needed
 a CLI subcommand that writes the right integration for whichever coding agent(s) the user
 chose. What command, and what adapter surface, should Doc Detective expose for this?
@@ -33,7 +33,7 @@ chose. What command, and what adapter surface, should Doc Detective expose for t
 Chosen option: **A**, because each agent's on-disk contract differs enough that per-agent
 adapters keep the format/location knowledge contained and independently testable. The
 `doc-detective` CLI gained an `install-agents` subcommand (declared in `cli.ts`) backed by
-six adapters under `src/agents/` — one each for `claude-code`, `codex`, `copilot-cli`,
+six adapters under `src/agents/`. There's one each for `claude-code`, `codex`, `copilot-cli`,
 `gemini-cli`, `opencode`, and `qwen-code`. Each adapter knows where and in what format to
 write its agent's integration. This subcommand later became the target of the postinstall
 detection prompt (`00159`).
