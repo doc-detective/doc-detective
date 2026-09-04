@@ -92,8 +92,8 @@ surface and schema churn for a value nobody needs to tune; a module constant is 
   true/false table. `runSdkInstallWithRetry` returns on first success, and self-repairs one transient
   then succeeds, with no real wait through an injected `sleep`. It rethrows a non-transient
   immediately, and gives up after `SDK_INSTALL_MAX_ATTEMPTS`. There's an `isSystemImageComplete`
-  marker check. And through
-  `installAndroid`: a transient image install self-repairs then creates the AVD, an incomplete image
+  marker check. Through
+  `installAndroid`, a transient image install self-repairs then creates the AVD. An incomplete image
   is wiped and reinstalled, and a still-incomplete image returns `corrupt` and skips the AVD. It's
   all hermetic through injected `run`, `fs`, and `sleep`, with no spawn, download, or real backoff.
 * End-to-end, the existing `apps-android` managed-boot and action/lazy CI legs continue to exercise
