@@ -338,6 +338,62 @@ describe("runtime/browsers", function () {
     expect(result.version).to.equal("0.37.0");
   });
 
+  it("ensureBrowserInstalled('geckodriver') resolves the version-suffixed binary the package writes", async function () {
+    // Regression (containerized install): geckodriver v6 exposes no `.path` and
+    // writes `geckodriver-<version>` at the cache root, so both the cache probe
+    // and the driver allowlist have to recognize that name. Previously this
+    // fell back to the cache DIRECTORY and failed the functional gate with
+    // "Refusing to execute '<cacheDir>': not a recognized driver binary path."
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const binPath = path.join(
+      browsersDir,
+      `geckodriver-0.37.1${process.platform === "win32" ? ".exe" : ""}`
+    );
+    const geckodriverModule = {
+      // No `path` field — matches geckodriver >= 6.
+      download: async () => {
+        fs.writeFileSync(binPath, "#!/bin/sh\n");
+        return binPath;
+      },
+    };
+    let verifiedPath;
+    const verifyExec = async (p) => {
+      verifiedPath = p;
+      return { code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(verifiedPath).to.equal(binPath);
+    expect(result.path).to.equal(binPath);
+    expect(result.version).to.equal("0.37.1");
+    expect(readInstalledRecord({}).browsers.geckodriver.installedVersion).to.equal(
+      "0.37.1"
+    );
+  });
+
+  it("ensureBrowserInstalled('geckodriver') reports no path rather than the cache dir when the binary can't be located", async function () {
+    // Honest failure: an unlocatable binary must not be laundered into the
+    // cache DIRECTORY masquerading as a driver path. The record is fresh, so
+    // no download runs; callers degrade to the runtime fallback (Layer 4).
+    const record = readInstalledRecord({});
+    record.browsers.geckodriver = {
+      installedVersion: "0.37.1",
+      installedAt: new Date().toISOString(),
+      latestKnownVersion: "0.37.1",
+      latestCheckedAt: new Date().toISOString(),
+    };
+    writeInstalledRecord(record, {});
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule: {}, logger: () => {}, verifyExec: async () => {
+        throw new Error("must not verify — nothing to verify");
+      } },
+    });
+    expect(result.path).to.equal(undefined);
+    expect(result.version).to.equal("0.37.1");
+  });
+
   it("ensureBrowserInstalled('geckodriver') ignores a `.path` pointing outside the current cache dir (import-cached module)", async function () {
     // The geckodriver module is import-cached, so a non-empty `.path` can point
     // at a different cache dir. resolveBinaryPath must reject it and use the
@@ -427,6 +483,8 @@ describe("runtime/browsers", function () {
   describe("geckodriverBinaryInCache", function () {
     const binName =
       process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const versioned = (version) =>
+      `geckodriver-${version}${process.platform === "win32" ? ".exe" : ""}`;
 
     it("finds the binary at the cache root", function () {
       const bin = path.join(tmpRoot, binName);
@@ -444,6 +502,53 @@ describe("runtime/browsers", function () {
 
     it("returns undefined when the binary isn't present", function () {
       expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    // The geckodriver npm package writes `geckodriver-<version>` (plus `.exe`
+    // on Windows) at the cache root — never the bare `geckodriver` name the
+    // original probe looked for. See ADR: geckodriver version-suffixed binary.
+    it("finds the version-suffixed binary the geckodriver package actually writes", function () {
+      const bin = path.join(tmpRoot, versioned("0.37.1"));
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("picks the highest version when several version-suffixed binaries are cached", function () {
+      for (const v of ["0.9.0", "0.37.1", "0.36.0"]) {
+        fs.writeFileSync(path.join(tmpRoot, versioned(v)), "x");
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(
+        path.join(tmpRoot, versioned("0.37.1"))
+      );
+    });
+
+    it("prefers the exact binary name over a version-suffixed sibling", function () {
+      fs.writeFileSync(path.join(tmpRoot, versioned("0.37.1")), "x");
+      const exact = path.join(tmpRoot, binName);
+      fs.writeFileSync(exact, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(exact);
+    });
+
+    it("ignores a leftover `geckodriver-*` staging directory and finds the real binary", function () {
+      // download() extracts through `fs.mkdtemp(<cacheDir>/geckodriver-)`, so a
+      // crashed run can leave a DIRECTORY whose name matches the binary pattern.
+      fs.mkdirSync(path.join(tmpRoot, "geckodriver-8fj2k1"), { recursive: true });
+      const bin = path.join(tmpRoot, versioned("0.37.1"));
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("returns undefined when only a `geckodriver-*` staging directory is present", function () {
+      fs.mkdirSync(path.join(tmpRoot, "geckodriver-8fj2k1"), { recursive: true });
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("finds a version-suffixed binary nested one level deep", function () {
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const bin = path.join(nestedDir, versioned("0.37.1"));
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
     });
   });
 
@@ -491,6 +596,53 @@ describe("runtime/browsers", function () {
     it("returns not-ok when given no binary path", async function () {
       const res = await verifyDriverBinary("geckodriver", "");
       expect(res.ok).to.equal(false);
+    });
+
+    // The geckodriver package names its binary `geckodriver-<version>`, so the
+    // allowlist has to admit that shape or every containerized install fails
+    // the functional gate with "not a recognized driver binary path".
+    it("accepts a version-suffixed driver filename", async function () {
+      const suffixed =
+        process.platform === "win32"
+          ? "C:\\cache\\browsers\\geckodriver-0.37.1.exe"
+          : "/opt/doc-detective/browsers/geckodriver-0.37.1";
+      const res = await verifyDriverBinary("geckodriver", suffixed, {
+        exec: async () => ({ code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" }),
+      });
+      expect(res.ok, res.error).to.equal(true);
+      expect(res.version).to.equal("0.37.1");
+    });
+
+    it("still refuses the bare cache directory even though it is an absolute path", async function () {
+      let execCalled = false;
+      const res = await verifyDriverBinary(
+        "geckodriver",
+        process.platform === "win32" ? "C:\\cache\\browsers" : "/opt/doc-detective/browsers",
+        {
+          exec: async () => {
+            execCalled = true;
+            return { code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" };
+          },
+        }
+      );
+      expect(res.ok).to.equal(false);
+      expect(execCalled).to.equal(false);
+    });
+
+    it("refuses a look-alike name that merely starts with a driver name", async function () {
+      let execCalled = false;
+      const res = await verifyDriverBinary(
+        "geckodriver",
+        process.platform === "win32" ? "C:\\tmp\\geckodriver-evil.sh" : "/tmp/geckodriver-evil.sh",
+        {
+          exec: async () => {
+            execCalled = true;
+            return { code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" };
+          },
+        }
+      );
+      expect(res.ok).to.equal(false);
+      expect(execCalled).to.equal(false);
     });
 
     it("refuses to execute a path that isn't a recognized driver binary", async function () {

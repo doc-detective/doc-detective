@@ -48,8 +48,16 @@ const DRIVER_VERIFY_TIMEOUT_MS = 10_000;
 // path with a single anchored regex — rather than a derived basename — both
 // refuses an arbitrarily-named binary and gives static analysis a barrier on
 // the exact value that reaches the child process.
+//
+// The optional `-<version>` segment is required, not cosmetic: the geckodriver
+// npm package writes its binary as `geckodriver-<version>` (plus `.exe` on
+// Windows) — never the bare name — so without it every install of that driver
+// fails this gate. The suffix is deliberately restricted to a dotted-numeric
+// run: it admits the real shape (`geckodriver-0.37.1`) while still refusing
+// look-alikes such as `geckodriver-evil.sh`, and it can contain no path
+// separator, so the matched name is still a single final segment.
 const ALLOWED_DRIVER_PATH =
-  /[\\/](?:geckodriver|chromedriver|safaridriver)(?:\.exe)?$/i;
+  /[\\/](?:geckodriver|chromedriver|safaridriver)(?:-\d+(?:\.\d+)*)?(?:\.exe)?$/i;
 
 function isAllowedDriverPath(binaryPath: string): boolean {
   return (
@@ -213,7 +221,7 @@ const defaultDriverExec: DriverExec = (binaryPath, args, timeoutMs) =>
  */
 export async function verifyDriverBinary(
   driverName: string,
-  binaryPath: string,
+  binaryPath: string | undefined,
   options: {
     exec?: DriverExec;
     timeoutMs?: number;
@@ -341,8 +349,13 @@ const FRESHNESS_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 const RESOLVE_TIMEOUT_MS = 5_000;
 
 export interface EnsureBrowserResult {
-  /** Absolute path to the executable (or driver binary). */
-  path: string;
+  /**
+   * Absolute path to the executable (or driver binary). Undefined when the
+   * asset is recorded as installed but its binary can't be located on disk —
+   * an honest "unknown" that callers degrade to the runtime fallback, never a
+   * directory standing in for an executable.
+   */
+  path?: string;
   /** Resolved buildId / version string for the installed asset. */
   version: string;
   /** True when the installed buildId is older than the channel's current. */
@@ -741,13 +754,64 @@ function isPathInside(child: string, dir: string): boolean {
   );
 }
 
+// The name the geckodriver npm package actually writes: it renames the
+// generically-named binary out of its extraction staging dir to
+// `geckodriver-<version>` (`.exe` on Windows) so concurrent cache lookups
+// resolve to a specific version. Anchored and dotted-numeric so it can't match
+// the `geckodriver-<random>` *staging directories* `fs.mkdtemp` leaves behind
+// when a download crashes mid-extract.
+const GECKODRIVER_VERSIONED_NAME = /^geckodriver-(\d+(?:\.\d+)*)(\.exe)?$/i;
+
+// Descending semver-ish compare on dotted-numeric runs: negative when `a` is
+// the newer version. Missing segments count as 0 ("0.37" < "0.37.1").
+function compareGeckodriverVersionsDesc(a: string, b: string): number {
+  const pa = a.split(".");
+  const pb = b.split(".");
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const da = Number(pa[i] ?? 0);
+    const db = Number(pb[i] ?? 0);
+    if (da !== db) return db - da;
+  }
+  return 0;
+}
+
+// Newest `geckodriver-<version>` file directly inside `dir`, or undefined.
+// Directories are skipped so a leftover extraction staging dir is never
+// mistaken for the binary.
+function versionedGeckodriverInDir(dir: string): string | undefined {
+  const wantExe = process.platform === "win32";
+  let best: { version: string; name: string } | undefined;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return undefined;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) continue;
+    const match = GECKODRIVER_VERSIONED_NAME.exec(entry.name);
+    if (!match) continue;
+    // Only the platform's own executable form counts.
+    if (wantExe !== Boolean(match[2])) continue;
+    if (!best || compareGeckodriverVersionsDesc(match[1], best.version) < 0) {
+      best = { version: match[1], name: entry.name };
+    }
+  }
+  return best ? path.join(dir, best.name) : undefined;
+}
+
 /**
  * Probe a browsers cache dir for the geckodriver binary a download wrote.
  * Returns its path if found at the cache root or one level deep (some layouts
- * nest under a version dir), else undefined. Exported so the availability probe
- * (Layer 2 in core/config) can resolve the same binary the install path uses
- * when the geckodriver module exposes no `.path` — otherwise the functional
- * driver gate would silently not run for a present-but-broken geckodriver.
+ * nest under a version dir), else undefined. Both the bare `geckodriver(.exe)`
+ * name and the `geckodriver-<version>(.exe)` name the npm package actually
+ * writes are recognized; the bare name wins when both are present, and the
+ * newest version wins among version-suffixed candidates.
+ *
+ * Exported so the availability probe (Layer 2 in core/config) can resolve the
+ * same binary the install path uses when the geckodriver module exposes no
+ * `.path` — otherwise the functional driver gate would silently not run for a
+ * present-but-broken geckodriver.
  */
 export function geckodriverBinaryInCache(cacheDir: string): string | undefined {
   const binName =
@@ -756,13 +820,18 @@ export function geckodriverBinaryInCache(cacheDir: string): string | undefined {
   try {
     if (fs.existsSync(rootCandidate)) return rootCandidate;
   } catch {
-    // ignore and fall through to the shallow scan
+    // ignore and fall through to the scans below
   }
+  const rootVersioned = versionedGeckodriverInDir(cacheDir);
+  if (rootVersioned) return rootVersioned;
   try {
     for (const entry of fs.readdirSync(cacheDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      const nested = path.join(cacheDir, entry.name, binName);
+      const dir = path.join(cacheDir, entry.name);
+      const nested = path.join(dir, binName);
       if (fs.existsSync(nested)) return nested;
+      const nestedVersioned = versionedGeckodriverInDir(dir);
+      if (nestedVersioned) return nestedVersioned;
     }
   } catch {
     // cacheDir unreadable/missing — caller falls back appropriately.
@@ -786,13 +855,20 @@ async function ensureGeckodriver(
   logger: Logger
 ): Promise<EnsureBrowserResult> {
   const cacheDir = getBrowsersDir(ctxBag.ctx);
-  // Resolve the actual geckodriver binary path. The npm package exports a
-  // `.path` field computed at module load from GECKODRIVER_CACHE_DIR — but the
-  // module is import-cached, so a non-empty `.path` can point at a *different*
-  // cache dir than this call's. Only trust it when it resolves inside the
-  // current cacheDir; otherwise probe the cache for the real binary, then fall
-  // back to the bare cache directory.
-  const resolveBinaryPath = (gecko: any): string => {
+  // Resolve the actual geckodriver binary path. Older versions of the npm
+  // package exported a `.path` field computed at module load from
+  // GECKODRIVER_CACHE_DIR — but the module is import-cached, so a non-empty
+  // `.path` can point at a *different* cache dir than this call's. Only trust
+  // it when it resolves inside the current cacheDir; otherwise probe the cache
+  // for the real binary.
+  //
+  // When neither locates a binary the answer is `undefined`, not the cache
+  // directory: a directory is not an executable, and handing one to
+  // `verifyDriverBinary` produced the misleading "Refusing to execute
+  // '<cacheDir>': not a recognized driver binary path" that skipped geckodriver
+  // on every containerized install. Callers already degrade an absent driver
+  // path to the runtime fallback (Layer 4).
+  const resolveBinaryPath = (gecko: any): string | undefined => {
     const fromModule =
       gecko &&
       typeof gecko.path === "string" &&
@@ -800,8 +876,21 @@ async function ensureGeckodriver(
       isPathInside(gecko.path, cacheDir)
         ? gecko.path
         : null;
-    return fromModule ?? geckodriverBinaryInCache(cacheDir) ?? cacheDir;
+    return fromModule ?? geckodriverBinaryInCache(cacheDir);
   };
+
+  // `download()` returns the absolute path it wrote — the only direct signal in
+  // geckodriver >= 6, which exports no `.path` at all. Trust it when it lands
+  // inside our cache dir; otherwise fall back to probing.
+  const resolveDownloadedPath = (
+    downloaded: unknown,
+    gecko: any
+  ): string | undefined =>
+    typeof downloaded === "string" &&
+    downloaded.length > 0 &&
+    isPathInside(downloaded, cacheDir)
+      ? downloaded
+      : resolveBinaryPath(gecko);
 
   if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {
     // Load the geckodriver module so the returned `path` is the actual
@@ -839,12 +928,12 @@ async function ensureGeckodriver(
   return await withGeckodriverCacheDir(cacheDir, async () => {
     const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
     logger(`Installing geckodriver into ${cacheDir}`, "info");
-    await gecko.download();
+    let downloaded = await gecko.download();
     // Validate by execution, not just presence: a partial download (seen on
     // Windows) leaves a binary on disk that doesn't actually run. If the
     // first download fails validation, quarantine the artifact and
     // re-download exactly once before giving up.
-    let binaryPath = resolveBinaryPath(gecko);
+    let binaryPath = resolveDownloadedPath(downloaded, gecko);
     let verify = await verifyDriverBinary("geckodriver", binaryPath, {
       exec: ctxBag.deps.verifyExec,
     });
@@ -854,14 +943,14 @@ async function ensureGeckodriver(
         "warn"
       );
       try {
-        if (binaryPath && binaryPath !== cacheDir && fs.existsSync(binaryPath)) {
+        if (binaryPath && fs.statSync(binaryPath).isFile()) {
           fs.rmSync(binaryPath, { force: true });
         }
       } catch {
         // Best-effort quarantine; re-download will overwrite regardless.
       }
-      await gecko.download();
-      binaryPath = resolveBinaryPath(gecko);
+      downloaded = await gecko.download();
+      binaryPath = resolveDownloadedPath(downloaded, gecko);
       verify = await verifyDriverBinary("geckodriver", binaryPath, {
         exec: ctxBag.deps.verifyExec,
       });
@@ -871,7 +960,11 @@ async function ensureGeckodriver(
       // the install-gate caller record this asset as failed, and the runner
       // surface a diagnostic skip / fall back to another browser.
       throw new Error(
-        `geckodriver is present but non-functional after a re-download (${verify.error}). It may be a partial or corrupt download; delete ${binaryPath} or reinstall.`
+        `geckodriver is present but non-functional after a re-download (${verify.error}). ${
+          binaryPath
+            ? `It may be a partial or corrupt download; delete ${binaryPath} or reinstall.`
+            : `No geckodriver binary could be located under ${cacheDir}; reinstall.`
+        }`
       );
     }
     // The validated binary's own --version output is the source of truth —

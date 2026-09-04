@@ -49,8 +49,16 @@ On a fresh `npm install`, Doc Detective also pre-warms these assets automaticall
 Whatever the cache is missing, each run front-loads for itself: before executing tests, Doc Detective plans the installs, device boots, and downloads its tests need and runs them concurrently as a warm phase. With a persisted cache the phase completes in milliseconds. On a cold cache it overlaps the downloads instead of paying them one test at a time. The per-task timings land in the JSON results—see [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
 
 <Note>
-`docdetective/docdetective:linux` is a multi-arch image (`linux/amd64` and `linux/arm64`), but Chrome and ChromeDriver have no native `linux/arm64` build upstream—Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome/ChromeDriver pre-warming is skipped rather than failing the image; if you need Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead.
+`docdetective/docdetective:linux` is a multi-arch image (`linux/amd64` and `linux/arm64`), but Chrome and ChromeDriver have no native `linux/arm64` build upstream—Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome/ChromeDriver pre-warming is skipped rather than failing the image. If you need Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation. Firefox isn't a substitute yet. See the following note.
 </Note>
+
+<Warning>
+Firefox contexts need a `geckodriver` executable on the container's `PATH`. The image caches GeckoDriver under a versioned filename that the Gecko automation driver doesn't look for. A Firefox context then fails to start, and Doc Detective falls back to another browser. Link the cached binary onto `PATH` before you run:
+
+```bash
+docker run -v .:/app --entrypoint bash docdetective/docdetective:linux -c 'ln -sf "$(ls /opt/doc-detective/browsers/geckodriver-*)" /usr/local/bin/geckodriver && doc-detective --input /app/api.spec.json'
+```
+</Warning>
 
 For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-action#runtime-caching).
 
