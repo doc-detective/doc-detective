@@ -247,9 +247,9 @@ absorbed inventory row.
 > capture-group churn are **folded** into their parent ADRs (`00031`/`00084`/`00081`).
 > Several others are **excluded**, exactly as the inventory's "Borderline" table
 > leans (test-infra / net-no-op / CI / dep / cosmetic). Those are the Mocha
-> migration, the `98e8317c` net-no-op markup churn, the `npm-publish.yml`
-> docker-dispatch step, the split-Windows-base/multi-arch image, the runtime-dep
-> majors, and the `cacheDir`/message-text refactors.
+> migration, the `98e8317c` net-no-op markup churn, and the `npm-publish.yml`
+> docker-dispatch step. They also include the split-Windows-base/multi-arch image,
+> the runtime-dep majors, and the `cacheDir`/message-text refactors.
 > None of these carry an inventory `Seq`, so they do not
 > affect the 250-row accounting.
 
