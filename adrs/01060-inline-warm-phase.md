@@ -125,11 +125,11 @@ Specifics settled here:
   context ordered before a pinned-browser context can now resolve the warm-installed engine as its
   default. It runs where it previously skipped.
 - Neutral: warm boots at most **one device per mobile platform**, the first. The android boot holds
-  a manual `android-emulator` lease from initiation until the boot settles. That lease is released
-  in the background, past the task's resolution. So the one-emulator-at-a-time bound holds across
-  warm and Phase 2. Additional devices boot inside their consuming contexts exactly as before. The first CI
-  run of this branch proved that overlapping emulator boots starve a small KVM runner, where four
-  concurrent boots timed out the very sessions the tests needed.
+  a manual `android-emulator` lease. It spans initiation to boot settle. Release happens in the
+  background, past the task's resolution. The one-emulator-at-a-time bound therefore holds across
+  warm and Phase 2 alike. Additional devices boot inside their consuming contexts as before. One CI
+  run of this branch proved a hazard. Overlapping emulator boots starve a small KVM runner. Four
+  concurrent boots timed out the sessions the tests needed.
 - Neutral: `doc-detective warm` (standalone CLI + cross-run ownership handoff, design phase B3)
   stays deferred; the fixtures.yml iOS pre-boot step is only fully retired by B3.
 
