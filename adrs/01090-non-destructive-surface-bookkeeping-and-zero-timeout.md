@@ -12,15 +12,15 @@ While auditing the active-surface routing layer (chasing the Windows
 `start-surface-parallel` failure tracked in
 [#696](https://github.com/doc-detective/doc-detective/issues/696)), three defects
 surfaced that are independent of that investigation. None was the cause of the
-Windows flake — that audit came back empty — but each is a real behavior bug or a
-latent one, and they share a theme: **state that is silently wrong is worse than
-state that fails loudly.**
+Windows flake, since that audit came back empty. But each is a real behavior bug,
+or a latent one. They share a theme: **state that is silently wrong is worse
+than state that fails loudly.**
 
 1. **`find: { timeout: 0 }` did not mean what it says on a browser surface.**
    [`findElement.ts`](../src/core/tests/findElement.ts) defaulted with
-   `step.find.timeout || 5000`, so an explicit `0` — a valid schema value — was
+   `step.find.timeout || 5000`. So an explicit `0`, a valid schema value, was
    clobbered to the 5-second default. The app path one screen above used
-   `?? 5000` with a comment stating that `timeout: 0` must stay an immediate
+   `?? 5000`, with a comment stating that `timeout: 0` must stay an immediate
    check. The same schema field therefore behaved differently depending on which
    surface kind the step resolved to.
 
@@ -32,12 +32,12 @@ state that fails loudly.**
 
 2. **`currentSurface` deleted live surfaces when a registry wasn't supplied.**
    [`activeSurface.ts`](../src/core/tests/activeSurface.ts) prunes dead handles
-   lazily and writes the result back (`tracker.mru = live`) — closes need no
+   lazily and writes the result back (`tracker.mru = live`). Closes need no
    tracker bookkeeping, which is a good design. But `isLive` returns `false` both
    for "this surface is gone" and for "you didn't give me the registry that would
-   tell me", and the prune is destructive. A caller that omitted a registry
-   permanently deleted that kind's live handles from shared per-context state,
-   breaking routing for every later step that *did* supply it.
+   tell me". The prune is also destructive. A caller that omitted a registry
+   permanently deleted that kind's live handles from shared per-context state.
+   That broke routing for every later step that *did* supply it.
 
    All four call sites (`findElement`, `saveScreenshot`, `swipe`, `typeKeys`)
    currently pass every registry, so nothing triggers this today. It is a trap
@@ -47,10 +47,11 @@ state that fails loudly.**
    [`startSurface.ts`](../src/core/tests/startSurface.ts) ignored
    `activateSession`'s `false` return in the array form's authored-order
    re-assert. A miss would leave `registry.activeName` pointing at the previous
-   session while the MRU tracker reported the new one — every later surface-less
-   step would act on the wrong browser, with no error anywhere. Not reachable
-   today (`openSession` registers under the name its outputs carry), so this is
-   defense against a future divergence rather than a fix for a live fault.
+   session, while the MRU tracker reported the new one. Every later surface-less
+   step would then act on the wrong browser, with no error anywhere. It's not
+   reachable today, since `openSession` registers under the name its outputs
+   carry. So this is defense against a future divergence, not a fix for a live
+   fault.
 
 ## Decision Drivers
 
@@ -59,7 +60,7 @@ state that fails loudly.**
 * Shared per-context state must not be corrupted by a caller that merely knows
   less than another caller.
 * An internal inconsistency should produce a diagnosable error, not a silently
-  wrong run — the Windows investigation lost time precisely to a failure that
+  wrong run. The Windows investigation lost time precisely to a failure that
   reported success at every step.
 * Changes must not alter behavior for the overwhelmingly common cases (positive
   timeouts, callers that supply every registry).
@@ -73,9 +74,9 @@ state that fails loudly.**
 
 ## Decision Outcome
 
-Chosen option: **fix all three, scoped so the common paths are untouched**,
-because each is cheap, independently testable, and reduces the class of failure
-that costs the most to debug — the silently wrong one.
+Chosen option: **fix all three, scoped so the common paths are untouched**.
+Each is cheap and independently testable. Each reduces the class of failure
+that costs the most to debug: the silently wrong one.
 
 Concretely:
 
@@ -84,9 +85,9 @@ Concretely:
    so `timeout: 0` performs exactly one immediate check. For any positive
    timeout the first iteration always ran, so nothing changes there.
 
-   The loop shape alone is not sufficient: every sleep site must also be guarded
+   The loop shape alone is not sufficient. Every sleep site must also be guarded
    by the deadline. A `do/while` that sleeps the poll interval *before*
-   re-evaluating its condition still turns "now" into "in 100ms", so each of the
+   re-evaluating its condition still turns "now" into "in 100ms". So each of the
    three sleep sites (including the empty-candidate `continue` path) returns
    early when the budget is already spent. A positive timeout that expires now
    also skips one final pointless sleep before giving up.
@@ -94,23 +95,24 @@ Concretely:
    supplied (`canAdjudicate`), and selects only among those. Unknown is no longer
    treated as dead. The lazy-prune contract is preserved: when the registry *is*
    supplied and the surface isn't in it, the handle is still dropped.
-3. The array-form re-assert checks `activateSession`'s return and, on a miss,
-   marks that descriptor `FAIL` with an explanatory message, which the existing
-   roll-up (`FAIL > SKIPPED > PASS`) surfaces on the step.
+3. The array-form re-assert checks `activateSession`'s return. On a miss it
+   marks that descriptor `FAIL` with an explanatory message. The existing
+   roll-up (`FAIL > SKIPPED > PASS`) surfaces that on the step.
 
 Note that "two sources of truth for the active surface" was considered and
 **rejected as a mischaracterization**: `registry.activeName` answers *which
 browser session*, while the MRU tracker answers *which surface kind is active*.
-They are different questions, and ADR 01081's rule — an omitted `surface` acts on
-the most recently active surface of any kind, and a step whose action that kind
-can't perform fails with a capability error — depends on both. No rework there.
+They are different questions, and ADR 01081's rule depends on both. That rule:
+an omitted `surface` acts on the most recently active surface of any kind. A
+step whose action that kind can't perform fails with a capability error. No
+rework there.
 
 ### Consequences
 
 * Good, because `timeout: 0` now means the same thing on every surface kind, and
   means something useful ("check once") rather than something degenerate.
 * Good, because a future `resolveTargetSurface` caller that forgets a registry
-  gets a step that can't route through that kind, instead of silently corrupting
+  gets a step that can't route through that kind. It no longer silently corrupts
   routing for the rest of the context.
 * Good, because an activation miss becomes a message naming the surface.
 * Bad, because `timeout: 0` on a browser find changes from "waits 5s, probably
@@ -137,10 +139,10 @@ red→green:
   to fail (`slept 100ms`) with any one of the three guards removed.
 * A handle survives a `currentSurface` call whose registry was not supplied, and
   is still routable to a caller that does supply it.
-* A handle whose registry *is* supplied and reports it gone is still pruned —
-  guarding the lazy-prune contract against regression.
+* A handle whose registry *is* supplied and reports it gone is still pruned. That
+  guards the lazy-prune contract against regression.
 * An array-form `startSurface` whose opened session can't be resolved by name
-  FAILs that descriptor and names the surface, instead of silently leaving the
+  FAILs that descriptor and names the surface. It no longer silently leaves the
   previous session active. Verified red with the guard removed. A companion case
   asserts a healthy open still PASSes and becomes active, so the guard can't fire
   on the normal path.
@@ -165,7 +167,7 @@ red→green:
 
 * Good, because it keeps unreachable-code changes out of the tree.
 * Bad, because both traps are one careless line away from becoming real, and both
-  fail silently — the most expensive failure mode, as #696 demonstrated.
+  fail silently. That's the most expensive failure mode, as #696 demonstrated.
 
 ### Rework routing to a single source of truth
 
@@ -180,8 +182,8 @@ red→green:
 
 None. No user-facing surface is added, changed, or removed: no step type, action
 option, config or CLI flag, engine, output format, supported platform, or
-integration. The one observable change — `find: { timeout: 0 }` on a browser
-surface — brings the runtime into line with what
+integration. There's one observable change, `find: { timeout: 0 }` on a browser
+surface. It brings the runtime into line with what
 [`find_v3.schema.json`](../src/common/src/schemas/src_schemas/find_v3.schema.json)
-already documents ("Max duration in milliseconds to wait for the element to
-exist", default `5000`), so the reference stays accurate as written.
+already documents: "Max duration in milliseconds to wait for the element to
+exist", default `5000`. The reference stays accurate as written.
