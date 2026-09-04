@@ -69,6 +69,16 @@ Five inputs carry the decision, and each is load-bearing:
 * The **`pull_request` trigger loses its `paths:` filter.** A check that is skipped on some PRs
   cannot be a required status check, and the job is seconds of runner time.
 
+A sixth input is about reliability rather than scope. The workflow takes a **`concurrency` group
+keyed on the PR number, with `cancel-in-progress: true`.** The `github-pr-review` reporter does not
+merely post comments, it owns them. Every run lists the comments reviewdog left previously and
+deletes the ones the current run no longer reports. Two runs on the same PR therefore prune the same
+comment set at once. The loser gets a `404` on a comment the winner already deleted, which reviewdog
+treats as fatal. Serializing the runs removes the race, and cancelling the superseded run
+also stops a rapid-push branch from queueing runs whose results nobody will read. Required status
+checks are evaluated against the head commit, so cancelling a run on an older commit does not leave
+the PR blocked.
+
 The glob excludes two trees. The generated schema reference pages stay excluded, as before. Those
 are generated from JSON Schema descriptions, and mdx2vast has produced a hard `E100` parse error on
 their tables that `fail_on_error` cannot downgrade. `docs/.vale.ini` already clears every style for
@@ -113,9 +123,14 @@ appears once the lint covers the repository.
   on ba882f8c. With it the run is clean. Linting a filtered file list from the working tree hid
   this, because the filter dropped `docs/.vale/` and `node_modules` was present. Reproduce the CI
   invocation, not an approximation of it.
+* The `concurrency` group is red→green against the observed failure. On this decision's own PR, the
+  run for `c28bb334` started while the run for `d07ca1f7` was still in its delete phase. The two
+  overlapped by about a minute. Vale itself emitted `{}`, zero alerts, and the check still failed on
+  `failed to delete comment (id=3931020853): 404 Not Found`. That overlap is exactly what the group
+  prevents.
 * [test/vale-workflow.test.js](../test/vale-workflow.test.js) pins the new contract. It asserts
   `files: all`, `fail_on_error: true`, `filter_mode: nofilter`, and `--minAlertLevel=error` on the
-  "Run vale" step. It also asserts that no `changed-files` step or `separator` input survives, and
+  "Run vale" step, plus a per-PR `concurrency` group with `cancel-in-progress: true`. It also asserts that no `changed-files` step or `separator` input survives, and
   that the `pull_request` trigger carries no `paths:` filter. Finally, it re-implements
   vale-action's `lib/input.js` resolution to show that `all` resolves to `.`, the whole-repo
   argument.

@@ -6,6 +6,20 @@ permissions:
   contents: read
   pull-requests: write
 
+# One vale run per PR at a time. The github-pr-review reporter doesn't just post
+# comments, it owns them: every run lists the comments reviewdog left before and
+# deletes the ones the current run no longer reports. Two runs racing on the same
+# PR therefore prune the same comment set concurrently, and the loser gets a 404
+# on a comment the winner already deleted, which reviewdog treats as fatal. That
+# failed the check on c28bb334, whose run started while the previous commit's was
+# still in its delete phase. Cancelling the superseded run also keeps a
+# rapid-push branch from queueing runs whose results nobody will read. Required
+# status checks are evaluated against the head SHA, so cancelling a run on an
+# older SHA doesn't leave the PR blocked.
+concurrency:
+  group: vale-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   vale:
     runs-on: ubuntu-latest

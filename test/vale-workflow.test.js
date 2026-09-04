@@ -112,6 +112,20 @@ describe("vale workflow whole-repo gate", function () {
       );
     });
 
+    it("serializes runs so reviewdog cannot race itself", function () {
+      // github-pr-review owns the comments it posts: each run deletes the ones
+      // the current run no longer reports. Two runs pruning the same set
+      // concurrently make the loser 404 on an already-deleted comment, which
+      // reviewdog treats as fatal. That failed the check on c28bb334.
+      assert.ok(workflow.concurrency, "concurrency block missing");
+      assert.equal(workflow.concurrency["cancel-in-progress"], true);
+      assert.match(
+        String(workflow.concurrency.group),
+        /pull_request\.number/,
+        "the group must be per-PR, not per-workflow"
+      );
+    });
+
     it("runs on every pull request", function () {
       // A check that is skipped on some PRs cannot be a required status check.
       assert.ok("pull_request" in workflow.on, "pull_request trigger missing");
