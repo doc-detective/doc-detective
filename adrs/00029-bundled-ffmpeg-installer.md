@@ -33,8 +33,8 @@ binary and exposes a resolvable path, eliminating the `PATH` requirement. The re
 the binary via `require("@ffmpeg-installer/ffmpeg").path` instead of assuming a system ffmpeg
 (commit `3fd29eca`).
 
-The same decision was re-applied later at a different layer: when the runtime was reorganized, the
-`@ffmpeg-installer/ffmpeg` dependency was re-bundled at the **wrapper** level so recording works
+The same decision was re-applied later at a different layer. When the runtime was reorganized, the
+`@ffmpeg-installer/ffmpeg` dependency was re-bundled at the **wrapper** level. Recording then works
 without system ffmpeg there too (commit `f764c49a`). The two together establish "ffmpeg is always
 bundled, never assumed on PATH" as the durable contract.
 

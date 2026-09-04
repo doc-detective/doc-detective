@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When a user clones the Doc Detective repository and runs the CLI from inside it before installing dependencies, the run fails deep in module resolution with an opaque error. The friendlier behavior is to detect the missing `node_modules` up front and offer to install. How should the CLI handle being run inside its own repo with dependencies not yet installed?
+When a user clones the Doc Detective repository and runs the CLI from inside it before installing dependencies, the run fails. It fails deep in module resolution, with an opaque error. The friendlier behavior is to detect the missing `node_modules` up front and offer to install. How should the CLI handle being run inside its own repo with dependencies not yet installed?
 
 ## Decision Drivers
 
@@ -30,7 +30,7 @@ Chosen option: **A**. `src/checkDependencies.js` runs before the main flow: if e
 ### Consequences
 
 * Good: clear, actionable prompt instead of a deep require failure.
-* Good: user keeps control — install or abort.
+* Good: user keeps control, to install or abort.
 * Neutral: adds an interactive prompt only on the in-repo no-deps path.
 * Bad: relies on a TTY for the readline prompt.
 

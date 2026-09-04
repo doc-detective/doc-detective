@@ -32,9 +32,10 @@ shareable, redacted diagnostic bundle on demand?
 
 Chosen option: **A**, because environment diagnostics are a distinct concern from step-through
 debugging and deserve their own command with deliberate redaction. The `doc-detective debug`
-subcommand (also triggered by `DOC_DETECTIVE_DEBUG=true`) writes a redacted diagnostic dump to
-`.doc-detective/debug-<ts>.{txt,json}` with cache, install, network, Appium, and provenance sections;
-the schema `debug` field is deprecated (commits `e4171311`, PR #336; `5a9344c5`, PR #347).
+subcommand, also triggered by `DOC_DETECTIVE_DEBUG=true`, writes a redacted diagnostic dump to
+`.doc-detective/debug-<ts>.{txt,json}`. That dump carries cache, install, network, Appium, and
+provenance sections. The schema `debug` field is deprecated (commits `e4171311`, PR #336;
+`5a9344c5`, PR #347).
 
 ### Consequences
 

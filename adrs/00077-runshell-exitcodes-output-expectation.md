@@ -8,9 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`runShell` could fail on a non-zero exit (`00074` had already stopped it failing on stderr), but it
-could not assert *which* exit codes count as success, nor check the command's textual output, nor
-feed that output into a variable for later steps. Documentation often shows a command and its
+`runShell` could fail on a non-zero exit; `00074` had already stopped it failing on stderr. But it
+could not assert *which* exit codes count as success. It could not check the command's textual
+output, nor feed that output into a variable for later steps. Documentation often shows a command
+and its
 expected output, so the step needed to assert on output and capture values. Likewise `find` had no
 way to capture an element's text into a variable. What expectation and capture contract should
 `runShell` (and `find`) expose?
@@ -34,11 +35,11 @@ way to capture an element's text into a variable. What expectation and capture c
 Chosen option: **A** (`common` `1ea040a`, `370dac7`, `9c96fde`, `4bcd256`; `core` `2a65d013`,
 `37d86cee`):
 
-1. **`exitCodes`** — array of acceptable exit codes, default `[0]`.
-2. **`output` / `stdio`** — an expectation matched against the command's output, given as a literal
+1. **`exitCodes`** is an array of acceptable exit codes, defaulting to `[0]`.
+2. **`output` / `stdio`** is an expectation matched against the command's output, given as a literal
    string or a `/regex/`.
-3. **`setVariables`** — captures from the command output into environment variables for later steps.
-4. **`find.setVariables`** — symmetrically, captures a found element's text into an environment
+3. **`setVariables`** captures from the command output into environment variables for later steps.
+4. **`find.setVariables`** symmetrically captures a found element's text into an environment
    variable.
 
 ## Pros and Cons of the Options

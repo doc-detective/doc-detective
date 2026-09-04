@@ -9,8 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The v1 step vocabulary (`00040`) used an `action` **enum** to distinguish step types and kept
-identity/metadata sparse. As the step set grew, each step type needed to be its own schema that
-pins its single action, carries its own inline identity, and normalizes its fields the same way.
+identity/metadata sparse. As the step set grew, each step type needed to be its own schema. That
+schema pins its single action, carries its own inline identity, and normalizes its fields the same
+way.
 We also needed to bring the existing actions and several new ones under one coherent v2 family with
 shared conventions. What does a v2 step schema look like, and which steps does the family include?
 
@@ -30,9 +31,10 @@ shared conventions. What does a v2 step schema look like, and which steps does t
 
 ## Decision Outcome
 
-Chosen option: **A**. The v2 era replaces the `action` **enum** with a per-step **`const`** so each
-schema fixes exactly one action; adds inline `id` (uuid via `dynamicDefaults.id`) and `description`;
-and applies `transform: ["trim"]` to normalize string fields. The family is merged in one pass
+Chosen option: **A**. The v2 era replaces the `action` **enum** with a per-step **`const`**, so each
+schema fixes exactly one action. It adds inline `id` (uuid via `dynamicDefaults.id`) and
+`description`. It applies `transform: ["trim"]` to normalize string fields. The family is merged in
+one pass
 (PR #3) covering `checkLink`, `goTo`, `httpRequest`, and `runShell`, with `find` reshaped
 (`wait{duration}` → flat `timeout`, default 500; `moveMouse` → `moveTo` boolean; `matchText` → a
 plain string). New v2 steps are authored alongside: `typeKeys_v2`, `wait_v2`, `saveScreenshot_v2`,

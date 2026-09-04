@@ -11,8 +11,9 @@ decision-makers: doc-detective maintainers
 Starting a browser/Appium driver is the most expensive part of a run, yet many tests (a `runShell`,
 an `httpRequest`, a `checkLink`) never touch a browser at all. Launching a driver for those tests
 wastes time and can fail on machines with no browser installed. Separately, tests and steps need
-stable identities (a generated id when none is declared) and a default set of contexts to run in
-when the author specifies none. How do we decide *when* a driver is required, and how do tests get
+stable identities, meaning a generated id when none is declared. They also need a default set of
+contexts to run in when the author specifies none. How do we decide *when* a driver is required,
+and how do tests get
 their default identity and contexts?
 
 ## Decision Drivers
@@ -31,9 +32,10 @@ their default identity and contexts?
 ## Decision Outcome
 
 Chosen option: **A**, because driver-need is derivable from the test's own shape, and deriving it
-keeps the contract zero-config. A driver is started only when `isDriverRequired` is true — the test
-declares contexts, or at least one step uses a driver action (`driverActions`); architecture is read
-via `os.arch()` so the right driver is chosen. For identity, each step is assigned a generated uuid
+keeps the contract zero-config. A driver is started only when `isDriverRequired` is true. That holds
+when the test declares contexts, or when at least one step uses a driver action (`driverActions`).
+Architecture is read via `os.arch()`, so the right driver is chosen. For identity, each step is
+assigned a generated uuid
 when it has no declared `id`. For contexts, `getDefaultContexts()` derives defaults from
 `runTests.contexts` filtered by platform/driver support, falling back to `["chrome","firefox"]` when
 nothing else applies.

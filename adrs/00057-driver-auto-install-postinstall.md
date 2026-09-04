@@ -10,10 +10,10 @@ decision-makers: doc-detective maintainers
 
 Running browser tests through Appium requires the gecko (Firefox) and chromium browser drivers to be
 present. Requiring users to install these manually was a setup cliff that broke the "install and run"
-promise. A `postinstall` hook could provision the drivers automatically, but it needed to skip work
-when drivers were already present and behave correctly inside containers (where assumptions about
-interactivity and paths differ). Should driver provisioning happen automatically at install time, and
-how should it detect that it is running in a container?
+promise. A `postinstall` hook could provision the drivers automatically. But it needed to skip work
+when drivers were already present. It also had to behave correctly inside containers, where
+assumptions about interactivity and paths differ. Should driver provisioning happen automatically at
+install time, and how should it detect that it is running in a container?
 
 ## Decision Drivers
 
@@ -40,7 +40,7 @@ postinstall rather than re-implementing it.
 ### Consequences
 
 * Good: browser drivers present after a normal install; no manual setup.
-* Good: idempotent — present drivers are not reinstalled.
+* Good: idempotent, so present drivers are not reinstalled.
 * Good: container-aware via `inContainer()`.
 * Bad: postinstall network/disk activity surprises some environments; later reworked toward lazy/JIT provisioning.
 

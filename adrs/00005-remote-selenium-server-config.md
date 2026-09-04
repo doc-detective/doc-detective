@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-In the Selenium-driven era the runner launched a browser locally, but some users run tests against a remote Selenium grid or a containerized browser rather than a browser on the local machine. The commit `f4d28e35` (2022-04-27) added a `seleniumServer` config field (defaulting to an empty string) holding a remote Selenium driver URL. How should the tool let users target a remote browser driver instead of a local one?
+In the Selenium-driven era the runner launched a browser locally. But some users run tests against a remote Selenium grid, or a containerized browser, rather than one on the local machine. The commit `f4d28e35` (2022-04-27) added a `seleniumServer` config field (defaulting to an empty string) holding a remote Selenium driver URL. How should the tool let users target a remote browser driver instead of a local one?
 
 ## Decision Drivers
 
@@ -24,7 +24,7 @@ In the Selenium-driven era the runner launched a browser locally, but some users
 
 ## Decision Outcome
 
-Chosen option: **a `seleniumServer` URL config field**, because a single declarative URL is the simplest way to redirect the WebDriver connection, and an empty default preserves local behavior.
+Chosen option: **a `seleniumServer` URL config field**. A single declarative URL is the simplest way to redirect the WebDriver connection, and an empty default preserves local behavior.
 
 Behavior decided:
 

@@ -39,8 +39,8 @@ Chosen option: **A**, across two inventory rows:
    `runCoverage.output`, falling back to the global `output`; result files are written as
    `${type}-${Date.now()}.json`.
 2. **Auto-loaded config** (`doc-detective`, commit `0602caa7`): if `.doc-detective.json` exists in
-   CWD it is loaded and then **CLI args overlay it** (precedence file → args), so a project config is
-   picked up automatically while flags still win.
+   CWD it is loaded, and then **CLI args overlay it** (precedence file → args). A project config is
+   picked up automatically, while flags still win.
 
 ## Pros and Cons of the Options
 
@@ -72,4 +72,4 @@ auto-load via `fs.existsSync` → `setConfig` (`0602caa7`).
 
 Recorded retrospectively (ADR backfill). Origin: doc-detective commits `2a46f67c`…`21b3e78d`,
 `0602caa7`. Inventory ref: BACKFILL-INVENTORY.md Seq 108, 111. Related: `00035` (coverage feature),
-`00108` (3.0.0 wrapper redesign — runTests-only).
+`00108` (3.0.0 wrapper redesign, runTests-only).

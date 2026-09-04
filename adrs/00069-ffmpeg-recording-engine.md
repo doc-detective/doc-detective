@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Doc Detective records browser walkthroughs into video. An early attempt drove recording through
-OBS via its websocket interface, but that path was scaffolded and then disabled/commented out and
-never shipped — OBS is a heavy external GUI dependency that is awkward to install and automate.
+OBS via its websocket interface. But that path was scaffolded, then disabled, and never shipped.
+OBS is a heavy external GUI dependency that is awkward to install and automate.
 Recording still needed to work headlessly-aware and crop to the browser viewport, with cursor
 movement visible in the output. What engine should drive recording, and how should capture and cursor
 overlay behave?
@@ -32,7 +32,7 @@ overlay behave?
 
 Chosen option: **A**, because FFmpeg is a single bundleable binary with no GUI, and desktop capture
 plus viewport cropping gives a portable recording path. The OBS-websocket scaffold (`startRecording`/
-`stopRecording` wired to OBS, recording actions stubbed out of `driverActions`) is abandoned —
+`stopRecording` wired to OBS, recording actions stubbed out of `driverActions`) is abandoned.
 **OBS never shipped**. Recording pivots to **FFmpeg**: `gdigrab` desktop capture cropped to the
 browser viewport (using `devicePixelRatio`, with even-number rounding for the crop dimensions).
 Firefox and headless contexts hit SKIP guards. `moveTo` draws an in-page cursor overlay that is

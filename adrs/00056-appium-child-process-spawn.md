@@ -12,8 +12,8 @@ After the pivot to Appium/WebdriverIO drivers (ADR 00042), the runner needed an 
 process alongside each run. Running Appium in-process tangled its lifecycle with the runner's and
 risked orphaned processes that survived the run and held ports. Appium also spawns child processes of
 its own, so a naive kill could leave a subtree alive. How should the runner start and stop Appium so
-it is reliably torn down, including on Windows, and so the same code works whether running from source
-or from an installed module?
+it is reliably torn down, including on Windows? And how does the same code work whether running from
+source or from an installed module?
 
 ## Decision Drivers
 

@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The `find` step (v2) could click an element it located, but always issued a left click — there was no way to express a right- or middle-click against a found element. Separately, the test `context` had no way to declare the browser viewport size, so layout-sensitive procedures and screenshots could not pin a width/height. What contract should express the mouse button for a find-driven click, and how should a context declare viewport dimensions?
+The `find` step (v2) could click an element it located, but always issued a left click. There was no way to express a right- or middle-click against a found element. Separately, the test `context` had no way to declare the browser viewport size. Layout-sensitive procedures and screenshots could not pin a width or height. What contract should express the mouse button for a find-driven click, and how should a context declare viewport dimensions?
 
 ## Decision Drivers
 

@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The v3 redesign re-keyed steps (`00096`) and contexts (`00098`); the config file contract (`config_v2`) needed to follow. v2 config carried separate `markupToInclude`-style fields and a fixed fileType shape, which didn't accommodate the new integrations or the inline-statement detection model. What should the v3 config contract look like — how are inputs, file types, inline statements, and integrations expressed?
+The v3 redesign re-keyed steps (`00096`) and contexts (`00098`); the config file contract (`config_v2`) needed to follow. v2 config carried separate `markupToInclude`-style fields and a fixed fileType shape, which didn't accommodate the new integrations or the inline-statement detection model. What should the v3 config contract look like? How are inputs, file types, inline statements, and integrations expressed?
 
 ## Decision Drivers
 
