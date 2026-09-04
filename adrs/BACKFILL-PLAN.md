@@ -245,11 +245,12 @@ absorbed inventory row.
 > The remaining inventory **Borderline** rows are resolved this way. `82f2b02d` (stopRecording
 > signature reshuffle), `9f79f904` (outputResults async→sync) and the `3dc533`
 > capture-group churn are **folded** into their parent ADRs (`00031`/`00084`/`00081`).
-> Meanwhile the Mocha migration, the `98e8317c` net-no-op markup churn, the
-> `npm-publish.yml` docker-dispatch step, the split-Windows-base/multi-arch image,
-> the runtime-dep majors, and the `cacheDir`/message-text refactors are **excluded**
-> exactly as the inventory's "Borderline" table leans (test-infra / net-no-op /
-> CI / dep / cosmetic). None of these carry an inventory `Seq`, so they do not
+> Several others are **excluded**, exactly as the inventory's "Borderline" table
+> leans (test-infra / net-no-op / CI / dep / cosmetic). Those are the Mocha
+> migration, the `98e8317c` net-no-op markup churn, the `npm-publish.yml`
+> docker-dispatch step, the split-Windows-base/multi-arch image, the runtime-dep
+> majors, and the `cacheDir`/message-text refactors.
+> None of these carry an inventory `Seq`, so they do not
 > affect the 250-row accounting.
 
 ---
