@@ -105,6 +105,7 @@ import {
   type ActiveSurfaceTracker,
 } from "./tests/activeSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
+import { GECKODRIVER_EXECUTABLE_ARGS } from "./tests/geckoDriver.js";
 import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
@@ -372,6 +373,18 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         "appium:newCommandTimeout": 600, // 10 minutes
         browserName: "MozillaFirefox",
         "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+        // Pin the geckodriver Doc Detective manages. appium-geckodriver
+        // resolves its binary from this capability or `which geckodriver` and
+        // nothing else, so without it the managed install in the browsers cache
+        // (version-suffixed, off PATH) can never be used — Firefox then only
+        // works where some other geckodriver happens to be on PATH, which is
+        // why containers fail and GitHub-hosted runners don't. The pool's
+        // servers always carry GECKODRIVER_EXECUTABLE_ARGS, which is what makes
+        // this insecure-gated capability legal to send. Omitted when no path
+        // was resolved, leaving the PATH lookup as the Layer 4 fallback.
+        ...(firefox.driver
+          ? { "appium:geckodriverExecutable": firefox.driver }
+          : {}),
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
           args,
@@ -1837,7 +1850,19 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           xvfbProcesses.push(await startXvfb(display));
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
-        const server = await spawnAppiumServer(appiumEntry, config, display);
+        // Every desktop pool server allows the geckodriver-path insecure
+        // feature, not just the ones a Firefox context lands on: these servers
+        // are shared across contexts and cross-browser fallback can route a
+        // chrome-authored context to Firefox mid-run, so gating the flag on the
+        // run's authored browsers would leave the capability illegal exactly
+        // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+        const server = await spawnAppiumServer(
+          appiumEntry,
+          config,
+          display,
+          undefined,
+          GECKODRIVER_EXECUTABLE_ARGS
+        );
         appiumServers.push(server);
         const wait = appiumIsReady(server.port);
         // Attach a no-op catch so that once Promise.all rejects on the FIRST

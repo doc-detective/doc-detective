@@ -8,6 +8,7 @@ import {
   warmUpDecision,
   contextRequirementsSkipMessage,
 } from "../dist/core/tests.js";
+import { GECKODRIVER_EXECUTABLE_ARGS } from "../dist/core/tests/geckoDriver.js";
 import { resolveContexts } from "../dist/core/resolveTests.js";
 import { findFreePort } from "../dist/core/utils.js";
 
@@ -443,6 +444,51 @@ describe("getDriverCapabilities", function () {
     assert.equal(caps.browserName, "Safari");
   });
 
+  // Firefox: appium-geckodriver resolves its binary from the
+  // `geckodriverExecutable` capability or, failing that, PATH. Doc Detective
+  // manages its own geckodriver in the browsers cache, which is not on PATH,
+  // so the capability is the only way a managed install ever gets used.
+  const firefoxRunner = {
+    environment: { platform: "linux" },
+    availableApps: [
+      {
+        name: "firefox",
+        path: "/opt/firefox/firefox",
+        driver: "/opt/dd/browsers/geckodriver-0.37.1",
+      },
+    ],
+  };
+
+  it("points firefox at the managed geckodriver binary", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: firefoxRunner,
+      name: "firefox",
+      options,
+    });
+    assert.equal(caps.browserName, "MozillaFirefox");
+    assert.equal(
+      caps["appium:geckodriverExecutable"],
+      "/opt/dd/browsers/geckodriver-0.37.1"
+    );
+  });
+
+  it("omits the geckodriver capability when no driver path was resolved", function () {
+    // Layer 4 degradation: with no resolvable binary the session falls back to
+    // whatever `geckodriver` is on PATH, exactly as before this capability
+    // existed. Emitting an empty/undefined value instead would be a hard
+    // SessionNotCreatedError.
+    const caps = getDriverCapabilities({
+      runnerDetails: {
+        environment: { platform: "linux" },
+        availableApps: [{ name: "firefox", path: "/opt/firefox/firefox" }],
+      },
+      name: "firefox",
+      options,
+    });
+    assert.equal(caps.browserName, "MozillaFirefox");
+    assert.ok(!("appium:geckodriverExecutable" in caps));
+  });
+
   it("does not pin a fixed chromedriver port in chrome capabilities", function () {
     // The chromedriver port must be assigned per-driver (a unique free port),
     // never baked into the caps at a fixed default. Two concurrent browser
@@ -454,6 +500,32 @@ describe("getDriverCapabilities", function () {
       options,
     });
     assert.equal(caps["appium:chromedriverPort"], undefined);
+  });
+});
+
+describe("GECKODRIVER_EXECUTABLE_ARGS", function () {
+  // `geckodriverExecutable` is an Appium *insecure* feature, so the server has
+  // to opt in by name. A wrong value here doesn't fail loudly at startup —
+  // Appium accepts any well-formed `<scope>:<feature>` string — it fails every
+  // Firefox session later with SessionNotCreatedError.
+  it("opts in to exactly one named feature, never relaxed security", function () {
+    assert.deepEqual(GECKODRIVER_EXECUTABLE_ARGS, [
+      "--allow-insecure",
+      "*:custom_geckodriver_executable",
+    ]);
+    assert.ok(!GECKODRIVER_EXECUTABLE_ARGS.includes("--relaxed-security"));
+  });
+
+  it("uses the wildcard driver scope, which is the only one that matches", function () {
+    // Not a style choice, and not what appium-geckodriver's own docs say.
+    // `isFeatureEnabled` matches the scope against `opts.automationName`, but
+    // geckodriver's `validateDesiredCaps` runs before BaseDriver assigns
+    // `opts`, so `gecko:` compares against undefined and never matches.
+    // Verified end-to-end against the container image: `gecko:` is rejected,
+    // `*:` creates the session.
+    const [, feature] = GECKODRIVER_EXECUTABLE_ARGS;
+    assert.equal(feature.split(":")[0], "*");
+    assert.equal(feature.split(":")[1], "custom_geckodriver_executable");
   });
 });
 

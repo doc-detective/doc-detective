@@ -1,0 +1,22 @@
+{
+  "specId": "firefox-managed-geckodriver",
+  "description": "Guard against a silent cross-browser fallback masking a broken Firefox driver. Every other fixture inherits the default firefox-headless contexts but asserts nothing about the engine that actually carried the context, so a geckodriver Doc Detective can't launch used to degrade to Chrome and still report PASS — which is how the container image shipped with Firefox unusable on every architecture (ADR 01098). Asserting the live user agent makes that fallback a FAIL instead. Where no browser is available at all the context is SKIPPED, as everywhere else.",
+  "tests": [
+    {
+      "testId": "firefox-context-runs-on-firefox",
+      "description": "A firefox context must be carried by Firefox itself, not by a fallback engine.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "description": "Gecko is the only engine whose user agent carries the `Firefox/<version>` token. A fallback to Chrome (or any other engine) fails this assertion rather than passing quietly.",
+          "runBrowserScript": {
+            "script": "return navigator.userAgent;",
+            "output": "/Firefox\\/\\d+/"
+          }
+        }
+      ]
+    }
+  ]
+}
