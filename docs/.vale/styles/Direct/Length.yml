@@ -1,0 +1,7 @@
+# Extends the vendored Std.Readability.SentenceLength (Moose/styles/Std), so
+# a consumer can retune it through either name, and the Std rule stays the
+# single source of the sentence-length machinery.
+extends: Std.Readability.SentenceLength
+message: "Sentence runs to %d words. Split it."
+level: error
+max: 25

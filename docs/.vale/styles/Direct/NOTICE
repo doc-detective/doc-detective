@@ -1,0 +1,55 @@
+Moose Vale package
+Copyright (c) 2026 Manny Silva
+
+------------------------------------------------------------------------------
+Vale Voices
+------------------------------------------------------------------------------
+
+The rules under Moose/styles/Voices/ and Moose/styles/Direct/ are copied from
+Vale Voices (https://github.com/jdkato/voices), Copyright (c) 2026 Joseph Kato
+and contributors, licensed under the MIT License. They were taken from commit
+511491f9d65c (2026-09-03). Moose changes, each marked in the rule file:
+
+  Voices/BinaryContrast.yml  bounded clause allows punctuation, never a newline
+  Voices/ColonReveal.yml     horizontal whitespace only, no cross-line matches
+  Voices/InflatedWords.yml   capitalize: true so auto-fixes keep the case
+  Voices/WeakVerbs.yml       one replacement per inflection, always grammatical
+
+The copies of this file under Moose/styles/Voices/ and Moose/styles/Direct/
+are kept identical to it; CI checks that.
+
+Vale Voices carries the following notices, reproduced here because the
+copied rules derive from those works.
+
+no-ai-slop: This product includes rule definitions derived from no-ai-slop
+(https://github.com/petergyang/no-ai-slop), Copyright (c) 2026 Peter Yang,
+licensed under the MIT License. The word list split across Voices/Banned.yml
+and Voices/InflatedWords.yml, and the patterns in Voices/BinaryContrast.yml,
+Voices/ThroatClearing.yml, Voices/Puffery.yml, Voices/Weasel.yml,
+Voices/Recap.yml, Voices/SuperficialAnalysis.yml, Voices/ColonReveal.yml and
+Voices/WeakVerbs.yml were transcribed from that project's SKILL.md.
+
+awesome-claude-output-styles: This product includes voice definitions shaped
+after the output styles catalogued in awesome-claude-output-styles
+(https://github.com/smixs/awesome-claude-output-styles), Copyright (c) 2026
+Serge Shima, licensed under the MIT License. Direct takes the constraint its
+entry describes, a sentence budget, and states it as a Vale rule.
+
+------------------------------------------------------------------------------
+Std
+------------------------------------------------------------------------------
+
+The rules under Moose/styles/Std/ are copied from Vale's standard library
+(https://github.com/vale-cli/Std), Copyright (c) 2026 Joseph Kato and
+contributors, licensed under the MIT License, release v0.1.0 (2026-09-02).
+Std's LICENSE (the full MIT text) and NOTICE ship beside the rules in
+Moose/styles/Std/. That NOTICE records the MIT-licensed Vale styles each
+rule was extracted from: errata-ai/Google and errata-ai/Microsoft
+(Copyright (c) Joseph Kato) and errata-ai/IBM
+(https://github.com/errata-ai/IBM, MIT). Std.Readability.SentenceLength,
+which Direct/Length.yml extends, comes from errata-ai/IBM. Moose change:
+
+  Std/Usage/GenderedTerms.yml  removed a stray `name: replace` swap entry that
+                               flagged every occurrence of the word "name"
+  Std/Usage/GenderedTerms.yml  `door(?:m[ae]|wom[ae]n)` lacked the final `n`,
+                               so "doorman" never matched; fixed

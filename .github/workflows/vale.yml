@@ -4,8 +4,8 @@ on:
     paths:
       - '**.mdx'
       - '**.md'
-      - '.vale/**'
-      - '.vale.ini'
+      - 'docs/.vale/**'
+      - 'docs/.vale.ini'
       - '!**/changelog/**'
 
 permissions:
@@ -43,9 +43,11 @@ jobs:
           # files the PR never touched.
           json: true
           escape_json: false
+          # Every Markdown file in the repo is held to the house voice (see
+          # docs/.vale.ini), not only the Fern pages.
           files: |
-            docs/fern/**/*.md
-            docs/fern/**/*.mdx
+            **/*.md
+            **/*.mdx
           # Generated schema reference pages are excluded here and again via --glob
           # below; see the note on the Run vale step for why they can't be parsed.
           files_ignore: |
@@ -53,12 +55,13 @@ jobs:
             docs/fern/pages/reference/schemas/**
 
       - name: Run vale
-        uses: errata-ai/vale-action@d89dee975228ae261d22c15adcd03578634d429c #v2.1.1 - branch `reviewdog`
+        uses: vale-cli/vale-action@518a9136acc6e6668ce7c00d367051e0941e87ff #v3.0.0
         if: steps.changed-files.outputs.any_changed == 'true'
         with:
           # A JSON array of changed paths; see the note on the step above.
           files: ${{ steps.changed-files.outputs.all_changed_files }}
-          version: 3.13.0
+          # Voices (pulled in by the Moose package) needs Vale >= 3.20.0.
+          version: 3.20.0
           # Exclude the generated schema reference pages. Vale parses .mdx through
           # mdx2vast, whose MDX pipeline doesn't treat GFM tables as tables — the
           # whole fields table collapses into one paragraph, backtick code spans
