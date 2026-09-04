@@ -48,3 +48,29 @@ describe("container smoke test: assertRunOutcome", function () {
     assert.throws(() => assertRunOutcome(null), /summary/i);
   });
 });
+
+describe("container smoke test: assertRunOutcome rejects an untrustworthy summary", function () {
+  // The gate decides whether an image ships, and it reads a JSON file written by
+  // a process that just crashed in every scenario it exists to catch. A `fail`
+  // count it can't trust must not be coerced to 0 — with any passing spec that
+  // would turn a broken run green.
+  const withFail = (fail) => ({ summary: { specs: { pass: 1, fail, skipped: 0 } } });
+
+  it("rejects a missing fail count", function () {
+    assert.throws(() => assertRunOutcome(withFail(undefined)), /fail count/i);
+  });
+
+  it("rejects a non-numeric fail count", function () {
+    assert.throws(() => assertRunOutcome(withFail("some")), /fail count/i);
+    assert.throws(() => assertRunOutcome(withFail(NaN)), /fail count/i);
+  });
+
+  it("rejects a negative or fractional fail count", function () {
+    assert.throws(() => assertRunOutcome(withFail(-1)), /fail count/i);
+    assert.throws(() => assertRunOutcome(withFail(1.5)), /fail count/i);
+  });
+
+  it("still accepts a well-formed zero", function () {
+    assert.doesNotThrow(() => assertRunOutcome(withFail(0)));
+  });
+});

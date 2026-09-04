@@ -89,9 +89,13 @@ Chosen option: **A**, in three parts.
    deliberately narrow:
    * Linux/ELF only. macOS runs x86-64 binaries on arm64 through Rosetta 2 and Windows on ARM
      emulates x64, so a mismatch there proves nothing.
-   * Only architectures with an unambiguous `e_machine` mapping produce a verdict.
-   * A non-ELF image, a truncated header, an unreadable file, or an unmapped architecture yields no
-     verdict, and the pre-existing execute-and-report path still runs.
+   * A verdict needs the *host* architecture to be in the `e_machine` table. When it isn't, there is
+     nothing to compare against and the helper stays silent. An unmapped value in the *binary's*
+     `e_machine` is the opposite case: the host is known, so the mismatch is proven, and the image is
+     refused under a generic `ELF machine 0x…` label.
+   * A non-ELF image, a truncated header, a header whose `EI_DATA` declares no valid byte order, an
+     unreadable file, or an unmapped host architecture all yield no verdict, and the pre-existing
+     execute-and-report path still runs.
 2. **`driverExecOptions`** pins the driver probe's `cwd` to the OS temp directory. This is defense in
    depth for the ENOEXEC cases the header check cannot predict (a well-formed but truncated image, a
    missing dynamic loader): if a shell does end up interpreting the binary, its redirections land in
@@ -143,9 +147,10 @@ mode `+x`.
 ### Confirmation
 
 * **Red→green unit tests.** `test/runtime-browsers.test.js`: `foreignExecutableImageReason` flags an
-  x86-64 ELF on `linux/arm64`, accepts a matching image, and stays silent for non-ELF images, off
-  Linux, and for unmapped architectures; `verifyDriverBinary` refuses a foreign image **and the
-  injected `exec` is asserted never to have been called**; an unreadable header falls open to the
+  x86-64 ELF on `linux/arm64`, accepts a matching image, decodes a big-endian header in its own byte
+  order, and stays silent for non-ELF images, off Linux, for an unmapped host architecture, and for a
+  header whose `EI_DATA` declares no byte order; `verifyDriverBinary` refuses a foreign image **and
+  the injected `exec` is asserted never to have been called**; an unreadable header falls open to the
   spawn path. `driverExecOptions` pins `cwd` to the temp dir.
 * **Red→green regression test for the crash.** `test/detecttests-qualify-coverage.test.js` creates a
   directory entry whose raw name is not valid UTF-8 alongside a valid spec. Before the fix this
@@ -155,7 +160,8 @@ mode `+x`.
   built there); verified red then green by running the file under `node:22-slim`.
 * **Gate rule unit test.** `test/container-run-outcome.test.js` covers `assertRunOutcome`: accepts an
   arm64-shaped run (some passed, browser specs skipped), rejects any failure, rejects an all-skipped
-  run, rejects a missing summary.
+  run, rejects a missing summary, and rejects a `fail` count that is missing, non-numeric, negative,
+  or fractional rather than coercing it to zero.
 * **End-to-end.** The published Linux image, with the built `dist` mounted over it and its
   chromedriver's ELF `e_machine` patched to an unhandled value to force ENOEXEC: the driver is
   refused by the header check, `/app` gains no shell-created entries, and the run completes with

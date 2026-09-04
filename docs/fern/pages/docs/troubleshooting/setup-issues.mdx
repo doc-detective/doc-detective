@@ -149,7 +149,9 @@ You have three options:
 - Run the `linux/amd64` container image under emulation.
 - Use a browser whose driver ships for your architecture.
 
-Doc Detective marks contexts that need the unavailable browser as `SKIPPED`. The rest of the run still executes and still gates your build, including shell steps, HTTP requests, and link checks.
+Contexts that need the unavailable browser follow the same fallback rules as any other unusable driver. The previous section describes those three outcomes. `SKIPPED` is only the last of them, when no browser can start a session at all.
+
+Either way, the rest of the run still executes and still gates your build. That includes shell steps, HTTP requests, and link checks.
 
 ### Version mismatch warning
 

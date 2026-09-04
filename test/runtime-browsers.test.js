@@ -686,6 +686,36 @@ describe("foreignExecutableImageReason", function () {
       })
     ).to.equal(undefined);
   });
+
+  it("decodes a big-endian header in its own byte order", function () {
+    // s390x is the one big-endian architecture in the table, so the e_machine
+    // field has to be read big-endian or every verdict on that host is noise.
+    expect(
+      foreignExecutableImageReason(
+        elfHeader({ machine: 0x16, littleEndian: false }),
+        { platform: "linux", arch: "s390x" }
+      ),
+      "a matching big-endian image must be accepted"
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(
+        elfHeader({ machine: EM_X86_64, littleEndian: false }),
+        { platform: "linux", arch: "s390x" }
+      ),
+      "a foreign big-endian image must be refused"
+    ).to.match(/x86-64/i);
+  });
+
+  it("stays silent when EI_DATA declares neither byte order (malformed header)", function () {
+    // Only 1 (LE) and 2 (BE) define a byte order. Anything else means the
+    // e_machine field can't be decoded, so there is no proof of a mismatch and
+    // the normal execute-and-report path must still run.
+    const header = elfHeader({ machine: EM_X86_64 });
+    header[5] = 7;
+    expect(
+      foreignExecutableImageReason(header, { platform: "linux", arch: "arm64" })
+    ).to.equal(undefined);
+  });
 });
 
 describe("verifyDriverBinary — foreign-architecture images", function () {

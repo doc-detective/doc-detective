@@ -115,8 +115,11 @@ const ELF_MACHINE_LABELS: Record<number, string> = Object.fromEntries(
  * Deliberately Linux/ELF-only and deliberately conservative:
  *   - macOS runs x86-64 binaries on arm64 through Rosetta 2, and Windows on ARM
  *     emulates x64 — a mismatch there is not proof of anything, so no verdict.
- *   - A non-ELF image, a truncated header, or an architecture with no mapping
- *     yields no verdict, and the normal execute-and-report path still runs.
+ *   - A non-ELF image, a truncated header, a header with no valid byte order, or
+ *     a *host* architecture this table doesn't map yields no verdict, and the
+ *     normal execute-and-report path still runs. (An unmapped value in the
+ *     *binary's* e_machine is different: the host arch is known, so the
+ *     mismatch is proven and the image is refused under a generic label.)
  * The result is a check that only ever converts a *provable* platform gap into
  * a clear message; every uncertain case degrades to the pre-existing behavior.
  */
@@ -141,9 +144,15 @@ export function foreignExecutableImageReason(
   }
   const expected = ELF_MACHINE_BY_NODE_ARCH[arch];
   if (!expected) return undefined;
-  // EI_DATA (byte 5): 1 = little-endian, 2 = big-endian. e_machine is a
-  // 2-byte field at offset 18 in the header's own byte order.
-  const littleEndian = header[5] !== 2;
+  // EI_DATA (byte 5): 1 = little-endian, 2 = big-endian, and nothing else
+  // defines a byte order. A header declaring anything else is malformed, so
+  // e_machine can't be decoded from it — and a verdict read out of an
+  // undecodable field would be an invented refusal, which is exactly what this
+  // helper must never produce.
+  const elfData = header[5];
+  if (elfData !== 1 && elfData !== 2) return undefined;
+  // e_machine is a 2-byte field at offset 18, in the header's own byte order.
+  const littleEndian = elfData === 1;
   const machine = littleEndian
     ? header[18] | (header[19] << 8)
     : (header[18] << 8) | header[19];

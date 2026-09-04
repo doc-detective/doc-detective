@@ -30,7 +30,19 @@ function assertRunOutcome(results) {
       "Results file has no `summary.specs` — the run produced no usable summary."
     );
   }
-  const fail = Number(specs.fail) || 0;
+  // `fail` is the half of the gate that can only ever say "stop", so a value it
+  // can't trust must not be coerced to 0. Every scenario this gate exists to
+  // catch involves a run that went wrong, and `Number(x) || 0` would turn a
+  // missing, garbled, or negative count into a clean bill of health as soon as
+  // one spec passed.
+  const fail = Number(specs.fail);
+  if (!Number.isInteger(fail) || fail < 0) {
+    throw new Error(
+      `Results file has an unusable spec fail count (${JSON.stringify(
+        specs.fail
+      )}); refusing to treat the run as clean.`
+    );
+  }
   const pass = Number(specs.pass) || 0;
   const skipped = Number(specs.skipped) || 0;
   if (fail > 0) {

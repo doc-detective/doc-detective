@@ -81,14 +81,19 @@ describe("detectTests qualifyFiles coverage: skip/error branches", function () {
 //
 // Regression cover for the arm64 Docker build (ADR 01096): a foreign-arch
 // chromedriver reached `execFile`, glibc's ENOEXEC fallback handed it to
-// /bin/sh, and the shell — running in the input directory — interpreted the
+// /bin/sh, and the shell, running in the input directory, interpreted the
 // binary as a script and left a file behind whose name is not valid UTF-8.
 // `fs.readdirSync` decodes such a name lossily (U+FFFD), so re-resolving it and
 // calling `fs.statSync` throws ENOENT. That unguarded throw killed the whole
 // run ("ENOENT: no such file or directory, stat '/app/<binary garbage>'")
-// before a single spec was parsed. The driver-side fix is the real cure; this
-// asserts the scan is resilient regardless of how an entry became unreadable
-// (a dangling symlink, a permissions hole, a file removed mid-scan).
+// before a single spec was parsed.
+//
+// The driver-side fix is the real cure; this asserts the scan is resilient
+// however an entry became unreadable. Two shapes are covered because no single
+// one is buildable everywhere: an undecodable filename needs Linux (APFS and
+// NTFS both reject one outright), and a dangling symlink needs privileges
+// Windows doesn't grant by default. Each case skips where its filesystem
+// refuses to build it rather than pretending to have run.
 describe("detectTests qualifyFiles: unreadable directory entries", function () {
   let tmp;
   beforeEach(function () {
@@ -98,31 +103,52 @@ describe("detectTests qualifyFiles: unreadable directory entries", function () {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
-  it("skips an entry whose name can't be round-tripped and still detects the valid specs", async function () {
-    if (process.platform === "win32") {
-      // Windows filenames are UTF-16 by construction, so a name that survives
-      // readdir but not a stat() round-trip can't be created here.
-      this.skip();
-    }
-    const spec = {
-      tests: [{ steps: [{ wait: 1 }] }],
-    };
-    fs.writeFileSync(path.join(tmp, "good.spec.json"), JSON.stringify(spec));
-    // Raw bytes that are not valid UTF-8 — the shape /bin/sh leaves behind when
-    // it interprets an ELF image as a script.
+  const writeGoodSpec = () =>
     fs.writeFileSync(
-      Buffer.concat([
-        Buffer.from(tmp + "/"),
-        Buffer.from([0xff, 0xfe, 0xfd]),
-        Buffer.from("-side-effect"),
-      ]),
-      ""
+      path.join(tmp, "good.spec.json"),
+      JSON.stringify({ tests: [{ steps: [{ wait: 1 }] }] })
     );
 
+  const expectOnlyTheGoodSpec = async () => {
     const specs = await detectTests({
       config: { ...baseConfig(), input: [tmp], recursive: true },
     });
     assert.equal(specs.length, 1);
     assert.match(String(specs[0].specId), /good\.spec\.json/);
+  };
+
+  it("skips an entry whose name can't be round-tripped (the arm64 case)", async function () {
+    writeGoodSpec();
+    try {
+      // Raw bytes that are not valid UTF-8 — the shape /bin/sh leaves behind
+      // when it interprets an ELF image as a script in the input directory.
+      fs.writeFileSync(
+        Buffer.concat([
+          Buffer.from(tmp + path.sep),
+          Buffer.from([0xff, 0xfe, 0xfd]),
+          Buffer.from("-side-effect"),
+        ]),
+        ""
+      );
+    } catch {
+      // APFS raises EILSEQ and Windows rejects the name outright; only Linux
+      // lets a non-UTF-8 filename exist, which is why the bug was Linux-only.
+      this.skip();
+    }
+    await expectOnlyTheGoodSpec();
+  });
+
+  it("skips a dangling symlink", async function () {
+    writeGoodSpec();
+    try {
+      fs.symlinkSync(
+        path.join(tmp, "does-not-exist.json"),
+        path.join(tmp, "dangling.spec.json")
+      );
+    } catch {
+      // Windows needs Developer Mode or elevation to create a symlink.
+      this.skip();
+    }
+    await expectOnlyTheGoodSpec();
   });
 });
