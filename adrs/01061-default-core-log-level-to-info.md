@@ -10,21 +10,21 @@ decision-makers: [hawkeyexl]
 
 The core logger `log(config, level, message)` in [src/core/utils.ts](../src/core/utils.ts) supports a
 convenience 2-argument form, `log(message, level)`. When invoked with two arguments it resets
-`config = {}`, so `config.logLevel` is `undefined`. The level-gating logic — extracted by the Phase-1
-performance work (PR #632) into the pure predicate `logLevelEnabled(config, level)`, which `log`
-delegates to — is a chain of `if (config.logLevel === "error" && …)` branches with **no branch for an
-undefined `logLevel`**, so the predicate evaluates to `false` and nothing is printed.
+`config = {}`, so `config.logLevel` is `undefined`. The Phase-1 performance work (PR #632) extracted
+the level-gating logic into the pure predicate `logLevelEnabled(config, level)`, which `log`
+delegates to. That predicate is a chain of `if (config.logLevel === "error" && …)` branches, with
+**no branch for an undefined `logLevel`**. So it evaluates to `false` and nothing is printed.
 
 Every 2-arg call therefore emitted **nothing**. The seven active 2-arg call sites all live in
-[src/core/expressions.ts](../src/core/expressions.ts) — expression/assertion evaluation:
+[src/core/expressions.ts](../src/core/expressions.ts), in expression and assertion evaluation:
 
-- line 45 — `"warning"`: could not resolve a standalone expression
-- line 238 — `"error"`: error applying a JSON pointer to a value
-- line 305 — `"warning"`: could not evaluate an embedded `{{…}}` expression
-- line 449 — `"error"`: regex extraction error
-- line 493 — `"error"`: error evaluating an expression (`new Function` failure)
-- line 779 — `"debug"`: condition has an unresolved meta value; treated as false
-- line 804 — `"error"`: error evaluating an assertion
+- line 45, `"warning"`: could not resolve a standalone expression
+- line 238, `"error"`: error applying a JSON pointer to a value
+- line 305, `"warning"`: could not evaluate an embedded `{{…}}` expression
+- line 449, `"error"`: regex extraction error
+- line 493, `"error"`: error evaluating an expression (`new Function` failure)
+- line 779, `"debug"`: condition has an unresolved meta value, treated as false
+- line 804, `"error"`: error evaluating an assertion
 
 Several are `"error"`-level diagnostics that should surface to help users debug broken conditions and
 expressions. Instead they were swallowed. This was confirmed by CodeRabbit on PR #632.
@@ -41,8 +41,8 @@ expressions. Instead they were swallowed. This was confirmed by CodeRabbit on PR
 - **(a) Default an undefined `logLevel` to `"info"`** inside the `logLevelEnabled` predicate that the
   core `log` delegates to (parity with [src/utils.ts](../src/utils.ts)'s `log`, which already does
   `config.logLevel || "info"`).
-- **(b) Convert the seven `expressions.ts` sites to the 3-arg `log(config, level, message)` form** by
-  threading a `config` object into the expression engine so each log respects the user's configured
+- **(b) Convert the seven `expressions.ts` sites to the 3-arg `log(config, level, message)` form.**
+  Thread a `config` object into the expression engine, so each log respects the user's configured
   `logLevel`.
 
 ## Decision Outcome
@@ -51,17 +51,17 @@ Chosen option: **(a)**, because `config` is **not in scope** at any `expressions
 not thread cleanly. The seven functions involved (`resolveExpression`, `resolveExpressionOrThrow`,
 `replaceMetaValues`, `getMetaValue`, `resolveEmbeddedExpressions`, `evaluateExpression`,
 `evaluateAssertion`) all pass a `context` object, never a `config`. Threading `config` would require
-changing all seven signatures **plus** the routing-layer callers
-(`evaluateImplicitAssertions`, `evaluateGuard`, `evaluateCustomAssertions`, and their entire call
-chains through [src/core/routing.ts](../src/core/routing.ts) and
-[src/core/tests.ts](../src/core/tests.ts)) — a broad, invasive change spread across several files for
-a one-line defect. Option (a) is a single, well-contained fix that also aligns the core logger's
-default with the existing CLI logger.
+changing all seven signatures, **plus** the routing-layer callers.
+Those are `evaluateImplicitAssertions`, `evaluateGuard`, and `evaluateCustomAssertions`. It also
+covers their entire call chains through [src/core/routing.ts](../src/core/routing.ts) and
+[src/core/tests.ts](../src/core/tests.ts). That's a broad, invasive change spread across several
+files, for a one-line defect. Option (a) is a single, well-contained fix that also aligns the core
+logger's default with the existing CLI logger.
 
 The change: inside `logLevelEnabled`, compute `const currentLevel = config.logLevel || "info"` and
-branch on `currentLevel`. Because `log` delegates to `logLevelEnabled`, the guard predicate (used by
-hot call sites to skip expensive message construction) and `log`'s own gating share one source of
-truth for the level policy and cannot drift.
+branch on `currentLevel`. `log` delegates to `logLevelEnabled`, so the guard predicate and `log`'s
+own gating share one source of truth for the level policy, and cannot drift. Hot call sites use that
+predicate to skip expensive message construction.
 
 ### Consequences
 
@@ -69,13 +69,13 @@ truth for the level policy and cannot drift.
   evaluation now surface for users at the default `info` verbosity.
 - Good, because core `log` now matches [src/utils.ts](../src/utils.ts)'s `info` default, removing a
   latent inconsistency between the two loggers.
-- Good, because `logLevel: "silent"` (and any explicit level) is preserved — the default only applies
-  to an undefined/empty level, so explicit silencing still suppresses everything.
-- Neutral/known trade-off: all 2-arg core `log` calls now print at the `info` default regardless of
-  the user's configured level (a 2-arg call carries no `config`, so it never could respect the
-  configured level). This is bounded — only the seven `expressions.ts` sites use the 2-arg form, the
-  `"debug"` one (line 779) still stays suppressed under the `info` default, and every other core
-  `log` call already uses the 3-arg form or a correctly-wrapped injected logger that forwards
+- Good, because `logLevel: "silent"`, and any explicit level, is preserved. The default only applies
+  to an undefined or empty level, so explicit silencing still suppresses everything.
+- Neutral, a known trade-off. All 2-arg core `log` calls now print at the `info` default, regardless
+  of the user's configured level. A 2-arg call carries no `config`, so it never could respect the
+  configured level. This is bounded. Only the seven `expressions.ts` sites use the 2-arg form, and
+  the `"debug"` one (line 779) still stays suppressed under the `info` default. Every other core
+  `log` call already uses the 3-arg form, or a correctly-wrapped injected logger that forwards
   `config`. If a future need arises to make these respect configured verbosity, option (b) remains
   available as a follow-up.
 
@@ -103,6 +103,6 @@ suppresses everything. The pre-existing tests that asserted the buggy "2-arg for
 ### (b) Thread `config` into the expression engine and use the 3-arg form
 
 - Good, because those logs would respect the user's configured `logLevel`.
-- Bad, because `config` is not in scope anywhere in the expression engine; it would require changing
-  seven `expressions.ts` signatures plus the routing/tests call chains — a large, invasive change for
-  a one-line defect, with correspondingly higher regression risk.
+- Bad, because `config` is not in scope anywhere in the expression engine. It would require changing
+  seven `expressions.ts` signatures, plus the routing and tests call chains. That's a large, invasive
+  change for a one-line defect, with correspondingly higher regression risk.
