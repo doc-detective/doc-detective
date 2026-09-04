@@ -57,11 +57,12 @@ sharding, and fixture bundling, which is this file.
    `runtime/node_modules` always travels with `runtime/package.json` + `installed.json` (the
    npm-prune hazard, [`src/runtime/AGENTS.md`](../src/runtime/AGENTS.md)). The three android jobs
    stay uncached on purpose, since they exist to prove the cold bootstrap paths.
-2. **4-cell matrix.** Node-line behavior is OS-independent. The fixture jobs already pin node 24
-   on that basis. So the full OS grid runs node 24 only, plus a single ubuntu node-22 cell. **This
-   narrows the coverage union's inputs.** Windows and macOS node-22 slices no longer feed
-   `coverage-merge`. Node-24 slices from those OSes still cover the OS-specific branches, so the
-   honest-union policy (ADR 01017 as amended by ADR 01022) is intact. If the measured union dips,
+2. **4-cell matrix.** The fixture jobs already pin node 24, on the basis that node-line behavior
+   does not vary across operating systems. So the full OS grid runs node 24 only. It adds a single
+   ubuntu node-22 cell. **This narrows the coverage union's inputs.** Windows and macOS node-22
+   slices no longer feed `coverage-merge`. Node-24 slices from those OSes still cover the
+   OS-specific branches. So the honest-union policy stays intact, per ADR 01017 as amended by
+   ADR 01022. If the measured union dips,
    `coverage-thresholds.json` is re-baselined per the established procedure.
 3. **Sharded mocha.** [`scripts/run-test-shard.cjs`](../scripts/run-test-shard.cjs)
    deterministically partitions `test/*.test.js` into two weighted buckets per cell, through greedy
