@@ -8,13 +8,14 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-API documentation routinely embeds HTTP calls as fenced code blocks (method, URL, headers, body),
-but Doc Detective's markup detection had no way to turn such a block into an `httpRequest` step.
-Separately, authors who wanted to tweak a built-in fileType had to redeclare the whole thing, and
-there was no clean way to inject a full config from the environment, and invalid config called
-`process.exit` deep inside the resolver — unfriendly to programmatic callers. The question: how
-should the resolver detect HTTP requests in fenced blocks, let fileTypes extend built-ins, accept an
-environment-supplied config, and surface errors without killing the process?
+API documentation routinely embeds HTTP calls as fenced code blocks, carrying method, URL, headers,
+and body. But Doc Detective's markup detection had no way to turn such a block into an
+`httpRequest` step. Separately, authors who wanted to tweak a built-in fileType had to redeclare
+the whole thing. There was no clean way to inject a full config from the environment. And invalid
+config called `process.exit` deep inside the resolver, which is unfriendly to programmatic callers.
+The question: how should the resolver detect HTTP requests in fenced blocks, and let fileTypes
+extend built-ins? How should it accept an environment-supplied config, and surface errors without
+killing the process?
 
 ## Decision Drivers
 
@@ -34,8 +35,8 @@ environment-supplied config, and surface errors without killing the process?
 Chosen option: **A**. Two coordinated change-sets landed:
 
 1. **Resolver.** An `httpRequestFormat` fenced-block markup detector parses method/url/headers/body
-   from a code block into an `httpRequest` step; `fileType.extends` merges an author's fileType onto
-   a built-in; a `DOC_DETECTIVE` env var carrying JSON config is deep-merged over file config; and
+   from a code block into an `httpRequest` step. `fileType.extends` merges an author's fileType onto
+   a built-in. A `DOC_DETECTIVE` env var carrying JSON config is deep-merged over file config, and
    invalid config switches from `process.exit` to `throw`. Plus core httpRequest input
    standardization. Commits `8d00c5ba`, `124b2076`, `c5170a78`, `8fc84b0c`, `feb741f7`
    (core `dd9e22b`).

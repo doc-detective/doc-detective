@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When resolving a driver context, three edge cases produced confusing or wrong outcomes: a context
-with no browser `name` was ambiguous; an unknown browser name silently mis-resolved (or produced
-opaque downstream errors); and `webkit` — used interchangeably with Safari in the browsers contract
-— did not map to Safari driver capabilities. How should context resolution handle a nameless
+When resolving a driver context, three edge cases produced confusing or wrong outcomes. A context
+with no browser `name` was ambiguous. An unknown browser name silently mis-resolved, or produced
+opaque downstream errors. And `webkit`, used interchangeably with Safari in the browsers contract,
+did not map to Safari driver capabilities. How should context resolution handle a nameless
 driver-context, an unrecognized browser, and the `webkit`/Safari equivalence?
 
 ## Decision Drivers
@@ -29,8 +29,8 @@ driver-context, an unrecognized browser, and the `webkit`/Safari equivalence?
 
 ## Decision Outcome
 
-Chosen option: **A**, because each edge case wants a different, predictable resolution: skip what
-can't be run, fail fast on genuinely invalid input, and honor the documented engine equivalence. In
+Chosen option: **A**. Each edge case wants a different, predictable resolution. Skip what can't be
+run, fail fast on genuinely invalid input, and honor the documented engine equivalence. In
 `isSupportedContext`/`getDriverCapabilities`: a nameless driver-context is cleanly resolved to
 SKIPPED; an unknown browser name throws a clear error; and `webkit` maps to Safari capabilities
 (commit `9fbf2b21`).
