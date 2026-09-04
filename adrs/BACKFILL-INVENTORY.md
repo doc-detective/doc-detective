@@ -1,56 +1,59 @@
 # ADR Backfill Inventory (cross-repo, authoritative)
 
-> **Working document — not an ADR.** This is the candidate list of historical
+> **Working document, not an ADR.** This is the candidate list of historical
 > behavior/contract decisions to backfill as MADR ADRs in the reserved
 > `00001`–`00999` range. **Review and prune this before any ADRs are authored.**
 > Delete this file once the backfill is complete.
 
 ## Purpose
 
-The five formerly-separate repos — `doc-detective` (the CLI wrapper),
-`doc-detective-common` (schemas/validation), `doc-detective-core` (the engine),
-`doc-detective-resolver` (detection/parsing), and `docker-images` — are now one
-monorepo. Only one ADR exists today
+Five formerly-separate repos are now one monorepo. They are `doc-detective` (the
+CLI wrapper), `doc-detective-common` (schemas/validation), `doc-detective-core`
+(the engine), `doc-detective-resolver` (detection/parsing), and `docker-images`. Only one ADR exists today
 ([`01000`](01000-gate-advanced-ordering-under-concurrent-runners.md)). This
 inventory reconstructs the **contract-affecting decisions** made from 2022-04
 through 2026-06 across **all five repos** so they can be recorded
 retrospectively.
 
-"Contract-affecting" = a new step/action type, config or CLI flag,
-engine/driver, output format/reporter, schema/validation contract,
-precedence/default/gating rule, recording behavior, detection/parsing pipeline,
-the GitHub Action contract, or Docker image base/runtime decision. Pure
+"Contract-affecting" covers several things. A new step or action type. A config
+or CLI flag. An engine or driver. An output format or reporter. A schema or
+validation contract. A precedence, default, or gating rule. Recording behavior.
+The detection and parsing pipeline. The GitHub Action contract. Or a Docker
+image base or runtime decision. Pure
 refactors, dep bumps, test-only, CI plumbing, and typo/doc changes are excluded.
 
 ## How discovery was done
 
 This inventory is backed by an **exhaustive, diff-level audit spanning all five
-repos** — **3,156 commits total**:
+repos**, at **3,156 commits total**:
 
-1. **The merged monorepo** (`doc-detective`): all **992** commits, tiled into 16
-   batches of 62 (no overlap, no gaps), read commit-by-commit and classified
-   (behavior/contract-changing vs. excluded) with concrete diff evidence (the
-   actual field/flag/file/default/function that changed).
-2. **The four pre-merge upstream repos**, an additional **2,164** commits:
-   `doc-detective-common` **663**, `doc-detective-core` **1,160** unique,
-   `doc-detective-resolver` **218**, and `docker-images` **123** — each swept in
-   batch findings (common cm-01…cm-10, core co-01…co-16, resolver rs-01…rs-04,
-   docker dk-01…dk-02), deduplicated **by decision, not by commit**.
+1. **The merged monorepo** (`doc-detective`) contributed all **992** commits.
+   They were tiled into 16 batches of 62, with no overlap and no gaps. Each was
+   read commit-by-commit and classified as behavior or contract-changing, or
+   excluded. Concrete diff evidence backs each call: the actual field, flag,
+   file, default, or function that changed.
+2. **The four pre-merge upstream repos** contributed an additional **2,164**
+   commits. Those are `doc-detective-common` at **663**, `doc-detective-core` at
+   **1,160** unique, `doc-detective-resolver` at **218**, and `docker-images` at
+   **123**. Each was swept in batch findings. Those are common cm-01…cm-10,
+   core co-01…co-16, resolver rs-01…rs-04, and docker dk-01…dk-02. They are
+   deduplicated **by decision, rather than by commit**.
 
 The upstream sweep is what makes this inventory authoritative on **dates**. From
 ~2023 the monorepo un-bundled its engine into the standalone `core`, its schemas
-into `common`, and its detection into `resolver`; those (plus the image) were
-merged back in during 2026-02/03. As a result, **many monorepo "decisions" from
-2023–2026 are not decisions at all** — they are dependency bumps or
-re-exposures of a contract that was actually authored earlier in `common`,
-`core`, or `resolver`. The upstream commits carry the **true authoring dates**
-the monorepo dep-bumps obscured. Where a monorepo row and an upstream row
-describe the same contract, they are **merged into one row** dated to the
-earliest (upstream) origin, with the monorepo PR/date preserved as a note.
+into `common`, and its detection into `resolver`. Those, plus the image, were
+merged back in during 2026-02 and 2026-03. As a result, **many monorepo
+"decisions" from 2023–2026 are not decisions at all**. They are dependency
+bumps, or re-exposures of a contract that was actually authored earlier in
+`common`, `core`, or `resolver`. The upstream commits carry the **true authoring
+dates** the monorepo dep-bumps obscured. Where a monorepo row and an upstream
+row describe the same contract, they are **merged into one row**. That row is
+dated to the earliest upstream origin, with the monorepo PR and date preserved
+as a note.
 
-The monorepo's **2022 genesis** (its earliest ~54 rows) is the shared
-`doc-detective` / pre-split `core` genesis — those ARE real first-introduction
-decisions and predate everything in the standalone repos, so they are kept and
+The monorepo's **2022 genesis**, its earliest ~54 rows, is the shared
+`doc-detective` and pre-split `core` genesis. Those ARE real first-introduction
+decisions, and predate everything in the standalone repos. So they are kept, and
 tagged repo `doc-detective`.
 
 Conventional commits were only adopted in 2025; 2022–2024 is freeform, which is
@@ -65,48 +68,50 @@ why a full diff sweep (not `feat:`/`fix:` mining) was needed across every repo.
   runner engine over the following weeks.
 - **The 3.0.0 breaking redesign's true date is upstream, not the 2026 import.**
   The monorepo wrapper flipped to `config_v3` in a single commit `58496132`
-  (2025-04-18, Seq 100). But the **v3 contract itself** — `step_v3`
-  action-as-key, `config_v3`, `context_v3`, the `compatibleSchemas` auto-
-  transform — was authored in `doc-detective-common` **starting 2025-02-07**
-  (`d4deb0fe`, `48a72a1e`), restructured through **2025-03-10/11** (`066f35f`,
-  `6e20b59`), with the `core` runner adopting it **2025-03-12** (`3ef45157`).
+  (2025-04-18, Seq 100). But the **v3 contract itself** was authored in
+  `doc-detective-common` **starting 2025-02-07** (`d4deb0fe`, `48a72a1e`). That
+  contract is `step_v3` action-as-key, `config_v3`, `context_v3`, and the
+  `compatibleSchemas` auto-transform. It was restructured through
+  **2025-03-10/11** (`066f35f`, `6e20b59`). The `core` runner adopted it
+  **2025-03-12** (`3ef45157`).
   The earlier "undated / needs verification" framing is now resolved (see § Resolved).
 - **The v1→v2 engine/CLI/config split is dated.** `2023-01-29` (engine
   un-bundled, `6b277e95`…`ec163278`) + `2023-04-12/14` (v2 CLI/`config_v2`
   contract, `01ef13f9`…`d7b45e19`); 2.0.0 shipped `2023-07-24` (`95e3c848`).
-- **`runCoverage` / `suggestTests` were real shipped CLI entrypoints** added
-  2022-10 / 2023-06 and **removed** by the 3.0.0 redesign (upstream `core`
-  2025-04-10 `12dd65e0`; wrapper 2025-04-18 `58496132`) — a full add→remove
-  lifecycle.
-- **OpenAPI / Arazzo / unified-`outputs` are core/common decisions, not 2026
-  imports.** In the monorepo their commits are dep-bumps only; the features were
-  authored upstream (OpenAPI common 2024-09-04 `30e9b7df` / core 2024-09-05
-  `47466440`; Arazzo core 2025-09-28/10-01 `d900af7`; unified `outputs` core
-  2025-04-13 `0df134cb`).
+- **`runCoverage` and `suggestTests` were real shipped CLI entrypoints.** They
+  were added in 2022-10 and 2023-06, then **removed** by the 3.0.0 redesign.
+  That's upstream `core` 2025-04-10 `12dd65e0`, and wrapper 2025-04-18
+  `58496132`. It's a full add-then-remove lifecycle.
+- **OpenAPI, Arazzo, and unified `outputs` are core and common decisions, rather
+  than 2026 imports.** In the monorepo their commits are dep-bumps only. The
+  features were authored upstream. OpenAPI landed in common 2024-09-04
+  `30e9b7df` and core 2024-09-05 `47466440`. Arazzo landed in core
+  2025-09-28/10-01 `d900af7`. And unified `outputs` landed in core 2025-04-13
+  `0df134cb`.
 - The original tool name was **`doc-unit-test`** (renamed to Doc Detective at
   `1bf19c06`).
 
 ### Resolved (formerly "still needs verification")
 
 The schema-structural decisions previously parked as undated now have concrete
-first-contract dates from the upstream `common`/`core` audit, and are placed in
-the master table at those dates:
+first-contract dates, from the upstream `common` and `core` audit. They are
+placed in the master table at those dates:
 
-- **v2→v3 action-as-key redesign** (`step_v3`, action IS the key) — **2025-02-07**,
-  common `d4deb0fe` (runner side core 2025-03-24 `a0f4915`; resolver detection
-  2025-05-12 `0a626c4d`).
-- **`compatibleSchemas` / `transformToSchemaKey` auto-transform** — **2025-02-07**,
-  common `48a72a1e` (public const `compatibleSchemas` 2025-02-08 `bba8e199`;
-  exported 2025-03-17 `e84666d`).
-- **config_v2 → config_v3 restructure** — schema **2025-03-11**, common `6e20b59`;
-  runner **2025-03-12**, core `3ef45157`.
-- **context_v2 → context_v3 restructure** — schema **2025-03-10**, common `066f35f`;
-  browsers-array redesign **2025-03-23** `5383e68`; runner `resolveContexts`
-  2025-03-25 core `3710089`.
-- **OpenAPI integration for httpRequest** — schema **2024-09-04**, common
-  `30e9b7df`; engine **2024-09-05**, core `47466440`.
-- **Arazzo support** — **2025-09-28/10-01**, core `d900af7`.
-- **Unified `outputs` object** — **2025-04-13**, core `0df134cb`.
+- **v2→v3 action-as-key redesign**, where `step_v3` makes the action the key.
+  **2025-02-07**, common `d4deb0fe`. Runner side is core 2025-03-24 `a0f4915`,
+  and resolver detection is 2025-05-12 `0a626c4d`.
+- **`compatibleSchemas` and `transformToSchemaKey` auto-transform.**
+  **2025-02-07**, common `48a72a1e`. The public const `compatibleSchemas` came
+  2025-02-08 `bba8e199`, and was exported 2025-03-17 `e84666d`.
+- **config_v2 → config_v3 restructure.** Schema **2025-03-11**, common
+  `6e20b59`. Runner **2025-03-12**, core `3ef45157`.
+- **context_v2 → context_v3 restructure.** Schema **2025-03-10**, common
+  `066f35f`. The browsers-array redesign came **2025-03-23** `5383e68`, and the
+  runner `resolveContexts` came 2025-03-25, core `3710089`.
+- **OpenAPI integration for httpRequest.** Schema **2024-09-04**, common
+  `30e9b7df`. Engine **2024-09-05**, core `47466440`.
+- **Arazzo support.** **2025-09-28/10-01**, core `d900af7`.
+- **Unified `outputs` object.** **2025-04-13**, core `0df134cb`.
 
 The only items that remain genuinely undated are listed in
 [§ Still needs verification](#still-needs-verification) (now nearly empty).
@@ -114,9 +119,9 @@ The only items that remain genuinely undated are listed in
 ## ⚠️ Dating caveats (read before trusting the dates)
 
 - **Upstream commit dates are real authoring dates** (not import dates).
-  Confidence `C` is mostly **H**; **M** marks features whose contributing hashes
-  span several days/weeks (date = first-touch); **L** marks the handful left
-  without a precise day.
+  Confidence `C` is mostly **H**. **M** marks features whose contributing hashes
+  span several days or weeks, where the date is first-touch. **L** marks the
+  handful left without a precise day.
 - **Monorepo merge dates are NOT decision dates.** `doc-detective-common` was
   merged on **2026-02-28** (`2ae9b831`), `core` **2026-02-26** (`5b8df475`),
   resolver/detection folded in **2026-03**. The *decisions* those imports carry
@@ -128,28 +133,40 @@ The only items that remain genuinely undated are listed in
 ## Exclusions / already-covered
 
 - **`01000` (gate advanced ordering under `concurrentRunners`, 2026-06-22,
-  `158c83e6`)** is already authored — the worked example. Listed in-table at its
+  `158c83e6`)** is already authored, the worked example. Listed in-table at its
   date for completeness but flagged **(authored)**; not to be re-authored.
-- **Mocha-from-Jest migration (2023-04-17 `8ed8e939`, 2024-10-10 era)** — test
-  infra, not a user contract. Default = drop.
-- Release-pipeline / CI workflow items (Docker-build dispatch, `npm-publish.yml`,
-  semantic-release setup) are *project-infra* decisions — arguably ADR-worthy,
-  marked `infra`/`docker`; decide as a group whether infra gets ADRs.
+- **Mocha-from-Jest migration (2023-04-17 `8ed8e939`, 2024-10-10 era)** is test
+  infra, rather than a user contract. Default: drop.
+- Release-pipeline and CI workflow items are *project-infra* decisions. Those
+  are the Docker-build dispatch, `npm-publish.yml`, and semantic-release setup.
+  They're arguably ADR-worthy, and marked `infra` or `docker`. Decide as a group
+  whether infra gets ADRs.
 
 ---
 
 ## Inventory (sorted strictly by date; provisional sequential IDs)
 
-Legend — **Theme**: `engine` engines/drivers · `step` step/action types ·
-`config` config/CLI · `schema` schemas/validation · `record` recording ·
-`report` output/reporters · `resolve` resolver/input detection/parsing ·
-`action-gh` GitHub Action · `docker` · `infra` project-infra · `runner`
-runner/scheduler · `install` install/runtime provisioning · `validation`
-AJV/transform · `telemetry`. **Repo(s)**: `doc-detective` (CLI wrapper /
-pre-split core genesis) · `core` · `common` · `resolver` · `docker`. **C** =
-confidence in date (H/M/L). A row's `Source` lists the **primary (earliest)
-hash** and, where a monorepo dep-bump/re-exposure exists, an *"exposed in
-monorepo …"* note with the PR.
+Legend for **Theme**:
+
+- `engine` engines/drivers
+- `step` step/action types
+- `config` config/CLI
+- `schema` schemas/validation
+- `record` recording
+- `report` output/reporters
+- `resolve` resolver/input detection/parsing
+- `action-gh` GitHub Action
+- `docker`
+- `infra` project-infra
+- `runner` runner/scheduler
+- `install` install/runtime provisioning
+- `validation` AJV/transform
+- `telemetry`
+
+**Repo(s)**: `doc-detective` (CLI wrapper / pre-split core genesis) · `core` ·
+`common` · `resolver` · `docker`. **C** is confidence in date (H/M/L). A row's
+`Source` lists the **primary (earliest) hash**. Where a monorepo dep-bump or
+re-exposure exists, it adds an *"exposed in monorepo …"* note with the PR.
 
 ### 2022
 
@@ -185,7 +202,7 @@ monorepo …"* note with the PR.
 | 28 | 2022-08-22 | config | doc-detective | `run(config, argv)` signature + in-memory config resolution (no longer requires `argv.config`); `cli/index.js` entrypoint | cb84e40, d04968b | `setConfig` accepts in-memory config; `setArgs` returns `{}` | M |
 | 29 | 2022-08-25 | schema | doc-detective | BREAKING: flatten `gifOptions.{fps,width}` → top-level `gifFps`/`gifWidth` action fields | eac84c1 | startRecording reads `action.gifFps/gifWidth`; `testDefinition.json` | M |
 | 30 | 2022-09-06 | report | doc-detective | Analytics feature: `config.analytics.{send,userId,detailLevel,customServers}`, `sendAnalytics()`, GA + custom-server delivery, `-a` CLI args, server validation | e416127, 9bbc392, d983b7b, 4d49b7f (PR #3) | `analytics` config block + `analytics.js` | M |
-| 31 | 2022-09-15 | step | doc-detective | "Supercharged find": `find` gains nested sub-actions `matchText`/`moveMouse`/`click`/`type` (run against found element); moveMouse removed from click | 8610f20, 93664ce, d742ef2 | `find` branch executes sub-objects with injected `css` | M |
+| 31 | 2022-09-15 | step | doc-detective | "Expanded find": `find` gains nested sub-actions `matchText`/`moveMouse`/`click`/`type`, run against the found element. moveMouse removed from click | 8610f20, 93664ce, d742ef2 | `find` branch executes sub-objects with injected `css` | M |
 | 32 | 2022-09-16 | step | doc-detective | Env-var support across actions: `runShell`/`type`/`matchText`/`checkLink` gain `env`; `setEnvs()`; `dotenv` dep; top-level `config.env`; `-e` remapped `--ext`→`--env` | 9ba206a, a69d957, e2a8220 | `setEnvs`, `dotenv`; yargs `env` takes `-e` | M |
 | 33 | 2022-09-16 | step | doc-detective | `wait` gains `css` (waitForSelector); default duration 1000→10000ms; `wait` added as find sub-action; css timeout FAILs | 982c366, 494c99e | `page.waitForSelector(css,{timeout})`; try/catch→FAIL | M |
 | 34 | 2022-09-20 | config | doc-detective | Config-system rewrite: `logLevel` enum replaces boolean `verbose`; committed `src/config.json` defaults; per-field validation; headless boolean normalization | 3be28b2, 50bfdf4, c297b1a (PR #6) | `logLevel:"info"`; detailLevel/extensions validation; `"false"` honored | M |
@@ -198,12 +215,12 @@ monorepo …"* note with the PR.
 | 41 | 2022-10-03 | record | doc-detective | `.webm` support + `height` resize (formats `[.mp4,.webm,.gif]`); deprecated `gifFps`/`gifWidth`→`fps`/`width` fallback; default filename `${uuid}.mp4` | 6abaca60, ad3278b5 | startRecording payload | M |
 | 42 | 2022-10-04 | record | doc-detective | Failed-test recording: defaults `saveFailedTestRecordings`(true)/`failedTestDirectory`, env vars, baseline auto-record, test-level overrides, `<id>-<ts>.mp4`, deleted on pass; FPS floor 30 | 5dbe360d, d422ae14, c7aed407, 5d62d84d, 344474ad | tests.js gates startRecording on save flag; targetFps re-encode | M |
 | 43 | 2022-10-04 | config | doc-detective | fileType statement keys renamed `open/closeTestStatement`→`actionStatementOpen/Close`; add test start/end statement concept + parsing | d06fcc0c, 21a8e7eb, 17acc84f | `config.json` key renames; `parseTests` start/end parsing | M |
-| 44 | 2022-10-05 | resolve | doc-detective | Config resolution `defaultConfig` fallback tier (precedence argv > env > config > defaultConfig) | 7ec6865a | setEnv/Input/Output/Setup/Cleanup append `|| defaultConfig.X` | M |
+| 44 | 2022-10-05 | resolve | doc-detective | Config resolution `defaultConfig` fallback tier, with precedence argv > env > config > defaultConfig. | 7ec6865a | setEnv/Input/Output/Setup/Cleanup append a `defaultConfig` fallback. | M |
 | 45 | 2022-10-07 | runner | doc-detective | Browser page created only for GUI tests via `browserActions` allowlist; `moveMouse`/`scroll` skip (PASS) when no recording active | d7d33fb6, f3e35adb | tests.js `browserActions[]`; moveMouse/scroll early-return PASS | M |
 | 46 | 2022-10-10 | config | doc-detective | File-download support: `downloadDirectory` config + `--downloadDir` flag; `Page.setDownloadBehavior allow` | 82ceda6f | `config.json`; `setDownloadDirectory` | M |
 | 47 | 2022-10-13 | report | doc-detective | Coverage-analysis feature: `coverage.js`, `coverage` export + `cli/coverage.js` + `npm run coverage`, `coverageOutput` config/CLI/env; multi-line/array markup matching | da2fdba, 030f231, 8efab8d (PR #9) | coverage.js; `coverageOutput` | M |
 | 48 | 2022-10-17 | config | doc-detective | Content-coverage markup config: `fileType.markup{}` (onscreenText/hyperlink/lists/codeBlock/interaction regex arrays) + `testIgnoreStatement`; per-markup `includeInCoverage`/`includeInSuggestions` | fb3dcca5, 1ff77c07, f136afa3 (PR #9) | `markup{}` block in config | M |
-| 49 | 2022-10-19 | step | doc-detective | `moveMouse` default `alignH/alignV:"center"`, `offsetX/Y:0`; `find` always runs the `wait` sub-action (synthesizes `wait={}`) | 61c5db68, 9a3285b7 | moveMouse defaults; `if undefined action.wait={}` | M |
+| 49 | 2022-10-19 | step | doc-detective | `moveMouse` defaults are `alignH/alignV:"center"` and zero offsets. Also, `find` always runs the `wait` sub-action, synthesizing an empty `wait` object. | 61c5db68, 9a3285b7 | moveMouse defaults, plus `if undefined action.wait={}` | M |
 | 50 | 2022-10-24 | resolve | doc-detective | `suggest` CLI command: `npm run suggest`, `cli/suggest.js`, `testSuggestionOutput` config; intent detection + builders write sidecar test files | 9f3240d3, f6be91d5 (PR #12) | `src/lib/suggest.js`; `testSuggestionOutput` | M |
 | 51 | 2022-10-24 | runner | doc-detective | Browser pages opened in incognito context by default; analytics globally disabled (`sendAnalytics` commented out) | 900347f7, 745d0b4b, 0eb8c6b1 | `createIncognitoBrowserContext`; `// sendAnalytics` | M |
 | 52 | 2022-10-25 | config | doc-detective | Env-var parsing rewrite: `loadEnvs` resolves `$VAR` inside sub-strings (not just whole-value); string-or-object | 42aacdd5 | `loadEnvs`/`loadEnvsForString` in utils.js | L |
@@ -220,7 +237,7 @@ monorepo …"* note with the PR.
 | 58 | 2023-01-30 | schema | common | Core v1 action vocabulary: 13 step schemas (checkLink/click/find/goTo/httpRequest/matchText/moveMouse/screenshot/scroll/start+stopRecording/type/wait); button + method enums | common `b9e3a6b6` | per-action *.schema.json | H |
 | 59 | 2023-01-31 | validation | common | Adopt **AJV**; `examples` become contract fixtures (must self-validate); `validate(schemaKey,object)` API | common `5641f5fc`,`83e02223` | validate() | H |
 | 60 | 2023-02-01 | schema | common | Dynamic loader builds schema map from `*.schema.json` filenames; `<name>_v<n>` flat naming; dynamic `$id`=`file://…` + relative-`$ref` rewrite | common `ada73318`,`6b9b8d62`,`dde6be9c`,`f79ce35d`,`a13ba446` | loader | H |
-| 61 | 2023-02-04 | schema | common | `test_v1` testObject: `tests[]` container, each `actions[]` is `oneOf` `$ref` to every v1 step — the spec-file contract | common `d7dca149` | test_v1 | H |
+| 61 | 2023-02-04 | schema | common | `test_v1` testObject: `tests[]` container, each `actions[]` is `oneOf` `$ref` to every v1 step, the spec-file contract | common `d7dca149` | test_v1 | H |
 | 62 | 2023-02-09 | engine | core | Adopt **Appium/WebdriverIO** drivers for Chrome+Firefox; runner lifecycle = in-process Appium → poll `/sessions` → `wdio.remote` → deleteSession (Puppeteer→Appium pivot) | core `9968861f`,`f8a5b3f7`,`bac9ef13` | driver lifecycle | H |
 | 63 | 2023-02-20 | validation | common | AJV `useDefaults:true` (mutating), `coerceTypes:true`, ajv-formats/keywords/errors, `allErrors`, dynamic `uuid` default for step ids | common `76d145c4`,`a19b2e9c`,`e1e3293b` | AJV opts | M |
 | 64 | 2023-02-21 | schema | common | `config_v1` config-file contract: input/setup/cleanup, recursive, output, testExtensions, fileTypes markup, browser headless/path/dims, analytics | common `6f8ad104` | config_v1 | H |
@@ -230,7 +247,7 @@ monorepo …"* note with the PR.
 | 68 | 2023-03-10 | step | core+common | Per-action handlers validate `*_v2`, `loadEnvs(step)`, auto-prepend `https://`; runShell spawnCommand FAIL on exitCode/stderr; httpRequest axios+node-jq; checkLink/httpRequest schema (statusCodes default [200], method +put) | core `658dc629`,`891ebe9e`,`69b00b2f`,`19aab6f9`; common `c796d8a9`,`aeed490a`,`572dce0` | v2 handlers | H |
 | 69 | 2023-03-13 | schema | common | v2 family merge (PR#3): checkLink/goTo/httpRequest/runShell; `find` `wait{duration}`→flat `timeout` (default 500), `moveMouse`→`moveTo` bool, matchText→plain string | common `fc675f1`,`3cd919e`,`001ec85`,`19f48bc4` | v2 family | H |
 | 70 | 2023-03-13 | step | core | `find` gains inline `click`/`moveTo`/`typeKeys` sub-actions; standalone matchText/click/type/scroll/moveMouse removed; matchText folds into find | core `6231c95f`,`e78421d`,`c59506b` | find redesign | H |
-| 71 | 2023-03-14 | step | common+core | Authored typeKeys_v2, wait_v2, saveScreenshot_v2, setVariables_v2, startRecording_v2; core wires wait/typeKeys/saveScreenshot/setVariables handlers; `config.mediaDirectory="."` default | common `8edb3a4`,`754a611`,`4b78396`,`ada5323`,`a434506`; core `b82f30a`,`6288cf8`,`3dc4d32` | new v2 steps | M |
+| 71 | 2023-03-14 | step | common+core | Authored typeKeys_v2, wait_v2, and saveScreenshot_v2. Also setVariables_v2 and startRecording_v2. Core wires wait/typeKeys/saveScreenshot/setVariables handlers. `config.mediaDirectory="."` default. | common `8edb3a4`,`754a611`,`4b78396`,`ada5323`,`a434506`. Core `b82f30a`,`6288cf8`,`3dc4d32`. | new v2 steps. | M |
 | 72 | 2023-03-17 | record | core | startRecording/stopRecording + OBS-websocket path scaffolded then disabled/commented; recording actions stubbed out of driverActions (OBS never shipped) | core `71796d2`,`42e9f88`,`648a094`,`16aa1b9` | OBS stub | M |
 | 73 | 2023-03-22 | schema | common | `context_v2` (app/platform sets), `test_v2`, `spec_v2` container; `strictSchema:false` so external `$ref` in anyOf validates | common `2806f51`,`86af251`,`1977b54`,`45708f3` | context/test/spec v2 | H |
 | 74 | 2023-03-26 | schema | common | `config_v2` (532L) lands; required fileType/markup/telemetry fields; defaults input/output="."/recursive=true; `$ref` drop `file://` prefix | common `846c852`,`012ebe8`,`f89a167`,`120c5c0` | config_v2 | H |
@@ -251,7 +268,7 @@ monorepo …"* note with the PR.
 | 89 | 2023-08-24 | schema | common | Drop `format:uri`, widen URL `pattern` to allow `$ENV` refs; in-file `$ref` → local `#/definitions/…`; deref removes `$id` | common `ec5b192`,`aeb0ec1`,`632c593` | $ENV URLs | H |
 | 90 | 2023-09-08 | schema | common | Default markup moved onto setup/cleanup `markup`; drop defaults from input/recursive/markupToInclude | common `b0d33a7` | config default reshuffle | H |
 | 91 | 2023-09-08 | engine | core+common | Per-context browser `app.options` width(1200)/height(800)/headless(true); wired into Firefox/Chrome driver args; schema adds `app.options` | core `076982d5`; common `7f99cba`,`e593fee` | app.options | H |
-| 92 | 2023-09-11 | engine | core | `isDriverRequired` — driver started only if test has contexts or a step uses a driverAction; arch via os.arch() | core `11da5c8d`,`85f768bf` | per-test driver gating | H |
+| 92 | 2023-09-11 | engine | core | `isDriverRequired`, driver started only if test has contexts or a step uses a driverAction; arch via os.arch() | core `11da5c8d`,`85f768bf` | per-test driver gating | H |
 | 93 | 2023-10-11 | schema | common+core | Test-level string `setup`/`cleanup` (spec run before/after, steps prepended/appended + re-validate); `detectSteps` boolean (default true) | common `537855c`,`a40e5ee`; core `6e330c03`,`2b327d8f` | setup/cleanup + detectSteps | H |
 | 94 | 2023-10-20 | schema | common+core | Markup `actions[]` as `{name,params}` objects + action enum; runner auto-generates tests from markup regex (find→aria, goTo/checkLink→url, typeKeys→keys), `detectSteps:false` skip, testIgnore | common `eaecc43`,`2010fd5`; core `27e69c3d`,`883e35d9`,`48e2456f`,`e98c0ba5` | markup auto-detect engine | H |
 | 95 | 2023-10-23 | schema | common+core | goTo/checkLink `url` pattern gains leading-`/` relative support; `hostname`→renamed `origin` (prepended to url); checkLink default statusCodes [200]→[200,201,202] | common `c21275c`,`254ed5b`,`6ee7bfc`; core `bf0a0023`,`950391b0` | relative URL + origin | H |
@@ -293,13 +310,13 @@ monorepo …"* note with the PR.
 | 126 | 2024-07-12 | engine | core | GH-Actions display handling → generic headless-retry: if driverStart throws, retry once with headless=true, else SKIPPED; `--no-sandbox` for containers | core `29edc94f`,`67152362`,`296927a6` | headless retry fallback | M |
 | 127 | 2024-07-24 | schema | common+core | Config `relativePathBase` (enum cwd/file, default cwd); public `resolvePaths(config,object,file,…)` export; `validate()` returns `result.object`; setup/cleanup resolved relative to file | common `67afcc58`,`74dcd63f`,`f44268e8`; core `e81f9da9`,`a657675b`,`4a15af63` | relativePathBase + resolvePaths. Wrapper async `setConfig`+`resolvePaths(configPath)` 2024-07-26 (`a1e8e03`,`e29b082`) | H |
 | 128 | 2024-08-01 | record | core | Default step-recording filename ext `.webm`→`.mp4` when path unset (changes output container) | core `e1fd1d97` | default ext | H |
-| 129 | 2024-08-08 | step | core | runShell/spawnCommand runs everything through a shell (`bash -c`/`cmd /c`) instead of arg-splitting — enables pipes/redirects | core `79003c4` | spawnCommand via shell | H |
+| 129 | 2024-08-08 | step | core | runShell/spawnCommand runs everything through a shell (`bash -c`/`cmd /c`) instead of arg-splitting, enables pipes/redirects | core `79003c4` | spawnCommand via shell | H |
 | 130 | 2024-08-09 | resolve | core | test-level `detectSteps` overrides config-level (test false always skips); deep-clone action per match to prevent shared-reference corruption | core `e8063e5`,`f790038` | detectSteps precedence | H |
 | 131 | 2024-08-26 | schema | common+core | saveScreenshot `crop` object: `{selector(required), padding}`; runner crops to element bounding rect via sharp + devicePixelRatio | common `d8fc52c6`; core `8ba7f87`,`15411b8`,`38505fb` | selector-based crop | H |
 | 132 | 2024-09-04 | integrations | common+core | **OpenAPI for httpRequest**: schema `openApi` object + top-level `oneOf[url, openApi]` + config `integrations.openApi[]`; core `src/openapi.js` operation engine (example seeding, schema validation, mock-response, YAML defs); spec/test openApi arrays; `definitionPath`→`descriptionPath` | common `30e9b7df`,`2edf0919`,`a3e2ffc7`,`a8305d89`,`f85089aa`,`b4f2525c`,`8fe87a84`,`c90e3598`; core `47466440`,`c18bf49`,`74fa0fb`,`4a81d2a`,`c33731a`,`d4287474` | OpenAPI. (Monorepo openapi series is dep-bumps only) | H |
 | 133 | 2024-09-05 | validation | common | AJV `allowUnionTypes:true` so union-type fields (openApi examples) validate | common `ffb61141` | allowUnionTypes | H |
 | 134 | 2024-09-20 | validation | common | `validate(schemaKey,object,addDefaults=true)`: "Schema not found" instead of crash; addDefaults=false deep-clones to avoid mutation; `readFile()` loader (JSON/YAML/remote via axios) | common `0b525780`,`52f5e24a`,`381be266` | missing-schema guard | H |
-| 135 | 2024-09-28 | integrations | core | **Arazzo support**: `src/arazzo.js` translates Arazzo 1.0 → Doc Detective spec (workflows→tests, steps→httpRequest, sourceDescriptions→openApi[]); OpenAPI resolution reordered before validation; negative-test 4xx/5xx no longer auto-FAIL | core `d900af7`,`556a04a`,`a84a616`,`d0cbf2b`,`379b729` | arazzo.js | H |
+| 135 | 2024-09-28 | integrations | core | **Arazzo support**. `src/arazzo.js` translates Arazzo 1.0 → Doc Detective spec (workflows→tests, steps→httpRequest, sourceDescriptions→openApi[]). OpenAPI resolution reordered before validation. Negative-test 4xx/5xx no longer auto-FAIL | core `d900af7`,`556a04a`,`a84a616`,`d0cbf2b`,`379b729` | arazzo.js | H |
 | 136 | 2024-10-24 | runner | doc-detective | Pre-run dependency check (`src/checkDependencies.js`): inside the repo with no `node_modules`, prompt to `npm install` (readline) or abort; handle missing/unparseable package.json | doc-detective `a630b3d`…`0728668` (PR #98) | checkDependencies | M |
 
 ### 2025
@@ -308,9 +325,9 @@ monorepo …"* note with the PR.
 |----|------|-------|---------|----------|--------|----------|---|
 | 137 | 2025-01-18 | schema | common | find_v2 `click.button` field (left/right/middle); context_v2 viewport width/height | common `e76cfdcd`,`04338977` | find click button + viewport | H |
 | 138 | 2025-01-20 | step | common+core | New `runCode` action: language enum (python/bash/javascript), code→temp script, interpreter dispatch, exitCodes; wired into runStep; viewport sizing resize; `wdio:enforceWebDriverClassic`; crop scrolls into view | common `65ee3f5f`,`cf9d95dc`,`41048407`; core `54c4010`,`9666276`,`25468b8`,`0484726`,`26cb7a8`,`b3d113f` | runCode | H |
-| 139 | 2025-02-07 | schema | common | **v3 action-as-key redesign**: `step_v3` — action IS the key (no `action` field), `anyOf` requires exactly one action key; `stepId` replaces `id`; first v3 actions checkLink/goTo/runShell/type; `outputs`/`variables` patternProperties; AJV 8.17.1, v3.0.0-dev | common `d4deb0fe`,`d2dbaaf6`,`61e6d1a4`,`7603167a`,`5555154a`,`a568869f`,`bba8e199`,`d8411ae0` | step_v3. Runner side Seq 142; resolver detection Seq 156; wrapper flip Seq 144 | H |
+| 139 | 2025-02-07 | schema | common | **v3 action-as-key redesign**. In `step_v3` the action IS the key, with no `action` field. `anyOf` requires exactly one action key. `stepId` replaces `id`. First v3 actions checkLink/goTo/runShell/type. `outputs`/`variables` patternProperties. AJV 8.17.1, v3.0.0-dev | common `d4deb0fe`,`d2dbaaf6`,`61e6d1a4`,`7603167a`,`5555154a`,`a568869f`,`bba8e199`,`d8411ae0` | step_v3. Runner side Seq 142; resolver detection Seq 156; wrapper flip Seq 144 | H |
 | 140 | 2025-02-07 | validation | common | **`transformToSchemaKey` v2→v3 engine**: `validate({schemaKey,object,addDefaults})`; `transformToSchemaKey` + `supportedTransformations`/`compatibleSchemas` mapping v2 steps → v3 action-key shape (`id→stepId`, setVariables→variables, byVariation→aboveVariation) | common `48a72a1e`,`bba8e199`,`88c74335`,`5259530e` | auto-transform. Public const `bba8e199` (2025-02-08); exported `e84666d` (2025-03-17) | H |
-| 141 | 2025-03-06 | schema | common | v3 action-key schemas: endRecord→stopRecord, screenshot (maxVariation 0–1 default 0.05), record, loadVariables, find/click, httpRequest_v3, openApi_v3, context_v3, test/spec/report_v3; statusCodes default [200,301,302,307,308] | common `2330f7f`,`6e81b39`,`0dd383e`,`3edb971`,`f2b1fd3`,`c9b8859`,`066f35f`,`4063380`,`245c792`,`3c429f0`,`84fb2f5` | v3 family | H |
+| 141 | 2025-03-06 | schema | common | v3 action-key schemas. endRecord→stopRecord, screenshot (maxVariation 0–1 default 0.05), record, loadVariables, find/click. Also httpRequest_v3, openApi_v3, context_v3, test/spec/report_v3. statusCodes default [200,301,302,307,308] | common `2330f7f`,`6e81b39`,`0dd383e`,`3edb971`,`f2b1fd3`,`c9b8859`,`066f35f`,`4063380`,`245c792`,`3c429f0`,`84fb2f5` | v3 family | H |
 | 142 | 2025-03-10 | schema | common | **context_v2→v3 restructure**: new `context_v3` platforms/browsers + v2→v3 conversion in validate | common `066f35f` | context_v3 | H |
 | 143 | 2025-03-11 | schema | common | **config_v2→v3**: new `config_v3` (input, fileTypes anyOf string/object, inlineStatements, integrations); `configId` uuid; draft-07; remove markupToInclude; markup stays array | common `6e20b59`,`42f9d06`,`c10f727`,`6d522a3`,`a36fe84`,`16b978e`,`c7760db` | config_v3 | H |
 | 144 | 2025-03-12 | config | core | **runner v3 adoption**: config_v2→v3 (`validate({schemaKey:"config_v3"})`, beforeAny/afterAll, drop legacy runTests block); action rename setVariables→loadVariables; env helpers loadEnvs/replaceEnvs split; envVariables→loadVariables config key | core `3ef45157`,`a44e89e`,`eee1170`,`84602e5`,`1f6a497`,`543e54f`,`e0632163` | v3 runner. Full v3 schema family release (common PR #105) `33aa165`,`7dced13`,`e4f1bcf` | H |
@@ -318,10 +335,10 @@ monorepo …"* note with the PR.
 | 146 | 2025-03-23 | schema | common | **context browsers redesign**: context replaces per-browser chrome/firefox/safari keys with unified `browsers` array; `browserName` enum [chrome,firefox,safari,webkit] (safari≡webkit); browser requires `name`; `contextId` uuid | common `5383e68`,`54344fb`,`86dff292`,`07827f09` | browsers array | H |
 | 147 | 2025-03-24 | engine | core | `driverActions` redefined to v3 action-as-key set; appium-required tests `step[action]`; default contexts from `config.runOn`; `resolveContexts` expands runOn into platform×browser; Safari→webkit; goTo/wait actions to v3 | core `a0f4915`,`3710089`,`8ce90ab`,`8c533f4`,`bde92de` | v3 driverActions + resolveContexts | H |
 | 148 | 2025-03-26 | report | core | getDriverCapabilities/isDriverRequired object-arg + flattened context; viewport from context.browser.viewport; step id key `id`→`stepId`; report objects rebuilt fresh; unknown action → FAIL | core `8c17e59`,`97a043c`,`fdea584`,`02a6df6`,`3a44c981`,`25e3fb81` | v3 object-arg + stepId | H |
-| 149 | 2025-03-27 | step | core | Action handlers migrated to object-keyed `step.<action>` dispatch, destructured `{config,step,driver}`, `step_v3` validation, string/bool shorthand; per-step `variables` from outputs→process.env; goTo string shorthand + protocol/origin; checkLink default statusCodes [200,301,302,307,308] | core `b430e99d`,`98965be1`,`d00d08cb`,`94a887a7`,`f168ba61`,`535fa08a` | v3 action handlers | H |
+| 149 | 2025-03-27 | step | core | Action handlers migrated to object-keyed `step.<action>` dispatch. Destructured `{config,step,driver}`, `step_v3` validation, string/bool shorthand. Per-step `variables` from outputs→process.env. goTo string shorthand + protocol/origin. checkLink default statusCodes [200,301,302,307,308] | core `b430e99d`,`98965be1`,`d00d08cb`,`94a887a7`,`f168ba61`,`535fa08a` | v3 action handlers | H |
 | 150 | 2025-03-28 | step | core | httpRequest nested `request.{params,headers,body}` & `response.{headers,body}`; `actualResponse`; body type-match; headers lowercased; maxVariation as %; mock via openApi.mockResponse; allowAdditionalFields default true. Plus `isRelativeUrl()` (relative URL w/o origin FAILs) | core `8692728a`,`15273ef2`,`eaaf14ab`,`30774eb3` | httpRequest v3 rewrite | H |
 | 151 | 2025-04-01 | resolve | core+common | Unified common `readFile` (JSON+YAML); isValidSourceFile validates JSON **and YAML** against spec_v3; allowedExtensions +yaml/yml; `parseObject`; markdown inline regexes widened multiline | core `5c75c9ef`,`9c854c4f`,`11f3e3c4` | YAML test specs | H |
-| 152 | 2025-04-03 | step | core | find string shorthand (selector-or-text probe), combined selector+text match, defaults (timeout 5000, moveTo/click/type false), removed find-level setVariables, nested sub-steps, `outputs.element`; moveTo ungated from recording; crop delegates to findElement; new `click` action | core `32b5ce9e`,`d1a1efb1`,`b4c43c9d`,`79ecdf1e` | find overhaul | H |
+| 152 | 2025-04-03 | step | core | find string shorthand (selector-or-text probe), combined selector+text match. Defaults timeout 5000, moveTo/click/type false. Removed find-level setVariables, nested sub-steps, `outputs.element`. moveTo ungated from recording. crop delegates to findElement. New `click` action | core `32b5ce9e`,`d1a1efb1`,`b4c43c9d`,`79ecdf1e` | find overhaul | H |
 | 153 | 2025-04-08 | record | core | startRecording/stopRecording → `step.record` object; headless check context.browser.headless; engine gate chrome; download→os.tmpdir; auto-stop injects synthetic stopRecord; recording key recording→record | core `68198f21`,`b7e1853d`,`3a44c981` | v3 record/stopRecord | H |
 | 154 | 2025-04-10 | engine | core | Dropped Edge browser caps; Chrome caps simplified (browserName forced chrome); removed unconditional --no-sandbox. Plus `runCoverage`/`suggestTests` **removed** from test surface (analysis.js/suggest.js, -943 lines) | core `0ef0f10d`,`12dd65e0`,`177f8102`,`9f426e6` | drop Edge + remove coverage/suggest | H |
 | 155 | 2025-04-12 | step | core | New `src/expressions.js`: resolves `{{…}}`/standalone expressions over meta values, `jq` (jq-web), JSONPath (jsonpath-plus), regex `extract`; node-jq→jq-web; array-index access; embedded-expr await fix | core `2dd868be`,`8299f1f2`,`c71bdb21`,`02b46089` | expressions runtime | H |
@@ -329,7 +346,7 @@ monorepo …"* note with the PR.
 | 157 | 2025-04-14 | report | core | goTo waits for document.readyState=complete (default 15000); timeout → result **WARNING** (third verdict state) not FAIL | core `dcec4374` | goTo timeout → WARNING | H |
 | 158 | 2025-04-15 | step | core | find/click treat `/…/` as regex via `findElementByRegex` (scans all elements, foundBy:"regex"); text filter accepts regex | core `cdf7dfe9` | regex element matching | H |
 | 159 | 2025-04-17 | config | core | Markdown statements test/test-end wording + MDX/JSX `{/* test */}` and `[comment]: # (test)` styles; new AsciiDoc (asciidoc_1_0) + HTML (html_1_0) default fileTypes | core `89dbc12b`,`f2e6f30d` | default fileType inline overhaul | H |
-| 160 | 2025-04-18 | schema | common | v3 click/find/screenshot refinements: click requires selector OR elementText (anyOf); find root-level anyOf string/object; type inputDelay 100; screenshot path shorthand + additionalProperties:false; checkLink URL pattern anchored; openApi requires descriptionPath OR operationId. Full per-action `*_v3` family materialized (PR #106/#108) | common `cfb72661`,`7a45da78`,`75cee469`,`1a97bbe5`,`32f75e82`,`2235525f`,`9e8771d6`,`d198351e` | v3 refinements | H |
+| 160 | 2025-04-18 | schema | common | v3 click/find/screenshot refinements. click requires selector OR elementText (anyOf). find root-level anyOf string/object. type inputDelay 100. screenshot path shorthand + additionalProperties:false. checkLink URL pattern anchored. openApi requires descriptionPath OR operationId. Full per-action `*_v3` family materialized (PR #106/#108) | common `cfb72661`,`7a45da78`,`75cee469`,`1a97bbe5`,`32f75e82`,`2235525f`,`9e8771d6`,`d198351e` | v3 refinements | H |
 | 161 | 2025-04-18 | config | doc-detective | **3.0.0 wrapper redesign**: remove `runCoverage`/`suggestTests` commands + interactive prompt (`runTests` only); drop `--setup`/`--cleanup`/`--recursive`; switch validation **`config_v2`→`config_v3`**; add YAML config; new defaults (`relativePathBase:"file"`, `loadVariables:".env"`, `detectSteps:true`, `fileTypes:["markdown","asciidoc","html"]`, `telemetry.send:true`); pluggable reporter (jsonReporter + terminal summary) | doc-detective `58496132` | src/index.js + src/utils.js (the wrapper-side re-exposure of the upstream v3 contract, Seq 139–149) | H |
 | 162 | 2025-04-22 | runner | core | When resolveContexts yields zero contexts, push default `{platform}`; if browser required auto-select firefox→chrome→safari; tests run even with no runOn | core `6472927f` | default-context fallback | H |
 | 163 | 2025-04-23 | step | core | Strategies extracted to `findStrategies.js` (remove circular dep); click handles string/object/absent; helpers return `{element:null,foundBy:null}`; honor test-level detectSteps:false short-circuit | core `57ddd517`,`e78bdd43`,`347d0ce2` | finding rewrite | H |
@@ -337,7 +354,7 @@ monorepo …"* note with the PR.
 | 165 | 2025-05-01 | config | doc-detective | `--input`/`--output` args `path.resolve()`d so relative arg paths resolve from cwd independent of config base | doc-detective `ae724ebf` | `config.input = path.resolve(args.input)` | H |
 | 166 | 2025-05-06 | resolve | common | resolvePaths: loadVariables (renamed from envVariables) as config path; recurse into arrays; skip http(s) URLs | common `6e1121a4`,`3d0ce701`,`23d01926` | path resolution refinements | H |
 | 167 | 2025-05-07 | config | doc-detective | Comma-separated multi-file `--input` (split/trim/resolve each, leave `http(s)://` unresolved); `filePath` defaults `"."` when no config | doc-detective `7cc139e3` | `args.input.split(",").map(trim)` + URL guard | H |
-| 168 | 2025-05-12 | resolve | resolver | **Re-baseline resolver as JS package**: detectTests/resolveTests/detectAndResolveTests entrypoints; driverActions list drives isDriverRequired/resolveContexts; uuid for specId/testId/contextId; return `{config, specs[]}`; null when no tests; resolver does NOT default browsers (runner's job) | resolver `c911e006`,`0a626c4d`,`606b214e`,`d097ce06`,`5e1d8c86`,`9527d00c` | detect→parse→resolve pipeline | H |
+| 168 | 2025-05-12 | resolve | resolver | **Re-baseline resolver as JS package**. detectTests/resolveTests/detectAndResolveTests entrypoints. driverActions list drives isDriverRequired/resolveContexts. uuid for specId/testId/contextId. Return `{config, specs[]}`, and null when no tests. Resolver does NOT default browsers, which is the runner's job | resolver `c911e006`,`0a626c4d`,`606b214e`,`d097ce06`,`5e1d8c86`,`9527d00c` | detect→parse→resolve pipeline | H |
 | 169 | 2025-05-13 | schema | common | `resolvedTests_v3` envelope (`config`+`specs[]`, resolvedTestsId uuid); read-only `environment` (platform/arch/workingDirectory); `configPath`/`specPath` readOnly; openApi `definition` readOnly | common `33510c60`,`36721bfe`,`c0f5dec5`,`5eae96a9`,`d69fe9d0`,`274364c7` | resolvedTests envelope | H |
 | 170 | 2025-05-13 | runner | core | runTests delegates detection+resolution to `doc-detective-resolver` `detectAndResolveTests`; runSpecs `{resolvedTests}`; deletes core arazzo.js/utils.js/sanitize.js; runnerDetails (environment+availableApps) | core `d02fb3d`,`0b5bce4`,`7ec5210`,`f005af9` | delegate resolution | H |
 | 171 | 2025-05-27 | config | doc-detective | Add `configPath` to merged config object (runtime knows config-file location); collapse validation-error logging | doc-detective `821cfef3` | `config.configPath = configPath` | M |
@@ -349,10 +366,10 @@ monorepo …"* note with the PR.
 | 177 | 2025-06-16 | engine | core | connectionRetryTimeout/waitforTimeout 120000→600000; `appium:newCommandTimeout:600` on Gecko/Safari/Chromium | core `c3a4b55`,`816f93e` | driver timeouts → 10min | H |
 | 178 | 2025-06-17 | docker | docker | Replace `ENV CONTAINER=true` with structured `DOC_DETECTIVE` env JSON (`{"container":"docdetective/docdetective:<os>","version":…}`) read by runner; add **ffmpeg** to Linux image (in-container recording) | docker `64a8e10` | DOC_DETECTIVE env JSON + ffmpeg | H |
 | 179 | 2025-06-20 | schema | common+resolver | Config `concurrentRunners`: `["integer","boolean"]` default 1, min 1, `not:{const:false}`; `true`=CPU count capped 4; resolver `resolveConcurrentRunners` normalizes to integer in setConfig | common `73a6d082`,`f5aadf55`; resolver `9251aac5` | concurrentRunners schema | H |
-| 180 | 2025-06-23 | runner | core | Worker-pool/TestRunner parallel context execution with concurrentRunners + indexed ordering — added then **reverted** (no parallelism shipped on this branch; resurfaces in monorepo, Seq 207) | core `2f31442`,`43251a8` | parallel attempt + revert | H |
+| 180 | 2025-06-23 | runner | core | Worker-pool/TestRunner parallel context execution with concurrentRunners + indexed ordering, added then **reverted** (no parallelism shipped on this branch; resurfaces in monorepo, Seq 207) | core `2f31442`,`43251a8` | parallel attempt + revert | H |
 | 181 | 2025-06-25 | schema | common | Config `debug`: anyOf boolean or enum `["stepThrough"]` (default false); step `breakpoint` boolean (default false) | common `b648cb80`,`ef8890f8` | debug + breakpoint | H |
 | 182 | 2025-07-20 | report | doc-detective | Debug-only version/config dump: when `logLevel==="debug"` print `getVersionData()` (auto-discovers `doc-detective-*`, node/platform/execMethod) + full resolved config | doc-detective `a054638` | `getVersionData()` | M |
-| 183 | 2025-08-10 | step | common+core+resolver | **cookie actions**: `saveCookie`/`loadCookie` action-as-key step types (string-or-object; name pattern, path/variable/domain, Netscape format, XOR path/variable); runner cookie parse/format (sameSite Lax, env-var fallback); resolver adds to driverActions | common `620fc810`,`f28e41f`,`73933f0`,`c3d9e8b`,`9ce01f7`; core `b80cb9d`,`b456783`; resolver `96e53763` | cookies | H |
+| 183 | 2025-08-10 | step | common+core+resolver | **cookie actions**. `saveCookie`/`loadCookie` action-as-key step types, string-or-object. Name pattern, path/variable/domain, Netscape format, XOR path/variable. Runner cookie parse/format, with sameSite Lax and env-var fallback. Resolver adds to driverActions | common `620fc810`,`f28e41f`,`73933f0`,`c3d9e8b`,`9ce01f7`; core `b80cb9d`,`b456783`; resolver `96e53763` | cookies | H |
 | 184 | 2025-08-22 | step | common+core+resolver | **dragAndDrop action**: `dragAndDrop_v3` (required source+target elementSpecification, duration 1000); runner HTML5-sim + WebDriver fallback; resolver adds to driverActions; findStrategies selector+text requires BOTH | common `301c0ad`; core `ff602f2`; resolver `75c95b5` | dragAndDrop | H |
 | 185 | 2025-10-08 | docker | docker | Add DITA-OT 4.3.4 to both images (`/opt/dita-ot`, PATH); Linux +unzip/default-jre; Windows +MS OpenJDK 17; `update-ca-certificates` | docker `5b07372`,`a20f59d`,`cab4f03`,`ece503e` | DITA-OT in image | M |
 | 186 | 2025-10-20 | schema | common+core+resolver | **DITA support**: config `processDitaMaps` (default true); fileTypes default/enum +`dita`; resolver `dita_1_0` fileType (XML-attr inline parsing, `.ditamap` via dita CLI, `parseXmlAttributes`); uuid→crypto.randomUUID | common `5afa958`; core `81620db`; resolver `5a6e7f6`,`e18acef`,`371ed8e` | DITA | H |
@@ -360,19 +377,19 @@ monorepo …"* note with the PR.
 | 188 | 2025-10-22 | engine | core | config `integrations.openApi` merged onto each context.openApi (reaches httpRequest validation); unmatched expected response headers now **FAIL** the step | core `a90a936` | openApi merge + header FAIL | H |
 | 189 | 2025-10-23 | report | doc-detective | Remote-runner: `DOC_DETECTIVE_API` ({accountId,url,token,contextIds}) fetches resolved tests (GET `/resolved-tests`), validates `resolvedTests_v3`, runs, POSTs results to `/contexts`; axios dep | doc-detective `23f2f71`,`8bd4305`,`dee756d`,`3ac6163` (#158) | getResolvedTestsFromEnv | H |
 | 190 | 2025-10-24 | engine | core | Appium readiness probe `/sessions`→`/status`; Node 18 dropped from CI matrix; pinned sharp optionalDeps removed | core `9f6bde13` | Appium v3.1 + drop Node 18 | H |
-| 191 | 2025-10-30 | config | common | config `crawl` boolean (default false) — crawls sitemap.xml to discover additional files to test | common `856ce9a` | crawl | H |
+| 191 | 2025-10-30 | config | common | config `crawl` boolean (default false), crawls sitemap.xml to discover additional files to test | common `856ce9a` | crawl | H |
 | 192 | 2025-11-05 | engine | core | Migrate to WDIO v9.2+BiDi (remove enforceWebDriverClassic, isDisplayed withinViewport, cookie sameSite lowercase) → **reverted to classic** while keeping wdio v9; findElement switches to polling | core `f61fc6`,`0743ef`,`4669781` | WDIO v9 + revert | H |
 | 193 | 2025-11-13 | schema | common+core | httpRequest_v3 `response.required`: array of dot/bracket field paths that must exist (any value incl null), default `[]`; runner `fieldExistsAtPath` → FAIL listing missing fields | common `fff0569`; core `07523f04` | response.required | H |
 | 194 | 2025-11-16 | schema | common+core | **multi-criteria element finding**: find/click/screenshot/type/dragAndDrop object forms gain elementId/elementTestId/elementClass/elementAttribute/elementAria (string|array, regex, presence); string shorthand = multi-field OR; runner `findByCriteria` parallel OR | common `158a270`,`c6376be`,`2c07987`; core `983de50` | multi-criteria finding | H |
-| 195 | 2025-11-19 | report | core | screenshot/runShell maxVariation overruns set status WARNING (file still written) instead of FAIL — de-fang visual/output regressions | core `1595353` | regression diffs → WARNING | H |
+| 195 | 2025-11-19 | report | core | screenshot/runShell maxVariation overruns set status WARNING (file still written) instead of FAIL, de-fang visual/output regressions | core `1595353` | regression diffs → WARNING | H |
 | 196 | 2025-11-19 | schema | common+core | goTo_v3 `timeout`(30000) + `waitUntil` object: networkIdleTime(500), domIdleTime(1000), find element; null disables a condition; runner parallel ready/network-idle/DOM-stable/element-found checks | common `9d7d503`; core `107766` | goTo waitUntil + timeout | H |
 | 197 | 2025-11-26 | config | doc-detective | Respect explicit `false` for `recursive`/`detectSteps` (`?? true` instead of `|| true`) | doc-detective `2f0d969` (#160) | `recursive: config.recursive ?? true` | H |
 | 198 | 2025-11-28 | report | core | Unsupported-context skip log warning→info; skipped-context report shape `{status:"SKIPPED"}` object → flat `"SKIPPED"` (fixes spurious PASS) | core `6a61bf6`,`2d28d3` | skipped-context log level | H |
-| 199 | 2025-12-01 | runner | core | `getRunner({headless})` returns `{runner,appium,cleanup,runStep}` — drive a live session and run steps directly; headless fallback on Chrome start failure | core `90f581` | public getRunner API | H |
+| 199 | 2025-12-01 | runner | core | `getRunner({headless})` returns `{runner,appium,cleanup,runStep}`, drive a live session and run steps directly; headless fallback on Chrome start failure | core `90f581` | public getRunner API | H |
 | 200 | 2025-12-02 | step | core | `calculatePercentageDifference`→`calculateFractionalDifference` (0–1 Levenshtein/maxLength); httpRequest/runShell compare raw maxVariation (no *100); unified comparison contract; wait uses driver.pause when driver present | core `580f4d`,`a6e092` | fractional maxVariation | H |
-| 201 | 2025-12-06 | docker | docker | Multi-OS images + publish contract: Windows image (`windows/server:ltsc2022`, Node MSI, cmd entrypoint); single-stage Linux runtime w/ explicit Chrome shared-lib set; canonical publish `docdetective/docdetective:latest`+`:$VERSION`; build.js platform→tag matrix; GitHub Actions publish (2025-05-08 cluster) | docker `cc0dbe8`,`178fe1d`,`ca6c49bd`,`c545eb8`,`2efbaa8`,`fc938ee`,`3f9c767` | multi-OS publish | H |
-| 202 | 2025-12-16 | integrations | common+core+resolver | **Heretto CMS integration**: config `integrations.heretto[]` (name/organizationId/username/apiToken format:password, scenarioName); `heretto:` source refs (publishing API, ZIP download); `sourceIntegration_v3` schema; screenshot uploader round-trip (uploadOnChange default true, `changed` flag, report.uploadResults); collision-safe specIds | common `ea835d1`,`8ad7460`; core `f0ae77`,`be8c485`; resolver `15c58e0`,`b7345ab`,`79e02b4` | Heretto | H |
-| 203 | 2025-12-24 | step | core | checkLink GET sends browser UA/Accept, 10s timeout, maxRedirects 5; error reports actual status (`Returned NNN. Expected one of […]`) — fixes bot-blocking false failures | core `e433358` | checkLink UA + status error | H |
+| 201 | 2025-12-06 | docker | docker | Multi-OS images + publish contract. Windows image (`windows/server:ltsc2022`, Node MSI, cmd entrypoint). Single-stage Linux runtime with an explicit Chrome shared-lib set. Canonical publish `docdetective/docdetective:latest`+`:$VERSION`. build.js platform→tag matrix. GitHub Actions publish (2025-05-08 cluster) | docker `cc0dbe8`,`178fe1d`,`ca6c49bd`,`c545eb8`,`2efbaa8`,`fc938ee`,`3f9c767` | multi-OS publish | H |
+| 202 | 2025-12-16 | integrations | common+core+resolver | **Heretto CMS integration**. Config `integrations.heretto[]` (name/organizationId/username/apiToken format:password, scenarioName). `heretto:` source refs (publishing API, ZIP download). `sourceIntegration_v3` schema. Screenshot uploader round-trip (uploadOnChange default true, `changed` flag, report.uploadResults). Collision-safe specIds | common `ea835d1`,`8ad7460`; core `f0ae77`,`be8c485`; resolver `15c58e0`,`b7345ab`,`79e02b4` | Heretto | H |
+| 203 | 2025-12-24 | step | core | checkLink GET sends browser UA/Accept, 10s timeout, maxRedirects 5; error reports actual status (`Returned NNN. Expected one of […]`), fixes bot-blocking false failures | core `e433358` | checkLink UA + status error | H |
 
 ### 2026
 
@@ -381,9 +398,9 @@ monorepo …"* note with the PR.
 | 204 | 2026-01-27 | infra | common | **TypeScript migration**: all source .js→.ts; generated per-schema typed interfaces; dist ships ESM+CJS+`.d.ts`; package now type-exporting (backward compatible) | common `c089ec1` | TS migration | H |
 | 205 | 2026-02-24 | infra | common | Browser-safe `detectTests`/`parseContent` pure module (no fs/path) added to public exports; dist `index.cjs` browser bundle; v4.0.0-beta | common `2f10a66` | browser build | H |
 | 206 | 2026-02-26 | infra | doc-detective+core | **Merge `core` into the monorepo**; full ESM/TypeScript refactor (`src/core/*`: config.ts, tests.ts, action files, integrations/heretto.ts, openapi.ts); postinstall.js, createCjsWrapper.js (v4 line) | doc-detective `5b8df475` | src/core/* packaging | H |
-| 207 | 2026-02-28 | infra | doc-detective+common | **Merge `doc-detective-common`** under `src/common/`: all schemas, detectTests.ts, validate — establishes in-repo schema/contract surface (decisions themselves are upstream-dated above). Plus `--version` CLI flag (`e83d1d75`); recording reliability `safeDone` (`da7ed97b`) | doc-detective `2ae9b831`,`e83d1d75`,`da7ed97b` | src/common/* | H |
-| 208 | 2026-03-07 | docker | doc-detective+docker | **Merge docker configs** into monorepo: `src/container/{linux,windows}.Dockerfile`, build.cjs, container-build-push workflow — in-repo Docker base/runtime contract | doc-detective `912191e7` (#191) | src/container/* | H |
-| 209 | 2026-03-09 | infra | common | Export generated types (Specification/Test/Step/Context/Config/Report) from `src/common/src/index.ts` — public API surface | common `07957639` (#194) | index.ts exports | H |
+| 207 | 2026-02-28 | infra | doc-detective+common | **Merge `doc-detective-common`** under `src/common/`: all schemas, detectTests.ts, validate, establishes in-repo schema/contract surface (decisions themselves are upstream-dated above). Plus `--version` CLI flag (`e83d1d75`); recording reliability `safeDone` (`da7ed97b`) | doc-detective `2ae9b831`,`e83d1d75`,`da7ed97b` | src/common/* | H |
+| 208 | 2026-03-07 | docker | doc-detective+docker | **Merge docker configs** into monorepo: `src/container/{linux,windows}.Dockerfile`, build.cjs, container-build-push workflow, in-repo Docker base/runtime contract | doc-detective `912191e7` (#191) | src/container/* | H |
+| 209 | 2026-03-09 | infra | common | Export generated types (Specification/Test/Step/Context/Config/Report) from `src/common/src/index.ts`, public API surface | common `07957639` (#194) | index.ts exports | H |
 | 210 | 2026-03-11 | resolve | common+core | Test-detection refactor + `src/common/src/fileTypes.ts` (318 lines) + `step_v3` field; detectTests updated in common+core (line/location tracking) | doc-detective `0ff34765` (#197) | fileTypes.ts; detectTests | H |
 | 211 | 2026-03-20 | infra | doc-detective | npm packaging: include `scripts/` + bundling `files` entries (changes published package contents); prepack/postpack strip workspaces during packing to fix `npx doc-detective` | doc-detective `9268214a`,`045d9214`,`43fea021` | package.json `files`; prepack/postpack | M |
 | 212 | 2026-03-25 | resolve | core | Heretto CMS content loading in monorepo: `src/core/integrations/heretto.ts` (515 lines) + detectTests integration (`heretto:<name>` refs); job-status polling fix | doc-detective `2b5167a9` (#238),`dc4312d4` | heretto.ts loader (re-exposure of Seq 202) | H |
@@ -419,19 +436,19 @@ monorepo …"* note with the PR.
 | 242 | 2026-06-14 | runner | core | **Concurrent test runners** (parallel context execution); `concurrentRunners` config; large tests.ts rework, Appium config changes, new hints (the monorepo re-land of the reverted Seq 180) | doc-detective `dd248197` (#332) | tests.ts; concurrentRunners | H |
 | 243 | 2026-06-14 | config | core+common | `autoScreenshot` config + `--auto-screenshot` (auto-capture after each browser step); `runFolder` reporter (default-on) writing `.doc-detective/run-<runId>/testResults.json`; deterministic ID fallbacks; report gains `runId`/`runDir`; spec/test-level autoScreenshot | doc-detective `0527292b` (#334) | config/spec/test/step/report schema additions | H |
 | 244 | 2026-06-14 | report | core | runFolder archive also emits a per-run HTML report beside the JSON | doc-detective `baa83dee` (#341) | utils.ts/htmlReporter.ts | H |
-| 245 | 2026-06-16 | report | core | runFolder reporter reorders stdout so per-run JSON "results at" line trails the HTML line — GitHub Action results-resolution contract (splits stdout on "results at ") | doc-detective `79f35b85` (#346) | runFolder stdout order | M |
+| 245 | 2026-06-16 | report | core | runFolder reporter reorders stdout so per-run JSON "results at" line trails the HTML line, GitHub Action results-resolution contract (splits stdout on "results at ") | doc-detective `79f35b85` (#346) | runFolder stdout order | M |
 | 246 | 2026-06-16 | record | core+common | **ffmpeg recording engine** for any-app recording + concurrency-safe Chrome; `src/.../ffmpegRecorder.ts`; `record_v3`/`step`/`test` schema engine-selection; recording fixtures + permutations | doc-detective `36a83ba1` (#343) | ffmpegRecorder.ts; record_v3 | H |
 | 247 | 2026-06-17 | runner | core | Skip run-folder creation when no artifacts written (no empty `.doc-detective/run-*` dirs) | doc-detective `341b9c5c` | tests.ts/utils.ts | H |
 | 248 | 2026-06-17 | record | core+common | `autoRecord` + multiple overlapping recordings (LIFO); new `stopRecord_v3` schema; config/record/spec/test/step schema additions | doc-detective `189d1979` (#349) | stopRecord_v3; ffmpegRecorder | H |
 | 249 | 2026-06-17 | step | core+common | `runBrowserScript` action/step type (JS in browser context); `runBrowserScript_v3` schema, `tests/runBrowserScript.ts`, `browserStepKeys.ts`, inferRuntimeNeeds wiring | doc-detective `f010c67d` (#352) | runBrowserScript.ts | H |
-| 250 | 2026-06-22 | runner | core | Gate advanced (setup/cleanup) ordering under `concurrentRunners` — ordering only applies when concurrency enabled **(authored: ADR 01000)** | doc-detective `158c83e6` (#377) | detectTests.ts/tests.ts | H |
+| 250 | 2026-06-22 | runner | core | Gate advanced (setup/cleanup) ordering under `concurrentRunners`, ordering only applies when concurrency enabled **(authored: ADR 01000)** | doc-detective `158c83e6` (#377) | detectTests.ts/tests.ts | H |
 
-> Notes on seams: `--allow-unsafe` (wrapper) folds into the upstream unsafe-gating
-> decision (Seq 175); the wrapper 3.0.0 redesign (Seq 161) is the re-exposure of
-> the upstream v3 schema/runner family (Seq 139–149); the monorepo Heretto loader
-> (Seq 212) re-exposes the upstream Heretto integration (Seq 202); the monorepo
-> concurrent-runners land (Seq 242) re-lands the reverted upstream attempt
-> (Seq 180). Runtime lazy-install → eager-default → install-log → companions
+> Notes on seams. `--allow-unsafe` (wrapper) folds into the upstream
+> unsafe-gating decision (Seq 175). The wrapper 3.0.0 redesign (Seq 161) is the
+> re-exposure of the upstream v3 schema/runner family (Seq 139–149). The
+> monorepo Heretto loader (Seq 212) re-exposes the upstream Heretto integration
+> (Seq 202). The monorepo concurrent-runners land (Seq 242) re-lands the
+> reverted upstream attempt (Seq 180). Runtime lazy-install → eager-default → install-log → companions
 > (Seq 227/231/233/236) span monorepo batches 15/16.
 
 ---
@@ -443,12 +460,12 @@ monorepo …"* note with the PR.
 | 2022-09 | `moveMouse`-on-`click` option added then removed within a day (superseded by find sub-actions) | doc-detective `d742ef2`,`93664ce` | record-the-interim | Option surface + README payload were published before removal |
 | 2022-10-04 | "Clarified stopRecording inputs" | doc-detective `82f2b02d` | INCLUDE-leaning | Pure call-signature reshuffle vs. observable contract |
 | 2023-04-17 | Migrated tests to Mocha (also adds exported `spawnCommand` helper) | doc-detective `8ed8e939` | EXCLUDE | Test infra; helper not yet user-facing |
-| 2023-07-24 | Multi-line markup `regex[]` `{open,close}` objects; `codeBlock`→`bashCodeBlock` — added then removed within a release window (net: no open/close in defaults) | common `98e8317c`,`cac10b2d`,`65e1a8ec` | EXCLUDE (net no-op) | Contract churn that didn't survive the release |
+| 2023-07-24 | Multi-line markup `regex[]` `{open,close}` objects; `codeBlock`→`bashCodeBlock`, added then removed within a release window (net: no open/close in defaults) | common `98e8317c`,`cac10b2d`,`65e1a8ec` | EXCLUDE (net no-op) | Contract churn that didn't survive the release |
 | 2024-05-12 | `outputResults` async→sync write, swallows write errors instead of throwing | doc-detective `9f79f904` | borderline | Changes failure behavior; folded into Seq 125 |
 | 2025-05-03 | Capture-group/`$0/$1` templating churn in markup (added then reshaped) | core `3dc533` cluster | INCLUDE (folded Seq 119) | Substitution semantics shipped |
-| 2025-06-12 | Per-step result-state expansion (no named `onFail`/`retry` field shipped upstream) — closest analog to a retry/onFail decision | core `b25a88c` (folded Seq 176) | record-the-analog | There is **no** dedicated `onFail`/`retry` decision upstream to backfill; flag if one is expected |
+| 2025-06-12 | Per-step result-state expansion (no named `onFail`/`retry` field shipped upstream), closest analog to a retry/onFail decision | core `b25a88c` (folded Seq 176) | record-the-analog | There is **no** dedicated `onFail`/`retry` decision upstream to backfill; flag if one is expected |
 | 2025-05-09 | Docker-build dispatch step in `npm-publish.yml` (fires downstream build) | doc-detective `e268cc32` | EXCLUDE (CI) | Is the action-gh/docker dispatch a contract? |
-| 2026-06-10 | Split Windows image into prebuilt base + thin app layer; multi-arch (amd64+arm64) linux manifest | docker `e5647341`,`25688f38` | EXCLUDE (build) | Publishes a new base image / new supported arch — distribution contract? |
+| 2026-06-10 | Split Windows image into prebuilt base + thin app layer; multi-arch (amd64+arm64) linux manifest | docker `e5647341`,`25688f38` | EXCLUDE (build) | Publishes a new base image / new supported arch, distribution contract? |
 | 2026-06 | Major runtime-dep majors (yargs 17→18, appium, webdriverio, typescript 5→6) | doc-detective `3a837fc2` | EXCLUDE (deps) | CLAUDE.md exempts dep bumps, but majors can shift observable behavior |
 | 2026-06-16/17 | `cacheDir` override assignment-only refactor; `install-agents`→`install agents` message text | doc-detective `3076f433`,`b4ebb036` | EXCLUDE | Net behavior unchanged / message-text only |
 
@@ -466,39 +483,45 @@ monorepo …"* note with the PR.
 - **Aggregate excluded-by-reason** (approximate; the same commit is bucketed
   under one primary reason; summed across all batches in all repos):
   - **version/release/dependency/lockfile chore** (incl. semantic-release &
-    auto-dev releases) — by far the largest bucket, **~1,000+** across all repos.
-  - **merge commits** (content counted in member commits) — **~280–300**.
+    auto-dev releases), by far the largest bucket, **~1,000+** across all repos.
+  - **merge commits** (content counted in member commits), **~280–300**.
   - **docs / README / AGENTS.md / Jekyll-site / vale / mdx / typo / comment /
-    formatting** — **~195**.
-  - **test-only / fixtures / sample data / dev-harness / local config** — **~235**.
-  - **CI / GitHub workflows / .github / dependabot / coderabbit** — **~220**.
-  - **pure refactor / rename / cosmetic / log-text / plumbing / "Initial plan"** — **~190**.
-  - **generated build artifacts** (output_schemas/schemas.json mirroring a src change) — **~50**.
-  - **placeholder/temp markdown, icons, gitignore, lockfile-only, prototype** — **~35**.
-- The remainder are the behavior/contract commits the batches recorded — several
-  hundred raw rows across all five repos — deduplicated by decision down to the
-  **250 distinct decisions** in the master table.
+    formatting**, **~195**.
+  - **test-only / fixtures / sample data / dev tooling / local config**, **~235**.
+  - **CI / GitHub workflows / .github / dependabot / coderabbit**, **~220**.
+  - **pure refactor / rename / cosmetic / log-text / plumbing / "Initial plan"**, **~190**.
+  - **generated build artifacts** (output_schemas/schemas.json mirroring a src change), **~50**.
+  - **placeholder/temp markdown, icons, gitignore, lockfile-only, prototype**, **~35**.
+- The remainder are the behavior and contract commits the batches recorded.
+  That's several hundred raw rows across all five repos. They deduplicate by
+  decision down to the **250 distinct decisions** in the master table.
 
 ## Counts
 
 **Distinct cross-repo decisions: 250** (Seq 1–250). Of these, **1 is already
 authored** (ADR `01000`, Seq 250), leaving **249 candidate ADRs**.
 
-**Dedup result.** The two inputs (143 upstream decisions + ~132 monorepo
-decisions = 275 pre-merge rows) collapsed to **250** by merging **25
+**Dedup result.** The two inputs were 143 upstream decisions plus ~132 monorepo
+decisions, or 275 pre-merge rows. They collapsed to **250**, by merging **25
 monorepo↔upstream rows** that described the same contract decision. The
-deduplicated pairs are: the wrapper postinstall delegation (→ Seq 83), wrapper
-`runCoverage`/`suggestTests` CLI entrypoints (→ Seq 84/86), the multiarch
-docker build (→ Seq 88), wrapper `setMeta`/`DOC_DETECTIVE_META` (→ Seq 112),
-wrapper async `setConfig`/`resolvePaths` (→ Seq 127), the wrapper 3.0.0 redesign
-which re-exposes the upstream v3 family (kept as its own Seq 161 but cross-linked
-to Seq 139–149, **not** counted as new schema decisions), the monorepo Heretto
-loader (→ Seq 202/212 cross-link), monorepo concurrent-runners land
-(→ Seq 180/242 cross-link), wrapper `--allow-unsafe` (→ Seq 175), wrapper
-`DOC_DETECTIVE_CONFIG` (merged with the Doc Detective API row, Seq 187), plus the
-v3 schema/config/context/OpenAPI/Arazzo/unified-outputs items that the monorepo
-inventory had parked in "Still needs verification" and the upstream audit dated
-(Seq 132/135/139–149/156).
+deduplicated pairs are:
+
+- the wrapper postinstall delegation (→ Seq 83);
+- wrapper `runCoverage`/`suggestTests` CLI entrypoints (→ Seq 84/86);
+- the multiarch docker build (→ Seq 88);
+- wrapper `setMeta`/`DOC_DETECTIVE_META` (→ Seq 112);
+- wrapper async `setConfig`/`resolvePaths` (→ Seq 127);
+- the wrapper 3.0.0 redesign, which re-exposes the upstream v3 family. It is
+  kept as its own Seq 161, but cross-linked to Seq 139–149, and **not** counted
+  as new schema decisions;
+- the monorepo Heretto loader (→ Seq 202/212 cross-link);
+- monorepo concurrent-runners land (→ Seq 180/242 cross-link);
+- wrapper `--allow-unsafe` (→ Seq 175);
+- wrapper `DOC_DETECTIVE_CONFIG`, merged with the Doc Detective API row,
+  Seq 187;
+- the v3 schema, config, context, OpenAPI, Arazzo, and unified-outputs items.
+  The monorepo inventory had parked those in "Still needs verification", and the
+  upstream audit dated them (Seq 132/135/139–149/156).
 
 By **repo(s)** (a multi-repo decision counts once under each repo it spans):
 
@@ -558,20 +581,21 @@ The previously-large list is now **resolved** from the upstream audit (see
 
 | Theme | Item | Notes |
 |-------|------|-------|
-| step | A dedicated `onFail` / `onStepFail` / step-`retry` decision | **Does not exist** in any of the five repos. The closest shipped contract is the per-step result-state expansion (stop-on-fail → SKIPPED, Seq 176; goTo timeout → WARNING, Seq 157; regression diffs → WARNING, Seq 195). If a retry/onFail ADR is expected, it must be authored as a *future* decision, not backfilled. |
+| step | A dedicated `onFail` / `onStepFail` / step-`retry` decision | **Does not exist** in any of the five repos. The closest shipped contract is the per-step result-state expansion. That's stop-on-fail → SKIPPED, Seq 176. Also goTo timeout → WARNING, Seq 157, and regression diffs → WARNING, Seq 195. If a retry or onFail ADR is expected, it must be authored as a *future* decision, rather than backfilled. |
 | config | A small number of L-confidence freeform-era dates (e.g. Seq 52 `loadEnvs` rewrite 2022-10-25; Seq 115 interactive picker 2024-03-30) | Dates are first-introduction commit dates accurate to within a release; tighten only if a precise day is needed for numbering. |
 
 ## Proposed next steps (after you prune this list)
 
-1. **Prune + correct**: strike rows that aren't ADR-worthy, adjudicate the
-   [Borderline](#borderline-needs-adjudication) rows, and confirm the two
-   remaining [Still needs verification](#still-needs-verification) items (decide
-   whether an `onFail`/`retry` ADR is in scope at all).
-2. **Decide infra/docker scope**: do `infra`/CI/release-pipeline and
-   docker-build rows get ADRs? (default: no, except the milestones — v1→v2 split
-   Seq 57/80/87, the v3 redesign Seq 139–149/161, the OpenAPI/Arazzo/Heretto
-   integrations, the core+common+docker merges Seq 206–208, runtime lazy-install
-   Seq 227).
+1. **Prune and correct.** Strike rows that aren't ADR-worthy, and adjudicate the
+   [Borderline](#borderline-needs-adjudication) rows. Then confirm the two
+   remaining [Still needs verification](#still-needs-verification) items. Decide
+   whether an `onFail` or `retry` ADR is in scope at all.
+2. **Decide infra and docker scope.** Do `infra`, CI, release-pipeline, and
+   docker-build rows get ADRs? The default is no, with exceptions. The
+   milestones are exceptions, as are the v1→v2 split and the v3 redesign. So are
+   the OpenAPI, Arazzo, and Heretto integrations. So are the core, common, and
+   docker merges, and runtime lazy-install. See Seq 57/80/87, Seq 139–149/161,
+   Seq 206–208, and Seq 227.
 3. **Finalize numbering**: assign contiguous `00001`+ in date order over the
    surviving set (pruning renumbers everything).
 4. **Author in batches by theme** (parallel subagents), each ADR cloning the
