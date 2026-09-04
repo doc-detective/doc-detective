@@ -37,7 +37,8 @@ what the check should do now that a clean tree makes a hard gate affordable.
 ## Considered Options
 
 * **A. Lint the whole repository and fail on any error** (chosen). Drop the changed-file plumbing,
-  pass `files: all`, and set `fail_on_error: true` with `filter_mode: nofilter`.
+  pass `files: all`, and set `fail_on_error: true` with `filter_mode: nofilter` and
+  `--minAlertLevel=error`.
 * **B. Keep changed-file scoping, add `fail_on_error: true`.** A smaller change that gates only
   what a PR touched.
 * **C. Keep the workflow advisory.** Rely on authors and reviewers to read the annotations.
@@ -48,7 +49,7 @@ Chosen option: **A**. Option **B** gates half the tree and keeps the plumbing th
 once already, so a regression in an untouched file still merges green. Option **C** is the status
 quo the clean tree was bought to replace.
 
-Four inputs carry the decision, and each is load-bearing:
+Five inputs carry the decision, and each is load-bearing:
 
 * **`files: all`** is vale-action's sentinel for `.`, so there is no changed-file list to marshal.
   The `tj-actions/changed-files` step, its `json`/`escape_json` coupling, and the
@@ -59,6 +60,12 @@ Four inputs carry the decision, and each is load-bearing:
   filter is `added`, which reports only alerts on lines the PR added. Under a whole-repo lint that
   would silently discard every alert in an untouched file, and `fail_on_error` would never trip.
   The pair is the gate; either one alone is theatre.
+* **`--minAlertLevel=error`** in `vale_flags` is what keeps `nofilter` survivable.
+  `docs/.vale.ini` sets `MinAlertLevel = suggestion`, which is right for a local run and was
+  harmless while scoping and the `added` filter kept the volume down. Under whole-repo plus
+  `nofilter` it would hand reviewdog roughly 4,200 warnings and suggestions from across the tree to
+  post as PR comments. Emitting only errors keeps the comment volume to exactly what the gate
+  fails on. Warnings stay available to anyone who runs Vale locally.
 * The **`pull_request` trigger loses its `paths:` filter.** A check that is skipped on some PRs
   cannot be a required status check, and the job is seconds of runner time.
 
@@ -82,6 +89,9 @@ keeps them out of the parse as well.
   the checkout and the mdx2vast install.
 * Neutral: reviewdog can only post inline review comments on lines in the PR's diff. Alerts
   elsewhere land in the check output rather than as comments. The check still fails.
+* Neutral: warning and suggestion alerts no longer appear as PR comments. Under changed-file
+  scoping they did, for the handful of files a PR touched. Whole-repo scope makes that volume
+  untenable, so warnings move to the local `vale` run.
 * **Supersedes [ADR 01089](01089-vale-changed-files-as-json-array.md) in full.** That decision
   existed to make changed-file scoping work. This one removes changed-file scoping.
 
@@ -91,10 +101,11 @@ keeps them out of the parse as well.
   `.txt` file reports **0 errors** in 550 files. That's the precondition the gate depends on, and
   it is what the rest of this change delivered.
 * [test/vale-workflow.test.js](../test/vale-workflow.test.js) pins the new contract. It asserts
-  `files: all`, `fail_on_error: true`, and `filter_mode: nofilter` on the "Run vale" step, that no
-  `changed-files` step or `separator` input survives, and that the `pull_request` trigger carries
-  no `paths:` filter. It also re-implements vale-action's `lib/input.js` resolution to show that
-  `all` resolves to `.`, the whole-repo argument.
+  `files: all`, `fail_on_error: true`, `filter_mode: nofilter`, and `--minAlertLevel=error` on the
+  "Run vale" step. It also asserts that no `changed-files` step or `separator` input survives, and
+  that the `pull_request` trigger carries no `paths:` filter. Finally, it re-implements
+  vale-action's `lib/input.js` resolution to show that `all` resolves to `.`, the whole-repo
+  argument.
 * Post-merge, the "Run vale" step log shows a single `.` argument and no
   `falling back to 'all'` warning. A deliberately introduced error-severity alert in a file the PR
   does not touch fails the check.

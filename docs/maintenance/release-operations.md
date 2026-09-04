@@ -19,7 +19,8 @@ realities around them.
 - **`vale` is a real gate.** It lints the whole repository on every PR, with `fail_on_error: true`
   and `filter_mode: nofilter`, per
   [ADR 01096](../../adrs/01096-vale-gates-the-whole-repo-and-fails-on-errors.md). So an
-  error-severity alert anywhere in the tree turns the check red. Fix the prose, or add the term to
+  error-severity alert anywhere in the tree turns the check red. It reports errors only, so run
+  `vale --config=docs/.vale.ini <path>` locally to see warnings. Fix the prose, or add the term to
   the vocab below. The ruleset's blocker list omits it, so treat it as a blocker by convention.
 - The repo owner (hawkeyexl) is admin: `gh pr merge <n> --merge --admin --delete-branch` bypasses
   the approval gate. `--delete-branch` prints a harmless "failed to delete local branch" when the

@@ -79,6 +79,13 @@ describe("vale workflow whole-repo gate", function () {
       assert.match(String(runVale.with.vale_flags), /--config=docs\/\.vale\.ini/);
     });
 
+    it("emits only error-severity alerts", function () {
+      // docs/.vale.ini sets MinAlertLevel = suggestion. Without this override,
+      // whole-repo + nofilter would hand reviewdog every warning in the tree to
+      // post as a PR comment.
+      assert.match(String(runVale.with.vale_flags), /--minAlertLevel=error/);
+    });
+
     it("carries no changed-file plumbing", function () {
       assert.equal(
         steps.find((s) => s.id === "changed-files"),

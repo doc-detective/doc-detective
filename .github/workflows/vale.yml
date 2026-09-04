@@ -41,7 +41,14 @@ jobs:
           # renders the same pages correctly, so this is a linter-parser
           # limitation, not bad content. docs/.vale.ini also clears every style
           # for those pages; the glob keeps them out of the parse as well.
-          vale_flags: "--config=docs/.vale.ini --glob=!docs/fern/pages/reference/schemas/**"
+          #
+          # --minAlertLevel=error is load-bearing under whole-repo + nofilter.
+          # docs/.vale.ini sets MinAlertLevel = suggestion, which is right for a
+          # local run but would hand reviewdog ~4,200 warnings and suggestions
+          # from across the tree to post as PR comments. Emitting only errors
+          # keeps the comment volume to what the gate actually fails on. Run
+          # Vale locally for the warnings.
+          vale_flags: "--config=docs/.vale.ini --minAlertLevel=error --glob=!docs/fern/pages/reference/schemas/**"
           reporter: github-pr-review
           # `filter_mode` and `fail_on_error` are a load-bearing pair. reviewdog's
           # default filter (`added`) reports only alerts on lines the PR added, so
