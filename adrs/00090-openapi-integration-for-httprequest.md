@@ -8,8 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`httpRequest` required an author to spell out the full request — URL, method, headers, body — for
-every call. When the API already has an OpenAPI description, that is redundant: the operation's
+`httpRequest` required an author to spell out the full request for every call: URL, method,
+headers, and body. When the API already has an OpenAPI description, that is redundant. The
+operation's
 shape, examples, and response schema are all defined in the spec. There was also no way to drive a
 request from an operation id or to validate/mock a response against the description. How should
 `httpRequest` consume an OpenAPI description so requests can be seeded from operations and responses
@@ -25,8 +26,8 @@ validated against the schema?
 
 ## Considered Options
 
-* **A. Add an `openApi` object on httpRequest (top-level `oneOf[url, openApi]`), config
-  `integrations.openApi[]`, and an operation engine that seeds requests from examples, validates
+* **A. Add an `openApi` object on httpRequest (top-level `oneOf[url, openApi]`), plus config
+  `integrations.openApi[]`. Add an operation engine that seeds requests from examples, validates
   responses against the schema, and can mock responses** (chosen).
 * **B. A preprocessing step that expands OpenAPI operations into plain httpRequest steps.**
 * **C. Keep httpRequest description-agnostic; require fully spelled-out requests.**
@@ -35,10 +36,10 @@ validated against the schema?
 
 Chosen option: **A**, because first-class OpenAPI awareness lets a request reference an operation
 and reuse the description's examples and schema. The contract added an `openApi` object on the
-httpRequest schema with a top-level `oneOf[url, openApi]`, config `integrations.openApi[]`, and a
-core operation engine (`src/openapi.js`) that does example seeding, schema validation, mock-response
-generation, and YAML-defs handling; spec/test gained `openApi` arrays, and `definitionPath` was
-renamed `descriptionPath` (common `30e9b7df`, `2edf0919`, `a3e2ffc7`, `a8305d89`, `f85089aa`,
+httpRequest schema, with a top-level `oneOf[url, openApi]` and config `integrations.openApi[]`. It
+added a core operation engine (`src/openapi.js`) doing example seeding, schema validation,
+mock-response generation, and YAML-defs handling. Spec and test gained `openApi` arrays, and
+`definitionPath` was renamed `descriptionPath` (common `30e9b7df`, `2edf0919`, `a3e2ffc7`, `a8305d89`, `f85089aa`,
 `b4f2525c`, `8fe87a84`, `c90e3598`; core `47466440`, `c18bf49`, `74fa0fb`, `4a81d2a`, `c33731a`,
 `d4287474`, Seq 132). In the monorepo the OpenAPI commits are dep-bumps only; the feature was
 authored upstream at these dates.

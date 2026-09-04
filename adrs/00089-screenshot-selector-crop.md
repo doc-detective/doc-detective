@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 `saveScreenshot` captured the full viewport. Documentation screenshots usually need to show a
-specific element — a button, a panel, a form — not the whole page, and the relevant region differs
-per element and per display density. There was no way to crop a screenshot to a particular element.
+specific element, such as a button, panel, or form, rather than the whole page. The relevant region
+differs per element and per display density. There was no way to crop a screenshot to a particular element.
 How should `saveScreenshot` express "capture just this element," and how should the runner produce
 that crop accurately across devicePixelRatio differences?
 
@@ -32,8 +32,8 @@ that crop accurately across devicePixelRatio differences?
 
 Chosen option: **A**, because a selector tracks the element regardless of layout shifts and a
 `padding` field covers the common "a little margin" need. `saveScreenshot` gained a `crop` object
-with a required `selector` and optional `padding`; the runner resolves the element's bounding rect
-and crops to it using sharp, multiplying by devicePixelRatio so the crop is correct on high-DPI
+with a required `selector` and optional `padding`. The runner resolves the element's bounding rect
+and crops to it using sharp. It multiplies by devicePixelRatio so the crop is correct on high-DPI
 displays (common `d8fc52c6`; core `8ba7f87`, `15411b8`, `38505fb`, Seq 131).
 
 ### Consequences
