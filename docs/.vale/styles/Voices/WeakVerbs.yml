@@ -3,7 +3,9 @@
 #
 # Moose: each inflection carries its own replacement, so the auto-fix agrees
 # in tense and number ("make a decision" becomes "decide", not "decided"),
-# and `capitalize` keeps a sentence-initial match capitalized.
+# and `capitalize` keeps a sentence-initial match capitalized. "was able to"
+# is left alone: it often marks a single achieved outcome, where "could"
+# would change the meaning.
 extends: substitution
 message: "Weak verb phrase: use '%s' instead of '%s'."
 level: error
@@ -21,6 +23,4 @@ swap:
   had the ability to: could
   is able to: can
   are able to: can
-  was able to: could
-  were able to: could
   in order to: to

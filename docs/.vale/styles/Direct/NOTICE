@@ -14,7 +14,9 @@ and contributors, licensed under the MIT License. They were taken from commit
   Voices/ColonReveal.yml     horizontal whitespace only, no cross-line matches
   Voices/InflatedWords.yml   capitalize: true so auto-fixes keep the case
   Voices/WeakVerbs.yml       one replacement per inflection, always grammatical
-  Direct/Length.yml          parent rule inlined; no dependency on Std
+
+The copies of this file under Moose/styles/Voices/ and Moose/styles/Direct/
+are kept identical to it; CI checks that.
 
 Vale Voices carries the following notices, reproduced here because the
 copied rules derive from those works.
@@ -37,6 +39,15 @@ entry describes, a sentence budget, and states it as a Vale rule.
 Std
 ------------------------------------------------------------------------------
 
-Direct/Length.yml inlines Std.Readability.SentenceLength from Vale's standard
-library (https://github.com/vale-cli/Std, MIT), which was extracted from
-errata-ai/IBM (MIT).
+The rules under Moose/styles/Std/ are copied from Vale's standard library
+(https://github.com/vale-cli/Std), Copyright (c) 2026 Joseph Kato and
+contributors, licensed under the MIT License, release v0.1.0 (2026-09-02).
+Std's LICENSE (the full MIT text) and NOTICE ship beside the rules in
+Moose/styles/Std/. That NOTICE records the MIT-licensed Vale styles each
+rule was extracted from: errata-ai/Google and errata-ai/Microsoft
+(Copyright (c) Joseph Kato) and errata-ai/IBM
+(https://github.com/errata-ai/IBM, MIT). Std.Readability.SentenceLength,
+which Direct/Length.yml extends, comes from errata-ai/IBM. Moose change:
+
+  Std/Usage/GenderedTerms.yml  removed a stray `name: replace` swap entry that
+                               flagged every occurrence of the word "name"
