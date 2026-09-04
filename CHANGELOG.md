@@ -1,3 +1,10 @@
+## [4.38.2](https://github.com/doc-detective/doc-detective/compare/v4.38.1...v4.38.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **engines:** align the node floor with the dependency tree ([#710](https://github.com/doc-detective/doc-detective/issues/710)) ([81e2e1c](https://github.com/doc-detective/doc-detective/commit/81e2e1ce13362eb5f4966797c5de8f69d2247bfb))
+
 ## [4.38.1](https://github.com/doc-detective/doc-detective/compare/v4.38.0...v4.38.1) (2026-08-13)
 
 
