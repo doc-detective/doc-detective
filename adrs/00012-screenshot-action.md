@@ -8,10 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The `screenshot` action existed in the action enum and a `screenshot(action, page)` handler had been
-scaffolded, but the dispatch case was commented out, so tests could not actually capture images.
-Documentation testing frequently needs to capture the visual state of a page at a known step (to
-embed in docs or to compare against a baseline later). Should screenshot capture be a first-class,
+The `screenshot` action existed in the action enum, and a `screenshot(action, page)` handler had
+been scaffolded. But the dispatch case was commented out, so tests could not actually capture
+images. Documentation testing frequently needs to capture the visual state of a page at a known
+step. That capture may be embedded in docs, or compared against a baseline later. Should screenshot
+capture be a first-class,
 always-available action wired into the runner's dispatch?
 
 ## Decision Drivers
@@ -29,8 +30,8 @@ always-available action wired into the runner's dispatch?
 
 Chosen option: **A**. The commit un-comments `screenshot(action, page)` in the action switch, making
 `screenshot` a first-class action the runner executes against the current page. This establishes the
-screenshot contract that later acquires a target directory, visual-diff comparison (`matchPrevious`,
-Seq 24 / ADR 00020), crop, and reference-image regression in subsequent decisions.
+screenshot contract. Later decisions add a target directory, visual-diff comparison (`matchPrevious`,
+Seq 24 / ADR 00020), crop, and reference-image regression.
 
 ### Consequences
 
@@ -47,7 +48,7 @@ pre-existing handler.
 
 ### A. Enable screenshot dispatch
 * Good: minimal change; unlocks a core use case immediately.
-* Bad: none material — the handler already existed.
+* Bad: none material, since the handler already existed.
 
 ### B. Recording-only screenshots
 * Good: fewer actions.

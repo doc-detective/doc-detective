@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-A hosted Doc Detective service wanted to dispatch already-resolved tests to a local runner and collect the results — the local machine drives browsers/apps, while the service owns resolution, storage, and reporting. The runner had no way to pull a resolved test set from a remote endpoint or to push results back. How should a local runner be configured to act as a remote-driven execution client?
+A hosted Doc Detective service wanted to dispatch already-resolved tests to a local runner and collect the results. The local machine drives browsers and apps, while the service owns resolution, storage, and reporting. The runner had no way to pull a resolved test set from a remote endpoint, or to push results back. How should a local runner be configured to act as a remote-driven execution client?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ A hosted Doc Detective service wanted to dispatch already-resolved tests to a lo
 
 ## Decision Outcome
 
-Chosen option: **A**, because a small env-configured HTTP round-trip reuses the existing `resolvedTests_v3` envelope (`00112`) end-to-end and needs no bespoke protocol or daemon. The runner GETs resolved tests, validates them, executes, and POSTs results — a stateless request/response that fits CI and agent environments.
+Chosen option: **A**, because a small env-configured HTTP round-trip reuses the existing `resolvedTests_v3` envelope (`00112`) end-to-end and needs no bespoke protocol or daemon. The runner GETs resolved tests, validates them, executes, and POSTs results. That's a stateless request/response that fits CI and agent environments.
 
 Contract decided:
 

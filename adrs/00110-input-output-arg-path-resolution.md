@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When `--input` and `--output` are passed as CLI arguments, the user types them relative to their current working directory — but Doc Detective resolves config-relative paths against the config file's base, so a relative `--input` could be interpreted against the wrong base and fail to find files. Separately, `--input` accepted only a single value, so testing several files meant several invocations, and remote `http(s)://` inputs must not be path-resolved at all. How should arg-supplied input/output paths resolve, and how should multiple inputs be expressed?
+When `--input` and `--output` are passed as CLI arguments, the user types them relative to their current working directory. But Doc Detective resolves config-relative paths against the config file's base. So a relative `--input` could be interpreted against the wrong base, and fail to find files. Separately, `--input` accepted only a single value, so testing several files meant several invocations. Remote `http(s)://` inputs must not be path-resolved at all. How should arg-supplied input/output paths resolve, and how should multiple inputs be expressed?
 
 ## Decision Drivers
 
@@ -27,7 +27,7 @@ When `--input` and `--output` are passed as CLI arguments, the user types them r
 
 Chosen option: **A**, because CLI args are typed relative to cwd and multi-file input is a common need. The contract evolved across three commits:
 
-1. `--input`/`--output` args are **`path.resolve()`d from cwd**, so relative arg paths resolve independent of the config base — `config.input = path.resolve(args.input)` (commit `ae724ebf`, Seq 165).
+1. `--input`/`--output` args are **`path.resolve()`d from cwd**, so relative arg paths resolve independent of the config base. That's `config.input = path.resolve(args.input)` (commit `ae724ebf`, Seq 165).
 2. `resolvePaths` applies to **`loadVariables`** (renamed from `envVariables`) as a config path, recurses into arrays, and **skips `http(s)` URLs** (commits `6e1121a4`, `3d0ce701`, `23d01926`, Seq 166).
 3. `--input` accepts a **comma-separated multi-file** value: split, trim, and resolve each, leaving `http(s)://` entries unresolved; `filePath` defaults to `"."` when no config is present (commit `7cc139e3`, Seq 167).
 

@@ -10,8 +10,9 @@ decision-makers: doc-detective maintainers
 
 The Docker image was Linux-only with an ad-hoc base/runtime layering. Users on Windows runners had no
 official image, and the publish targets and tags were not a stable, canonical contract. The project
-needed a Windows image alongside Linux, a deterministic runtime (a known Chrome shared-library set),
-and a single canonical publish namespace with a predictable tag matrix. What should the multi-OS
+needed a Windows image alongside Linux, plus a deterministic runtime with a known Chrome
+shared-library set. It also needed a single canonical publish namespace with a predictable tag
+matrix. What should the multi-OS
 image and publish contract be?
 
 ## Decision Drivers
@@ -23,9 +24,10 @@ image and publish contract be?
 
 ## Considered Options
 
-* **A. Add a Windows image (`windows/server:ltsc2022`, Node MSI, cmd entrypoint); single-stage Linux
-  runtime with an explicit Chrome shared-lib set; publish `docdetective/docdetective:latest` +
-  `:$VERSION`; a `build.js` platform→tag matrix; a GitHub Actions publish workflow** (chosen).
+* **A. Add a Windows image (`windows/server:ltsc2022`, Node MSI, cmd entrypoint), plus a
+  single-stage Linux runtime with an explicit Chrome shared-lib set. Publish
+  `docdetective/docdetective:latest` and `:$VERSION`, with a `build.js` platform→tag matrix and a
+  GitHub Actions publish workflow** (chosen).
 * **B. Stay Linux-only and document Windows as unsupported.**
 * **C. Per-OS, hand-written tags with no shared build/tag-matrix script.**
 
@@ -33,11 +35,11 @@ image and publish contract be?
 
 Chosen option: **A**, because shipping both OSes under one generated tag matrix and a canonical
 namespace makes images predictable to pull and to release. The contract: a Windows image based on
-`windows/server:ltsc2022` (Node via MSI, `cmd` entrypoint) joins the Linux image, which becomes a
-single-stage runtime declaring an explicit Chrome shared-library set; images publish to the canonical
-`docdetective/docdetective:latest` and `:$VERSION`; `build.js` derives the platform→tag matrix; and a
-GitHub Actions workflow performs the publish (commits `cc0dbe8`, `178fe1d`, `ca6c49bd`, `c545eb8`,
-`2efbaa8`, `fc938ee`, `3f9c767`, `docker-images`).
+`windows/server:ltsc2022` (Node via MSI, `cmd` entrypoint) joins the Linux image. The Linux image
+becomes a single-stage runtime declaring an explicit Chrome shared-library set. Images publish to
+the canonical `docdetective/docdetective:latest` and `:$VERSION`. `build.js` derives the
+platform→tag matrix, and a GitHub Actions workflow performs the publish (commits `cc0dbe8`,
+`178fe1d`, `ca6c49bd`, `c545eb8`, `2efbaa8`, `fc938ee`, `3f9c767`, `docker-images`).
 
 ### Consequences
 
