@@ -8,8 +8,8 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Documentation for APIs describes requests and their expected responses, but Doc Detective could only
-check that a link resolved (`checkLink`, `00022`) — it could not issue a real request with a method,
+Documentation for APIs describes requests and their expected responses. But Doc Detective could only
+check that a link resolved (`checkLink`, `00022`). It could not issue a real request with a method,
 headers, body, and query parameters, then assert on the response. The runner needed an `httpRequest`
 step type that drives an arbitrary HTTP call and validates the response, including extracting values
 from the response for later use. What should that step's contract be, and how should it evolve?
@@ -30,16 +30,16 @@ from the response for later use. What should that step's contract be, and how sh
 
 ## Decision Outcome
 
-Chosen option: **A**, because API verification is distinct enough from link-checking to warrant its
-own step, and the request/response contract grew incrementally to its final shape. The contract
-evolved across several commits:
+Chosen option: **A**. API verification is distinct enough from link-checking to warrant its own
+step. The request/response contract grew incrementally to its final shape. The contract evolved
+across several commits:
 
 1. The `httpRequest` action was added with `uri`/`method`/`headers`/`params`/`requestData`/
    `statusCodes` plus sanitization, deep array/object comparison against `responseHeaders`/
    `responseData`, and `$ENV` substitution (commits `77bcb850`, `2db85f0d`, `359bcbf3`, `e44bbab1`,
    `52ef39f3`; implementation in `src/lib/tests/httpRequest.js`).
-2. `envsFromResponseData` was added — an array of `{name, jqFilter}` entries that capture response
-   values into environment variables via node-jq (commit `499b4934`, PR #13).
+2. `envsFromResponseData` was added. It's an array of `{name, jqFilter}` entries that capture
+   response values into environment variables through node-jq (commit `499b4934`, PR #13).
 3. The request fields were renamed `headers`→`requestHeaders` and `params`→`requestParams`, with the
    old names kept as fallbacks, and runners began returning report values to callers (commits
    `3da8a767`, `30c3249f`, PR #14; `loadEnvs(requestHeaders) || loadEnvs(headers)`).

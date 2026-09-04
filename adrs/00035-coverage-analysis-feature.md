@@ -29,15 +29,15 @@ ship a coverage-analysis entrypoint, and how does it know what markup in a file 
 
 ## Decision Outcome
 
-Chosen option: **A**, because coverage is a distinct analysis with its own output and its own notion
-of coverable markup, warranting a separate entrypoint and config block.
+Chosen option: **A**. Coverage is a distinct analysis, with its own output and its own notion of
+coverable markup. That warrants a separate entrypoint and config block.
 
 Behavior decided:
 
-1. **Entrypoint** — `coverage.js` with a `coverage` export, a `cli/coverage.js` command, and an
-   `npm run coverage` script; output path via `coverageOutput` (config/CLI/env). Markup matching
-   supports multi-line and array patterns.
-2. **Markup config** — `fileType.markup{}` with regex arrays for `onscreenText`, `hyperlink`,
+1. **Entrypoint:** `coverage.js` with a `coverage` export, a `cli/coverage.js` command, and an
+   `npm run coverage` script. The output path comes from `coverageOutput` (config/CLI/env). Markup
+   matching supports multi-line and array patterns.
+2. **Markup config:** `fileType.markup{}` with regex arrays for `onscreenText`, `hyperlink`,
    `lists`, `codeBlock`, and `interaction`, plus a `testIgnoreStatement`. Each markup entry carries
    `includeInCoverage` / `includeInSuggestions` flags so authors choose what counts.
 
@@ -73,7 +73,7 @@ Removal confirmed by the 3.0.0 test-surface trimming.
 
 ## More Information
 
-Recorded retrospectively (ADR backfill). Origin: doc-detective PR #9 — commits `da2fdba`,
+Recorded retrospectively (ADR backfill). Origin: doc-detective PR #9, commits `da2fdba`,
 `030f231`, `8efab8d` (entrypoint) and `fb3dcca5`, `1ff77c07`, `f136afa3` (markup config). Inventory
 ref: BACKFILL-INVENTORY.md Seq 47, 48. The core `runCoverage()` impl (Seq 84) is its implementation;
 removal at 3.0.0 is covered by `00103`. Related: suggest feature (`00036`).

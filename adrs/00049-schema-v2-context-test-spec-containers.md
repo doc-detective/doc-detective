@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The v2 step family (`00046`) defined individual step contracts, but a spec file is more than a list
-of steps — it nests steps inside tests, tests inside a spec, and applies execution `contexts`. The
-schema package needed versioned **container** schemas to describe that nesting, and it needed to
-reference the per-step `*_v2` schemas by `$ref` inside an `anyOf` so a test's `steps` array could
+The v2 step family (`00046`) defined individual step contracts. But a spec file is more than a list
+of steps. It nests steps inside tests, tests inside a spec, and applies execution `contexts`. The
+schema package needed versioned **container** schemas to describe that nesting. It also needed to
+reference the per-step `*_v2` schemas by `$ref` inside an `anyOf`, so a test's `steps` array could
 accept any valid v2 step. AJV's default `strictSchema` rejected those external references. How are
 the v2 containers shaped, and how do they compose the step schemas?
 
@@ -36,8 +36,8 @@ schematizing the gating model from `00044`), `test_v2` (a test = identity + `ste
 (the spec-file container holding tests and contexts). A test's `steps` array is an `anyOf` of
 `$ref`s to the individual `*_v2` step schemas, so any valid v2 step is accepted. AJV is configured
 with `strictSchema: false` so those external `$ref`s inside `anyOf` validate instead of being
-rejected. This composes the v2 step family into authorable spec files; `config_v2` (`00050`)
-completes the v2 schema set, and the whole family is later superseded by the v3 containers
+rejected. This composes the v2 step family into authorable spec files. `config_v2` (`00050`)
+completes the v2 schema set. The whole family is later superseded by the v3 containers
 (`context_v3`/`spec_v3`, `00098`/`00101`).
 
 ### Consequences
