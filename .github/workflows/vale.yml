@@ -48,7 +48,13 @@ jobs:
           # from across the tree to post as PR comments. Emitting only errors
           # keeps the comment volume to what the gate actually fails on. Run
           # Vale locally for the warnings.
-          vale_flags: "--config=docs/.vale.ini --minAlertLevel=error --glob=!docs/fern/pages/reference/schemas/**"
+          #
+          # docs/.vale/** is Vale's own StylesPath. Invoked from the repo root
+          # against ".", Vale walks it as ordinary content and lints the
+          # vocabulary word lists, where Direct.Length reads
+          # docs/.vale/styles/config/vocabularies/Docs/accept.txt as one
+          # 252-word sentence. Those are machine-managed config, not prose.
+          vale_flags: "--config=docs/.vale.ini --minAlertLevel=error --glob=!{docs/.vale/**,docs/fern/pages/reference/schemas/**}"
           reporter: github-pr-review
           # `filter_mode` and `fail_on_error` are a load-bearing pair. reviewdog's
           # default filter (`added`) reports only alerts on lines the PR added, so

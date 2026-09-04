@@ -69,10 +69,17 @@ Five inputs carry the decision, and each is load-bearing:
 * The **`pull_request` trigger loses its `paths:` filter.** A check that is skipped on some PRs
   cannot be a required status check, and the job is seconds of runner time.
 
-The `--glob=!docs/fern/pages/reference/schemas/**` exclusion stays. Those pages are generated from
-JSON Schema descriptions, and mdx2vast has produced a hard `E100` parse error on their tables that
-`fail_on_error` cannot downgrade. `docs/.vale.ini` already clears every style for them; the glob
-keeps them out of the parse as well.
+The glob excludes two trees. The generated schema reference pages stay excluded, as before. Those
+are generated from JSON Schema descriptions, and mdx2vast has produced a hard `E100` parse error on
+their tables that `fail_on_error` cannot downgrade. `docs/.vale.ini` already clears every style for
+them; the glob keeps them out of the parse as well.
+
+`docs/.vale/**` is new, and whole-repo scope is what makes it necessary. That directory is Vale's
+own `StylesPath`. Invoked from the repo root against `.`, Vale walks it as ordinary content and
+lints the vocabulary word lists, where `Direct.Length` reads
+`docs/.vale/styles/config/vocabularies/Docs/accept.txt` as one 252-word sentence. Those files are
+machine-managed config, not prose. Changed-file scoping never reached them, so this hazard only
+appears once the lint covers the repository.
 
 ### Consequences
 
@@ -97,9 +104,15 @@ keeps them out of the parse as well.
 
 ### Confirmation
 
-* The whole tree is clean: `vale --config=docs/.vale.ini` over every tracked `.md`, `.mdx`, and
-  `.txt` file reports **0 errors** in 550 files. That's the precondition the gate depends on, and
-  it is what the rest of this change delivered.
+* The whole tree is clean, verified against a pristine export rather than the working tree. Extract
+  `git archive HEAD` into a scratch directory, so there is no `node_modules` to confuse the walk,
+  then run the workflow's exact command from its root. It reports **0 errors** in 445 files. That's
+  the precondition the gate depends on, and it is what the rest of this change delivered.
+* The `docs/.vale/**` exclusion is red→green against that same export. Without it the run reports
+  **2 errors**, both `Direct.Length` on vocabulary word lists, which is exactly how the check failed
+  on ba882f8c. With it the run is clean. Linting a filtered file list from the working tree hid
+  this, because the filter dropped `docs/.vale/` and `node_modules` was present. Reproduce the CI
+  invocation, not an approximation of it.
 * [test/vale-workflow.test.js](../test/vale-workflow.test.js) pins the new contract. It asserts
   `files: all`, `fail_on_error: true`, `filter_mode: nofilter`, and `--minAlertLevel=error` on the
   "Run vale" step. It also asserts that no `changed-files` step or `separator` input survives, and

@@ -74,9 +74,17 @@ describe("vale workflow whole-repo gate", function () {
       // cannot downgrade.
       assert.match(
         String(runVale.with.vale_flags),
-        /--glob=!docs\/fern\/pages\/reference\/schemas\/\*\*/
+        /docs\/fern\/pages\/reference\/schemas\/\*\*/
       );
       assert.match(String(runVale.with.vale_flags), /--config=docs\/\.vale\.ini/);
+    });
+
+    it("keeps Vale's own StylesPath out of the lint", function () {
+      // Invoked from the repo root against ".", Vale walks its own
+      // docs/.vale/styles tree as content and Direct.Length reads the
+      // vocabulary word lists as one 252-word sentence. That failed the check
+      // on ba882f8c before the exclusion landed.
+      assert.match(String(runVale.with.vale_flags), /docs\/\.vale\/\*\*/);
     });
 
     it("emits only error-severity alerts", function () {
