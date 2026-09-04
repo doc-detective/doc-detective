@@ -52,10 +52,10 @@ not thread cleanly. The seven functions involved (`resolveExpression`, `resolveE
 `replaceMetaValues`, `getMetaValue`, `resolveEmbeddedExpressions`, `evaluateExpression`,
 `evaluateAssertion`) all pass a `context` object, never a `config`. Threading `config` would require
 changing all seven signatures, **plus** the routing-layer callers.
-Those are `evaluateImplicitAssertions`, `evaluateGuard`, and `evaluateCustomAssertions`. It also
-covers their entire call chains through [src/core/routing.ts](../src/core/routing.ts) and
-[src/core/tests.ts](../src/core/tests.ts). That's a broad, invasive change spread across several
-files, for a one-line defect. Option (a) is a single, well-contained fix that also aligns the core
+Those are the `evaluateImplicitAssertions`, `evaluateGuard`, and `evaluateCustomAssertions`
+functions. Their entire call chains count too, through
+[src/core/routing.ts](../src/core/routing.ts) and [src/core/tests.ts](../src/core/tests.ts).
+That's a broad, invasive change spread across several files, for a one-line defect. Option (a) is a single, well-contained fix that also aligns the core
 logger's default with the existing CLI logger.
 
 The change: inside `logLevelEnabled`, compute `const currentLevel = config.logLevel || "info"` and
