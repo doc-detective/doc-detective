@@ -183,10 +183,18 @@ jobs:
         run: |
           set -euo pipefail
           npm run build
-          mkdir -p "$RUNNER_TEMP/pack"
-          tarball="$(npm pack --silent --pack-destination "$RUNNER_TEMP/pack")"
-          echo "tarball=$RUNNER_TEMP/pack/$tarball" >> "$GITHUB_OUTPUT"
-          echo "Packed $tarball from $(git rev-parse --short HEAD)"
+          dest="$RUNNER_TEMP/pack"
+          mkdir -p "$dest"
+          tarball="$(npm pack --silent --pack-destination "$dest")"
+          # Hand the build script a forward-slash path. RUNNER_TEMP is a
+          # backslash Windows path on the windows runner, and
+          # `npm run <script> -- --flag=<path>` forwards it through cmd.exe,
+          # which eats the backslashes (D:\a\_temp arrives as D:a_temp). Node
+          # accepts forward slashes on Windows, and this is a no-op on Linux.
+          full="$dest/$tarball"
+          full="${full//'\'/'/'}"
+          printf 'tarball=%s\n' "$full" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -455,10 +463,18 @@ jobs:
         run: |
           set -euo pipefail
           npm run build
-          mkdir -p "$RUNNER_TEMP/pack"
-          tarball="$(npm pack --silent --pack-destination "$RUNNER_TEMP/pack")"
-          echo "tarball=$RUNNER_TEMP/pack/$tarball" >> "$GITHUB_OUTPUT"
-          echo "Packed $tarball from $(git rev-parse --short HEAD)"
+          dest="$RUNNER_TEMP/pack"
+          mkdir -p "$dest"
+          tarball="$(npm pack --silent --pack-destination "$dest")"
+          # Hand the build script a forward-slash path. RUNNER_TEMP is a
+          # backslash Windows path on the windows runner, and
+          # `npm run <script> -- --flag=<path>` forwards it through cmd.exe,
+          # which eats the backslashes (D:\a\_temp arrives as D:a_temp). Node
+          # accepts forward slashes on Windows, and this is a no-op on Linux.
+          full="$dest/$tarball"
+          full="${full//'\'/'/'}"
+          printf 'tarball=%s\n' "$full" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
 
       - name: Build Docker Image
         shell: bash
