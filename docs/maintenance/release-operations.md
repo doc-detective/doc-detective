@@ -13,18 +13,20 @@ realities around them.
   `pull_request` rule requiring 1 approving review. `require_code_owner_review` is vacuous, because
   there's no CODEOWNERS file. **CodeQL is the only CI signal that truly blocks merge.**
 - Some checks look scary but don't block. The `review` check is the "Claude PR Review - Auto"
-  workflow. It fails deterministically on very large pull requests, and passes on small ones. The
-  run reports `is_error: true` with `duration_ms: 81`, `total_cost_usd: 0`, and an empty
-  `modelUsage`, so it gives up before any model call rather than timing out. The workflow sets
-  `track_progress: true` and inlines the whole diff into the prompt, which is the size-correlated
-  part. The logs don't say whether the rejection is a local guard or an API refusal. GitHub renders
-  the failure as "Claude encountered an error after 0s", with no diagnostic. So read the job log's
-  result record before writing a red `review` off as a flake. It
-  also fails on bot-authored head commits, because secrets aren't injected for bot-triggered runs.
-  A red `review` check is not a merge blocker.
+  workflow. A red `review` never blocks merge. Treat it as a real signal anyway. It fails
+  deterministically once a PR collects a large automated-comment history. The run reports
+  `is_error: true` with `duration_ms: 81`, `total_cost_usd: 0`, and an empty `modelUsage`, so it
+  gives up before any model call rather than timing out. `track_progress: true` runs the action in
+  tag mode, which reads PR comments. On PR #713 those were 96% of a 166,450-character prompt. The
+  action's own failure comments were part of it, so failures compounded. The diff is never
+  inlined, so PR size is only an indirect correlation. See
+  [ADR 01100](../../adrs/01100-keep-bot-chatter-out-of-the-review-prompt.md). GitHub renders the
+  failure as "Claude encountered an error after 0s", with no diagnostic. So read the job log's
+  result record before writing a red `review` off. The prompt is printed between
+  `===== FINAL PROMPT =====` and its closing rule.
 - **`vale` is a real gate.** It lints the whole repository on every PR, with `fail_on_error: true`
   and `filter_mode: nofilter`, per
-  [ADR 01098](../../adrs/01098-vale-gates-the-whole-repo-and-fails-on-errors.md). So an
+  [ADR 01101](../../adrs/01101-vale-gates-the-whole-repo-and-fails-on-errors.md). So an
   error-severity alert anywhere in the tree turns the check red. It reports errors only, so run
   `vale --config=docs/.vale.ini <path>` locally to see warnings. Fix the prose, or add the term to
   the vocab below. The ruleset's blocker list omits it, so treat it as a blocker by convention.

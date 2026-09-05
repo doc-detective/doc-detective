@@ -1,3 +1,10 @@
+## [4.38.3](https://github.com/doc-detective/doc-detective/compare/v4.38.2...v4.38.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **runtime:** never execute a foreign-architecture driver binary ([#714](https://github.com/doc-detective/doc-detective/issues/714)) ([7059c6d](https://github.com/doc-detective/doc-detective/commit/7059c6deea81e1d44b8b8584f8f312f7b904fec2))
+
 ## [4.38.2](https://github.com/doc-detective/doc-detective/compare/v4.38.1...v4.38.2) (2026-09-04)
 
 

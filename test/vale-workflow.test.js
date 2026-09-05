@@ -10,7 +10,7 @@ const workflowPath = path.join(repoRoot, ".github", "workflows", "vale.yml");
 // Faithful re-implementation of how vale-action (the SHA pinned in vale.yml)
 // resolves its `files` input — see lib/input.js there. Only the `all` branch
 // matters now: the workflow passes the sentinel rather than a file list, so the
-// JSON-array plumbing ADR 01089 documented is gone. See ADR 01098.
+// JSON-array plumbing ADR 01089 documented is gone. See ADR 01101.
 function resolveValeFiles(filesRaw, separatorRaw, dir) {
   const getInput = (v) => (v || "").trim();
   let args = [];
@@ -98,7 +98,7 @@ describe("vale workflow whole-repo gate", function () {
       assert.equal(
         steps.find((s) => s.id === "changed-files"),
         undefined,
-        "changed-files scoping was removed by ADR 01098"
+        "changed-files scoping was removed by ADR 01101"
       );
       assert.equal(
         runVale.with.separator,

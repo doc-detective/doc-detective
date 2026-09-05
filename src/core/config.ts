@@ -756,7 +756,16 @@ async function patchAppCache(
         // resolvable driver path (Layer 4 runtime fallback), but verifies it
         // when present.
         descriptors.push({
-          app: { name: "firefox", version: b.version, path: b.path },
+          // `driver` mirrors chrome: getDriverCapabilities reads it to pin the
+          // managed geckodriver via `appium:geckodriverExecutable`. Absent when
+          // the binary couldn't be located, which leaves the session on the
+          // PATH lookup appium-geckodriver falls back to.
+          app: {
+            name: "firefox",
+            version: b.version,
+            path: b.path,
+            ...(b.driverPath ? { driver: b.driverPath } : {}),
+          },
           driverName: b.driverPath ? "geckodriver" : undefined,
           driverPath: b.driverPath,
         });
@@ -949,6 +958,10 @@ async function getAvailableApps({ config }: any) {
         name: "firefox",
         version: firefox.buildId,
         path: firefox.executablePath,
+        // Pin the managed driver on the app so the session can pass it as
+        // `appium:geckodriverExecutable`; omitted when unresolved, leaving the
+        // PATH fallback in place.
+        ...(geckodriverPath ? { driver: geckodriverPath } : {}),
       },
       driverName: geckodriverPath ? "geckodriver" : undefined,
       driverPath: geckodriverPath,
