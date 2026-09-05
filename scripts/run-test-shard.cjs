@@ -28,6 +28,14 @@ const WEIGHTS = {
   "concurrency.test.js": 5,
   "browser-fallback-e2e.test.js": 4,
   "debug.test.js": 4,
+  // 30s ceiling, which sits between app-recording (15s -> 3) and
+  // concurrency (120s -> 5). It was missing an entry, so it defaulted to 1
+  // and the packer was free to put it anywhere. Landing it beside
+  // core-core.test.js made it exceed its own 30s budget and fail on every
+  // node-24 OS: its `makeConfig` calls run browser detection, which is
+  // contended right after a heavy browser and recording suite. Weighting it
+  // packs it opposite core-core, which is what the table is for.
+  "detecttests-coverage.test.js": 4,
   "app-recording.test.js": 3,
 };
 

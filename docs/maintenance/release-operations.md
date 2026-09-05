@@ -13,9 +13,16 @@ realities around them.
   rule (1 approving review; `require_code_owner_review` is vacuous because there's no CODEOWNERS
   file). **CodeQL is the only CI signal that truly blocks merge.**
 - Non-blocking checks that look scary but aren't: the `review` check is the "Claude PR Review -
-  Auto" workflow (often errors on infra, unrelated to content; also fails on bot-authored head
-  commits because secrets aren't injected for bot-triggered runs), and `vale` runs reviewdog with
-  `fail_on_error: false`. A red `review` or vale annotation is not a merge blocker.
+  Auto" workflow, and `vale` runs reviewdog with `fail_on_error: false`. A red `review` or vale
+  annotation is not a merge blocker.
+- **A red `review` is not automatically a flake.** It fails deterministically once a PR collects a
+  large automated-comment history. The run reports `is_error: true` with `duration_ms: 81`,
+  `total_cost_usd: 0`, and an empty `modelUsage`, so it gives up before any model call. GitHub
+  renders that as "Claude encountered an error after 0s" with no diagnostic. Tag mode reads PR
+  comments, and on PR #713 those were 96% of a 166,450-character prompt. The action's own failure
+  comments were part of it, so failures compounded. [ADR 01100](../../adrs/01100-keep-bot-chatter-out-of-the-review-prompt.md)
+  excludes bot actors from that context. Read the job log's result record before assuming a flake.
+  The prompt is printed between `===== FINAL PROMPT =====` and its closing rule.
 - The repo owner (hawkeyexl) is admin: `gh pr merge <n> --merge --admin --delete-branch` bypasses
   the approval gate. `--delete-branch` prints a harmless "failed to delete local branch" when the
   branch is checked out in another worktree; the remote branch still gets deleted.
