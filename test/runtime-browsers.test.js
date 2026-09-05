@@ -5,6 +5,8 @@ import {
   requiredBrowserAssets,
   verifyDriverBinary,
   geckodriverBinaryInCache,
+  foreignExecutableImageReason,
+  driverExecOptions,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -590,5 +592,198 @@ describe("runtime/browsers", function () {
     }
     expect(threw).to.equal(true);
     expect(downloads).to.equal(2); // initial + one re-download
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Foreign-architecture driver images (ADR 01096).
+//
+// Google publishes no native linux-arm64 chromedriver, and @puppeteer/browsers
+// maps BrowserPlatform.LINUX_ARM to the x64 asset — so on a native arm64 Linux
+// host the "installed" chromedriver is an x86-64 ELF. Handing that to
+// execFile() is not a benign failure: execve() returns ENOEXEC, glibc's execvp
+// retries the file through /bin/sh, and the shell then interprets 21 MB of
+// binary as a shell script *in the caller's working directory*. That is how the
+// arm64 Docker build ended up with an undecodable filename in /app.
+//
+// The guard is a header check that runs BEFORE any child process.
+// ---------------------------------------------------------------------------
+
+// Minimal 20-byte ELF header prefix: magic, class, data, version, ABI, then
+// e_type/e_machine. Enough for the check under test; nothing executes it.
+function elfHeader({ machine, class64 = true, littleEndian = true }) {
+  const h = Buffer.alloc(64);
+  h.write("\x7fELF", 0, "binary");
+  h[4] = class64 ? 2 : 1; // EI_CLASS
+  h[5] = littleEndian ? 1 : 2; // EI_DATA
+  h[6] = 1; // EI_VERSION
+  h.writeUInt16LE(2, 16); // e_type = ET_EXEC
+  if (littleEndian) h.writeUInt16LE(machine, 18);
+  else h.writeUInt16BE(machine, 18);
+  return h;
+}
+const EM_X86_64 = 0x3e;
+const EM_AARCH64 = 0xb7;
+
+describe("foreignExecutableImageReason", function () {
+  it("flags an x86-64 ELF on linux/arm64 (the chromedriver-on-arm64 case)", function () {
+    const reason = foreignExecutableImageReason(
+      elfHeader({ machine: EM_X86_64 }),
+      { platform: "linux", arch: "arm64" }
+    );
+    expect(reason).to.be.a("string");
+    expect(reason).to.match(/x86-64/i);
+    expect(reason).to.match(/arm64/i);
+  });
+
+  it("accepts a matching ELF for the host architecture", function () {
+    expect(
+      foreignExecutableImageReason(elfHeader({ machine: EM_AARCH64 }), {
+        platform: "linux",
+        arch: "arm64",
+      })
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(elfHeader({ machine: EM_X86_64 }), {
+        platform: "linux",
+        arch: "x64",
+      })
+    ).to.equal(undefined);
+  });
+
+  it("stays silent for a non-ELF image (no positive proof of a mismatch)", function () {
+    expect(
+      foreignExecutableImageReason(Buffer.from("#!/bin/sh\necho hi\n"), {
+        platform: "linux",
+        arch: "arm64",
+      })
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(Buffer.alloc(0), {
+        platform: "linux",
+        arch: "arm64",
+      })
+    ).to.equal(undefined);
+  });
+
+  it("stays silent off Linux — macOS and Windows on ARM emulate x64 transparently", function () {
+    for (const platform of ["darwin", "win32"]) {
+      expect(
+        foreignExecutableImageReason(elfHeader({ machine: EM_X86_64 }), {
+          platform,
+          arch: "arm64",
+        }),
+        platform
+      ).to.equal(undefined);
+    }
+  });
+
+  it("stays silent for an architecture it has no mapping for (fail open)", function () {
+    expect(
+      foreignExecutableImageReason(elfHeader({ machine: EM_X86_64 }), {
+        platform: "linux",
+        arch: "sparc64",
+      })
+    ).to.equal(undefined);
+  });
+
+  it("decodes a big-endian header in its own byte order", function () {
+    // s390x is the one big-endian architecture in the table, so the e_machine
+    // field has to be read big-endian or every verdict on that host is noise.
+    expect(
+      foreignExecutableImageReason(
+        elfHeader({ machine: 0x16, littleEndian: false }),
+        { platform: "linux", arch: "s390x" }
+      ),
+      "a matching big-endian image must be accepted"
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(
+        elfHeader({ machine: EM_X86_64, littleEndian: false }),
+        { platform: "linux", arch: "s390x" }
+      ),
+      "a foreign big-endian image must be refused"
+    ).to.match(/x86-64/i);
+  });
+
+  it("stays silent when EI_DATA declares neither byte order (malformed header)", function () {
+    // Only 1 (LE) and 2 (BE) define a byte order. Anything else means the
+    // e_machine field can't be decoded, so there is no proof of a mismatch and
+    // the normal execute-and-report path must still run.
+    const header = elfHeader({ machine: EM_X86_64 });
+    header[5] = 7;
+    expect(
+      foreignExecutableImageReason(header, { platform: "linux", arch: "arm64" })
+    ).to.equal(undefined);
+  });
+});
+
+describe("verifyDriverBinary — foreign-architecture images", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-foreign-drv-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("refuses an x86-64 chromedriver on linux/arm64 WITHOUT spawning it", async function () {
+    const bin = path.join(dir, "chromedriver");
+    fs.writeFileSync(bin, elfHeader({ machine: EM_X86_64 }));
+    let execCalled = false;
+    const res = await verifyDriverBinary("chromedriver", bin, {
+      imageEnv: { platform: "linux", arch: "arm64" },
+      exec: async () => {
+        execCalled = true;
+        return { code: 0, stdout: "ChromeDriver 1.2.3\n", stderr: "" };
+      },
+    });
+    expect(res.ok).to.equal(false);
+    expect(res.error).to.match(/x86-64/i);
+    // The whole point: never hand a foreign image to execFile, because the
+    // ENOEXEC → /bin/sh fallback executes it as a shell script.
+    expect(execCalled, "must not spawn a foreign-architecture image").to.equal(
+      false
+    );
+  });
+
+  it("still executes a matching-architecture driver", async function () {
+    const bin = path.join(dir, "chromedriver");
+    fs.writeFileSync(bin, elfHeader({ machine: EM_AARCH64 }));
+    const res = await verifyDriverBinary("chromedriver", bin, {
+      imageEnv: { platform: "linux", arch: "arm64" },
+      exec: async () => ({ code: 0, stdout: "ChromeDriver 1.2.3\n", stderr: "" }),
+    });
+    expect(res.ok, res.error).to.equal(true);
+    expect(res.version).to.equal("1.2.3");
+  });
+
+  it("falls open when the header can't be read (unreadable file, races)", async function () {
+    // Missing file: the header probe fails, so the existing spawn path still
+    // runs and reports the real failure rather than a bogus arch verdict.
+    const res = await verifyDriverBinary(
+      "chromedriver",
+      path.join(dir, "chromedriver"),
+      {
+        imageEnv: { platform: "linux", arch: "arm64" },
+        exec: async () => ({ code: null, stdout: "", stderr: "ENOENT" }),
+      }
+    );
+    expect(res.ok).to.equal(false);
+    expect(res.error).to.match(/spawn failed/i);
+  });
+});
+
+describe("driverExecOptions", function () {
+  it("runs the driver in a scratch directory, never the caller's cwd", function () {
+    // Defense in depth for the ENOEXEC → /bin/sh fallback the header check
+    // can't catch (a truncated but well-formed image, a missing loader): the
+    // shell then interprets the binary in a temp dir instead of the user's
+    // project, where its redirections would litter the input tree.
+    const opts = driverExecOptions(5000);
+    expect(opts.cwd).to.equal(os.tmpdir());
+    expect(opts.cwd).to.not.equal(process.cwd());
+    expect(opts.timeout).to.equal(5000);
+    expect(opts.windowsHide).to.equal(true);
   });
 });

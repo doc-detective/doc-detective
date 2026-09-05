@@ -18,7 +18,7 @@ realities around them.
   merge blocker.
 - **`vale` is a real gate.** It lints the whole repository on every PR, with `fail_on_error: true`
   and `filter_mode: nofilter`, per
-  [ADR 01096](../../adrs/01096-vale-gates-the-whole-repo-and-fails-on-errors.md). So an
+  [ADR 01098](../../adrs/01098-vale-gates-the-whole-repo-and-fails-on-errors.md). So an
   error-severity alert anywhere in the tree turns the check red. It reports errors only, so run
   `vale --config=docs/.vale.ini <path>` locally to see warnings. Fix the prose, or add the term to
   the vocab below. The ruleset's blocker list omits it, so treat it as a blocker by convention.

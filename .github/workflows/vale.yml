@@ -42,7 +42,7 @@ jobs:
           # Lint the WHOLE repository on every PR, not only the files it touched.
           # `all` is vale-action's sentinel for ".", so there is no changed-file
           # list to marshal and the JSON-array hazard ADR 01089 documents can no
-          # longer apply. See ADR 01096.
+          # longer apply. See ADR 01098.
           files: all
           # Voices (pulled in by the Moose package) needs Vale >= 3.20.0.
           version: 3.20.0

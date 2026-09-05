@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   getBrowsersDir,
@@ -67,12 +68,125 @@ function parseDriverVersion(output: string): string | undefined {
   return m ? m[1] : undefined;
 }
 
+// Number of leading bytes `verifyDriverBinary` reads to identify the image.
+// An ELF header is 64 bytes; everything the arch check needs sits in the first
+// 20.
+const EXECUTABLE_HEADER_BYTES = 64;
+
+// e_machine values (ELF) for the architectures Node reports in `process.arch`.
+// Only architectures with an unambiguous mapping are listed — an arch that
+// isn't here yields no verdict at all, so the check can only ever *add* a
+// refusal it can prove, never invent one.
+const ELF_MACHINE_BY_NODE_ARCH: Record<string, { machine: number; label: string }> = {
+  x64: { machine: 0x3e, label: "x86-64" },
+  ia32: { machine: 0x03, label: "x86" },
+  arm64: { machine: 0xb7, label: "arm64 (AArch64)" },
+  arm: { machine: 0x28, label: "arm" },
+  ppc64: { machine: 0x15, label: "ppc64" },
+  s390x: { machine: 0x16, label: "s390x" },
+  riscv64: { machine: 0xf3, label: "riscv64" },
+  loong64: { machine: 0x102, label: "loong64" },
+};
+
+const ELF_MACHINE_LABELS: Record<number, string> = Object.fromEntries(
+  Object.values(ELF_MACHINE_BY_NODE_ARCH).map((m) => [m.machine, m.label])
+);
+
+/**
+ * Explain why an executable image definitely cannot run on this host, or
+ * `undefined` when there is no proof that it can't.
+ *
+ * WHY this exists at all: executing a foreign-architecture binary is NOT a
+ * benign "it fails and we report it". `execve` returns ENOEXEC, and glibc's
+ * `execvp` — which libuv/Node's `spawn` goes through — then *retries the file
+ * through `/bin/sh`*. The shell proceeds to interpret tens of megabytes of
+ * binary as a shell script in the caller's working directory: it reports
+ * `ELF: not found` for the first "word", and any byte sequence that happens to
+ * parse as a redirection creates a file (with an undecodable, non-UTF-8 name)
+ * right there in the user's project. That is exactly how the arm64 Docker build
+ * failed — a stray `/app/<binary garbage>` entry then crashed the input scan.
+ * So the only safe move is to never hand such an image to a child process.
+ *
+ * This bites in practice because Google's Chrome for Testing publishes no
+ * native `linux-arm64` chromedriver and `@puppeteer/browsers` maps
+ * `BrowserPlatform.LINUX_ARM` to the **x64** asset, so a native arm64 Linux
+ * host "installs" an x86-64 binary.
+ *
+ * Deliberately Linux/ELF-only and deliberately conservative:
+ *   - macOS runs x86-64 binaries on arm64 through Rosetta 2, and Windows on ARM
+ *     emulates x64 — a mismatch there is not proof of anything, so no verdict.
+ *   - A non-ELF image, a truncated header, a header with no valid byte order, or
+ *     a *host* architecture this table doesn't map yields no verdict, and the
+ *     normal execute-and-report path still runs. (An unmapped value in the
+ *     *binary's* e_machine is different: the host arch is known, so the
+ *     mismatch is proven and the image is refused under a generic label.)
+ * The result is a check that only ever converts a *provable* platform gap into
+ * a clear message; every uncertain case degrades to the pre-existing behavior.
+ */
+export function foreignExecutableImageReason(
+  header: Uint8Array,
+  env: { platform?: string; arch?: string } = {}
+): string | undefined {
+  const platform = env.platform ?? process.platform;
+  const arch = env.arch ?? process.arch;
+  // Only Linux refuses a foreign image outright; every other platform we
+  // support has transparent emulation for the mismatch that matters.
+  if (platform !== "linux") return undefined;
+  if (!header || header.length < 20) return undefined;
+  // ELF magic: 0x7F 'E' 'L' 'F'
+  if (
+    header[0] !== 0x7f ||
+    header[1] !== 0x45 ||
+    header[2] !== 0x4c ||
+    header[3] !== 0x46
+  ) {
+    return undefined;
+  }
+  const expected = ELF_MACHINE_BY_NODE_ARCH[arch];
+  if (!expected) return undefined;
+  // EI_DATA (byte 5): 1 = little-endian, 2 = big-endian, and nothing else
+  // defines a byte order. A header declaring anything else is malformed, so
+  // e_machine can't be decoded from it — and a verdict read out of an
+  // undecodable field would be an invented refusal, which is exactly what this
+  // helper must never produce.
+  const elfData = header[5];
+  if (elfData !== 1 && elfData !== 2) return undefined;
+  // e_machine is a 2-byte field at offset 18, in the header's own byte order.
+  const littleEndian = elfData === 1;
+  const machine = littleEndian
+    ? header[18] | (header[19] << 8)
+    : (header[18] << 8) | header[19];
+  if (machine === expected.machine) return undefined;
+  const found = ELF_MACHINE_LABELS[machine] ?? `ELF machine 0x${machine.toString(16)}`;
+  return `the binary targets ${found} but this host is linux/${expected.label}; it cannot be executed here (upstream may publish no native build for this platform)`;
+}
+
+/**
+ * Child-process options for executing a driver binary.
+ *
+ * `cwd` is pinned to the OS temp directory rather than inherited. This is
+ * defense in depth for the ENOEXEC → `/bin/sh` fallback that
+ * `foreignExecutableImageReason` can't always predict (a truncated but
+ * well-formed image, a missing dynamic loader): if a shell does end up
+ * interpreting the binary, its redirections land in a scratch directory
+ * instead of littering the user's input tree with undecodable filenames.
+ * A driver's `--version` probe has no working-directory dependency, so
+ * relocating it is invisible to the check itself.
+ */
+export function driverExecOptions(timeoutMs: number): {
+  timeout: number;
+  windowsHide: boolean;
+  cwd: string;
+} {
+  return { timeout: timeoutMs, windowsHide: true, cwd: os.tmpdir() };
+}
+
 const defaultDriverExec: DriverExec = (binaryPath, args, timeoutMs) =>
   new Promise((resolve) => {
     execFile(
       binaryPath,
       args,
-      { timeout: timeoutMs, windowsHide: true },
+      driverExecOptions(timeoutMs),
       (err: any, stdout, stderr) => {
         const out = typeof stdout === "string" ? stdout : String(stdout ?? "");
         const errOut = typeof stderr === "string" ? stderr : String(stderr ?? "");
@@ -100,7 +214,12 @@ const defaultDriverExec: DriverExec = (binaryPath, args, timeoutMs) =>
 export async function verifyDriverBinary(
   driverName: string,
   binaryPath: string,
-  options: { exec?: DriverExec; timeoutMs?: number } = {}
+  options: {
+    exec?: DriverExec;
+    timeoutMs?: number;
+    /** Host identity for the foreign-image check. Injectable for tests. */
+    imageEnv?: { platform?: string; arch?: string };
+  } = {}
 ): Promise<DriverVerifyResult> {
   if (!binaryPath || typeof binaryPath !== "string") {
     return { ok: false, error: "No driver binary path to verify." };
@@ -114,6 +233,35 @@ export async function verifyDriverBinary(
       error: `Refusing to execute '${binaryPath}': not a recognized driver binary path.`,
     };
   }
+  // Identify the image BEFORE spawning. A foreign-architecture binary must
+  // never reach a child process: execve returns ENOEXEC and glibc's execvp
+  // retries it through /bin/sh, which interprets the binary as a shell script
+  // in the caller's cwd (see foreignExecutableImageReason). Reading the header
+  // is best-effort — an unreadable file falls through to the spawn path, which
+  // reports the real error.
+  let header: Uint8Array | undefined;
+  try {
+    const fd = fs.openSync(binaryPath, "r");
+    try {
+      const buf = Buffer.alloc(EXECUTABLE_HEADER_BYTES);
+      const read = fs.readSync(fd, buf, 0, EXECUTABLE_HEADER_BYTES, 0);
+      header = buf.subarray(0, read);
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    header = undefined;
+  }
+  if (header) {
+    const foreign = foreignExecutableImageReason(header, options.imageEnv);
+    if (foreign) {
+      return {
+        ok: false,
+        error: `${driverName} cannot run on this host: ${foreign}.`,
+      };
+    }
+  }
+
   const key = String(driverName ?? "").toLowerCase();
   const args = DRIVER_VERSION_ARGS[key] ?? ["--version"];
   const exec = options.exec ?? defaultDriverExec;
