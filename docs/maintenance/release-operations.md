@@ -17,7 +17,7 @@ realities around them.
   run reports `is_error: true` with `duration_ms: 81`, `total_cost_usd: 0`, and an empty
   `modelUsage`, so it gives up before any model call rather than timing out. The workflow sets
   `track_progress: true` and inlines the whole diff into the prompt, which is the size-correlated
-  part; the logs don't say whether the rejection is a local guard or an API refusal. GitHub renders
+  part. The logs don't say whether the rejection is a local guard or an API refusal. GitHub renders
   the failure as "Claude encountered an error after 0s", with no diagnostic. So read the job log's
   result record before writing a red `review` off as a flake. It
   also fails on bot-authored head commits, because secrets aren't injected for bot-triggered runs.
