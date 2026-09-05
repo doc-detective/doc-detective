@@ -20,7 +20,7 @@ realities around them.
   `total_cost_usd: 0`, and an empty `modelUsage`, so it gives up before any model call. GitHub
   renders that as "Claude encountered an error after 0s" with no diagnostic. Tag mode reads PR
   comments, and on PR #713 those were 96% of a 166,450-character prompt. The action's own failure
-  comments were part of it, so failures compounded. [ADR 01099](../../adrs/01099-keep-bot-chatter-out-of-the-review-prompt.md)
+  comments were part of it, so failures compounded. [ADR 01100](../../adrs/01100-keep-bot-chatter-out-of-the-review-prompt.md)
   excludes bot actors from that context. Read the job log's result record before assuming a flake.
   The prompt is printed between `===== FINAL PROMPT =====` and its closing rule.
 - The repo owner (hawkeyexl) is admin: `gh pr merge <n> --merge --admin --delete-branch` bypasses

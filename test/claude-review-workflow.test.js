@@ -15,7 +15,7 @@ const workflowPath = path.join(
 // The bots whose comments dominated the assembled prompt on PR #713. Measured
 // from that run's own log: of a 166,450-character prompt, github-actions
 // (reviewdog's Vale batches) was 62%, coderabbitai 27%, and claude — the
-// action's own failure comments — 7%. Human content was 1%. See ADR 01099.
+// action's own failure comments — 7%. Human content was 1%. See ADR 01100.
 const HIGH_VOLUME_BOTS = ["github-actions", "coderabbitai", "claude"];
 
 describe("Claude PR review workflow", function () {

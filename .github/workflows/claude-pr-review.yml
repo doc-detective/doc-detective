@@ -72,7 +72,7 @@ jobs:
           #
           # This filters comment CONTEXT only. `allowed_bots` above governs
           # who may TRIGGER a review, and still includes claude[bot], so
-          # agent-authored PRs are still reviewed. See ADR 01099.
+          # agent-authored PRs are still reviewed. See ADR 01100.
           exclude_comments_by_actor: 'github-actions[bot],coderabbitai[bot],claude[bot]'
           track_progress: true
           prompt: |
