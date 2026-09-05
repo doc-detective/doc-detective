@@ -113,7 +113,7 @@ doc-detective install browsers
 
 ### A browser is present but its driver won't run
 
-Sometimes a browser driver exists on disk but won't run. The most common case is a partially downloaded `geckodriver`. Doc Detective validates each driver by running it, not just by checking that the file is present, so a broken driver no longer silently drops that browser's coverage.
+Sometimes a browser driver exists on disk but won't run. The most common case is a partially downloaded `geckodriver`. Doc Detective validates each driver by running it, not just by checking that the file is present, so a broken driver no longer silently drops that browser's coverage. Doc Detective catches a driver from the wrong CPU architecture earlier, and never runs it. See [A driver was built for a different CPU architecture](#a-driver-was-built-for-a-different-cpu-architecture).
 
 When a driver can't start a session, Doc Detective falls back to another available browser. Chrome, Firefox, and Safari/WebKit can each substitute for one another. The run then reports one of the following:
 
@@ -132,6 +132,26 @@ doc-detective install browsers
 ```
 
 To control whether Doc Detective falls back across browsers, set the `browserFallback` policy in your config or on an individual context. See [Browser fallback](/docs/test-docs/platforms-and-browsers#browser-fallback) for the full behavior.
+
+### A driver was built for a different CPU architecture
+
+On Linux, Doc Detective checks a driver binary's architecture before it runs it. When the binary targets a different CPU than the host, the run reports:
+
+```
+Excluding chrome from available browsers: its chromedriver driver is present but did not validate (chromedriver cannot run on this host: the binary targets x86-64 but this host is linux/arm64 (AArch64); it cannot be executed here (upstream may publish no native build for this platform)).
+```
+
+Reinstalling doesn't fix this one. The download worked as intended, and the vendor ships no build for your architecture. The common case is ChromeDriver on arm64 Linux, because Google's Chrome for Testing publishes x64 binaries only.
+
+You have three options:
+
+- Run Doc Detective on an `x86_64` host.
+- Run the `linux/amd64` container image under emulation.
+- Use a browser whose driver ships for your architecture.
+
+Contexts that need the unavailable browser follow the same fallback rules as any other unusable driver. The previous section describes those three outcomes. `SKIPPED` is only the last of them, when no browser can start a session at all.
+
+Either way, the rest of the run still executes and still gates your build. That includes shell steps, HTTP requests, and link checks.
 
 ### Version mismatch warning
 

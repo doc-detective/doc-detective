@@ -169,6 +169,33 @@ jobs:
         env:
           HUSKY: '0'
 
+      # Pull requests build the image around THIS branch's package rather than
+      # the published one. Without this the PR gate is blind to the change under
+      # review — a runtime defect that only reproduces inside the image (the
+      # arm64 chromedriver crash, ADR 01096) could not be proven fixed by the PR
+      # that fixes it, because the image installed the last npm release. Release
+      # and manual builds still install `doc-detective@<version>` from the
+      # registry, which is what they must ship. See ADR 01097.
+      - name: Pack this branch
+        if: github.event_name == 'pull_request'
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          dest="$RUNNER_TEMP/pack"
+          mkdir -p "$dest"
+          tarball="$(npm pack --silent --pack-destination "$dest")"
+          # Hand the build script a forward-slash path. RUNNER_TEMP is a
+          # backslash Windows path on the windows runner, and
+          # `npm run <script> -- --flag=<path>` forwards it through cmd.exe,
+          # which eats the backslashes (D:\a\_temp arrives as D:a_temp). Node
+          # accepts forward slashes on Windows, and this is a no-op on Linux.
+          full="$dest/$tarball"
+          full="${full//'\'/'/'}"
+          printf 'tarball=%s\n' "$full" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -180,7 +207,17 @@ jobs:
         # cache is not shared with this build, but the Linux Dockerfile
         # is small enough that the duplicated work is acceptable.
         shell: bash
-        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+        env:
+          # Empty on every non-PR build, which makes build.cjs clear any staged
+          # tarball and install from the registry.
+          LOCAL_PACKAGE: ${{ steps.pack.outputs.tarball }}
+        run: |
+          set -eu
+          if [ -n "${LOCAL_PACKAGE:-}" ]; then
+            npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }} --local-package="$LOCAL_PACKAGE"
+          else
+            npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+          fi
 
       - name: Post-build Test
         shell: bash
@@ -416,9 +453,32 @@ jobs:
           if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
           Write-Host "Docker OSType=$os"
 
+      # Same reasoning as build-linux: on a pull request the image is built
+      # around THIS branch's package so the gate tests the change under review.
+      # See ADR 01097.
+      - name: Pack this branch
+        if: github.event_name == 'pull_request'
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          dest="$RUNNER_TEMP/pack"
+          mkdir -p "$dest"
+          tarball="$(npm pack --silent --pack-destination "$dest")"
+          # Hand the build script a forward-slash path. RUNNER_TEMP is a
+          # backslash Windows path on the windows runner, and
+          # `npm run <script> -- --flag=<path>` forwards it through cmd.exe,
+          # which eats the backslashes (D:\a\_temp arrives as D:a_temp). Node
+          # accepts forward slashes on Windows, and this is a no-op on Linux.
+          full="$dest/$tarball"
+          full="${full//'\'/'/'}"
+          printf 'tarball=%s\n' "$full" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
+
       - name: Build Docker Image
         shell: bash
-        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }} ${{ steps.pack.outputs.tarball && format('--local-package={0}', steps.pack.outputs.tarball) || '' }}
 
       - name: Post-build Test
         shell: bash

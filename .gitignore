@@ -154,3 +154,7 @@ src/common/node_modules/
 
 # Agent/dev scratch space (see CLAUDE.md "Testing behavior")
 .tmp/
+
+# Locally packed doc-detective tarballs staged for a container build
+# (src/container/scripts/localPackage.cjs). The directory itself is tracked.
+src/container/.local-package/*.tgz
