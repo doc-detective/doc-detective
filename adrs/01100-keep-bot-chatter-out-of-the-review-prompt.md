@@ -116,7 +116,16 @@ Option **D** is manual work that recurs on every busy PR, and it does not break 
   unchanged. Against the previous workflow two of the four fail. Against this one all four pass.
 * **The measurement is reproducible from CI.** Pull a failing job's log, take the span between
   `===== FINAL PROMPT =====` and the closing rule, and attribute lines to the most recent
-  `[... at <timestamp>]:` header. That is how the table above was produced, from run 33936870483.
+  `[... at <timestamp>]:` header. The table above was produced that way, from job run
+  33936870483 on this repository.
+* **A natural experiment ran while this was open, and it supports the diagnosis.** All 200 of
+  reviewdog's inline comments on PR #713 were deleted, by reviewdog itself, once Vale went clean.
+  The prompt did not shrink at all. The next failing run assembled a larger one, of 194,827
+  characters, still dominated by `github-actions`. That run failed the same way, and recorded no
+  model usage. The reason is that reviewdog's bulk is not in its inline comments. It is in the
+  review summaries it posts when it has more findings than it can attach. Those are headed
+  "Remaining comments which cannot be posted as a review comment to avoid GitHub Rate Limit". Pruning inline comments never touches those. So deleting comments by hand does not
+  fix this, which is the concrete reason option **D** fails.
 * **Post-merge.** The `review` check passes on a pull request carrying a large automated-comment
   history. The definitive case is a rerun on PR #713 itself, which is the PR that produced the
   measurement.
@@ -150,5 +159,7 @@ Option **D** is manual work that recurs on every busy PR, and it does not break 
 ### D. Clean up bot comments by hand
 
 * Good: no configuration change.
+* Bad: it does not work. Deleting reviewdog's 200 inline comments on PR #713 left the prompt
+  larger than before. The bulk sits in review summaries, which pruning never touches.
 * Bad: it recurs on every busy pull request, it is destructive to a shared PR's history, and it
   leaves the compounding loop in place.
