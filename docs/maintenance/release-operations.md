@@ -13,11 +13,13 @@ realities around them.
   `pull_request` rule requiring 1 approving review. `require_code_owner_review` is vacuous, because
   there's no CODEOWNERS file. **CodeQL is the only CI signal that truly blocks merge.**
 - Some checks look scary but don't block. The `review` check is the "Claude PR Review - Auto"
-  workflow. It fails deterministically on very large pull requests. The prompt inlines the whole
-  diff, so a PR with thousands of changed lines exceeds the model's input limit. The action then
-  exits before any model call. The run reports `is_error: true` with `total_cost_usd: 0` and an
-  empty `modelUsage`. GitHub renders that as "Claude encountered an error after 0s", with no
-  diagnostic. So read the job log's result record before writing a red `review` off as a flake. It
+  workflow. It fails deterministically on very large pull requests, and passes on small ones. The
+  run reports `is_error: true` with `duration_ms: 81`, `total_cost_usd: 0`, and an empty
+  `modelUsage`, so it gives up before any model call rather than timing out. The workflow sets
+  `track_progress: true` and inlines the whole diff into the prompt, which is the size-correlated
+  part; the logs don't say whether the rejection is a local guard or an API refusal. GitHub renders
+  the failure as "Claude encountered an error after 0s", with no diagnostic. So read the job log's
+  result record before writing a red `review` off as a flake. It
   also fails on bot-authored head commits, because secrets aren't injected for bot-triggered runs.
   A red `review` check is not a merge blocker.
 - **`vale` is a real gate.** It lints the whole repository on every PR, with `fail_on_error: true`
