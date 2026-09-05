@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The genesis runner could open a page, find a single CSS-selected element, and click it, but it could
-neither enter text into an input nor assert that the page contained expected text. To test real
-documented procedures (filling forms, verifying on-screen labels), the action vocabulary needed a way
-to send keystrokes to a found element and a way to assert that text is present. How should typing and
+The genesis runner could open a page, find a single CSS-selected element, and click it. But it could
+neither enter text into an input nor assert that the page contained expected text. Real documented
+procedures fill forms and verify on-screen labels. The action vocabulary needed a way to send
+keystrokes to a found element, and a way to assert that text is present. How should typing and
 text assertion be expressed as actions, and what should their fields and verdicts be?
 
 ## Decision Drivers
@@ -25,7 +25,7 @@ text assertion be expressed as actions, and what should their fields and verdict
 
 * **A. Add `type` and `matchText` as first-class actions** (chosen).
 * **B. Fold text entry into the existing `find`/`click` path with extra fields.**
-* **C. Defer assertions to an external harness and keep the runner action-only.**
+* **C. Defer assertions to an external test tool and keep the runner action-only.**
 
 ## Decision Outcome
 
@@ -39,8 +39,8 @@ Both `matchText` and `curl` were added to the action enum alongside the `type` h
 
 * Good: form-filling and text verification become directly expressible in tests.
 * Good: `trailingSpecialKey` covers submit-on-Enter without a separate keypress action.
-* Neutral: `matchText` later evolves substantially — it becomes a nested `find` sub-action (Seq 31)
-  and folds entirely into `find`'s inline assertions in the v2 redesign (Seq 70) — but the
+* Neutral: `matchText` later evolves substantially. It becomes a nested `find` sub-action (Seq 31),
+  then folds entirely into `find`'s inline assertions in the v2 redesign (Seq 70). The
   text-assertion contract originates here.
 * Bad: `type` depends on a prior `find` having set the active element, an implicit ordering coupling.
 
@@ -59,12 +59,12 @@ assertion. Later re-expressed through the v1/v2 step schemas in `doc-detective-c
 * Good: fewer action names.
 * Bad: overloads find/click semantics; harder to validate and report distinctly.
 
-### C. External assertion harness
+### C. External assertion tool
 * Good: keeps the runner minimal.
 * Bad: breaks the self-contained "docs as tests" model; no inline assertions.
 
 ## More Information
 
 Recorded retrospectively (ADR backfill). Origin: doc-detective commits 4cbb04aa, 47f0fb70, 1c2fae2c.
-Inventory ref: BACKFILL-INVENTORY.md Seq 12. Related: ADR 00010 (click), ADR 00025 (supercharged
+Inventory ref: BACKFILL-INVENTORY.md Seq 12. Related: ADR 00010 (click), ADR 00025 (expanded
 find sub-actions), ADR 00048 (find inline sub-actions v2 redesign).

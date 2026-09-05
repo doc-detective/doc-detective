@@ -31,9 +31,9 @@ Two independent defects combined to produce this:
 
 1. **The cache probe looked for the wrong filename.** `geckodriverBinaryInCache` searched for
    exactly `geckodriver` / `geckodriver.exe` at the cache root and one level deep. Since v6 the
-   `geckodriver` npm package extracts into a `fs.mkdtemp(<cacheDir>/geckodriver-)` staging directory
-   and then renames the binary to **`geckodriver-<version>`** (`.exe` on Windows) at the cache root,
-   so future lookups resolve a specific version. The probe never matched that name. The same package
+   `geckodriver` npm package extracts into a `fs.mkdtemp(<cacheDir>/geckodriver-)` staging
+   directory. It then renames the binary to **`geckodriver-<version>`** (`.exe` on Windows) at the
+   cache root, so future lookups resolve a specific version. The probe never matched that name. The same package
    version also dropped the `.path` export the resolver's first branch relied on, so *both* sources
    came up empty.
 
@@ -56,15 +56,15 @@ fix**. `appium-geckodriver` resolves its binary from either the `appium:geckodri
 capability (gated behind the `gecko:custom_geckodriver_executable` insecure feature) or `PATH`,
 and Doc Detective sets neither for Firefox, unlike Chrome, which passes `appium:executable`. So even
 with geckodriver correctly installed, a Firefox context in the container still fails to start with
-`geckodriver binary cannot be found in PATH` and falls back to another browser. This has been masked
-everywhere it is normally exercised: GitHub-hosted runners ship a system geckodriver on `PATH`, which
-is what the Firefox-defaulted fixture suite has been using all along. The container is the
+`geckodriver binary cannot be found in PATH` and falls back to another browser. This has been
+masked everywhere it is normally exercised. GitHub-hosted runners ship a system geckodriver on
+`PATH`, and that is what the Firefox-defaulted fixture suite has been using all along. The container is the
 environment where the managed install is the only geckodriver.
 
 Together these invalidated the documented arm64 workaround for the missing `linux/arm64` ChromeDriver
-build ("use Firefox instead", see [ADR 01096](01096-never-execute-a-foreign-architecture-driver-binary.md) for the ChromeDriver side). Fixing the install is a
-prerequisite for that workaround but not sufficient for it, so the docs are corrected here and the
-`PATH` wiring is left to a follow-up.
+build ("use Firefox instead"). See [ADR 01096](01096-never-execute-a-foreign-architecture-driver-binary.md)
+for the ChromeDriver side. Fixing the install is a prerequisite for that workaround, and not
+sufficient for it. So the docs are corrected here, and the `PATH` wiring is left to a follow-up.
 
 ## Decision Drivers
 
@@ -107,9 +107,9 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
   writer blocks forever. A named pipe sitting in the cache under a driver's name would wedge the
   whole run. `statSync` follows a symlink without blocking, so a link to a real binary still counts
   while a link to a FIFO does not.
-* Every supported location is scanned **before** anything is selected, and the newest version-suffixed
-  binary found anywhere wins; a bare-named binary is the fallback, root before nested. Two ordering
-  bugs fall out of doing it this way, both raised in review. Selecting as you scan let a root
+* Every supported location is scanned **before** anything is selected. The newest version-suffixed
+  binary found anywhere wins, and a bare-named binary is the fallback, root before nested. Two
+  ordering bugs fall out of doing it this way, both raised in review. Selecting as you scan let a root
   `geckodriver-0.36.0` beat a nested `geckodriver-0.37.1` purely by being looked at first. And
   preferring the bare name (the first draft's rule) let a stale `geckodriver` left by an older layout
   silently outrank a freshly installed one. The current package only ever writes versioned names.
@@ -117,13 +117,13 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
   carrying a comparable version. A bare name is a legacy or hand-placed artifact whose version
   can't be known without executing it.
 * `resolveBinaryPath` returns `string | undefined`, so the `?? cacheDir` fallback is gone. Callers
-  already treat a missing driver path as "no Layer 2 check, fall through to the runtime fallback"
-  (`AppDriverDescriptor.driverPath` and `InstalledBrowserDescriptor.driverPath` are both optional),
+  already treat a missing driver path as "no Layer 2 check, fall through to the runtime fallback".
+  Both `AppDriverDescriptor.driverPath` and `InstalledBrowserDescriptor.driverPath` are optional,
   so `undefined` is the shape they were already written for. `EnsureBrowserResult.path` becomes
   optional to match.
 * The install path prefers the absolute path **`download()` returns**, the only direct signal in
-  geckodriver >= 6 — and falls back to the cache probe. This is what makes the fix independent of
-  the naming convention; the probe remains necessary for the fresh-cache branch, which returns
+  geckodriver >= 6. It falls back to the cache probe. That is what makes the fix independent of
+  the naming convention. The probe remains necessary for the fresh-cache branch, which returns
   without downloading.
 * `ALLOWED_DRIVER_PATH` admits an optional `-<version>` segment restricted to a dotted-numeric run:
   `geckodriver-0.37.1` and `geckodriver-0.37.1.exe` pass; `geckodriver-evil.sh` does not. The
@@ -140,8 +140,8 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
   [docs/fern/pages/docs/ci/docker-and-headless.mdx](../docs/fern/pages/docs/ci/docker-and-headless.mdx)
   stops offering Firefox as the arm64 workaround and documents the verified `PATH` workaround
   instead. Better that than leaving a promise the image does not keep.
-* Good: the availability probe in `core/config` resolves the binary through the same helper, so the
-  functional driver gate actually runs for containerized installs instead of quietly skipping.
+* Good: the availability probe in `core/config` resolves the binary through the same helper. So the
+  functional driver gate actually runs for containerized installs, instead of quietly skipping.
 * Good: a genuinely unlocatable binary now produces an accurate diagnostic and degrades to the
   runtime fallback rather than failing validation against a directory path.
 * Neutral: a geckodriver release with a non-numeric version string would be refused by the
@@ -157,17 +157,17 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
   * the version-suffixed name at the root and one level deep;
   * newest-version selection across mixed root and nested layouts;
   * version-suffixed precedence over a bare sibling, and the bare-name fallback;
-  * rejection of a leftover staging directory, of a bare-named directory, and of a FIFO under either
-    name, alongside a check that a symlink to a real binary is still accepted;
+  * rejection of a leftover staging directory, of a bare-named directory, and of a FIFO under
+    either name. A check that a symlink to a real binary is still accepted sits alongside it;
   * allowlist acceptance of the versioned filename, and continued refusal of the bare cache
     directory, of `geckodriver-evil.sh`, and of a versioned chromedriver or safaridriver name;
   * the end-to-end install against the real on-disk layout;
   * the honest `undefined` path when nothing can be located.
 
   Before the fix, seven of these failed, one reproducing the container error verbatim.
-* Verified against the real image on **both** architectures, by layering this branch's compiled
-  `dist/` onto `docdetective/docdetective:latest-linux` (same OS, cache dir, and geckodriver package
-  version as the published build). Before: `geckodriver — skipped (...Refusing to execute
+* Verified against the real image on **both** architectures. This branch's compiled `dist/` was
+  layered onto `docdetective/docdetective:latest-linux`, which has the same OS, cache dir, and
+  geckodriver package version as the published build. Before: `geckodriver — skipped (...Refusing to execute
   '/opt/doc-detective/browsers'...)`. After, on `linux/amd64` and `linux/arm64` alike:
   `[browser] geckodriver — installed @ 0.37.1`, with the entry written to `installed.json`.
 * The residual `PATH` defect was confirmed the same way. With this fix plus a `geckodriver` symlink

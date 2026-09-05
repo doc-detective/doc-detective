@@ -3,7 +3,7 @@ title: Run in CI and at scale
 description: Drop a documentation-testing gate into your pipelines and run it headless at scale.
 ---
 
-Start here if you own CI/CD. Doc Detective runs the procedures in your docs on every pull request and flags the ones that no longer match the product, so documentation drift fails the build the same way a broken test does. This track takes you from your first pipeline gate to headless, containerized runs across many repos.
+Start here if you own CI/CD. Doc Detective runs the procedures in your docs on every pull request and flags the ones that no longer match the product. Documentation drift then fails the build the same way a broken test does. This track takes you from your first pipeline gate to headless, containerized runs across many repos.
 
 The pages here build on each other, but each one stands on its own if you already know what you need.
 
@@ -11,29 +11,29 @@ The pages here build on each other, but each one stands on its own if you alread
 
 Wire Doc Detective into CI and gate pull requests on the results.
 
-- [Run in CI with the GitHub Action](/docs/ci/github-action) is the fastest path: add the action to a workflow, gate pull requests, and open PRs or issues automatically.
-- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) covers the output formats, where each one writes, and—most importantly—how to fail a build when tests fail. The standalone CLI doesn't exit non-zero on test failures on its own, so read this before you rely on the exit code.
+- [Run in CI with the GitHub Action](/docs/ci/github-action) is the fastest path. Add the action to a workflow, gate pull requests, and open PRs or issues automatically.
+- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) covers the output formats and where each one writes. Most importantly, it covers how to fail a build when tests fail. The standalone CLI doesn't exit non-zero on test failures on its own, so read this before you rely on the exit code.
 
 ## Run headless and containerized
 
 Once the gate works, make it run reliably where CI actually runs.
 
-- [Docker and headless](/docs/ci/docker-and-headless) shows you the official container image, what changes when there's no display, how to record video without one, and how to warm the runtime cache so each run starts fast.
+- [Docker and headless](/docs/ci/docker-and-headless) covers the official container image and what changes when there's no display. It also covers recording video without one, and warming the runtime cache so each run starts fast.
 
 ## Consume the results
 
 Every run emits a machine-readable summary, plus screenshots and recordings when your tests capture them.
 
-- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) explains the run folder layout, the `summary` object you parse to gate a build on any platform, and the artifacts you attach to a job for reviewers.
+- [Reporters and artifacts](/docs/ci/reporters-and-artifacts) explains the run folder layout and the `summary` object you parse to gate a build. It also covers the artifacts you attach to a job for reviewers.
 - [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview) maps a red run back to the step, selector, or context that caused it.
 
 ## Scale beyond a single GitHub repo
 
-The guides above use the GitHub Action, but nothing about Doc Detective is GitHub-specific. These capabilities ship today, and dedicated journey pages for them are on the way, so this section points you to the reference material you need in the meantime.
+The guides above use the GitHub Action, but nothing about Doc Detective is GitHub-specific. These capabilities ship today, and dedicated journey pages for them are on the way. This section points you to the reference material you need in the meantime.
 
 - **Other CI platforms.** Any runner that executes a shell command can run Doc Detective. To gate the build, parse the JSON `summary` yourself, which works the same on GitLab CI, Jenkins, CircleCI, or anywhere else. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-5-fail-ci-when-tests-fail).
 - **Concurrency.** To raise throughput, run tests in parallel with `concurrentRunners`. Set it to `true` to use the CPU core count, capped at four. Recordings that use the `ffmpeg` engine serialize on the shared display, so use the browser recording engine when you record under concurrency. See the [`config`](/reference/schemas/config) reference.
-- **Session resilience.** On busy CI runners a browser or app session occasionally becomes unreachable mid-test, or the session stays alive but the browser lands on an error page. Doc Detective detects both cases and re-runs the whole affected context on a fresh session, controlled by the `retries` config option (default `1`; set `0` to disable). It never retries a genuine test failure—when the session is alive, the page is working, and the assertion failed. See the [`config`](/reference/schemas/config) reference.
+- **Session resilience.** On busy CI runners a browser or app session occasionally becomes unreachable mid-test. Sometimes the session stays alive but the browser lands on an error page. Doc Detective detects both cases and re-runs the whole affected context on a fresh session. The `retries` config option controls this, defaulting to `1`, and `0` disables it. It never retries a genuine test failure, where the session is alive, the page is working, and the assertion failed. See the [`config`](/reference/schemas/config) reference.
 - **Distributed runs.** To orchestrate runs across machines, point Doc Detective at a remote orchestration service. See the [Orchestration API](/reference/schemas/doc-detective-orchestration-api) reference.
 
 ## What's next

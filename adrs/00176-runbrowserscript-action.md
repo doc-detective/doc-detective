@@ -8,9 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective could drive a browser through high-level steps (`find`, `click`, `goTo`, screenshots),
-but some documented procedures need to execute arbitrary JavaScript *inside the page context* — to
-read computed state, trigger app behavior, or set up preconditions the step vocabulary doesn't cover.
+Doc Detective could drive a browser through high-level steps: `find`, `click`, `goTo`, and
+screenshots. But some documented procedures need to execute arbitrary JavaScript *inside the page
+context*. That reads computed state, triggers app behavior, or sets up preconditions the step
+vocabulary doesn't cover.
 There was no step type that ran author-supplied JS in the browser. Should Doc Detective add a
 `runBrowserScript` step, and how should it fit the v3 action-as-key schema and the runtime's
 browser-step machinery?
@@ -30,18 +31,18 @@ browser-step machinery?
 
 ## Decision Outcome
 
-Chosen option: **A**, because executing arbitrary in-page JavaScript is a distinct capability from the
-process-level `runCode` step (`00095`) and from the high-level browser actions, so it earns its own
-step type wired through the browser-step machinery and runtime-needs inference.
+Chosen option: **A**. Executing arbitrary in-page JavaScript is a distinct capability from the
+process-level `runCode` step (`00095`), and from the high-level browser actions. So it earns its own
+step type, wired through the browser-step machinery and runtime-needs inference.
 
 Contract decided:
 
 * New `runBrowserScript` action/step type executes author-supplied JavaScript in the browser page
   context.
 * `runBrowserScript_v3` schema defines the step under the v3 action-as-key convention.
-* The handler lives in `tests/runBrowserScript.ts`; the step is registered in `browserStepKeys.ts`
-  so the runtime treats it as a browser step, and `inferRuntimeNeeds` is wired so a run containing it
-  provisions a driver/session.
+* The handler lives in `tests/runBrowserScript.ts`. The step is registered in `browserStepKeys.ts`,
+  so the runtime treats it as a browser step. `inferRuntimeNeeds` is wired so a run containing it
+  provisions a driver and session.
 
 Implementation in `src/.../tests/runBrowserScript.ts`, `browserStepKeys.ts`, schema
 `runBrowserScript_v3`.

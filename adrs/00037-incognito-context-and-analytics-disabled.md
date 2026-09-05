@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Reusing a single persistent browser profile across tests let state — cookies, cache, storage — leak
+Reusing a single persistent browser profile across tests let cookies, cache, and storage leak
 between tests, making runs order-dependent and non-reproducible. At the same time the runner still
 carried an analytics-send path that phoned home during runs. Should each test get an isolated
 browser context, and should the analytics path remain active?

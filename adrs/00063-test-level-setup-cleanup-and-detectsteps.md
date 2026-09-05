@@ -11,8 +11,9 @@ decision-makers: doc-detective maintainers
 Many documented procedures share a common precondition (log in, seed data) and postcondition (tear
 down) that authors had to repeat in every test. There was also no per-test switch to turn off the
 automatic detection of steps from surrounding markup. We needed a way for a test to name a spec to
-run before and after it (with that spec's steps prepended/appended into the test) and a boolean to
-control whether markup-detected steps are included. What is the contract for `setup`/`cleanup` and
+run before and after it. That spec's steps are prepended or appended into the test. We also needed
+a boolean controlling whether markup-detected steps are included. What is the contract for
+`setup`/`cleanup` and
 `detectSteps` at the test level?
 
 ## Decision Drivers
@@ -30,10 +31,10 @@ control whether markup-detected steps are included. What is the contract for `se
 
 ## Decision Outcome
 
-Chosen option: **A**, because referencing a spec keeps shared fixtures DRY while the
+Chosen option: **A**. Referencing a spec keeps shared fixtures DRY. The
 prepend/append-then-revalidate model means setup/cleanup steps are first-class steps of the test.
-`setup` and `cleanup` are string fields naming a spec to run before/after the test; that spec's steps
-are prepended (setup) or appended (cleanup) to the test's step list and the assembled test is
+`setup` and `cleanup` are string fields naming a spec to run before or after the test. That spec's
+steps are prepended (setup) or appended (cleanup) to the test's step list, and the assembled test is
 re-validated. `detectSteps` is a boolean (default `true`) controlling whether markup-detected steps
 are included for the test.
 

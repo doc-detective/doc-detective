@@ -8,13 +8,13 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The Heretto CMS integration (`00141`) originally spanned three separate packages — common (schema),
-core (runner), and resolver (source fetching). After the monorepo consolidation (`00145`–`00147`),
-that cross-package loader had to be re-homed inside the merged repository. At the same time the
-content-loading round-trip had a bug: Heretto's publishing API returns content via an asynchronous
-job, and the loader's job-status polling didn't wait correctly, so downloads could be read before the
-job finished. How should the Heretto loader live in the monorepo, and how is the job-status race
-fixed?
+The Heretto CMS integration (`00141`) originally spanned three separate packages. Those were common
+(schema), core (runner), and resolver (source fetching). After the monorepo consolidation
+(`00145`–`00147`), that cross-package loader had to be re-homed inside the merged repository. At the
+same time the content-loading round-trip had a bug. Heretto's publishing API returns content through
+an asynchronous job. The loader's job-status polling didn't wait correctly, so downloads could be
+read before the job finished. How should the Heretto loader live in the monorepo, and how is the
+job-status race fixed?
 
 ## Decision Drivers
 
@@ -31,14 +31,14 @@ fixed?
 
 ## Decision Outcome
 
-Chosen option: **A**, because the monorepo's integrations belong under `src/core/integrations/`
-alongside OpenAPI and the other connectors, and re-homing the loader is the natural moment to fix the
-job-status race that made downloads flaky.
+Chosen option: **A**. The monorepo's integrations belong under `src/core/integrations/`, alongside
+OpenAPI and the other connectors. Re-homing the loader is the natural moment to fix the job-status
+race that made downloads flaky.
 
 The contract:
 
-* `src/core/integrations/heretto.ts` (515 lines) is the in-repo Heretto content loader — a
-  re-exposure of the `00141` integration inside the merged repo.
+* `src/core/integrations/heretto.ts` (515 lines) is the in-repo Heretto content loader. It
+  re-exposes the `00141` integration inside the merged repo.
 * `detectTests` integrates it: `heretto:<name>` refs resolve through this loader.
 * The job-status polling is fixed so the loader waits for the Heretto publishing job to complete
   before reading the downloaded content.

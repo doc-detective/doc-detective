@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The runner probed Appium's `/sessions` endpoint to decide when the server was ready to accept work, but `/sessions` is not a reliable readiness signal — Appium v3.1 exposes a dedicated `/status` endpoint for exactly this. Meanwhile the CI matrix still tested Node 18, which had reached end of life and was holding back dependency choices. Should readiness move to `/status`, and should Node 18 be dropped from the support matrix?
+The runner probed Appium's `/sessions` endpoint to decide when the server was ready to accept work. But `/sessions` is not a reliable readiness signal. Appium v3.1 exposes a dedicated `/status` endpoint for exactly this. Meanwhile the CI matrix still tested Node 18, which had reached end of life and was holding back dependency choices. Should readiness move to `/status`, and should Node 18 be dropped from the support matrix?
 
 ## Decision Drivers
 

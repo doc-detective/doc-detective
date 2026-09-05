@@ -10,7 +10,7 @@ decision-makers: doc-detective maintainers
 
 With Safari added (`00072`), the engine set still lacked Microsoft Edge, a Chromium-family browser
 many enterprise docs target. At the same time, the FFmpeg desktop-capture recording path (`00069`)
-behaved reliably only on Chrome — recording against Chromium and Edge produced inconsistent
+behaved reliably only on Chrome. Recording against Chromium and Edge produced inconsistent
 viewport-crop results. Chromedriver was also being tracked as a separate "app", duplicating bookkeeping
 with the Chrome/Edge entries. Which browsers do we support for driving, and which do we support for
 recording?
@@ -18,13 +18,13 @@ recording?
 ## Decision Drivers
 
 * Edge is a common documentation target and is Chromium-based, so the driver cost is low.
-* Recording reliability matters more than recording breadth — a flaky recording is worse than none.
+* Recording reliability matters more than recording breadth, since a flaky recording is worse than none.
 * Driver bookkeeping should be simpler (fold chromedriver into the browser app it serves).
 
 ## Considered Options
 
-* **A. Add Edge as an engine, fold chromedriver into the chrome/edge app as `driver`, and gate
-  recording to `chrome` only (drop chromium/edge from the recording set)** (chosen).
+* **A. Add Edge as an engine, and fold chromedriver into the chrome/edge app as `driver`. Gate
+  recording to `chrome` only, dropping chromium and edge from the recording set** (chosen).
 * **B. Add Edge and allow recording on every Chromium browser.**
 * **C. Don't add Edge.**
 
@@ -33,7 +33,7 @@ recording?
 Chosen option: **A** (`core`, commit `61b50800`):
 
 1. **Microsoft Edge** is added as a browser engine.
-2. **Chromedriver** is no longer a standalone tracked app — it is folded into the chrome/edge app as
+2. **Chromedriver** is no longer a standalone tracked app. It is folded into the chrome/edge app as
    its `driver`.
 3. **Recording is restricted to `chrome`**: chromium and edge are dropped from the
    recording-capable set. Recording against a non-Chrome browser resolves to SKIPPED rather than
@@ -56,7 +56,7 @@ Chosen option: **A** (`core`, commit `61b50800`):
 ### Consequences
 
 * Good: Edge is driveable; recording stays trustworthy.
-* Good: chromedriver tracked under the browser it serves — less duplicate state.
+* Good: chromedriver tracked under the browser it serves, with less duplicate state.
 * Bad: users wanting Edge recordings are out of luck and land on SKIPPED.
 * Neutral: the chrome-only recording gate is later carried into the v3 record engine.
 

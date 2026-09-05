@@ -30,8 +30,8 @@ consumption, and how should URL fields accommodate `$ENV` references?
 
 ## Decision Outcome
 
-Chosen option: **A**, because separating authored sources from a generated, self-contained output is
-the standard way to keep authoring modular while making runtime validation deterministic. Authored
+Chosen option: **A**. Separating authored sources from a generated, self-contained output is the
+standard way to keep authoring modular, while making runtime validation deterministic. Authored
 schemas live in `src_schemas/`; a `dereferenceSchemas.js` preprocessing step emits dereferenced
 `output_schemas/` that the runtime consumes, with `$id` stripped during dereferencing. In-file
 references are rewritten to local `#/definitions/…` pointers. URL fields drop `format:uri` and widen

@@ -8,12 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Users point the tool at a directory of documentation, not just a single file, so the tool needed to discover which files to scan for tests. The input-discovery commits (`a4332bc7`, `8ceb72ff`, 2022-04-25) added a recursive directory walk with `recursive` defaulting to true, filtered by extension using an `excludeExtensions` exclude list and a `testExtensions` allow-list. How should the tool enumerate candidate input files and decide which extensions to include?
+Users point the tool at a directory of documentation, not just a single file. So the tool needed to discover which files to scan for tests. The input-discovery commits (`a4332bc7`, `8ceb72ff`, 2022-04-25) added a recursive directory walk, with `recursive` defaulting to true. Files are filtered by extension, using an `excludeExtensions` exclude list and a `testExtensions` allow-list. How should the tool enumerate candidate input files and decide which extensions to include?
 
 ## Decision Drivers
 
 * Documentation is usually a tree of files, not one file.
-* Not every file in a tree is a test source — extensions must be filtered.
+* Not every file in a tree is a test source, so extensions must be filtered.
 * Recursion should be the default but overridable.
 * Discovery must compose with the per-filetype test-comment contract (ADR 00003).
 
@@ -25,7 +25,7 @@ Users point the tool at a directory of documentation, not just a single file, so
 
 ## Decision Outcome
 
-Chosen option: **recursive walk by default with extension filtering**, because pointing at a docs root and discovering all eligible files is the common case, while allow/exclude lists keep non-test files out.
+Chosen option: **recursive walk by default with extension filtering**. Pointing at a docs root and discovering all eligible files is the common case. Allow and exclude lists keep non-test files out.
 
 Behavior decided:
 

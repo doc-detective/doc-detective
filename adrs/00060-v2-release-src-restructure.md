@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The 2.0.0 wrapper release consolidated several earlier decisions — the `config_v2` CLI contract
-(ADR 00054), the default fileTypes/markup map (ADR 00055), and the coverage/suggest entrypoints —
-into a single coherent package layout. The pre-2.0 wrapper carried legacy CLI scaffolding, a sample
+The 2.0.0 wrapper release consolidated several earlier decisions into a single coherent package
+layout. Those are the `config_v2` CLI contract (ADR 00054), the default fileTypes and markup map
+(ADR 00055), and the coverage and suggest entrypoints. The pre-2.0 wrapper carried legacy CLI scaffolding, a sample
 config, and Jekyll documentation that no longer matched the new contract. How should the package be
 organized for 2.0.0 so the three public entrypoints are clearly separated and the stale assets are
 removed?
@@ -30,10 +30,10 @@ removed?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a single `src/`-organized package with one module per entrypoint is the
-clearest expression of the 2.0.0 surface without fragmenting it across packages. The wrapper is
-restructured under `src/` with `runTests.js`, `runCoverage.js`, `suggestTests.js`, and `utils.js`; a
-new sample config reflects the `fileTypes`/markup contract; and the legacy CLI scaffolding, old sample
+Chosen option: **A**. A single `src/`-organized package with one module per entrypoint is the
+clearest expression of the 2.0.0 surface, without fragmenting it across packages. The wrapper is
+restructured under `src/` with `runTests.js`, `runCoverage.js`, `suggestTests.js`, and `utils.js`. A
+new sample config reflects the `fileTypes`/markup contract. The legacy CLI scaffolding, old sample
 config, and Jekyll documentation are removed. This is the 2.0.0 release boundary (a 46-file
 restructure).
 
@@ -67,5 +67,5 @@ three entrypoint modules and the removal of the legacy CLI/sample/Jekyll assets.
 
 Recorded retrospectively (ADR backfill). Origin: `doc-detective` commit `95e3c848` (v2.0.0).
 Inventory ref: BACKFILL-INVENTORY.md Seq 87. Bundles the v2 CLI contract (ADR 00054) and default
-fileTypes (ADR 00055); `runCoverage`/`suggestTests` were later removed from the test surface at
+fileTypes (ADR 00055). `runCoverage` and `suggestTests` were later removed from the test surface at
 3.0.0 (ADR 00103, 00108).

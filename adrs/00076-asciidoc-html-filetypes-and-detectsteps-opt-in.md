@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 Doc Detective's built-in fileTypes covered Markdown, but real documentation also ships as AsciiDoc
 and HTML, which had no default markup-to-action mapping. Separately, `detectSteps` defaulted to
-`true`, so the runner auto-generated steps from prose markup on every file — surprising users who
-only wanted explicit inline tests to run and producing unexpected detected steps. Which fileTypes
+`true`, so the runner auto-generated steps from prose markup on every file. That surprised users who
+only wanted explicit inline tests to run, and produced unexpected detected steps. Which fileTypes
 ship by default, and should markup-driven step detection be on or off by default?
 
 ## Decision Drivers
@@ -33,8 +33,9 @@ Chosen option: **A** (`common`, commits `a33d272`, `a6d80a1`, `9d6029d`, `e89cd0
 
 1. **New fileTypes**: an AsciiDoc fileType and an HTML/XML fileType are added with their own
    markup→action maps; Markdown gains the `.markdown` extension alongside `.md`.
-2. **detectSteps flip**: the `detectSteps` default changes from `true` to **`false`** — markup-driven
-   step detection becomes **opt-in**. By default only explicitly authored inline tests run.
+2. **detectSteps flip**: the `detectSteps` default changes from `true` to **`false`**, so
+   markup-driven step detection becomes **opt-in**. By default only explicitly authored inline tests
+   run.
 
 ## Pros and Cons of the Options
 
@@ -53,7 +54,7 @@ Chosen option: **A** (`common`, commits `a33d272`, `a6d80a1`, `9d6029d`, `e89cd0
 ### Consequences
 
 * Good: AsciiDoc and HTML docs are testable out of the box.
-* Good: runs are predictable — only authored tests execute unless detection is enabled.
+* Good: runs are predictable, since only authored tests execute unless detection is enabled.
 * Bad: a behavior change for anyone depending on the old `detectSteps: true` default.
 * Neutral: the default flips again later (3.0.0 sets `detectSteps: true` in the new wrapper defaults).
 

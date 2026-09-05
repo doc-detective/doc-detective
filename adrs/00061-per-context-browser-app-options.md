@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 A spec or test runs inside a `context` that names an application (a browser) and the platforms it
-supports. Until now the browser was launched with fixed dimensions and headless behavior, so a test
-could not ask for a specific viewport size or run headed in one context and headless in another.
+supports. Until now the browser was launched with fixed dimensions and headless behavior. So a test
+could not ask for a specific viewport size, or run headed in one context and headless in another.
 Documentation screenshots and find/click flows depend on a predictable window size. How should
 per-context browser launch parameters (size, headless) be expressed and wired into the underlying
 Firefox/Chrome drivers?
@@ -30,10 +30,10 @@ Firefox/Chrome drivers?
 
 ## Decision Outcome
 
-Chosen option: **A**, because launch parameters belong to the context that defines the browser, and
-a small typed object keeps the contract discoverable while still flowing into the driver. The
-context's `app` gains an `options` object with `width` (default `1200`), `height` (default `800`),
-and `headless` (default `true`); the schema adds `app.options` and the runner maps these into the
+Chosen option: **A**. Launch parameters belong to the context that defines the browser, and a small
+typed object keeps the contract discoverable while still flowing into the driver. The context's
+`app` gains an `options` object with `width` (default `1200`), `height` (default `800`), and
+`headless` (default `true`). The schema adds `app.options`, and the runner maps these into the
 Firefox and Chrome driver argument lists at launch.
 
 ### Consequences

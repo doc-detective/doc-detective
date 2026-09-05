@@ -8,8 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The `doc-detective` package shipped both the CLI and the entire execution engine inline — action
-implementations, a 215-line `src/config.json`, a 1084-line `utils.js`, and a large `src/lib/*` tree.
+The `doc-detective` package shipped both the CLI and the entire execution engine inline. That meant
+action implementations, a 215-line `src/config.json`, a 1084-line `utils.js`, and a large
+`src/lib/*` tree.
 That made the engine impossible to reuse independently and bundled heavy runtime dependencies into
 every install of the CLI. Should the engine remain inside the CLI package, or be extracted into a
 standalone package the CLI merely orchestrates?
@@ -33,8 +34,9 @@ standalone package the CLI merely orchestrates?
 Chosen option: **A**, because a clean extraction yields a reusable engine and a slim CLI, and avoids
 maintaining two copies of the same logic.
 
-Behavior decided: the bundled engine is removed wholesale — `src/lib/*`, all action implementations,
-the 215-line `src/config.json`, and the 1084-line `utils.js` are deleted; runtime deps are stripped.
+Behavior decided: the bundled engine is removed wholesale. `src/lib/*`, all action implementations,
+the 215-line `src/config.json`, and the 1084-line `utils.js` are deleted, and runtime deps are
+stripped.
 The repo becomes a thin wrapper that `require("doc-detective-core")` and orchestrates it. This is the
 2.0.0-line split that establishes the multi-repo architecture (CLI wrapper + `core` engine +
 `common` schemas) later re-merged into the monorepo.
@@ -42,7 +44,7 @@ The repo becomes a thin wrapper that `require("doc-detective-core")` and orchest
 ### Consequences
 
 * Good: the engine is independently reusable; the CLI install is lighter.
-* Good: clear separation — CLI orchestrates, `core` executes, `common` validates.
+* Good: clear separation. CLI orchestrates, `core` executes, `common` validates.
 * Bad: a behavior/contract change now spans repos, raising release-coordination overhead (later
   resolved by re-merging into one monorepo).
 * Neutral: this split is exactly what the 2026 monorepo merges (`00145`–`00147`) reverse.

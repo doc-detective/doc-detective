@@ -9,15 +9,16 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Doc Detective compares strings (`runShell`/`httpRequest` output diffs) and images against a
-`maxVariation` tolerance, but the unit was inconsistent: some paths computed a *percentage*
-difference (0–100, via a `calculatePercentageDifference` helper) while the v3 schemas had moved
-`maxVariation` toward a 0–1 fraction (e.g. screenshot default `0.05`). A step authored against one
+`maxVariation` tolerance. But the unit was inconsistent. Some paths computed a *percentage*
+difference, 0–100, through a `calculatePercentageDifference` helper. Meanwhile the v3 schemas had
+moved `maxVariation` toward a 0–1 fraction, such as the screenshot default `0.05`. A step authored
+against one
 convention could be evaluated under the other. What single comparison contract should all
 `maxVariation` checks share?
 
 ## Decision Drivers
 
-* `maxVariation` must mean the same thing everywhere — image and text comparisons alike.
+* `maxVariation` must mean the same thing everywhere, for image and text comparisons alike.
 * The v3 schema convention (0–1 fractional, e.g. screenshot default `0.05`) should be canonical.
 * The change must not silently invert or rescale existing thresholds incorrectly.
 * The wait/pause helper should also use the driver's pause when a driver is present.
@@ -33,9 +34,9 @@ convention could be evaluated under the other. What single comparison contract s
 
 Chosen option: **A**, because the 0–1 fraction matches the v3 schema defaults and yields one
 comparison rule across image and text. The contract: `calculatePercentageDifference` is replaced by
-`calculateFractionalDifference`, computing a 0–1 value (Levenshtein distance over the max length for
-strings); `httpRequest`/`runShell` compare against the raw `maxVariation` with no `*100` scaling, so
-the threshold is a fraction throughout. Separately, `wait` uses `driver.pause` when a driver is
+`calculateFractionalDifference`, computing a 0–1 value. For strings that's Levenshtein distance over
+the max length. `httpRequest` and `runShell` compare against the raw `maxVariation` with no `*100`
+scaling, so the threshold is a fraction throughout. Separately, `wait` uses `driver.pause` when a driver is
 present (commits `580f4d`, `a6e092`, `doc-detective-core`).
 
 ### Consequences

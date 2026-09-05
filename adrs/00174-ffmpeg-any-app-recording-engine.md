@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective's recording was tied to a single browser-capture path (`00069`'s FFmpeg gdigrab
-desktop capture cropped to the Chrome viewport), restricted to headed Chrome. That left two gaps:
-recordings could not capture non-browser surfaces, and with `concurrentRunners > 1` (`00172`) several
-Chrome sessions could record at once and collide over the shared display/capture region. How should
+Doc Detective's recording was tied to a single browser-capture path, restricted to headed Chrome.
+That path was `00069`'s FFmpeg gdigrab desktop capture, cropped to the Chrome viewport. It left two
+gaps. Recordings could not capture non-browser surfaces. And with `concurrentRunners > 1` (`00172`),
+several Chrome sessions could record at once and collide over the shared capture region. How should
 recording be generalized to capture any application, made safe under concurrency, and made
 selectable per recording?
 
@@ -31,9 +31,9 @@ selectable per recording?
 
 ## Decision Outcome
 
-Chosen option: **A**, because an ffmpeg-based recorder generalizes capture to arbitrary application
-surfaces while a single, concurrency-aware implementation keeps Chrome recordings from colliding, and
-exposing engine selection in the schema lets authors choose the recording engine explicitly.
+Chosen option: **A**. An ffmpeg-based recorder generalizes capture to arbitrary application
+surfaces, and a single, concurrency-aware implementation keeps Chrome recordings from colliding.
+Exposing engine selection in the schema lets authors choose the recording engine explicitly.
 
 Contract decided:
 

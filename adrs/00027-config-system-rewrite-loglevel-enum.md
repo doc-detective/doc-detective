@@ -16,7 +16,7 @@ defaults, and validation of individual fields. What shape should that take?
 
 ## Decision Drivers
 
-* A single `verbose` boolean is too coarse — users want graded verbosity (e.g. info vs. debug).
+* A single `verbose` boolean is too coarse, since users want graded verbosity, such as info vs. debug.
 * Config values should be validated per field with predictable failures.
 * Shipping committed defaults makes behavior deterministic without a user config file.
 * String-typed booleans from CLI/env (`"false"`) must be normalized correctly.
@@ -29,11 +29,11 @@ defaults, and validation of individual fields. What shape should that take?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a `logLevel` enum is the clean, extensible replacement for an
-over-constrained boolean, and the rewrite was the moment to add validation and committed defaults.
-The boolean `verbose` was replaced by a `logLevel` enum defaulting to `"info"`; a committed
-`src/config.json` provided defaults; per-field validation (e.g. `detailLevel`/`extensions`) was
-added; and headless boolean normalization was introduced so a string `"false"` is honored as
+Chosen option: **A**. A `logLevel` enum is the clean, extensible replacement for an over-constrained
+boolean. The rewrite was also the moment to add validation and committed defaults. The boolean
+`verbose` was replaced by a `logLevel` enum defaulting to `"info"`, and a committed
+`src/config.json` provided defaults. Per-field validation was added, covering `detailLevel` and
+`extensions`. Headless boolean normalization was introduced, so a string `"false"` is honored as
 boolean false.
 
 This supersedes the `verbose` boolean from `00021` and establishes graded logging that persists into
@@ -44,7 +44,7 @@ later schema versions (`logLevel` remains the logging contract through config v2
 * Good: graded verbosity (`logLevel` enum) instead of a coarse boolean.
 * Good: committed defaults + per-field validation make config behavior deterministic.
 * Good: `"false"` strings normalize correctly to boolean false.
-* Bad: breaking change — `verbose` consumers must move to `logLevel`.
+* Bad: breaking change, since `verbose` consumers must move to `logLevel`.
 
 ### Confirmation
 

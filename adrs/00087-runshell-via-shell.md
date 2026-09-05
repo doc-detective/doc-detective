@@ -10,7 +10,7 @@ decision-makers: doc-detective maintainers
 
 `runShell` executed commands via `spawnCommand`, which split the command string into an
 executable plus arguments and spawned that directly. Direct spawning does not interpret shell
-syntax, so pipes (`|`), redirects (`>`), globbing, and command chaining did not work — yet
+syntax, so pipes (`|`), redirects (`>`), globbing, and command chaining did not work. Yet
 documentation routinely shows commands that use exactly those features. How should `runShell`
 execute its command so that documented shell syntax behaves the way readers expect?
 
@@ -31,8 +31,8 @@ execute its command so that documented shell syntax behaves the way readers expe
 
 Chosen option: **A**, because the whole point of `runShell` is to run shell commands, so shell
 semantics should be the default, not an opt-in. `runShell`/`spawnCommand` was changed to run the
-command through a shell (`bash -c` on POSIX, `cmd /c` on Windows) rather than splitting it into
-executable + args, enabling pipes and redirects (core `79003c4`, Seq 129).
+command through a shell, `bash -c` on POSIX and `cmd /c` on Windows. It no longer splits the command
+into executable plus args, so pipes and redirects work (core `79003c4`, Seq 129).
 
 ### Consequences
 

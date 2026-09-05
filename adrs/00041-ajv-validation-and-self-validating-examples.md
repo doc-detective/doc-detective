@@ -10,10 +10,10 @@ decision-makers: doc-detective maintainers
 
 The newly extracted `doc-detective-common` package owns the JSON Schemas that define every test,
 step, and config contract, but it had no validator wired to them. We needed one canonical way to
-ask "does this object satisfy schema X?" and a guarantee that the `examples` we ship inside each
-schema actually conform to the schema that contains them. At the same time, step objects needed
-sensible runtime shaping — generated `uuid` ids, trimmed strings, and coerced types — so that
-authored tests stayed terse while the runner received fully-formed objects. Which validator, and
+ask "does this object satisfy schema X?". We also needed a guarantee that the `examples` we ship
+inside each schema conform to the schema that contains them. At the same time, step objects needed
+sensible runtime shaping: generated `uuid` ids, trimmed strings, and coerced types. Authored tests
+could then stay terse, while the runner received fully-formed objects. Which validator, and
 with which options, should be the contract?
 
 ## Decision Drivers
@@ -33,11 +33,11 @@ with which options, should be the contract?
 
 ## Decision Outcome
 
-Chosen option: **A**, because AJV is the de-facto draft-2020-12 validator, supports mutating
-defaults and type coercion out of the box, and exposes the plugin surface (formats, keywords,
+Chosen option: **A**. AJV is the de-facto draft-2020-12 validator, and supports mutating
+defaults and type coercion out of the box. It exposes the plugin surface (formats, keywords,
 errors) the contracts need. `validate(schemaKey, object)` becomes the single public validation API.
-The validator is configured with `useDefaults: true` (mutating — it writes defaults back into the
-object), `coerceTypes: true`, `allErrors: true`, plus `ajv-formats`, `ajv-keywords`, and
+The validator is configured with `useDefaults: true`, which mutates, writing defaults back into the
+object. It also sets `coerceTypes: true`, `allErrors: true`, plus `ajv-formats`, `ajv-keywords`, and
 `ajv-errors`. A dynamic `uuid` default supplies step ids when omitted, and `transform: ["trim"]`
 normalizes string fields. Every schema's `examples` array is asserted to self-validate, turning
 documentation samples into regression fixtures.
@@ -45,7 +45,7 @@ documentation samples into regression fixtures.
 ### Consequences
 
 * Good: a single validation contract; examples can never silently drift from their schema.
-* Good: authored tests stay minimal — ids, trimming, and type coercion are applied for free.
+* Good: authored tests stay minimal, with ids, trimming, and type coercion applied for free.
 * Bad: `useDefaults` mutates the input object, so callers must expect their object to be rewritten.
 * Neutral: validation surface grows with AJV plugins; later relaxed via `allowUnionTypes`
   (see `00091`).

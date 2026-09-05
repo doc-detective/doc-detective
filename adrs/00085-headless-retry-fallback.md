@@ -8,8 +8,8 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Tests that require a browser fail to start a driver when there is no display — most commonly in
-CI (e.g. GitHub Actions) where a headed browser cannot launch. The earlier handling was
+Tests that require a browser fail to start a driver when there is no display. That's most commonly
+in CI, such as GitHub Actions, where a headed browser cannot launch. The earlier handling was
 GH-Actions-specific display logic, which is brittle and does not generalize to other headless
 environments. How should the runner react when a driver fails to start because of display
 availability, without hard-failing tests that could still run headless?
@@ -32,8 +32,8 @@ availability, without hard-failing tests that could still run headless?
 
 Chosen option: **A**, because a single generic retry covers every display-less environment and
 turns an environment limitation into a SKIPPED (not a FAIL). The GH-Actions display handling was
-replaced with a generic headless retry: if `driverStart` throws, retry once with `headless=true`;
-if it still fails, the test is marked SKIPPED; `--no-sandbox` is applied for containers
+replaced with a generic headless retry. If `driverStart` throws, retry once with `headless=true`.
+If it still fails, the test is marked SKIPPED. `--no-sandbox` is applied for containers
 (core `29edc94f`, `67152362`, `296927a6`, Seq 126).
 
 ### Consequences

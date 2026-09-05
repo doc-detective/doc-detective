@@ -5,7 +5,7 @@ sidebar-title: Installation
 
 Downloading and running Doc Detective is straightforward. You can install Doc Detective using NPX (Node.js) or Docker. Follow the instructions for your preferred method:
 
-Choose *NPX* if you have Node.js installed and want to install Doc Detective on your machine locally. Choose *Docker* if you can't install applications locally, prefer containerized environments, need to avoid Node.js installation, or want to isolate Doc Detective from your system.
+Choose *NPX* if you have Node.js installed and want Doc Detective on your machine locally. Choose *Docker* if you can't install applications locally or prefer containerized environments. It also suits you if you need to avoid a Node.js install, or want to isolate Doc Detective from your system.
 
 <Tabs>
 {/* test {"testId":"installation-npx-flow","detectSteps":false} */}
@@ -78,7 +78,7 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
 
     <Note>
 
-    The `-v` argument mounts your current directory (`.`) to `/app` in the container, giving Doc Detective access to your test specification and enabling it to output results and screenshots. If your test specification is hosted at an HTTPS URL, the `-v` argument is not necessary.
+    The `-v` argument mounts your current directory (`.`) to `/app` in the container. That gives Doc Detective access to your test specification, and lets it output results and screenshots. If your test specification is hosted at an HTTPS URL, the `-v` argument is not necessary.
 
     </Note>
 
@@ -86,13 +86,13 @@ Choose *NPX* if you have Node.js installed and want to install Doc Detective on 
 {/* test end */}
 </Tabs>
 
-Congratulations! You've run your first test with Doc Detective. :tada:
+You've run your first test with Doc Detective. :tada:
 
 You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
 
 ## Runtime installation
 
-Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets—browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.)—into `<os.tmpdir()>/doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps your install ready to run tests without a separate step.
+Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets. Those are browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them, such as webdriverio, appium, and sharp. They land in `<os.tmpdir()>/doc-detective/`, or `DOC_DETECTIVE_CACHE_DIR`. This keeps your install ready to run tests without a separate step.
 
 The pre-install runs in a child process and captures its output, so npm's deprecation warnings from transitive dependencies won't clutter your terminal.
 
@@ -160,4 +160,4 @@ CI environments skip the update check automatically whenever the `CI` environmen
 
 ## Next steps
 
-Next up, take a look at some of the [concepts](/docs/get-started/concepts) native to Doc Detective, check out the guided walkthroughs in [Test your docs](/docs/test-docs/overview), or explore how to write [tests](/docs/get-started/how-testing-works) and [actions](/docs/actions) to automate your documentation testing.
+Next up, take a look at the [concepts](/docs/get-started/concepts) native to Doc Detective. You can also work through the guided walkthroughs in [Test your docs](/docs/test-docs/overview), or explore how to write [tests](/docs/get-started/how-testing-works) and [actions](/docs/actions).

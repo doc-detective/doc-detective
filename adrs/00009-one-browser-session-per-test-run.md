@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The runner originally constructed the browser driver inside the per-action loop, which meant a fresh browser session could be built repeatedly within a single test. The commit `0247859b` (2022-05-06) hoisted the `Builder` out of the per-action loop so the session is created once per test run. What should the lifecycle of a browser session be relative to the actions of a test?
+The runner originally constructed the browser driver inside the per-action loop. That meant a fresh browser session could be built repeatedly within a single test. The commit `0247859b` (2022-05-06) hoisted the `Builder` out of the per-action loop, so the session is created once per test run. What should the lifecycle of a browser session be relative to the actions of a test?
 
 ## Decision Drivers
 
@@ -24,7 +24,7 @@ The runner originally constructed the browser driver inside the per-action loop,
 
 ## Decision Outcome
 
-Chosen option: **one session per test run**, because the actions of a test are a single interactive sequence that must share page state, and rebuilding the driver per action would discard that state and waste startup cost.
+Chosen option: **one session per test run**. The actions of a test are a single interactive sequence that must share page state. Rebuilding the driver per action would discard that state and waste startup cost.
 
 Behavior decided:
 
@@ -34,7 +34,7 @@ Behavior decided:
 
 * Good: actions share navigation/cookie/DOM state as authors expect.
 * Good: avoids repeated, costly driver startup within a test.
-* Neutral: later work refines *when* a session is created at all (GUI-only gating, driver-required gating) and how sessions map to contexts, but the per-run lifecycle established here is the baseline.
+* Neutral: later work refines *when* a session is created at all, through GUI-only and driver-required gating, and how sessions map to contexts. The per-run lifecycle established here is the baseline.
 
 ### Confirmation
 

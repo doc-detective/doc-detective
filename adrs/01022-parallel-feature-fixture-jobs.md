@@ -8,14 +8,14 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The core Doc Detective `*.spec.json` fixtures were all executed by a single mocha test — the
-"All core specs pass under concurrentRunners=2" case in [`test/core-core.test.js`](../test/core-core.test.js) —
-which ran the **entire** `test/core-artifacts` directory in one `runTests()` pass on every matrix
-cell. On Linux and macOS that pass finished inside the job budget (~22–28 min for the whole
-`npm test`). On Windows it did not: browser/Appium startup, driver installs, and ffmpeg recording are
-all markedly slower there, and the combined `test` job hit its `timeout-minutes: 90` cap and
-**failed** (observed on [#491](https://github.com/doc-detective/doc-detective/pull/491): both Windows
-cells at 1h30m12s). Because the matrix is `fail-fast: false`, every run also waited on that slowest
+The core Doc Detective `*.spec.json` fixtures were all executed by a single mocha test. That's the
+"All core specs pass under concurrentRunners=2" case in [`test/core-core.test.js`](../test/core-core.test.js).
+It ran the **entire** `test/core-artifacts` directory in one `runTests()` pass on every matrix
+cell. On Linux and macOS that pass finished inside the job budget, ~22–28 min for the whole
+`npm test`. On Windows it did not. Browser and Appium startup, driver installs, and ffmpeg recording
+are all markedly slower there. The combined `test` job hit its `timeout-minutes: 90` cap and
+**failed**, observed on [#491](https://github.com/doc-detective/doc-detective/pull/491) with both
+Windows cells at 1h30m12s. Because the matrix is `fail-fast: false`, every run also waited on that slowest
 cell.
 
 The fixtures are the long pole, and they are embarrassingly parallel: each feature (navigation,
@@ -26,40 +26,43 @@ parallelism CI could exploit and couples unrelated features into a single 90-min
 
 * Kill the Windows timeout: no single job should be a 90-minute monolith.
 * Exploit the natural parallelism of independent features.
-* Keep exercising the **PR's own build**, not the published npm package — this is a pre-merge gate.
+* Keep exercising the **PR's own build**, not the published npm package. This is a pre-merge gate.
 * Keep the fixtures policy intact: every spec resolves to PASS or SKIPPED, `runOn`-gated permutations
   land as SKIPPED where they can't run.
 * Preserve a fast mocha smoke so a gross pipeline breakage still fails quickly and locally.
 
 ## Considered Options
 
-* **A — Per-feature subdirectories + one CI job per (group × OS), running the local build directly.**
-  Move the specs into `test/core-artifacts/<group>/`, add a reusable `fixtures.yml` that fans out a
-  small job per group per OS, each building the PR and running `node ./bin/doc-detective.js` against
-  its group directory. Trim the mocha pass to a single broad smoke spec.
-* **B — Keep the combined mocha pass, just raise the Windows timeout / shard within mocha.** Sharding
-  inside one mocha process still serializes on a shared Appium session and doesn't give per-feature
-  isolation or independent OS fan-out.
-* **C — Drive the groups through `doc-detective/github-action` against the linked local build.** By
-  default the action runs `npx doc-detective@<version>` (default `latest`) — the **published**
-  package, not the code under review. [github-action#70](https://github.com/doc-detective/github-action/pull/70)
-  adds an empty-`version` mode that runs bare `npx doc-detective`, which — with the freshly-built
-  package exposed via `npm link` — resolves the PR's own build. Keeps the action's ergonomics and is
-  the maintainer's preferred delivery vehicle. (Bare-`npx` local resolution is verified in CI by a
-  diagnostic step; `npm link` is what makes it deterministic rather than a registry fetch.)
+* **A. Per-feature subdirectories, plus one CI job per (group × OS), running the local build
+  directly.** Move the specs into `test/core-artifacts/<group>/`. Add a reusable `fixtures.yml` that
+  fans out a small job per group per OS, each building the PR and running
+  `node ./bin/doc-detective.js` against its group directory. Trim the mocha pass to a single broad
+  smoke spec.
+* **B. Keep the combined mocha pass, and just raise the Windows timeout or shard within mocha.**
+  Sharding inside one mocha process still serializes on a shared Appium session. It doesn't give
+  per-feature isolation or independent OS fan-out.
+* **C. Drive the groups through `doc-detective/github-action` against the linked local build.** By
+  default the action runs `npx doc-detective@<version>`, defaulting to `latest`. That's the
+  **published** package, not the code under review. [github-action#70](https://github.com/doc-detective/github-action/pull/70)
+  adds an empty-`version` mode that runs bare `npx doc-detective`. With the freshly-built
+  package exposed through `npm link`, that resolves the PR's own build. It keeps the action's
+  ergonomics, and is the maintainer's preferred delivery vehicle. A diagnostic step verifies
+  bare-`npx` local resolution in CI, and `npm link` is what makes it deterministic rather than a
+  registry fetch.
 
 ## Decision Outcome
 
-Chosen option: **C** — the per-feature subdirectory + `group × OS` fan-out of option A, delivered
-through the GitHub Action (enabled by github-action#70).
+Chosen option: **C**. That's the per-feature subdirectory and `group × OS` fan-out of option A,
+delivered through the GitHub Action, enabled by github-action#70.
 
-* Fixtures live in `test/core-artifacts/<group>/` — `navigation`, `interactions`, `capture`,
-  `recording`, `routing`, `guards`, `http`, `process`, `sessions`.
+* Fixtures live in `test/core-artifacts/<group>/`: `navigation`, `interactions`, `capture`,
+  `recording`, `routing`, `guards`, `http`, `process`, and `sessions`.
 * [`.github/workflows/fixtures.yml`](../.github/workflows/fixtures.yml) is a reusable workflow with a
-  `group × {ubuntu, windows, macos}` matrix (`fail-fast: false`, `timeout-minutes: 20`). Each job:
-  `npm ci` → `npm run build` → `npm link` (expose the build) → start the test servers (via
-  [`test/server/start.js`](../test/server/start.js) + `wait-ready.js`) → run the group through the
-  Doc Detective GitHub Action with `version: ''` (bare `npx doc-detective` → the linked build) → gate
+  `group × {ubuntu, windows, macos}` matrix (`fail-fast: false`, `timeout-minutes: 20`). Each job
+  runs `npm ci` → `npm run build` → `npm link` (expose the build). It then starts the test servers
+  ([`test/server/start.js`](../test/server/start.js) plus `wait-ready.js`). Next it runs the group
+  through the Doc Detective GitHub Action with `version: ''` (bare `npx doc-detective` → the linked
+  build). Finally it gates
   on the action's `$RUNNER_TEMP/doc-detective-output.json` with
   [`scripts/check-fixture-results.cjs`](../scripts/check-fixture-results.cjs).
 * Both the PR gate (`npm-test.yaml`) and the release gate (`release.yml`) call it.
@@ -67,29 +70,29 @@ through the GitHub Action (enabled by github-action#70).
   things!" spec). All the focused programmatic `it()` tests in `core-core.test.js` stay.
 * **Exit-on-fail lives in CI, not the CLI.** The doc-detective CLI exits 0 even when specs FAIL (the
   exit-on-fail decision historically lived in the GitHub Action layer). `check-fixture-results.cjs`
-  reproduces `exit_on_fail`: any `result === "FAIL"` — or an empty run (usually a mis-pointed
-  `--input`) — fails the job.
-* **Group config.** Group jobs use a lean [`config.groups.json`](../test/core-artifacts/config.groups.json)
-  — identical to `config.json` minus the live `reqres.in` openApi integration, which would otherwise
-  hit an external service 27× per run. That integration still runs once, in the mocha smoke, under the
+  reproduces `exit_on_fail`. Any `result === "FAIL"` fails the job, as does an empty run, usually
+  from a mis-pointed `--input`.
+* **Group config.** Group jobs use a lean [`config.groups.json`](../test/core-artifacts/config.groups.json).
+  It's identical to `config.json` minus the live `reqres.in` openApi integration, which would
+  otherwise hit an external service 27× per run. That integration still runs once, in the mocha smoke, under the
   full `config.json`.
 
 ### Consequences
 
 * Good: Windows fixture work fans out across ~9 short jobs instead of one 90-minute cell; no job
   approaches the old timeout. Unrelated feature failures are isolated to their own job.
-* Good: the gate runs the PR's own build — the action executes the `npm link`-exposed local build via
-  bare `npx doc-detective` (github-action#70), not the published package.
-* **Neutral/Cost — coverage.** The root coverage ratchet ([ADR 01015](01015-cross-platform-coverage-merge.md),
+* Good: the gate runs the PR's own build. The action executes the `npm link`-exposed local build
+  through bare `npx doc-detective` (github-action#70), not the published package.
+* **Neutral, a coverage cost.** The root coverage ratchet ([ADR 01015](01015-cross-platform-coverage-merge.md),
   policy in [ADR 01017](01017-honest-100-percent-coverage-policy.md)) measured the cross-platform
-  union of the **full E2E suite** collected under `NODE_V8_COVERAGE` during `npm test`. With the
-  fixtures moved out of `npm test`, their E2E execution no longer feeds that union, so measured root
-  coverage drops to what the mocha unit/integration tests + the single smoke spec cover. **This ADR
-  amends ADR 01017**: fixture-driven E2E execution is no longer a coverage source, and the root
-  thresholds in `coverage-thresholds.json` are re-baselined downward to the new honest union (the
-  fixture group jobs do not collect coverage). The `src/common` ratchet is unaffected. Re-baselining
-  follows the repo's established procedure: observe the new union from a CI run of the
-  `coverage-merge` job, then set thresholds just below it (same as PR #493's Tier-2 re-baseline).
+  union of the **full E2E suite**, collected under `NODE_V8_COVERAGE` during `npm test`. With the
+  fixtures moved out of `npm test`, their E2E execution no longer feeds that union. Measured root
+  coverage drops to what the mocha unit and integration tests, plus the single smoke spec, cover.
+  **This ADR amends ADR 01017.** Fixture-driven E2E execution is no longer a coverage source, and
+  the root thresholds in `coverage-thresholds.json` are re-baselined downward to the new honest
+  union. The fixture group jobs do not collect coverage, and the `src/common` ratchet is unaffected.
+  Re-baselining follows the repo's established procedure. Observe the new union from a CI run of
+  `coverage-merge`, then set thresholds just below it, as in PR #493's Tier-2 re-baseline.
 * Cost: more, smaller jobs (group × OS). Runner minutes rise; wall-clock and reliability improve. Node
   is pinned to one line for the fixture jobs (node 22 and 24 are still both exercised by the mocha
   smoke/unit matrix).
@@ -106,7 +109,7 @@ through the GitHub Action (enabled by github-action#70).
 
 ## Pros and Cons of the Options
 
-### A — Per-feature subdirs + job per (group × OS), running the local build directly (`node ./bin`)
+### A. Per-feature subdirs plus a job per (group × OS), running the local build directly (`node ./bin`)
 
 * Good: real parallelism, per-feature isolation, no monolithic timeout, unambiguously the PR's build.
 * Good: keeps a fast mocha smoke and all programmatic assertions.
@@ -114,12 +117,12 @@ through the GitHub Action (enabled by github-action#70).
   creation) that the maintainer wants in the loop.
 * Bad: loses fixture-driven E2E coverage from the ratchet (accepted; thresholds re-baselined).
 
-### B — Keep combined mocha pass, raise timeout / shard in mocha
+### B. Keep the combined mocha pass, raising the timeout or sharding in mocha
 
 * Good: minimal change.
 * Bad: still one shared Appium session; no independent OS fan-out; the Windows monolith persists.
 
-### C — Drive groups through the GitHub Action against the linked local build (CHOSEN)
+### C. Drive groups through the GitHub Action against the linked local build (CHOSEN)
 
 * Good: reuses the action's ergonomics and keeps the repo dog-fooding its own action; same subdir /
   fan-out benefits as A.

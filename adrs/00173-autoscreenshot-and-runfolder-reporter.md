@@ -9,12 +9,12 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Two related gaps shaped this decision. First, capturing visual evidence of a documented procedure
-required adding an explicit `saveScreenshot` step after every browser interaction — tedious and easy
-to forget. Second, a run emitted a single timestamped `testResults.json` with no durable, per-run
-home for that JSON plus its screenshots, recordings, and (later) an HTML report. How should the
-runner (a) auto-capture screenshots after browser steps, and (b) collect each run's artifacts into a
-stable, addressable folder — without breaking the existing report shape or the GitHub Action's
-results-resolution contract?
+required adding an explicit `saveScreenshot` step after every browser interaction, which is tedious
+and easy to forget. Second, a run emitted a single timestamped `testResults.json`. There was no
+durable, per-run home for that JSON plus its screenshots, recordings, and later an HTML report.
+How should the runner auto-capture screenshots after browser steps? And how should it collect each
+run's artifacts into a stable, addressable folder? That must not break the existing report shape,
+or the GitHub Action's results-resolution contract.
 
 ## Decision Drivers
 
@@ -22,7 +22,7 @@ results-resolution contract?
 * Each run needs a deterministic artifact home (`run-<runId>`) addressable after the run.
 * The report must expose where artifacts landed (`runId`/`runDir`) so consumers can find them.
 * Empty runs must not litter the workspace with empty `run-*` folders.
-* The GitHub Action parses stdout for a "results at" line — that contract must be respected.
+* The GitHub Action parses stdout for a "results at" line, and that contract must be respected.
 
 ## Considered Options
 
@@ -32,9 +32,9 @@ results-resolution contract?
 
 ## Decision Outcome
 
-Chosen option: **auto-screenshot capture plus a default-on `runFolder` archive reporter**, because
-auto-capture removes per-step boilerplate while the run folder gives every run a stable, self-describing
-artifact location that the report and downstream tooling can reference.
+Chosen option: **auto-screenshot capture plus a default-on `runFolder` archive reporter**.
+Auto-capture removes per-step boilerplate. The run folder gives every run a stable,
+self-describing artifact location that the report and downstream tooling can reference.
 
 Contract decided (across the absorbed commits):
 
@@ -46,7 +46,7 @@ Contract decided (across the absorbed commits):
   `htmlReporter.ts`).
 * Run-folder creation is skipped when no artifacts are written, so no empty `.doc-detective/run-*`
   directories are left behind (`341b9c5c`).
-* stdout is ordered so the per-run JSON "results at" line trails the HTML line; the GitHub Action
+* stdout is ordered so the per-run JSON "results at" line trails the HTML line. The GitHub Action
   splits stdout on "results at " to resolve results, so the ordering is a deliberate contract
   (`79f35b85`, PR #346).
 

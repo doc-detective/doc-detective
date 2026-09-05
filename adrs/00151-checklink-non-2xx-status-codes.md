@@ -11,18 +11,18 @@ decision-makers: doc-detective maintainers
 The `checkLink` step verifies that a documented URL is reachable, and its `statusCodes`
 field already defaulted to a list of acceptable codes (`[200, 301, 302, 307, 308]`).
 But the runtime pass/fail logic in `src/core/tests/checkLink.ts` treated any non-2xx
-response as a failure even when the response code was explicitly listed in `statusCodes` —
-so a documented endpoint that legitimately returns `401`, `403`, or `404` (a page that is
-*expected* to be gated or absent) could not be asserted. Should `checkLink` honor any
+response as a failure, even when the response code was explicitly listed in `statusCodes`.
+So a documented endpoint that legitimately returns `401`, `403`, or `404` could not be
+asserted. Such a page is *expected* to be gated or absent. Should `checkLink` honor any
 status code the author lists in `statusCodes`, regardless of its class?
 
 ## Decision Drivers
 
-* The `statusCodes` field is the author's explicit contract — it should be authoritative.
+* The `statusCodes` field is the author's explicit contract, so it should be authoritative.
 * Documentation legitimately references endpoints that return non-2xx codes (auth-gated,
   intentionally-removed, redirect chains).
 * Pass/fail must be a pure membership test, not a hardcoded 2xx class check.
-* No schema change — the field already exists; only the runtime comparison was wrong.
+* No schema change is needed. The field already exists, and only the runtime comparison was wrong.
 
 ## Considered Options
 
@@ -32,19 +32,19 @@ status code the author lists in `statusCodes`, regardless of its class?
 
 ## Decision Outcome
 
-Chosen option: **A**, because `statusCodes` is the existing, documented contract and the
-only defensible semantics is "the response code must be one of the codes the author
+Chosen option: **A**. `statusCodes` is the existing, documented contract. The only
+defensible semantics is "the response code must be one of the codes the author
 declared." `checkLink` now passes the step whenever the actual HTTP status code appears in
-the resolved `statusCodes` list — including non-2xx codes — and fails only when it does
-not. The default list is unchanged, so authors who never set `statusCodes` see no
-behavior change; the fix only affects authors who explicitly list a non-2xx code.
+the resolved `statusCodes` list, including non-2xx codes. It fails only when the code does
+not appear. The default list is unchanged, so authors who never set `statusCodes` see no
+behavior change. The fix only affects authors who explicitly list a non-2xx code.
 
 ### Consequences
 
 * Good: authors can assert intentionally non-2xx endpoints without a workaround.
 * Good: no schema or field surface change; pure runtime correction.
 * Neutral: the default acceptable set is unchanged, so common cases behave identically.
-* Bad: a typo'd non-2xx code in `statusCodes` now silently passes a "broken" link — the
+* Bad: a typo'd non-2xx code in `statusCodes` now silently passes a "broken" link. The
   author owns the list.
 
 ### Confirmation

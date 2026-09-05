@@ -11,17 +11,17 @@ decision-makers: doc-detective maintainers
 `DOC_DETECTIVE_API` lets a runner fetch a fully pre-resolved test bundle (`resolvedTests`) from an
 external orchestration API instead of resolving it locally (`getResolvedTestsFromEnv` in
 `src/utils.ts`). `runTests()` (`src/core/index.ts`) then passes `resolvedTests.config` straight
-into `runSpecs()`, deliberately skipping `setConfig()` — the orchestration API is the source of
-truth for that config, and `setConfig()` is where local file/env config resolution and validation
-normally live.
+into `runSpecs()`, deliberately skipping `setConfig()`. The orchestration API is the source of
+truth for that config, and `setConfig()` is where local file and env config resolution and
+validation normally live.
 
 `setConfig()` is also the only place that populates `config.environment` (`getEnvironment()` sets
 `arch`/`platform`, and `getAvailableApps()` fills in `apps`). Because the API path never calls
 `setConfig()`, `config.environment` is `undefined` for the whole run. `getAvailableApps()`
 (`src/core/config.ts`) unconditionally read `config.environment.platform === "mac"` to gate Safari
-detection, so any DOC_DETECTIVE_API run crashed with `Cannot read properties of undefined (reading
-'platform')` — before a single step executed, regardless of what schema-valid `resolvedTests` the
-orchestration API returned.
+detection. So any DOC_DETECTIVE_API run crashed with `Cannot read properties of undefined (reading
+'platform')`. That happened before a single step executed, regardless of what schema-valid
+`resolvedTests` the orchestration API returned.
 
 Two contributing test hygiene issues let this ship unnoticed:
 
@@ -52,31 +52,31 @@ Two contributing test hygiene issues let this ship unnoticed:
 ## Decision Outcome
 
 Chosen option: **A**. `getAvailableApps()` already has exactly one caller-independent way to learn
-the current platform — `getEnvironment()` — and `runSpecs()` calls it independently anyway to build
+the current platform, `getEnvironment()`. `runSpecs()` calls it independently anyway, to build
 `runnerDetails.environment`. Reading `config?.environment?.platform ?? getEnvironment().platform`
-makes `getAvailableApps()` self-sufficient: it uses the caller-supplied value when present (the
-local path, and any future caller that does populate it) and computes the same value the local path
-would have computed otherwise. This mirrors an existing defensive read at
-`getBrowserDiagnostics`'s `config?.environment?.platform` a few hundred lines below in the same
-file — option A brings the outlier in line with the codebase's existing pattern instead of
+makes `getAvailableApps()` self-sufficient. It uses the caller-supplied value when present, on the
+local path and for any future caller that does populate it. Otherwise it computes the same value
+the local path would have computed. This mirrors an existing defensive read at
+`getBrowserDiagnostics`'s `config?.environment?.platform`, a few hundred lines below in the same
+file. Option A brings the outlier in line with the codebase's existing pattern, instead of
 introducing a new one.
 
-B was rejected: it pushes an internal implementation detail (how the local runner happens to
-represent its own host) onto every orchestration API implementer, and a stale/absent value there
-would recreate the same bug at the integration layer instead of a single call site. C was rejected
-as broader than necessary — `runTests()` deliberately does not run `setConfig()` against
-API-supplied config (see the comment at `src/core/index.ts` around the `resolvedTests.config` merge)
-because that config is the orchestration API's contract, not something to re-derive or
-re-validate locally; a partial `setConfig()`-like call would blur that boundary for one field.
+B was rejected. It pushes an internal implementation detail onto every orchestration API
+implementer: how the local runner happens to represent its own host. A stale or absent value there
+would recreate the same bug at the integration layer, instead of a single call site. C was rejected
+as broader than necessary. `runTests()` deliberately does not run `setConfig()` against
+API-supplied config; see the comment at `src/core/index.ts` around the `resolvedTests.config` merge.
+That config is the orchestration API's contract, not something to re-derive or
+re-validate locally. A partial `setConfig()`-like call would blur that boundary for one field.
 
 ### Consequences
 
 * Good: DOC_DETECTIVE_API runs no longer crash before executing any step, regardless of what the
   orchestration API includes in `resolvedTests.config`.
-* Good: no behavior change for the locally-resolved path — `config.environment.platform` is always
+* Good: no behavior change for the locally-resolved path. `config.environment.platform` is always
   present there, so the `??` fallback never triggers.
 * Neutral: `getAvailableApps()` now computes the platform twice per `runSpecs()` call in the API
-  path (once here, once in `runnerDetails.environment` in `src/core/tests.ts`) — `getEnvironment()`
+  path, once here and once in `runnerDetails.environment` in `src/core/tests.ts`. `getEnvironment()`
   is a cheap synchronous `os.arch()`/`process.platform` read, not worth memoizing further.
 
 ### Confirmation
@@ -85,10 +85,11 @@ re-validate locally; a partial `setConfig()`-like call would blur that boundary 
   absent (pre-resolved API config)") exercises `getAvailableApps({ config: { cacheDir } })` with no
   `environment` key.
 * `test/resolvedTests.test.js`'s `apiConfig.url` fixed to the base API URL, and its previously-silent
-  `if (fs.existsSync(outputFile))` guards replaced with hard assertions. Since a DOC_DETECTIVE_API
-  run reports results via `reportResults()` (a POST to the orchestration API), not
-  `outputResults()`/`-o`, the assertions now parse the results JSON that `runTests()` always logs to
-  stdout (the `(INFO) RESULTS:` marker) rather than waiting on a file that run mode never produces.
+  `if (fs.existsSync(outputFile))` guards replaced with hard assertions. A DOC_DETECTIVE_API
+  run reports results through `reportResults()`, a POST to the orchestration API, rather than
+  `outputResults()` or `-o`. So the assertions now parse the results JSON that `runTests()` always
+  logs to stdout, under the `(INFO) RESULTS:` marker. They no longer wait on a file that run mode
+  never produces.
   The suite's own fixture context (`test/server/index.js`'s `/api/resolved-tests` handler) has no
   `platform` field, so this is the same shape a real orchestration API is expected to send.
 * Manual end-to-end repro: `test/server` API endpoint + `DOC_DETECTIVE_API=... node
@@ -104,14 +105,14 @@ re-validate locally; a partial `setConfig()`-like call would blur that boundary 
 
 ### B. Require the orchestration API to send a populated `environment`
 * Good: no runner code change.
-* Bad: leaks an internal field's shape into an external API contract; a stale value silently
+* Bad: it leaks an internal field's shape into an external API contract. A stale value silently
   misdetects Safari support instead of crashing loudly, which is worse.
 
 ### C. Run `setConfig()` (or an equivalent) over pre-resolved config
 * Good: would also backfill any other field the local path assumes is present.
-* Bad: broader than the actual bug; blurs the deliberate boundary that API-supplied config skips
-  local config resolution/validation; higher risk of unintended side effects (e.g. re-detecting
-  `environment.apps`, which the API path already computes explicitly via `getAvailableApps`).
+* Bad: broader than the actual bug. It blurs the deliberate boundary that API-supplied config skips
+  local config resolution and validation. It also risks unintended side effects, such as re-detecting
+  `environment.apps`, which the API path already computes explicitly through `getAvailableApps`.
 
 ## More Information
 

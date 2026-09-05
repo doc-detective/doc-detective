@@ -13,7 +13,7 @@ Make sure you have the following:
 - A directory where you can create a `.spec.json` file.
 - A visible display, or, on Linux and in CI, the `ffmpeg` engine's Xvfb virtual display. Automatic recording uses the [`ffmpeg` engine](/docs/test-docs/record-video-guide#choose-a-recording-engine), which needs a display to capture (see [Docker and headless](/docs/ci/docker-and-headless)).
 
-The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
 ## Record video automatically
 
@@ -40,20 +40,20 @@ doc-detective --auto-record
 {/* step {"stepId":"record-guide-autorecord-step","description":"Take another step in the same context","goTo":"http://localhost:8092/enhanced-elements.html"} */}
 {/* test end */}
 
-Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree, so the same context lands on the same relative path in every run:
+Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree. The same context therefore lands on the same relative path in every run:
 
 ```
 <output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
 ```
 
-An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap. Doc Detective warns when a run records concurrently on those platforms.
 
 For where the artifacts land, see [Automatic recordings](/docs/actions/record#automatic-recordings), the [`config`](/reference/schemas/config) schema, and [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
 ## Verify it works
 
 - An automatic recording saves per driver-based context, on a stable path in the per-run artifact tree.
-- A headless run with no display skips the automatic recording. Run headed, or on Linux use the `ffmpeg` engine's Xvfb virtual display—see [Docker and headless](/docs/ci/docker-and-headless).
+- A headless run with no display skips the automatic recording. Run headed, or on Linux use the `ffmpeg` engine's Xvfb virtual display. See [Docker and headless](/docs/ci/docker-and-headless).
 - On Windows and macOS, Doc Detective warns when a run records concurrently, because the recordings share the same physical display and overlap. See [Two concurrent recordings overlap on Windows or macOS](/docs/test-docs/record-video-guide#two-concurrent-recordings-overlap-on-windows-or-macos).
 
 ## What's next

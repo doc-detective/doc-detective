@@ -4,7 +4,7 @@ description: Check if a URL returns an acceptable status code, primarily via a G
 ---
 
 
-The `checkLink` action checks if a URL returns an acceptable status code. It primarily issues a browser-mimicking `GET` request and, if the response is still `429` or `403` after retries, retries the URL once with a `HEAD` request as a fallback. This action is useful for verifying that a hyperlink or image URL is valid.
+The `checkLink` action checks if a URL returns an acceptable status code. It primarily issues a browser-mimicking `GET` request. If the response is still `429` or `403` after retries, it retries the URL once with a `HEAD` request as a fallback. This action is useful for verifying that a hyperlink or image URL is valid.
 
 You can specify the target URL directly as a string, or use an object for more options:
 
@@ -131,7 +131,7 @@ Here are a few ways you might use the `checkLink` action:
 
 Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail. This is useful for testing endpoints that return rate limiting (`429`), authentication errors (`403`), or other expected non-success responses.
 
-Doc Detective's retry-with-backoff and HEAD-fallback logic (described above in [Behavior](#behavior)) only runs while the response code isn't yet accepted. As soon as a response matches `statusCodes`—including on the very first `GET`, as in the example below—Doc Detective stops immediately and passes. It doesn't retry or fall back to `HEAD` just because the code happens to be `429` or `403`.
+Doc Detective's retry-with-backoff and HEAD-fallback logic, described above in [Behavior](#behavior), only runs while the response code isn't yet accepted. As soon as a response matches `statusCodes`, Doc Detective stops immediately and passes. That includes a match on the very first `GET`, as in the example below. It doesn't retry or fall back to `HEAD` merely because the code happens to be `429` or `403`.
 
 {/* test {"testId":"checklink-non-2xx","detectSteps":false} */}
 
@@ -254,7 +254,7 @@ You can append query parameters to a URL using the `params` option. This is usef
 - **Step-level `params`:** An object specifying query parameters to append to the URL. Applies to all URLs, both relative and absolute. Values support environment variable substitution with `$VAR` syntax.
 - **Config-level `originParams`:** Default query parameters in your configuration file that apply to relative URLs resolved against `origin`. Step-level `params` merge on top, with step keys taking precedence on collision.
 
-If your URL contains a fragment (e.g., `/page#section`), query parameters are inserted before the fragment (e.g., `/page?token=value#section`).
+When your URL contains a fragment such as `/page#section`, query parameters are inserted before the fragment, giving `/page?token=value#section`.
 
 <Warning>
 Values in `params` and `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields.
@@ -295,7 +295,7 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 
 ### `checkLink` fails with 429 or 403 even though the URL works in a browser
 
-Sites behind bot protection or a web application firewall (WAF), for example Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection, can return `403` or `429` to non-browser traffic even when the URL works in your browser. Doc Detective already sends a browser-like header set and retries transient failures, but some WAFs fingerprint deeper signals like Transport Layer Security (TLS) client fingerprints or source IP reputation that header spoofing can't influence.
+Sites behind bot protection or a web application firewall (WAF) can return `403` or `429` to non-browser traffic even when the URL works in your browser. Examples include Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection. Doc Detective already sends a browser-like header set and retries transient failures. Some WAFs still fingerprint deeper signals that header spoofing can't influence, such as Transport Layer Security (TLS) client fingerprints or source IP reputation.
 
 If you hit this, you have three escape hatches:
 
@@ -314,15 +314,15 @@ If you hit this, you have three escape hatches:
 
 - **Use a browser-driven step** (`goTo`) instead of `checkLink` when the URL truly requires JavaScript or a full browser fingerprint.
 
-If you own the site, prefer adding a WAF rule that allowlists a custom header and shared secret (for example, `X-Doc-Detective-Check`) over trying to mimic a browser.
+If you own the site, add a WAF rule that allowlists a custom header and shared secret, such as `X-Doc-Detective-Check`. Prefer that over trying to mimic a browser.
 
 ### `checkLink` fails due to unrecognized certificates
 
-If the `checkLink` action fails for a valid URL that loads without redirects, it may be due to an internal or custom certificate that the testing machine doesn't recognize.
+The `checkLink` action might fail for a valid URL that loads without redirects. An internal or custom certificate the testing machine doesn't recognize is a common cause.
 
 #### Example
 
-Consider the following test configuration, which checks the validity of `https://self-signed.badssl.com/`—a website using a self-signed certificate:
+Consider the following test configuration. It checks the validity of `https://self-signed.badssl.com/`, a website using a self-signed certificate:
 
 ```json title="bad-certificate.json"
 {

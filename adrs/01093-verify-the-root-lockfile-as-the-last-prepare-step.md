@@ -20,20 +20,20 @@ decision-makers: doc-detective maintainers
 Every time, the same two `"optional": true, "peer": true` entries under
 `@commitlint/read/node_modules/` were pruned from the tree.
 
-The middle row is the one to dwell on, and the last row is why. Nobody fixed 4.37.5: #702 was a
-reporters feature that happened to carry a lockfile regenerated from a healthy tree, and merging it
+The middle row is the one to dwell on, and the last row is why. Nobody fixed 4.37.5. #702 was a
+reporters feature that happened to carry a lockfile regenerated from a healthy tree. Merging it
 restored the entries as a side effect. **The repo recovered by luck.**
 
 That luck held for about four hours. Merging #702 is what triggered the 4.38.0 release, and 4.38.0
-pruned the same two entries again — while this ADR sat unmerged, describing the guard that would have
-caught it. The accidental repair and the next breakage were the same event.
+pruned the same two entries again. Meanwhile this ADR sat unmerged, describing the guard that would
+have caught it. The accidental repair and the next breakage were the same event.
 
 So the case does not rest on argument any more. Three releases, one signature, one of them repaired
 purely by chance: **a lockfile that is committed without being verified will keep being wrong.**
 
 [ADR 01091](01091-rebuild-the-common-lockfile-during-release.md) added a root reconcile and an
-`npm ci --dry-run` backstop to [scripts/sync-common-version.js](../scripts/sync-common-version.js),
-and 4.37.5 was the first release to run it. **It still shipped a broken lockfile**, and the
+`npm ci --dry-run` backstop to [scripts/sync-common-version.js](../scripts/sync-common-version.js).
+4.37.5 was the first release to run it. **It still shipped a broken lockfile**, and the
 verification passed on the way through.
 
 ### Why the guard did not fire
@@ -58,7 +58,7 @@ A guard that runs before the last writer is not a guard.
 ## Decision Drivers
 
 * Whatever verifies the lockfile must observe the exact bytes `@semantic-release/git` will commit.
-* Prefer a structural fix over widening the earlier guard — any future plugin that stamps a version
+* Prefer a structural fix over widening the earlier guard. Any future plugin that stamps a version
   would defeat a guard placed before it.
 * Keep the concerns separable: the `src/common` lockfile and the root lockfile fail for different
   reasons and are fixed by different commands.
@@ -67,12 +67,12 @@ A guard that runs before the last writer is not a guard.
 
 1. **Move root reconciliation into its own script, wired as the last `prepare` before
    `@semantic-release/git`.**
-2. **Widen the existing `sync-common-version.js` guard** to also run after the npm plugin — not
-   expressible; a plugin's `prepareCmd` runs once, at its position in the sequence.
+2. **Widen the existing `sync-common-version.js` guard** to also run after the npm plugin. That's
+   not expressible: a plugin's `prepareCmd` runs once, at its position in the sequence.
 3. **Drop `package-lock.json` from the `@semantic-release/git` assets** so releases never commit it.
    Leaves the committed lockfile permanently stale against released versions.
-4. **Verify in a post-release CI job** and alert. Detects the breakage instead of preventing it;
-   `main` is already broken by then — which is exactly the state this ADR exists to end.
+4. **Verify in a post-release CI job** and alert. That detects the breakage instead of preventing
+   it, and `main` is already broken by then. That's exactly the state this ADR exists to end.
 
 ## Decision Outcome
 
@@ -85,21 +85,22 @@ on the `@semantic-release/exec` entry that already sits between `@semantic-relea
 rebuilding that workspace's own lockfile. Its root-lockfile steps are removed rather than left as
 dead weight that implies a guarantee it cannot provide.
 
-The mechanics are unchanged from ADR 01091 — two `--package-lock-only` passes (the second drops the
-platform-gated `"extraneous"` entries that fail `npm ci` with EBADPLATFORM elsewhere), then
-`npm ci --dry-run` as a non-mutating backstop that stops the release rather than committing damage.
+The mechanics are unchanged from ADR 01091. There are two `--package-lock-only` passes, where the
+second drops the platform-gated `"extraneous"` entries that fail `npm ci` with EBADPLATFORM
+elsewhere. Then `npm ci --dry-run` acts as a non-mutating backstop, stopping the release rather than
+committing damage.
 
 ### Consequences
 
 * Good: the committed root lockfile is verified in the state it is committed in.
-* Good: robust against future plugin additions, as long as the reconcile stays last. A unit test
-  asserts its position in `.releaserc.json` relative to the npm and git plugins, so reordering the
-  plugin list fails the suite rather than silently reintroducing this bug.
+* Good: it survives future plugin additions, as long as the reconcile stays last. A unit test
+  asserts its position in `.releaserc.json` relative to the npm and git plugins. Reordering the
+  plugin list then fails the suite, rather than silently reintroducing this bug.
 * Neutral: a release can now fail at prepare. That is the intent; recovery is the regeneration
   recipe in [docs/maintenance/release-operations.md](../docs/maintenance/release-operations.md)
   followed by re-running the release.
 * Bad: this is the second attempt at the same defect. The first shipped because it was validated in
-  isolation — running the script by hand against a checkout — rather than against the real plugin
+  isolation, running the script by hand against a checkout, rather than against the real plugin
   sequence. The wiring test exists so the *ordering*, not just the script, is covered.
 
 ### Confirmation
@@ -109,12 +110,12 @@ platform-gated `"extraneous"` entries that fail `npm ci` with EBADPLATFORM elsew
   `@semantic-release/git` in `.releaserc.json`.
 * [test/sync-common-version.test.js](../test/sync-common-version.test.js) asserts that script no
   longer issues any root-directory `install` or `ci`, so the responsibility cannot drift back.
-* `npm ci` on `main` resolves 1136 packages into an empty directory under npm 10.9.8 (the release
-  job's npm), so the tree this guard now protects is known-good as of the rebase.
-* Moving the `prepareCmd` back before `@semantic-release/npm` fails the suite — checked by mutating
-  `.releaserc.json`, not assumed. Without that, the wiring test would pass on the exact defect it
+* `npm ci` on `main` resolves 1136 packages into an empty directory under npm 10.9.8, the release
+  job's npm. The tree this guard now protects is known-good as of the rebase.
+* Moving the `prepareCmd` back before `@semantic-release/npm` fails the suite. That was checked by
+  mutating `.releaserc.json`, not assumed. Without that, the wiring test would pass on the exact defect it
   exists to catch.
 * Residual risk, stated plainly: the end-to-end behavior of the *new ordering* is only exercised by
-  a real release. Local replays of the prepare sequence — including with `node_modules` present, as
-  in the release job — did not reproduce the pruning, so the next release is the real test. The
+  a real release. Local replays of the prepare sequence did not reproduce the pruning, including
+  with `node_modules` present as in the release job. So the next release is the real test. The
   backstop is designed to fail the release rather than commit a bad lockfile if it recurs.

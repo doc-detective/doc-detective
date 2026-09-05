@@ -3,7 +3,7 @@ title: Run shell and code steps
 description: Execute the commands and code snippets in your docs, then assert on their exit codes and output.
 ---
 
-When your docs tell a reader to run a command or paste a code snippet, Doc Detective can run that same command or snippet and confirm it still behaves the way the docs claim. This guide walks you through testing a documented command with `runShell`, testing a documented code snippet with `runCode`, and passing a value from one step to the next.
+Your docs tell a reader to run a command or paste a code snippet. Doc Detective can run that same command or snippet and confirm it still behaves the way the docs claim. This guide covers testing a documented command with `runShell`, testing a documented code snippet with `runCode`, and passing a value from one step to the next.
 
 Use `runShell` for native shell commands, `runCode` for inline snippets in JavaScript, Python, or Bash, and `runBrowserScript` for JavaScript that runs in the page. This guide focuses on `runShell` and `runCode`. For the full list of fields, see the [`runShell`](/docs/actions/runshell), [`runCode`](/docs/actions/runcode), and [`runBrowserScript`](/docs/actions/runbrowserscript) action references.
 
@@ -12,7 +12,7 @@ Use `runShell` for native shell commands, `runCode` for inline snippets in JavaS
 Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
-- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and Bash for `bash`. On Windows, Doc Detective runs `bash` steps through Git Bash and downloads a portable copy the first time a test needs one, so you don't have to install Bash yourself.
+- A runtime for any language you test: Node.js for `javascript`, Python for `python`, and Bash for `bash`. On Windows, Doc Detective runs `bash` steps through Git Bash. It downloads a portable copy the first time a test needs one, so you don't have to install Bash yourself.
 - A directory where you can create a `.spec.json` file.
 
 ## Step 1: Test a documented command
@@ -163,7 +163,7 @@ Each step that ran a command and matched its assertions reports `PASS` in the te
 
 ## Long-running processes
 
-Some docs ask the reader to start a server or container and leave it running while they do something else. Add a `background` object to `runShell` or `runCode` to start a long-running process: the step returns as soon as the process is ready, and the process keeps running for later steps. Stop it with a [`closeSurface`](/docs/actions/closesurface) step. For readiness conditions and interactive processes, see [Background processes](/docs/actions/runshell#background-processes).
+Some docs ask the reader to start a server or container and leave it running while they do something else. Add a `background` object to `runShell` or `runCode` to start a long-running process. The step returns as soon as the process is ready, and the process keeps running for later steps. Stop it with a [`closeSurface`](/docs/actions/closesurface) step. For readiness conditions and interactive processes, see [Background processes](/docs/actions/runshell#background-processes).
 
 ## Troubleshooting
 
@@ -177,7 +177,7 @@ Some docs ask the reader to start a server or container and leave it running whi
 
 **Cause:** `runShell` and `runCode` run in Bash on every platform, including Windows, where Doc Detective uses Git Bash. If Git for Windows isn't installed, the first `bash` step downloads a portable copy (MinGit, about 40 MB). This adds a one-time delay, and MinGit bundles only a subset of the usual command-line tools (for example, it omits `curl`, `seq`, and `sleep`).
 
-**Solution:** To skip the download, pre-provision Bash (for example, in a CI image) with [`doc-detective install bash`](/reference/cli/install), or install the full [Git for Windows](https://gitforwindows.org/) if your commands need more tools. To run a command in a Windows shell instead, set `shell` to `cmd` or `powershell`. See [Shell selection](/docs/actions/runshell#shell-selection).
+**Solution:** To skip the download, pre-provision Bash with [`doc-detective install bash`](/reference/cli/install), for example in a CI image. Install the full [Git for Windows](https://gitforwindows.org/) instead if your commands need more tools. To run a command in a Windows shell instead, set `shell` to `cmd` or `powershell`. See [Shell selection](/docs/actions/runshell#shell-selection).
 
 ## What's next
 

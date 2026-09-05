@@ -4,7 +4,7 @@ title: docker-image (alpha)
 
 > This repo is in alpha. It's not ready for production use.
 
-[`docker-image`](https://github.com/doc-detective/docker-image) runs Doc Detective in a container. While Doc Detective can run on most machines as-is, this Docker image simplifies installation and running Doc Detective on machines without Node.js or with heightened security requirements.
+[`docker-image`](https://github.com/doc-detective/docker-image) runs Doc Detective in a container. Doc Detective runs on most machines as-is. This Docker image simplifies installing and running it on machines without Node.js, or with heightened security requirements.
 
 ## Supported platforms
 
@@ -15,10 +15,10 @@ Doc Detective publishes the Docker image as a multi-architecture manifest, so `d
 | Linux | amd64 (x86_64), arm64 (Apple Silicon, Amazon Web Services Graviton, Raspberry Pi) |
 | Windows | amd64 (x86_64) only |
 
-Existing tags (`latest`, `linux`, `windows`, version-scoped tags) work the same way—arm64 Linux hosts receive native images without any tag changes.
+Existing tags (`latest`, `linux`, `windows`, version-scoped tags) work the same way. Arm64 Linux hosts receive native images without any tag changes.
 
 <Note>
-Chrome and ChromeDriver aren't available on the `linux/arm64` image. Google's Chrome for Testing publishes only x64 binaries, with no native `linux/arm64` build, so they're skipped rather than failing when the image warms its runtime assets. Firefox works on both architectures. To run Chrome-driven tests on an arm64 host, run the `linux/amd64` image under emulation, or use Firefox instead.
+Chrome and ChromeDriver aren't available on the `linux/arm64` image. Google's Chrome for Testing publishes only x64 binaries, with no native `linux/arm64` build. They're skipped rather than failing when the image warms its runtime assets. Firefox works on both architectures. To run Chrome-driven tests on an arm64 host, run the `linux/amd64` image under emulation, or use Firefox instead.
 </Note>
 
 ## What's included

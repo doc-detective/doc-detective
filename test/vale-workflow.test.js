@@ -7,14 +7,10 @@ import { parse as parseYaml } from "yaml";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workflowPath = path.join(repoRoot, ".github", "workflows", "vale.yml");
 
-// Faithful re-implementation of how errata-ai/vale-action@d89dee9 (the SHA
-// pinned in vale.yml) resolves its `files` input — see lib/input.js there.
-// Two behaviors matter for the regression:
-//   1. Inputs are read via @actions/core getInput(), which TRIMS whitespace,
-//      so a `separator: " "` arrives as "" and the split branch never runs.
-//   2. When no separator survives, the list must parse as a JSON array; on
-//      failure the action silently falls back to linting the whole repo (".").
-// See adrs/01089-vale-changed-files-as-json-array.md.
+// Faithful re-implementation of how vale-action (the SHA pinned in vale.yml)
+// resolves its `files` input — see lib/input.js there. Only the `all` branch
+// matters now: the workflow passes the sentinel rather than a file list, so the
+// JSON-array plumbing ADR 01089 documented is gone. See ADR 01101.
 function resolveValeFiles(filesRaw, separatorRaw, dir) {
   const getInput = (v) => (v || "").trim();
   let args = [];
@@ -36,72 +32,109 @@ function resolveValeFiles(filesRaw, separatorRaw, dir) {
   return args;
 }
 
-describe("vale workflow changed-file scoping", function () {
+describe("vale workflow whole-repo gate", function () {
   describe("vale-action files-input contract", function () {
-    it("legacy wiring (space-separated list + whitespace separator) falls back to whole-repo lint", function () {
-      // The pre-fix wiring: tj-actions' default space-separated output with
-      // `separator: " "`. getInput() trims the separator to "", JSON.parse
-      // throws on the list, and the action lints "." — the observed failure.
-      const args = resolveValeFiles(
-        "docs/fern/pages/docs/selectors/visual-matching.mdx docs/fern/pages/docs/actions/find.mdx",
-        " ",
-        repoRoot
-      );
-      assert.deepEqual(args, ["."]);
+    it("`all` resolves to the whole-repo argument", function () {
+      assert.deepEqual(resolveValeFiles("all", "", repoRoot), ["."]);
     });
 
-    it("JSON-array wiring resolves to per-file arguments, including spaced paths", function () {
-      const files = [
-        "docs/fern/pages/docs/selectors/visual-matching.mdx",
-        "docs/fern/pages/docs/actions/find.mdx",
-        "docs/fern/pages/docs/with space.mdx",
-      ];
-      const args = resolveValeFiles(JSON.stringify(files), "", repoRoot);
-      assert.deepEqual(args, files);
-    });
-
-    it("escaped JSON (escape_json: true output) falls back to whole-repo lint", function () {
-      // tj-actions' escape_json default backslash-escapes the quotes, which
-      // no longer parses as JSON — this is why escape_json: false in the
-      // workflow is load-bearing.
-      const escaped = '[\\"docs/fern/pages/docs/actions/find.mdx\\"]';
-      assert.deepEqual(resolveValeFiles(escaped, "", repoRoot), ["."]);
+    it("a stray separator cannot change what `all` resolves to", function () {
+      // The `all` branch runs before the separator branch, so leftover
+      // separator plumbing could not silently narrow the lint.
+      assert.deepEqual(resolveValeFiles("all", ",", repoRoot), ["."]);
     });
   });
 
   describe(".github/workflows/vale.yml wiring", function () {
-    let changedFiles;
+    let workflow;
+    let steps;
     let runVale;
 
     before(function () {
-      const workflow = parseYaml(fs.readFileSync(workflowPath, "utf8"));
-      const steps = workflow.jobs.vale.steps;
-      changedFiles = steps.find((s) => s.id === "changed-files");
+      workflow = parseYaml(fs.readFileSync(workflowPath, "utf8"));
+      steps = workflow.jobs.vale.steps;
       runVale = steps.find((s) => s.name === "Run vale");
     });
 
-    it("changed-files emits a real JSON array (json: true, escape_json: false)", function () {
-      assert.ok(changedFiles, "changed-files step missing");
-      assert.equal(changedFiles.with.json, true);
-      assert.equal(changedFiles.with.escape_json, false);
+    it("lints the whole repository", function () {
+      assert.ok(runVale, "Run vale step missing");
+      assert.equal(runVale.with.files, "all");
     });
 
-    it("vale step consumes the changed-file list without a whitespace separator", function () {
-      assert.ok(runVale, "Run vale step missing");
+    it("fails the check on an error-severity alert, unfiltered", function () {
+      // The pair is the gate. reviewdog's default filter (`added`) reports only
+      // alerts on lines the PR added, so under a whole-repo lint fail_on_error
+      // would never trip for an error in an untouched file.
+      assert.equal(runVale.with.fail_on_error, true);
+      assert.equal(runVale.with.filter_mode, "nofilter");
+    });
+
+    it("keeps the generated schema pages out of the parse", function () {
+      // mdx2vast has produced a hard E100 on those tables, which fail_on_error
+      // cannot downgrade.
       assert.match(
-        String(runVale.with.files),
-        /steps\.changed-files\.outputs\.all_changed_files/
+        String(runVale.with.vale_flags),
+        /docs\/fern\/pages\/reference\/schemas\/\*\*/
       );
-      // The separator must stay absent entirely: with a JSON-array files
-      // input, any separator that survives getInput()'s trim splits the JSON
-      // text itself into garbage path fragments, and a whitespace one is
-      // trimmed to "" and silently reverts to linting the entire repo.
+      assert.match(String(runVale.with.vale_flags), /--config=docs\/\.vale\.ini/);
+    });
+
+    it("keeps Vale's own StylesPath out of the lint", function () {
+      // Invoked from the repo root against ".", Vale walks its own
+      // docs/.vale/styles tree as content and Direct.Length reads the
+      // vocabulary word lists as one 252-word sentence. That failed the check
+      // on ba882f8c before the exclusion landed.
+      assert.match(String(runVale.with.vale_flags), /docs\/\.vale\/\*\*/);
+    });
+
+    it("emits only error-severity alerts", function () {
+      // docs/.vale.ini sets MinAlertLevel = suggestion. Without this override,
+      // whole-repo + nofilter would hand reviewdog every warning in the tree to
+      // post as a PR comment.
+      assert.match(String(runVale.with.vale_flags), /--minAlertLevel=error/);
+    });
+
+    it("carries no changed-file plumbing", function () {
+      assert.equal(
+        steps.find((s) => s.id === "changed-files"),
+        undefined,
+        "changed-files scoping was removed by ADR 01101"
+      );
       assert.equal(
         runVale.with.separator,
         undefined,
-        "separator is incompatible with the JSON-array files wiring"
+        "separator belongs to the removed changed-file wiring"
       );
-      assert.match(String(runVale.if), /any_changed == 'true'/);
+      assert.equal(
+        runVale.if,
+        undefined,
+        "the Run vale step must not be conditional on a changed-file count"
+      );
+    });
+
+    it("serializes runs so reviewdog cannot race itself", function () {
+      // github-pr-review owns the comments it posts: each run deletes the ones
+      // the current run no longer reports. Two runs pruning the same set
+      // concurrently make the loser 404 on an already-deleted comment, which
+      // reviewdog treats as fatal. That failed the check on c28bb334.
+      assert.ok(workflow.concurrency, "concurrency block missing");
+      assert.equal(workflow.concurrency["cancel-in-progress"], true);
+      assert.match(
+        String(workflow.concurrency.group),
+        /pull_request\.number/,
+        "the group must be per-PR, not per-workflow"
+      );
+    });
+
+    it("runs on every pull request", function () {
+      // A check that is skipped on some PRs cannot be a required status check.
+      assert.ok("pull_request" in workflow.on, "pull_request trigger missing");
+      // A bare `pull_request:` parses to null, which is the shape we want.
+      const pr = workflow.on.pull_request;
+      assert.ok(
+        pr == null || pr.paths === undefined,
+        "a paths filter would skip the gate on PRs that touch no Markdown"
+      );
     });
   });
 });

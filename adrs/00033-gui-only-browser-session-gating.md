@@ -8,8 +8,8 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Not every test needs a browser: a spec made only of `httpRequest`, `runShell`, or `checkLink`
-steps has no UI interaction, yet the runner unconditionally launched a browser page per test. That
+Not every test needs a browser. A spec made only of `httpRequest`, `runShell`, or `checkLink`
+steps has no UI interaction. Yet the runner unconditionally launched a browser page per test. That
 wasted time and resources and could fail on headless/CI environments where no display is available
 for purely non-GUI work. When does a test actually require a browser page, and how should
 display-coupled steps behave when no recording is active?
@@ -19,7 +19,7 @@ display-coupled steps behave when no recording is active?
 * Don't pay the cost of a browser when no step needs one.
 * A non-GUI test must succeed on environments with no display.
 * Keep the decision declarative and easy to extend as new GUI steps are added.
-* Display-only steps (mouse move, scroll) are meaningless without a recording — they should not
+* Display-only steps (mouse move, scroll) are meaningless without a recording, so they should not
   fail a test.
 
 ## Considered Options

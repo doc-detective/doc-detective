@@ -2,7 +2,7 @@
 title: github-action
 ---
 
-[`github-action`](https://github.com/doc-detective/github-action) is a TypeScript-based GitHub Action that runs Doc Detective in GitHub workflows. While Doc Detective can run in any CI/CD environment, this GitHub Action simplifies the process of running Doc Detective in GitHub workflows, provides a `results` object that can be used in subsequent steps, and offers handy features like creating GitHub issues for failed tests.
+[`github-action`](https://github.com/doc-detective/github-action) is a TypeScript-based GitHub Action that runs Doc Detective in GitHub workflows. Doc Detective can run in any CI/CD environment, but this GitHub Action simplifies running it in GitHub workflows. It also provides a `results` output, a JSON string you pass through `fromJSON()` to read in later steps. It offers handy features too, like creating GitHub issues for failed tests.
 
 This repo depends on [`doc-detective`](doc-detective) for performing the tests.
 
