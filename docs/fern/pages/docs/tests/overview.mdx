@@ -42,7 +42,7 @@ When Doc Detective runs a test, the result is one of four statuses:
 
 ### Skipped tests
 
-When Doc Detective runs tests, it checks if each [context](/docs/test-docs/platforms-and-browsers) matches your current environment. A context may specify a platform or browser that doesn't match the system running the test. Doc Detective then skips that context and its associated test.
+When Doc Detective runs tests, it checks if each [context](/docs/test-docs/platforms-and-browsers) matches your current environment. A context may specify a platform or browser that doesn't match the system running the test. Doc Detective then skips that context. The test itself is marked SKIPPED only when every one of its contexts is skipped.
 
 Doc Detective skips tests when:
 

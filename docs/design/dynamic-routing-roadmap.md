@@ -3,7 +3,7 @@
 > Status: **code-complete on `next`.** All phases shipped through PRs #355–#376: schema →
 > operators → meta and outputs → unified assertions → custom assertions → guard `if` → routing
 > handlers → retry → `goToStep` → test routing and `goToTest` → hints. Companion docs merged
-> through the Promptless chain. See ["Final delivery status"](#final-delivery-status) below. The
+> through the Promptless chain. See ["Final delivery status"](#final-delivery-status-2026-06-21) below. The
 > design sections in this document remain the semantic reference, covering flow versus verdict,
 > handler defaults, and `if` timing.
 > Last revised: 2026-07-08.

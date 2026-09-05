@@ -113,7 +113,7 @@ jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' testRes
 Anything that runs more than once reports the **final attempt** in `durationMs`. That's the attempt the reported result describes. What that costs you depends on which kind of retry happened:
 
 - A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt. The enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though. The difference between a context and the sum of its steps also includes ordinary setup and cleanup. Read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
-- A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt, and no other field absorbs the earlier ones. The time spent on abandoned context attempts therefore appears nowhere in the totals. The `retries` count is your signal that it happened.
+- A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt. No context, test, or spec duration absorbs the earlier ones. The run-level `durationMs` is wall-clock, so it does include them. The `retries` count is your signal that it happened.
 
 A step that never ran reports `0`. That covers a step that was skipped, guarded off, or downstream of a failure.
 
