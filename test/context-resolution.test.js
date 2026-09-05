@@ -8,7 +8,11 @@ import {
   warmUpDecision,
   contextRequirementsSkipMessage,
 } from "../dist/core/tests.js";
-import { GECKODRIVER_EXECUTABLE_ARGS } from "../dist/core/tests/geckoDriver.js";
+import {
+  GECKODRIVER_EXECUTABLE_ARGS,
+  PROTECTED_CAPABILITIES,
+  applyDriverOptions,
+} from "../dist/core/tests/geckoDriver.js";
 import { resolveContexts } from "../dist/core/resolveTests.js";
 import { findFreePort } from "../dist/core/utils.js";
 
@@ -526,6 +530,64 @@ describe("GECKODRIVER_EXECUTABLE_ARGS", function () {
     const [, feature] = GECKODRIVER_EXECUTABLE_ARGS;
     assert.equal(feature.split(":")[0], "*");
     assert.equal(feature.split(":")[1], "custom_geckodriver_executable");
+  });
+});
+
+describe("applyDriverOptions", function () {
+  // `driverOptions` is an authored escape hatch on a startSurface browser
+  // descriptor, merged into the computed capabilities last. Most keys are
+  // fine to override. `appium:geckodriverExecutable` is not: it is only legal
+  // at all because Doc Detective opted the server in to an insecure feature,
+  // so honouring an authored value would turn that opt-in into "a spec can
+  // name any local executable and Appium will run it".
+  it("protects the managed geckodriver path from an authored override", function () {
+    const caps = { "appium:geckodriverExecutable": "/managed/geckodriver-0.37.1" };
+    applyDriverOptions(caps, {
+      "appium:geckodriverExecutable": "/tmp/evil",
+    });
+    assert.equal(
+      caps["appium:geckodriverExecutable"],
+      "/managed/geckodriver-0.37.1"
+    );
+  });
+
+  it("still merges every other authored capability", function () {
+    const caps = { browserName: "MozillaFirefox" };
+    applyDriverOptions(caps, {
+      "moz:debuggerAddress": true,
+      "appium:newCommandTimeout": 30,
+      browserName: "firefox",
+    });
+    assert.equal(caps["moz:debuggerAddress"], true);
+    assert.equal(caps["appium:newCommandTimeout"], 30);
+    assert.equal(caps.browserName, "firefox");
+  });
+
+  it("warns, naming the capability it refused", function () {
+    const warnings = [];
+    applyDriverOptions({}, { "appium:geckodriverExecutable": "/tmp/evil" }, (m) =>
+      warnings.push(m)
+    );
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /appium:geckodriverExecutable/);
+  });
+
+  it("leaves the capability absent when nothing computed it", function () {
+    // No managed path resolved: the authored value must not fill the gap.
+    const caps = { browserName: "MozillaFirefox" };
+    applyDriverOptions(caps, { "appium:geckodriverExecutable": "/tmp/evil" });
+    assert.ok(!("appium:geckodriverExecutable" in caps));
+  });
+
+  it("tolerates a missing or empty driverOptions object", function () {
+    const caps = { browserName: "MozillaFirefox" };
+    applyDriverOptions(caps, undefined);
+    applyDriverOptions(caps, {});
+    assert.deepEqual(caps, { browserName: "MozillaFirefox" });
+  });
+
+  it("lists the geckodriver capability as protected", function () {
+    assert.ok(PROTECTED_CAPABILITIES.includes("appium:geckodriverExecutable"));
   });
 });
 

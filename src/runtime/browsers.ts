@@ -778,9 +778,11 @@ function compareGeckodriverVersionsDesc(a: string, b: string): number {
 // Newest `geckodriver-<version>` file directly inside `dir`, or undefined.
 // Directories are skipped so a leftover extraction staging dir is never
 // mistaken for the binary.
-function versionedGeckodriverInDir(dir: string): string | undefined {
+function versionedGeckodriverInDir(
+  dir: string
+): { version: string; file: string } | undefined {
   const wantExe = process.platform === "win32";
-  let best: { version: string; name: string } | undefined;
+  let best: { version: string; file: string } | undefined;
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -794,10 +796,10 @@ function versionedGeckodriverInDir(dir: string): string | undefined {
     // Only the platform's own executable form counts.
     if (wantExe !== Boolean(match[2])) continue;
     if (!best || compareGeckodriverVersionsDesc(match[1], best.version) < 0) {
-      best = { version: match[1], name: entry.name };
+      best = { version: match[1], file: path.join(dir, entry.name) };
     }
   }
-  return best ? path.join(dir, best.name) : undefined;
+  return best;
 }
 
 /**
@@ -805,8 +807,21 @@ function versionedGeckodriverInDir(dir: string): string | undefined {
  * Returns its path if found at the cache root or one level deep (some layouts
  * nest under a version dir), else undefined. Both the bare `geckodriver(.exe)`
  * name and the `geckodriver-<version>(.exe)` name the npm package actually
- * writes are recognized; the bare name wins when both are present, and the
- * newest version wins among version-suffixed candidates.
+ * writes are recognized.
+ *
+ * Every supported location is scanned BEFORE anything is selected, so a root
+ * `geckodriver-0.36.0` can't win over a nested `geckodriver-0.37.1` merely by
+ * being looked at first. Selection order:
+ *
+ *   1. the newest version-suffixed binary found anywhere (root or one deep);
+ *   2. failing that, a bare-named binary, root before nested.
+ *
+ * Version-suffixed wins over bare because the current package only ever writes
+ * versioned names, so a versioned file is both the authoritative managed
+ * artifact and the only one carrying a comparable version. A bare
+ * `geckodriver` is a legacy or hand-placed artifact whose version can't be
+ * known without executing it, so preferring it would let a stale leftover
+ * silently outrank a freshly installed driver.
  *
  * Exported so the availability probe (Layer 2 in core/config) can resolve the
  * same binary the install path uses when the geckodriver module exposes no
@@ -816,27 +831,42 @@ function versionedGeckodriverInDir(dir: string): string | undefined {
 export function geckodriverBinaryInCache(cacheDir: string): string | undefined {
   const binName =
     process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
-  const rootCandidate = path.join(cacheDir, binName);
-  try {
-    if (fs.existsSync(rootCandidate)) return rootCandidate;
-  } catch {
-    // ignore and fall through to the scans below
-  }
-  const rootVersioned = versionedGeckodriverInDir(cacheDir);
-  if (rootVersioned) return rootVersioned;
+  const exists = (candidate: string): boolean => {
+    try {
+      return fs.existsSync(candidate);
+    } catch {
+      return false;
+    }
+  };
+
+  // Collect every candidate first; decide afterwards.
+  let bestVersioned = versionedGeckodriverInDir(cacheDir);
+  const rootBare = path.join(cacheDir, binName);
+  let bestBare: string | undefined = exists(rootBare) ? rootBare : undefined;
   try {
     for (const entry of fs.readdirSync(cacheDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
       const dir = path.join(cacheDir, entry.name);
-      const nested = path.join(dir, binName);
-      if (fs.existsSync(nested)) return nested;
       const nestedVersioned = versionedGeckodriverInDir(dir);
-      if (nestedVersioned) return nestedVersioned;
+      if (
+        nestedVersioned &&
+        (!bestVersioned ||
+          compareGeckodriverVersionsDesc(
+            nestedVersioned.version,
+            bestVersioned.version
+          ) < 0)
+      ) {
+        bestVersioned = nestedVersioned;
+      }
+      if (!bestBare) {
+        const nestedBare = path.join(dir, binName);
+        if (exists(nestedBare)) bestBare = nestedBare;
+      }
     }
   } catch {
     // cacheDir unreadable/missing — caller falls back appropriately.
   }
-  return undefined;
+  return bestVersioned?.file ?? bestBare;
 }
 
 // Geckodriver lives in its own npm package (not under @puppeteer/browsers).

@@ -19,8 +19,8 @@ Downloaded geckodriver failed validation (Refusing to execute '/opt/doc-detectiv
 geckodriver failed to install and was skipped: geckodriver is present but non-functional after a re-download (...)
 ```
 
-The published image confirms the download in fact worked — the binary is on disk, executable, and
-reports its version — while `installed.json` carries no `geckodriver` entry at all:
+The published image confirms the download in fact worked. The binary is on disk, executable, and
+reports its version. Meanwhile `installed.json` carries no `geckodriver` entry at all:
 
 ```console
 $ docker run --rm --entrypoint bash docdetective/docdetective:latest-linux -c 'ls /opt/doc-detective/browsers/'
@@ -39,7 +39,7 @@ Two independent defects combined to produce this:
 
 2. **The unresolved case laundered a directory into a binary path.** `resolveBinaryPath` ended with
    `?? cacheDir`, so "couldn't find it" became "the cache directory is the executable".
-   `verifyDriverBinary`'s allowlist then correctly refused to execute a directory — producing a
+   `verifyDriverBinary`'s allowlist then correctly refused to execute a directory. That produced a
    diagnostic that pointed at the cache dir and read like a corrupt download, which sent maintainers
    looking in the wrong place.
 
@@ -53,7 +53,7 @@ its functional check against.
 
 Investigating the fix in the image surfaced a **second, independent defect that this ADR does not
 fix**. `appium-geckodriver` resolves its binary from either the `appium:geckodriverExecutable`
-capability (gated behind the `gecko:custom_geckodriver_executable` insecure feature) or `PATH` —
+capability (gated behind the `gecko:custom_geckodriver_executable` insecure feature) or `PATH`,
 and Doc Detective sets neither for Firefox, unlike Chrome, which passes `appium:executable`. So even
 with geckodriver correctly installed, a Firefox context in the container still fails to start with
 `geckodriver binary cannot be found in PATH` and falls back to another browser. This has been masked
@@ -68,7 +68,7 @@ prerequisite for that workaround but not sufficient for it, so the docs are corr
 
 ## Decision Drivers
 
-* The container image must be able to drive Firefox on both architectures — it is the only browser
+* The container image must be able to drive Firefox on both architectures. It is the only browser
   available on `linux/arm64`, where ChromeDriver has no native upstream build.
 * The install path and the availability probe (Layer 2 in `core/config`) must resolve the *same*
   binary, or the functional gate silently stops running.
@@ -96,17 +96,25 @@ layout again.
 Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
 
 * `geckodriverBinaryInCache` now recognizes `geckodriver-<version>(.exe)` in addition to the bare
-  name, at the cache root and one level deep. The bare name still wins when both exist; among
-  version-suffixed candidates the newest version wins. Directory entries are skipped, so a
+  name, at the cache root and one level deep. Directory entries are skipped, so a
   `geckodriver-<random>` staging directory left by a crashed extraction is never mistaken for the
   binary. The version pattern is dotted-numeric, which is what distinguishes a real binary name from
   a `mkdtemp` suffix.
-* `resolveBinaryPath` returns `string | undefined` — the `?? cacheDir` fallback is gone. Callers
+* Every supported location is scanned **before** anything is selected, and the newest version-suffixed
+  binary found anywhere wins; a bare-named binary is the fallback, root before nested. Two ordering
+  bugs fall out of doing it this way, both raised in review. Selecting as you scan let a root
+  `geckodriver-0.36.0` beat a nested `geckodriver-0.37.1` purely by being looked at first. And
+  preferring the bare name (the first draft's rule) let a stale `geckodriver` left by an older layout
+  silently outrank a freshly installed one. The current package only ever writes versioned names, so
+  a versioned file is both the authoritative managed artifact and the only candidate carrying a
+  comparable version, while a bare name is a legacy or hand-placed artifact whose version can't be
+  known without executing it.
+* `resolveBinaryPath` returns `string | undefined`, so the `?? cacheDir` fallback is gone. Callers
   already treat a missing driver path as "no Layer 2 check, fall through to the runtime fallback"
   (`AppDriverDescriptor.driverPath` and `InstalledBrowserDescriptor.driverPath` are both optional),
   so `undefined` is the shape they were already written for. `EnsureBrowserResult.path` becomes
   optional to match.
-* The install path prefers the absolute path **`download()` returns** — the only direct signal in
+* The install path prefers the absolute path **`download()` returns**, the only direct signal in
   geckodriver >= 6 — and falls back to the cache probe. This is what makes the fix independent of
   the naming convention; the probe remains necessary for the fresh-cache branch, which returns
   without downloading.
@@ -120,7 +128,7 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
 
 * Good: geckodriver installs and validates in the container image on both architectures, so
   `install browsers` no longer reports a failed asset and `installed.json` records the driver.
-* Neutral: this alone does not make Firefox usable in the container — the separate `PATH` wiring
+* Neutral: this alone does not make Firefox usable in the container. The separate `PATH` wiring
   defect described above still blocks it. [docs/fern/pages/docs/ci/docker-and-headless.mdx](../docs/fern/pages/docs/ci/docker-and-headless.mdx)
   is corrected to stop offering Firefox as the arm64 workaround and to document the verified
   `PATH` workaround instead, rather than leaving a promise the image does not keep.
@@ -138,11 +146,12 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
 ### Confirmation
 
 * Red→green unit tests in [test/runtime-browsers.test.js](../test/runtime-browsers.test.js) cover
-  the version-suffixed name at the root and nested, newest-version selection, exact-name precedence,
+  the version-suffixed name at the root and nested, newest-version selection across mixed root and
+  nested layouts, version-suffixed precedence over a bare sibling, the bare-name fallback,
   staging-directory rejection, allowlist acceptance of the versioned filename, continued rejection
   of the bare cache directory and of `geckodriver-evil.sh`, the end-to-end install against the real
   on-disk layout, and the honest `undefined` path when nothing can be located. Before the fix, seven
-  of these failed — one reproducing the container error verbatim.
+  of these failed, one reproducing the container error verbatim.
 * Verified against the real image on **both** architectures, by layering this branch's compiled
   `dist/` onto `docdetective/docdetective:latest-linux` (same OS, cache dir, and geckodriver package
   version as the published build). Before: `geckodriver — skipped (...Refusing to execute
@@ -157,7 +166,7 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
 
 ### A. Recognize the version-suffixed name, drop the cache-directory fallback, prefer `download()`'s return
 
-* Good: fixes the probe, the fallback, and the allowlist — each was independently sufficient to
+* Good: fixes the probe, the fallback, and the allowlist. Each was independently sufficient to
   break the install.
 * Good: `download()`'s return value is authoritative and survives future renames upstream.
 * Good: keeps the exec allowlist narrow.
@@ -173,7 +182,7 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
 ### C. Rename the downloaded binary to the bare `geckodriver` name
 
 * Good: no allowlist change needed.
-* Bad: fights the package — it re-derives the versioned path on the next `download()` and would
+* Bad: fights the package. It re-derives the versioned path on the next `download()` and would
   re-download every time, since its cache hit checks the versioned name.
 * Bad: defeats the package's own multi-version cache and races concurrent installs.
 

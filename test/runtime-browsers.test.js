@@ -522,11 +522,45 @@ describe("runtime/browsers", function () {
       );
     });
 
-    it("prefers the exact binary name over a version-suffixed sibling", function () {
-      fs.writeFileSync(path.join(tmpRoot, versioned("0.37.1")), "x");
-      const exact = path.join(tmpRoot, binName);
-      fs.writeFileSync(exact, "x");
-      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(exact);
+    it("prefers a version-suffixed binary over a bare-named sibling", function () {
+      // The current package only ever writes versioned names, so a versioned
+      // file is the authoritative managed artifact AND carries a comparable
+      // version. A bare `geckodriver` is a legacy or hand-placed artifact whose
+      // version is unknowable without executing it, so it is the fallback, not
+      // the winner — otherwise a stale bare binary left by an older layout
+      // silently outranks the freshly installed one.
+      const bare = path.join(tmpRoot, binName);
+      fs.writeFileSync(bare, "x");
+      const suffixed = path.join(tmpRoot, versioned("0.37.1"));
+      fs.writeFileSync(suffixed, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(suffixed);
+    });
+
+    it("falls back to the bare name when no version-suffixed binary exists", function () {
+      const bare = path.join(tmpRoot, binName);
+      fs.writeFileSync(bare, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bare);
+    });
+
+    it("picks the newest version across BOTH the root and nested layouts", function () {
+      // Mixed layouts: scanning must complete before selecting, or a root
+      // 0.36.0 wins over a nested 0.37.1 purely because the root is checked
+      // first.
+      fs.writeFileSync(path.join(tmpRoot, versioned("0.36.0")), "x");
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const newest = path.join(nestedDir, versioned("0.37.1"));
+      fs.writeFileSync(newest, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(newest);
+    });
+
+    it("prefers a nested version-suffixed binary over a bare one at the root", function () {
+      fs.writeFileSync(path.join(tmpRoot, binName), "x");
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const nested = path.join(nestedDir, versioned("0.37.1"));
+      fs.writeFileSync(nested, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(nested);
     });
 
     it("ignores a leftover `geckodriver-*` staging directory and finds the real binary", function () {

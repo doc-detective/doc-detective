@@ -43,7 +43,56 @@
 // 127.0.0.1, and every session request on them originates from Doc Detective
 // itself, so the residual surface is a driver that accepts a filesystem path
 // this process already chose.
+// No upstream issue is filed for the ordering bug described above (searched
+// appium/appium and appium/appium-geckodriver). If one lands and is fixed,
+// the driver-scoped `gecko:` form becomes usable and should replace the
+// wildcard here — re-check by flipping the scope and running the Firefox
+// fixture, which fails loudly if the capability stops being accepted.
 export const GECKODRIVER_EXECUTABLE_ARGS = [
   "--allow-insecure",
   "*:custom_geckodriver_executable",
 ];
+
+// Capabilities an authored `driverOptions` may never set.
+//
+// `driverOptions` is a deliberate escape hatch on a startSurface browser
+// descriptor (schema: "merged into the session's capabilities after the ones
+// Doc Detective computes"), and that is fine for ordinary knobs. It is not fine
+// for `appium:geckodriverExecutable`: that capability is only accepted at all
+// because GECKODRIVER_EXECUTABLE_ARGS opts the server in to an insecure
+// feature. Before that opt-in existed, Appium rejected an authored value
+// outright. Honouring one now would convert the opt-in into "a spec can name
+// any local executable and Appium will spawn it" — and specs are read from
+// documentation, which is not necessarily trusted input.
+//
+// So the computed value wins and the authored one is dropped. Only
+// insecure-feature-gated capabilities belong here; ordinary overrides keep
+// working, which is what the escape hatch is for.
+export const PROTECTED_CAPABILITIES: readonly string[] = [
+  "appium:geckodriverExecutable",
+];
+
+/**
+ * Merge an authored `driverOptions` object into computed capabilities,
+ * skipping any capability in {@link PROTECTED_CAPABILITIES}. Mutates and
+ * returns `caps`. `warn` (optional) is called once per refused key.
+ *
+ * A protected key is dropped, never substituted: if nothing computed a value
+ * the capability stays absent rather than taking the authored one.
+ */
+export function applyDriverOptions(
+  caps: Record<string, any>,
+  driverOptions: Record<string, any> | undefined,
+  warn?: (message: string) => void
+): Record<string, any> {
+  for (const [key, value] of Object.entries(driverOptions ?? {})) {
+    if (PROTECTED_CAPABILITIES.includes(key)) {
+      warn?.(
+        `Ignoring authored driverOptions '${key}': Doc Detective pins this capability to the driver it manages and it can't be overridden.`
+      );
+      continue;
+    }
+    caps[key] = value;
+  }
+  return caps;
+}

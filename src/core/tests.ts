@@ -105,7 +105,10 @@ import {
   type ActiveSurfaceTracker,
 } from "./tests/activeSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
-import { GECKODRIVER_EXECUTABLE_ARGS } from "./tests/geckoDriver.js";
+import {
+  GECKODRIVER_EXECUTABLE_ARGS,
+  applyDriverOptions,
+} from "./tests/geckoDriver.js";
 import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
@@ -4395,7 +4398,16 @@ async function runContext({
               ...recordOptions,
             },
           });
-          if (overrides?.driverOptions) Object.assign(caps, overrides.driverOptions);
+          // Merge the authored escape hatch, minus the capabilities that are
+          // only legal because we opted the server in to an insecure feature.
+          // A plain Object.assign here would let a spec-authored
+          // `appium:geckodriverExecutable` overwrite the managed path and have
+          // Appium spawn any local binary. See PROTECTED_CAPABILITIES.
+          if (overrides?.driverOptions) {
+            applyDriverOptions(caps, overrides.driverOptions, (message) =>
+              log(config, "warning", message)
+            );
+          }
           return caps;
         };
         const startFailure = () => {
