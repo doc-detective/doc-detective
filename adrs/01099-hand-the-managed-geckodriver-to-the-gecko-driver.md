@@ -10,7 +10,7 @@ decision-makers: doc-detective maintainers
 
 Firefox contexts could not start in the official Linux container image. With geckodriver correctly
 installed (that is a separate defect, fixed in
-[ADR 01097](01097-resolve-the-version-suffixed-geckodriver-binary.md)), a Firefox context still
+[ADR 01098](01098-resolve-the-version-suffixed-geckodriver-binary.md)), a Firefox context still
 failed and fell back:
 
 ```text
@@ -40,7 +40,7 @@ engine actually carried a context, so a Firefox context that degraded to Chrome 
 ## Decision Drivers
 
 * The container image must be able to drive Firefox. On `linux/arm64` it is the only browser
-  available, since ChromeDriver has no native upstream build there.
+  available, since ChromeDriver has no native upstream build there (see [ADR 01096](01096-never-execute-a-foreign-architecture-driver-binary.md)).
 * A managed install should be *used*, not shadowed by whatever happens to be on PATH; pinning the
   binary also makes runs reproducible across machines.
 * Any Appium insecure-feature opt-in must be as narrow as the mechanism allows.

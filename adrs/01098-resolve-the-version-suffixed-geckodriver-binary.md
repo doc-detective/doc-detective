@@ -62,7 +62,7 @@ is what the Firefox-defaulted fixture suite has been using all along. The contai
 environment where the managed install is the only geckodriver.
 
 Together these invalidated the documented arm64 workaround for the missing `linux/arm64` ChromeDriver
-build ("use Firefox instead", see ADR 01096 for the ChromeDriver side). Fixing the install is a
+build ("use Firefox instead", see [ADR 01096](01096-never-execute-a-foreign-architecture-driver-binary.md) for the ChromeDriver side). Fixing the install is a
 prerequisite for that workaround but not sufficient for it, so the docs are corrected here and the
 `PATH` wiring is left to a follow-up.
 
