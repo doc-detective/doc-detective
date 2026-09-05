@@ -15,6 +15,7 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { execFileSync } from "node:child_process";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -580,6 +581,47 @@ describe("runtime/browsers", function () {
       // it ends in `geckodriver`, and only failing at execFile.
       fs.mkdirSync(path.join(tmpRoot, binName), { recursive: true });
       expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("ignores a FIFO named like the binary (it would hang the run)", function () {
+      // Not merely wrong, but a HANG: verifyDriverBinary opens the candidate to
+      // read its ELF header, and opening a FIFO with no writer blocks forever.
+      // `!isDirectory()` admits a FIFO; only a regular-file check excludes it.
+      if (process.platform === "win32") return this.skip();
+      const fifo = path.join(tmpRoot, versioned("0.37.1"));
+      try {
+        execFileSync("mkfifo", [fifo]);
+      } catch {
+        return this.skip(); // no mkfifo on this box
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("ignores a FIFO named like the bare binary", function () {
+      if (process.platform === "win32") return this.skip();
+      const fifo = path.join(tmpRoot, binName);
+      try {
+        execFileSync("mkfifo", [fifo]);
+      } catch {
+        return this.skip();
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("still accepts a symlink that resolves to a regular file", function () {
+      // Tightening to "regular file" must not silently stop finding a binary
+      // someone linked into the cache: readdir reports the entry as a symlink,
+      // so the check has to resolve it rather than reject it outright.
+      if (process.platform === "win32") return this.skip();
+      const real = path.join(tmpRoot, "real-geckodriver");
+      fs.writeFileSync(real, "x");
+      const link = path.join(tmpRoot, versioned("0.37.1"));
+      try {
+        fs.symlinkSync(real, link);
+      } catch {
+        return this.skip(); // symlinks unavailable (permissions)
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(link);
     });
 
     it("ignores a bare-named DIRECTORY nested one level deep", function () {

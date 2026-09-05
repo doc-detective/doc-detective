@@ -779,6 +779,30 @@ function compareGeckodriverVersionsDesc(a: string, b: string): number {
   return 0;
 }
 
+// Whether a directory entry is a regular file, resolving one level of symlink.
+//
+// `!entry.isDirectory()` is NOT good enough here, and the failure it allows is a
+// hang rather than an error: `verifyDriverBinary` opens the candidate to read
+// its ELF header, and opening a FIFO with no writer blocks forever. A named
+// pipe (or socket, or device node) sitting in the cache under a driver's name
+// would therefore wedge the whole run. Requiring a regular file excludes all of
+// them.
+//
+// Symlinks still count when they resolve to a regular file: readdir reports the
+// link itself, so an `isFile()`-only test would silently stop finding a binary
+// someone linked into the cache. `statSync` follows the link and, unlike
+// `open`, does not block on a FIFO — so a link to one is rejected, not hung on.
+function isRegularFileEntry(dir: string, entry: fs.Dirent): boolean {
+  if (entry.isFile()) return true;
+  if (!entry.isSymbolicLink()) return false;
+  try {
+    return fs.statSync(path.join(dir, entry.name)).isFile();
+  } catch {
+    // Broken link, or a permissions problem: not a usable binary either way.
+    return false;
+  }
+}
+
 // One directory listing, or [] when the directory is missing or unreadable.
 function readDirEntries(dir: string): fs.Dirent[] {
   try {
@@ -792,21 +816,22 @@ function readDirEntries(dir: string): fs.Dirent[] {
 // directory listing rather than `fs.existsSync`, which answers true for a
 // DIRECTORY of that name. Returning one would pass the allowlist (it ends in
 // `geckodriver`) and fail only later at execFile, which is exactly the
-// directory-as-executable confusion this probe exists to prevent.
+// directory-as-executable confusion this probe exists to prevent. Anything that
+// is not a regular file is rejected — see isRegularFileEntry.
 function bareBinaryIn(
   dir: string,
   binName: string,
   entries: fs.Dirent[]
 ): string | undefined {
   const match = entries.find(
-    (entry) => entry.name === binName && !entry.isDirectory()
+    (entry) => entry.name === binName && isRegularFileEntry(dir, entry)
   );
   return match ? path.join(dir, binName) : undefined;
 }
 
 // Newest `geckodriver-<version>` file in an already-read listing of `dir`, or
-// undefined. Directories are skipped so a leftover extraction staging dir is
-// never mistaken for the binary.
+// undefined. Only regular files count, so a leftover extraction staging dir is
+// never mistaken for the binary (and a FIFO can never wedge the header read).
 function newestVersionedIn(
   dir: string,
   entries: fs.Dirent[]
@@ -814,7 +839,7 @@ function newestVersionedIn(
   const wantExe = process.platform === "win32";
   let best: { version: string; file: string } | undefined;
   for (const entry of entries) {
-    if (entry.isDirectory()) continue;
+    if (!isRegularFileEntry(dir, entry)) continue;
     const match = GECKODRIVER_VERSIONED_NAME.exec(entry.name);
     if (!match) continue;
     // Only the platform's own executable form counts.

@@ -100,6 +100,13 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
   `geckodriver-<random>` staging directory left by a crashed extraction is never mistaken for the
   binary. The version pattern is dotted-numeric, which is what distinguishes a real binary name from
   a `mkdtemp` suffix.
+* Candidates must be **regular files**, resolving one level of symlink. Skipping only directories is
+  not enough, and what it lets through is a hang rather than an error. `verifyDriverBinary` opens the
+  candidate to read its ELF header, added by
+  [ADR 01096](01096-never-execute-a-foreign-architecture-driver-binary.md). Opening a FIFO with no
+  writer blocks forever. A named pipe sitting in the cache under a driver's name would wedge the
+  whole run. `statSync` follows a symlink without blocking, so a link to a real binary still counts
+  while a link to a FIFO does not.
 * Every supported location is scanned **before** anything is selected, and the newest version-suffixed
   binary found anywhere wins; a bare-named binary is the fallback, root before nested. Two ordering
   bugs fall out of doing it this way, both raised in review. Selecting as you scan let a root
@@ -150,7 +157,8 @@ Concretely, in [src/runtime/browsers.ts](../src/runtime/browsers.ts):
   * the version-suffixed name at the root and one level deep;
   * newest-version selection across mixed root and nested layouts;
   * version-suffixed precedence over a bare sibling, and the bare-name fallback;
-  * rejection of a leftover staging directory, and of a bare-named directory;
+  * rejection of a leftover staging directory, of a bare-named directory, and of a FIFO under either
+    name, alongside a check that a symlink to a real binary is still accepted;
   * allowlist acceptance of the versioned filename, and continued refusal of the bare cache
     directory, of `geckodriver-evil.sh`, and of a versioned chromedriver or safaridriver name;
   * the end-to-end install against the real on-disk layout;
