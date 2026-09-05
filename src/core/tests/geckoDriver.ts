@@ -68,28 +68,71 @@ export const GECKODRIVER_EXECUTABLE_ARGS = [
 // So the computed value wins and the authored one is dropped. Only
 // insecure-feature-gated capabilities belong here; ordinary overrides keep
 // working, which is what the escape hatch is for.
-export const PROTECTED_CAPABILITIES: readonly string[] = [
-  "appium:geckodriverExecutable",
-];
+//
+// Names are stored unprefixed because the same capability has two legal
+// spellings, and BOTH have to be refused:
+//
+//   * `appium:geckodriverExecutable` at the top level of the capabilities, and
+//   * `geckodriverExecutable` inside an `appium:options` group.
+//
+// The group is the dangerous one: Appium gives a value inside `appium:options`
+// precedence over the same capability at the root, so filtering only top-level
+// keys would let `{"appium:options": {"geckodriverExecutable": "..."}}` walk
+// straight past this guard and override the managed path anyway.
+const PROTECTED_CAPABILITY_NAMES: readonly string[] = ["geckodriverExecutable"];
+
+/** The W3C-prefixed spellings, for callers that want the public list. */
+export const PROTECTED_CAPABILITIES: readonly string[] =
+  PROTECTED_CAPABILITY_NAMES.map((name) => `appium:${name}`);
+
+// Appium's capability-grouping key. Values inside it outrank root-level ones.
+const APPIUM_OPTIONS_KEY = "appium:options";
+
+function isProtectedCapability(key: string): boolean {
+  const bare = key.startsWith("appium:") ? key.slice("appium:".length) : key;
+  return PROTECTED_CAPABILITY_NAMES.includes(bare);
+}
 
 /**
  * Merge an authored `driverOptions` object into computed capabilities,
- * skipping any capability in {@link PROTECTED_CAPABILITIES}. Mutates and
- * returns `caps`. `warn` (optional) is called once per refused key.
+ * skipping any capability in {@link PROTECTED_CAPABILITIES} — in either
+ * spelling, at the top level or nested inside an `appium:options` group.
+ * Mutates and returns `caps`. `warn` (optional) is called once per refused key.
  *
  * A protected key is dropped, never substituted: if nothing computed a value
- * the capability stays absent rather than taking the authored one.
+ * the capability stays absent rather than taking the authored one. An
+ * `appium:options` group is copied before sanitizing, so the spec's own object
+ * is never mutated (it is reused across a session retry).
  */
 export function applyDriverOptions(
   caps: Record<string, any>,
   driverOptions: Record<string, any> | undefined,
   warn?: (message: string) => void
 ): Record<string, any> {
+  const refuse = (key: string) =>
+    warn?.(
+      `Ignoring authored driverOptions '${key}': Doc Detective pins this capability to the driver it manages and it can't be overridden.`
+    );
   for (const [key, value] of Object.entries(driverOptions ?? {})) {
-    if (PROTECTED_CAPABILITIES.includes(key)) {
-      warn?.(
-        `Ignoring authored driverOptions '${key}': Doc Detective pins this capability to the driver it manages and it can't be overridden.`
-      );
+    if (isProtectedCapability(key)) {
+      refuse(key);
+      continue;
+    }
+    if (
+      key === APPIUM_OPTIONS_KEY &&
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      const sanitized: Record<string, any> = {};
+      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+        if (isProtectedCapability(nestedKey)) {
+          refuse(`${APPIUM_OPTIONS_KEY}.${nestedKey}`);
+          continue;
+        }
+        sanitized[nestedKey] = nestedValue;
+      }
+      caps[key] = sanitized;
       continue;
     }
     caps[key] = value;

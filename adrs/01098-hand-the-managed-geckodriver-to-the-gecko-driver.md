@@ -125,6 +125,14 @@ value the capability stays absent rather than taking the authored one. Only
 insecure-feature-gated capabilities belong on that list. Every ordinary override keeps working,
 which is what the escape hatch is for. This restores exactly the pre-change boundary.
 
+Filtering top-level keys alone is not enough, which a second review round caught. Appium lets
+capabilities be grouped under `appium:options`, and a value inside that group **takes precedence
+over the same capability at the root**. So `{"appium:options": {"geckodriverExecutable": "..."}}`
+would have sailed past a top-level-only filter and overridden the managed path anyway. The guard
+therefore matches the capability in both of its legal spellings, prefixed at the root and unprefixed
+inside the group, and sanitizes a copy of the group so the spec's own object is never mutated (it is
+reused across a session retry).
+
 Note that chrome's `appium:executable` is *not* on the list. It is author-settable today and was
 before this change: the Chromium driver accepts it without an insecure-feature opt-in, so it is
 pre-existing behaviour of the documented escape hatch rather than something this change introduces.
@@ -157,7 +165,8 @@ Narrowing it is a separate decision.
 * Red→green unit tests: `getDriverCapabilities` sets the capability from `app.driver` and omits it
   when absent; `applyDriverOptions` drops an authored `appium:geckodriverExecutable` (leaving the
   computed one, or leaving the capability absent when there was none), warns naming the refused key,
-  and still merges every other authored capability
+  and still merges every other authored capability, including the nested `appium:options` bypass in
+  both spellings and the no-mutation guarantee
   ([test/context-resolution.test.js](../test/context-resolution.test.js)); the Firefox
   app carries / omits `driver` through `patchAppCache`
   ([test/config-coverage.test.js](../test/config-coverage.test.js)); and

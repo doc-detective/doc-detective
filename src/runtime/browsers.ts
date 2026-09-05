@@ -51,13 +51,17 @@ const DRIVER_VERIFY_TIMEOUT_MS = 10_000;
 //
 // The optional `-<version>` segment is required, not cosmetic: the geckodriver
 // npm package writes its binary as `geckodriver-<version>` (plus `.exe` on
-// Windows) — never the bare name — so without it every install of that driver
-// fails this gate. The suffix is deliberately restricted to a dotted-numeric
-// run: it admits the real shape (`geckodriver-0.37.1`) while still refusing
-// look-alikes such as `geckodriver-evil.sh`, and it can contain no path
-// separator, so the matched name is still a single final segment.
+// Windows), never the bare name, so without it every install of that driver
+// fails this gate. It is scoped to geckodriver alone, because that is the only
+// driver written with a versioned filename. @puppeteer/browsers writes a bare
+// `chromedriver`, and safaridriver is a fixed OS path, so extending the suffix
+// to them would widen what can reach execFile for no functional gain. The
+// suffix is a dotted-numeric run: it admits the real shape
+// (`geckodriver-0.37.1`) while still refusing look-alikes such as
+// `geckodriver-evil.sh`, and it can contain no path separator, so the matched
+// name is still a single final segment.
 const ALLOWED_DRIVER_PATH =
-  /[\\/](?:geckodriver|chromedriver|safaridriver)(?:-\d+(?:\.\d+)*)?(?:\.exe)?$/i;
+  /[\\/](?:geckodriver(?:-\d+(?:\.\d+)*)?|chromedriver|safaridriver)(?:\.exe)?$/i;
 
 function isAllowedDriverPath(binaryPath: string): boolean {
   return (
@@ -775,20 +779,40 @@ function compareGeckodriverVersionsDesc(a: string, b: string): number {
   return 0;
 }
 
-// Newest `geckodriver-<version>` file directly inside `dir`, or undefined.
-// Directories are skipped so a leftover extraction staging dir is never
-// mistaken for the binary.
-function versionedGeckodriverInDir(
-  dir: string
+// One directory listing, or [] when the directory is missing or unreadable.
+function readDirEntries(dir: string): fs.Dirent[] {
+  try {
+    return fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+}
+
+// The bare `geckodriver(.exe)` inside `dir`, or undefined. Resolved from the
+// directory listing rather than `fs.existsSync`, which answers true for a
+// DIRECTORY of that name. Returning one would pass the allowlist (it ends in
+// `geckodriver`) and fail only later at execFile, which is exactly the
+// directory-as-executable confusion this probe exists to prevent.
+function bareBinaryIn(
+  dir: string,
+  binName: string,
+  entries: fs.Dirent[]
+): string | undefined {
+  const match = entries.find(
+    (entry) => entry.name === binName && !entry.isDirectory()
+  );
+  return match ? path.join(dir, binName) : undefined;
+}
+
+// Newest `geckodriver-<version>` file in an already-read listing of `dir`, or
+// undefined. Directories are skipped so a leftover extraction staging dir is
+// never mistaken for the binary.
+function newestVersionedIn(
+  dir: string,
+  entries: fs.Dirent[]
 ): { version: string; file: string } | undefined {
   const wantExe = process.platform === "win32";
   let best: { version: string; file: string } | undefined;
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return undefined;
-  }
   for (const entry of entries) {
     if (entry.isDirectory()) continue;
     const match = GECKODRIVER_VERSIONED_NAME.exec(entry.name);
@@ -831,40 +855,29 @@ function versionedGeckodriverInDir(
 export function geckodriverBinaryInCache(cacheDir: string): string | undefined {
   const binName =
     process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
-  const exists = (candidate: string): boolean => {
-    try {
-      return fs.existsSync(candidate);
-    } catch {
-      return false;
-    }
-  };
+  // A missing or unreadable cacheDir yields an empty listing, so the whole
+  // probe degrades to "nothing found" instead of throwing mid-scan.
+  const rootEntries = readDirEntries(cacheDir);
 
   // Collect every candidate first; decide afterwards.
-  let bestVersioned = versionedGeckodriverInDir(cacheDir);
-  const rootBare = path.join(cacheDir, binName);
-  let bestBare: string | undefined = exists(rootBare) ? rootBare : undefined;
-  try {
-    for (const entry of fs.readdirSync(cacheDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const dir = path.join(cacheDir, entry.name);
-      const nestedVersioned = versionedGeckodriverInDir(dir);
-      if (
-        nestedVersioned &&
-        (!bestVersioned ||
-          compareGeckodriverVersionsDesc(
-            nestedVersioned.version,
-            bestVersioned.version
-          ) < 0)
-      ) {
-        bestVersioned = nestedVersioned;
-      }
-      if (!bestBare) {
-        const nestedBare = path.join(dir, binName);
-        if (exists(nestedBare)) bestBare = nestedBare;
-      }
+  let bestVersioned = newestVersionedIn(cacheDir, rootEntries);
+  let bestBare = bareBinaryIn(cacheDir, binName, rootEntries);
+  for (const entry of rootEntries) {
+    if (!entry.isDirectory()) continue;
+    const dir = path.join(cacheDir, entry.name);
+    const nestedEntries = readDirEntries(dir);
+    const nestedVersioned = newestVersionedIn(dir, nestedEntries);
+    if (
+      nestedVersioned &&
+      (!bestVersioned ||
+        compareGeckodriverVersionsDesc(
+          nestedVersioned.version,
+          bestVersioned.version
+        ) < 0)
+    ) {
+      bestVersioned = nestedVersioned;
     }
-  } catch {
-    // cacheDir unreadable/missing — caller falls back appropriately.
+    bestBare = bestBare ?? bareBinaryIn(dir, binName, nestedEntries);
   }
   return bestVersioned?.file ?? bestBare;
 }

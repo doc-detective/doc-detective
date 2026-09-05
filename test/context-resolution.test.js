@@ -579,6 +579,67 @@ describe("applyDriverOptions", function () {
     assert.ok(!("appium:geckodriverExecutable" in caps));
   });
 
+  it("protects the capability nested inside an appium:options group", function () {
+    // Appium lets capabilities be grouped under `appium:options`, and a value
+    // inside the group takes PRECEDENCE over the same capability at the root.
+    // Filtering only top-level keys would let the group smuggle the protected
+    // capability past the guard and override the managed path.
+    const caps = { "appium:geckodriverExecutable": "/managed/geckodriver-0.37.1" };
+    applyDriverOptions(caps, {
+      "appium:options": {
+        geckodriverExecutable: "/tmp/payload",
+        newCommandTimeout: 30,
+      },
+    });
+    assert.equal(
+      caps["appium:geckodriverExecutable"],
+      "/managed/geckodriver-0.37.1"
+    );
+    assert.ok(!("geckodriverExecutable" in caps["appium:options"]));
+    // Everything else in the group survives.
+    assert.equal(caps["appium:options"].newCommandTimeout, 30);
+  });
+
+  it("protects the prefixed spelling inside an appium:options group too", function () {
+    const caps = { "appium:geckodriverExecutable": "/managed/geckodriver-0.37.1" };
+    applyDriverOptions(caps, {
+      "appium:options": { "appium:geckodriverExecutable": "/tmp/payload" },
+    });
+    assert.ok(!("appium:geckodriverExecutable" in caps["appium:options"]));
+    assert.equal(
+      caps["appium:geckodriverExecutable"],
+      "/managed/geckodriver-0.37.1"
+    );
+  });
+
+  it("refuses the unprefixed spelling at the top level", function () {
+    const caps = { "appium:geckodriverExecutable": "/managed/geckodriver-0.37.1" };
+    applyDriverOptions(caps, { geckodriverExecutable: "/tmp/payload" });
+    assert.ok(!("geckodriverExecutable" in caps));
+    assert.equal(
+      caps["appium:geckodriverExecutable"],
+      "/managed/geckodriver-0.37.1"
+    );
+  });
+
+  it("does not mutate the authored driverOptions object", function () {
+    // The spec's own object is reused across a retry, so sanitizing must copy.
+    const authored = {
+      "appium:options": { geckodriverExecutable: "/tmp/payload", a: 1 },
+    };
+    applyDriverOptions({}, authored);
+    assert.equal(
+      authored["appium:options"].geckodriverExecutable,
+      "/tmp/payload"
+    );
+  });
+
+  it("leaves a non-object appium:options value alone", function () {
+    const caps = {};
+    applyDriverOptions(caps, { "appium:options": "nonsense" });
+    assert.equal(caps["appium:options"], "nonsense");
+  });
+
   it("tolerates a missing or empty driverOptions object", function () {
     const caps = { browserName: "MozillaFirefox" };
     applyDriverOptions(caps, undefined);

@@ -572,6 +572,22 @@ describe("runtime/browsers", function () {
       expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
     });
 
+    it("ignores a DIRECTORY named exactly like the bare binary", function () {
+      // The sibling assets (chrome/, chromedriver/, firefox/) are directories at
+      // this level, so a `geckodriver/` directory is a plausible layout. Handing
+      // it back would reproduce the very bug this probe exists to prevent: a
+      // directory passed off as an executable, accepted by the allowlist because
+      // it ends in `geckodriver`, and only failing at execFile.
+      fs.mkdirSync(path.join(tmpRoot, binName), { recursive: true });
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("ignores a bare-named DIRECTORY nested one level deep", function () {
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(path.join(nestedDir, binName), { recursive: true });
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
     it("returns undefined when only a `geckodriver-*` staging directory is present", function () {
       fs.mkdirSync(path.join(tmpRoot, "geckodriver-8fj2k1"), { recursive: true });
       expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
@@ -661,6 +677,28 @@ describe("runtime/browsers", function () {
       );
       expect(res.ok).to.equal(false);
       expect(execCalled).to.equal(false);
+    });
+
+    it("does not extend the version suffix to chromedriver or safaridriver", async function () {
+      // Only geckodriver is ever written with a version-suffixed filename.
+      // @puppeteer/browsers writes a bare `chromedriver`, and safaridriver is a
+      // fixed OS path, so admitting those shapes would widen the exec allowlist
+      // for no functional gain.
+      for (const name of ["chromedriver-99.9.9", "safaridriver-1.2"]) {
+        let execCalled = false;
+        const res = await verifyDriverBinary(
+          name.split("-")[0],
+          process.platform === "win32" ? "C:" + String.fromCharCode(92) + "cache" + String.fromCharCode(92) + name : "/opt/dd/browsers/" + name,
+          {
+            exec: async () => {
+              execCalled = true;
+              return { code: 0, stdout: "x 1.2.3", stderr: "" };
+            },
+          }
+        );
+        expect(res.ok, name).to.equal(false);
+        expect(execCalled, name).to.equal(false);
+      }
     });
 
     it("refuses a look-alike name that merely starts with a driver name", async function () {
