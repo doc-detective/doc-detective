@@ -231,6 +231,54 @@ describe("config.ts — patchAppCache (2.2)", function () {
     assert.equal(after[0].driver, "/fake/chromedriver");
   });
 
+  // Firefox needs its driver path on the app object, not just on the
+  // descriptor: getDriverCapabilities reads `app.driver` to pin the managed
+  // geckodriver, and appium-geckodriver otherwise falls back to PATH.
+  it("carries the resolved geckodriver path onto the firefox app", async function () {
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "linux" } };
+    await getAvailableApps({ config });
+    await patchAppCache(
+      config,
+      [
+        {
+          name: "firefox",
+          version: "141",
+          path: "/fake/firefox",
+          driverPath: "/fake/browsers/geckodriver-0.37.1",
+        },
+      ],
+      {
+        verify: async () => ({ ok: true }),
+        detectDrivers: () => ({ chromium: false, gecko: true, safari: false }),
+      }
+    );
+    const after = await getAvailableApps({ config });
+    assert.equal(after.length, 1);
+    assert.equal(after[0].name, "firefox");
+    assert.equal(after[0].driver, "/fake/browsers/geckodriver-0.37.1");
+  });
+
+  it("leaves the firefox app driverless when no geckodriver path was resolved", async function () {
+    // Layer 4: firefox still passes through so the session can try a PATH
+    // geckodriver; it just carries no path to pin.
+    const cacheDir = trackedTmpDir();
+    const config = { cacheDir, environment: { platform: "linux" } };
+    await getAvailableApps({ config });
+    await patchAppCache(
+      config,
+      [{ name: "firefox", version: "141", path: "/fake/firefox" }],
+      {
+        verify: async () => ({ ok: true }),
+        detectDrivers: () => ({ chromium: false, gecko: true, safari: false }),
+      }
+    );
+    const after = await getAvailableApps({ config });
+    assert.equal(after.length, 1);
+    assert.equal(after[0].name, "firefox");
+    assert.equal(after[0].driver, undefined);
+  });
+
   it("excludes a browser whose driver fails the functional gate (Layer 2 preserved)", async function () {
     const cacheDir = trackedTmpDir();
     const config = { cacheDir, environment: { platform: "windows" } };
