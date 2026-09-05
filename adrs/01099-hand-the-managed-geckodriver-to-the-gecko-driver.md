@@ -26,16 +26,19 @@ firefox unavailable; ran on chrome
 `getDriverCapabilities` had nothing to pass even though `resolveGeckodriverBinaryPath` had already
 resolved the binary for the Layer 2 functional gate.
 
-Two properties of the managed install make PATH a non-answer: the binary lives in Doc Detective's
-browsers cache (not on PATH), and since geckodriver v6 it is named `geckodriver-<version>`, so even
-adding that directory to PATH would not satisfy `which geckodriver`.
+Two properties of the managed install make PATH a non-answer. The binary lives in Doc Detective's
+browsers cache, which is not on PATH. And since geckodriver v6 it is named
+`geckodriver-<version>`, so even adding that directory to PATH would not satisfy
+`which geckodriver`.
 
-Why this stayed invisible: GitHub-hosted runners ship a system geckodriver on PATH, and the
-feature-fixture suite defaults to Firefox headless contexts
+Why this stayed invisible. GitHub-hosted runners ship a system geckodriver on PATH. The
+feature-fixture suite also defaults to Firefox headless contexts
 ([test/core-artifacts/config.groups.json](../test/core-artifacts/config.groups.json)). CI has
-therefore been exercising the *system* driver all along, never the managed one. Worse, the fixture
-suite could not have caught the container failure even if it ran there: no fixture asserted which
-engine actually carried a context, so a Firefox context that degraded to Chrome still reported PASS.
+therefore been exercising the *system* driver all along, never the managed one.
+
+Worse, the fixture suite could not have caught the container failure even if it ran there. No
+fixture asserted which engine actually carried a context, so a Firefox context that degraded to
+Chrome still reported PASS.
 
 ## Decision Drivers
 
@@ -91,11 +94,11 @@ driving both spellings through a raw session POST:
 | `gecko:custom_geckodriver_executable` | `session not created: … requires the 'custom_geckodriver_executable' insecure feature to be enabled` |
 | `*:custom_geckodriver_executable` | session created |
 
-So the wildcard driver scope is used. What `*` widens is the **driver** scope, not the feature: the
+So the wildcard driver scope is used. What `*` widens is the **driver** scope, not the feature. The
 granted feature is still `custom_geckodriver_executable`, and `appium-geckodriver` is the only
-package that defines or consults that name (verified against every driver the image installs:
-safari, xcuitest, gecko, chromium). The effective permission is therefore exactly what `gecko:` was
-meant to express: one driver, one capability.
+package that defines or consults that name. That was verified against every driver the image
+installs: safari, xcuitest, gecko, chromium. The effective permission is therefore exactly what
+`gecko:` was meant to express: one driver, one capability.
 
 **Run scope.** The flag goes on *every* desktop-pool server, not only runs that authored a Firefox
 context. The pool's servers are shared across contexts, and `buildFallbackCandidates` can route a
@@ -110,8 +113,8 @@ already chose.
 ### The capability must not be author-overridable
 
 Opting the server in to the insecure feature has a consequence that is easy to miss, and review
-caught it: `driverOptions` is a documented escape hatch on a `startSurface` browser descriptor,
-declared in the schema as an open object and merged into the computed capabilities **last**
+caught it. `driverOptions` is a documented escape hatch on a `startSurface` browser descriptor. The
+schema declares it as an open object, and it merges into the computed capabilities **last**
 (`Object.assign(caps, overrides.driverOptions)`). Before the opt-in existed, an authored
 `appium:geckodriverExecutable` was harmless, because Appium rejected the session outright. With the opt-in,
 that same authored value would be honoured, and Appium would spawn whatever binary the spec named.
@@ -130,13 +133,13 @@ capabilities be grouped under `appium:options`, and a value inside that group **
 over the same capability at the root**. So `{"appium:options": {"geckodriverExecutable": "..."}}`
 would have sailed past a top-level-only filter and overridden the managed path anyway. The guard
 therefore matches the capability in both of its legal spellings, prefixed at the root and unprefixed
-inside the group, and sanitizes a copy of the group so the spec's own object is never mutated (it is
-reused across a session retry).
+inside the group. It also sanitizes a copy of the group, so the spec's own object is never mutated.
+That object is reused across a session retry.
 
 Note that chrome's `appium:executable` is *not* on the list. It is author-settable today and was
-before this change: the Chromium driver accepts it without an insecure-feature opt-in, so it is
-pre-existing behaviour of the documented escape hatch rather than something this change introduces.
-Narrowing it is a separate decision.
+before this change, because the Chromium driver accepts it without an insecure-feature opt-in. That
+makes it pre-existing behaviour of the documented escape hatch, not something this change
+introduces. Narrowing it is a separate decision.
 
 ### Consequences
 
@@ -162,16 +165,18 @@ Narrowing it is a separate decision.
 
 ### Confirmation
 
-* Red→green unit tests: `getDriverCapabilities` sets the capability from `app.driver` and omits it
-  when absent; `applyDriverOptions` drops an authored `appium:geckodriverExecutable` (leaving the
-  computed one, or leaving the capability absent when there was none), warns naming the refused key,
-  and still merges every other authored capability, including the nested `appium:options` bypass in
-  both spellings and the no-mutation guarantee
-  ([test/context-resolution.test.js](../test/context-resolution.test.js)); the Firefox
-  app carries / omits `driver` through `patchAppCache`
-  ([test/config-coverage.test.js](../test/config-coverage.test.js)); and
-  `GECKODRIVER_EXECUTABLE_ARGS` is asserted verbatim, including the wildcard scope, since a wrong
-  value fails no startup check and only surfaces as a dead session later.
+* Red→green unit tests in
+  [test/context-resolution.test.js](../test/context-resolution.test.js) and
+  [test/config-coverage.test.js](../test/config-coverage.test.js):
+  * `getDriverCapabilities` sets the capability from `app.driver`, and omits it when absent.
+  * `applyDriverOptions` drops an authored `appium:geckodriverExecutable` and warns, naming the
+    refused key. The computed value survives. When nothing computed one, the capability stays absent.
+  * The nested `appium:options` bypass is refused in both spellings, and the authored object is
+    never mutated.
+  * Every other authored capability still merges.
+  * The Firefox app carries or omits `driver` through `patchAppCache`.
+  * `GECKODRIVER_EXECUTABLE_ARGS` is asserted verbatim, wildcard scope included. A wrong value
+    fails no startup check and surfaces only as a dead session later.
 * Feature fixture
   [test/core-artifacts/guards/firefox-managed-geckodriver.spec.json](../test/core-artifacts/guards/firefox-managed-geckodriver.spec.json)
   asserts the live `navigator.userAgent` carries `Firefox/<version>`, so a cross-browser fallback
