@@ -95,12 +95,13 @@ Option **D** is manual work that recurs on every busy PR, and it does not break 
 ### Consequences
 
 * Good: the prompt drops to roughly 4% of its previous size on the measured PR. What remains is
-  the change under review plus human commentary.
+  the PR metadata, its description, the review instructions, and human commentary. The diff was
+  never in the prompt, and the reviewer still fetches it on demand.
 * Good: the failure no longer compounds, because the action stops reading its own errors.
 * Good: no change to which pull requests get reviewed.
-* Bad, and accepted: a review comment left by a bot is now invisible to the reviewer. CodeRabbit
-  findings in particular will not be visible as prior context, so the two reviewers may repeat each
-  other. That is preferable to a review that cannot run.
+* Bad, and accepted: a review comment left by a bot no longer reaches the Claude review. It stays
+  visible on the PR for people. CodeRabbit findings in particular will not appear as prior context,
+  so the two reviewers may repeat each other. That is preferable to a review that cannot run.
 * Bad, and accepted: this reduces the input rather than bounding it. A pull request with enough
   human review comments could still assemble a large prompt. No threshold is introduced here
   because none is known: the logs show the rejection is instant and local, but not what limit it
