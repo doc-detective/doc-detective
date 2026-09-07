@@ -46,9 +46,9 @@ With [`verify` guards](record#verifying-the-video-file-itself):
 - `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
 - `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
 
-In a headless run of an `aboveVariation` or checkpointed span (the recording itself is skipped):
+When the capture is skipped but checkpoints still run—a headless run, or a target that already exists under `overwrite: "false"`—`stopRecord` compares against the committed baselines, writes nothing, and reports the checkpoint outputs above (`$$checkpoints`, `$$maxCheckpointVariation`, `$$checkpointErrors`) plus:
 
-- `$$stale`: whether the committed recording appears stale—its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint suggesting a headed re-run.
+- `$$stale`: whether the committed recording looks stale—its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint pointing at the fix for the skip you hit: a headed re-run for a headless skip, or `overwrite: "true"` / `"aboveVariation"` (or removing the file) when the target already exists.
 
 A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
 
