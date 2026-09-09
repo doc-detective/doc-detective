@@ -54,6 +54,26 @@ jobs:
           # with "Workflow initiated by non-human actor" instead of reviewing.
           # A posted review is not a push/synchronize event, so this can't loop.
           allowed_bots: 'promptless[bot],claude[bot]'
+          # Keep bot chatter out of the assembled prompt. `track_progress`
+          # runs this in tag mode, which preserves GitHub context: the PR
+          # body, issue comments, and every review comment. On a PR that has
+          # collected a lot of automated review output that context dwarfs
+          # everything else, and the run dies before making a single model
+          # call (`is_error: true`, `total_cost_usd: 0`, empty `modelUsage`).
+          #
+          # Measured on PR #713 from that run's own log. Of a 166,450-char
+          # prompt: github-actions (reviewdog's Vale batches) 62%,
+          # coderabbitai 27%, claude 7%, the human author 1%. So 96% of what
+          # was sent had nothing to do with the code under review.
+          #
+          # claude[bot] is the important one. Each failure posts "Claude
+          # encountered an error after 0s", which becomes context for the next
+          # run, so failures compound. Excluding it breaks that loop.
+          #
+          # This filters comment CONTEXT only. `allowed_bots` above governs
+          # who may TRIGGER a review, and still includes claude[bot], so
+          # agent-authored PRs are still reviewed. See ADR 01100.
+          exclude_comments_by_actor: 'github-actions[bot],coderabbitai[bot],claude[bot]'
           track_progress: true
           prompt: |
             REPO: ${{ github.repository }}
