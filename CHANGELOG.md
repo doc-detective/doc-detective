@@ -1,3 +1,10 @@
+## [4.38.4](https://github.com/doc-detective/doc-detective/compare/v4.38.3...v4.38.4) (2026-09-05)
+
+
+### Bug Fixes
+
+* **browsers:** make Firefox usable in the container image ([#715](https://github.com/doc-detective/doc-detective/issues/715)) ([dea9942](https://github.com/doc-detective/doc-detective/commit/dea99428b1eef1f51df94ead28e4ff7f668dc3be)), closes [#714](https://github.com/doc-detective/doc-detective/issues/714)
+
 ## [4.38.3](https://github.com/doc-detective/doc-detective/compare/v4.38.2...v4.38.3) (2026-09-05)
 
 
