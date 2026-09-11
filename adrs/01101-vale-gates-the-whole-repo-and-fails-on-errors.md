@@ -147,7 +147,8 @@ appears once the lint covers the repository.
 * [test/vale-workflow.test.js](../test/vale-workflow.test.js) pins the new contract. It asserts
   `files: all`, `fail_on_error: true`, `filter_mode: nofilter`, and `--minAlertLevel=error` on the
   "Run vale" step, plus a per-PR `concurrency` group with `cancel-in-progress: true`. It asserts all three dependency
-  pins: Vale and `mdx2vast` to exact versions, and Moose to a release tag. It also asserts that no `changed-files` step or `separator` input survives, and
+  pins: Vale and `mdx2vast` to exact versions, and Moose to a release tag. The Vale test also
+  enforces the 3.20.0 floor that Voices requires. It also asserts that no `changed-files` step or `separator` input survives, and
   that the `pull_request` trigger carries no `paths:` filter. Finally, it re-implements
   vale-action's `lib/input.js` resolution to show that `all` resolves to `.`, the whole-repo
   argument.

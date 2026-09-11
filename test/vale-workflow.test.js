@@ -149,11 +149,17 @@ describe("vale workflow whole-repo gate", function () {
       assert.match(String(install.run), /mdx2vast@\d+\.\d+\.\d+/);
     });
 
-    it("pins Vale itself to an exact version", function () {
+    it("pins Vale to an exact version at or above the Voices floor", function () {
       // Voices, pulled in by the Moose package, needs Vale >= 3.20.0, and an
       // unpinned Vale would let a release change rule behavior under the gate.
       // The third dependency pin, alongside Moose and mdx2vast.
       assert.match(String(runVale.with.version), /^\d+\.\d+\.\d+$/);
+      // A shape check alone would pass 3.19.5, which Voices cannot load under.
+      const [maj, min] = String(runVale.with.version).split(".").map(Number);
+      assert.ok(
+        maj > 3 || (maj === 3 && min >= 20),
+        `Vale ${runVale.with.version} is below the 3.20.0 floor Voices requires`
+      );
     });
 
     it("runs on every pull request", function () {
