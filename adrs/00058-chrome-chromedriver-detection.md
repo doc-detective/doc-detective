@@ -10,9 +10,10 @@ decision-makers: doc-detective maintainers
 
 Early app detection was Firefox-only; Chrome/Chromium detection existed but was disabled
 (`getAvailableApps` returned `{name, path}[]` with Chrome paths suppressed). To run tests in Chrome,
-the runner needed to find the installed Chrome binary and pair it with a chromedriver whose version
-matches that Chrome — a mismatched chromedriver fails to drive the browser. How should the runner
-detect Chrome and obtain the correct chromedriver, and how should that chromedriver be represented to
+the runner needed to find the installed Chrome binary. It also had to pair that with a chromedriver
+matching the Chrome version, since a mismatched chromedriver fails to drive the browser. How should
+the runner detect Chrome and obtain the correct chromedriver, and how should that chromedriver be
+represented to
 the driver layer?
 
 ## Decision Drivers
@@ -30,11 +31,11 @@ the driver layer?
 
 ## Decision Outcome
 
-Chosen option: **A**, because version-matching the chromedriver to the detected Chrome is the only
-reliable way to drive Chrome, and representing the chromedriver as a tracked app lets the driver layer
-locate it through the normal capability path. Chrome/Chromium detection is enabled in
-`getAvailableApps`; a chromedriver matching the detected Chrome version is installed and tracked as
-its own app entry; the driver receives its location via the `appium:executable` capability.
+Chosen option: **A**. Version-matching the chromedriver to the detected Chrome is the only reliable
+way to drive Chrome. Representing the chromedriver as a tracked app lets the driver layer locate it
+through the normal capability path. Chrome/Chromium detection is enabled in `getAvailableApps`. A
+chromedriver matching the detected Chrome version is installed and tracked as its own app entry.
+The driver receives its location through the `appium:executable` capability.
 
 ### Consequences
 

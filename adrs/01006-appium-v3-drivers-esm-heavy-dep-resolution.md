@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The optional Appium browser drivers were held at their pre-v3 majors in the dependency-freshness
-work (`appium-chromium-driver` `^2.2.5`, `appium-geckodriver` `^2.4.0`, `appium-safari-driver`
-`^4.1.16`) because bumping them to v3/v5 made **every** browser fixture fail across all platforms
+work: `appium-chromium-driver` `^2.2.5`, `appium-geckodriver` `^2.4.0`, and `appium-safari-driver`
+`^4.1.16`. Bumping them to v3 or v5 made **every** browser fixture fail across all platforms
 (Ubuntu/macOS/Windows) with:
 
 ```
@@ -18,8 +18,8 @@ WebDriverError: Could not find a driver for automationName 'Chromium' and platfo
 ```
 
 The initial hypothesis was that the v3 driver changed its `automationName` or registration name.
-Investigation disproved that: the v3.0.0 breaking changes are (1) a **full migration to native
-ESM** and (2) relocating the Chromedriver binary into the Appium strongbox cache. The
+Investigation disproved that. The v3.0.0 breaking changes are a **full migration to native
+ESM**, and relocating the Chromedriver binary into the Appium strongbox cache. The
 `automationName` (`Chromium` / `Gecko` / `Safari`) is unchanged.
 
 The real cause is in **doc-detective's heavy-dep resolver**. All three drivers now publish a
@@ -39,12 +39,12 @@ anchored at the driver's `node_modules`, and `appium driver list` reports no ins
 
 ## Decision Drivers
 
-* Fix the resolver generically — every Appium driver (and any future heavy dep) is migrating to
-  ESM-only exports; a per-package patch would not scale.
+* Fix the resolver generically. Every Appium driver, and any future heavy dep, is migrating to
+  ESM-only exports, and a per-package patch would not scale.
 * Keep the change behavior-neutral for packages that still expose a `require` entry (appium itself,
   webdriverio, sharp, …).
-* Validate the resolver fix locally; defer end-to-end driver-launch validation to the CI browser
-  matrix, which is the only environment that provisions Appium drivers and real browsers.
+* Validate the resolver fix locally. Defer end-to-end driver-launch validation to the CI browser
+  matrix, the only environment that provisions Appium drivers and real browsers.
 
 ## Considered Options
 
@@ -70,20 +70,20 @@ Chosen option **A**:
 
 ### Consequences
 
-* Good: the runner resolves ESM-only drivers again; `APPIUM_HOME` anchors correctly; the bonus is
-  a reduced `npm audit` surface (the newer `@appium/support` / `@appium/base-driver` trees drop the
-  `shell-quote` / `ws` / `form-data` advisories the v2 trees carried).
+* Good: the runner resolves ESM-only drivers again, and `APPIUM_HOME` anchors correctly. The bonus
+  is a reduced `npm audit` surface. The newer `@appium/support` / `@appium/base-driver` trees drop
+  the `shell-quote` / `ws` / `form-data` advisories the v2 trees carried.
 * Risk / CI-gated: breaking change #2 (Chromedriver binary relocation) is **not** covered by the
   resolver fix. The runner passes an explicit `appium:executable`, which should bypass the default
-  storage location, but only the CI fixture matrix can confirm the driver launches Chrome on each
+  storage location. But only the CI fixture matrix can confirm the driver launches Chrome on each
   platform. If a second-layer issue surfaces it is handled within this change's CI iteration.
 
 ### Confirmation
 
 * A red→green unit test in [test/runtime-loader.test.js](../test/runtime-loader.test.js) installs a
-  fixture package whose `.` export omits a `require` condition and asserts `resolveHeavyDepPath`
-  resolves it via the package.json fallback (it returned `null` before). The existing loader suite
-  stays green.
+  fixture package whose `.` export omits a `require` condition. It asserts `resolveHeavyDepPath`
+  resolves that through the package.json fallback, where it returned `null` before. The existing
+  loader suite stays green.
 * The lockfile is regenerated cross-platform and `npm ci` validated on Linux.
 * End-to-end: the CI browser fixture matrix (`test/core-core.test.js`,
   `test/core-getrunner-provision.test.js`) must pass on Ubuntu/macOS/Windows × Node 22/24.

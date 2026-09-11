@@ -8,18 +8,18 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The v2 step schemas (`00046`) defined what each step *looks like*, but the core still needed runtime
-handlers that *do* the work for each action — validating the step against its `*_v2` schema,
-resolving environment variables, and executing the action with sensible defaults. The
-network/shell actions in particular needed concrete behavior: how a shell command's exit code and
-stderr map to a verdict, how HTTP requests are issued and their bodies queried, and what default
-status codes count as success. What is the runtime contract for the v2 actions?
+The v2 step schemas (`00046`) defined what each step *looks like*. But the core still needed runtime
+handlers that *do* the work for each action. A handler validates the step against its `*_v2` schema,
+resolves environment variables, and executes the action with sensible defaults. The
+network/shell actions in particular needed concrete behavior. How does a shell command's exit code
+and stderr map to a verdict? How are HTTP requests issued and their bodies queried, and what
+default status codes count as success? What is the runtime contract for the v2 actions?
 
 ## Decision Drivers
 
 * Each handler validates its step against the matching `*_v2` schema before acting.
 * Resolve `$ENV`-style variables per step via `loadEnvs(step)` at execution time.
-* Forgiving URL handling — auto-prepend `https://` when a scheme is omitted.
+* Forgiving URL handling, auto-prepending `https://` when a scheme is omitted.
 * Clear success/failure semantics for `runShell`, `httpRequest`, and `checkLink`.
 
 ## Considered Options
@@ -33,10 +33,11 @@ status codes count as success. What is the runtime contract for the v2 actions?
 
 Chosen option: **A**. Each v2 action gets its own handler that validates the step against its
 `*_v2` schema, calls `loadEnvs(step)` to resolve variables, and auto-prepends `https://` to
-scheme-less URLs. Concrete semantics: `runShell` uses `spawnCommand` and **fails on a non-zero exit
-code or stderr output**; `httpRequest` issues requests via **axios** and queries response bodies
-with **node-jq**; `checkLink`/`httpRequest` share a schema with `statusCodes` defaulting to `[200]`
-and the HTTP method set extended with `put`. This is the runtime counterpart to the v2 schema
+scheme-less URLs. Concrete semantics follow. `runShell` uses `spawnCommand` and **fails on a
+non-zero exit code or stderr output**. `httpRequest` issues requests through **axios** and queries
+response bodies with **node-jq**. `checkLink` and `httpRequest` share a schema with `statusCodes`
+defaulting to `[200]`, and the HTTP method set extended with `put`. This is the runtime counterpart
+to the v2 schema
 family (`00046`); the `find` inline-subaction runtime is recorded separately in `00048`. The
 stderr-fails-runShell rule is later relaxed (`00074`).
 

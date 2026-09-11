@@ -9,8 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 With validation (`00041`) and the v1 step vocabulary (`00040`) in place, the standalone-schema
-package still had no schema for the **config file** itself — the document users author to point
-Doc Detective at their inputs and tune its behavior. Configuration had until then been an ad-hoc
+package still had no schema for the **config file** itself. That's the document users author to
+point Doc Detective at their inputs and tune its behavior. Configuration had until then been an
+ad-hoc
 bag of CLI-era fields. We needed a single versioned schema that named every config knob and its
 shape so file config could be validated the same way tests are. What fields does `config_v1`
 guarantee?
@@ -33,9 +34,9 @@ guarantee?
 Chosen option: **A**, because config deserves its own versioned contract just like tests do.
 `config_v1` defines: `input`, `setup`/`cleanup` lifecycle, `recursive` discovery, `output`,
 `testExtensions`, `fileTypes` markup config, browser options (`headless`, `path`, dimensions),
-and `analytics`. Config files now validate through the shared `validate()` API, and the `_v1`
-suffix mirrors the step and spec schema versioning so config can evolve on its own version track
-(superseded by `config_v2` in `00050`, then `config_v3` in `00099`).
+and `analytics`. Config files now validate through the shared `validate()` API. The `_v1`
+suffix mirrors the step and spec schema versioning, so config can evolve on its own version track.
+It was superseded by `config_v2` in `00050`, then `config_v3` in `00099`.
 
 ### Consequences
 

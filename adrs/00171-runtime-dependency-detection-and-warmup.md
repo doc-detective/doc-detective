@@ -8,12 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-A test run can target several browsers, but the heavy per-browser assets (the matching driver, the
-browser binary, the Appium automation driver) are expensive to install and not all of them are
-needed for any given run. Installing everything up front wastes time; installing nothing leaves the
-runner to fail mid-run when a driver is missing. The runner also spins up an in-process Appium server
-("warm-up") for driver-backed steps, but warming it up when no test actually needs a driver burns
-startup time. How should the runner decide which browser assets to provision and when to pay the
+A test run can target several browsers, but the heavy per-browser assets are expensive to install.
+Those are the matching driver, the browser binary, and the Appium automation driver, and not all of
+them are needed for any given run. Installing everything up front wastes time. Installing nothing
+leaves the runner to fail mid-run when a driver is missing. The runner also spins up an in-process
+Appium server, a "warm-up", for driver-backed steps. Warming it up when no test actually needs a
+driver burns startup time. How should the runner decide which browser assets to provision and when to pay the
 Appium warm-up cost?
 
 ## Decision Drivers
@@ -32,16 +32,16 @@ Appium warm-up cost?
 
 ## Decision Outcome
 
-Chosen option: **A**, because table-driving the per-browser asset set keeps provisioning declarative
-and lets the runner compute the exact install set from the browsers a run resolves to, while the
-warm-up guard avoids paying the Appium startup cost for runs that never touch a driver.
+Chosen option: **A**. Table-driving the per-browser asset set keeps provisioning declarative. The
+runner computes the exact install set from the browsers a run resolves to. The warm-up guard avoids
+paying the Appium startup cost for runs that never touch a driver.
 
 Contract decided:
 
-* `requiredBrowserAssets(name)` returns the asset set (driver / browser binary / Appium driver) for a
-  given browser name; the provisioning step unions the assets across the browsers a run needs.
-* Appium warm-up is guarded: the in-process server is started only when at least one resolved test
-  requires a driver, otherwise warm-up is skipped.
+* `requiredBrowserAssets(name)` returns the asset set for a given browser name: driver, browser
+  binary, and Appium driver. The provisioning step unions the assets across the browsers a run needs.
+* Appium warm-up is guarded. The in-process server starts only when at least one resolved test
+  requires a driver, and warm-up is skipped otherwise.
 
 Implementation in `src/core/tests.ts` (warm-up guard) and `src/core/browsers.ts`
 (`requiredBrowserAssets` table).

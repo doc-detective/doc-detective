@@ -3,7 +3,7 @@ title: Test HTTP and APIs
 description: Issue the API requests in your docs, assert on the responses, and chain calls together with captured values.
 ---
 
-When your docs show an API request and the response a reader should expect, Doc Detective can issue that request and confirm the response still matches. This guide walks you through a complete journey: make a request, assert on its status and body, capture a value from the response, and reuse that value in a follow-up request. It also shows you how to validate links with `checkLink`.
+Your docs show an API request and the response a reader should expect. Doc Detective can issue that request and confirm the response still matches. This guide walks a complete journey. Make a request, assert on its status and body, capture a value from the response, and reuse that value in a follow-up request. It also covers validating links with `checkLink`.
 
 For the full set of `httpRequest` fields and more worked examples, see the [`httpRequest`](/docs/actions/httprequest) action reference. This guide walks the path; the reference is where you look things up.
 
@@ -67,7 +67,7 @@ A request that returns a response isn't necessarily a request that returned the 
 
 - Set `statusCodes` to the codes you accept. The step fails if the response code isn't in the list. The default is `[200]`, so set it explicitly when you expect something else, such as `201` for a created resource.
 - Set `response.body` to assert specific values.
-- Set `response.required` to assert that fields exist without pinning their values—useful for timestamps, IDs, and tokens that change every run.
+- Set `response.required` to assert that fields exist without pinning their values. That suits timestamps, IDs, and tokens that change every run.
 
 {/* test {"testId":"http-api-assert-response","detectSteps":false} */}
 
@@ -96,7 +96,7 @@ Fields listed in `response.required` use dot notation for nested fields (`user.p
 
 ## Step 3: Capture a value and reuse it
 
-To chain calls—create something, then fetch it—capture part of the response with the step-level `variables` object, then reference the variable with `$NAME` in a later step.
+To chain calls, such as creating something and then fetching it, capture part of the response with the step-level `variables` object. Reference the variable with `$NAME` in a later step.
 
 {/* test {"testId":"http-api-capture-reuse","detectSteps":false} */}
 
@@ -136,7 +136,7 @@ To chain calls—create something, then fetch it—capture part of the response 
 {/* step {"stepId":"http-api-fetch-with-id","description":"Use the captured ID as a path segment, matching the doc's own URL shape exactly. The echo server reflects the resolved request path in an x-echo-path response header (not the body, so it can't be confused with real response data), proving $USER_ID was genuinely substituted rather than left as a literal string","httpRequest":{"url":"http://localhost:8092/api/users/$USER_ID","method":"GET","response":{"headers":{"x-echo-path":"/api/users/neo-101"}}}} */}
 {/* test end */}
 
-Response expressions such as `$$response.body`, `$$response.headers`, and `$$response.status` support dot notation for nested JSON fields—for example, `$$response.body.user.id`.
+Response expressions such as `$$response.body`, `$$response.headers`, and `$$response.status` support dot notation for nested JSON fields. For example, `$$response.body.user.id`.
 
 ## Step 4: Validate links
 

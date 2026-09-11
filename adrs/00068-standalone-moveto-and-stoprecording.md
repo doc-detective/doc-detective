@@ -11,13 +11,13 @@ decision-makers: doc-detective maintainers
 Cursor movement existed only as a boolean sub-option of `find` (`find.moveTo`), which couldn't
 express *where* to move (a selector, alignment, offset, duration). Recording also needed a versioned
 stop action that could stand on its own in a test's step list. To support cursor-driven recordings
-and clearer authoring, we needed a standalone `moveTo` action and a `stopRecording_v2` action, and we
-needed `find.moveTo` to carry configuration rather than just on/off. What should these action shapes
+and clearer authoring, we needed a standalone `moveTo` action and a `stopRecording_v2` action. We
+also needed `find.moveTo` to carry configuration rather than just on/off. What should these shapes
 be?
 
 ## Decision Drivers
 
-* Cursor movement needs target, alignment, offset, and timing — a boolean can't express that.
+* Cursor movement needs target, alignment, offset, and timing. A boolean can't express that.
 * `find.moveTo` should configure the move, not just toggle it.
 * Recording stop must be a first-class, versioned action usable directly in steps.
 * Start/stop recording must be part of the test-steps union so they validate as steps.

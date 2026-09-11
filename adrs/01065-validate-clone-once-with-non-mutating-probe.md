@@ -10,9 +10,9 @@ decision-makers: doc-detective maintainers
 
 `validate()` in `src/common/src/validate.ts` is the hot path of test detection: every spec, test,
 and step is validated against a v3 schema, and `step_v3` validation happens once per step. The
-function is built on an Ajv instance configured with `useDefaults: true` and `coerceTypes: true` —
-**both of which mutate the data they validate** (defaults are written in, values are coerced in
-place). To keep the caller's object unmutated, the old code deep-cloned before every validation:
+function is built on an Ajv instance configured with `useDefaults: true` and `coerceTypes: true`.
+**Both of those mutate the data they validate.** Defaults are written in, and values are coerced in
+place. To keep the caller's object unmutated, the old code deep-cloned before every validation:
 
 ```ts
 // target-schema attempt
@@ -27,13 +27,13 @@ const matchedSchemaKey = compatibleSchemasList.find((key) => {
 });
 ```
 
-`step_v3` lists **12** compatible v2 schemas (`checkLink_v2`, `find_v2`, …), so a v2-shaped or
+`step_v3` lists **12** compatible v2 schemas, such as `checkLink_v2` and `find_v2`. So a v2-shaped or
 invalid step could pay **up to 13 full `JSON.parse(JSON.stringify(...))` deep clones plus 13 full
-Ajv validations** before resolving — the dominant detection CPU cost on step-heavy specs
-(`docs/design/run-performance.md`, item 3.2).
+Ajv validations** before resolving. That's the dominant detection CPU cost on step-heavy specs, per
+`docs/design/run-performance.md`, item 3.2.
 
-The clone exists *only* because the validators mutate. The probing question — "which compatible
-schema does this object match?" — does not need a mutated result at all; it needs a yes/no.
+The clone exists *only* because the validators mutate. The probing question is "which compatible
+schema does this object match?" It does not need a mutated result at all. It needs a yes or no.
 
 ## Decision Drivers
 
@@ -51,9 +51,9 @@ schema does this object match?" — does not need a mutated result at all; it ne
 
 * **A. Add a second, non-mutating Ajv (`ajvCheck`) to probe candidates; clone once for the winner**
   (chosen).
-* **B. Keep one Ajv, but clone once up front and reset the clone between candidate probes** — still
-  pays per-candidate work and is easy to get subtly wrong (coercions from a failed candidate
-  leaking into the next probe).
+* **B. Keep one Ajv, but clone once up front and reset the clone between candidate probes.** It
+  still pays per-candidate work, and is easy to get subtly wrong, with coercions from a failed
+  candidate leaking into the next probe.
 * **C. Replace the `JSON.parse(JSON.stringify(...))` clone primitive with `structuredClone`** on the
   detection path, as floated in the design.
 
@@ -61,7 +61,7 @@ schema does this object match?" — does not need a mutated result at all; it ne
 
 Chosen: **A**, and **not C**.
 
-### A — non-mutating probe + clone-once
+### A: non-mutating probe, then clone once
 
 A second Ajv instance, `ajvCheck`, is created with `useDefaults: false` and `coerceTypes: false`
 (same `strictSchema`/`allErrors`/`allowUnionTypes`, same `ajv-formats`/`ajv-keywords`/`ajv-errors`
@@ -75,9 +75,9 @@ const matchedSchemaKey = compatibleSchemasList.find((key) => {
 });
 ```
 
-Once a candidate matches, the code reproduces the *exact* input the old transform received — a
-single fresh clone run through the **mutating** `ajv` for the matched schema (so its v2
-defaults/coercions are applied identically) — then transforms and re-validates against the target:
+Once a candidate matches, the code reproduces the *exact* input the old transform received. That's a
+single fresh clone run through the **mutating** `ajv` for the matched schema, so its v2 defaults and
+coercions are applied identically. It then transforms and re-validates against the target:
 
 ```ts
 validationObject = cloneForValidation(object);
@@ -91,46 +91,46 @@ Net: **at most 2 clones** (target attempt + winning pass) instead of up to 13, a
 candidate validations become cheap non-mutating checks.
 
 The candidate schemas compile **lazily** on first use in `ajvCheck`, so only the candidates actually
-probed are ever compiled — the second instance adds no eager startup cost.
+probed are ever compiled. The second instance adds no eager startup cost.
 
 **Selection equivalence (invariant d).** The old loop selected the first candidate whose *mutating*
-validator passed on a fresh clone; the new loop first tries the *non-mutating* validator on the
-original. Because `useDefaults`/`coerceTypes` only make Ajv *more* permissive, a non-mutating match
-is always a mutating match too — so the fast path is exact for any candidate whose validity does not
-depend on a default or coercion. It **can** diverge for a candidate whose validity *does* depend on
-one, and this is not merely theoretical: `config_v2`'s `telemetry.send` is `required` **and** carries
-a default, so a legacy config that includes a `telemetry` object but omits `send` validates only once
-`useDefaults` fills it. The non-mutating probe would reject it and the whole config would be reported
-invalid — a real regression.
+validator passed on a fresh clone. The new loop first tries the *non-mutating* validator on the
+original. `useDefaults` and `coerceTypes` only make Ajv *more* permissive, so a non-mutating match
+is always a mutating match too. The fast path is therefore exact for any candidate whose validity
+does not depend on a default or coercion. It **can** diverge for a candidate whose validity *does*
+depend on one, and this is not merely theoretical. `config_v2`'s `telemetry.send` is `required`
+**and** carries a default. So a legacy config that includes a `telemetry` object but omits `send`
+validates only once `useDefaults` fills it. The non-mutating probe would reject it, and the whole
+config would be reported invalid. That's a real regression.
 
-To close this, the non-mutating probe is a **fast path with a fallback**: when it finds no match, the
+To close this, the non-mutating probe is a **fast path with a fallback**. When it finds no match, the
 code replays the original clone-per-candidate **mutating** probe before declaring no match. So no
-input that validated under the old code is ever newly rejected; the fallback runs only on the rare
-no-fast-match path, so the common case keeps its single-clone win. (Selection *order* could still
-differ only if an input matched two candidates where an earlier one is mutating-only — impossible for
-the single-candidate compatible lists, and `step_v3`'s candidates are mutually-exclusive step shapes,
-so no input matches two.) A dedicated regression test pins the `config_v2` telemetry.send case, and
-equivalence is further confirmed by the pinned invariants, the full `schema.test.js` example suite,
-the rest of `validate.test.js`, and the end-to-end core fixtures.
+input that validated under the old code is ever newly rejected. The fallback runs only on the rare
+no-fast-match path, so the common case keeps its single-clone win. Selection *order* could still
+differ only if an input matched two candidates where an earlier one is mutating-only. That's
+impossible for the single-candidate compatible lists. And `step_v3`'s candidates are
+mutually-exclusive step shapes, so no input matches two. A dedicated regression test pins the
+`config_v2` telemetry.send case. Equivalence is further confirmed by the pinned invariants, the full
+`schema.test.js` example suite, the rest of `validate.test.js`, and the end-to-end core fixtures.
 
-### Not C — keep the JSON-clone primitive
+### Not C: keep the JSON-clone primitive
 
-`structuredClone` was implemented and rejected: it is **not** semantically equivalent to
+`structuredClone` was implemented and rejected. It is **not** semantically equivalent to
 `JSON.parse(JSON.stringify(...))` for the objects this function actually validates. The JSON
-round-trip *normalizes* — it maps `NaN`→`null` and drops `undefined`-valued keys — and that
+round-trip *normalizes*. It maps `NaN`→`null` and drops `undefined`-valued keys, and that
 normalization is **load-bearing**. `transformToSchemaKey` builds objects with `maxVariation:
-object.maxVariation / 100`; when a v2 step omits `maxVariation`, that is `undefined / 100 === NaN`.
-Under the JSON clone `NaN` becomes `null` and validation proceeds as it always has; under
-`structuredClone` the `NaN` survives verbatim and Ajv rejects it — flipping invariant (c) and
-breaking eight existing `transformToSchemaKey` tests when tried. `structuredClone` also throws on
-functions/symbols, which would break the "never throws" contract.
+object.maxVariation / 100`. When a v2 step omits `maxVariation`, that is `undefined / 100 === NaN`.
+Under the JSON clone `NaN` becomes `null`, and validation proceeds as it always has. Under
+`structuredClone` the `NaN` survives verbatim and Ajv rejects it. That flips invariant (c), and
+broke eight existing `transformToSchemaKey` tests when tried. `structuredClone` also throws on
+functions and symbols, which would break the "never throws" contract.
 
 The clone primitive is therefore centralized in a `cloneForValidation()` helper that keeps the JSON
 round-trip, with the reasoning inline. The Phase 3.2 win comes entirely from cloning *once* and
-probing without mutation — not from the clone primitive. The design's `structuredClone` suggestion
-was scoped to "where JSON-value semantics are guaranteed"; inside the shared `validate()` they are
-not guaranteed (the transform pipeline feeds it `NaN`/`undefined`), so the guarantee does not hold
-and the swap is not made.
+probing without mutation, rather than from the clone primitive. The design's `structuredClone`
+suggestion was scoped to "where JSON-value semantics are guaranteed". Inside the shared `validate()`
+they are not guaranteed, since the transform pipeline feeds it `NaN` and `undefined`. So the
+guarantee does not hold, and the swap is not made.
 
 ### Consequences
 
@@ -146,13 +146,14 @@ and the swap is not made.
 
 ### Confirmation
 
-* Invariant-pinning tests added **before** the refactor in `src/common/test/validate.test.js`
-  ("clone strategy invariants (phase 3.2)"): direct-path non-mutation, compatible-path non-mutation,
-  correct compatible-schema selection + defaulted transformed result (`step_v3`←`checkLink_v2`,
-  `config_v3`←`config_v2`), `addDefaults: false` returns the original untouched, no-match reports
-  invalid with the original returned, and deep-clone independence. All pass before and after.
-* Full `src/common` suite (956 tests) green; coverage ratchet holds at 100% lines/statements/
-  functions/branches.
+* Invariant-pinning tests were added **before** the refactor in `src/common/test/validate.test.js`,
+  under "clone strategy invariants (phase 3.2)". They cover direct-path non-mutation,
+  compatible-path non-mutation, and correct compatible-schema selection with a defaulted transformed
+  result, for `step_v3`←`checkLink_v2` and `config_v3`←`config_v2`. They also cover
+  `addDefaults: false` returning the original untouched, no-match reporting invalid with the original
+  returned, and deep-clone independence. All pass before and after.
+* The full `src/common` suite of 956 tests is green. The coverage ratchet holds at 100% of lines,
+  statements, functions, and branches.
 * Root core fixtures and detection/resolution unit suites exercise real v2→v3 detection end to end.
 
 ## Pros and Cons of the Options
@@ -174,7 +175,7 @@ and the swap is not made.
 
 ## More Information
 
-Design: `docs/design/run-performance.md` (Phase 3, item 3.2; Decision 4 on clone safety).
-Docs-impact: **none** — this is an internal validation-performance change. `validate()`'s public
-contract (return shape, defaults, validity, never-throws) is unchanged, so no user-facing schema,
-CLI, or output surface moves.
+Design: `docs/design/run-performance.md`, Phase 3, item 3.2, plus Decision 4 on clone safety.
+Docs-impact: **none**. This is an internal validation-performance change. `validate()`'s public
+contract is unchanged, covering return shape, defaults, validity, and never-throws. So no
+user-facing schema, CLI, or output surface moves.

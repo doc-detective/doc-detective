@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Once `doc-detective` became a monorepo with workspaces (`src/core`, `src/common`, `src/container`),
-the published npm package and the `npx doc-detective` experience broke: the `package.json` `files`
-list and `scripts/` didn't reflect the bundled layout, and the workspace declarations confused
+the published npm package and the `npx doc-detective` experience broke. The `package.json` `files`
+list and `scripts/` didn't reflect the bundled layout. The workspace declarations also confused
 package resolution when the tarball was installed standalone. Running `npx doc-detective` would fail
 because the packed package still pointed at workspace siblings that don't exist outside the repo.
 What should the published package contain, and how do we keep `npx` working after the monorepo merge?
@@ -30,17 +30,17 @@ What should the published package contain, and how do we keep `npx` working afte
 
 ## Decision Outcome
 
-Chosen option: **A**, because the workspace declarations are only valid inside the repo; stripping
-them at pack time (and restoring them afterward) makes the published tarball self-contained while
-keeping the in-repo workspace dev setup intact.
+Chosen option: **A**. The workspace declarations are only valid inside the repo. Stripping them at
+pack time, and restoring them afterward, makes the published tarball self-contained. The in-repo
+workspace dev setup stays intact.
 
 The contract:
 
 * `package.json` `files` and `scripts/` are curated so the published package contains the bundled
   layout (this changes published package contents).
-* A `prepack` step strips the `workspaces` declaration during packing; a `postpack` step restores
-  it — so the tarball installs standalone and `npx doc-detective` resolves correctly, while the repo
-  keeps its workspace setup for development.
+* A `prepack` step strips the `workspaces` declaration during packing, and a `postpack` step
+  restores it. The tarball then installs standalone and `npx doc-detective` resolves correctly,
+  while the repo keeps its workspace setup for development.
 
 ### Consequences
 

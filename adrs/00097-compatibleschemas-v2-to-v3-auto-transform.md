@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The v3 redesign (`00096`) moved the action into the object key and renamed fields (`id`→`stepId`, `setVariables`→`variables`, `byVariation`→`aboveVariation`). Existing user content authored against v2 would otherwise fail v3 validation outright. Rather than force a manual rewrite of every spec, should the validator detect a v2-shaped object and transform it to the v3 action-key shape automatically before validating?
+The v3 redesign (`00096`) moved the action into the object key and renamed fields (`id`→`stepId`, `setVariables`→`variables`, `byVariation`→`aboveVariation`). Existing user content authored against v2 would otherwise fail v3 validation outright. Should the validator detect a v2-shaped object and transform it to the v3 action-key shape automatically, before validating? That would avoid forcing a manual rewrite of every spec.
 
 ## Decision Drivers
 

@@ -10,9 +10,10 @@ decision-makers: doc-detective maintainers
 
 With the v2 step family (`00046`) and v2 containers (`00049`) in place, the config schema still sat
 at `config_v1` (`00043`) and no longer matched the v2 world. The config file needed a second
-version that aligned its fields, defaults, and required keys with v2 — covering fileType/markup
-definitions, telemetry, and sensible discovery defaults — and that fixed a `$ref` resolution quirk
-where references carried a `file://` prefix. What does `config_v2` guarantee, and what defaults does
+version that aligned its fields, defaults, and required keys with v2. That covers fileType and
+markup definitions, telemetry, and sensible discovery defaults. It also fixed a `$ref` resolution
+quirk where references carried a `file://` prefix. What does `config_v2` guarantee, and what
+defaults does
 it set?
 
 ## Decision Drivers

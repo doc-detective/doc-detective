@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When a step in a test FAILs, the steps that follow it usually depend on the failed step's effect
-(e.g. a `find` that never matched, so the subsequent `click` cannot run meaningfully). Running them
+When a step in a test FAILs, the steps that follow it usually depend on the failed step's effect.
+Take a `find` that never matched, so the subsequent `click` cannot run meaningfully. Running them
 anyway produced noisy cascading failures that obscured the real cause. Separately, the unified
-`outputs` model (`00105`) gave find/click an `outputs.element`, but it carried only minimal data and
-held a raw element reference that should not survive into reports. The question: should steps after a
+`outputs` model (`00105`) gave find/click an `outputs.element`. But it carried only minimal data,
+and held a raw element reference that should not survive into reports. The question: should steps after a
 FAIL be skipped rather than failed, and what should `outputs.element` expose?
 
 ## Decision Drivers
@@ -34,11 +34,11 @@ FAIL be skipped rather than failed, and what should `outputs.element` expose?
 Chosen option: **A**. Two behaviors landed together:
 
 1. **Stop-on-fail.** Once a step in a test reports FAIL, the remaining steps are marked **SKIPPED**
-   rather than executed/failed, so a single root cause no longer cascades. (Cleanup/`after` steps
-   are later hard-routed to run anyway — see `01000`.)
-2. **Rich element outputs.** `setElementOutputs` builds a richer `outputs.element`; a `rawElement`
-   handle is carried during processing and then **stripped** before reporting; attribute reads run
-   concurrently via `allSettled` so one failing read doesn't abort the others.
+   rather than executed or failed. A single root cause no longer cascades. (Cleanup and `after`
+   steps are later hard-routed to run anyway; see `01000`.)
+2. **Rich element outputs.** `setElementOutputs` builds a richer `outputs.element`. A `rawElement`
+   handle is carried during processing, then **stripped** before reporting. Attribute reads run
+   concurrently through `allSettled`, so one failing read doesn't abort the others.
 
 Commits `1cd5c7b`, `b25a88c`.
 

@@ -37,11 +37,11 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 ### Lazy-installed runtime
 
-`npm i doc-detective` installs the CLI and then, at postinstall, pre-installs the heavy runtime assets — browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them (webdriverio, appium, sharp, etc.) — into `<os.tmpdir()>/doc-detective/` (or `DOC_DETECTIVE_CACHE_DIR`). This keeps a fresh install — and any Docker image built `FROM` it — ready to run without a separate step. The pre-install runs in a child process whose output is captured, so npm's deprecation warnings from the heavy transitive trees never reach your terminal.
+`npm i doc-detective` installs the CLI, then pre-installs the heavy runtime assets at postinstall. Those are browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them. That last group includes webdriverio, appium, and sharp. They land in `<os.tmpdir()>/doc-detective/`, or `DOC_DETECTIVE_CACHE_DIR`. This keeps a fresh install ready to run without a separate step, as it does any Docker image built `FROM` it. The pre-install runs in a child process whose output is captured. npm's deprecation warnings from the heavy transitive trees therefore never reach your terminal.
 
-**Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_AUTOINSTALL=0` (also accepts `false`/`no`/`off`). The CLI install then stays small — no browser download, no heavy npm packages — and the heavy assets install lazily the first time a test needs them instead, or up front via `doc-detective install all`.
+**Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_AUTOINSTALL=0`, which also accepts `false`, `no`, and `off`. The CLI install then stays small, with no browser download and no heavy npm packages. The heavy assets install lazily the first time a test needs them, or up front through `doc-detective install all`.
 
-Either way, the *published* package declares the heavy packages in neither `dependencies` nor `optionalDependencies`, so npm itself never fetches them as part of the dependency tree. (In the source repo they live under `optionalDependencies`; the publish step rewrites them into a custom `ddRuntimeDependencies` field.) The resolver reads that field's version constraints when it installs each dep into the cache — whether at postinstall or on first use.
+Either way, the *published* package declares the heavy packages in neither `dependencies` nor `optionalDependencies`. npm itself therefore never fetches them as part of the dependency tree. In the source repo they live under `optionalDependencies`, and the publish step rewrites them into a custom `ddRuntimeDependencies` field. The resolver reads that field's version constraints when it installs each dep into the cache, whether at postinstall or on first use.
 
 - **Pre-install everything up front:**
 
@@ -71,7 +71,7 @@ Either way, the *published* package declares the heavy packages in neither `depe
 
 ### Auto-update
 
-By default, `doc-detective` checks the npm registry on startup and self-updates if a newer release is available — global installs run `npm install -g`, `npx` invocations re-exec via `npx -y doc-detective@latest`, and local project installs print an "update available" hint instead of mutating your `package.json`. To opt out:
+By default, `doc-detective` checks the npm registry on startup and self-updates if a newer release is available. Global installs run `npm install -g`, and `npx` invocations re-exec through `npx -y doc-detective@latest`. Local project installs print an "update available" hint instead of mutating your `package.json`. To opt out:
 
 - `--no-auto-update` on the CLI
 - `autoUpdate: false` in `.doc-detective.json`

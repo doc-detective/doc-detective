@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Early Doc Detective gated diagnostic output behind hardcoded debug branches inside the runner, so a
+Early Doc Detective gated diagnostic output behind hardcoded debug branches inside the runner. A
 user could not turn detailed logging on or off without editing source. The runner needed a single,
-user-controllable switch — exposed both as a config field and a CLI flag — that decided whether the
-tool emitted verbose progress and diagnostic logs. How should that switch be named and wired so that
+user-controllable switch, exposed both as a config field and a CLI flag. That switch decides whether
+the tool emits verbose progress and diagnostic logs. How should it be named and wired so that
 config files and the command line both reach the same logging behavior?
 
 ## Decision Drivers
@@ -29,14 +29,14 @@ config files and the command line both reach the same logging behavior?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a single boolean was the smallest change that removed the hardcoded
-gating and gave users an obvious on/off control reachable from both config and CLI. A `verbose`
-boolean was added to `config.json` and a `--verbose` flag (short alias `-v`) was added to the CLI in
-`utils.js`; the flag overrides the config value, and the runner reads the merged setting instead of
+Chosen option: **A**. A single boolean was the smallest change that removed the hardcoded gating.
+It gave users an obvious on/off control reachable from both config and CLI. A `verbose`
+boolean was added to `config.json`, and a `--verbose` flag (short alias `-v`) was added to the CLI in
+`utils.js`. The flag overrides the config value, and the runner reads the merged setting instead of
 its old hardcoded debug branches.
 
-This boolean was deliberately the simplest contract that worked; it was later **superseded by a
-multi-level `logLevel` enum** (see `00027`) once a single on/off proved too coarse.
+This boolean was deliberately the simplest contract that worked. It was later **superseded by a
+multi-level `logLevel` enum** (see `00027`), once a single on/off proved too coarse.
 
 ### Consequences
 

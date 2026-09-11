@@ -10,10 +10,10 @@ decision-makers: doc-detective maintainers
 
 Auto-detection turns documentation markup into test steps by matching `fileType.markup`
 regexes. The early engine matched one action per markup rule and only carried bare action
-names, so a single line could not yield multiple steps and a matched URL or selector could
+names. So a single line could not yield multiple steps, and a matched URL or selector could
 not be threaded into the generated step. How should markup detection extract structured
-data from a line (e.g. the href and link text of a Markdown link) and map it onto a fully
-specified step, rather than just naming an action?
+data from a line, such as the href and link text of a Markdown link? And how should it map
+that onto a fully specified step, rather than just naming an action?
 
 ## Decision Drivers
 
@@ -24,8 +24,8 @@ specified step, rather than just naming an action?
 
 ## Considered Options
 
-* **A. Rewrite detection around `matchAll` multi-regex with a built-in `actionMap` and `$n`
-  capture-group substitution, and let markup `actions` accept a bare action name OR a full
+* **A. Rewrite detection around `matchAll` multi-regex, with a built-in `actionMap` and `$n`
+  capture-group substitution. Let markup `actions` accept a bare action name OR a full
   step-definition `$ref`** (chosen).
 * **B. Keep single-match detection and add a separate post-processing pass to expand actions.**
 * **C. Require authors to hand-write tests instead of inferring from markup.**
@@ -35,16 +35,16 @@ specified step, rather than just naming an action?
 Chosen option: **A**, because capture-group substitution is the natural way to thread matched
 text into a step, and `matchAll` lets one rule emit several steps. The detect engine was
 rewritten to iterate matches with `matchAll`, resolve each against a built-in `actionMap`, and
-substitute `$n` placeholders with the corresponding capture group; the schema was widened so a
+substitute `$n` placeholders with the corresponding capture group. The schema was widened so a
 markup `actions` entry can be a bare action name OR a full step-definition `$ref`
 (core `3dc533`; common `a07d6da`, `0a5b4e8`, `0cea515`, Seq 119).
 
-This was refined shortly after: full-step `$ref` shapes were re-introduced in markup `actions`,
-`navigationLink` regexes mapped to `goTo`, `hyperlink` mapped to `checkLink` only, and default
+This was refined shortly after. Full-step `$ref` shapes were re-introduced in markup `actions`, and
+`navigationLink` regexes mapped to `goTo`. `hyperlink` mapped to `checkLink` only, and default
 actions were dropped from `emphasis`/`codeInline`/`codeBlock` (common `209e5b77`, Seq 121).
 
-The net contract: markup rules match with `matchAll`, capture groups substitute into step
-fields via `$n`, and an action entry is either a bare name or a full `$ref` step definition.
+The net contract: markup rules match with `matchAll`, and capture groups substitute into step
+fields through `$n`. An action entry is either a bare name or a full `$ref` step definition.
 
 ### Consequences
 

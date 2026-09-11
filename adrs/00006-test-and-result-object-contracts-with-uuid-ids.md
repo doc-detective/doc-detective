@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The runner needed stable shapes for what a test *is* and what a run *produces*, plus a way to identify tests that authors did not name. The commits `8d16362a` and `c2656b66` (2022-05-03) introduced a `testDefinition` contract and a `testResult` contract (`ref/testDefinition.json`, `ref/testResult.json`), an enumerated set of actions (`open`/`find`/`click`/`sendKeys`/`wait`/`screenshot`/`recordStart`/`recordStop`/`imageDiff`), and a `setTest` step that generates a UUID id for any test lacking one. How should tests and results be modeled, and how should unnamed tests be identified?
+The runner needed stable shapes for what a test *is* and what a run *produces*. It also needed a way to identify tests that authors did not name. The commits `8d16362a` and `c2656b66` (2022-05-03) introduced a `testDefinition` contract and a `testResult` contract, in `ref/testDefinition.json` and `ref/testResult.json`. They enumerated the action set as `open`, `find`, `click`, `sendKeys`, `wait`, `screenshot`, `recordStart`, `recordStop`, and `imageDiff`. They also added a `setTest` step that generates a UUID id for any test lacking one. How should tests and results be modeled, and how should unnamed tests be identified?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ The runner needed stable shapes for what a test *is* and what a run *produces*, 
 
 ## Decision Outcome
 
-Chosen option: **declared contracts with UUID fallback ids**, because typed shapes make the runner and reporter predictable, and generating a UUID for unnamed tests guarantees every test is addressable without burdening authors.
+Chosen option: **declared contracts with UUID fallback ids**. Typed shapes make the runner and reporter predictable. Generating a UUID for unnamed tests guarantees every test is addressable, without burdening authors.
 
 Behavior decided:
 

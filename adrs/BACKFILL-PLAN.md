@@ -1,6 +1,6 @@
 # ADR Backfill Plan (curated proposal)
 
-> **Working document — not an ADR.** This is the *curated* proposal derived from
+> **Working document, not an ADR.** This is the *curated* proposal derived from
 > [`BACKFILL-INVENTORY.md`](BACKFILL-INVENTORY.md) (250 raw contract-affecting
 > decisions). It merges related inventory rows into coherent ADR units, drops the
 > rows that aren't ADR-worthy, and assigns provisional sequential IDs in date
@@ -10,7 +10,7 @@
 ## What this is
 
 A principled compression of the 250-row diff-audit inventory into a reviewable
-ADR set. Every inventory `Seq` appears **exactly once** below — either absorbed by
+ADR set. Every inventory `Seq` appears **exactly once** below, either absorbed by
 a proposed ADR (in the *Absorbs* column) or in *Dropped / not-an-ADR*.
 
 **Curation heuristics (applied consistently):**
@@ -18,22 +18,22 @@ a proposed ADR (in the *Absorbs* column) or in *Dropped / not-an-ADR*.
 - **One ADR = one coherent decision** with context/trade-offs, at roughly the
   granularity of [`01000`](01000-gate-advanced-ordering-under-concurrent-runners.md).
 - **Merge families:** schema-version families (v1 / v2 / v3 redesigns) fold their
-  per-field rows into family ADRs; a step type added-then-iterated is **one ADR**
-  with the evolution in *Consequences*; an engine/driver progression groups by
-  pivot, not per-browser; recording formats, the OpenAPI cluster, and the
-  install/provisioning chain each collapse to ~1–2 ADRs.
-- **Keep separate** genuinely distinct contracts: each new step type, each new
-  CLI flag with its own semantics, precedence/default rules, reporters/output
-  formats, the concurrency model, the 3.0.0 breaking redesign, the monorepo merge.
+  per-field rows into family ADRs. A step type added-then-iterated is **one ADR**,
+  with the evolution in *Consequences*. An engine or driver progression groups by
+  pivot, not per-browser. Recording formats, the OpenAPI cluster, and the
+  install and provisioning chain each collapse to ~1–2 ADRs.
+- **Keep separate** genuinely distinct contracts. That means each new step type, and each new
+  CLI flag with its own semantics. It also means precedence and default rules, reporters and output
+  formats, the concurrency model, the 3.0.0 breaking redesign, and the monorepo merge.
 - **Drop** (with a recorded reason): pure telemetry internals, throwaway
   prototypes, reverted features (noted as "decision not pursued"), test-infra, and
   most release-pipeline/CI plumbing. For infra, keep only milestones
   (first publish/semantic-release, GitHub Action, Docker image, the monorepo merge).
 
 **Headline numbers:** **176 proposed ADRs** distilled from the **250** inventory
-rows. Of the 250: **104 rows folded into 42 multi-row merge ADRs**, **134 rows
-kept ~1:1** as their own ADR, and **12 rows dropped** as not-an-ADR. (ADR `00120`
-corresponds to the already-authored `01000`; it is listed for traceability but not
+rows. Of the 250, **104 rows folded into 42 multi-row merge ADRs**. **134 rows
+stayed ~1:1** as their own ADR, and **12 rows dropped** as not-an-ADR. (ADR `00120`
+corresponds to the already-authored `01000`. It is listed for traceability but not
 re-authored, so **175** ADRs remain to be written.) Coverage is exhaustive: every
 inventory `Seq` 1–250 appears exactly once across *Absorbs* or *Dropped*.
 
@@ -46,9 +46,9 @@ absorbed inventory row.
 
 | ADR ID | Date | Title | Theme | Repo(s) | Absorbs (Seq #) | Rationale |
 |---|---|---|---|---|---|---|
-| 00001 | 2022-04-22 | initial-selenium-engine-and-browser-fallback | engine | doc-detective | 1, 6, 38 | Genesis engine: Selenium CLI, Puppeteer recording experiment, platform-keyed browser fallback — one "how do we drive a browser" decision. |
+| 00001 | 2022-04-22 | initial-selenium-engine-and-browser-fallback | engine | doc-detective | 1, 6, 38 | Genesis engine: Selenium CLI, Puppeteer recording experiment, platform-keyed browser fallback. One "how do we drive a browser" decision. |
 | 00002 | 2022-04-23 | cli-flag-surface-and-file-over-args-precedence | config | doc-detective | 2 | First CLI flag contract + file-config-overridden-by-args precedence rule. |
-| 00003 | 2022-04-23 | filetype-test-comment-statement-contract | config | doc-detective | 3, 15, 43 | Per-extension test-comment statements + their early renames/parser rewrites — one evolving contract. |
+| 00003 | 2022-04-23 | filetype-test-comment-statement-contract | config | doc-detective | 3, 15, 43 | Per-extension test-comment statements plus their early renames and parser rewrites. One evolving contract. |
 | 00004 | 2022-04-25 | recursive-directory-walk-and-extension-filtering | resolve | doc-detective | 4 | Recursive input discovery + extension allow/exclude lists. |
 | 00005 | 2022-04-27 | remote-selenium-server-config | config | doc-detective | 5 | `seleniumServer` remote-driver URL field. |
 | 00006 | 2022-05-03 | test-and-result-object-contracts-with-uuid-ids | schema | doc-detective | 7 | testDefinition/testResult shape, generated UUID test ids, action enum. |
@@ -58,7 +58,7 @@ absorbed inventory row.
 | 00010 | 2022-05-07 | click-action | step | doc-detective | 11 | `click` step type. |
 | 00011 | 2022-05-07 | type-action-and-matchtext-assertion | step | doc-detective | 12 | `type` step type + matchText assertion semantics. |
 | 00012 | 2022-05-09 | screenshot-action | step | doc-detective | 13 | `screenshot` step type. |
-| 00013 | 2022-05-11 | json-result-output-and-pass-warning-fail-rollup | report | doc-detective | 14, 16, 17 | Result file output, input/output path rename, and PASS/WARNING/FAIL rollup — one reporting contract. |
+| 00013 | 2022-05-11 | json-result-output-and-pass-warning-fail-rollup | report | doc-detective | 14, 16, 17 | Result file output, input/output path rename, and PASS/WARNING/FAIL rollup. One reporting contract. |
 | 00014 | 2022-05-14 | unified-media-directory | config | doc-detective | 18 | Merge image+video dirs into `mediaDirectory`. |
 | 00015 | 2022-05-17 | browser-options-headless-path-viewport | config | doc-detective | 19, 35 | `browserOptions{headless,path}` + viewport flags; empty-path default-Chromium guard. |
 | 00016 | 2022-05-17 | recording-action-types | record | doc-detective | 20 | `recordStart`/`recordStop` step types wired into the runner. |
@@ -70,12 +70,12 @@ absorbed inventory row.
 | 00022 | 2022-06-16 | checklink-action | step | doc-detective | 26 | `checkLink` step type (HTTP status check). |
 | 00023 | 2022-08-16 | programmatic-run-api | runner | doc-detective | 27, 28 | Export `run(config)` / `run(config,argv)` + in-memory config resolution. |
 | 00024 | 2022-08-25 | flatten-gif-options-to-top-level-fields | schema | doc-detective | 29 | BREAKING flatten `gifOptions` → `gifFps`/`gifWidth`. |
-| 00025 | 2022-09-15 | supercharged-find-sub-actions | step | doc-detective | 31, 33 | `find` gains nested matchText/moveMouse/click/type/wait sub-actions. |
+| 00025 | 2022-09-15 | `supercharged-find-sub-actions` | step | doc-detective | 31, 33 | `find` gains nested matchText/moveMouse/click/type/wait sub-actions. |
 | 00026 | 2022-09-16 | env-var-substitution-across-actions | config | doc-detective | 32, 52 | `$ENV` support across actions, `setEnvs`/`loadEnvs`, top-level `config.env`. |
 | 00027 | 2022-09-20 | config-system-rewrite-loglevel-enum | config | doc-detective | 34 | `logLevel` enum replaces boolean verbose; per-field validation. |
 | 00028 | 2022-09-22 | setup-cleanup-lifecycle-hooks | config | doc-detective | 36 | `setup`/`cleanup` lifecycle hooks + flags/env. |
 | 00029 | 2022-09-23 | bundled-ffmpeg-installer | record | doc-detective | 37, 122 | Autoload ffmpeg via `@ffmpeg-installer` (core, then re-bundled at wrapper). |
-| 00030 | 2022-09-27 | httprequest-action | step | doc-detective | 39, 53, 54 | `httpRequest` step type + envsFromResponseData + headers/params renames — one step type's evolution. |
+| 00030 | 2022-09-27 | httprequest-action | step | doc-detective | 39, 53, 54 | `httpRequest` step type, plus envsFromResponseData and headers/params renames. One step type's evolution. |
 | 00031 | 2022-10-01 | recording-overwrite-and-failed-test-capture | record | doc-detective | 40, 42 | `overwrite` guard + save-failed-test-recording defaults/overrides. |
 | 00032 | 2022-10-05 | config-precedence-default-tier | resolve | doc-detective | 44 | argv > env > config > defaultConfig fallback tier. |
 | 00033 | 2022-10-07 | gui-only-browser-session-gating | runner | doc-detective | 45 | Browser page created only for GUI tests via `browserActions` allowlist. |
@@ -165,7 +165,7 @@ absorbed inventory row.
 | 00117 | 2025-06-12 | stop-on-fail-and-element-outputs | report | core | 176 | Steps after a FAIL → SKIPPED; rich `setElementOutputs`. |
 | 00118 | 2025-06-17 | docker-container-env-and-ffmpeg | docker | docker | 178, 177 | `DOC_DETECTIVE` env JSON replaces `CONTAINER`; ffmpeg in Linux image; 10-min driver timeouts. |
 | 00119 | 2025-06-20 | concurrentrunners-config-contract | config | common | 179 | `concurrentRunners` integer/boolean schema + normalization. |
-| 00120 | 2025-06-22 | gate-advanced-ordering-under-concurrent-runners | runner | doc-detective | 250 | **Already authored as `01000`** (the worked example) — listed for traceability only. |
+| 00120 | 2025-06-22 | gate-advanced-ordering-under-concurrent-runners | runner | doc-detective | 250 | **Already authored as `01000`**, the worked example. Listed for traceability only. |
 | 00121 | 2025-06-25 | debug-stepthrough-and-breakpoint | config | common | 181 | `debug` enum (`stepThrough`) + step `breakpoint`. |
 | 00122 | 2025-07-20 | debug-version-config-dump | report | doc-detective | 182 | `logLevel:"debug"` prints version data + resolved config. |
 | 00123 | 2025-08-10 | cookie-actions | step | common | 183 | `saveCookie`/`loadCookie` step types (Netscape format, XOR path/variable). |
@@ -242,14 +242,15 @@ absorbed inventory row.
 | 180 | Worker-pool parallelism attempt **(reverted)** | Decision **not pursued** on that branch; recorded as the antecedent of `00172` (Seq 242) rather than its own ADR. |
 | 237 | Pin `@img/sharp-libvips` + fail-fast on unsupported arch | Dependency-pin / build-hardening plumbing (CLAUDE.md exempts dep bumps). |
 
-> The remaining inventory **Borderline** rows are resolved as: `82f2b02d` (stopRecording
+> The remaining inventory **Borderline** rows are resolved this way. `82f2b02d` (stopRecording
 > signature reshuffle), `9f79f904` (outputResults async→sync) and the `3dc533`
-> capture-group churn are **folded** into their parent ADRs (`00031`/`00084`/`00081`);
-> the Mocha migration, the `98e8317c` net-no-op markup churn, the
-> `npm-publish.yml` docker-dispatch step, the split-Windows-base/multi-arch image,
-> the runtime-dep majors, and the `cacheDir`/message-text refactors are **excluded**
-> exactly as the inventory's "Borderline" table leans (test-infra / net-no-op /
-> CI / dep / cosmetic). None of these carry an inventory `Seq`, so they do not
+> capture-group churn are **folded** into their parent ADRs (`00031`/`00084`/`00081`).
+> Several others are **excluded**, exactly as the inventory's "Borderline" table
+> leans (test-infra / net-no-op / CI / dep / cosmetic). Those are the Mocha
+> migration, the `98e8317c` net-no-op markup churn, and the `npm-publish.yml`
+> docker-dispatch step. They also include the split-Windows-base/multi-arch image,
+> the runtime-dep majors, and the `cacheDir`/message-text refactors.
+> None of these carry an inventory `Seq`, so they do not
 > affect the 250-row accounting.
 
 ---
@@ -257,16 +258,16 @@ absorbed inventory row.
 ## Open calls for the user
 
 1. **Telemetry (Seq 30, 56, 112): drop entirely?** I dropped all three as
-   internals. If you want the *history* of telemetry-as-a-contract (opt-in→opt-out
-   default flip, then removal) recorded, that's **one** "telemetry lifecycle" ADR
+   internals. You may want the *history* of telemetry-as-a-contract recorded: the
+   opt-in→opt-out default flip, then removal. That's **one** "telemetry lifecycle" ADR
    instead. Yes = author one; No = stay dropped.
 
 2. **v3 runner adoption (`00100`) absorbs nine Seqs (144,147–150,152,153,158,163).**
-   That's the largest single merge. Is one "v3 runner adoption" ADR right, or do
-   you want the **httpRequest v3 rewrite** (150) and the **find/click v3 overhaul**
-   (152,158,163,149) split out as their own ADRs alongside the schema-side `00096`?
+   That's the largest single merge. Is one "v3 runner adoption" ADR right? Or should the
+   **httpRequest v3 rewrite** (150) and the **find/click v3 overhaul**
+   (152,158,163,149) be their own ADRs, alongside the schema-side `00096`?
 
-3. **Runtime lazy-install (`00164`) absorbs six Seqs (227,231,233,234,236,239)** —
+3. **Runtime lazy-install (`00164`) absorbs six Seqs (227,231,233,234,236,239)**,
    the lazy→eager→log→JIT→companions chain. Keep as one provisioning ADR, or split
    into "lazy-install + cacheDir" vs. "eager-default postinstall" (the
    user-observable default flip at Seq 231)?
@@ -289,11 +290,11 @@ absorbed inventory row.
 
 ## Counts
 
-**Proposed ADRs: 176** — numbered contiguously `00001`–`00176`, one ID per row,
-no gaps or collisions (verified). `00120` is the already-authored `01000`, so
-**175** remain to author. This lands in the requested ~90–140 *thorough* range
-once the reverted/dropped rows are set aside and the *Open calls* below are
-adjudicated (each "merge harder" answer pulls the total down).
+**Proposed ADRs: 176.** They're numbered contiguously `00001`–`00176`, one ID per row,
+with no gaps or collisions (verified). `00120` is the already-authored `01000`, so
+**175** remain to author. This lands in the requested ~90–140 *thorough* range,
+once the reverted and dropped rows are set aside and the *Open calls* below are
+adjudicated. Each "merge harder" answer pulls the total down.
 
 ### By disposition of the 250 inventory rows
 

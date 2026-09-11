@@ -8,10 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-With the engine rewritten to validate `config_v2` and expose `runTests()` (ADR 00051), the CLI
-wrapper needed a flag surface and a config-resolution path that fed the new engine. The wrapper had
-to declare the user-facing flags, validate the merged config against the versioned schema, fail fast
-on bad input, and write results somewhere predictable without overwriting prior runs. What CLI flags,
+The engine was rewritten to validate `config_v2` and expose `runTests()` (ADR 00051). The CLI
+wrapper then needed a flag surface and a config-resolution path that fed the new engine. It had to
+declare the user-facing flags and validate the merged config against the versioned schema. It also
+had to fail fast on bad input, and write results somewhere predictable without overwriting prior
+runs. What CLI flags,
 validation order, and result-output behavior should the v2 wrapper commit to?
 
 ## Decision Drivers
@@ -29,7 +30,7 @@ validation order, and result-output behavior should the v2 wrapper commit to?
 
 ## Decision Outcome
 
-Chosen option: **A**, because validating the merged config first and overlaying flags on top is what
+Chosen option: **A**. Validate the merged config first, then overlay flags on top. That's what
 lets file config, env config, and CLI all reach the same validated code path. `setArgs()` declares
 `--config/-c`, `--input/-i`, `--output/-o`, `--setup`, `--cleanup`, `--recursive/-r`, and
 `--logLevel/-l`. `setConfig()` AJV-validates the merged config against `config_v2`, exits 1 on
@@ -67,5 +68,5 @@ Confirmed by the declared flags, `config_v2` validation exiting 1 on bad input, 
 
 Recorded retrospectively (ADR backfill). Origin: `doc-detective` commits `61bebeb4`, `18f5921a`,
 `d7b45e19`, `01ef13f9`. Inventory ref: BACKFILL-INVENTORY.md Seq 80. Consumes the `config_v2` schema
-(ADR 00050) and the engine rewrite (ADR 00051); the validate-then-overlay-flags ordering is the
+(ADR 00050) and the engine rewrite (ADR 00051). The validate-then-overlay-flags ordering is the
 ancestor of the present CLI-flags↔config precedence rule.

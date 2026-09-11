@@ -7,7 +7,7 @@ description: Start capturing a video of test execution.
 The `record` action starts recording test execution as a video file (MP4, WebM, or GIF). This is useful for debugging failed tests or creating multimedia documentation. Recordings are video only, with no audio track. Recording continues until your test reaches a `stopRecord` step.
 
 <Note>
-Recording works with concurrent test runners (`concurrentRunners` > 1). The `browser` engine records each context's own window, so it always runs concurrently. The `ffmpeg` engine captures the whole shared display, so Doc Detective serializes `ffmpeg` recordings with other browser-based tests automatically—you don't need to set `concurrentRunners` to `1`. See [Recording engines](#recording-engines) for details.
+Recording works with concurrent test runners (`concurrentRunners` > 1). The `browser` engine records each context's own window, so it always runs concurrently. The `ffmpeg` engine captures the whole shared display, so Doc Detective serializes `ffmpeg` recordings with other browser-based tests automatically. You don't need to set `concurrentRunners` to `1`. See [Recording engines](#recording-engines) for details.
 </Note>
 
 You can specify the recording action in several ways:
@@ -28,7 +28,7 @@ You can specify the recording action in several ways:
 
 Recording uses one of two engines, selected by the optional `engine` field in the object format:
 
-- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the current browser tab and is safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
+- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the current browser tab. It's safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
 - **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically, so you don't need to install it yourself.
 
 If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
@@ -43,7 +43,7 @@ On Android and iOS contexts, `engine` doesn't apply. Doc Detective records the d
 
 **Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
 
-The `ffmpeg` engine captures the whole shared display, so two `ffmpeg` recordings—or an `ffmpeg` recording alongside another browser-driven test—would overwrite each other's output. To prevent this, whenever a run includes an `ffmpeg` recording, Doc Detective serializes that recording with every other browser-based test so they take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. This behavior applies on every platform, including Linux. To run the recordings concurrently as well, use the `browser` engine instead.
+The `ffmpeg` engine captures the whole shared display. Two `ffmpeg` recordings would therefore overwrite each other's output, as would an `ffmpeg` recording running alongside another browser-driven test. To prevent this, Doc Detective serializes that recording with every other browser-based test so they take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. This behavior applies on every platform, including Linux. To run the recordings concurrently as well, use the `browser` engine instead.
 
 On Linux, the `ffmpeg` engine also needs Xvfb to record headless contexts, which have no physical display to capture. Install Xvfb to record in headless mode.
 
@@ -60,21 +60,21 @@ A `record` step can target a native app surface opened by [`startSurface`](/docs
 }
 ```
 
-App-surface recordings use the `ffmpeg` engine with a `window` target by default. FFmpeg captures the full display, and when the recording stops, Doc Detective crops the video to the app's window—including on scaled (HiDPI/Retina) displays, where Doc Detective scales the crop to match the capture's physical pixels. Set `engine: { "name": "ffmpeg", "target": "display" }` to keep the full display instead. The `viewport` target is the browser content area, so it doesn't apply to app surfaces—Doc Detective skips a record step that combines them and explains why, and does the same for the `browser` engine (it records a Chrome tab, not a native window).
+App-surface recordings use the `ffmpeg` engine with a `window` target by default. FFmpeg captures the full display, and when the recording stops, Doc Detective crops the video to the app's window. That includes scaled (HiDPI/Retina) displays, where Doc Detective scales the crop to match the capture's physical pixels. Set `engine: { "name": "ffmpeg", "target": "display" }` to keep the full display instead. The `viewport` target is the browser content area, so it doesn't apply to app surfaces. Doc Detective skips a record step that combines them and explains why. It does the same for the `browser` engine, which records a Chrome tab rather than a native window.
 
-To record a specific window of the app—a dialog, or one of several document windows—add a `window` selector: `{ "app": "notepad", "window": { "title": "/Open/" } }`. The crop then bounds that window. See [App windows](find#app-windows) for the selector grammar.
+To record a specific window of the app, such as a dialog or one of several document windows, add a `window` selector: `{ "app": "notepad", "window": { "title": "/Open/" } }`. The crop then bounds that window. See [App windows](find#app-windows) for the selector grammar.
 
 App-surface recordings join the same display serialization as other FFmpeg recordings, and the same overlapping/named-stop rules apply.
 
-Native macOS and Windows app contexts add a second layer of serialization. Each host has a single app driver, and two native app contexts can't run against it at once without overwriting each other's session. So Doc Detective serializes native app contexts on that shared driver: a recording app context takes its turn alongside every other native app context on the host, whether or not that other context records. This keeps recording a native app surface safe under `concurrentRunners` greater than 1—the recording context queues for the driver instead of colliding with a concurrent app context. Contexts that don't drive a native app driver or the display, such as `httpRequest` and `runShell` steps, keep running in parallel.
+Native macOS and Windows app contexts add a second layer of serialization. Each host has a single app driver, and two native app contexts can't run against it at once without overwriting each other's session. So Doc Detective serializes native app contexts on that shared driver. A recording app context takes its turn alongside every other native app context on the host, whether or not that other context records. This keeps recording a native app surface safe under `concurrentRunners` greater than 1. The recording context queues for the driver instead of colliding with a concurrent app context. Contexts that don't drive a native app driver or the display, such as `httpRequest` and `runShell` steps, keep running in parallel.
 
 <Note>
-Desktop screen capture records whatever is visible in the captured region. If another window overlaps the app during the recording, it appears in the video—Doc Detective doesn't hide or minimize other windows. On a dedicated CI runner this rarely matters. On a shared desktop, keep the recorded app in the foreground.
+Desktop screen capture records whatever is visible in the captured region. If another window overlaps the app during the recording, it appears in the video. Doc Detective doesn't hide or minimize other windows. On a dedicated CI runner this rarely matters. On a shared desktop, keep the recorded app in the foreground.
 </Note>
 
 ## Recording on mobile devices
 
-On Android and iOS contexts, recordings capture the **device screen** through the device itself (Android's screen recorder, the iOS simulator's recorder) without touching the host display. This means:
+On Android and iOS contexts, recordings capture the **device screen** through the device itself, without touching the host display. Android uses its screen recorder, and iOS uses the simulator's. This means:
 
 - Omit `engine`. It doesn't apply, and Doc Detective skips an explicit `browser` or `ffmpeg` engine on a mobile context with guidance.
 - Mobile recordings run under full concurrency. They never serialize with FFmpeg recordings or other browser tests, because they don't touch the shared display.
@@ -91,7 +91,7 @@ On Android and iOS contexts, recordings capture the **device screen** through th
 }
 ```
 
-A `record` step that runs before the first `startSurface` on a mobile context waits for the device session and starts recording as soon as the first app surface opens.
+A `record` step can run before the first `startSurface` on a mobile context. It waits for the device session, then starts recording as soon as the first app surface opens.
 
 ## Multiple overlapping recordings
 
@@ -100,13 +100,13 @@ A single context can run more than one recording at once. For example, you can c
 - An untargeted `stopRecord` (`true` or `null`) stops the most recently started recording that's still active (last in, first out).
 - To stop a specific recording, target it by `name`, either as a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`). This works for any active recording, not just the most recent one.
 
-Names must be unique among recordings that are active at the same time. If a `record` step reuses the `name` of a recording that's still active, Doc Detective catches the conflict before the run starts and skips that test in every context with a warning, rather than failing partway through.
+Names must be unique among recordings that are active at the same time. Suppose a `record` step reuses the `name` of a recording that's still active. Doc Detective catches the conflict before the run starts and skips that test in every context with a warning, rather than failing partway through.
 
-When two recordings overlap and both would use the `browser` engine, the second one falls back to the `ffmpeg` engine with a `viewport` target and emits a warning, because the `browser` engine can own only one recorder per context. See [Recording engines](#recording-engines) for details on engine selection.
+The `browser` engine can own only one recorder per context. So when two recordings overlap and both would use it, the second falls back to the `ffmpeg` engine with a `viewport` target and emits a warning. See [Recording engines](#recording-engines) for details on engine selection.
 
 ## Automatic recordings
 
-To record every driver-based test context from start to finish—browser, native app, and mobile contexts alike—enable the `autoRecord` option. It captures each context end-to-end without explicit `record` steps, which is useful for:
+Enable the `autoRecord` option to record every driver-based test context from start to finish, covering browser, native app, and mobile contexts alike. It captures each context end-to-end without explicit `record` steps, which is useful for:
 
 - Building a video archive of every run
 - Replaying exactly what happened when a test fails
@@ -129,7 +129,7 @@ doc-detective --auto-record
 
 Use `--no-auto-record` to override a config file that enables it.
 
-Automatic recordings wrap the whole context: recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, so the same context lands on the same relative path in every run's folder:
+Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/runs/<runId>/
@@ -146,12 +146,12 @@ Automatic recordings wrap the whole context: recording starts before the first s
 An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. Doc Detective finalizes it during end-of-context cleanup.
 
 <Note>
-On Linux, each runner records its own virtual display with Xvfb, so automatic recordings stay isolated even when runs are concurrent. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap, so Doc Detective warns when a run records concurrently on those platforms.
+On Linux, each runner records its own virtual display with Xvfb, so automatic recordings stay isolated even when runs are concurrent. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap. Doc Detective warns when a run records concurrently on those platforms.
 </Note>
 
 ## Recording checkpoints
 
-A recording documents a flow, but the steps can keep passing while the recorded content quietly drifts—a redesigned page, a moved button, changed copy. To detect that drift, enable `checkpoints` on a `record` step:
+A recording documents a flow, but the steps can keep passing while the recorded content quietly drifts. A page gets redesigned, a button moves, copy changes. To detect that drift, enable `checkpoints` on a `record` step:
 
 ```json
 {
@@ -162,12 +162,12 @@ A recording documents a flow, but the steps can keep passing while the recorded 
 }
 ```
 
-While the recording is active, Doc Detective captures a screenshot after every step (the `record` step's own capture is the opening bookend) and compares each against a persistent baseline stored beside the recording—`signup-flow.mp4.checkpoints/` by default. On the first run, the baselines don't exist yet, so `stopRecord` seeds them from the captures. Commit the baseline folder alongside your recording. On every later run, each checkpoint compares against its baseline:
+While the recording is active, Doc Detective captures a screenshot after every step, and the `record` step's own capture is the opening bookend. It compares each against a persistent baseline stored beside the recording, `signup-flow.mp4.checkpoints/` by default. On the first run, the baselines don't exist yet, so `stopRecord` seeds them from the captures. Commit the baseline folder alongside your recording. On every later run, each checkpoint compares against its baseline:
 
 - Variation within `maxVariation` (default `0.05`): the step passes.
-- Variation beyond `maxVariation`: the `stopRecord` step returns WARNING—the recorded flow's content has probably changed since the recording was captured. Baselines are never modified by a checkpoint comparison.
+- Variation beyond `maxVariation`: the `stopRecord` step returns WARNING. The recorded flow's content has probably changed since the recording was captured. A checkpoint comparison never modifies baselines.
 
-Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists—which, once you commit the recording, is every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift, so you keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
+Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists. Once you commit the recording, that means every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift. You keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
 
 The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, `seededBaselines`, and `checkpointErrors`.
 
@@ -185,11 +185,11 @@ Tune or relocate the comparison with the object form:
 }
 ```
 
-A relative `directory` resolves beside the recording. Raise `maxVariation` (or disable checkpoints) for spans that show dynamic content—animations, ads, clocks—which otherwise produce WARNING noise. Checkpoints apply only to explicit `record` steps ([automatic recordings](#automatic-recordings) save to per-run folders, where baselines couldn't persist), and each checkpoint costs one extra screenshot per step while the span is active.
+A relative `directory` resolves beside the recording. Raise `maxVariation` (or disable checkpoints) for spans that show dynamic content such as animations, ads, and clocks. Those otherwise produce WARNING noise. Checkpoints apply only to explicit `record` steps, because [automatic recordings](#automatic-recordings) save to per-run folders where baselines couldn't persist. Each checkpoint costs one extra screenshot per step while the span is active.
 
 ### Refreshing stale recordings automatically
 
-Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this setting, the span always records, but the new video replaces the existing file **only when the span meaningfully changed**—checkpoint drift beyond `maxVariation`, an added, removed, or edited step, or a missing recording file. Otherwise Doc Detective discards the fresh capture and leaves the recording and its baselines byte-untouched, so unchanged recordings stay stable across runs:
+Checkpoints detect drift, and `overwrite: "aboveVariation"` acts on it. With this setting, the span always records, but the new video replaces the existing file **only when the span meaningfully changed**. That means checkpoint drift beyond `maxVariation`, an added, removed, or edited step, or a missing recording file. Otherwise Doc Detective discards the fresh capture and leaves the recording and its baselines byte-untouched. Unchanged recordings stay stable across runs:
 
 ```json
 {
@@ -200,11 +200,11 @@ Checkpoints detect drift; `overwrite: "aboveVariation"` acts on it. With this se
 }
 ```
 
-`aboveVariation` requires checkpoints, so it enables them automatically—including over an explicit `checkpoints: false`, which this mode overrides (a verdict with no evidence could never refresh a drifted recording). Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it in the same step, so they describe the video you have. If a run is interrupted partway through that update, the next run sees the mismatch as drift and refreshes both again—it repairs itself rather than leaving you to notice. The `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
+`aboveVariation` requires checkpoints, so it enables them automatically. It overrides an explicit `checkpoints: false`, because a verdict with no evidence could never refresh a drifted recording. Add a `checkpoints` object to tune them. When the recording refreshes, its baselines update with it in the same step, so they describe the video you have. If a run is interrupted partway through that update, the next run sees the mismatch as drift and refreshes both again. It repairs itself rather than leaving you to notice. The `stopRecord` step reports `changed: true` with the reasons in its outputs. If a step fails during the span, Doc Detective keeps the existing recording and baselines untouched rather than judging drift from an incomplete run.
 
 ### Verifying the video file itself
 
-Checkpoints validate the scene a recording shows, while `verify` validates the produced file. Use it to assert structural properties of the video—the classic capture failure modes are an all-black video, a wrong-sized crop, or a truncated clip:
+Checkpoints validate the scene a recording shows, while `verify` validates the produced file. Use it to assert structural properties of the video. The classic capture failure modes are an all-black video, a wrong-sized crop, and a truncated clip:
 
 ```json
 {
@@ -219,24 +219,24 @@ Checkpoints validate the scene a recording shows, while `verify` validates the p
 }
 ```
 
-Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord` step—these are properties you explicitly demand of the artifact:
+Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord` step. These are properties you explicitly demand of the artifact:
 
 - `minDuration` / `maxDuration`: the video's length in seconds. Allow about half a second of slop for `.gif` targets, whose duration reporting is imprecise.
-- `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation—the crop rectangle for `window`/`viewport` targets, else the capture frame size (skipped when the engine reports no expectation). Pass `{ "width": …, "height": … }` to compare literal dimensions.
-- `notBlack`: fails when black frames cover 95% or more of the video—the symptom of a broken screen capture.
+- `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation. That's the crop rectangle for `window` and `viewport` targets, and otherwise the capture frame size. The check is skipped when the engine reports no expectation. Pass `{ "width": …, "height": … }` to compare literal dimensions.
+- `notBlack`: fails when black frames cover 95% or more of the video, the symptom of a broken screen capture.
 
 The measured values land in the [`stopRecord` outputs](stopRecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
 
 ### Detecting staleness without re-recording
 
-Doc Detective skips the capture in two situations: a headless run (recording needs a visible display), and a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale—the `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
+Doc Detective skips the capture in two situations. The first is a headless run, since recording needs a visible display. The second is a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale. The `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
 
 The fix depends on which skip you hit, and the `stopRecord` step's description names it:
 
 - **Headless run:** re-run the test on a headed context to refresh the recording.
 - **Target already exists:** set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file. With `aboveVariation`, the recording refreshes itself the moment it drifts, so this never comes up.
 
-Either way, detection is cheap and continuous—your headless CI watches recording freshness on every run, and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
+Either way, detection is cheap and continuous. Your headless CI watches recording freshness on every run, and you only re-record when something actually changed. Skipped spans never write. There's no video, no baseline seeding, and no baseline updates.
 
 > For comprehensive options, see the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) references.
 

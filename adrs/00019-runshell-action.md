@@ -9,8 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Many documented procedures involve running a command in a terminal, not just interacting with a
-browser. The runner could only drive a page; it had no way to execute a shell command as a test step,
-supply environment variables, or assert on the command's exit status. Should the runner be able to
+browser. The runner could only drive a page. It had no way to execute a shell command as a test
+step, supply environment variables, or assert on the command's exit status. Should the runner be
+able to
 execute arbitrary shell commands as a first-class action?
 
 ## Decision Drivers
@@ -29,10 +30,10 @@ execute arbitrary shell commands as a first-class action?
 
 Chosen option: **A**. The `runShell` action executes a shell command, supports loading environment
 variables from an env file, and checks the command's `exitCode` to determine PASS/FAIL. This makes
-mixed browser-and-CLI procedures testable end to end. The action is the seed of a long evolution:
-later ADRs add `exitCodes`/`output`/`stdio` expectations (Seq 110), `timeout`/`workingDirectory`
-(Seq 123), running through a shell for pipes/redirects (Seq 129), and the stderr-no-longer-fails fix
-(Seq 107).
+mixed browser-and-CLI procedures testable end to end. The action is the seed of a long evolution.
+Later ADRs add `exitCodes`/`output`/`stdio` expectations (Seq 110) and
+`timeout`/`workingDirectory` (Seq 123). They also add running through a shell for pipes and
+redirects (Seq 129), plus the stderr-no-longer-fails fix (Seq 107).
 
 ### Consequences
 
@@ -49,7 +50,7 @@ support, and exit-code checking.
 
 ### A. First-class runShell action
 * Good: unifies browser and CLI procedures in one test; verifiable via exit code.
-* Bad: executes arbitrary commands — later gated by the `unsafe`/`allowUnsafeSteps` controls.
+* Bad: executes arbitrary commands, later gated by the `unsafe`/`allowUnsafeSteps` controls.
 
 ### B. Browser-only runner
 * Good: smaller threat surface.
@@ -58,6 +59,6 @@ support, and exit-code checking.
 ## More Information
 
 Recorded retrospectively (ADR backfill). Origin: doc-detective commit 710de40. Inventory ref:
-BACKFILL-INVENTORY.md Seq 23. Related: ADR 00077 (runShell exitCodes/output expectation), ADR 00082
-(runShell/httpRequest timeout and output-save diff), ADR 00087 (runShell via shell), ADR 00116
-(unsafe step gating).
+BACKFILL-INVENTORY.md Seq 23. Related: ADR 00077 (runShell exitCodes/output expectation) and
+ADR 00082 (runShell/httpRequest timeout and output-save diff). Also ADR 00087 (runShell via shell)
+and ADR 00116 (unsafe step gating).

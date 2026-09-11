@@ -3,7 +3,7 @@ title: Generate requests from OpenAPI
 description: Drive httpRequest steps from an OpenAPI description, seed them with examples, and override the Authorization header.
 ---
 
-When you already have an OpenAPI description for an API, you don't have to hand-write the URL, method, and path for every `httpRequest` step. Point a step at an operation by its `operationId`, and Doc Detective builds the request from the description, validates the response against the operation's schema, and fills in example data when you ask it to. This guide walks you through registering a description, referencing operations from your steps, and overriding the `Authorization` header so the requests authenticate.
+When you already have an OpenAPI description for an API, you don't have to hand-write the URL, method, and path for every `httpRequest` step. Point a step at an operation by its `operationId`. Doc Detective then builds the request from the description and validates the response against the operation's schema. It fills in example data when you ask it to. This guide covers registering a description, referencing operations from your steps, and overriding the `Authorization` header so the requests authenticate.
 
 This guide builds on [Test HTTP and APIs](/docs/test-docs/http-and-api), which covers hand-written `httpRequest` steps. For the full set of `openApi` fields, see the [`openApi`](/reference/schemas/openapi) and [`httpRequest`](/reference/schemas/httprequest) references.
 
@@ -180,7 +180,7 @@ When an operation defines more than one example, set `exampleKey` to choose whic
 
 By default, Doc Detective validates both the request and the response against the operation's schema (`validateAgainstSchema` defaults to `both`). When the response doesn't match the schema, the step fails and exposes the result as `$$responseSchemaValid`. To narrow or turn off that check, set `validateAgainstSchema` to `request`, `response`, or `none`.
 
-If the endpoint isn't built yet, set `mockResponse` to `true`. Doc Detective skips the network call and returns the operation's example or schema as the response, so you can write and run tests before the API exists:
+If the endpoint isn't built yet, set `mockResponse` to `true`. Doc Detective skips the network call and returns the operation's example or schema as the response. You can then write and run tests before the API exists:
 
 ```json
 {
@@ -237,7 +237,7 @@ Each step that resolved its operation, sent the request (or returned a mock), an
 
 **Cause:** The OpenAPI description's security scheme doesn't add the `Authorization` header for you, because Doc Detective doesn't read security schemes.
 
-**Solution:** Set `Authorization` yourself, either in `openApi.headers` for every request from the description or in `request.headers` for a single step, and supply the token through an environment variable such as `$TOKEN`.
+**Solution:** Set `Authorization` yourself. Use `openApi.headers` for every request from the description, or `request.headers` for a single step. Supply the token through an environment variable such as `$TOKEN`.
 
 ### The response fails schema validation unexpectedly
 

@@ -11,8 +11,8 @@ decision-makers: doc-detective maintainers
 Some Doc Detective steps execute arbitrary local commands or code (`runShell`, `runCode`) and are
 inherently dangerous to run on documentation pulled from untrusted sources. There needed to be an
 explicit, opt-in gate so such steps run only when the operator has consented. An early form of the
-gate sat at the fileType level (`allowUnsafeMarkup`), which was too coarse: it could not express
-"this one step is dangerous" and forced all-or-nothing trust per fileType. The question: where
+gate sat at the fileType level (`allowUnsafeMarkup`), which was too coarse. It could not express
+"this one step is dangerous", and forced all-or-nothing trust per fileType. The question: where
 should the `unsafe` marker and its `allow*` gate live, and how should detection and the runner
 honor it?
 
@@ -27,7 +27,7 @@ honor it?
 
 * **A. An `unsafe` step flag plus a step-level `allowUnsafeSteps` config gate, with resolver propagation and runner enforcement** (chosen).
 * **B. Keep the gate at the fileType level (`allowUnsafeMarkup`).**
-* **C. No gate — rely on the operator to vet sources.**
+* **C. No gate; rely on the operator to vet sources.**
 
 ## Decision Outcome
 

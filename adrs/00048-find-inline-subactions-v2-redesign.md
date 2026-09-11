@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-In v1, locating an element and then acting on it required a `find` step followed by separate
-standalone `click`, `type`, `scroll`, `moveMouse`, and `matchText` steps that each had to re-target
-the same element. This was verbose and fragile — the standalone actions re-found elements and could
-drift from the one `find` actually located. The v2 step family (`00046`) reshaped `find`'s fields;
-this decision settles the *runtime* model: should acting on a found element be expressed as inline
+In v1, locating an element and then acting on it required a `find` step. Separate standalone
+`click`, `type`, `scroll`, `moveMouse`, and `matchText` steps followed, each re-targeting the same
+element. This was verbose and fragile. The standalone actions re-found elements, and could drift
+from the one `find` actually located. The v2 step family (`00046`) reshaped `find`'s fields. This
+decision settles the *runtime* model: should acting on a found element be expressed as inline
 sub-actions of `find`, or remain separate steps?
 
 ## Decision Drivers
@@ -35,9 +35,9 @@ Chosen option: **A**. `find` absorbs inline `click`, `moveTo`, and `typeKeys` su
 operate on the element it located, and `matchText` folds into `find` as text matching. The
 standalone `matchText`, `click`, `type`, `scroll`, and `moveMouse` actions are **removed**. A
 find-then-act flow is now a single `find` step carrying its sub-actions, eliminating the re-target
-drift. This is the runtime realization of the v2 `find` reshape in `00046`; later v3 work continues
-the inline model (`find` absorbing more sub-actions, `00100`), while some standalone actions
-(e.g. `moveTo`) are reintroduced separately afterward (`00068`).
+drift. This is the runtime realization of the v2 `find` reshape in `00046`. Later v3 work continues
+the inline model, with `find` absorbing more sub-actions (`00100`). Some standalone actions, such as
+`moveTo`, are reintroduced separately afterward (`00068`).
 
 ### Consequences
 

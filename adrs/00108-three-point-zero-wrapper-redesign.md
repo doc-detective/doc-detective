@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-By early 2025 the upstream `common`/`core` had a complete v3 contract — `step_v3` action-as-key, `config_v3`, `context_v3`, the `compatibleSchemas` auto-transform, the v3 runner, and the expressions/outputs model. The `doc-detective` CLI wrapper still exposed the v2 surface: `runCoverage`/`suggestTests`/interactive-prompt commands, `--setup`/`--cleanup`/`--recursive` flags, `config_v2` validation, and the legacy default set. This single wrapper-side commit is where all of that flips to v3 and becomes the public 3.0.0 release. What does the breaking 3.0.0 CLI contract look like?
+By early 2025 the upstream `common`/`core` had a complete v3 contract. That covered `step_v3` action-as-key, `config_v3`, `context_v3`, the `compatibleSchemas` auto-transform, the v3 runner, and the expressions/outputs model. The `doc-detective` CLI wrapper still exposed the v2 surface: `runCoverage`/`suggestTests`/interactive-prompt commands, `--setup`/`--cleanup`/`--recursive` flags, `config_v2` validation, and the legacy default set. This single wrapper-side commit is where all of that flips to v3 and becomes the public 3.0.0 release. What does the breaking 3.0.0 CLI contract look like?
 
 ## Decision Drivers
 
@@ -26,9 +26,9 @@ By early 2025 the upstream `common`/`core` had a complete v3 contract — `step_
 
 ## Decision Outcome
 
-Chosen option: **A**, because the wrapper is the public face of an already-v3 stack and a dual surface would keep the dead v2 commands alive. The 3.0.0 contract (commit `58496132`):
+Chosen option: **A**. The wrapper is the public face of an already-v3 stack, and a dual surface would keep the dead v2 commands alive. The 3.0.0 contract (commit `58496132`):
 
-1. **Commands:** remove `runCoverage`/`suggestTests`/the interactive prompt — **`runTests` only**.
+1. **Commands:** remove `runCoverage`/`suggestTests`/the interactive prompt, leaving **`runTests` only**.
 2. **Flags:** drop `--setup`/`--cleanup`/`--recursive`.
 3. **Validation:** switch **`config_v2` → `config_v3`**.
 4. **Config format:** add **YAML config** support.
@@ -41,7 +41,7 @@ Chosen option: **A**, because the wrapper is the public face of an already-v3 st
 
 * Good: the public CLI matches the v3 stack; one config contract end to end.
 * Good: YAML config and a pluggable reporter modernize the surface.
-* Bad: breaking — removed commands/flags and a config-schema change require user migration.
+* Bad: breaking, since removed commands/flags and a config-schema change require user migration.
 * Neutral: later reporters (HTML `00153`, runFolder `00173`) plug into this same reporter seam.
 
 ### Confirmation

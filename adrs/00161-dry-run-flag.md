@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Users wanted to know *what* Doc Detective would run — which specs, tests, contexts, and steps it
-resolves from their documentation — without paying for browser launches, Appium drivers, or HTTP
-calls. There was no way to validate detection and resolution in isolation, so any "is my config
+Users wanted to know *what* Doc Detective would run, without paying for browser launches, Appium
+drivers, or HTTP calls. That means which specs, tests, contexts, and steps it resolves from their
+documentation. There was no way to validate detection and resolution in isolation, so any "is my config
 wired correctly?" check meant a full execution. How should Doc Detective expose a resolve-only mode,
 and what work must it skip to make that mode cheap and side-effect free?
 
@@ -44,7 +44,7 @@ start, no app detection, and no step side effects.
 ### Consequences
 
 * Good: fast, side-effect-free validation of detection and resolution.
-* Good: `environment.apps` is intentionally empty under dry run — no probing cost.
+* Good: `environment.apps` is intentionally empty under dry run, so there's no probing cost.
 * Neutral: report reflects resolution only; step verdicts are not produced.
 * Bad: callers must know that an empty `environment.apps` is expected under dry run, not a failure.
 

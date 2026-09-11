@@ -8,7 +8,7 @@ The `find` action locates an element in the current interface based on its displ
 
 If multiple elements match the specified criteria (`elementText` and/or `selector`), the step operates on the first matched element. Ensure your criteria uniquely identify the target element.
 
-You can specify the target element directly using a string (for basic text or selector lookup) or use an object for more detailed options and interactions:
+Specify the target element directly with a string for basic text or selector lookup. Use an object for more detailed options and interactions:
 
 - **String Shorthand:** Provide the display text or CSS/XPath selector directly as the value for the `find` key. If elements are found by both text and selector, the element found by matching text is used.
   - Example: `"find": "Login"` or `"find": "#username"`.
@@ -16,10 +16,10 @@ You can specify the target element directly using a string (for basic text or se
   - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
   - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
-  - `moveTo`: (Optional) Move the cursor to the element. If the element isn't visible, it's scrolled into view (default: `false`). A bare `find` leaves the viewport and cursor where they're already sitting, so set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
+  - `moveTo`: (Optional) Move the cursor to the element. An element that isn't visible is scrolled into view. Defaults to `false`. A bare `find` leaves the viewport and cursor where they're already sitting. Set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).
   - `type`: (Optional) Type keys after finding the element. Requires the element to be made active first (for example, by using `click: true`). Accepts a string or an object like `{ "keys": "my text", "inputDelay": 100 }`. See [`type`](type) for details.
-  - `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`, or the [native app surface](/docs/actions/startsurface) it lives in, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit to act on the active surface (the most recently opened, focused, or explicitly targeted surface, whether that's a browser tab or an app window). Specifying a surface switches the active surface for the steps that follow. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls, and `selector` accepts a native locator (XPath or a `~`-prefixed accessibility ID) instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](#app-windows) below.
+  - `surface`: (Optional) The browser session, window, or tab the element lives in, such as `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`. It can also be the [native app surface](/docs/actions/startsurface) the element lives in, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit it to act on the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls. `selector` there accepts a native locator, either XPath or a `~`-prefixed accessibility ID, instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](#app-windows) below.
 
 ## How text matching works
 
@@ -29,31 +29,31 @@ trailing whitespace and collapses internal runs of spaces, tabs, and newlines to
 single space. Two consequences follow from this:
 
 - **Framework-rendered text just works.** Frameworks like React and Svelte often
-  split an element's text across several DOM text nodes (sometimes with an empty
-  leading node). Because the match uses the element's whole text, a heading like
-  `Garden companion API` matches even when it isn't a single, tidy text node, and
-  the result stays the same on Chrome and Firefox no matter how each browser's
-  driver reports whitespace.
+  split an element's text across several DOM text nodes, sometimes with an empty
+  leading node. The match uses the element's whole text. A heading like
+  `Garden companion API` therefore matches even when it isn't a single, tidy text
+  node. The result stays the same on Chrome and Firefox no matter how each
+  browser's driver reports whitespace.
 - **It's a whole-element match, not a substring.** `elementText` matches an element
-  whose *entire* normalized text equals your string, so a broad `selector` like
-  `body` combined with `elementText` won't match (the body's text is the whole
-  page). Target a tighter element, or match a substring with
+  whose *entire* normalized text equals your string. A broad `selector` like
+  `body` combined with `elementText` therefore won't match, since the body's text
+  is the whole page. Target a tighter element, or match a substring with
   a regular expression by wrapping the value in slashes: `"elementText": "/Garden companion API/"`.
 
 ## App windows
 
-On Windows and macOS app surfaces, `window` selects which of the app's windows the step acts on—dialogs and secondary document windows included:
+On Windows and macOS app surfaces, `window` selects which of the app's windows the step acts on. That includes dialogs and secondary document windows:
 
 - `"window": { "title": "Create New Data Source" }` selects by title; wrap the value in slashes for a regex (`"/Data Source/"`).
 - `"window": -1` selects the newest window (typically a dialog the app just opened).
 - A plain string or `{ "name": … }` matches the window title exactly.
 - On macOS, a non-negative `"window": 2` selects by position; on Windows, positional indexes aren't supported (select by title or `-1` instead).
 
-Window selection is **sticky**: later steps on the same app surface act in the selected window until another selector changes it. [`click`](click), [`type`](type), [`screenshot`](screenshot), [`record`](record), [`swipe`](swipe), and [`closeSurface`](closeSurface) all accept the same selector. Android and iOS app surfaces are single-window—a `window` selector there fails with guidance to omit it.
+Window selection is **sticky**. Later steps on the same app surface act in the selected window until another selector changes it. [`click`](click), [`type`](type), [`screenshot`](screenshot), [`record`](record), [`swipe`](swipe), and [`closeSurface`](closeSurface) all accept the same selector. Android and iOS app surfaces are single-window, so a `window` selector there fails with guidance to omit it.
 
 On Windows, resolving a selector probes the app's candidate windows to read their titles, which can briefly bring each probed window to the foreground. This matters for recordings: if a `record` is running, a probe can flash another window into a frame or two of the capture. Select the window *before* starting the recording (selection is sticky) to avoid it.
 
-**Mobile app surfaces auto-scroll:** on an Android or iOS app surface, if the element isn't on screen, `find` scrolls toward content further down the list (up to 5 scroll steps, within `timeout`) before giving up—matching how browser `find` scrolls elements into view. Because [`click`](click) and element-targeted [`type`](type) locate elements the same way, they inherit this. If you need a different gesture (sideways, or a precise drag), use [`swipe`](swipe).
+**Mobile app surfaces auto-scroll.** On an Android or iOS app surface, an element that isn't on screen makes `find` scroll toward content further down the list before giving up. It takes up to 5 scroll steps, within `timeout`. That matches how browser `find` scrolls elements into view. [`click`](click) and element-targeted [`type`](type) locate elements the same way, so they inherit this. For a different gesture, sideways or a precise drag, use [`swipe`](swipe).
 
 **Setting Variables:** to capture a found element's attributes into variables for later steps, use the step-level `variables` object. You can assign values based on the element using expressions like `$$element.text`.
 

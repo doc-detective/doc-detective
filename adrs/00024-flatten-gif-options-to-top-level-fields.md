@@ -11,7 +11,7 @@ decision-makers: doc-detective maintainers
 Recording actions configured GIF output through a nested `gifOptions` object carrying `fps` and
 `width`. The nesting added a level of indirection for two scalar settings and was inconsistent with
 how other recording parameters sat directly on the action. Should GIF output settings remain a
-nested object, or be flattened onto the action as top-level fields — and is breaking the existing
+nested object, or be flattened onto the action as top-level fields? And is breaking the existing
 shape worth it?
 
 ## Decision Drivers
@@ -35,14 +35,14 @@ of top-level `gifFps` and `gifWidth` action fields; the recording start path was
 `action.gifFps` / `action.gifWidth`, and `testDefinition.json` was updated to match.
 
 This flatten was itself later subsumed when recording options were redesigned (see `00018`,
-`00071`), but it set the precedent of preferring flat scalar action fields over nested option
+`00071`). But it set the precedent of preferring flat scalar action fields over nested option
 objects.
 
 ### Consequences
 
 * Good: simpler, flatter authored shape for GIF recording.
 * Good: consistent with other top-level recording action fields.
-* Bad: breaking change — existing specs using `gifOptions` must migrate.
+* Bad: breaking change, since existing specs using `gifOptions` must migrate.
 * Neutral: establishes a flatten-over-nest preference for scalar action settings.
 
 ### Confirmation

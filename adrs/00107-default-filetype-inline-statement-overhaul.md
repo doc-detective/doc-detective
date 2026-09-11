@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Inline test statements are the comment markers Doc Detective scans for to detect tests embedded in docs. The default Markdown fileType used `test`/`test-end` wording, but documentation is authored in more than plain Markdown: MDX and JSX use `{/* … */}` comments (HTML comments are invalid there), and AsciiDoc and HTML have their own comment syntaxes. Without per-format default fileTypes, authors on those formats had no built-in way to embed tests. What default fileTypes and inline-statement styles should ship?
+Inline test statements are the comment markers Doc Detective scans for to detect tests embedded in docs. The default Markdown fileType used `test`/`test-end` wording. But documentation is authored in more than plain Markdown. MDX and JSX use `{/* … */}` comments, since HTML comments are invalid there. AsciiDoc and HTML have their own comment syntaxes. Without per-format default fileTypes, authors on those formats had no built-in way to embed tests. What default fileTypes and inline-statement styles should ship?
 
 ## Decision Drivers
 

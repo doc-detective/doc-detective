@@ -9,7 +9,7 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 [ADR 00166](00166-node-22-engines-floor.md) established `engines.node` as the machine-readable
-statement of which Node versions Doc Detective supports, on the reasoning that an install-time
+statement of which Node versions Doc Detective supports. The reasoning was that an install-time
 `EBADENGINE` is far better UX than a confusing mid-run failure. It set the floor at `>=22.12.0`,
 matching what `@puppeteer/browsers` v3 required at the time.
 
@@ -24,14 +24,14 @@ is bumped, and nothing compared the two. It rotted:
 | `appium`, `appium-chromium-driver`, `appium-geckodriver`, `appium-safari-driver` | `^20.19.0 \|\| ^22.12.0 \|\| >=24.0.0` |
 | `yargs` | `^20.19.0 \|\| ^22.12.0 \|\| >=23` |
 
-A user on Node 22.12–22.21 therefore installed a package whose manifest promised support, and got a
-wall of `EBADENGINE` warnings that the manifest said should not happen — the exact confusion
-`00166` set out to prevent, arriving through the same channel it chose as the remedy.
+A user on Node 22.12–22.21 therefore installed a package whose manifest promised support. They then
+got a wall of `EBADENGINE` warnings that the manifest said should not happen. That's the exact
+confusion `00166` set out to prevent, arriving through the same channel it chose as the remedy.
 
 This predates and is independent of the dependency sweep in `d4604af5`. That sweep introduced
-`@apidevtools/json-schema-ref-parser` v16 (`>=22.19.0`), but `posthog-node`'s `>=22.22.0` was
-already the binding constraint, so the effective floor did not move — only the number of
-dependencies disagreeing with the declaration.
+`@apidevtools/json-schema-ref-parser` v16 (`>=22.19.0`). But `posthog-node`'s `>=22.22.0` was
+already the binding constraint, so the effective floor did not move. Only the number of
+dependencies disagreeing with the declaration changed.
 
 Two questions follow: what should the range be, and how do we stop it rotting again?
 
@@ -39,7 +39,7 @@ Two questions follow: what should the range be, and how do we stop it rotting ag
 
 * The declared support contract should be true; a wrong `engines` is worse than a loose one,
   because it converts a clear failure into a contradiction.
-* Node 23 is not merely "above the floor" — the appium family excludes that line outright
+* Node 23 is not merely "above the floor". The appium family excludes that line outright
   (`^20.19.0 || ^22.12.0 || >=24.0.0`), so a simple minimum version cannot express the real
   support set.
 * The check must be mechanical. The rot happened precisely because keeping the number current was
@@ -59,25 +59,25 @@ Two questions follow: what should the range be, and how do we stop it rotting ag
 Chosen option: **A**.
 
 `engines.node` becomes `^22.22.0 || >=24.0.0`. That is the widest range every production dependency
-actually supports, and it matches the Node lines CI tests. The two-branch form is not cosmetic: a
+actually supports, and it matches the Node lines CI tests. The two-branch form is not cosmetic. A
 flat `>=22.22.0` admits Node 23, which the appium family (`^20.19.0 || ^22.12.0 || >=24.0.0`) does
 not support, so the excluded line has to be stated.
 
 [test/engines-floor.test.js](../test/engines-floor.test.js) makes the invariant executable. For each
 package in `dependencies` and `optionalDependencies` it reads the *installed* copy's `engines.node`
-and asserts `semver.subset(declared, dependencyRange)` — every Node version we admit must be one the
+and asserts `semver.subset(declared, dependencyRange)`. Every Node version we admit must be one the
 dependency admits. Subset, not a floor comparison, because the Node 23 gap above is invisible to a
 minimum-version check.
 
 `semver.subset` is a conservative decision procedure: on some unions of ranges it answers `false`
-for a pair that is in fact a subset. `yargs` (`^20.19.0 || ^22.12.0 || >=23`) is one such case —
-probing it version by version shows it accepts every Node release `>=22.22.0`, yet `subset` reports
+for a pair that is in fact a subset. `yargs` (`^20.19.0 || ^22.12.0 || >=23`) is one such case.
+Probing it version by version shows it accepts every Node release `>=22.22.0`, yet `subset` reports
 a violation against that range. The imprecision only ever errs toward "tighten `engines`", never
-toward a false pass, which is the safe direction for a guard; and it does not fire against the
+toward a false pass, which is the safe direction for a guard. It also does not fire against the
 range chosen here. Read a failure as "prove this is still compatible", not as proof of breakage.
 
 `devDependencies` are excluded deliberately. They do not reach consumers, and their engines
-routinely outrun ours — `@semantic-release/git` currently wants `^22.22.2 || >=24.15` — which says
+routinely outrun ours. `@semantic-release/git` currently wants `^22.22.2 || >=24.15`, which says
 nothing about what the published package requires.
 
 Scope note: only the root manifest is governed. `docs/package.json` is a private manifest for the
@@ -95,7 +95,7 @@ than from that manifest.
   creating one.
 * Neutral: Node 23 is explicitly excluded. It is an odd-numbered line, long past end-of-life, and
   was never tested here.
-* Neutral: raising the floor is not a breaking change under semver for this package — `engines` is
+* Neutral: raising the floor is not a breaking change under semver for this package. `engines` is
   advisory, and without `engine-strict` npm warns rather than fails.
 
 ### Confirmation
@@ -103,8 +103,8 @@ than from that manifest.
 `package.json` `engines.node` is `^22.22.0 || >=24.0.0`, and
 [test/engines-floor.test.js](../test/engines-floor.test.js) fails if it ever admits a Node version a
 production dependency does not. Verified red against the previous `>=22.12.0` (it named all eight
-disagreeing dependencies) and green after the change. Node 22.23.2 and 24.19.0 — what the CI matrix
-resolves today — both satisfy the new range.
+disagreeing dependencies) and green after the change. Node 22.23.2 and 24.19.0 both satisfy the new
+range. Those are what the CI matrix resolves today.
 
 ## Pros and Cons of the Options
 
@@ -118,7 +118,7 @@ resolves today — both satisfy the new range.
 
 * Good: one-line change; fixes today's inaccuracy.
 * Bad: still wrong for Node 23, which the appium family excludes.
-* Bad: no guard, so it rots again on the next bump — the failure mode this ADR exists to end.
+* Bad: no guard, so it rots again on the next bump. That's the failure mode this ADR exists to end.
 
 ### C. Hold dependencies back
 
@@ -136,6 +136,6 @@ resolves today — both satisfy the new range.
 
 ## More Information
 
-Amends [00166](00166-node-22-engines-floor.md), which remains accepted — this ADR changes the value
+Amends [00166](00166-node-22-engines-floor.md), which remains accepted. This ADR changes the value
 of the floor and adds enforcement, not the decision to declare one. Related: `00130` (drop Node 18
 from CI), `01048` (PR gate latency, which records the Node 22 + 24 matrix).

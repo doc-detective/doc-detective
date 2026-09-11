@@ -9,8 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 After the engine merged in (`00145`), the schema/contract package `doc-detective-common` was still a
-separate repo. Every contract change — a new schema field, a validation tweak, a `detectTests`
-update — required a cross-repo edit and a lockstep release before the runner could use it. With the
+separate repo. Every contract change required a cross-repo edit and a lockstep release before the
+runner could use it. That covers a new schema field, a validation tweak, or a `detectTests`
+update. With the
 v4 line consolidating, should `doc-detective-common` also move into the `doc-detective` repository so
 the schema/contract surface lives beside the code that consumes it?
 
@@ -18,8 +19,8 @@ the schema/contract surface lives beside the code that consumes it?
 
 * The schema surface and the runner that validates against it should evolve in one repo.
 * A contract change plus its runner consumer should land in a single reviewable PR.
-* Both `doc-detective` and `doc-detective-common` are published in lockstep at the same version —
-  co-location makes that easier to enforce.
+* Both `doc-detective` and `doc-detective-common` are published in lockstep at the same version,
+  and co-location makes that easier to enforce.
 * Build tooling needs both schema generation and the runner build in one place.
 
 ## Considered Options
@@ -30,14 +31,14 @@ the schema/contract surface lives beside the code that consumes it?
 
 ## Decision Outcome
 
-Chosen option: **A**, because moving the contract surface in-repo collapses the last cross-repo
-lockstep and lets a schema change ship with its runner consumer in one PR, while preserving the
-shared-package boundary under `src/common/`.
+Chosen option: **A**. Moving the contract surface in-repo collapses the last cross-repo lockstep.
+A schema change then ships with its runner consumer in one PR, while preserving the shared-package
+boundary under `src/common/`.
 
 The contract:
 
 * `doc-detective-common` moves under `src/common/`: all schemas, `detectTests.ts`, and the
-  validation code — establishing the **in-repo schema/contract surface**. (The schema *decisions*
+  validation code. That establishes the **in-repo schema/contract surface**. (The schema *decisions*
   themselves are upstream-dated by their own earlier ADRs; this ADR records the merge.)
 * Bundled alongside: a `--version` CLI flag and a recording-reliability `safeDone` fix that rode in
   on the same merge window.

@@ -10,7 +10,7 @@ decision-makers: doc-detective maintainers
 
 Doc Detective locates elements by their visible text, but rendered HTML routinely pads text with
 leading/trailing whitespace, newlines, and collapsed runs of spaces. A literal text-equality XPath
-match fails on text that *looks* identical to a reader, producing spurious FAILs that documentation
+match fails on text that *looks* identical to a reader. That produces spurious FAILs documentation
 authors cannot diagnose from the page. Separately, driver/session startup (Appium + WebdriverIO)
 was timing out under default WDIO timeouts on slower machines and CI. The question: how should
 find-by-text normalize whitespace, and what driver init timeout gives sessions room to start?
@@ -30,8 +30,8 @@ find-by-text normalize whitespace, and what driver init timeout gives sessions r
 
 ## Decision Outcome
 
-Chosen option: **A**. Find-by-text was changed to use XPath `normalize-space()`, which collapses
-internal whitespace and trims edges so a match reflects the reader-visible text. In the same work
+Chosen option: **A**. Find-by-text was changed to use XPath `normalize-space()`. That collapses
+internal whitespace and trims edges, so a match reflects the reader-visible text. In the same work
 the driver init timeouts (`connectionRetryTimeout` / `waitforTimeout`) were raised to 120000 ms
 (2 minutes) so sessions have room to start under load. Commits `aee88c9`, `4f864aa`.
 
@@ -51,7 +51,7 @@ find-by-text and the WDIO timeout values.
 ## Pros and Cons of the Options
 
 ### A. normalize-space() + 2-min timeouts
-* Good: reader-faithful matching; robust startup.
+* Good: reader-faithful matching; sturdy startup.
 * Bad: can't assert exact internal whitespace.
 
 ### B. JS-side trim/collapse

@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-UI documentation frequently describes drag-and-drop interactions (reordering lists, moving cards, dropping files into zones), but Doc Detective had no step to verify them — `click` and `moveMouse` could not express a sustained drag from a source element to a target. The runner needed a `dragAndDrop` step. What should its contract be, and how should it work across drivers given that HTML5 drag-and-drop is notoriously inconsistent under WebDriver?
+UI documentation frequently describes drag-and-drop interactions, such as reordering lists, moving cards, or dropping files into zones. But Doc Detective had no step to verify them. `click` and `moveMouse` could not express a sustained drag from a source element to a target. The runner needed a `dragAndDrop` step. What should its contract be, and how should it work across drivers? HTML5 drag-and-drop is notoriously inconsistent under WebDriver.
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ UI documentation frequently describes drag-and-drop interactions (reordering lis
 
 ## Decision Outcome
 
-Chosen option: **A**, because element-specified source/target is robust to layout shifts in a way raw coordinates are not, and simulating the HTML5 drag-and-drop event sequence first (with a WebDriver-actions fallback) works across more real pages than either approach alone.
+Chosen option: **A**. An element-specified source and target survives layout shifts in a way raw coordinates do not. Simulating the HTML5 drag-and-drop event sequence first, with a WebDriver-actions fallback, works across more real pages than either approach alone.
 
 Contract decided:
 
@@ -47,7 +47,7 @@ Schema in doc-detective-common `301c0ad`; runner HTML5-sim + WebDriver fallback 
 ## Pros and Cons of the Options
 
 ### A. HTML5-sim + WebDriver fallback, element-specified
-* Good: robust to layout; works across more pages.
+* Good: survives layout shifts; works across more pages.
 * Bad: two code paths to maintain.
 
 ### B. WebDriver actions only

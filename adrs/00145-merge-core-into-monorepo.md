@@ -9,9 +9,10 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The runtime engine lived in a separate `doc-detective-core` package that the `doc-detective` wrapper
-depended on (the thin-wrapper split from `00039`). Coordinating changes across two repos — a contract
-change in core plus the wrapper that consumes it — meant lockstep releases, cross-repo PRs, and
-version churn that slowed every behavior change. With the v4 line underway, should the core engine be
+depended on (the thin-wrapper split from `00039`). Coordinating changes across two repos meant
+lockstep releases, cross-repo PRs, and version churn. A contract change in core needed the wrapper
+that consumes it, and that churn slowed every behavior change. With the v4 line underway, should
+the core engine be
 merged into the `doc-detective` repository and refactored to modern ESM/TypeScript?
 
 ## Decision Drivers
@@ -29,8 +30,8 @@ merged into the `doc-detective` repository and refactored to modern ESM/TypeScri
 
 ## Decision Outcome
 
-Chosen option: **A**, because a monorepo collapses the two-repo lockstep into single reviewable
-changes and lets the engine adopt the same ESM/TS toolchain as the rest of the v4 line.
+Chosen option: **A**. A monorepo collapses the two-repo lockstep into single reviewable changes. It
+also lets the engine adopt the same ESM/TS toolchain as the rest of the v4 line.
 
 The contract:
 

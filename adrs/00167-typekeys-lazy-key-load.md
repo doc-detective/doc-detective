@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 The `typeKeys` step imports webdriverio's `Key` map to translate special-key tokens. After the
 runtime lazy-install change, webdriverio may not be present in a lean install where no browser test
-runs — yet a top-level `import { Key }` would crash the whole process at load. Separately, a legacy
-special-key token `$SUBSTRACT$` (a misspelling of "subtract") was in use and renaming it outright
+runs. Yet a top-level `import { Key }` would crash the whole process at load. Separately, a legacy
+special-key token `$SUBSTRACT$` (a misspelling of "subtract") was in use, and renaming it outright
 would break existing tests. How should `typeKeys` reference `Key` without coupling lean installs to
 webdriverio, and how should the typo'd token be corrected without breaking compatibility?
 
@@ -30,9 +30,9 @@ webdriverio, and how should the typo'd token be corrected without breaking compa
 ## Decision Outcome
 
 Chosen option: **A**, because deferring the `Key` import keeps lean installs working and an alias
-preserves backward compatibility. `typeKeys` now lazy-loads webdriverio's `Key`; if the load fails
-(webdriverio absent) the step results FAIL rather than aborting the process, and `$SUBTRACT$` is
-added as an alias for the legacy `$SUBSTRACT$` token (commit `366202e6`, `typeKeys.ts`).
+preserves backward compatibility. `typeKeys` now lazy-loads webdriverio's `Key`. If the load fails,
+because webdriverio is absent, the step results FAIL rather than aborting the process. `$SUBTRACT$`
+is added as an alias for the legacy `$SUBSTRACT$` token (commit `366202e6`, `typeKeys.ts`).
 
 ### Consequences
 

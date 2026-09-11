@@ -10,10 +10,10 @@ decision-makers: doc-detective maintainers
 
 For "docs as tests" to work out of the box, Doc Detective needed to know how to read a documentation
 file with zero configuration. Without a built-in default, every user had to author a `fileTypes`
-definition before detecting a single test. The natural first target was Markdown. The question was
-which file extensions to claim by default, which documentation markup constructs to map to which
-actions, what the default step timeout should be, and where the default markup configuration should
-live in the config schema.
+definition before detecting a single test. The natural first target was Markdown. Several questions
+followed. Which file extensions should be claimed by default, and which documentation markup
+constructs map to which actions? What should the default step timeout be, and where should the
+default markup configuration live in the config schema?
 
 ## Decision Drivers
 
@@ -24,18 +24,18 @@ live in the config schema.
 
 ## Considered Options
 
-* **A. Ship a default Markdown `fileType` (.md/.mdx) with a markup→action map; raise default timeout; move markup defaults onto setup/cleanup `markup` and drop them from other fields** (chosen).
+* **A. Ship a default Markdown `fileType` (.md/.mdx) with a markup→action map, and raise the default timeout. Move markup defaults onto setup/cleanup `markup`, and drop them from other fields** (chosen).
 * **B. Require users to author a `fileTypes` definition (no built-in default).**
 * **C. Hard-code Markdown handling in the runner instead of expressing it as a `fileType`.**
 
 ## Decision Outcome
 
-Chosen option: **A**, because expressing the default as a real `fileType` keeps Markdown handling
-inside the same configurable contract users extend, rather than a special-cased code path.
+Chosen option: **A**. Expressing the default as a real `fileType` keeps Markdown handling inside the
+same configurable contract users extend, rather than a special-cased code path.
 `config.fileTypes` gains a default Markdown definition covering `.md`/`.mdx` with a markup→action map
 (onscreen text → `find`, image → `checkLink`, hyperlink → `goTo`/`checkLink`). Default step timeouts
 are raised from 500ms to 5000ms to suit real browsers. A later refinement (`b0d33a7`) moves the
-default markup onto the setup/cleanup `markup` field and drops the now-redundant defaults from
+default markup onto the setup/cleanup `markup` field. It drops the now-redundant defaults from
 `input`, `recursive`, and `markupToInclude`, keeping each default in exactly one place.
 
 ### Consequences

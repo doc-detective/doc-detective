@@ -29,8 +29,8 @@ as actions, and how should the recorder lifecycle be managed within a test run?
 
 Chosen option: **A**. `startRecording` and `stopRecording` are wired into the action switch, letting
 authors bracket exactly the steps they want captured. The recorder is auto-closed at the end of each
-test so it cannot leak across tests, and `--no-sandbox` is made always-on for the browser launch to
-keep recording reliable in restricted/headless environments. This establishes the recording-action
+test, so it cannot leak across tests. `--no-sandbox` is made always-on for the browser launch, to
+keep recording reliable in restricted and headless environments. This establishes the recording-action
 contract that the format (GIF/WebM/MP4), overwrite/failed-test, and engine ADRs build on.
 
 ### Consequences

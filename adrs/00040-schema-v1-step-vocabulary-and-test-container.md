@@ -8,9 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-With the engine unbundled and a standalone schema package in place (draft 2020-12 + dynamic loader),
-the project needed to pin down *which* step types exist as v1 and *how* a spec file declares a list
-of tests made of those steps. There was no canonical, validated vocabulary of actions and no
+The engine was unbundled and a standalone schema package was in place, on draft 2020-12 with a
+dynamic loader. The project now needed to pin down *which* step types exist as v1. It also had to
+pin down *how* a spec file declares a list of tests made of those steps. There was no canonical,
+validated vocabulary of actions and no
 spec-file shape that enforced "an action must be one of the known step types." What is the v1 action
 set, and what container shape validates a spec file against it?
 
@@ -30,15 +31,16 @@ set, and what container shape validates a spec file against it?
 
 ## Decision Outcome
 
-Chosen option: **A**, because per-action schemas keep each contract focused and a `oneOf`-of-`$ref`
-container validates that every authored action is one of the known v1 steps.
+Chosen option: **A**. Per-action schemas keep each contract focused. A `oneOf`-of-`$ref` container
+validates that every authored action is one of the known v1 steps.
 
 Behavior decided:
 
-1. **v1 action vocabulary** — 13 step schemas: `checkLink`, `click`, `find`, `goTo`, `httpRequest`,
-   `matchText`, `moveMouse`, `screenshot`, `scroll`, `startRecording`, `stopRecording`, `type`,
-   `wait`. Constrained enums include the click `button` set and HTTP `method` set.
-2. **`test_v1` container** — a `testObject` with a `tests[]` array; each test's `actions[]` is a
+1. **v1 action vocabulary:** 13 step schemas. Those are `checkLink`, `click`, `find`, `goTo`,
+   `httpRequest`, `matchText`, `moveMouse`, `screenshot`, `scroll`, `startRecording`,
+   `stopRecording`, `type`, and `wait`. Constrained enums include the click `button` set and HTTP
+   `method` set.
+2. **`test_v1` container:** a `testObject` with a `tests[]` array. Each test's `actions[]` is a
    `oneOf` of `$ref`s to every v1 step schema. This is the spec-file contract that validates an
    authored test file.
 

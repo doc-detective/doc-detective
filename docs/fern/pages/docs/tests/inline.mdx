@@ -5,7 +5,7 @@ description: Define tests directly in your documentation source files using inli
 
 You can define tests directly in your documentation source files using inline JSON or YAML. Inline tests are useful for small tests that you want to keep close to the content they test.
 
-Inline tests are also excellent for maintaining tests because you can update them and keep them in sync with the content they test as the content changes.
+Inline tests also make maintenance easier. You update them alongside the content they test, so the two stay in sync as the content changes.
 
 > Inline tests depend on your [config](/reference/schemas/config)'s `fileType` definitions. This page uses the default Markdown configuration, but you should update your config to match your documentation source files.
 
@@ -28,7 +28,7 @@ If you declare a step without declaring a test, Doc Detective automatically crea
 Inline tests offer several advantages:
 
 - **Proximity to content**: Tests are defined right next to the instructions they validate, making it easier to keep them in sync.
-- **Easy maintenance**: When you update documentation, the associated tests are immediately visible and can be updated at the same time.
+- **Straightforward maintenance**: When you update documentation, the associated tests are immediately visible and can be updated at the same time.
 - **Documentation as code**: Tests become part of the documentation source, ensuring that documentation and testing evolve together.
 - **Quick validation**: Small, focused tests can be quickly added to validate specific instructions or procedures.
 
@@ -92,7 +92,7 @@ DITA supports multiple syntax options:
 - Test end: `<?doc-detective test end?>`
 - Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
 
-Attribute values are automatically converted to the appropriate type: booleans (`detectSteps=false`), numbers (`wait=500`), and strings. You can use dot notation for nested objects—for example, `<?doc-detective step httpRequest.url="https://api.example.com" httpRequest.method="GET" ?>` creates a nested `httpRequest` object with `url` and `method` properties.
+Attribute values are automatically converted to the appropriate type: booleans (`detectSteps=false`), numbers (`wait=500`), and strings. You can use dot notation for nested objects. For example, `<?doc-detective step httpRequest.url="https://api.example.com" httpRequest.method="GET" ?>` creates a nested `httpRequest` object with `url` and `method` properties.
 
 You can also use HTML comment syntax as an alternative to processing instructions:
 

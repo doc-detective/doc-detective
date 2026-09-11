@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The expressions runtime (`00104`) could evaluate `{{…}}` over meta values, but each step type still shaped its results differently — `runShell` exposed `exitCode`/`stdio`, `httpRequest` exposed response fields, `find` exposed element data — with no single, predictable tree for expressions to read. For `{{…}}` to be authorable, the values an expression can reference had to be unified into one consistently-structured object and made available inside `runStep`. What is the canonical output shape, and how does it reach the expression evaluator?
+The expressions runtime (`00104`) could evaluate `{{…}}` over meta values. But each step type still shaped its results differently. `runShell` exposed `exitCode`/`stdio`, `httpRequest` exposed response fields, and `find` exposed element data. There was no single, predictable tree for expressions to read. For `{{…}}` to be authorable, the values an expression can reference had to be unified. They needed one consistently-structured object, made available inside `runStep`. What is the canonical output shape, and how does it reach the expression evaluator?
 
 ## Decision Drivers
 

@@ -27,8 +27,8 @@ specify exact coordinates?
 
 ## Decision Outcome
 
-Chosen option: **A**. A `moveMouse` action moves the pointer to a found element (with an
-install-mouse-helper cursor overlay so the motion is visible in recordings), and a `scroll` action
+Chosen option: **A**. A `moveMouse` action moves the pointer to a found element, with an
+install-mouse-helper cursor overlay so the motion is visible in recordings. A `scroll` action
 scrolls the viewport. `moveMouse` defaults to `alignH/alignV: "center"` with `offsetX/offsetY: 0`, so
 the common case (move to the element's center) needs no coordinates. As part of the same refinement,
 `find` always synthesizes a `wait` sub-action (`wait={}`) so the element is given time to appear
@@ -44,7 +44,7 @@ before the pointer moves to it.
 ### Confirmation
 
 Shipped 2022-05-18 (`86a9b92`, `bd33e4e`) for the `moveMouse`/`scroll` actions and the
-install-mouse-helper overlay, refined 2022-10-19 (`61c5db68`, `9a3285b7`) for the centered alignment
+install-mouse-helper overlay. Refined 2022-10-19 (`61c5db68`, `9a3285b7`) for the centered alignment
 defaults and the synthesized `find` wait sub-action.
 
 ## Pros and Cons of the Options
@@ -61,4 +61,4 @@ defaults and the synthesized `find` wait sub-action.
 
 Recorded retrospectively (ADR backfill). Origin: doc-detective commits 86a9b92, bd33e4e, 61c5db68,
 9a3285b7. Inventory ref: BACKFILL-INVENTORY.md Seq 21, 49. Related: ADR 00068 (standalone moveTo and
-stopRecording), ADR 00025 (supercharged find sub-actions).
+stopRecording), ADR 00025 (expanded find sub-actions).

@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The runner spawned Appium on the hardcoded port `4723`. When a previous Appium instance had not
-fully released the port, or when multiple runs/contexts overlapped, the spawn raced against a
-still-bound socket and `driverStart()` failed with `ECONNREFUSED` or a bind error. How should the
+The runner spawned Appium on the hardcoded port `4723`. Sometimes a previous Appium instance had not
+fully released the port, or multiple runs and contexts overlapped. The spawn then raced against a
+still-bound socket, and `driverStart()` failed with `ECONNREFUSED` or a bind error. How should the
 runner pick the Appium port so concurrent and back-to-back runs do not collide?
 
 ## Decision Drivers
@@ -31,8 +31,8 @@ runner pick the Appium port so concurrent and back-to-back runs do not collide?
 Chosen option: **A**, because asking the OS for an open port removes the collision class entirely
 rather than waiting it out. The decision evolved:
 
-1. First, `waitForPortFree()` bound `127.0.0.1:4723` before spawning Appium (up to ~30s) and
-   `driverStart()` retried on `ECONNREFUSED` (commit `cc1cc7b5`) — a guard on the fixed port.
+1. First, `waitForPortFree()` bound `127.0.0.1:4723` before spawning Appium (up to ~30s), and
+   `driverStart()` retried on `ECONNREFUSED` (commit `cc1cc7b5`). That was a guard on the fixed port.
 2. That was superseded by `findFreePort()` in `core/utils.ts`: Appium now binds a dynamically
    chosen free port instead of the hardcoded `4723` (commit `ce3ab862`, PR #301).
 

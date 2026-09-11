@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 The original `core` engine validated config through an ad-hoc `utils.js` routine and shipped an
 `analytics.js` module that emitted telemetry on every run. As the schema package matured into a
-versioned `config_v2` contract (Seq 74), the engine needed a single, schema-backed entry point that
-validated configuration once and failed loudly on bad input, rather than scattering field checks
+versioned `config_v2` contract (Seq 74), the engine needed a single, schema-backed entry point. It
+would validate configuration once and fail loudly on bad input, rather than scattering field checks
 through the runner. The public entry point was also named `test()`, which clashed with test-framework
 globals and read poorly as a library API. Which validation, naming, and telemetry posture should the
 rewritten config/runner layer adopt?
@@ -32,9 +32,9 @@ rewritten config/runner layer adopt?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a single schema-validated `setConfig()` is the smallest contract that
-makes config behavior predictable and testable, and removing telemetry eliminates an unused
-liability outright. The new `setConfig()` validates the merged config against `config_v2` and exits
+Chosen option: **A**. A single schema-validated `setConfig()` is the smallest contract that makes
+config behavior predictable and testable. Removing telemetry eliminates an unused liability
+outright. The new `setConfig()` validates the merged config against `config_v2` and exits
 with status 1 on failure, detects the runtime environment, and supports env-var substitution. The
 public engine entry point becomes `runTests()`; `test()` is removed. The legacy `utils.js`
 config-validation path and `analytics.js` are deleted, so no telemetry is emitted.

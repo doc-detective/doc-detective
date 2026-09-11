@@ -1,9 +1,9 @@
-# Hints — AI Coding Agent Guide
+# Hints: AI Coding Agent Guide
 
-This package owns the post-run hint system: a small, opt-out feature that
-prints **one** contextual tip after a test run completes (pass or fail —
-several built-in hints, like `enableDebugLog` and
-`useRecordStepOnFailure`, intentionally fire on failures). Hints
+This package owns the post-run hint system. It's a small, opt-out feature that
+prints **one** contextual tip after a test run completes. That happens on pass
+or fail, since several built-in hints, like `enableDebugLog` and
+`useRecordStepOnFailure`, intentionally fire on failures. Hints
 nudge users toward features they aren't yet using (CI workflow, HTML
 reporter, stable find patterns, etc.).
 
@@ -12,7 +12,7 @@ hint** that surfaces it to users who would benefit. This file is the
 playbook.
 
 > A hint is in-product surfacing, not documentation. A user-facing feature
-> still owes a **docs-impact assessment** — see ["Documentation impact"](../../CLAUDE.md#documentation-impact-required)
+> still owes a **docs-impact assessment**. See ["Documentation impact"](../../CLAUDE.md#documentation-impact-required)
 > and the [content strategy](../../docs/content-strategy/) in the root guide.
 
 ---
@@ -23,19 +23,19 @@ Add a hint when:
 
 - The feature is **opt-in** and most users won't discover it on their own.
 - There is a **detectable signal** that tells you the feature would
-  actually help right now (a flag they didn't set, a step type they're
-  not using, a config field they left at default).
-- The payload is **immediately actionable** — a code sample, a flag,
-  a short config snippet — not a long explanation.
+  actually help right now. That might be a flag they didn't set, a step
+  type they're not using, or a config field they left at default.
+- The payload is **immediately actionable**, such as a code sample, a flag,
+  or a short config snippet. It is not a long explanation.
 
 Skip when:
 
-- The feature is the default (`detectSteps`, `recursive`) — no nudging
+- The feature is the default (`detectSteps`, `recursive`), so no nudging
   needed.
 - The signal would be too noisy (e.g. "user has tests" is true for
   everyone running `doc-detective`; don't gate on that).
 - The hint would need to fire on every run forever (e.g. "consider
-  contributing on GitHub" — that's marketing, not a hint).
+  contributing on GitHub"). That's marketing, not a hint.
 - The advice depends on subjective judgment ("you should refactor your
   selectors") rather than a measurable signal.
 
@@ -67,7 +67,7 @@ to ignore the entire feature.
 
 Every hint is a `{ id, priority?, markdown, when }` object in
 [`hints.ts`](./hints.ts). Adding a hint is a **single-file change**
-unless you need a new context signal — see "Adding new context signals"
+unless you need a new context signal. See "Adding new context signals"
 below.
 
 ---
@@ -100,23 +100,23 @@ The id-shape regex is enforced by `test/hints.test.js`:
 
 ## Priority bands
 
-Pick the **lowest band** that applies — lower = more important. All
-eligible hints stay in the selection pool; priority is mapped to a
-selection weight via `priorityWeight` in `./index.ts` (5:4:3:2:1
-across the five bands). So a tier-10 hint is roughly 5× more likely
-than a tier-50 hint when both are eligible, but neither is exclusive
-— users see a mix biased toward the most-important relevant tip.
+Pick the **lowest band** that applies, where lower means more important.
+All eligible hints stay in the selection pool. Priority maps to a
+selection weight through `priorityWeight` in `./index.ts`, at 5:4:3:2:1
+across the five bands. A tier-10 hint is therefore roughly 5× more likely
+than a tier-50 hint when both are eligible. Neither is exclusive, so
+users see a mix biased toward the most-important relevant tip.
 Earlier versions filtered hard to the single lowest tier and users
 reported "seeing almost nothing but the highest-priority hints"; the
 weighted scheme replaces that.
 
 | Band | When to use |
 |------|-------------|
-| **10** — onboarding | First-run setup. CI workflow, config file, npm script, installAgents. The user is new, give them the runway. |
-| **20** — current-run problems | Something failed *this run* or the env is misconfigured. Old Node, no tests resolved, brittle selectors, no recording on failure. |
-| **30** — output & reporting | Better artifacts. HTML reporter, JSON for CI artifacts, output dir. |
-| **40** — feature discovery | A first-class step type the user hasn't reached for yet. screenshot, checkLink, httpRequest, runCode. |
-| **50** — optimization & advanced | Power-user setup. concurrency hints, beforeAny/afterAll, origin, fileTypes, telemetry userId. |
+| **10**, onboarding | First-run setup. CI workflow, config file, npm script, installAgents. The user is new, give them the runway. |
+| **20**, current-run problems | Something failed *this run* or the env is misconfigured. Old Node, no tests resolved, brittle selectors, no recording on failure. |
+| **30**, output and reporting | Better artifacts. HTML reporter, JSON for CI artifacts, output dir. |
+| **40**, feature discovery | A first-class step type the user hasn't reached for yet. screenshot, checkLink, httpRequest, runCode. |
+| **50**, optimization and advanced | Power-user setup. concurrency hints, beforeAny/afterAll, origin, fileTypes, telemetry userId. |
 
 Omit `priority` only if you genuinely mean priority 50 (the default).
 Better to be explicit.
@@ -135,7 +135,7 @@ Better to be explicit.
    - **User- or runner-supplied data** under `ctx.config.*` and
      `ctx.results.*`. Shapes are not guaranteed (config is typed as
      `any`; results can be partial on failure). Read these with `?.`:
-     `ctx.config?.reporters?.includes("html")` — not
+     `ctx.config?.reporters?.includes("html")`, not
      `ctx.config.reporters.includes("html")`.
    - **Context-level fields** directly on `HintContext` (e.g.
      `ctx.failedCount`, `ctx.usedStepTypes`, `ctx.nodeMajor`,
@@ -143,19 +143,19 @@ Better to be explicit.
      with defensive try/catch and concrete defaults (empty `Set`,
      `0`, `false`, `null`). Their types in `types.ts` are
      non-optional, and TypeScript will fail the build if a field
-     ever becomes nullable. **Read these directly** — adding `?.` to
-     a field the type system guarantees is non-null is noise at best
-     and masks real refactor bugs at worst (a silent `undefined ?? 0`
-     comparison instead of a loud type error).
+     ever becomes nullable. **Read these directly.** Adding `?.` to
+     a field the type system guarantees is non-null is noise at best.
+     At worst it masks real refactor bugs, giving a silent
+     `undefined ?? 0` comparison instead of a loud type error.
 
    Hint registry still must work on a half-broken **results shape**
-   from a failed run — that's why the `ctx.results.*` rule above is
-   important — but the context wrapping it is guaranteed.
+   from a failed run. That's why the `ctx.results.*` rule above is
+   important. The context wrapping it is guaranteed, though.
 
 3. **Tight.** A hint should fire when the user would clearly benefit,
    not just when "feature X isn't enabled." The `tryHtmlReporter`
    hint, for example, gates on the user having an explicit reporters
-   array — not on the (default) absence of `html`. We don't tell users
+   array, not on the default absence of `html`. We don't tell users
    "you could use HTML" unconditionally.
 
 4. **Skipped when the feature is already in use.** Always include the
@@ -163,7 +163,7 @@ Better to be explicit.
    fires when no screenshot was actually produced this run.
 
 5. **Anything that throws inside `when()` is caught and logged at
-   `debug` level by `maybeShowHint`. Don't rely on this — write
+   `debug` level by `maybeShowHint`. Don't rely on this. Write
    predicates that can't throw.
 
 ---
@@ -184,14 +184,14 @@ deliberate subset:
 Style:
 
 - **One line per prose paragraph in the source array.** The terminal
-  soft-wraps based on its width. Do not hand-wrap prose at ~70 columns
-  — that produces hard line breaks the terminal can't reflow, so a hint
-  designed to be 2 lines on a narrow terminal becomes 4 lines on a wide
-  one (or vice versa). Each entry in the `markdown` array is either a
-  full prose paragraph (one long string, however long), an empty string
-  for vertical spacing, a fenced-code delimiter line (`` ```bash ``),
-  or one line of code-block / bullet-list content (which DO want
-  individual lines).
+  soft-wraps based on its width. Do not hand-wrap prose at ~70 columns.
+  That produces hard line breaks the terminal can't reflow. A hint
+  designed to be 2 lines on a narrow terminal then becomes 4 lines on a
+  wide one, or vice versa. Each entry in the `markdown` array is one of
+  a few things. It's a full prose paragraph as one long string, or an
+  empty string for vertical spacing. It can also be a fenced-code
+  delimiter line (`` ```bash ``), or one line of code-block or
+  bullet-list content, which DO want individual lines.
 - **2-3 short prose paragraphs.** If you need more, link to the docs.
 - **One fenced code block.** More than one and the hint feels like a
   tutorial.
@@ -199,12 +199,12 @@ Style:
   expands on the hint. Add a markdown link to
   `doc-detective.com/docs/...` at the end of the body so the user
   knows where to read more. For hints whose advice IS the entire
-  payload (`enableDebugLog`, `setOutputDir`, `addJsonReporterForCi` —
+  payload (`enableDebugLog`, `setOutputDir`, `addJsonReporterForCi`),
   one flag or one config field, no further nuance), skipping the
   link is fine.
 - **No headings.** The hint is already prefixed with `💡 Hint:`.
 - **No emojis** beyond what the renderer already emits.
-- **Don't promise the moon.** "Prefer X — usually faster" is honest;
+- **Don't promise the moon.** "Prefer X, usually faster" is honest;
   "X is 10x faster" is a claim to substantiate elsewhere.
 
 ---
@@ -223,7 +223,7 @@ If you do need a new signal:
 
 2. **Populate it in [`context.ts`](./context.ts).** If it can be
    computed from `results.specs[]`, fold it into the existing
-   `walkResults` pass — don't add a second walk. If it needs the
+   `walkResults` pass. Don't add a second walk. If it needs the
    filesystem, add a small helper next to `readNpmScripts` /
    `detectOutputDirGitignored` and **wrap in try/catch with a safe
    default** (`false`, `0`, empty `Set`).
@@ -232,7 +232,7 @@ If you do need a new signal:
    linear walk over already-in-memory data, an `os.platform()` check.
    Expensive things require a budget:
    - Filesystem walks: cap at 100 files (see `detectRstFiles` in
-     `context.ts` for the canonical pattern — `scanForExtensions` with
+     `context.ts` for the canonical pattern, `scanForExtensions` with
      a budget callback).
    - Async probes (e.g. agent adapters): per-call timeout of 500ms
      (see `withTimeout` in `context.ts`).
@@ -264,7 +264,7 @@ For every new hint:
 - [ ] Run `npx mocha --exit test/hints.test.js`. All ~90+ tests should
       pass; coverage shouldn't decrease.
 
-There's a worked example pattern in `test/hints.test.js` — search for
+There's a worked example pattern in `test/hints.test.js`. Search for
 `fakeCtx` and copy the structure of any existing hint test.
 
 ---
@@ -282,7 +282,7 @@ A hint is shown only when **all** of:
 
 The first three are rules about **when not to show any hint**. They
 live in [`index.ts`](./index.ts) `maybeShowHint`. Don't bypass them per
-hint — if you need a hint to show in a non-info log level, the answer
+hint. Suppose you need a hint to show in a non-info log level. The answer
 is almost always "don't make this a hint, log it instead."
 
 ---
@@ -293,9 +293,9 @@ is almost always "don't make this a hint, log it instead."
 |------|---------|
 | [`types.ts`](./types.ts) | `HintContext` and `Hint` interfaces. Add new context fields here. |
 | [`render.ts`](./render.ts) | Markdown → ANSI renderer. Pure. Don't add features unless multiple hints would use them. |
-| [`context.ts`](./context.ts) | All probes — git, workflow, npm, gitignore, agents, results walk. Async at the boundary; predicates stay sync. |
+| [`context.ts`](./context.ts) | All probes: git, workflow, npm, gitignore, agents, results walk. Async at the boundary, predicates stay sync. |
 | [`hints.ts`](./hints.ts) | The registry. Add new hints here. Alphabetical by id. |
-| [`index.ts`](./index.ts) | `maybeShowHint` — the public entry point and selection algorithm. |
+| [`index.ts`](./index.ts) | `maybeShowHint`, the public entry point and selection algorithm. |
 | `test/hints.test.js` | Mocha tests for everything above. |
 
 ---

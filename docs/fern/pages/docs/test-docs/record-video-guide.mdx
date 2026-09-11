@@ -13,7 +13,7 @@ Make sure you have the following:
 - A visible display. Recording captures a headed context; headless caveats come later in this guide.
 - A directory where you can create a `.spec.json` file.
 
-The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
 Recordings are video only, with no audio track.
 
@@ -26,7 +26,7 @@ Every recording ends at a `stopRecord` step; Doc Detective finalizes any recordi
 - **Untargeted** (`true` or `null`): stops the most recently started recording that's still active (last in, first out). This is the common case, when only one recording runs at a time.
 - **By name** (a string, or `{ "name": "<name>" }`): stops the active recording with that `name`, wherever it falls in the active set.
 
-A single context can run more than one recording at once—for example, a full session alongside a shorter clip. Give each `record` step a `name` so a later `stopRecord` targets the right one. For that pattern, see [Multiple overlapping recordings](/docs/actions/record#multiple-overlapping-recordings).
+A single context can run more than one recording at once, such as a full session alongside a shorter clip. Give each `record` step a `name` so a later `stopRecord` targets the right one. For that pattern, see [Multiple overlapping recordings](/docs/actions/record#multiple-overlapping-recordings).
 
 {/* test {"testId":"record-guide-record-stop","detectSteps":false} */}
 
@@ -49,7 +49,7 @@ A single context can run more than one recording at once—for example, a full s
 {/* step {"stepId":"record-guide-rs-stop","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
 
-By default (`overwrite: "false"`), a `record` step whose file already exists is skipped and reports `SKIPPED`; for the overwrite modes that re-record on change, see [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression).
+By default (`overwrite: "false"`), a `record` step whose file already exists is skipped and reports `SKIPPED`. For the overwrite modes that re-record on change, see [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression).
 
 For the full set of fields, see the [`record`](/docs/actions/record) and [`stopRecord`](/docs/actions/stoprecord) action references and the [`record`](/reference/schemas/record) and [`stopRecord`](/reference/schemas/stoprecord) schemas.
 
@@ -57,7 +57,7 @@ For the full set of fields, see the [`record`](/docs/actions/record) and [`stopR
 
 Recording uses one of two engines. If you don't set `engine`, Doc Detective prefers the `browser` engine when a visible Chrome context is available, and falls back to `ffmpeg` otherwise.
 
-- **`browser`** records the Chrome viewport for the current tab only. It needs a visible Chrome context and can't record in headless mode, but it's always safe to run concurrently because each context records its own window.
+- **`browser`** records the Chrome viewport for the current tab only. It needs a visible Chrome context and can't record in headless mode. It's always safe to run concurrently, because each context records its own window.
 - **`ffmpeg`** records the whole screen, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically.
 
 Set `engine` as a string to pick an engine with its defaults, or as an object to tune it:
@@ -87,9 +87,9 @@ Set `engine` as a string to pick an engine with its defaults, or as an object to
 {/* step {"stepId":"record-guide-engine-stop","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
 
-Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test so they take turns on the display—you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On Linux, the `ffmpeg` engine needs Xvfb to record a headless context, which has no physical display to capture.
+Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test. They take turns on the display, and you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On Linux, the `ffmpeg` engine needs Xvfb to record a headless context, which has no physical display to capture.
 
-Recording a native app surface or a mobile device screen follows different rules—see [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
+Recording a native app surface or a mobile device screen follows different rules. See [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
 
 ## Verify it works
 

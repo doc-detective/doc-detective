@@ -51,7 +51,7 @@ DITA files use XML processing instructions or HTML comments to define inline tes
 <?doc-detective test end?>
 ```
 
-Attribute values are automatically converted to the appropriate type: booleans (`detectSteps=false`), numbers (`wait=500`), and strings. You can use dot notation for nested objects—for example, `<?doc-detective step httpRequest.url="https://api.example.com" httpRequest.method="GET" ?>`.
+Attribute values are automatically converted to the appropriate type: booleans (`detectSteps=false`), numbers (`wait=500`), and strings. You can use dot notation for nested objects. For example, `<?doc-detective step httpRequest.url="https://api.example.com" httpRequest.method="GET" ?>`.
 
 ### HTML comment syntax
 

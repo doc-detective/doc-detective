@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Tests that begin behind authentication had no way to persist a logged-in browser session between runs or to seed a session from a saved cookie file — every spec had to re-drive the full login flow. Doc Detective needed step types to export the current browser cookies to disk and to import them back. What should those step types' contract be, including the storage format and how a cookie's source (file vs. variable) is specified?
+Tests that begin behind authentication had no way to persist a logged-in browser session between runs. They also could not seed a session from a saved cookie file, so every spec had to re-drive the full login flow. Doc Detective needed step types to export the current browser cookies to disk and to import them back. What should those step types' contract be? That includes the storage format, and how a cookie's source, file or variable, is specified.
 
 ## Decision Drivers
 
@@ -25,12 +25,12 @@ Tests that begin behind authentication had no way to persist a logged-in browser
 
 ## Decision Outcome
 
-Chosen option: **A**, because two explicitly-named verbs read clearly in documentation, the Netscape cookie format is broadly interoperable with other tooling, and an XOR between `path` and `variable` prevents an ambiguous "which source wins" situation at the schema level.
+Chosen option: **A**. Two explicitly-named verbs read clearly in documentation, and the Netscape cookie format is broadly interoperable with other tooling. An XOR between `path` and `variable` prevents an ambiguous "which source wins" situation at the schema level.
 
 Contract decided:
 
 * `saveCookie` / `loadCookie` action-as-key step types, each accepting a string shorthand or an object.
-* Object fields: cookie `name` (pattern-validated), `path` or `variable` (mutually exclusive — XOR), and `domain`.
+* Object fields: cookie `name` (pattern-validated), `path` or `variable` (mutually exclusive, an XOR), and `domain`.
 * On-disk Netscape cookie format; runner parse/format with `sameSite: Lax` and an environment-variable fallback for the cookie source.
 * The resolver registers both as `driverActions`.
 

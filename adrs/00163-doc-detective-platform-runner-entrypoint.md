@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The hosted doc-detective.com platform needs to run a user's tests inside an ephemeral worker:
-fetch the spec and secrets for a job, lay out a workspace, invoke the CLI, stream logs back, and
-finalize results — all with a hard time budget so a stuck run can't pin a worker forever. The
+The hosted doc-detective.com platform needs to run a user's tests inside an ephemeral worker. It
+fetches the spec and secrets for a job, lays out a workspace, invokes the CLI, streams logs back,
+and finalizes results. A hard time budget applies, so a stuck run can't pin a worker forever. The
 plain `doc-detective` CLI bin assumes a local filesystem and an interactive-ish lifecycle, so it
 isn't the right shape for a platform worker. How should the platform launch and supervise a run?
 
@@ -30,11 +30,12 @@ isn't the right shape for a platform worker. How should the platform launch and 
 
 ## Decision Outcome
 
-Chosen option: **A**, because the platform lifecycle (fetch → provision → spawn → stream →
-finalize → timeout) is distinct from the local CLI and benefits from owning its own process. The
-entrypoint `bin/runner-entrypoint.js` fetches the job's spec/secrets, provisions `/workspace`,
-spawns the CLI with the resolved config passed via the `DOC_DETECTIVE_CONFIG` env var, streams
-logs, finalizes results, and self-kills at `DD_TIMEOUT_SECONDS` (commit `44ded942`, PR #302).
+Chosen option: **A**. The platform lifecycle (fetch → provision → spawn → stream → finalize →
+timeout) is distinct from the local CLI, and benefits from owning its own process. The
+entrypoint `bin/runner-entrypoint.js` fetches the job's spec and secrets, and provisions
+`/workspace`. It spawns the CLI with the resolved config passed through the
+`DOC_DETECTIVE_CONFIG` env var. It streams logs, finalizes results, and self-kills at
+`DD_TIMEOUT_SECONDS` (commit `44ded942`, PR #302).
 
 ### Consequences
 

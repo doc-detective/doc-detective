@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Arazzo 1.0 is the OpenAPI Initiative's specification for describing multi-step API workflows (a sequence of operations with inputs and outputs). Doc Detective already drove individual `httpRequest` steps and could resolve OpenAPI documents, but had no way to consume an Arazzo description and run it as a test. Should Doc Detective translate Arazzo into its own spec model so existing runner machinery executes it, or treat Arazzo as a foreign format requiring a separate engine?
+Arazzo 1.0 is the OpenAPI Initiative's specification for describing multi-step API workflows, meaning a sequence of operations with inputs and outputs. Doc Detective already drove individual `httpRequest` steps and could resolve OpenAPI documents. But it had no way to consume an Arazzo description and run it as a test. Should Doc Detective translate Arazzo into its own spec model, so existing runner machinery executes it? Or should Arazzo be a foreign format requiring a separate engine?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ Arazzo 1.0 is the OpenAPI Initiative's specification for describing multi-step A
 
 ## Decision Outcome
 
-Chosen option: **A**. `src/arazzo.js` maps Arazzo `workflows` → Doc Detective tests, `steps` → `httpRequest` steps, and `sourceDescriptions` → the `openApi[]` integration array, so the standard runner executes the result. OpenAPI resolution was reordered to run *before* validation so referenced operations are available, and negative tests (expecting 4xx/5xx status codes) no longer auto-FAIL — an expected error status is a pass.
+Chosen option: **A**. `src/arazzo.js` maps Arazzo `workflows` → Doc Detective tests, `steps` → `httpRequest` steps, and `sourceDescriptions` → the `openApi[]` integration array. The standard runner then executes the result. OpenAPI resolution was reordered to run *before* validation, so referenced operations are available. Negative tests expecting 4xx or 5xx status codes no longer auto-FAIL, since an expected error status is a pass.
 
 ### Consequences
 

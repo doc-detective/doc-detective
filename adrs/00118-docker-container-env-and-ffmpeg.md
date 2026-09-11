@@ -57,7 +57,7 @@ Shipped in docker commit `64a8e10` (structured `DOC_DETECTIVE` env + ffmpeg) and
 ## Pros and Cons of the Options
 
 ### A. Structured DOC_DETECTIVE env + ffmpeg + 10-min timeouts
-* Good: provenance-carrying identity; recording works; robust startup.
+* Good: provenance-carrying identity; recording works; sturdy startup.
 * Bad: JSON env to parse/validate.
 
 ### B. Keep CONTAINER=true plus extra vars

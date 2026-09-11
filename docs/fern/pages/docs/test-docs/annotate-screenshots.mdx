@@ -14,11 +14,11 @@ Make sure you have the following:
 - A directory where you can create a `.spec.json` file.
 - A page with the target elements you want to annotate.
 
-The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
 ## Annotate screenshots
 
-The `screenshot.annotations` option marks up an image as part of capturing it. Doc Detective composites annotations into the image and never touches the page under test, so an annotated screenshot can't disturb a running test or leak into a recording.
+The `screenshot.annotations` option marks up an image as part of capturing it. Doc Detective composites annotations into the image and never touches the page under test. An annotated screenshot therefore can't disturb a running test or leak into a recording.
 
 There are six annotation types:
 
@@ -29,7 +29,7 @@ There are six annotation types:
 - `blur`: a blur over the target, to redact sensitive information.
 - `text`: a standalone text box, showing `label`.
 
-Each annotation names one type, and the type's value is its target. A target can be a string (a selector or display text, the same as [`crop`](/docs/test-docs/capture-screenshots-guide)), an object (the same element-finding fields as [`find`](/docs/selectors/css)), or a position (a named region like `top-right` or a `{ "x": …, "y": … }` point). Shared options include `label` (the text a `badge`, `callout`, or `text` shows), `position` (where the annotation sits relative to its target), `style` (per-annotation visual overrides), and `all` (annotate every matching element instead of only the first).
+Each annotation names one type, and the type's value is its target. A target takes one of three forms. It can be a string, meaning a selector or display text, the same as [`crop`](/docs/test-docs/capture-screenshots-guide). It can be an object, using the same element-finding fields as [`find`](/docs/selectors/css). It can also be a position, either a named region like `top-right` or a `{ "x": …, "y": … }` point. Shared options include `label`, `position`, `style`, and `all`. `label` is the text a `badge`, `callout`, or `text` shows. `position` sets where the annotation sits relative to its target. `style` holds per-annotation visual overrides, and `all` annotates every matching element instead of only the first.
 
 An object target also takes `timeout`, the number of milliseconds to wait for its element. Annotations wait 5000 by default. Raise it for anything slower, such as `{ "outline": { "elementTestId": "dashboard", "timeout": 20000 } }`.
 
@@ -60,7 +60,7 @@ To redact reliably, set `all: true` with an object target. A bare `blur` selecto
 
 ### Theme every annotation at once
 
-Set `annotationDefaults` to style all annotations consistently across a doc set. Set it on the config, a spec, or a test—a test's theme overrides a spec's, which overrides the config's—and an individual annotation's `style` overrides all of them:
+Set `annotationDefaults` to style all annotations consistently across a doc set. Set it on the config, a spec, or a test. A test's theme overrides a spec's, which overrides the config's. An individual annotation's `style` overrides all of them:
 
 ```json
 {
@@ -78,7 +78,7 @@ Base properties apply to every type; a per-type block, such as `badge` or `blur`
 
 Because annotations change an image's pixels, changing a theme or an annotation invalidates any existing reference image you compare against with `maxVariation`. Refresh the reference after changing annotations.
 
-Annotations also work on [native app surfaces](/docs/actions/screenshot#app-surfaces), where the native element lookup limits targets to four fields and doesn't accept `all`—see the reference for that path. To keep annotations up across steps and navigation so they appear in a recording, use the `annotate` action instead, covered in [Narrate recordings](/docs/test-docs/narrate-recordings). For the full annotation surface, see [Annotations](/docs/actions/screenshot#annotations) and the [`annotation-defaults`](/reference/schemas/annotation-defaults) schema.
+Annotations also work on [native app surfaces](/docs/actions/screenshot#app-surfaces). There the native element lookup limits targets to four fields and doesn't accept `all`. See the reference for that path. To keep annotations up across steps and navigation so they appear in a recording, use the `annotate` action instead, covered in [Narrate recordings](/docs/test-docs/narrate-recordings). For the full annotation surface, see [Annotations](/docs/actions/screenshot#annotations) and the [`annotation-defaults`](/reference/schemas/annotation-defaults) schema.
 
 ## Verify it works
 

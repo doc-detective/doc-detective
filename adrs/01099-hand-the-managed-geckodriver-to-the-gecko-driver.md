@@ -32,8 +32,8 @@ browsers cache, which is not on PATH. And since geckodriver v6 it is named
 `which geckodriver`.
 
 Why this stayed invisible. GitHub-hosted runners ship a system geckodriver on PATH. The
-feature-fixture suite also defaults to Firefox headless contexts
-([test/core-artifacts/config.groups.json](../test/core-artifacts/config.groups.json)). CI has
+feature-fixture suite also defaults to Firefox headless contexts. See
+[test/core-artifacts/config.groups.json](../test/core-artifacts/config.groups.json). CI has
 therefore been exercising the *system* driver all along, never the managed one.
 
 Worse, the fixture suite could not have caught the container failure even if it ran there. No
@@ -69,7 +69,7 @@ Chosen option: **A**.
   `"appium:geckodriverExecutable": firefox.driver` when present, and omits it otherwise so the
   session falls back to the PATH lookup exactly as before.
 * [src/core/tests/geckoDriver.ts](../src/core/tests/geckoDriver.ts): a new
-  `GECKODRIVER_EXECUTABLE_ARGS` constant, passed to every desktop-pool Appium server, plus
+  `GECKODRIVER_EXECUTABLE_ARGS` constant, passed to every desktop-pool Appium server. It also adds
   `PROTECTED_CAPABILITIES` / `applyDriverOptions`, which keep an authored `driverOptions` from
   overriding the capability the opt-in unlocks.
 
@@ -104,9 +104,9 @@ installs: safari, xcuitest, gecko, chromium. The effective permission is therefo
 context. The pool's servers are shared across contexts, and `buildFallbackCandidates` can route a
 chrome-authored context to Firefox mid-run under the default `browserFallback: "auto"`. Gating the
 flag on the run's authored browsers would leave the capability illegal exactly when the fallback
-needs it, converting today's soft PATH fallback into a hard `SessionNotCreatedError`. Passing it
+needs it. That converts today's soft PATH fallback into a hard `SessionNotCreatedError`. Passing it
 unconditionally keeps the capability and the server permission consistent by construction. The
-servers are run-owned, bound to `127.0.0.1`, and every session request on them originates from Doc
+servers are run-owned and bound to `127.0.0.1`. Every session request on them originates from Doc
 Detective itself, so the residual surface is a driver accepting a filesystem path this process
 already chose.
 
@@ -145,8 +145,8 @@ introduces. Narrowing it is a separate decision.
 
 * Good: Firefox works in the official image on `linux/amd64` and `linux/arm64`, with no geckodriver
   on PATH. The documented arm64 alternative to emulation is true again.
-* Good: every environment now uses the geckodriver Doc Detective installed rather than an ambient
-  one, so a run is reproducible and CI stops testing a driver the product does not manage.
+* Good: every environment now uses the geckodriver Doc Detective installed, rather than an ambient
+  one. So a run is reproducible, and CI stops testing a driver the product does not manage.
 * Good: the failure mode when no binary resolves is unchanged (PATH lookup, then cross-browser
   fallback). This adds a capability, it does not remove a fallback.
 * Neutral: desktop-pool Appium servers now carry one insecure-feature opt-in. Scoped as above, and
@@ -158,8 +158,8 @@ introduces. Narrowing it is a separate decision.
   future Appium driver adopted the same feature name. The constant carries the reasoning and the
   test asserts the exact value, so a change is a deliberate edit rather than a drift.
 * Bad (narrow): on a machine with *both* a managed geckodriver and a system one, sessions now use
-  the managed binary. If it passes the Layer 2 `--version` check but can't actually drive the
-  installed Firefox, a system geckodriver that previously rescued the run silently no longer does.
+  the managed binary. Say it passes the Layer 2 `--version` check but can't drive the installed
+  Firefox. A system geckodriver that previously rescued the run silently no longer does.
   That is the intended trade, since an ambient rescue is exactly the ambiguity this removes, and the
   cross-browser fallback still carries the context.
 
@@ -184,9 +184,9 @@ introduces. Narrowing it is a separate decision.
   fixtures.yml change (`guards/` is already in the `web-plumbing` bundle). Verified in both
   directions against the real image: **FAIL** on the unfixed image (`firefox unavailable; ran on
   chrome` → the UA assertion fails), **PASS** on the fixed one.
-* End-to-end in the real image on both architectures, with `command -v geckodriver` confirmed empty
-  so only the capability can be supplying the binary: context PASS on
-  `{"name":"firefox","headless":true}`, `fallback: null`, and the UA assertion passing.
+* End-to-end in the real image on both architectures, with `command -v geckodriver` confirmed
+  empty, so only the capability can be supplying the binary. The context reports PASS on
+  `{"name":"firefox","headless":true}`, with `fallback: null` and the UA assertion passing.
 
 ## Pros and Cons of the Options
 

@@ -14,7 +14,7 @@ Doc Detective can open and drive Android apps on a managed emulator as part of a
 
 ## Before you begin
 
-Android app tests run on an emulator that Doc Detective manages for you, and the emulator needs **hardware acceleration** (KVM on Linux, HVF on macOS, or WHPX on Windows). A host without it can't run the emulator, so Doc Detective skips the test with a reason rather than failing it, keeping a mixed-platform spec green. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator).
+Android app tests run on an emulator that Doc Detective manages for you. The emulator needs **hardware acceleration**: KVM on Linux, HVF on macOS, or WHPX on Windows. A host without it can't run the emulator. Doc Detective then skips the test with a reason rather than failing it, which keeps a mixed-platform spec green. Linux CI runners commonly expose KVM, which makes them the usual home for Android app tests. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator).
 
 Android also needs the Android SDK toolchain. Install it ahead of time:
 
@@ -26,7 +26,7 @@ This installs the SDK, a system image, and the emulator. The download is multi-G
 
 ## Run your first Android test
 
-This test targets the `android` platform, launches the Settings app by its package name on the context's default emulator, opens a settings category, confirms the screen opened, takes a screenshot of the window, returns to the top-level screen, and closes the app. Settings ships with Android, so the test needs nothing else installed.
+This test targets the `android` platform and launches the Settings app by its package name on the context's default emulator. It opens a settings category, confirms the screen opened, and takes a screenshot of the window. It then returns to the top-level screen and closes the app. Settings ships with Android, so the test needs nothing else installed.
 
 {/* test {"testId":"android-app-settings","detectSteps":false,"runOn":[{"platforms":["android"]}]} */}
 
@@ -102,10 +102,10 @@ doc-detective --input android-app.spec.json
 A few things to notice:
 
 - The generous `timeout` (180,000 ms) leaves room for a cold emulator to boot and the app to launch. The toolchain and automation driver must be in place before the first step runs. Install them ahead of time with `doc-detective install android`, or let a capable host install them lazily on the first run that needs them.
-- `waitUntil.find` gates readiness: the step holds until the **Network & internet** entry exists, so the next step never runs against a screen that hasn't drawn its controls yet. Gate readiness on an element the test actually uses—here the same entry the next `click` targets—rather than on a screen title or heading that can appear before the list below it has drawn, which would let the test race ahead to a control that isn't there yet.
-- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images; swap it for a category your device's Settings app actually shows. If you change the category, also update the `waitUntil.find` gate and the following `find` (here `Internet`) to labels the new screens display.
-- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. The example sets `"name": "settings"` on `startSurface`; pass an explicit `surface` on a step—for example `{ "app": "settings" }`—to switch to a different surface; that switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "settings" }`) because it's a lifecycle step, not an interaction on the active surface. If you omit `name`, Doc Detective derives the same `settings` default from the final dot-segment of the package name; set it explicitly when you want a name of your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
-- Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. The example uses a standalone `find` to confirm the category screen opened, and a `type` step that sends the `$BACK$` [device key](/docs/actions/type#device-keys-mobile-app-surfaces) to return to the top level. Used for text entry, `type` sends text to the focused control on Android, so tap a field first (for example, the Settings search box) and then type into it.
+- `waitUntil.find` gates readiness. The step holds until the **Network & internet** entry exists, so the next step never runs against a screen that hasn't drawn its controls yet. Gate readiness on an element the test actually uses, here the same entry the next `click` targets. A screen title or heading can appear before the list below it has drawn. That would let the test race ahead to a control that isn't there yet.
+- The `click` targets the **Network & internet** entry, the Settings label on AOSP and Pixel images. Swap it for a category your device's Settings app actually shows. If you change the category, also update the `waitUntil.find` gate and the following `find` (here `Internet`) to labels the new screens display.
+- The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. The example sets `"name": "settings"` on `startSurface`. Pass an explicit `surface` on a step, such as `{ "app": "settings" }`, to switch to a different surface. That switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "settings" }`) because it's a lifecycle step, not an interaction on the active surface. If you omit `name`, Doc Detective derives the same `settings` default from the final dot-segment of the package name. Set it explicitly when you want a name of your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
+- Beyond `click`, an app surface takes the same [`find`](/docs/actions/find) and [`type`](/docs/actions/type) steps you use in the browser. The example uses a standalone `find` to confirm the category screen opened. It also uses a `type` step that sends the `$BACK$` [device key](/docs/actions/type#device-keys-mobile-app-surfaces) to return to the top level. For text entry, `type` sends text to the focused control on Android. Tap a field first, such as the Settings search box, and then type into it.
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
 
 To test an app that isn't already on the emulator, point `install` at an `.apk` and name the `activity` to launch:
@@ -146,8 +146,8 @@ On a host that can't run an Android emulator, the test skips with a reason rathe
 
 **Element not found**
 
-- **Cause:** Android exposes controls through UiAutomator2, so element criteria map onto its attributes: `elementText` matches a widget's text, `elementId` and `elementTestId` match its resource ID, and `elementAria` matches its widget class (and its content description as the accessible name). A criterion that doesn't line up with those attributes won't match.
-- **Solution:** Match against the attribute that carries the value you want. Unlike Windows, macOS, and iOS, Android keeps text and content description as separate attributes, so `elementText` and `elementAria` don't collide, and you can set both on one step. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
+- **Cause:** Android exposes controls through UiAutomator2, so element criteria map onto its attributes. `elementText` matches a widget's text, `elementId` and `elementTestId` match its resource ID, and `elementAria` matches its widget class, with the content description as the accessible name. A criterion that doesn't line up with those attributes won't match.
+- **Solution:** Match against the attribute that carries the value you want. Unlike Windows, macOS, and iOS, Android keeps text and content description as separate attributes. `elementText` and `elementAria` therefore don't collide, and you can set both on one step. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface) and the [`find`](/docs/actions/find) reference.
 
 **The app can't reach a server on your machine**
 
@@ -174,7 +174,7 @@ On a host that can't run an Android emulator, the test skips with a reason rathe
 - **Cause:** Swipes and scrolls aren't clicks.
 - **Solution:** Use the [`swipe`](/docs/actions/swipe) action, which drives Android gestures.
 
-You can drive several apps in one test: apps on one emulator share a single session, so a later `startSurface` brings another app to the foreground on the same device and makes it the active surface. Pass an explicit `surface` on a step to act on the earlier app again.
+You can drive several apps in one test, because apps on one emulator share a single session. A later `startSurface` brings another app to the foreground on the same device and makes it the active surface. Pass an explicit `surface` on a step to act on the earlier app again.
 
 ## What's next
 

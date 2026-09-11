@@ -32,12 +32,12 @@ should `$ENV` substitution apply, and how granular should the substitution be?
 Chosen option: **A**, because spec-level `$VAR` references plus dotenv loading is the standard,
 low-friction pattern. The contract was introduced and then refined across two inventory decisions:
 
-1. Environment support was added across actions — `runShell`/`type`/`matchText`/`checkLink` gained an
-   `env`, `setEnvs()` was added, `dotenv` became a dependency, a top-level `config.env` was
-   introduced, and the yargs `-e` short flag was remapped from `--ext` to `--env` (commits
+1. Environment support was added across actions. `runShell`/`type`/`matchText`/`checkLink` gained an
+   `env`, and `setEnvs()` was added. `dotenv` became a dependency, and a top-level `config.env` was
+   introduced. The yargs `-e` short flag was remapped from `--ext` to `--env` (commits
    `9ba206a`, `a69d957`, `e2a8220`).
-2. The parsing was rewritten so `loadEnvs` resolves `$VAR` **inside** sub-strings rather than only
-   when a field's entire value is a variable reference, accepting string-or-object inputs
+2. The parsing was rewritten so `loadEnvs` resolves `$VAR` **inside** sub-strings, rather than only
+   when a field's entire value is a variable reference. It accepts string-or-object inputs
    (`loadEnvs`/`loadEnvsForString` in `utils.js`, commit `42aacdd5`).
 
 The net contract: load environment values (including from a dotenv file via `config.env`) and

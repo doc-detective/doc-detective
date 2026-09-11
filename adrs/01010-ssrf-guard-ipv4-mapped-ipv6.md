@@ -9,10 +9,10 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The SSRF guard `assertUrlHostIsPublic` / `isPrivateOrLoopbackAddress`
-([src/core/utils.ts](../src/core/utils.ts)) refuses binary URL fetches (`fetchFile`, and the
-`checkLink`/`httpRequest`-adjacent paths) whose host is a private/loopback/link-local address, so a
-documentation spec can't be used to reach internal infrastructure (incl. the
-`169.254.169.254` cloud-metadata endpoint).
+([src/core/utils.ts](../src/core/utils.ts)) refuses binary URL fetches whose host is a private,
+loopback, or link-local address. That covers `fetchFile` and the `checkLink`/`httpRequest`-adjacent
+paths. A documentation spec then can't reach internal infrastructure, including the
+`169.254.169.254` cloud-metadata endpoint.
 
 While writing coverage tests ([#426](https://github.com/doc-detective/doc-detective/pull/426)) we
 found a **bypass** ([#427](https://github.com/doc-detective/doc-detective/issues/427)): IPv4-mapped
@@ -28,8 +28,8 @@ if (normalized.startsWith("::ffff:")) {
 The WHATWG `URL` parser normalizes `::ffff:10.0.0.1` to **hex** form `::ffff:a00:1`. After stripping
 `::ffff:`, the remainder is `a00:1`, which is neither a valid IPv4 (`net.isIPv4`) nor a standalone
 IPv6 (`net.isIPv6`), so the function returned `false` (treated as public). Every IPv4-mapped private
-address — e.g. `http://[::ffff:a00:1]/x` (10.0.0.1) or `http://[::ffff:a9fe:a9fe]/x`
-(169.254.169.254) — slipped past the guard.
+address slipped past the guard. Examples are `http://[::ffff:a00:1]/x` (10.0.0.1) and
+`http://[::ffff:a9fe:a9fe]/x` (169.254.169.254).
 
 The documented contract ("refuses private/loopback") was always the intent; this is a parsing gap,
 not a contract change.
@@ -61,8 +61,8 @@ IPv6 address, not IPv4-mapped, and falls through to the public classification.
 
 ### Consequences
 
-* Good: every IPv4-mapped private/loopback/link-local address is now refused, via the same IPv4
-  range table — one source of truth. No new dependency.
+* Good: every IPv4-mapped private/loopback/link-local address is now refused, through the same IPv4
+  range table, which is one source of truth. No new dependency.
 * Good: public mapped addresses remain allowed (`::ffff:8.8.8.8` → `8.8.8.8` → public).
 * Neutral: a previously-(wrongly)-reachable URL shape is now refused. This is a security fix, so the
   behavior change is intended; no valid public fetch is affected.
@@ -72,15 +72,16 @@ IPv6 address, not IPv4-mapped, and falls through to the public classification.
 ### Confirmation
 
 Unit tests in [test/core-utils-coverage.test.js](../test/core-utils-coverage.test.js) assert that
-`::ffff:a00:1` (10.0.0.1), `::ffff:7f00:1` (127.0.0.1), `::ffff:a9fe:a9fe` (169.254.169.254), and
-`::ffff:c0a8:1` (192.168.0.1) are rejected, while `::ffff:8.8.8.8` stays allowed. The full root
+four addresses are rejected. Those are `::ffff:a00:1` (10.0.0.1), `::ffff:7f00:1` (127.0.0.1),
+`::ffff:a9fe:a9fe` (169.254.169.254), and `::ffff:c0a8:1` (192.168.0.1). Meanwhile
+`::ffff:8.8.8.8` stays allowed. The full root
 coverage suite runs under the ratchet job.
 
 ## Docs impact
 
-The SSRF guard's documented behavior ("refuses private/loopback hosts") is **unchanged** — this fix
+The SSRF guard's documented behavior ("refuses private/loopback hosts") is **unchanged**. This fix
 makes the implementation honor it for IPv4-mapped IPv6. No user-facing flag, option, or output
-changes; no documentation page requires updates.
+changes, and no documentation page requires updates.
 
 ## Pros and Cons of the Options
 
