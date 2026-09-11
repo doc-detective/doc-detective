@@ -117,8 +117,8 @@ appears once the lint covers the repository.
   can drift behind the shared one until someone looks. That is the trade for a gate that only
   changes when this repository changes.
 * Bad, and accepted: whole-repo linting is slower than changed-file linting. Measured locally, one
-  pass over all 550 tracked `.md`, `.mdx`, and `.txt` files takes seconds, which is noise against
-  the checkout and the mdx2vast install.
+  pass over every tracked `.md`, `.mdx`, and `.txt` file takes seconds, which is noise against the
+  checkout and the mdx2vast install.
 * Neutral: reviewdog can only post inline review comments on lines in the PR's diff. Alerts
   elsewhere land in the check output rather than as comments. The check still fails.
 * Neutral: warning and suggestion alerts no longer appear as PR comments. Under changed-file
@@ -132,8 +132,10 @@ appears once the lint covers the repository.
 * The whole tree is clean, verified against a pristine export rather than the working tree. Extract
   `git archive HEAD` into a scratch directory, so there is no `node_modules` to confuse the walk,
   then run the workflow's exact command from its root. It reports **0 errors** in 450 files. That's
-  the precondition the gate depends on, and it is what the rest of this change delivered. The count
-  moves as the tree grows, so re-measure rather than trusting a number quoted in review.
+  the precondition the gate depends on, and it is what the rest of this change delivered. The 450 is
+  the 563 tracked `.md`, `.mdx`, and `.txt` files minus the two excluded trees. Those hold 7 files
+  under `docs/.vale/` and 106 generated schema pages. The count moves as the tree grows, so
+  re-measure rather than trusting a number quoted in review.
 * The `docs/.vale/**` exclusion is red→green against that same export. Without it the run reports
   **2 errors**, both `Direct.Length` on vocabulary word lists, which is exactly how the check failed
   on ba882f8c. With it the run is clean. Linting a filtered file list from the working tree hid
