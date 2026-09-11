@@ -162,6 +162,16 @@ describe("vale workflow whole-repo gate", function () {
       );
     });
 
+    it("skips the gate only for the github-actions bot", function () {
+      // Pre-existing and unchanged here, but the check is a gate now, so a
+      // refactor that widened this condition would silently exempt PRs from
+      // it. semantic-release's release PRs are the intended exemption.
+      const jobIf = String(workflow.jobs.vale.if ?? "");
+      assert.match(jobIf, /github-actions/);
+      // `==` here would invert it, running the gate only on bot PRs.
+      assert.match(jobIf, /!=/);
+    });
+
     it("runs on every pull request", function () {
       // A check that is skipped on some PRs cannot be a required status check.
       assert.ok("pull_request" in workflow.on, "pull_request trigger missing");
