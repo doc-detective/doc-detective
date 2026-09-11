@@ -33,8 +33,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       - name: Install mdx2vast
+        # Pinned for the same reason as the Moose package in docs/.vale.ini.
+        # mdx2vast parses every .mdx file this gate lints, so a breaking
+        # release would fail every open PR with an E100 unrelated to its
+        # content. 0.5.0 is what every green run on PR #713 installed.
         run: |
-          npm i -g mdx2vast
+          npm i -g mdx2vast@0.5.0
 
       - name: Run vale
         uses: vale-cli/vale-action@518a9136acc6e6668ce7c00d367051e0941e87ff #v3.0.0

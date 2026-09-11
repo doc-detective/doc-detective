@@ -126,6 +126,29 @@ describe("vale workflow whole-repo gate", function () {
       );
     });
 
+    it("pins the Moose package to a release tag", function () {
+      // With fail_on_error: true the gate is only as stable as the rule set it
+      // fetches. A `latest` URL would let a Moose release turn every open PR
+      // red with no change in this repository. See ADR 01101.
+      const ini = fs.readFileSync(path.join(repoRoot, "docs", ".vale.ini"), "utf8");
+      const packages = ini.split(/\r?\n/).find((l) => /^Packages\s*=/.test(l));
+      assert.ok(packages, "Packages line missing from docs/.vale.ini");
+      assert.doesNotMatch(packages, /releases\/latest\//);
+      assert.match(
+        packages,
+        /moose-vale\/releases\/download\/v\d+\.\d+\.\d+\/Moose\.zip/
+      );
+    });
+
+    it("pins the mdx2vast parser to an exact version", function () {
+      // mdx2vast parses every .mdx file the gate lints. Installed unpinned, a
+      // breaking release would fail every open PR with an E100 parse error
+      // that has nothing to do with the PR. Same reasoning as the Moose pin.
+      const install = steps.find((s) => s.name === "Install mdx2vast");
+      assert.ok(install, "Install mdx2vast step missing");
+      assert.match(String(install.run), /mdx2vast@\d+\.\d+\.\d+/);
+    });
+
     it("runs on every pull request", function () {
       // A check that is skipped on some PRs cannot be a required status check.
       assert.ok("pull_request" in workflow.on, "pull_request trigger missing");

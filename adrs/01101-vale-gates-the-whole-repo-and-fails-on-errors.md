@@ -86,6 +86,11 @@ red at the package author's push. Nothing changes in this repository, and nothin
 explains it. Pinning makes a rule change a deliberate bump here, landing with whatever prose fixes
 it requires. The pin is `v0.3.3`, the release this tree was cleaned against.
 
+The same reasoning covers the parser. The workflow installs `mdx2vast`, which parses every `.mdx`
+file the gate lints, so it is pinned as well. The pin is `0.5.0`, the version every green run on this
+decision's PR installed. A breaking parser release would otherwise fail every open PR with an `E100`
+parse error unrelated to its content.
+
 The glob excludes two trees. The generated schema reference pages stay excluded, as before. Those
 are generated from JSON Schema descriptions, and mdx2vast has produced a hard `E100` parse error on
 their tables that `fail_on_error` cannot downgrade. `docs/.vale.ini` already clears every style for
@@ -141,7 +146,8 @@ appears once the lint covers the repository.
   prevents.
 * [test/vale-workflow.test.js](../test/vale-workflow.test.js) pins the new contract. It asserts
   `files: all`, `fail_on_error: true`, `filter_mode: nofilter`, and `--minAlertLevel=error` on the
-  "Run vale" step, plus a per-PR `concurrency` group with `cancel-in-progress: true`. It also asserts that no `changed-files` step or `separator` input survives, and
+  "Run vale" step, plus a per-PR `concurrency` group with `cancel-in-progress: true`. It asserts both package pins, Moose
+  to a release tag and `mdx2vast` to an exact version. It also asserts that no `changed-files` step or `separator` input survives, and
   that the `pull_request` trigger carries no `paths:` filter. Finally, it re-implements
   vale-action's `lib/input.js` resolution to show that `all` resolves to `.`, the whole-repo
   argument.
