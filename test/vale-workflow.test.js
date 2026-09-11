@@ -149,6 +149,13 @@ describe("vale workflow whole-repo gate", function () {
       assert.match(String(install.run), /mdx2vast@\d+\.\d+\.\d+/);
     });
 
+    it("pins Vale itself to an exact version", function () {
+      // Voices, pulled in by the Moose package, needs Vale >= 3.20.0, and an
+      // unpinned Vale would let a release change rule behavior under the gate.
+      // The third dependency pin, alongside Moose and mdx2vast.
+      assert.match(String(runVale.with.version), /^\d+\.\d+\.\d+$/);
+    });
+
     it("runs on every pull request", function () {
       // A check that is skipped on some PRs cannot be a required status check.
       assert.ok("pull_request" in workflow.on, "pull_request trigger missing");
