@@ -26,8 +26,11 @@ jobs:
     defaults:
       run:
         shell: bash
-    if: |
-      github.event.pull_request.user.login != 'github-actions'
+    # No job-level `if`. The gate runs on every pull request, which is what makes
+    # it adoptable as a required status check (ADR 01101). The condition that
+    # used to sit here compared the author against 'github-actions', a login
+    # GitHub never reports, since app bots carry a '[bot]' suffix the way
+    # promptless[bot] does on this repo's PRs. It matched nothing.
     steps:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2

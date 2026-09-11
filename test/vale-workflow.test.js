@@ -162,14 +162,25 @@ describe("vale workflow whole-repo gate", function () {
       );
     });
 
-    it("skips the gate only for the github-actions bot", function () {
-      // Pre-existing and unchanged here, but the check is a gate now, so a
-      // refactor that widened this condition would silently exempt PRs from
-      // it. semantic-release's release PRs are the intended exemption.
-      const jobIf = String(workflow.jobs.vale.if ?? "");
-      assert.match(jobIf, /github-actions/);
-      // `==` here would invert it, running the gate only on bot PRs.
-      assert.match(jobIf, /!=/);
+    it("carries no job-level condition, so it runs on every PR", function () {
+      // A check skipped on some PRs cannot be a required status check
+      // (ADR 01101). The condition removed here compared the author against
+      // 'github-actions', a login GitHub never reports, since app bots carry a
+      // '[bot]' suffix the way promptless[bot] does on this repo's PRs. It
+      // matched nothing, so any author condition added later is a new hole.
+      assert.equal(workflow.jobs.vale.if, undefined);
+    });
+
+    it("keeps the generated CHANGELOG out of the gate", function () {
+      // semantic-release rewrites CHANGELOG.md from commit subjects on every
+      // release, so a prose fix there is overwritten by the next publish and
+      // the gate would fail on main straight after. Dropping this section
+      // breaks CI with no obvious cause, so pin it.
+      const ini = fs.readFileSync(path.join(repoRoot, "docs", ".vale.ini"), "utf8");
+      const lines = ini.split(/\r?\n/);
+      const i = lines.findIndex((l) => l.trim() === "[**/CHANGELOG.md]");
+      assert.notEqual(i, -1, "[**/CHANGELOG.md] section missing from docs/.vale.ini");
+      assert.match(lines[i + 1], /^BasedOnStyles\s*=\s*$/);
     });
 
     it("runs on every pull request", function () {

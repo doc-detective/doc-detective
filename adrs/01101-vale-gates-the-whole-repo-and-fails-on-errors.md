@@ -66,8 +66,11 @@ Five inputs carry the decision, and each is load-bearing:
   `nofilter` it would hand reviewdog roughly 4,200 warnings and suggestions from across the tree to
   post as PR comments. Emitting only errors keeps the comment volume to exactly what the gate
   fails on. Warnings stay available to anyone who runs Vale locally.
-* The **`pull_request` trigger loses its `paths:` filter.** A check that is skipped on some PRs
-  cannot be a required status check, and the job is seconds of runner time.
+* The **`pull_request` trigger loses its `paths:` filter**, and the job loses its author condition.
+  A check that is skipped on some PRs cannot be a required status check, and the job is seconds of
+  runner time. That condition compared the PR author against `github-actions`, which GitHub never
+  reports, since app bots carry a `[bot]` suffix. It matched nothing, so removing it changes no
+  behavior and deletes a line that looked like a working exemption.
 
 A sixth input is about reliability rather than scope. The workflow takes a **`concurrency` group
 keyed on the PR number, with `cancel-in-progress: true`.** The `github-pr-review` reporter does not
