@@ -29,9 +29,9 @@ You can specify the command directly as a string or use an object for more optio
 
 **Output Regression Testing:** You can save command output to a file and perform regression testing on subsequent runs. If `path` is specified, `maxVariation` is set, and a reference file exists at the target `path`, the action compares the new output to the reference file. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting:
 
-- If `overwrite` is set to `"aboveVariation"`, the reference file is replaced with the new output, allowing you to capture updated artifacts for review.
-- If `overwrite` is set to `"never"` (default), the reference file is not modified.
-- If `overwrite` is set to `"always"`, the reference file is always replaced regardless of variation.
+- `"true"`: The reference file is always replaced with the new output.
+- `"false"`: The reference file isn't modified.
+- `"aboveVariation"` (default): The reference file is replaced only when the difference exceeds `maxVariation`, so you can save updated artifacts for review.
 
 This lets tests continue executing while flagging output changes that exceed your acceptable variation threshold.
 
@@ -247,6 +247,34 @@ The first step echoes "setup", validates the output using a regex, and captures 
 {/* step {"stepId":"runshell-set-var","description":"Set a variable based on command output","runShell":{"command":"echo setup","stdio":"/.+/"},"variables":{"TEST":"$$stdio.stdout"}} */}
 {/* step {"stepId":"runshell-use-var","description":"Echo and validate the variable","runShell":{"command":"echo $TEST","stdio":"setup"}} */}
 {/* test end */}
+
+### Save command output to a file for regression testing
+
+Set `workingDirectory` to run the command somewhere other than the run's directory, and save its output with `path` and `directory`. On later runs, `maxVariation` and `overwrite` compare the new output against the saved copy.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Save the command's output and refresh it only on drift.",
+          "runShell": {
+            "command": "git",
+            "args": ["log", "-1", "--pretty=%s"],
+            "workingDirectory": "./repo",
+            "timeout": 5000,
+            "path": "last-commit.txt",
+            "directory": "./output",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Start a background process and stop it later
 

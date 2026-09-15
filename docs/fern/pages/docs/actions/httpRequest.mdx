@@ -11,7 +11,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
 - **String Shorthand:** Provide the full URL directly as the value for the `httpRequest` key. This performs a basic GET request to that URL.
 - **Object Format:** Use an object with the following properties:
   - `url`: (Required unless using `openApi`) The target URL for the request.
-  - `method`: (Optional) The HTTP method (for example, `GET`, `POST`, `PUT`, `DELETE`). Defaults to `GET`.
+  - `method`: (Optional) The HTTP method (for example, `get`, `post`, `put`, `patch`, or `delete`). Case is normalized, so `GET` also works. Defaults to `get`.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the request to complete.
   - `request`: (Optional) An object defining the request details:
     - `headers`: (Optional) Request headers, as either key-value pairs or a newline-separated string block (for example, `Content-Type: application/json\nAuthorization: Bearer token`). In the string form, Doc Detective splits each line on its first colon, so header values can contain colons themselves—for example, full URLs, timestamps like `12:00:00 GMT`, or `host:port` values.
@@ -168,6 +168,66 @@ Here are a few ways you might use the `httpRequest` action:
 {/* step {"stepId":"httprequest-put","description":"Update a user via PUT request with headers and query parameters, against the exact /api/users/2 path shown above","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"PUT","request":{"headers":{"Content-Type":"application/json"},"parameters":{"source":"test"},"body":{"name":"morpheus","job":"zion resident"}},"response":{"body":{"name":"morpheus","job":"zion resident"}}}} */}
 {/* test end */}
 
+### Update fields with a PATCH request
+
+A `PATCH` request sends only the fields you want to change.
+
+{/* test {"testId":"httprequest-patch-body","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Update a user's job via PATCH request.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users/2",
+            "method": "PATCH",
+            "request": {
+              "body": {
+                "job": "captain"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"httprequest-patch","description":"Update a single field via PATCH against the local echo API","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"PATCH","request":{"body":{"job":"captain"}},"response":{"body":{"job":"captain"}}}} */}
+{/* test end */}
+
+### Delete a resource with a DELETE request
+
+A `DELETE` request removes a resource. APIs vary in the status they return. Set `statusCodes` to the codes yours uses, such as `200` or `204`.
+
+{/* test {"testId":"httprequest-delete-resource","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Delete a user via DELETE request.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users/2",
+            "method": "DELETE",
+            "statusCodes": [204]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"httprequest-delete","description":"Delete a resource against the local echo API, which returns 200","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"DELETE","statusCodes":[200]}} */}
+{/* test end */}
+
 ### Send request headers as a string block
 
 You can also provide `request.headers` as a single newline-separated string instead of an object. Doc Detective splits each line on its first colon into a name and value, so values that contain colons—such as callback URLs or timestamps—stay intact.
@@ -202,6 +262,56 @@ You can also provide `request.headers` as a single newline-separated string inst
 {/* step {"stepId":"httprequest-headers-str","description":"Send request headers as a newline-separated string","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"headers":"Content-Type: application/json\nX-Callback: https://example.com/cb","body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}}}} */}
 {/* test end */}
 
+### Send a string or array request body
+
+`request.body` accepts a JSON object, a JSON array, or a raw string. Doc Detective sends an object or array as JSON. It sends a string unchanged, so set the matching `Content-Type` header yourself. The same three shapes apply to `response.body` when you validate the response.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Send an array body as JSON.",
+          "httpRequest": {
+            "url": "https://api.example.com/batch",
+            "method": "POST",
+            "request": {
+              "body": [
+                { "id": 1, "name": "Neo" },
+                { "id": 2, "name": "Trinity" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Send a raw string body with a matching Content-Type.",
+          "httpRequest": {
+            "url": "https://api.example.com/graphql",
+            "method": "POST",
+            "request": {
+              "headers": { "Content-Type": "application/graphql" },
+              "body": "{ user(id: 2) { name } }"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ### Validate response status code and body
 
 {/* test {"testId":"httprequest-status-and-body","detectSteps":false} */}
@@ -225,7 +335,7 @@ You can also provide `request.headers` as a single newline-separated string inst
             "response": {
               "body": {
                 "name": "morpheus",
-                "job": "leader",
+                "job": "leader"
               }
             },
             "statusCodes": [201] // Expect HTTP 201 Created
@@ -343,7 +453,9 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
 {/* step {"stepId":"httprequest-use-var","description":"Use the captured ID as a path segment, matching the doc's own URL shape exactly. The echo server reflects the resolved request path in an x-echo-path response header (not the body, so it can't be confused with real response data), which proves $USER_ID was genuinely substituted rather than left as a literal string","httpRequest":{"url":"http://localhost:8092/api/users/$USER_ID","method":"GET","response":{"headers":{"x-echo-path":"/api/users/neo-101"}}}} */}
 {/* test end */}
 
-### Save response body to a file
+### Save the response body and set a timeout
+
+Save the response with `path` and `directory`, and cap the request with a `timeout` in milliseconds. On later runs, `maxVariation` and `overwrite` compare the new response against the saved copy.
 
 ```json
 {
@@ -351,12 +463,15 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
     {
       "steps": [
         {
-          "description": "Get user data and save response to file.",
+          "description": "Get user data, save the response, and cap the request time.",
           "httpRequest": {
             "url": "https://reqres.in/api/users/2",
             "method": "GET",
+            "timeout": 5000, // Fail if the request takes longer
             "path": "user_2_response.json", // File name
-            "directory": "./output/api_responses" // Output directory
+            "directory": "./output/api_responses", // Output directory
+            "maxVariation": 0.05, // Allow up to 5% difference
+            "overwrite": "aboveVariation" // Refresh the file when the difference exceeds maxVariation
           }
         }
       ]
@@ -493,7 +608,7 @@ You can use both `response.required` and `response.body` together to validate th
 
 Set `allowAdditionalFields` to `false` to assert that the response contains only the fields you declared in `response.body`. The step fails if the response includes any extra field.
 
-The check descends into nested objects, so it catches an extra field—and names it by its dot-path—at any depth. A nested empty object is still a constraint: declaring `"user": {}` in `response.body` requires the response's `user` object to be empty, so any field it carries fails the step. Only an unset or empty top-level `response.body` lifts the constraint entirely.
+The check descends into nested objects and catches an extra field at any depth, naming it by its dot-path. A nested empty object is still a constraint. Declaring `"user": {}` in `response.body` requires the response's `user` object to be empty, so any field it carries fails the step. Only an unset or empty top-level `response.body` lifts the constraint entirely.
 
 {/* test {"testId":"httprequest-reject-unexpected","detectSteps":false} */}
 

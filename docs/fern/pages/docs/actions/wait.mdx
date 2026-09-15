@@ -6,7 +6,11 @@ description: Pause before performing the next action.
 
 The `wait` action pauses test execution for a specified duration before proceeding to the next step. This is useful for adding delays, for example, to allow time for animations to complete or to make recordings easier to follow.
 
-The value assigned to the `wait` key is the duration to pause in milliseconds. You can provide a number directly.
+You can set `wait` in one of three ways:
+
+- **Number:** the duration to pause, in milliseconds. For example, `wait: 3000` pauses for 3 seconds.
+- **Environment variable:** a `$VAR` reference that resolves to a duration in milliseconds, such as `wait: "$WAIT_DURATION"`. Load the variable with [`loadVariables`](/docs/actions/loadvariables) first.
+- **Boolean:** `wait: true` pauses for the default 5000 milliseconds, and `wait: false` doesn't pause.
 
 > For comprehensive options, see the [`wait`](/reference/schemas/wait) reference.
 
@@ -79,5 +83,47 @@ The value assigned to the `wait` key is the duration to pause in milliseconds. Y
 {/* step {"stepId":"wait-ms","description":"Wait for half a second","wait":500} */}
 {/* step {"stepId":"verify-wait-ms","description":"Use a short timeout so this only passes because the preceding wait already elapsed, not because find's own retry compensates for a missing wait","find":{"elementText":"Action complete!","timeout":100}} */}
 {/* test end */}
+
+### Wait for a duration set by a variable
+
+Set the duration from an environment variable so one value drives every wait in a suite. Load the variable first, then reference it with `$VAR`.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Load WAIT_DURATION from a .env file.",
+          "loadVariables": ".env"
+        },
+        {
+          "description": "Wait for the number of milliseconds in WAIT_DURATION.",
+          "wait": "$WAIT_DURATION"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for the default duration
+
+Pass `true` to pause for the default 5000 milliseconds without naming a number.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Pause for the default 5000 milliseconds.",
+          "wait": true
+        }
+      ]
+    }
+  ]
+}
+```
 
 

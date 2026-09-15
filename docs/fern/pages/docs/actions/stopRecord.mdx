@@ -86,6 +86,23 @@ This example starts recording, performs an action, and then stops the recording.
 {/* step {"stepId":"stoprecord-stop","description":"Stop the recording","stopRecord":true} */}
 {/* test end */}
 
+`stopRecord: null` stops the most recent recording too, the same as `true`, and `stopRecord: false` is an explicit no-op that stops nothing.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Stop the most recent recording (last in, first out).",
+          "stopRecord": null
+        }
+      ]
+    }
+  ]
+}
+```
+
 This example stops a specific recording by name while another recording is still running.
 
 {/* test {"testId":"stoprecord-by-name","detectSteps":false} */}
@@ -119,6 +136,41 @@ This example stops a specific recording by name while another recording is still
 {/* step {"stepId":"stoprecord-named-record","description":"Start the login clip, directed at a gitignored output folder","record":{"path":"login.mp4","directory":"./.dd-output","name":"stoprecord-login"}} */}
 {/* step {"stepId":"stoprecord-named-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"stoprecord-named-stop","description":"Stop the login clip by name","stopRecord":"stoprecord-login"} */}
+{/* test end */}
+
+The object form targets a recording by name too, and behaves the same as the string form.
+
+{/* test {"testId":"stoprecord-by-name-object","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start the login clip.",
+          "record": {
+            "path": "./output/login.mp4",
+            "name": "login"
+          }
+        },
+        {
+          "description": "Navigate to the site.",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Stop the login clip by name.",
+          "stopRecord": { "name": "login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"stoprecord-object-record","description":"Start the login clip, directed at a gitignored output folder","record":{"path":"login.mp4","directory":"./.dd-output","name":"stoprecord-object-login"}} */}
+{/* step {"stepId":"stoprecord-object-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"stoprecord-object-stop","description":"Stop the login clip by name using the object form","stopRecord":{"name":"stoprecord-object-login"}} */}
 {/* test end */}
 
 

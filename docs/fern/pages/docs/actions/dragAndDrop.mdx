@@ -109,6 +109,121 @@ Here are several ways you might use the `dragAndDrop` action:
 {/* step {"stepId":"dragdrop-object","description":"Drag and drop using detailed source and target objects","dragAndDrop":{"source":{"selector":".draggable","elementText":"Widget Item 1"},"target":{"selector":".drop-zone","elementText":"Drop Zone 2"}}} */}
 {/* test end */}
 
+### Set the drag duration
+
+Set `duration` to control how long the drag takes, in milliseconds (default `1000`). A longer drag gives animated or physics-based interfaces time to register the move.
+
+{/* test {"testId":"dragdrop-duration","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Drag a widget slowly onto a drop zone.",
+          "dragAndDrop": {
+            "source": ".draggable[data-widget='image']",
+            "target": "Drop Zone 1",
+            "duration": 2000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-dragdrop-duration","description":"Open the drag and drop test page","goTo":"http://localhost:8092/drag-drop-test.html"} */}
+{/* step {"stepId":"dragdrop-duration","description":"Drag a widget onto a zone over two seconds","dragAndDrop":{"source":".draggable[data-widget='image']","target":"Drop Zone 1","duration":2000}} */}
+{/* test end */}
+
+### Match the source or target with a regular expression
+
+A string `source` or `target` matches a substring by regular expression when you wrap it in slashes. This targets an element whose text carries a variable part.
+
+{/* test {"testId":"dragdrop-regex","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Drag the first widget matching a text pattern.",
+          "dragAndDrop": {
+            "source": "/Widget Item.*/",
+            "target": "Drop Zone 1"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-dragdrop-regex","description":"Open the drag and drop test page","goTo":"http://localhost:8092/drag-drop-test.html"} */}
+{/* step {"stepId":"dragdrop-regex","description":"Drag the first widget whose text matches the pattern","dragAndDrop":{"source":"/Widget Item.*/","target":"Drop Zone 1"}} */}
+{/* test end */}
+
+### Target elements by class, attribute, or other criteria
+
+A detailed `source` or `target` object accepts the same element-finding fields as [`find`](find): `elementText`, `selector`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria`. Each object needs at least one field, and combined fields must all match. Set a per-element `timeout` to wait longer for a specific element.
+
+{/* test {"testId":"dragdrop-criteria","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Drag by class and attribute onto a zone matched by attribute.",
+          "dragAndDrop": {
+            "source": {
+              "elementClass": "draggable",
+              "elementAttribute": { "data-widget": "chart" }
+            },
+            "target": {
+              "selector": ".drop-zone",
+              "elementAttribute": { "data-drop": "zone2" },
+              "timeout": 8000
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-dragdrop-criteria","description":"Open the drag and drop test page","goTo":"http://localhost:8092/drag-drop-test.html"} */}
+{/* step {"stepId":"dragdrop-criteria","description":"Drag by class and attribute onto a zone matched by attribute","dragAndDrop":{"source":{"elementClass":"draggable","elementAttribute":{"data-widget":"chart"}},"target":{"selector":".drop-zone","elementAttribute":{"data-drop":"zone2"},"timeout":8000}}} */}
+{/* test end */}
+
+### Drag within a specific browser tab
+
+Set `surface` to a browser reference to drag between elements outside the active tab. Omit it to act on the active tab.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Reorder a card in the board tab.",
+          "dragAndDrop": {
+            "source": "Draft",
+            "target": "In progress",
+            "surface": { "browser": "chrome", "tab": "board" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Related actions
 
 - [`click`](/docs/actions/click): Click elements to interact with them

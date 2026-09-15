@@ -129,9 +129,7 @@ Here are a few ways you might use the `checkLink` action:
 
 ### Accept non-2xx status codes
 
-Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail. This is useful for testing endpoints that return rate limiting (`429`), authentication errors (`403`), or other expected non-success responses.
-
-Doc Detective's retry-with-backoff and HEAD-fallback logic (described above in [Behavior](#behavior)) only runs while the response code isn't yet accepted. As soon as a response matches `statusCodes`—including on the very first `GET`, as in the example below—Doc Detective stops immediately and passes. It doesn't retry or fall back to `HEAD` just because the code happens to be `429` or `403`.
+Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail, such as rate limiting (`429`) or authentication errors (`403`). Once a response matches `statusCodes`, Doc Detective stops and passes without retrying or falling back to `HEAD` (see [Behavior](#behavior)).
 
 {/* test {"testId":"checklink-non-2xx","detectSteps":false} */}
 
@@ -262,6 +260,8 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 
 ### Check a link with query parameters
 
+Append a testing token to the request URL with step-level `params`.
+
 {/* test {"testId":"checklink-query-params","detectSteps":false} */}
 
 ```json
@@ -286,6 +286,60 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 ```
 
 {/* step {"stepId":"checklink-params","description":"Check a URL with query parameters appended","checkLink":{"url":"/status/200","origin":"http://localhost:8092","params":{"token":"test-value"}}} */}
+{/* test end */}
+
+### Check a link from a variable
+
+The string form and the object `url` both accept a `$VAR` reference, so you can check a link whose address comes from an environment variable loaded with [`loadVariables`](/docs/actions/loadvariables).
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "loadVariables": ".env" },
+        {
+          "description": "Check the link named by the DOCS_URL variable.",
+          "checkLink": "$DOCS_URL"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Combine every option
+
+A single step can set `url`, `origin`, `params`, `statusCodes`, and `headers` together. It resolves a path against an origin, appends query parameters, sends a custom header, and accepts a chosen set of status codes.
+
+{/* test {"testId":"checklink-combined","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check a protected API path with every option set.",
+          "checkLink": {
+            "url": "/api/health",
+            "origin": "https://my-app.com",
+            "params": {
+              "__clerk_testing_token": "$CLERK_TESTING_TOKEN"
+            },
+            "statusCodes": [200, 429],
+            "headers": {
+              "X-Doc-Detective-Check": "shared-secret"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"checklink-combined","description":"Check a path with origin, params, status codes, and a custom header all set","checkLink":{"url":"/status/200","origin":"http://localhost:8092","params":{"token":"test-value"},"statusCodes":[200,201],"headers":{"X-Doc-Detective-Check":"shared-secret"}}} */}
 {/* test end */}
 
 ## Troubleshooting

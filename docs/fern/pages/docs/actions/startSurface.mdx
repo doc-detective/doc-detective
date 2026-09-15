@@ -459,6 +459,8 @@ This example targets the `ios` platform, launches the Settings app by its bundle
 
 ### Open a named browser session with launch options
 
+Open a second, named browser session with launch options, then navigate it by name.
+
 {/* test {"testId":"startsurface-browser-session","detectSteps":false} */}
 
 ```json
@@ -491,7 +493,45 @@ This example targets the `ios` platform, launches the Settings app by its bundle
 {/* step {"stepId":"startsurface-close-browser","description":"Close the named session","closeSurface":"startsurface-admin"} */}
 {/* test end */}
 
+### Set the browser window size
+
+Set `size` for the outer window dimensions, or `viewport` for the page-content area. `viewport` wins when you set both.
+
+{/* test {"testId":"startsurface-browser-size","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "browser": "firefox",
+            "name": "wide",
+            "headless": true,
+            "size": { "width": 1366, "height": 768 }
+          }
+        },
+        {
+          "goTo": {
+            "url": "https://example.com",
+            "surface": { "browser": "firefox", "name": "wide" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"startsurface-open-sized","description":"Open a named Firefox session with a set outer window size","startSurface":{"browser":"firefox","name":"startsurface-wide","headless":true,"size":{"width":1366,"height":768}}} */}
+{/* step {"stepId":"startsurface-goto-sized","description":"Navigate the sized session","goTo":{"url":"http://localhost:8092","surface":{"browser":"firefox","name":"startsurface-wide"}}} */}
+{/* step {"stepId":"startsurface-close-sized","description":"Close the sized session","closeSurface":"startsurface-wide"} */}
+{/* test end */}
+
 ### Start a background server and call it
+
+Start a background server, wait until its port accepts connections, then call it with an [`httpRequest`](/docs/actions/httprequest) step.
 
 {/* test {"testId":"startsurface-process-server","detectSteps":false} */}
 
@@ -526,6 +566,33 @@ This example targets the `ios` platform, launches the Settings app by its bundle
 {/* step {"stepId":"startsurface-call-process","description":"Call the server to confirm it's actually serving the expected response","httpRequest":{"url":"http://localhost:8087","statusCodes":[200],"response":{"body":{"status":"ok"}}}} */}
 {/* step {"stepId":"startsurface-close-process","description":"Close the server","closeSurface":"startsurface-web"} */}
 {/* test end */}
+
+### Start a process with arguments and wait for a log line
+
+A process descriptor takes `args`, a `workingDirectory`, and a `waitUntil` with the same `port`, `stdio`, `httpGet`, and `delayMs` conditions as a `runShell` background step. Set `tty` to `true` for a full-screen or interactive TUI. Here the step waits for a readiness line in the process's output before continuing.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node",
+            "args": ["server.js", "--port", "3000"],
+            "name": "api",
+            "workingDirectory": "./service",
+            "waitUntil": { "stdio": "/listening on \\d+/" },
+            "timeout": 30000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+When the flow finishes, stop the process by closing it with a [`closeSurface`](/docs/actions/closesurface) step that names it, as in [Start a background server and call it](#start-a-background-server-and-call-it).
 
 ### Open several surfaces concurrently
 

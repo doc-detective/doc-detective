@@ -17,7 +17,7 @@ You can specify the recording action in several ways:
 - **Object Format:** Use an object for more control over the output file:
   - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
   - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
-  - `overwrite`: (Optional) Set to the string `"true"` to overwrite an existing file at the target path. Defaults to `"false"`.
+  - `overwrite`: (Optional) Set to the string `"true"` to overwrite an existing file at the target path. Defaults to `"false"` at runtime (the schema itself sets no default).
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
   - `surface`: (Optional) The surface to record. For browsers, a session, window, or tab reference, for example `{ "browser": "chrome", "tab": "demo" }`; omit to record the active tab. The recorder's own internal tab is never addressable by window/tab selectors. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows). For native apps, the object form `{ "app": "<surface name>" }` records that app, cropped to its window by default. See [Recording app surfaces](#recording-app-surfaces).
@@ -543,4 +543,90 @@ Records the active window at 60 fps with FFmpeg.
 {/* step {"stepId":"record-wait-ffmpeg","description":"Wait briefly","wait":1000} */}
 {/* step {"stepId":"record-stop-ffmpeg","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
+
+### Recording a specific browser tab
+
+Set `surface` to record a tab other than the active one. The `browser` engine records that tab.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Record the cart tab in Chrome.",
+          "record": {
+            "path": "cart_flow.mp4",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Detecting drift with checkpoints
+
+Enable `checkpoints` to catch when a recorded flow's content changes even though the steps still pass. See [Recording checkpoints](#recording-checkpoints).
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Record with drift detection.",
+          "record": {
+            "path": "signup-flow.mp4",
+            "checkpoints": true
+          }
+        },
+        {
+          "description": "Stop recording and compare checkpoints.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Verifying the file and refreshing on drift
+
+This example combines the properties a maintained recording relies on. It records the full display with FFmpeg, verifies the saved file, and re-records only when the content drifts. Because `overwrite: "aboveVariation"` requires checkpoints, it turns them on. Pass a `checkpoints` object to tune them. See [Refreshing stale recordings automatically](#refreshing-stale-recordings-automatically) and [Verifying the video file itself](#verifying-the-video-file-itself).
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Record, verify, and refresh only on drift.",
+          "record": {
+            "path": "signup-flow.mp4",
+            "directory": "static/media",
+            "engine": { "name": "ffmpeg", "target": "display" },
+            "overwrite": "aboveVariation",
+            "checkpoints": { "maxVariation": 0.1 },
+            "verify": {
+              "minDuration": 2,
+              "resolution": true,
+              "notBlack": true
+            }
+          }
+        },
+        {
+          "description": "Stop recording.",
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}
+```
 
