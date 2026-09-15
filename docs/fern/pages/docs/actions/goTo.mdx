@@ -190,7 +190,7 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 
 ### Open a second browser
 
-Open a second, named browser session for the admin account, then select a browser by its bare engine keyword.
+Open a second, named browser session for the administrator account, then select a browser by its bare engine keyword.
 
 ```json
 {
@@ -198,7 +198,7 @@ Open a second, named browser session for the admin account, then select a browse
     {
       "steps": [
         {
-          "description": "Open a second, named browser session for the admin account.",
+          "description": "Open a second, named browser session for the administrator account.",
           "goTo": {
             "url": "https://my-app.com/admin",
             "surface": { "browser": "firefox", "name": "admin" }
@@ -245,7 +245,7 @@ Open the checkout in a named tab, then target that tab by name from a later step
 
 ### Open a named window with a named first tab
 
-Open the admin console in its own window and name its first tab.
+Open the administrator console in its own window and name its first tab.
 
 ```json
 {
@@ -253,7 +253,7 @@ Open the admin console in its own window and name its first tab.
     {
       "steps": [
         {
-          "description": "Open the admin console in its own window.",
+          "description": "Open the administrator console in its own window.",
           "goTo": {
             "url": "https://my-app.com/admin",
             "newWindow": { "name": "admin", "tab": "overview" }
@@ -321,9 +321,14 @@ When using the object format, you can configure:
 - `waitUntil`: (Optional) Object specifying conditions to wait for:
   - `networkIdleTime`: (Optional) Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes rather than waiting for a quiet period (default: 500).
   - `domIdleTime`: (Optional) Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes rather than waiting for a quiet period (default: 1000).
-- `find`: (Optional) Wait for a specific element to be present in the DOM. At least one of `selector` or `elementText` must be specified.
-  - `selector`: (Optional) CSS selector for the element to wait for.
+- `find`: (Optional) Wait for a specific element to be present in the DOM. At least one element-finding field must be specified.
+  - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to wait for.
   - `elementText`: (Optional) Display text of the element to wait for. Doc Detective matches this against the element's full visible text with whitespace normalized, so text that a framework splits across several nodes still matches. To match a substring with a regular expression instead of the whole text, wrap the value in slashes (`/pattern/`). See [How text matching works](/docs/actions/find#how-text-matching-works).
+  - `elementId`: (Optional) ID attribute of the element. Supports exact match or a regex pattern using `/pattern/` syntax.
+  - `elementTestId`: (Optional) `data-testid` attribute of the element. Supports exact match or a regex pattern using `/pattern/` syntax.
+  - `elementClass`: (Optional) Class, or array of classes, the element must have. Each class supports exact match or a `/pattern/` regex. The element must have all specified classes.
+  - `elementAttribute`: (Optional) Object of attribute key-value pairs the element must have. Values can be strings (supporting `/pattern/` regex), numbers, or booleans. Boolean `true` matches attribute presence, and `false` matches absence.
+  - `elementAria`: (Optional) Computed accessible name of the element per the ARIA specification. Supports exact match or a `/pattern/` regex.
 
 ### Wait for network idle
 
@@ -433,7 +438,7 @@ Use multiple wait conditions together with a custom timeout.
 
 ### Wait for an element by ID, class, or attribute
 
-`waitUntil.find` accepts the same element-finding fields as [`find`](find)—`selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria`—each matching an exact value or a `/regex/` pattern. Set several fields to wait for an element that matches all of them.
+`waitUntil.find` accepts the same element-finding fields as [`find`](find): `selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria`. Each matches an exact value or a `/regex/` pattern. Set several fields to wait for an element that matches all of them.
 
 {/* test {"testId":"goto-wait-finders","detectSteps":false} */}
 
@@ -464,7 +469,7 @@ Use multiple wait conditions together with a custom timeout.
 
 ### Treat the page as idle immediately
 
-Set `networkIdleTime` or `domIdleTime` to `0` to treat the page as idle as soon as the first check completes, rather than waiting for a quiet period. Both checks always run and can't be skipped.
+Set `networkIdleTime` or `domIdleTime` to `0` to treat the page as idle once the first check completes, rather than waiting for a quiet period. Both checks always run, and you can't skip them.
 
 ```json
 {

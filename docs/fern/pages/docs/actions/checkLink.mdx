@@ -129,7 +129,7 @@ Here are a few ways you might use the `checkLink` action:
 
 ### Accept non-2xx status codes
 
-Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail, such as rate limiting (`429`) or authentication errors (`403`). As soon as a response matches `statusCodes`, Doc Detective stops and passes without retrying or falling back to `HEAD` (see [Behavior](#behavior)).
+Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail, such as rate limiting (`429`) or authentication errors (`403`). Once a response matches `statusCodes`, Doc Detective stops and passes without retrying or falling back to `HEAD` (see [Behavior](#behavior)).
 
 {/* test {"testId":"checklink-non-2xx","detectSteps":false} */}
 

@@ -431,7 +431,7 @@ This example types into a control on an app surface, naming the control with a n
 
 ### Type into a targeted element
 
-Name the element to type into with `selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, or `elementAria`—the same element-finding fields as [`find`](find). Set several fields to require the element to match all of them. Omit them all to type into the active element. Element-finding fields aren't allowed with a process surface.
+Name the element to type into with `selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, or `elementAria`. These are the same element-finding fields as [`find`](find). Set several fields to require the element to match all of them. Omit them all to type into the active element. Element-finding fields aren't allowed with a process surface.
 
 ```json
 {
@@ -497,7 +497,7 @@ Set `surface` to a browser reference to type into a tab other than the active on
 
 ### Wait for a browser to settle after typing
 
-On a browser surface, `waitUntil` accepts `networkIdleTime`, `domIdleTime`, and `find`—the same conditions as [`goTo`](goTo). Use it to hold the step until a search or autocomplete request settles. `waitUntil` requires a `surface`, and `timeout` caps the wait.
+On a browser surface, `waitUntil` accepts `networkIdleTime`, `domIdleTime`, and `find`. These are the same conditions as [`goTo`](goTo). Use it to hold the step until a search or autocomplete request settles. `waitUntil` requires a `surface`, and `timeout` caps the wait.
 
 ```json
 {

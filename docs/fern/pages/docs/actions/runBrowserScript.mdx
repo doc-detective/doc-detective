@@ -258,7 +258,7 @@ Save the serialized return value with `path` and `directory`, and cap the script
 
 ### Mark a side-effecting script unsafe
 
-A script that changes application state has side effects. Writing `localStorage`, dispatching events, or calling an API all count. Mark the step `unsafe: true` so it runs only when you allow unsafe steps. Enable them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. Otherwise Doc Detective skips the step.
+A script that changes app state has side effects. Writing `localStorage`, dispatching events, or calling an API all count. Mark the step `unsafe: true` so it runs only when you allow unsafe steps. Enable them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. Otherwise Doc Detective skips the step.
 
 ```json
 {

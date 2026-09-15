@@ -65,7 +65,7 @@ These illustration-only examples use swipe's app and point-to-point forms, which
 
 ### Swipe in another direction
 
-Swap `direction` for `down`, `left`, or `right`. `down` reveals content above; `right` reveals the previous carousel card. With no `distance`, a directional swipe covers half the surface (`0.5`):
+Swap `direction` for `down`, `left`, or `right`. `down` reveals content above. `right` reveals the previous carousel card. With no `distance`, a directional swipe covers half the surface (`0.5`):
 
 ```json
 { "swipe": { "direction": "left" } }
@@ -73,7 +73,7 @@ Swap `direction` for `down`, `left`, or `right`. `down` reveals content above; `
 
 ### Swipe a specific surface
 
-Set `surface` to swipe outside the active surface—a browser tab, or an app window on Windows or macOS. Set `duration` (default `500` ms) to slow the gesture:
+Set `surface` to swipe outside the active surface: a browser tab, or an app window on Windows or macOS. Set `duration` (default `500` ms) to slow the gesture:
 
 ```json
 { "swipe": { "direction": "down", "distance": 0.3, "duration": 800, "surface": { "browser": "chrome", "tab": "gallery" } } }

@@ -58,11 +58,13 @@ Save a cookie with detailed configuration:
 | Field | Type | Description | Default |
 |-------|------|-------------|---------|
 | `name` | string | **Required.** Name of the specific cookie to save. | |
-| `variable` | string | Environment variable name to store the cookie as JSON string. Can't be used with `path`. | |
-| `path` | string | File path to save the cookie, relative to directory. Uses Netscape cookie format. Can't be used with `variable`. | |
+| `variable` | string | **Required if `path` isn't set.** Environment variable name to store the cookie as JSON string. Can't be used with `path`. | |
+| `path` | string | **Required if `variable` isn't set.** File path to save the cookie, relative to directory. Uses Netscape cookie format. Can't be used with `variable`. | |
 | `directory` | string | Directory to save the cookie file. If not specified, uses output directory. | |
 | `overwrite` | boolean | Whether to overwrite an existing cookie file. | `false` |
 | `domain` | string | Specific domain to filter the cookie by (optional). | |
+
+The object form requires `name` plus exactly one of `path` or `variable`. Set `path` to write a cookie file, or `variable` to store the cookie in an environment variable, but not both. Omitting both fails validation.
 
 `overwrite` here is a plain boolean (`true` or `false`). This differs from the regression-testing actions, where `overwrite` is the string enum `"true"`, `"false"`, or `"aboveVariation"`. Those actions are [`screenshot`](/docs/actions/screenshot), [`record`](/docs/actions/record), [`httpRequest`](/docs/actions/httprequest), [`runCode`](/docs/actions/runcode), [`runShell`](/docs/actions/runshell), and [`runBrowserScript`](/docs/actions/runbrowserscript).
 

@@ -11,7 +11,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
 - **String Shorthand:** Provide the full URL directly as the value for the `httpRequest` key. This performs a basic GET request to that URL.
 - **Object Format:** Use an object with the following properties:
   - `url`: (Required unless using `openApi`) The target URL for the request.
-  - `method`: (Optional) The HTTP method (for example, `GET`, `POST`, `PUT`, `DELETE`). Defaults to `GET`.
+  - `method`: (Optional) The HTTP method (for example, `get`, `post`, `put`, `patch`, or `delete`). Case is normalized, so `GET` also works. Defaults to `get`.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the request to complete.
   - `request`: (Optional) An object defining the request details:
     - `headers`: (Optional) Request headers, as either key-value pairs or a newline-separated string block (for example, `Content-Type: application/json\nAuthorization: Bearer token`). In the string form, Doc Detective splits each line on its first colon, so header values can contain colons themselves—for example, full URLs, timestamps like `12:00:00 GMT`, or `host:port` values.
@@ -608,7 +608,7 @@ You can use both `response.required` and `response.body` together to validate th
 
 Set `allowAdditionalFields` to `false` to assert that the response contains only the fields you declared in `response.body`. The step fails if the response includes any extra field.
 
-The check descends into nested objects and catches an extra field at any depth, naming it by its dot-path. A nested empty object is still a constraint: declaring `"user": {}` in `response.body` requires the response's `user` object to be empty, so any field it carries fails the step. Only an unset or empty top-level `response.body` lifts the constraint entirely.
+The check descends into nested objects and catches an extra field at any depth, naming it by its dot-path. A nested empty object is still a constraint. Declaring `"user": {}` in `response.body` requires the response's `user` object to be empty, so any field it carries fails the step. Only an unset or empty top-level `response.body` lifts the constraint entirely.
 
 {/* test {"testId":"httprequest-reject-unexpected","detectSteps":false} */}
 

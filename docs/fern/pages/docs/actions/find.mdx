@@ -6,15 +6,20 @@ description: Locate and interact with an element on the page.
 
 The `find` action locates an element in the current interface based on its display text or a CSS/XPath selector. After finding the element, you can optionally interact with it, such as clicking it or typing into it.
 
-If multiple elements match the specified criteria (`elementText` and/or `selector`), the step operates on the first matched element. Ensure your criteria uniquely identify the target element.
+If multiple elements match the specified criteria, the step operates on the first matched element. Ensure your criteria uniquely identify the target element.
 
 You can specify the target element directly using a string (for basic text or selector lookup) or use an object for more detailed options and interactions:
 
 - **String Shorthand:** Provide the display text or CSS/XPath selector directly as the value for the `find` key. If elements are found by both text and selector, the element found by matching text is used.
   - Example: `"find": "Login"` or `"find": "#username"`.
 - **Object Format:** Use an object with the following properties:
-  - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
-  - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
+  - `elementText`: (Optional) The display text of the element to find. If combined with other element-finding fields, the element must match all of them. See [How text matching works](#how-text-matching-works) below.
+  - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with other element-finding fields, the element must match all of them. *At least one element-finding field (`elementText`, `selector`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, or `elementAria`) is required.*
+  - `elementId`: (Optional) ID attribute of the element. Supports exact match or a regex pattern using `/pattern/` syntax.
+  - `elementTestId`: (Optional) `data-testid` attribute of the element. Supports exact match or a regex pattern using `/pattern/` syntax.
+  - `elementClass`: (Optional) Class, or array of classes, the element must have. Each class supports exact match or a `/pattern/` regex. The element must have all specified classes.
+  - `elementAttribute`: (Optional) Object of attribute key-value pairs the element must have. Values can be strings (supporting `/pattern/` regex), numbers, or booleans. Boolean `true` matches attribute presence, and `false` matches absence.
+  - `elementAria`: (Optional) Computed accessible name of the element per the ARIA specification. Supports exact match or a `/pattern/` regex.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
   - `moveTo`: (Optional) Move the cursor to the element. If the element isn't visible, it's scrolled into view (default: `false`). A bare `find` leaves the viewport and cursor where they're already sitting, so set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).

@@ -30,8 +30,8 @@ You can specify the command directly as a string or use an object for more optio
 **Output Regression Testing:** You can save command output to a file and perform regression testing on subsequent runs. If `path` is specified, `maxVariation` is set, and a reference file exists at the target `path`, the action compares the new output to the reference file. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting:
 
 - `"true"`: The reference file is always replaced with the new output.
-- `"false"`: The reference file is not modified.
-- `"aboveVariation"` (default): The reference file is replaced only when the difference exceeds `maxVariation`, so you can capture updated artifacts for review.
+- `"false"`: The reference file isn't modified.
+- `"aboveVariation"` (default): The reference file is replaced only when the difference exceeds `maxVariation`, so you can save updated artifacts for review.
 
 This lets tests continue executing while flagging output changes that exceed your acceptable variation threshold.
 
