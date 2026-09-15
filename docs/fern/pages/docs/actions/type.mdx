@@ -176,6 +176,40 @@ App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurfac
 
 ## Examples
 
+### Type a string (string shorthand)
+
+Provide a string to type it into the active element. Focus the element first, usually with a preceding [`find`](find) or [`click`](click).
+
+{/* test {"testId":"type-string-shorthand","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Focus the search field.",
+          "find": {
+            "selector": "#search",
+            "click": true
+          }
+        },
+        {
+          "description": "Type a search query.",
+          "type": "American Shorthair kittens"
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-type-string","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"focus-input-string","description":"Focus the input","find":{"selector":"#type-input","click":true}} */}
+{/* step {"stepId":"type-string","description":"Type a string into the focused input","type":"Doc Detective"} */}
+{/* step {"stepId":"verify-type-string","description":"The input echoes its value only when text is actually typed","find":"Doc Detective"} */}
+{/* test end */}
+
 ### Perform a search (array shorthand)
 
 {/* test {"testId":"type-array-shorthand","detectSteps":false} */}
@@ -387,6 +421,98 @@ This example types into a control on an app surface, naming the control with a n
             "keys": ["AB"],
             "selector": "//Edit[@Name=\"Characters to copy :\"]",
             "surface": { "app": "charmap" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Type into a targeted element
+
+Name the element to type into with `selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, or `elementAria`—the same element-finding fields as [`find`](find). Set several fields to require the element to match all of them. Omit them all to type into the active element. Element-finding fields aren't allowed with a process surface.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type into the field with a given test ID.",
+          "type": {
+            "keys": "customer@example.com",
+            "elementTestId": "email-field"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Match the target element with a regular expression
+
+Wrap an element field's value in slashes to match it by regular expression instead of an exact value, the same as [`find`](find). This example targets the field whose accessible name matches a pattern, the accessible name your browser's DevTools accessibility panel reports for the element.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type into the field whose accessible name matches a pattern.",
+          "type": {
+            "keys": "customer@example.com",
+            "elementAria": "/Email( address)?/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Type into a specific browser tab
+
+Set `surface` to a browser reference to type into a tab other than the active one. Omit `waitUntil` to send the keys and finish without waiting for the surface to settle.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type a note in the cart tab.",
+          "type": {
+            "keys": "Gift wrap, please",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for a browser to settle after typing
+
+On a browser surface, `waitUntil` accepts `networkIdleTime`, `domIdleTime`, and `find`—the same conditions as [`goTo`](goTo). Use it to hold the step until a search or autocomplete request settles. `waitUntil` requires a `surface`, and `timeout` caps the wait.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type a query and wait for the results to render.",
+          "type": {
+            "keys": ["kittens", "$ENTER$"],
+            "surface": { "browser": "chrome", "tab": "cart" },
+            "waitUntil": {
+              "find": { "selector": ".results" }
+            },
+            "timeout": 10000
           }
         }
       ]

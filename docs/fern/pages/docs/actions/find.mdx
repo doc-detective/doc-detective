@@ -233,4 +233,207 @@ Here are a few ways you might use the `find` action:
 }
 ```
 
+### Find by ID, test ID, or accessible name
+
+When an element has no stable text, or a selector would be brittle, target it by its `id` attribute (`elementId`), its `data-testid` (`elementTestId`), or its computed accessible name (`elementAria`). The accessible name is the one your browser's DevTools accessibility panel reports for the element. Each takes an exact value or a `/regex/` pattern. The example below finds a button by its test ID. The forms `{ "elementId": "submit-button" }` and `{ "elementAria": "Save document button" }` work the same way.
+
+{/* test {"testId":"find-by-test-id","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find the login button by its data-testid.",
+          "find": {
+            "elementTestId": "login-form-submit"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-testid","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-testid","description":"Find a button by its data-testid","find":{"elementTestId":"login-form-submit"}} */}
+{/* test end */}
+
+### Find by class and attribute
+
+Combine `elementClass` with `elementAttribute` to pin down an element by how it's styled and marked up. `elementClass` accepts a single class or an array of classes that must all be present. `elementAttribute` matches attribute values as strings (with `/regex/` support), numbers, or booleans, where `true` requires the attribute to be present and `false` requires it to be absent.
+
+{/* test {"testId":"find-by-class-attribute","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find a button that has the btn class and a data-count of 5.",
+          "find": {
+            "elementClass": "btn",
+            "elementAttribute": {
+              "data-count": 5
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-class-attr","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-class-attr","description":"Find a button by class and a numeric attribute","find":{"elementClass":"btn","elementAttribute":{"data-count":5}}} */}
+{/* test end */}
+
+### Match an element with a regular expression
+
+`elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria` all match a substring by regular expression when you wrap the value in slashes. This is handy for IDs or text that carry a variable part, such as a generated suffix.
+
+{/* test {"testId":"find-by-regex","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find a button whose ID follows the submit-<name>-action pattern.",
+          "find": {
+            "elementId": "/^submit-.*-action$/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-regex","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-regex","description":"Find a button by an ID regular expression","find":{"elementId":"/^submit-.*-action$/"}} */}
+{/* test end */}
+
+### Move the cursor to an element
+
+Set `moveTo` to `true` to move the cursor to the element. If the element isn't visible, Doc Detective scrolls it into view. A bare `find` leaves the viewport and cursor in place, so set `moveTo` when a step should scroll or when a recording needs the cursor to travel.
+
+{/* test {"testId":"find-move-to","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Scroll a lower section into view.",
+          "find": {
+            "selector": "#tables",
+            "moveTo": true
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-moveto","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-moveto","description":"Scroll the tables section into view","find":{"selector":"#tables","moveTo":true}} */}
+{/* test end */}
+
+### Find, click, and type using the object format
+
+Pass `type` an object to set an `inputDelay` alongside the keys, rather than the string form. Use `click: true` first so the element is active before you send the keys.
+
+{/* test {"testId":"find-click-type-object","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find the input, click it, and type with a delay.",
+          "find": {
+            "selector": "#input",
+            "click": true,
+            "type": {
+              "keys": "find action",
+              "inputDelay": 50
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-type-object","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"find-type-object","description":"Find the input, click, and type using the object format","find":{"selector":"#type-input","click":true,"type":{"keys":"Object-format typing","inputDelay":50}}} */}
+{/* step {"stepId":"verify-find-type-object","description":"The input echoes its value only when text is actually typed","find":"Object-format typing"} */}
+{/* test end */}
+
+### Find an element in a specific tab or app surface
+
+Set `surface` to act on an element outside the active surface. A browser reference selects the window or tab the element lives in. An app reference targets a control on a [native app surface](/docs/actions/startsurface). Omit `surface` to act on the active surface.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find a button in the cart tab.",
+          "find": {
+            "elementText": "Place order",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        },
+        {
+          "description": "Find a native control in an app window.",
+          "find": {
+            "elementText": "Save",
+            "surface": { "app": "notepad", "window": { "title": "/Save As/" } }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Find using several criteria at once
+
+Element-finding fields combine with AND semantics: the element must match every field you set. This example narrows to a single element by ID, class, and attribute, then moves the cursor to it and clicks. Use `elementAttribute` boolean `true` to require an attribute's presence.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find one specific enabled button and click it.",
+          "find": {
+            "elementId": "primary-action",
+            "elementClass": ["btn", "btn-primary"],
+            "elementAttribute": {
+              "data-enabled": "true",
+              "disabled": false
+            },
+            "timeout": 8000,
+            "moveTo": true,
+            "click": true
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 

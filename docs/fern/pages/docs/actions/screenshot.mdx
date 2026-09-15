@@ -9,7 +9,7 @@ The `screenshot` action captures a PNG image of the current browser viewport or 
 You can specify the screenshot action in several ways:
 
 - **Boolean Shorthand:** Set `screenshot: true` to capture the full viewport with default settings.
-- **String Shorthand:** Provide a file path directly as the value for the `screenshot` key (for example, `screenshot: "my_screenshot.png"`). This saves the full viewport screenshot to the specified path.
+- **String Shorthand:** Provide a file path directly as the value for the `screenshot` key (for example, `screenshot: "my_screenshot.png"`). This saves the full viewport screenshot to the specified path. The path can also be a `$VAR` reference loaded with [`loadVariables`](/docs/actions/loadvariables).
 - **Object Format:** Use an object for more control over the path, visual comparison, and cropping:
   - `path`: (Optional) The file path where the screenshot will be saved, or an `http(s)://` URL to a remote PNG image. Can include directories. If omitted, a default path is generated. When a URL is provided, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to `./doc-detective-runs/<run-timestamp>/` instead of overwriting the remote image.
   - `directory`: (Optional) The directory where the screenshot will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
@@ -348,6 +348,131 @@ Numbers the fields of a form and redacts an email address, all as part of the ca
 {/* step {"stepId":"goto-screenshot-annotated","description":"Open the local test server","goTo":"http://localhost:8092/enhanced-elements.html"} */}
 {/* step {"stepId":"screenshot-annotated-step","description":"Capture an annotated screenshot, directed at a gitignored output folder","screenshot":{"path":"annotated_form.png","directory":"./.dd-output","annotations":[{"badge":"#username-input","label":"1"},{"outline":"#submit-button"},{"blur":"#contact-email"}]}} */}
 {/* test end */}
+
+### Crop to an element found by test ID with padding
+
+`crop` accepts any of the [`find`](/docs/actions/find) element-finding fields, not just a selector. Set `padding` per side with an object instead of one number for all sides.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Crop to the checkout button and pad each side.",
+          "screenshot": {
+            "path": "checkout_button.png",
+            "directory": "./output/element_shots",
+            "crop": {
+              "elementTestId": "checkout-button",
+              "padding": { "top": 8, "right": 16, "bottom": 8, "left": 16 }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Overwrite the reference image
+
+`overwrite` controls when a comparison refreshes the reference image. `"true"` rewrites the reference on every run, which disables drift detection. Use it to seed a new reference image or reset an existing one, not in a gating run. To gate a run on drift instead, use `"aboveVariation"` with `maxVariation` (see [Full viewport screenshot with visual comparison](#full-viewport-screenshot-with-visual-comparison-object-format)).
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Rebaseline the reference image on this run.",
+          "screenshot": {
+            "path": "home_page.png",
+            "directory": "./output/reference_images",
+            "overwrite": "true"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Capture a specific browser tab or app window
+
+Set `surface` to capture a surface other than the active one. Specifying a surface also switches the active surface for the steps that follow.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Capture the cart tab in Chrome.",
+          "screenshot": {
+            "path": "cart.png",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+To capture a [native app window](#app-surfaces), use the object form `{ "app": "<name>" }` or target a specific window. App captures don't support `crop`.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Capture the newest Notepad window.",
+          "screenshot": {
+            "path": "notepad.png",
+            "surface": { "app": "notepad", "window": -1 }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Draw an arrow and a caption
+
+Beyond `badge`, `callout`, and `blur`, annotations include `arrow` (points at the target) and `text` (a standalone box at a fixed `position`). Set `style` to override the theme for one annotation.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Point out the submit button and caption the frame.",
+          "screenshot": {
+            "path": "annotated_sign_in.png",
+            "directory": "./output/images",
+            "annotations": [
+              {
+                "arrow": "#submit",
+                "position": { "offset": { "x": -80, "y": -60 } },
+                "style": { "color": "#E11D48", "strokeWidth": 3 }
+              },
+              {
+                "text": { "position": "top-right" },
+                "label": "Demo data",
+                "style": { "background": "#0F172A", "color": "#FDE047", "padding": 8 }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Automatic screenshots
 

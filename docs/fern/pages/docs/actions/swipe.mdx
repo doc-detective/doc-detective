@@ -59,6 +59,32 @@ Point coordinates are pixels from the surface's top-left corner—the app window
 
 See the [swipe schema reference](/reference/schemas/swipe) for the full shapes.
 
+## Examples
+
+These illustration-only examples use swipe's app and point-to-point forms, which can't run against the test fixtures. For runnable forms, see [Forms](#forms).
+
+### Swipe in another direction
+
+Swap `direction` for `down`, `left`, or `right`. `down` reveals content above; `right` reveals the previous carousel card. With no `distance`, a directional swipe covers half the surface (`0.5`):
+
+```json
+{ "swipe": { "direction": "left" } }
+```
+
+### Swipe a specific surface
+
+Set `surface` to swipe outside the active surface—a browser tab, or an app window on Windows or macOS. Set `duration` (default `500` ms) to slow the gesture:
+
+```json
+{ "swipe": { "direction": "down", "distance": 0.3, "duration": 800, "surface": { "browser": "chrome", "tab": "gallery" } } }
+```
+
+A point-to-point swipe takes the same `surface`:
+
+```json
+{ "swipe": { "from": { "x": 40, "y": 300 }, "to": { "x": 360, "y": 300 }, "surface": { "app": "myapp" } } }
+```
+
 ## Surface behavior
 
 - **Mobile app surfaces (Android/iOS)**: a real touch gesture through the device driver. Directional swipes stay inside a 10%-inset box so a full-length swipe can't trigger a system edge gesture (Android back/home).

@@ -20,7 +20,7 @@ If you need to find an element before clicking it, consider using the [`find`](/
 When using the object format, you can specify:
 
 - `button`: (Optional) Kind of click to perform. Can be `"left"`, `"right"`, or `"middle"`. Default is `"left"`.
-- `duration`: (Optional) How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces, press-and-hold of the primary button on desktop apps, and press-and-hold of the given `button` on browsers. Omit for a normal click. A long-press on an app surface is primary-button only, so `duration` with a non-left `button` fails the step. On browsers, a held click needs the W3C actions endpoint, so—like non-left buttons—it's desktop-browser-only.
+- `duration`: (Optional) How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces, press-and-hold of the primary button on desktop apps, and press-and-hold of the given `button` on browsers. Omit for a normal click. A long-press on an app surface is primary-button only, so `duration` with a non-left `button` fails the step. On browsers, a held click, like a non-left button, runs on desktop browsers only.
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to click. If combined with `elementText`, the element must match both the text and the selector.
 - `elementText`: (Optional) Display text of the element to click. If combined with `selector`, the element must match both the text and the selector.
 - `surface`: (Optional) The browser (session, window, or tab) the element lives in, for example `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`, or the [native app surface](/docs/actions/startsurface) it lives in, for example `{ "app": "notepad" }`. Omit to act on the active surface (the most recently opened, focused, or explicitly targeted surface, whether that's a browser tab or an app window). Specifying a surface switches the active surface for the steps that follow. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls, and `selector` accepts a native locator (XPath or a `~`-prefixed accessibility ID) instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) and [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
@@ -80,6 +80,25 @@ Here are a few ways you might use the `click` action:
 {/* step {"stepId":"click-selector","description":"Click the button by its CSS selector","click":"#reveal-by-selector"} */}
 {/* step {"stepId":"verify-click-selector","description":"Confirm the selector click fired","find":"Selector click landed"} */}
 {/* test end */}
+
+### Click the active element
+
+Use the boolean form `click: true` to click the active element or the element at the current cursor position, without naming a target. This is useful right after a `find` with `moveTo` has positioned the cursor.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Click wherever the cursor is.",
+          "click": true
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Click an element by text (object format)
 
@@ -149,7 +168,64 @@ Here are a few ways you might use the `click` action:
 }
 ```
 
+### Click by ID, test ID, or accessible name
+
+Target an element by its `id` attribute (`elementId`), its `data-testid` (`elementTestId`), or its computed accessible name (`elementAria`) when its text isn't unique or stable. The accessible name is the one your browser's DevTools accessibility panel reports for the element. Each takes an exact value or a `/regex/` pattern, and `elementClass` and `elementAttribute` match the same way as they do for [`find`](find). The example below clicks by test ID. The forms `{ "click": { "elementId": "submit-button" } }`, `{ "click": { "elementAria": "Save document button" } }`, `{ "click": { "elementClass": "btn-primary" } }`, and `{ "click": { "elementAttribute": { "data-role": "submit" } } }` work the same way.
+
+{/* test {"testId":"click-by-test-id","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Click a button by its data-testid.",
+          "click": {
+            "elementTestId": "login-form-submit"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-click-testid","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"click-testid","description":"Click a button by its data-testid","click":{"elementTestId":"login-form-submit"}} */}
+{/* test end */}
+
+### Match the element with a regular expression
+
+Wrap a value in slashes to match a substring by regular expression instead of the whole text.
+
+{/* test {"testId":"click-regex","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Click a button whose text matches a pattern.",
+          "click": {
+            "elementText": "/Reveal via regex/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-click-regex","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"click-regex","description":"Click the button whose text matches the pattern","click":{"elementText":"/Reveal via regex/"}} */}
+{/* step {"stepId":"verify-click-regex","description":"The button appends a message only when actually clicked","find":"Regex click landed"} */}
+{/* test end */}
+
 ### Long-press an element on a mobile app surface
+
+Set `duration` on an app surface to touch and hold an element instead of tapping it.
 
 ```json
 {
@@ -170,6 +246,79 @@ Here are a few ways you might use the `click` action:
 }
 ```
 
+### Right-click an element
+
+Set `button` to `"right"` to open a context menu or trigger a right-click handler.
+
+{/* test {"testId":"click-right","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Right-click a button.",
+          "click": {
+            "selector": "#context-target",
+            "button": "right"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-click-right","description":"Open the click test page","goTo":"http://localhost:8092/click-shorthand.html"} */}
+{/* step {"stepId":"click-right","description":"Right-click the button by its selector","click":{"selector":"#reveal-by-selector","button":"right"}} */}
+{/* step {"stepId":"verify-click-right","description":"The button appends a message only on a right-click","find":"Right-click landed"} */}
+{/* test end */}
+
+### Press and hold on a browser
+
+Set `duration` to hold the press for that many milliseconds. On a browser, a held click, like a non-left button, runs on desktop browsers only.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Press and hold a canvas handle for half a second.",
+          "click": {
+            "selector": ".resize-handle",
+            "duration": 500
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Click in a specific browser tab
+
+Set `surface` to a browser reference to click an element outside the active tab. Omit `surface` to act on the active surface.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Click Place order in the cart tab.",
+          "click": {
+            "elementText": "Place order",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Mobile app surfaces
 
 On an app surface, `click` is a tap, and `duration` makes it a long-press. The `button` field (`left`, `right`, or `middle`) works where the platform's driver supports it. Windows honors all three. macOS honors right-click and rejects middle-click, which the Mac2 driver can't do. Android and iOS reject any non-left button with a clear message, because touch input has no right or middle button. On Windows, plain left clicks activate the element through the UI Automation Invoke pattern (coordinate-free, so display scaling can't misdirect them) and fall back to a physical click for elements that don't support it. Non-left and held clicks stay physical. To click in a specific window of the app, add a `window` selector (see [App windows](find#app-windows)). Two more patterns worth knowing:
@@ -177,7 +326,7 @@ On an app surface, `click` is a tap, and `duration` makes it a long-press. The `
 - **Permission dialogs are just elements.** When your documentation walks the reader through granting a permission, click the dialog's button like any other element: `{ "click": { "elementText": "Allow", "surface": { "app": "myapp" } } }`. System dialogs expose their buttons through the platform accessibility tree, so `elementText` matches them.
 - **When the dialog isn't the point**, suppress it at session start instead of scripting around it: pass the driver's own knob through `startSurface.driverOptions`, for example `{ "driverOptions": { "appium:autoGrantPermissions": true } }` on Android. Use this when the procedure you're testing starts *after* the reader grants permissions.
 
-## Related Actions
+## Related actions
 
 - [`find`](/docs/actions/find): Find an element and optionally interact with it
 - [`type`](/docs/actions/type): Type text or special keys

@@ -117,9 +117,39 @@ The script reads values from `args` through the `arguments` object.
 {/* step {"stepId":"runbrowserscript-concat","description":"Concatenate two arguments in the page","runBrowserScript":{"script":"return arguments[0] + arguments[1];","args":["foo","bar"],"output":"foobar"}} */}
 {/* test end */}
 
+### Pass non-string arguments
+
+Each item in `args` can be any JSON-serializable value, not only a string: a number, boolean, `null`, object, or array. The script receives them through the `arguments` object with their original types.
+
+{/* test {"testId":"runbrowserscript-nonstring-args","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com" },
+        {
+          "description": "Read the types of mixed arguments in the page.",
+          "runBrowserScript": {
+            "script": "return typeof arguments[0] + ',' + typeof arguments[1] + ',' + JSON.stringify(arguments[2]);",
+            "args": [42, true, { "a": 1 }],
+            "output": "number,boolean,{\"a\":1}"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-runbrowserscript-nonstring","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"runbrowserscript-nonstring","description":"Pass a number, boolean, and object and assert their types round-trip","runBrowserScript":{"script":"return typeof arguments[0] + ',' + typeof arguments[1] + ',' + JSON.stringify(arguments[2]);","args":[42,true,{"a":1}],"output":"number,boolean,{\"a\":1}"}} */}
+{/* test end */}
+
 ### Capture the return value into a variable
 
-After navigating to the page, this example runs three `runBrowserScript` steps. The first seeds a value into `localStorage`, purely as a test fixture, so this standalone example has something to read. In a real test you wouldn't seed the value yourself. Instead, you'd capture something the product under test had already written, such as an auth token the application stored in `localStorage`. The second step reads that value and stores it in a `TOKEN` variable, and the third passes the variable through `args` to assert that it round-trips through the page unchanged.
+This example seeds `localStorage` as a stand-in for app state, then reads and reuses it across later steps. The first step seeds the value. The second reads it into a `TOKEN` variable. The third passes that variable through `args` to assert it round-trips through the page unchanged.
 
 {/* test {"testId":"runbrowserscript-variable-capture","detectSteps":false} */}
 
@@ -159,3 +189,91 @@ After navigating to the page, this example runs three `runBrowserScript` steps. 
 {/* step {"stepId":"runbrowserscript-capture","description":"Read the value and store it in a variable","runBrowserScript":"return window.localStorage.getItem('token');","variables":{"TOKEN":"$$result"}} */}
 {/* step {"stepId":"runbrowserscript-reuse","description":"Reuse the captured value and assert it round-tripped correctly","runBrowserScript":{"script":"return arguments[0];","args":["$TOKEN"],"output":"abc123"}} */}
 {/* test end */}
+
+### Run the script in a specific tab or browser
+
+By default the script runs in the active tab. Set `surface` to target another browser, window, or tab. Pass a browser object to pick a named session, window, or tab, or a browser-engine keyword to target that engine's default session.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Read the title of the report tab in Chrome.",
+          "runBrowserScript": {
+            "script": "return document.title;",
+            "surface": { "browser": "chrome", "tab": "report" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Read the title in the default Firefox session.",
+          "runBrowserScript": {
+            "script": "return document.title;",
+            "surface": "firefox"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Save the return value for regression testing
+
+Save the serialized return value with `path` and `directory`, and cap the script with a `timeout` in milliseconds. On later runs, `maxVariation` and `overwrite` compare the new value against the saved copy.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Save the return value and refresh it only on drift.",
+          "runBrowserScript": {
+            "script": "return JSON.stringify({ ready: document.readyState });",
+            "path": "ready-state.json",
+            "directory": "./output",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation",
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Mark a side-effecting script unsafe
+
+A script that changes application state has side effects. Writing `localStorage`, dispatching events, or calling an API all count. Mark the step `unsafe: true` so it runs only when you allow unsafe steps. Enable them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. Otherwise Doc Detective skips the step.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Write to localStorage from an unsafe step.",
+          "runBrowserScript": {
+            "script": "window.localStorage.setItem('token', 'abc123');"
+          },
+          "unsafe": true
+        }
+      ]
+    }
+  ]
+}
+```

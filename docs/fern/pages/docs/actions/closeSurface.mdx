@@ -140,6 +140,10 @@ A browser reference with a `tab` selector closes that tab. A `window` selector c
         {
           "description": "Close the newest tab.",
           "closeSurface": { "browser": "chrome", "tab": -1 }
+        },
+        {
+          "description": "Close the checkout tab by its URL.",
+          "closeSurface": { "browser": "chrome", "tab": { "url": "/checkout" } }
         }
       ]
     }
@@ -206,4 +210,23 @@ Reference an [app surface](/docs/actions/startsurface) with `{ "app": … }` to 
 }
 ```
 
-Closing a single app window isn't supported yet. Omit `window` to close the whole app surface.
+To close a single window, such as a dialog, without ending the app, add a `window` selector. It accepts a window name, an index in creation order (`-1` is the newest), or `{ title }` criteria matched as a substring or `/regex/`:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Close the newest window, keeping the app open.",
+          "closeSurface": { "app": "notepad", "window": -1 }
+        },
+        {
+          "description": "Close the Find dialog by its title.",
+          "closeSurface": { "app": "notepad", "window": { "title": "Find" } }
+        }
+      ]
+    }
+  ]
+}
+```

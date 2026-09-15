@@ -124,6 +124,8 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 
 ### Append query parameters to a URL
 
+Append a testing token to a dashboard path using step-level `params`.
+
 ```json
 {
   "tests": [
@@ -188,6 +190,8 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 
 ### Open a second browser
 
+Open a second, named browser session for the admin account, then select a browser by its bare engine keyword.
+
 ```json
 {
   "tests": [
@@ -211,6 +215,8 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 ```
 
 ### Open a named tab, then act in it
+
+Open the checkout in a named tab, then target that tab by name from a later step.
 
 ```json
 {
@@ -239,6 +245,8 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 
 ### Open a named window with a named first tab
 
+Open the admin console in its own window and name its first tab.
+
 ```json
 {
   "tests": [
@@ -257,7 +265,31 @@ Set `originParams` in your configuration file to avoid repeating parameters on e
 }
 ```
 
+### Open an anonymous tab or window
+
+Set `newTab` or `newWindow` to `true` to open and focus a new tab or window without naming it. Later steps then act on it as the active surface. Name it instead when a later step needs to select it by name.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Open a page in a new, unnamed tab.",
+          "goTo": {
+            "url": "https://my-app.com/preview",
+            "newTab": true
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ### Navigate an existing tab or window
+
+Navigate an already-open window by naming it in `surface`.
 
 ```json
 {
@@ -390,6 +422,61 @@ Use multiple wait conditions together with a custom timeout.
                 "selector": ".main-content",
                 "elementText": "Dashboard"
               }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for an element by ID, class, or attribute
+
+`waitUntil.find` accepts the same element-finding fields as [`find`](find)—`selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria`—each matching an exact value or a `/regex/` pattern. Set several fields to wait for an element that matches all of them.
+
+{/* test {"testId":"goto-wait-finders","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate and wait for a button identified by its test ID.",
+          "goTo": {
+            "url": "https://www.example.com/dashboard",
+            "waitUntil": {
+              "find": {
+                "elementTestId": "login-form-submit"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-wait-finders","description":"Navigate and wait for a button identified by its test ID","goTo":{"url":"http://localhost:8092/enhanced-elements.html","waitUntil":{"find":{"elementTestId":"login-form-submit"}}}} */}
+{/* test end */}
+
+### Treat the page as idle immediately
+
+Set `networkIdleTime` or `domIdleTime` to `0` to treat the page as idle as soon as the first check completes, rather than waiting for a quiet period. Both checks always run and can't be skipped.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Navigate without waiting for a network quiet period.",
+          "goTo": {
+            "url": "https://www.example.com",
+            "waitUntil": {
+              "networkIdleTime": 0
             }
           }
         }

@@ -157,6 +157,49 @@ The blur stays glued to every match while the page scrolls, and never animates i
 }
 ```
 
+### Point with an arrow and a caption
+
+An `arrow` points at an element, while a `text` box sits at a fixed position rather than on an element. `position` accepts a named region, a point, or an offset from the default placement.
+
+```json
+{
+  "annotate": {
+    "add": [
+      {
+        "id": "pointer",
+        "arrow": { "elementTestId": "checkout-button" },
+        "position": { "offset": { "x": -100, "y": -40 } },
+        "style": { "color": "#2563EB", "strokeWidth": 4 }
+      },
+      {
+        "text": { "position": "bottom-left" },
+        "label": "Sample account",
+        "style": { "background": "#1E293B", "color": "#FACC15", "padding": 10 }
+      }
+    ]
+  }
+}
+```
+
+### Clear some annotations and re-point another
+
+`clear` takes a list of ids to remove just those, instead of `true` to clear everything. Because `update` re-resolves its target, give it a `timeout` when the new element hasn't rendered yet.
+
+```json
+{
+  "annotate": {
+    "clear": ["intro", "hint"],
+    "update": [
+      {
+        "id": "guide",
+        "callout": { "elementTestId": "dashboard", "timeout": 15000 },
+        "label": "Your data lands here after the first sync"
+      }
+    ]
+  }
+}
+```
+
 ## How it works
 
 Doc Detective draws annotations into a `dd-annotation-layer` element with its own shadow root, sitting above the page and ignoring pointer events. The page under test keeps behaving exactly as it would without annotations, and the page's CSS can't restyle them.
