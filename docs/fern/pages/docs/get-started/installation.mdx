@@ -142,6 +142,30 @@ DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
 
 You can also set `cacheDir` in your `.doc-detective.json` config file or use the `--cache-dir` CLI flag.
 
+### Prebuilt runtime cache
+
+This is automatic and needs no configuration. Skip this section unless you run in an air-gapped or mirrored environment, or you want to tune how Doc Detective restores the cache.
+
+To make the *first* run on a fresh machine fast, every Doc Detective release attaches prebuilt, per-platform tarballs of the warm cache—the heavy npm packages along with the browsers and drivers—to its GitHub Release. Before falling back to a lazy `npm install` or browser download, Doc Detective tries to restore the tarball that matches your exact platform and version, verifying it against a checksummed manifest.
+
+The restore is strict and fails safe. It proceeds only when the release version, the platform (OS, architecture, libc, and OS major version), and every pinned dependency version match exactly, and when the downloaded archive's SHA-256 checksum matches its manifest. Any mismatch, checksum failure, or missing asset—for example, a platform with no published tarball—falls back silently to the normal lazy install, so you never end up with a broken cache, only a slower first run. Doc Detective also records failed restores so it doesn't re-download a known-bad asset on the next run.
+
+The restore uses the same cache directory as the lazy install, so `DOC_DETECTIVE_CACHE_DIR` controls where restored assets land. In CI, the prebuilt cache speeds up cold runners and cache misses on its own. Persisting `DOC_DETECTIVE_CACHE_DIR` between runs (see [Runtime caching](/docs/ci/github-action#runtime-caching)) still avoids re-downloading across runs, and the two work together.
+
+Three environment variables control this behavior:
+
+| Variable | Effect |
+|----------|--------|
+| `DOC_DETECTIVE_PREBUILT` | Set to `0` (also accepts `false`, `no`, or `off`) to opt out of the prebuilt-cache restore entirely. Behavior is then identical to the lazy install. This is separate from `DOC_DETECTIVE_AUTOINSTALL`: `AUTOINSTALL` controls the postinstall pre-install, while `PREBUILT` controls only the tarball restore. |
+| `DOC_DETECTIVE_PREBUILT_BASE_URL` | Override the base URL Doc Detective fetches tarballs and manifests from (a trailing slash is optional). Useful for air-gapped mirrors or internal artifact stores. Defaults to the GitHub Release download path for your installed version. |
+| `DOC_DETECTIVE_PIN_BROWSERS` | Set to `1` (any value other than `0`, `false`, `no`, or `off`) to treat an already-installed browser and driver record as authoritative and skip the daily channel freshness re-check. Combined with a warm cache, repeat runs do no browser-related network requests. `--force` still bypasses the pin and reinstalls. |
+
+<Note>
+
+Downloads use the standard `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables. If those aren't enough for the download to succeed in your environment, the restore fails and falls back to the lazy install—it never blocks the run.
+
+</Note>
+
 ## Auto-update
 
 By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available:

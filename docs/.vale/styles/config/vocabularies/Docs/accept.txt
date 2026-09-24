@@ -243,6 +243,11 @@ onboarding
 startSurface
 passthrough
 TUIs
+checksummed
+libc
+reinstalls
+tarball
+tarballs
 AXIdentifier
 AXRole
 AXTitle
