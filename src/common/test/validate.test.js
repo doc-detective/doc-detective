@@ -34,6 +34,32 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("strict mode logging", function () {
+      it("should not log Ajv strict-mode warnings while compiling schemas", async function () {
+        this.timeout(60000);
+        // Fresh module instance so schemas compile here, not from an earlier test's cache.
+        const fresh = await import(`../dist/validate.js?strict-logging-${Date.now()}`);
+        const { schemas } = await import("../dist/schemas/index.js");
+        const logged = [];
+        const original = { warn: console.warn, log: console.log, error: console.error };
+        console.warn = (...args) => logged.push(args.join(" "));
+        console.log = (...args) => logged.push(args.join(" "));
+        console.error = (...args) => logged.push(args.join(" "));
+        try {
+          for (const schemaKey of Object.keys(schemas)) {
+            try {
+              fresh.validate({ schemaKey, object: {} });
+            } catch {
+              // Only compile-time logging matters here, not validation outcomes.
+            }
+          }
+        } finally {
+          Object.assign(console, original);
+        }
+        expect(logged.filter((line) => line.includes("strict mode"))).to.deep.equal([]);
+      });
+    });
+
     describe("schema not found", function () {
       it("should return error when schema key does not exist", function () {
         const result = validate({
