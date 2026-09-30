@@ -1,3 +1,10 @@
+## [4.38.5](https://github.com/doc-detective/doc-detective/compare/v4.38.4...v4.38.5) (2026-09-30)
+
+
+### Bug Fixes
+
+* **validate:** silence Ajv console logging ([a9423fa](https://github.com/doc-detective/doc-detective/commit/a9423fadc8251d98e96619be56e27481ac8be605))
+
 ## [4.38.4](https://github.com/doc-detective/doc-detective/compare/v4.38.3...v4.38.4) (2026-09-05)
 
 
