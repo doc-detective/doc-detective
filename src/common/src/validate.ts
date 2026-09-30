@@ -27,6 +27,7 @@ function getRandomUUID(): string {
 // @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
 const ajv = new Ajv({
   strictSchema: false,
+  logger: false,
   useDefaults: true,
   allErrors: true,
   allowUnionTypes: true,
@@ -51,6 +52,7 @@ const ajv = new Ajv({
 // @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
 const ajvCheck = new Ajv({
   strictSchema: false,
+  logger: false,
   useDefaults: false,
   allErrors: true,
   allowUnionTypes: true,
