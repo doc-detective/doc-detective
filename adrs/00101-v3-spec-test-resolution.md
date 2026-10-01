@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The `common` schema family had moved to v3 (`step_v3` action-as-key, `config_v3`, `context_v3`), but `core`'s detection/parsing layer still resolved source files against the v2 contract: it validated `spec_v2`, used `setup`/`cleanup` test fields, keyed specs and tests on `id`/`file`, and ran the old single-match markup parser. Once the schemas changed, the resolver had to be re-pointed at v3 — but that touched the whole detect→parse→resolve pipeline at once: which schema a source file validates against, what the lifecycle fields are called, how paths resolve, and how markup is turned into steps. What should v3 source-file resolution look like end to end?
+The `common` schema family had moved to v3, with `step_v3` action-as-key, `config_v3`, and `context_v3`. But `core`'s detection/parsing layer still resolved source files against the v2 contract. It validated `spec_v2`, used `setup`/`cleanup` test fields, keyed specs and tests on `id`/`file`, and ran the old single-match markup parser. Once the schemas changed, the resolver had to be re-pointed at v3. That touched the whole detect→parse→resolve pipeline at once. It changed which schema a source file validates against, and what the lifecycle fields are called. It changed how paths resolve, and how markup is turned into steps. What should v3 source-file resolution look like end to end?
 
 ## Decision Drivers
 

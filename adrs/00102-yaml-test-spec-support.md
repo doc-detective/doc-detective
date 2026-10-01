@@ -25,7 +25,7 @@ Doc Detective test specs were JSON-only: `isValidSourceFile` validated `.json` f
 
 ## Decision Outcome
 
-Chosen option: **A**, because a spec's *contract* is format-independent — only the deserialization differs. The contract:
+Chosen option: **A**, because a spec's *contract* is format-independent. Only the deserialization differs. The contract:
 
 1. A unified `readFile` in `common` deserializes both **JSON and YAML**.
 2. `isValidSourceFile` validates JSON **and YAML** sources against **`spec_v3`**.

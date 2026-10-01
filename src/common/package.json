@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-common",
-  "version": "4.38.4",
+  "version": "4.38.5",
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -40,13 +40,13 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective/tree/main/src/common#readme",
   "devDependencies": {
-    "@apidevtools/json-schema-ref-parser": "^16.0.0",
-    "@types/node": "^26.2.0",
+    "@apidevtools/json-schema-ref-parser": "^16.0.3",
+    "@types/node": "^26.6.3",
     "c8": "^12.0.0",
     "esbuild": "^0.28.2",
-    "chai": "^6.2.2",
-    "json-schema-to-typescript": "^15.0.4",
-    "mocha": "^11.8.0",
+    "chai": "^6.3.0",
+    "json-schema-to-typescript": "^16.0.0",
+    "mocha": "^12.0.3",
     "sinon": "^22.1.0",
     "typescript": "^7.0.2"
   },
@@ -55,6 +55,6 @@
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",
     "ajv-keywords": "^5.1.0",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   }
 }

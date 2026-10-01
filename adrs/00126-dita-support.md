@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective supported Markdown, AsciiDoc, and HTML source files, but not DITA — an XML-based documentation format where inline test markup lives in XML attributes and where a `.ditamap` aggregates many topics. Teams writing DITA had no way to detect and run tests from their sources. How should DITA be added as a first-class fileType, and how should `.ditamap` aggregation be handled?
+Doc Detective supported Markdown, AsciiDoc, and HTML source files, but not DITA. DITA is an XML-based documentation format where inline test markup lives in XML attributes, and where a `.ditamap` aggregates many topics. Teams writing DITA had no way to detect and run tests from their sources. How should DITA be added as a first-class fileType, and how should `.ditamap` aggregation be handled?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ Doc Detective supported Markdown, AsciiDoc, and HTML source files, but not DITA 
 
 ## Decision Outcome
 
-Chosen option: **A**, because parsing DITA's XML attributes directly preserves the source-to-test line mapping that pre-conversion would lose, and routing `.ditamap` through the official `dita` CLI handles topic aggregation correctly rather than reimplementing map resolution.
+Chosen option: **A**. Parsing DITA's XML attributes directly preserves the source-to-test line mapping that pre-conversion would lose. Routing `.ditamap` through the official `dita` CLI handles topic aggregation correctly, rather than reimplementing map resolution.
 
 Contract decided:
 

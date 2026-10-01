@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The genesis of the tool (then `doc-unit-test`, GPL-3.0) needed a way to drive a real browser so documented UI steps could be executed and verified. The first commit (`9c52a7c3`, 2022-04-22) shipped a `selenium-webdriver ^4.1.1` CLI scaffold (`Builder.forBrowser('chrome')`, `By`/`Key`/`until`). Within a week a recording-engine experiment added Puppeteer (`5bef4db5`, 2022-04-28), which then became the runner engine over the following weeks. Browsers are not always at a predictable path across operating systems, so the launcher also needed a fallback strategy when the default launch failed. How should the tool drive a browser and recover when no browser is found at the expected location?
+The genesis of the tool, then `doc-unit-test` under GPL-3.0, needed a way to drive a real browser. Documented UI steps had to be executed and verified. The first commit (`9c52a7c3`, 2022-04-22) shipped a `selenium-webdriver ^4.1.1` CLI scaffold, using `Builder.forBrowser('chrome')` plus `By`, `Key`, and `until`. Within a week a recording-engine experiment added Puppeteer (`5bef4db5`, 2022-04-28), which then became the runner engine over the following weeks. Browsers are not always at a predictable path across operating systems. So the launcher also needed a fallback strategy when the default launch failed. How should the tool drive a browser and recover when no browser is found at the expected location?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ The genesis of the tool (then `doc-unit-test`, GPL-3.0) needed a way to drive a 
 
 ## Decision Outcome
 
-Chosen option: **Selenium first, then Puppeteer with platform-keyed fallback**, because the recording experiment required Puppeteer's programmatic API and it proved a better fit for the runner, while the fallback table made launches robust across machines.
+Chosen option: **Selenium first, then Puppeteer with platform-keyed fallback**. The recording experiment required Puppeteer's programmatic API, and it proved a better fit for the runner. The fallback table made launches reliable across machines.
 
 Behavior decided:
 
@@ -46,7 +46,7 @@ Observable in the shipped `package.json` dependency set (`selenium-webdriver`, t
 ## Pros and Cons of the Options
 
 ### Selenium → Puppeteer with platform fallback
-* Good: recording-capable engine; robust cross-platform launch.
+* Good: recording-capable engine; reliable cross-platform launch.
 * Bad: two engine migrations early in the project's life.
 
 ### Selenium only

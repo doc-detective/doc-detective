@@ -8,12 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective tests live next to documentation source, but a large class of users author in a
-component CMS (Heretto) where the "source" is not a checked-out file but content fetched through a
-publishing API. Doc Detective had no way to point a test run at CMS-hosted content, nor to push the
-artifacts a run produces (screenshots) back into that CMS. The question: how do users configure a
-Heretto connection, reference CMS content as a test source, and round-trip updated screenshots back
-to the CMS — without leaking credentials into reports?
+Doc Detective tests live next to documentation source. But a large class of users author in a
+component CMS, Heretto. There the "source" is content fetched through a publishing API, rather
+than a checked-out file. Doc Detective had no way to point a test run at CMS-hosted content. Nor could it
+push the screenshots a run produces back into that CMS. The question: how do users configure a
+Heretto connection, and reference CMS content as a test source? And how do they round-trip updated
+screenshots back to the CMS, without leaking credentials into reports?
 
 ## Decision Drivers
 
@@ -31,13 +31,13 @@ to the CMS — without leaking credentials into reports?
 
 ## Decision Outcome
 
-Chosen option: **A**, because CMS round-tripping (download content, run tests, upload changed
-screenshots) is a coherent integration contract that the resolver and reporter both need to know
-about, not something a generic fetch can express.
+Chosen option: **A**. CMS round-tripping means downloading content, running tests, and uploading
+changed screenshots. That's a coherent integration contract the resolver and reporter both need to
+know about, not something a generic fetch can express.
 
 The contract:
 
-1. **Config**: `integrations.heretto[]` — an array of named connections, each with
+1. **Config**: `integrations.heretto[]` is an array of named connections, each with
    `name`, `organizationId`, `username`, `apiToken` (schema `format: password` so it is treated as
    a secret), and `scenarioName`.
 2. **Source refs**: a test source may be written as `heretto:<name>`, resolved via the Heretto
@@ -48,8 +48,8 @@ The contract:
    on `report.uploadResults`.
 4. **Identity**: CMS-sourced specs get collision-safe `specId`s so repeated runs don't clash.
 
-Origin spans common (schema), core (runner integration), and resolver (source fetching) packages —
-later re-exposed in the merged monorepo as the in-repo Heretto loader (`00150`).
+Origin spans the common (schema), core (runner integration), and resolver (source fetching)
+packages. It was later re-exposed in the merged monorepo as the in-repo Heretto loader (`00150`).
 
 ### Consequences
 

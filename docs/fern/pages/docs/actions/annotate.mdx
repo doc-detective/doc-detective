@@ -42,7 +42,7 @@ Set `"transition": { "enter": "none" }` on a `blur` you're using to redact. An a
 
 ### Annotate something that hasn't loaded yet
 
-An element target waits up to 5000 milliseconds for its element to appear, then fails the step. Set `timeout` on the target when you're annotating something slower than that, such as a panel behind a fetch or a dashboard that renders after a first sync:
+An element target waits up to 5000 milliseconds for its element to appear, then fails the step. Set `timeout` on the target when you're annotating something slower. Examples include a panel behind a fetch, or a dashboard that renders after a first sync:
 
 ```json
 {
@@ -58,7 +58,7 @@ An element target waits up to 5000 milliseconds for its element to appear, then 
 }
 ```
 
-This is [`find`](/docs/actions/find)'s `timeout`, on the annotation's target. Two things follow from that: it needs the object form of the target, since the string shorthand has nowhere to put it, and it's per-target, so one slow element in a payload doesn't make the others wait.
+This is [`find`](/docs/actions/find)'s `timeout`, on the annotation's target. Two things follow from that. It needs the object form of the target, since the string shorthand has nowhere to put it. It's also per-target, so one slow element in a payload doesn't make the others wait.
 
 `update` re-resolves its target, so give it a `timeout` too when you point an annotation at something that isn't on the page yet.
 

@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The runner drives browsers through WebdriverIO. A migration to WebdriverIO v9 with the WebDriver
-BiDi protocol promised modern element semantics — removing `wdio:enforceWebDriverClassic`, using
-`isDisplayed({ withinViewport: true })`, and lowercase cookie `sameSite` values. In practice the
+BiDi protocol promised modern element semantics. It would remove `wdio:enforceWebDriverClassic`, use
+`isDisplayed({ withinViewport: true })`, and use lowercase cookie `sameSite` values. In practice the
 BiDi path proved unstable across the supported drivers. The question: do we ship the BiDi protocol
 migration, or keep WebdriverIO v9 while staying on the classic WebDriver protocol?
 
