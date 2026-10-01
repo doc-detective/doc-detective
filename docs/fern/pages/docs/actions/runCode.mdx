@@ -162,7 +162,7 @@ This example runs a Bash command (`false`) via `runCode` and checks that the exi
 
 ### Pass arguments to the script
 
-Doc Detective passes each item in `args` to your snippet as a positional argument. Read them as `$1`, `$2`, and so on in Bash, `sys.argv` in Python, or `process.argv` in Node.
+Doc Detective passes each item in `args` to your snippet as a positional argument. In Bash, read them as `$1`, `$2`, and so on. In Python, the first argument is `sys.argv[1]`, and in Node it's `process.argv[2]`.
 
 {/* test {"testId":"runcode-with-args","detectSteps":false} */}
 
