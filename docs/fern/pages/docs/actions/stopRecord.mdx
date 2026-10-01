@@ -46,9 +46,9 @@ With [`verify` guards](record#verifying-the-video-file-itself):
 - `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
 - `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
 
-When the capture is skipped but checkpoints still run—a headless run, or a target that already exists under `overwrite: "false"`—`stopRecord` compares against the committed baselines, writes nothing, and reports the checkpoint outputs above (`$$checkpoints`, `$$maxCheckpointVariation`, `$$checkpointErrors`) plus:
+Checkpoints still run when Doc Detective skips the recording, either in a headless run or when the target already exists under `overwrite: "false"`. In that case, `stopRecord` compares against the committed baselines and writes nothing. Because it seeds no baselines, it omits `$$seededBaselines`. It reports the other checkpoint outputs above (`$$checkpoints`, `$$maxCheckpointVariation`, `$$checkpointErrors`) plus:
 
-- `$$stale`: whether the committed recording appears stale, meaning its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint pointing at the fix for the skip you hit: a headed re-run for a headless skip, or `overwrite: "true"` / `"aboveVariation"` (or removing the file) when the target already exists.
+- `$$stale`: whether the committed recording appears stale, meaning its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint that names the fix. For a headless skip, re-run headed. For an existing target, set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file. See [Detecting staleness without re-recording](record#detecting-staleness-without-re-recording).
 
 A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
 
