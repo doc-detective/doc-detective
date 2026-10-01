@@ -275,7 +275,7 @@ jobs:
           cache: false
 ```
 
-Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. In both examples on this page, the cache step reads its `path` from the same variable, so you change the directory in one place.
+Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. The `actions/cache` step in each recipe reads its `path` from the same variable, so you change the directory in one place.
 
 To control exactly when assets download, pre-install them before the action runs. Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory:
 
