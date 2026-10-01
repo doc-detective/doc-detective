@@ -196,6 +196,33 @@ describe("core/utils coverage", function () {
     it("falls back to manual stripping for non-URL strings", function () {
       assert.equal(redactUrlForOutput("not a url?token=x#y"), "not a url");
     });
+    it("strips basic-auth credentials from a valid URL", function () {
+      // `new URL(...).toString()` preserves userinfo, so dropping only the
+      // query and fragment would publish the password: these strings land in
+      // step descriptions, warnings, reports and CI logs.
+      assert.equal(
+        redactUrlForOutput("https://user:s3cret@host/path?token=x"),
+        "https://host/path"
+      );
+    });
+    it("strips a username-only userinfo segment", function () {
+      assert.equal(
+        redactUrlForOutput("https://user@host/path"),
+        "https://host/path"
+      );
+    });
+    it("strips credentials on the non-URL fallback path too", function () {
+      // The fallback sees anything `new URL` rejects (here: no scheme), so it
+      // cannot lean on URL parsing.
+      assert.equal(
+        redactUrlForOutput("//user:s3cret@host/path?token=x"),
+        "//host/path"
+      );
+      // Only the authority segment carries credentials. An `@` after the host
+      // is part of the path, and a port is not a password.
+      assert.equal(redactUrlForOutput("//host:8080/a:b@c"), "//host:8080/a:b@c");
+      assert.equal(redactUrlForOutput("not a url?token=x#y"), "not a url");
+    });
   });
 
   describe("sanitizeFilesystemName", function () {
@@ -1279,6 +1306,38 @@ describe("core/utils coverage", function () {
           );
           return true;
         }
+      );
+    });
+
+    it("keeps basic-auth credentials out of the warning and the error", async function () {
+      // Both diagnostics print the target, and the warning fires at the default
+      // log level, so a credentialed URL would publish its password to anyone
+      // reading the output or the CI log.
+      const runner = fakeRunner(["data:,", "data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      const written = [];
+      const originalLog = console.log;
+      console.log = (...args) => written.push(args.join(" "));
+      try {
+        await assert.rejects(
+          () => runner.url("https://admin:hunter2@localhost:8092/index.html"),
+          (error) => {
+            assert.match(error.message, /never left its initial blank document/);
+            assert.ok(
+              !error.message.includes("hunter2"),
+              `error must redact credentials, got: ${error.message}`
+            );
+            return true;
+          }
+        );
+      } finally {
+        console.log = originalLog;
+      }
+      const warning = written.join("\n");
+      assert.match(warning, /still on its initial blank document/);
+      assert.ok(
+        !warning.includes("hunter2"),
+        `warning must redact credentials, got: ${warning}`
       );
     });
 

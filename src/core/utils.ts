@@ -1331,9 +1331,22 @@ function redactUrlForOutput(value: string): string {
     const url = new URL(value);
     url.search = "";
     url.hash = "";
+    // `toString()` re-serializes userinfo, so a basic-auth URL would publish
+    // its password alongside the host. These strings land in step descriptions,
+    // warnings, reports and CI logs, so clear both before serializing.
+    url.password = "";
+    url.username = "";
     return url.toString();
   } catch {
-    return value.split("?")[0].split("#")[0];
+    const stripped = value.split("?")[0].split("#")[0];
+    // Nothing parsed this, so match the authority textually: userinfo sits
+    // between `//` and the first `/`. `[^/]*` cannot cross that boundary, so it
+    // stops at the last `@` of the authority and leaves a later `@` in the path
+    // alone.
+    return stripped.replace(
+      /^((?:[a-zA-Z][a-zA-Z0-9+.-]*:)?\/\/)[^/]*@/,
+      "$1"
+    );
   }
 }
 

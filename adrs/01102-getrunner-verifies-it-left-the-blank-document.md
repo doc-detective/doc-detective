@@ -115,8 +115,14 @@ keeps unit-test stubs working. The real session always has the method.
   They call the same two helpers.
 * Neutral, because a healthy navigation pays one extra `getUrl()` round trip,
   the same cost 01088 accepted inside `goTo`.
-* Neutral, because `runStep` callers now pass through two guards, the wrapper
-  and `goTo`'s own. The second is a no-op once the first has verified the page.
+* Neutral, because nothing inside the runner calls `getRunner`. The wrapper
+  reaches only the sessions handed to a library consumer, so a `runStep` driver
+  still relies on `goTo`'s guard alone.
+* Good, because the diagnostics can no longer leak basic-auth credentials.
+  `redactUrlForOutput` dropped only the query and fragment, so a
+  `https://user:pass@host` target would have printed its password in the warning
+  this adds. It now clears userinfo as well, which also tightens 01088's existing
+  `goTo` message.
 * Bad or limiting, because this still treats a symptom. Why Chromium leaves a
   hosted Windows session on its initial document remains unknown, exactly as
   01084 and 01088 noted.
@@ -141,6 +147,9 @@ red before green, cover the extracted helpers and the wrapper:
 * `probeStuckOnBlankDocument` reads nothing when no retry fired, which is what
   keeps the healthy path at one probe.
 * An unreadable URL reads as not stuck, matching `isPageUnnavigated`.
+* A `https://admin:hunter2@host` target leaves no trace of `hunter2` in either
+  the warning or the thrown message. `redactUrlForOutput` has its own cases for
+  userinfo, on both the parsed and the fallback path.
 
 The suite-level confirmation is in `test/core-core.test.js`. Every title
 assertion in the `getRunner` block now reports the session's URL, so a recurrence
