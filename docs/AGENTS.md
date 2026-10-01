@@ -63,6 +63,29 @@ The setup and teardown specs are in `test-setup/`. The docs preview uses the `--
   - Use level 1 Markdown headings `#`
   - Use the `.md` file extension.
 
+### Internal links (the published route is not the file path)
+
+A link that looks right against the file tree can still 404. Fern builds a route from the
+**tab slug plus the section slug plus the page slug**. A section with no explicit `slug:`
+still contributes one, derived from its title. That doubles a segment whenever the two names
+match. So `pages/reference/expressions.mdx` publishes at `/reference/reference/expressions`,
+and `/reference/expressions` silently serves the **home page** rather than a 404.
+
+Three rules, each one the cause of real broken links found in a sweep:
+
+- **Routes are case-sensitive.** Action pages publish lowercased and unhyphenated, so
+  `goTo.mdx` is `/docs/actions/goto` and `runShell.mdx` is `/docs/actions/runshell`.
+  `/docs/actions/goTo` and `/docs/actions/run-shell` both serve the home page.
+- **A `folder:` entry has no landing page.** `/docs/actions` is not a route. Link to a page
+  that lists the actions, such as `/docs/get-started/how-testing-works`.
+- **Check the slug, not the filename.** `pages/docs/config/contexts.mdx` publishes at
+  `/docs/test-docs/platforms-and-browsers`, because `docs.yml` gives it that slug in that
+  section.
+
+To verify a route rather than guess it, read the deployed site's own list. Every PR gets a
+Fern preview comment, and `curl -s <preview>/sitemap.xml` is the authoritative route set.
+Deriving routes from `docs.yml` by hand produces false positives in both directions.
+
 ### Custom React components
 
 No custom React components at this time.
