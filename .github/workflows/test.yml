@@ -17,6 +17,16 @@ name: Test Matrix
 
 on:
   workflow_call:
+    inputs:
+      # false → do no work, but still report the contexts the `main` ruleset
+      # requires, through the placeholder jobs at the end of this file
+      # (ADR 01103). Defaults to true so release.yml, which passes no inputs,
+      # keeps running the full matrix.
+      run-matrix:
+        description: Run the matrix and ratchets. When false, only report.
+        type: boolean
+        required: false
+        default: true
     secrets:
       HERETTO_ORG_ID:
         required: false
@@ -31,6 +41,7 @@ permissions:
 jobs:
   test:
     name: Test (${{ matrix.os }}, node ${{ matrix.node }}, shard ${{ matrix.shard }})
+    if: ${{ inputs.run-matrix }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
@@ -151,6 +162,7 @@ jobs:
   # coverage regression blocks merges and releases alike.
   coverage-ratchet:
     name: Coverage ratchet (src/common)
+    if: ${{ inputs.run-matrix }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -193,6 +205,7 @@ jobs:
   # uploaded so the measured percentage is always visible.
   coverage-merge:
     name: Coverage ratchet (root, cross-platform)
+    if: ${{ inputs.run-matrix }}
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -234,3 +247,61 @@ jobs:
           name: root-coverage
           path: coverage/
           retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Placeholders. These exist for ONE reason: the `main` ruleset requires four
+  # of this workflow's checks by name, and a required check that never reports
+  # blocks a pull request forever with nothing failing. When there is no code to
+  # exercise, the real jobs above are skipped and these report the same four
+  # names instead, so the gate is satisfiable by a docs-only change (ADR 01103).
+  #
+  # They are mutually exclusive with the real jobs, so a context is never
+  # reported twice. Each one says in its log that it tested nothing, and the
+  # names are duplicated deliberately rather than invented, because the ruleset
+  # matches on the exact string.
+  # ---------------------------------------------------------------------------
+  test-placeholder:
+    name: Test (${{ matrix.os }}, node ${{ matrix.node }}, shard ${{ matrix.shard }})
+    if: ${{ !inputs.run-matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        # Only the two cells the ruleset requires. The rest of the real grid has
+        # nothing to report to, so spinning runners for it would be waste.
+        include:
+          - os: ubuntu-latest
+            node: 22
+            shard: 1
+          - os: ubuntu-latest
+            node: 22
+            shard: 2
+    steps:
+      - name: Nothing to exercise
+        run: |
+          echo 'No code paths changed, so the test matrix had nothing to run.'
+          echo 'Reporting success to satisfy the required check (ADR 01103).'
+          echo 'scripts/select-test-matrix.cjs made this call; see the changes job.'
+
+  coverage-ratchet-placeholder:
+    name: Coverage ratchet (src/common)
+    if: ${{ !inputs.run-matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Nothing to measure
+        run: |
+          echo 'No code paths changed, so coverage cannot have moved.'
+          echo 'Reporting success to satisfy the required check (ADR 01103).'
+
+  coverage-merge-placeholder:
+    name: Coverage ratchet (root, cross-platform)
+    if: ${{ !inputs.run-matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Nothing to merge
+        run: |
+          echo 'No code paths changed, so there are no coverage artifacts to union.'
+          echo 'Reporting success to satisfy the required check (ADR 01103).'
