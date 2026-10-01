@@ -78,7 +78,9 @@ Choose *NPX* if you have Node.js installed and want Doc Detective on your machin
 
     <Note>
 
-    The `-v` argument mounts your current directory (`.`) to `/app` in the container. That gives Doc Detective access to your test specification, and lets it output results and screenshots. If your test specification is hosted at an HTTPS URL, the `-v` argument is not necessary.
+    The `-v` argument mounts your current directory (`.`) to `/app` in the container. That gives Doc Detective access to your test specification, and lets it output results and screenshots. Keep it.
+
+    An HTTPS `--input` URL removes the need for the mount to *read* the specification, but not the need to mount at all. Results and screenshots still default to the container's working directory, `/app`. Without the mount, the results file and the *example.png* this test captures are discarded when the container exits. Drop `-v` only when you don't need those files on the host.
 
     </Note>
 
