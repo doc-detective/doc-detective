@@ -1,0 +1,49 @@
+# TEMPORARY flake-rate harness. Runs test/core-core.test.js (the file holding
+# the getRunner suite) on several windows-latest runners at once, so the
+# getRunner flake rate can be measured before and after a fix instead of
+# guessed from single reruns. Delete before merging.
+name: getRunner flake rate
+
+# Push-triggered rather than workflow_dispatch: a dispatchable workflow has to
+# exist on the default branch, which this one deliberately never reaches.
+on:
+  push:
+    branches:
+      - 'flake/**'
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: core-core (windows-latest, run ${{ matrix.run }})
+    runs-on: windows-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/dd-cache
+        with:
+          node: 24
+
+      - run: npm ci
+      - run: npm run build
+      - run: node ./bin/doc-detective.js install all --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      - run: npx mocha --exit test/core-core.test.js
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
