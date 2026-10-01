@@ -1000,6 +1000,11 @@ function guardBlankDocumentNavigation(runner: any, config: any): void {
       ) {
         return originalUrl.call(this, url as any, ...rest);
       }
+      // Re-implements issueNavigation's two steps rather than calling it, for
+      // two reasons. It would recurse: `this.url` IS this wrapper, and
+      // issueNavigation navigates through the driver it is handed. And the
+      // warning has to sit BETWEEN the two navigations, so a reader of the log
+      // can see the re-issue was a response to the blank page.
       const result = await originalUrl.call(this, url, ...rest);
       if (!(await isPageUnnavigated(this))) return result;
       log(

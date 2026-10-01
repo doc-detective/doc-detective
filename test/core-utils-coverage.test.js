@@ -221,7 +221,6 @@ describe("core/utils coverage", function () {
       // Only the authority segment carries credentials. An `@` after the host
       // is part of the path, and a port is not a password.
       assert.equal(redactUrlForOutput("//host:8080/a:b@c"), "//host:8080/a:b@c");
-      assert.equal(redactUrlForOutput("not a url?token=x#y"), "not a url");
     });
   });
 

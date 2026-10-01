@@ -120,7 +120,9 @@ Related notes:
   `json-schema-to-typescript` major bump on `main` (15.x installed against a lockfile wanting
   `^16.0.0`). Check with `npm ls json-schema-to-typescript`, which flags it as `invalid`, then
   `npm ci`. **Never commit that churn**: `git checkout -- src/common/src/types/generated/`, reinstall,
-  and rebuild, which then leaves the tree clean.
+  and rebuild, which then leaves the tree clean. That reset is a blunt instrument, so check what it
+  would discard first. A schema edit in the same branch SHOULD regenerate types, and those are the
+  one change in that directory worth keeping. Nothing else there is hand-written.
 - `output_schemas/*` regeneration on Windows produces large CRLF-only diffs. That's harmless build
   churn, not content changes.
 - `spec_v3` has no `additionalProperties: false`, so unknown root keys on a spec are silently
