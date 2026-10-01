@@ -266,7 +266,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
         with:
-          path: .doc-detective-cache
+          path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}
           key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             doc-detective-${{ runner.os }}-
@@ -275,7 +275,7 @@ jobs:
           cache: false
 ```
 
-Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs.
+Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. In both examples on this page, the cache step reads its `path` from the same variable, so you change the directory in one place.
 
 To control exactly when assets download, pre-install them before the action runs. Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory:
 
@@ -292,7 +292,7 @@ jobs:
           node-version: 22
       - uses: actions/cache@v4
         with:
-          path: .doc-detective-cache
+          path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}
           key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             doc-detective-${{ runner.os }}-
