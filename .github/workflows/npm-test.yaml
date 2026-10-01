@@ -70,13 +70,23 @@ jobs:
             # wrongly skip the matrix. Renames emit two lines each, so the list
             # can only be longer than `changed_files`; shorter means entries went
             # missing. `|| true` keeps grep's no-match exit out of `set -e`.
-            expected=$(timeout 60 gh api "repos/${{ github.repository }}/pulls/$PR" --jq '.changed_files' || echo 0)
-            got=$(printf '%s\n' "$files" | grep -c '[^[:space:]]' || true)
-            echo "file records: $got line(s) for ${expected:-0} changed file(s)"
-            if [ "${expected:-0}" -gt 0 ] && [ "${got:-0}" -lt "${expected:-0}" ]; then
-              echo "list looks truncated; running the matrix"
+            #
+            # The count must be TRUSTWORTHY before the list can be. A failed or
+            # non-numeric metadata call must not read as "zero changed files":
+            # that would skip the check below and hand a possibly-truncated list
+            # to the selector. `[ x -gt 0 ]` on a non-number exits non-zero, and
+            # this `if` treats that as untrusted.
+            if expected=$(timeout 60 gh api "repos/${{ github.repository }}/pulls/$PR" --jq '.changed_files') \
+              && [ "$expected" -gt 0 ] 2>/dev/null; then
+              got=$(printf '%s\n' "$files" | grep -c '[^[:space:]]' || true)
+              echo "file records: $got line(s) for $expected changed file(s)"
+              if [ "${got:-0}" -lt "$expected" ]; then
+                echo "list looks truncated; running the matrix"
+              else
+                code=$(printf '%s\n' "$files" | node scripts/select-test-matrix.cjs || echo true)
+              fi
             else
-              code=$(printf '%s\n' "$files" | node scripts/select-test-matrix.cjs || echo true)
+              echo "could not read changed_files; running the matrix"
             fi
           fi
           # Only an explicit "false" skips. Anything else (crash, empty,
@@ -92,11 +102,17 @@ jobs:
   # check runs, which is the failure mode ADR 01103 fixes. `run-matrix` tells the
   # reusable workflow whether to do the work or just report the required
   # contexts.
+  # `!cancelled()` rather than a bare `needs:`, because a FAILED `changes` job
+  # would otherwise skip this one, and a skipped caller emits no nested check
+  # runs at all. That is the same permanent block ADR 01103 exists to fix, so the
+  # fix must not reintroduce it through its own new dependency. When `changes`
+  # did not succeed we cannot know what the PR touched, so the matrix runs.
   test:
     needs: changes
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/test.yml
     with:
-      run-matrix: ${{ needs.changes.outputs.code == 'true' }}
+      run-matrix: ${{ needs.changes.result != 'success' || needs.changes.outputs.code == 'true' }}
     secrets:
       # Only forward HERETTO_* on trusted contexts (manual dispatch). PR
       # runs — especially from forks — receive empty strings, so the
@@ -116,5 +132,5 @@ jobs:
   # without it a docs typo would fan out every bundle, Android and iOS included.
   fixtures:
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
     uses: ./.github/workflows/fixtures.yml

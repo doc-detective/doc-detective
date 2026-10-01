@@ -162,6 +162,35 @@ describe("npm-test gate reports on every pull request", function () {
       assert.match(String(test.with["run-matrix"]), /needs\.changes\.outputs\.code/);
     });
 
+    it("still reports the contexts when the changes job itself fails", function () {
+      // `needs: changes` alone means a FAILED changes job (flaky checkout,
+      // runner error, anything outside the bash step) skips `test`. A skipped
+      // caller emits no nested check runs, so the four required contexts go
+      // unreported and the PR blocks forever: the exact failure ADR 01103 fixes,
+      // reintroduced by the fix for it. Raised on #730.
+      const test = caller.jobs.test;
+      assert.match(
+        String(test.if),
+        /!cancelled\(\)|always\(\)/,
+        "the test job must run even when `changes` fails"
+      );
+      // And when it could not be told, it must run the real matrix.
+      assert.match(String(test.with["run-matrix"]), /needs\.changes\.result/);
+    });
+
+    it("runs the selector only on a trustworthy file list", function () {
+      // `expected=$(… || echo 0)` made a FAILED metadata call look like zero
+      // changed files, which skipped the truncation guard and fed a possibly
+      // truncated list to the selector. Raised by CodeRabbit on #730.
+      const step = caller.jobs.changes.steps.find((s) => s.id === "decide");
+      assert.match(String(step.run), /could not read changed_files/);
+      assert.doesNotMatch(
+        String(step.run),
+        /changed_files'\s*\|\|\s*echo 0/,
+        "a failed metadata call must not read as zero changed files"
+      );
+    });
+
     it("keeps the fixture fan-out off a docs-only PR", function () {
       // The fixture selector fails safe to the FULL matrix when nothing
       // relevant matched, so dropping the path filter without this guard would
