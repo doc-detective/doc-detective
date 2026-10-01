@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": "../env"
+        },
+        {
+          "checkLink": "http://localhost:8092"
+        },
+        {
+          "checkLink": {
+            "url": "http://localhost:8092",
+            "statusCodes": "200"
+          }
+        },
+        {
+          "checkLink": {
+            "url": "/enhanced-elements.html",
+            "origin": "http://localhost:8092",
+            "statusCodes": [
+              200
+            ]
+          }
+        },
+        {
+          "checkLink": "$URL"
+        },
+        {
+          "checkLink": {
+            "url": "/enhanced-elements.html",
+            "origin": "$URL"
+          }
+        }
+      ]
+    }
+  ]
+}

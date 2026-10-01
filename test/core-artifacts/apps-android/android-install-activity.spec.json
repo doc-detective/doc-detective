@@ -1,0 +1,47 @@
+{
+  "specId": "android-install-activity-a3b",
+  "description": "Native app surfaces phase A3b: the `install` (.apk) + `activity` permutation. Doc Detective installs an APK onto the device and launches a named activity. Gated by `requires.files` on the APK — the emulator CI job downloads a small, stable open-source APK (Appium's ApiDemos sample) to this path before running; every other host lacks the file and SKIPs. The sample app's package is io.appium.android.apis and its launcher activity is .ApiDemos.",
+  "tests": [
+    {
+      "testId": "android-apk-install",
+      "description": "Install the sample APK and launch its main activity, wait for readiness, screenshot, and close.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "requires": {
+            "files": [
+              "test/core-artifacts/apps-android/sample.apk"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "io.appium.android.apis",
+            "install": "test/core-artifacts/apps-android/sample.apk",
+            "activity": ".ApiDemos",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-apidemos.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "apis"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "apis"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@ description: Check if a URL returns an acceptable status code, primarily via a G
 ---
 
 
-The `checkLink` action checks if a URL returns an acceptable status code. It primarily issues a browser-mimicking `GET` request and, if the response is still `429` or `403` after retries, retries the URL once with a `HEAD` request as a fallback. This action is useful for verifying that a hyperlink or image URL is valid.
+The `checkLink` action checks if a URL returns an acceptable status code. It primarily issues a browser-mimicking `GET` request. If the response is still `429` or `403` after retries, it retries the URL once with a `HEAD` request as a fallback. This action is useful for verifying that a hyperlink or image URL is valid.
 
 You can specify the target URL directly as a string, or use an object for more options:
 
@@ -33,6 +33,8 @@ Here are a few ways you might use the `checkLink` action:
 
 ### Check if a link is valid (string shorthand)
 
+{/* test {"testId":"checklink-string-shorthand","detectSteps":false} */}
+
 ```json
 {
   "tests": [
@@ -48,7 +50,12 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-string","description":"Check a URL that returns 200 (string shorthand)","checkLink":"http://localhost:8092/status/200"} */}
+{/* test end */}
+
 ### Check if a link is valid (object format)
+
+{/* test {"testId":"checklink-object-format","detectSteps":false} */}
 
 ```json
 {
@@ -67,7 +74,12 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-object","description":"Check a URL that returns 200 (object format)","checkLink":{"url":"http://localhost:8092/status/200"}} */}
+{/* test end */}
+
 ### Check for a specific status code response
+
+{/* test {"testId":"checklink-specific-status","detectSteps":false} */}
 
 ```json
 {
@@ -87,7 +99,12 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-specific","description":"Check a URL expecting only 200","checkLink":{"url":"http://localhost:8092/status/200","statusCodes":200}} */}
+{/* test end */}
+
 ### Check for one of a set of status code responses
+
+{/* test {"testId":"checklink-status-set","detectSteps":false} */}
 
 ```json
 {
@@ -107,9 +124,16 @@ Here are a few ways you might use the `checkLink` action:
 }
 ```
 
+{/* step {"stepId":"checklink-set","description":"Check a URL returning 201 against a set of acceptable codes","checkLink":{"url":"http://localhost:8092/status/201","statusCodes":[200,201,202]}} */}
+{/* test end */}
+
 ### Accept non-2xx status codes
 
 Include non-2xx status codes in `statusCodes` to accept responses that would otherwise fail. This is useful for testing endpoints that return rate limiting (`429`), authentication errors (`403`), or other expected non-success responses.
+
+Doc Detective's retry-with-backoff and HEAD-fallback logic, described above in [Behavior](#behavior), only runs while the response code isn't yet accepted. As soon as a response matches `statusCodes`, Doc Detective stops immediately and passes. That includes a match on the very first `GET`, as in the example below. It doesn't retry or fall back to `HEAD` merely because the code happens to be `429` or `403`.
+
+{/* test {"testId":"checklink-non-2xx","detectSteps":false} */}
 
 ```json
 {
@@ -129,7 +153,12 @@ Include non-2xx status codes in `statusCodes` to accept responses that would oth
 }
 ```
 
+{/* step {"stepId":"checklink-429","description":"Check a URL that always returns 429; because 429 is already accepted, this passes on the first GET with no retries or HEAD fallback","checkLink":{"url":"http://localhost:8092/status/429","statusCodes":[200,429]}} */}
+{/* test end */}
+
 ### Check a link with a separate origin and URL path
+
+{/* test {"testId":"checklink-origin-path","detectSteps":false} */}
 
 ```json
 {
@@ -149,9 +178,14 @@ Include non-2xx status codes in `statusCodes` to accept responses that would oth
 }
 ```
 
+{/* step {"stepId":"checklink-origin","description":"Check a path against a specific origin","checkLink":{"url":"/status/200","origin":"http://localhost:8092"}} */}
+{/* test end */}
+
 ### Pass custom headers (allowlist or bypass)
 
 Use the `headers` field to send additional HTTP headers on top of Doc Detective's browser-mimicking defaults. This is useful for sites that allowlist a shared secret or require a bypass token.
+
+{/* test {"testId":"checklink-headers-object","detectSteps":false} */}
 
 ```json
 {
@@ -173,7 +207,12 @@ Use the `headers` field to send additional HTTP headers on top of Doc Detective'
 }
 ```
 
+{/* step {"stepId":"checklink-headers-obj","description":"Check a URL with a custom header (object format)","checkLink":{"url":"http://localhost:8092/status/200","headers":{"X-Doc-Detective-Check":"shared-secret"}}} */}
+{/* test end */}
+
 `headers` also accepts a newline-separated string, which is convenient for multi-header strings loaded from environment variables:
+
+{/* test {"testId":"checklink-headers-string","detectSteps":false} */}
 
 ```json
 {
@@ -183,6 +222,9 @@ Use the `headers` field to send additional HTTP headers on top of Doc Detective'
   }
 }
 ```
+
+{/* step {"stepId":"checklink-headers-str","description":"Check a URL with custom headers as a newline-separated string","checkLink":{"url":"http://localhost:8092/status/200","headers":"X-Api-Key: abc123\nX-Doc-Detective-Check: shared-secret"}} */}
+{/* test end */}
 
 ### Check a relative link using global origin
 
@@ -212,13 +254,15 @@ You can append query parameters to a URL using the `params` option. This is usef
 - **Step-level `params`:** An object specifying query parameters to append to the URL. Applies to all URLs, both relative and absolute. Values support environment variable substitution with `$VAR` syntax.
 - **Config-level `originParams`:** Default query parameters in your configuration file that apply to relative URLs resolved against `origin`. Step-level `params` merge on top, with step keys taking precedence on collision.
 
-If your URL contains a fragment (e.g., `/page#section`), query parameters are inserted before the fragment (e.g., `/page?token=value#section`).
+When your URL contains a fragment such as `/page#section`, query parameters are inserted before the fragment, giving `/page?token=value#section`.
 
 <Warning>
 Values in `params` and `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields.
 </Warning>
 
 ### Check a link with query parameters
+
+{/* test {"testId":"checklink-query-params","detectSteps":false} */}
 
 ```json
 {
@@ -241,6 +285,9 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 }
 ```
 
+{/* step {"stepId":"checklink-params","description":"Check a URL with query parameters appended","checkLink":{"url":"/status/200","origin":"http://localhost:8092","params":{"token":"test-value"}}} */}
+{/* test end */}
+
 ## Troubleshooting
 
 - [`checkLink` fails with 429 or 403 even though the URL works in a browser](#checklink-fails-with-429-or-403-even-though-the-url-works-in-a-browser)
@@ -248,7 +295,7 @@ Values in `params` and `originParams` are embedded directly in request URLs and 
 
 ### `checkLink` fails with 429 or 403 even though the URL works in a browser
 
-Sites behind bot protection or a web application firewall (WAF), for example Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection, can return `403` or `429` to non-browser traffic even when the URL works in your browser. Doc Detective already sends a browser-like header set and retries transient failures, but some WAFs fingerprint deeper signals like Transport Layer Security (TLS) client fingerprints or source IP reputation that header spoofing can't influence.
+Sites behind bot protection or a web application firewall (WAF) can return `403` or `429` to non-browser traffic even when the URL works in your browser. Examples include Cloudflare, Akamai, Amazon Web Services (AWS) WAF, Imperva, PerimeterX, and Vercel deployment protection. Doc Detective already sends a browser-like header set and retries transient failures. Some WAFs still fingerprint deeper signals that header spoofing can't influence, such as Transport Layer Security (TLS) client fingerprints or source IP reputation.
 
 If you hit this, you have three escape hatches:
 
@@ -267,15 +314,15 @@ If you hit this, you have three escape hatches:
 
 - **Use a browser-driven step** (`goTo`) instead of `checkLink` when the URL truly requires JavaScript or a full browser fingerprint.
 
-If you own the site, prefer adding a WAF rule that allowlists a custom header and shared secret (for example, `X-Doc-Detective-Check`) over trying to mimic a browser.
+If you own the site, add a WAF rule that allowlists a custom header and shared secret, such as `X-Doc-Detective-Check`. Prefer that over trying to mimic a browser.
 
 ### `checkLink` fails due to unrecognized certificates
 
-If the `checkLink` action fails for a valid URL that loads without redirects, it may be due to an internal or custom certificate that the testing machine doesn't recognize.
+The `checkLink` action might fail for a valid URL that loads without redirects. An internal or custom certificate the testing machine doesn't recognize is a common cause.
 
 #### Example
 
-Consider the following test configuration, which checks the validity of `https://self-signed.badssl.com/`—a website using a self-signed certificate:
+Consider the following test configuration. It checks the validity of `https://self-signed.badssl.com/`, a website using a self-signed certificate:
 
 ```json title="bad-certificate.json"
 {

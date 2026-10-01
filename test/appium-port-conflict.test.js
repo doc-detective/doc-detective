@@ -6,7 +6,7 @@ import { runTests } from "../dist/core/index.js";
 
 const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
-const driverSpec = path.join(artifactPath, "wait-with-driver.spec.json");
+const driverSpec = path.join(artifactPath, "navigation", "wait-with-driver.spec.json");
 
 function makeConfig() {
   const config = JSON.parse(JSON.stringify(config_base));

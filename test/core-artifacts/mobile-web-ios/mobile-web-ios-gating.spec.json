@@ -1,0 +1,71 @@
+{
+  "specId": "mobile-web-ios-gating-a5",
+  "description": "Mobile web phase A5: the unsupported-combination SKIP matrix on iOS, asserted as behavior. Safari is the one supported iOS browser; every other engine SKIPs deterministically at the mobile-browser gate — before the Xcode/simctl toolchain probe — so these land SKIPPED on EVERY host, including macOS. Mixing native app surfaces and web steps in one mobile context is likewise a deterministic SKIP (deferred to the A6 vocabulary work). The FAIL path (device-fixed browser config) is asserted in mocha (test/core-core.test.js), not here — fixtures must never FAIL.",
+  "tests": [
+    {
+      "testId": "ios-chrome-matrix-skip",
+      "description": "chrome isn't available on ios — SKIPPED with the supported browser named.",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        }
+      ]
+    },
+    {
+      "testId": "ios-firefox-matrix-skip",
+      "description": "firefox isn't available on ios — SKIPPED.",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "browsers": "firefox"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        }
+      ]
+    },
+    {
+      "testId": "ios-webkit-matrix-skip",
+      "description": "webkit (the desktop engine) isn't available on ios — the device browser is `safari` — SKIPPED.",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "browsers": "webkit"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        }
+      ]
+    },
+    {
+      "testId": "ios-mixed-app-web-skip",
+      "description": "One context mixing a native app surface and a browser step — deterministic SKIP with a split-the-test pointer.",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "browsers": "safari"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        }
+      ]
+    }
+  ]
+}

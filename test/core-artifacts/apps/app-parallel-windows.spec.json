@@ -1,0 +1,91 @@
+{
+  "specId": "app-parallel-windows",
+  "description": "Multi-surface Phase 6 on a desktop app leg: ONE parallel startSurface array opens a native Windows app (Character Map, the app-surfaces-a1 target) and a background process concurrently — the app lane and the process lane overlap in one step. Both surfaces are then driven by name (click/type on the app; type on the REPL), and one array closeSurface tears both down. Gated to Windows hosts with charmap.exe present; elsewhere the app preflight lands the context as SKIPPED.",
+  "tests": [
+    {
+      "testId": "app-parallel-app-and-process",
+      "description": "A parallel array opens charmap (app lane) and node -i (process lane) in one step; each is addressable by its descriptor name afterwards, and the array closeSurface ends both.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": [
+            {
+              "app": "C:\\Windows\\System32\\charmap.exe",
+              "name": "charmap",
+              "timeout": 120000,
+              "waitUntil": {
+                "find": {
+                  "elementText": "Select"
+                }
+              }
+            },
+            {
+              "process": "node -i",
+              "name": "par-win-repl",
+              "waitUntil": {
+                "stdio": "/>/"
+              },
+              "timeout": 15000
+            }
+          ]
+        },
+        {
+          "description": "The app surface from the array is fully drivable",
+          "click": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "description": "The process surface from the same array is a real, typable process",
+          "type": {
+            "keys": [
+              "7*6",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "par-win-repl"
+            },
+            "waitUntil": {
+              "stdio": "42"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "description": "One array close tears down both kinds",
+          "closeSurface": [
+            {
+              "app": "charmap"
+            },
+            {
+              "process": "par-win-repl"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -4,12 +4,12 @@ date: 2022-09-15
 decision-makers: doc-detective maintainers
 ---
 
-# Supercharged find with nested sub-actions
+# Expanded find with nested sub-actions
 
 ## Context and Problem Statement
 
-Locating an element and then acting on it required two separate steps: a `find` to assert the element
-existed, followed by a standalone `click`/`type`/`moveMouse` that re-resolved the same selector.
+Locating an element and then acting on it required two separate steps. First a `find` asserted the
+element existed. Then a standalone `click`/`type`/`moveMouse` re-resolved the same selector.
 This duplicated selectors and let the two steps drift apart. Should `find` stay a pure existence
 assertion, or should it become a composite step that runs follow-on actions directly against the
 element it located?
@@ -35,8 +35,8 @@ sub-objects (`matchText`, `moveMouse`, `click`, `type`, and `wait`) execute agai
 element, with the matched element's `css` injected into each sub-action. `moveMouse` was removed from
 `click` (it became a `find` sub-action instead), and `wait` was added as a `find` sub-action.
 
-This "supercharged find" composite shape was later formalized and reshaped in the v2 schema, where
-`find` absorbed click/moveTo/typeKeys and the standalone variants were removed (see `00048`).
+This expanded-`find` composite shape was later formalized and reshaped in the v2 schema. There
+`find` absorbed click/moveTo/typeKeys, and the standalone variants were removed (see `00048`).
 
 ### Consequences
 

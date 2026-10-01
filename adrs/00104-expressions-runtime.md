@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The v3 schema introduced `outputs`/`variables` so a step could capture values (response data, element text, shell output) for later steps, but the runner had no general way to *reference and transform* those values inside a step's fields. Earlier capture was limited to whole-value env substitution and a single jq filter (`envsFromResponseData`, `00030`). Steps needed to interpolate captured values, drill into nested response/element data, and transform them. What runtime should evaluate references to captured/meta values inside step fields?
+The v3 schema introduced `outputs`/`variables` so a step could capture values for later steps, such as response data, element text, and shell output. But the runner had no general way to *reference and transform* those values inside a step's fields. Earlier capture was limited to whole-value env substitution and a single jq filter (`envsFromResponseData`, `00030`). Steps needed to interpolate captured values, drill into nested response/element data, and transform them. What runtime should evaluate references to captured/meta values inside step fields?
 
 ## Decision Drivers
 

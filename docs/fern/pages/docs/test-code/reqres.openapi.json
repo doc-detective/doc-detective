@@ -1,0 +1,107 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Reqres API",
+    "description": "A small OpenAPI description used by the \"Generate requests from OpenAPI\" guide's inline Doc Detective tests. Modeled on the public reqres.in test API.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "http://localhost:8092/api" }],
+  "paths": {
+    "/users/{id}": {
+      "get": {
+        "summary": "Get a single user by ID",
+        "operationId": "getUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The user's ID.",
+            "schema": { "type": "integer" },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": ["id", "email", "first_name", "last_name"],
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "email": { "type": "string" },
+                        "first_name": { "type": "string" },
+                        "last_name": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": 2,
+                    "email": "janet.weaver@reqres.in",
+                    "first_name": "Janet",
+                    "last_name": "Weaver"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "summary": "Create a user",
+        "operationId": "createUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "job"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "job": { "type": "string" }
+                }
+              },
+              "example": { "name": "morpheus", "job": "leader" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["name", "job", "id", "createdAt"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "job": { "type": "string" },
+                    "id": { "type": "string" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                },
+                "example": {
+                  "name": "morpheus",
+                  "job": "leader",
+                  "id": "101",
+                  "createdAt": "2026-07-08T00:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

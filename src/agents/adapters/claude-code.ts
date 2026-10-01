@@ -60,12 +60,17 @@ export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
     homedir: os.homedir,
     cwd: () => process.cwd(),
     fetchLatestVersion: async () => {
+      /* c8 ignore start - real network GET to GitHub raw content; no injectable
+       * seam at this exact spot (this closure IS the seam other tests inject
+       * a fake for). Exercising it would require a live network peer, which
+       * would make the suite flaky/non-hermetic per ADR 01017. */
       const response = await axios.get(LATEST_PLUGIN_JSON_URL, {
         timeout: 5000,
         responseType: "json",
       });
       const version = response?.data?.version;
       return typeof version === "string" ? version : undefined;
+      /* c8 ignore stop */
     },
   };
 }

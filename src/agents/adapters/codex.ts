@@ -51,11 +51,16 @@ export function defaultCodexDeps(): CodexDeps {
     homedir: os.homedir,
     cwd: () => process.cwd(),
     fetchLatestVersion: async () => {
+      /* c8 ignore start - real network GET to GitHub raw content; no injectable
+       * seam at this exact spot (this closure IS the seam other tests inject
+       * a fake for). Exercising it would require a live network peer, which
+       * would make the suite flaky/non-hermetic per ADR 01017. */
       const response = await axios.get(LATEST_SKILL_URL, {
         timeout: 5000,
         responseType: "text",
       });
       return parseMetadataVersion(String(response?.data ?? ""));
+      /* c8 ignore stop */
     },
     fetchZip: (ref) => fetchAgentToolsZip(ref),
   };

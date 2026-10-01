@@ -113,6 +113,43 @@ describe("click unified assertion model", function () {
     assert.equal(found.statement, "$$outputs.found == true");
   });
 
+  it("string shorthand → element is actually clicked, status PASS", async () => {
+    let clicks = 0;
+    const element = makeElement({
+      clickImpl: async () => {
+        clicks++;
+      },
+    });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await clickElement({
+      config,
+      step: { click: "Submit" },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.found, true);
+    assert.equal(clicks, 1, "string shorthand must click the element, not just find it");
+    assert.ok(/Clicked element/.test(result.description));
+  });
+
+  it("string shorthand, click sub-effect fails → status FAIL, found assertion still PASS", async () => {
+    const element = makeElement({
+      clickImpl: async () => {
+        throw new Error("not interactable");
+      },
+    });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await clickElement({
+      config,
+      step: { click: "Submit" },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.outputs.found, true);
+    assert.equal(result.assertions.length, 1);
+    assert.equal(findAssertion(result.assertions, "found").result, "PASS");
+  });
+
   it("found but click sub-effect fails → status FAIL, found assertion still PASS (execution)", async () => {
     const element = makeElement({
       clickImpl: async () => {

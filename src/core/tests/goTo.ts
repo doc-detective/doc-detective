@@ -1,8 +1,36 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import {
+  isRelativeUrl,
+  appendQueryParams,
+  isDeviceWebContext,
+  computeSettleCeiling,
+  isPageUnnavigated,
+  isInitialBlankDocument,
+  redactUrlForOutput,
+} from "../utils.js";
 import { findElement } from "./findElement.js";
+import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
+import {
+  switchToSurface,
+  syncHandles,
+  registerOpenedHandle,
+  ensureSurfaceState,
+} from "./browserSurface.js";
 
 export { goTo };
+
+// Normalize the progressive newTab/newWindow forms to `null` (disabled) or an
+// object: `true` → {} (anonymous), `"name"` → { name }, object → itself.
+// `false` means explicitly disabled and normalizes to null like `undefined`.
+function normalizeOpener(value: any): { name?: string; tab?: string } | null {
+  if (value === undefined || value === null || value === false) return null;
+  if (value === true) return {};
+  if (typeof value === "string") {
+    const name = value.trim();
+    return name ? { name } : null;
+  }
+  return value;
+}
 
 // Open a URI in the browser
 async function goTo({ config, step, driver }: { config: any; step: any; driver: any }) {
@@ -77,17 +105,93 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
     }
   }
 
-  // Fill in defaults for any missing properties
-  if (step.goTo.waitUntil.networkIdleTime === undefined) {
-    step.goTo.waitUntil.networkIdleTime = 500;
+  // Multi-surface Phase 3/4: focus the requested session + window/tab, and
+  // open a new tab/window when asked. goTo is the only step that opens
+  // USER-ADDRESSABLE windows/tabs (`record` opens an internal, non-addressable
+  // recorder tab) — and, per ADR 01019, the only step that opens browser
+  // SESSIONS: `allowOpen` lets an unresolved browser surface launch one.
+  const newTab = normalizeOpener(step.goTo.newTab);
+  const newWindow = normalizeOpener(step.goTo.newWindow);
+  if (step.goTo.surface !== undefined) {
+    // With an opener, the surface selects the WINDOW the new tab opens in;
+    // without one, it selects the tab to navigate.
+    const switched = await switchToSurface(driver, step.goTo.surface, {
+      allowOpen: true,
+    });
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
   }
-  if (step.goTo.waitUntil.domIdleTime === undefined) {
-    step.goTo.waitUntil.domIdleTime = 1000;
+  if (newTab || newWindow) {
+    try {
+      await syncHandles(driver);
+      // Pre-check name collisions before creating the window so a duplicate
+      // name doesn't leave an orphan tab behind.
+      const state = ensureSurfaceState(driver);
+      const wantedTabName = newTab?.name ?? newWindow?.tab;
+      const wantedWindowName = newWindow?.name;
+      if (wantedTabName && state.windows.some((w) => w.tabName === wantedTabName)) {
+        result.status = "FAIL";
+        result.description = `A tab named "${wantedTabName}" already exists in this browser. Tab names must be unique.`;
+        return result;
+      }
+      if (wantedWindowName && state.windows.some((w) => w.windowName === wantedWindowName)) {
+        result.status = "FAIL";
+        result.description = `A window named "${wantedWindowName}" already exists in this browser. Window names must be unique.`;
+        return result;
+      }
+      // Record the parent window (the current tab's window lead) for tabs we
+      // open, so `window`-scoped selectors can find them later. A page-opened
+      // current tab has no recorded parent — the new tab is then parentless too.
+      let parentWindow: string | undefined;
+      if (newTab) {
+        const current = await driver.getWindowHandle();
+        const entry = state.windows.find((w) => w.handle === current);
+        parentWindow = entry?.parentWindow ?? (entry?.isWindowLead ? entry.handle : undefined);
+      }
+      const created = await driver.createWindow(newTab ? "tab" : "window");
+      registerOpenedHandle(
+        driver,
+        newTab
+          ? {
+              handle: created.handle,
+              ...(newTab.name ? { tabName: newTab.name } : {}),
+              ...(parentWindow ? { parentWindow } : {}),
+            }
+          : {
+              handle: created.handle,
+              isWindowLead: true,
+              ...(newWindow!.name ? { windowName: newWindow!.name } : {}),
+              ...(newWindow!.tab ? { tabName: newWindow!.tab } : {}),
+            }
+      );
+      await driver.switchToWindow(created.handle);
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't open new ${newTab ? "tab" : "window"}: ${error.message}`;
+      return result;
+    }
   }
 
   // Run action
   try {
     await driver.url(step.goTo.url);
+
+    // A navigation can silently not take: a fresh Chromium session stays parked
+    // on its initial blank document (`data:,`) while `url()` resolves and every
+    // wait condition below passes trivially against that blank page (ADR 01084,
+    // ADR 01088). Re-issue BEFORE the waits run, so they are evaluated against
+    // the real page — retrying afterwards would leave the step reporting "all
+    // wait conditions met" for conditions that were only ever checked against
+    // the blank document.
+    let retriedNavigation = false;
+    if (await isPageUnnavigated(driver)) {
+      await driver.url(step.goTo.url);
+      retriedNavigation = true;
+    }
 
     // Wait for page to load with wait logic
     const waitStartTime = Date.now();
@@ -130,6 +234,12 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       // 2, 3, & 4. Wait for network idle, DOM stable, and element in parallel
       const parallelChecks: Promise<void>[] = [];
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * networkIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so
+       * AJV's coerceTypes coerces an explicit step-level `null` to `0` during validate() before
+       * this code ever runs -- `step.goTo.waitUntil.networkIdleTime` can never actually be `null`
+       * here, only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.networkIdle &&
         step.goTo.waitUntil.networkIdleTime !== null
@@ -153,7 +263,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.networkIdle.passed = true;
         waitResults.networkIdle.message = "Network idle check skipped (null)";
       }
+      /* c8 ignore stop */
 
+      /* c8 ignore start - the `else` arm below (and the `!== null` half of this condition) is
+       * structurally dead through the public goTo() entry point: the goTo_v3 schema types
+       * domIdleTime as `anyOf: [integer, null]` with the integer branch listed first, so AJV's
+       * coerceTypes coerces an explicit step-level `null` to `0` during validate() before this
+       * code ever runs -- `step.goTo.waitUntil.domIdleTime` can never actually be `null` here,
+       * only 0-or-greater. No input a caller can construct reaches the `else` (ADR 01017). */
       if (
         waitConditions.domStable &&
         step.goTo.waitUntil.domIdleTime !== null
@@ -177,6 +294,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         waitResults.domStable.passed = true;
         waitResults.domStable.message = "DOM stability check skipped (null)";
       }
+      /* c8 ignore stop */
 
       // Add element search to parallel checks
       if (waitConditions.elementFound && step.goTo.waitUntil.find) {
@@ -229,20 +347,115 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
           })()
         );
       } else {
-waitResults.elementFound.passed = true;
+        waitResults.elementFound.passed = true;
         waitResults.elementFound.message = "Element search not requested";
       }
 
-        // Wait for all checks to complete
-        if (parallelChecks.length > 0) {
-          const results = await Promise.allSettled(parallelChecks);
-          // Check if any checks failed
+      // Wait for all checks to complete
+      if (parallelChecks.length > 0) {
+        const results = await Promise.allSettled(parallelChecks);
+        // Check if any checks failed
         const failures = results.filter((r) => r.status === "rejected");
         if (failures.length > 0) {
           // Throw the first error to trigger the catch block
           // All waitResults have been updated by individual catch blocks
           throw (failures[0] as PromiseRejectedResult).reason;
         }
+      }
+
+      // Device-web post-navigation settle (ADR 01047). goTo's readiness gate
+      // above queries the JS bridge (document.readyState / network / DOM), a
+      // SEPARATE path from the WebDriver element tree (the remote-debugger DOM
+      // the next `find` walks). On a freshly-built WDA under macOS-runner load,
+      // an iOS Safari (XCUITest web) context can momentarily hand back an EMPTY
+      // element tree right after navigation even though readyState already
+      // reports "complete" — so the first `find` after goTo can spuriously miss.
+      //
+      // Bound-wait for the element tree to become queryable before returning,
+      // reusing the driver's own waitUntil (returns as soon as satisfied — NOT a
+      // fixed sleep). Gated as tightly as possible to device web contexts, so
+      // desktop (and every app context) keeps a byte-identical control path with
+      // no added latency. This is best-effort: it does not weaken the gate above
+      // and never fails goTo — if the ceiling elapses we still hand control to
+      // `find`, which owns the real "element genuinely absent" verdict via its
+      // own wait.
+      if (isDeviceWebContext(driver)) {
+        try {
+          const settleCeiling = computeSettleCeiling(
+            waitTimeout,
+            Date.now() - waitStartTime
+          );
+          if (settleCeiling > 0) {
+            await driver.waitUntil(
+              async () => {
+                try {
+                  // Probe just `body`, not `body *`/`body > *`: goTo already
+                  // gated on readyState === "complete", so the DOM (and its
+                  // content) is parsed — the only thing this settle waits on is
+                  // the WDA element-tree BRIDGE becoming queryable, which
+                  // `$$("body")` tests with one well-known element instead of
+                  // serializing an unbounded descendant set across the bridge.
+                  const elements = await driver.$$("body");
+                  if (Array.isArray(elements)) return elements.length > 0;
+                  // Some driver shims return an array-LIKE (not a real Array).
+                  // Honor its numeric length so a `{ length: 0 }` shim is
+                  // correctly treated as "still empty" — falling back to bare
+                  // truthiness only when there is no length to read.
+                  if (elements && typeof elements.length === "number") {
+                    return elements.length > 0;
+                  }
+                  return !!elements;
+                } catch {
+                  return false;
+                }
+              },
+              // interval 100ms (not wdio's 500ms default): the empty-tree
+              // window is typically 10-100ms, so poll often enough to return
+              // as soon as it repopulates instead of holding ~500ms — otherwise
+              // the settle would add up to half a second to every iOS web goTo.
+              { timeout: settleCeiling, interval: 100 }
+            );
+          }
+        } catch {
+          // Ceiling elapsed with the tree still empty: proceed anyway. find's
+          // own wait remains the authority on a genuinely-absent element.
+        }
+      }
+
+      // Final guard, only when the retry above actually fired: still sitting on
+      // the initial blank document then means the navigation never took.
+      // Reporting PASS would strand the failure on whatever step next needs the
+      // page — a `find` timing out against a page that was never loaded, with
+      // nothing pointing at the navigation (issue #696). ADR 01084's retry
+      // covers the context's PRIMARY session only, so a secondary session
+      // opened by `startSurface` reaches here unprotected.
+      //
+      // Gated so the healthy path pays exactly one extra `getUrl()`: if the
+      // pre-wait probe already saw a navigated page, re-probing proves nothing.
+      // Read the URL ONCE and both decide and report from it. Probing twice
+      // (predicate, then again for the message) can decide on one URL and print
+      // another if the page moves in between.
+      let observedUrl: string | null = null;
+      if (retriedNavigation) {
+        try {
+          observedUrl = String((await driver.getUrl()) ?? "").trim();
+        } catch {
+          // Unreadable URL is not evidence of anything; leave the page alone,
+          // matching isPageUnnavigated's own swallow-and-return-false.
+          observedUrl = null;
+        }
+      }
+      if (observedUrl !== null && isInitialBlankDocument(observedUrl)) {
+        // No fallback needed: reaching here means isInitialBlankDocument
+        // matched, so observedUrl is a non-empty `data:` / `data:,`.
+        //
+        // Redact both URLs anyway: step descriptions land in reports, logs and
+        // CI artifacts, and a target URL can carry tokens or signed query
+        // params.
+        const stuckOn = redactUrlForOutput(observedUrl);
+        result.status = "FAIL";
+        result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${redactUrlForOutput(step.goTo.url)} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
+        return result;
       }
 
       result.description = "Opened URL and all wait conditions met.";
@@ -295,226 +508,4 @@ waitResults.elementFound.passed = true;
 
   // PASS
   return result;
-}
-
-/**
- * Wait for network activity to be idle for a specified duration.
- * Uses a polling approach to check for network requests.
- */
-async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
-  const startTime = Date.now(); // Only for Node.js timeout tracking
-
-  // Initialize monitor with browser time only
-  await driver.execute(() => {
-    if (!(window as any).__docDetectiveNetworkMonitor) {
-      const originalFetch = window.fetch;
-      const originalXHROpen = XMLHttpRequest.prototype.open;
-
-      (window as any).__docDetectiveNetworkMonitor = {
-        lastRequestTime: Date.now(), // Use browser time
-        requestCount: 0,
-        startTime: Date.now(), // Track start in browser
-        originalFetch: originalFetch,
-        originalXHROpen: originalXHROpen,
-      };
-
-      window.fetch = function (...args: any[]) {
-        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = Date.now();
-        (window as any).__docDetectiveNetworkMonitor.requestCount++;
-        return originalFetch.apply(this, args as [RequestInfo | URL, RequestInit?]);
-      };
-
-      XMLHttpRequest.prototype.open = function (...args: any[]) {
-        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = Date.now();
-        (window as any).__docDetectiveNetworkMonitor.requestCount++;
-        return originalXHROpen.apply(this, args as [string, string | URL, boolean, (string | null)?, (string | null)?]);
-      };
-    }
-  });
-
-  // Fast path: check after 100ms
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  const initialCheck = await driver.execute(() => {
-    const monitor = (window as any).__docDetectiveNetworkMonitor;
-    const now = Date.now();
-    return {
-      idleFor: now - monitor.lastRequestTime,
-      requestCount: monitor.requestCount,
-    };
-  });
-
-  if (initialCheck.idleFor >= idleTime && initialCheck.requestCount === 0) {
-    // Clean up network monitor
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveNetworkMonitor) {
-        // Restore original methods if they were patched
-        if ((window as any).__docDetectiveNetworkMonitor.originalFetch) {
-          window.fetch = (window as any).__docDetectiveNetworkMonitor.originalFetch;
-        }
-        if ((window as any).__docDetectiveNetworkMonitor.originalXHROpen) {
-          XMLHttpRequest.prototype.open = (window as any).__docDetectiveNetworkMonitor.originalXHROpen;
-        }
-        delete (window as any).__docDetectiveNetworkMonitor;
-      }
-    });
-    return; // Fast path
-  }
-
-  // Poll with browser-based time checks
-  try {
-    while (true) {
-      if (Date.now() - startTime > timeout) {
-        // Clean up network monitor before throwing
-        await driver.execute(() => {
-          if ((window as any).__docDetectiveNetworkMonitor) {
-            // Restore original methods if they were patched
-            if ((window as any).__docDetectiveNetworkMonitor.originalFetch) {
-              window.fetch = (window as any).__docDetectiveNetworkMonitor.originalFetch;
-            }
-            if ((window as any).__docDetectiveNetworkMonitor.originalXHROpen) {
-              XMLHttpRequest.prototype.open = (window as any).__docDetectiveNetworkMonitor.originalXHROpen;
-            }
-            delete (window as any).__docDetectiveNetworkMonitor;
-          }
-        });
-        throw new Error("Network idle timeout exceeded");
-      }
-
-      const state = await driver.execute(() => {
-        const monitor = (window as any).__docDetectiveNetworkMonitor;
-        const now = Date.now();
-        return {
-          idleFor: now - monitor.lastRequestTime,
-          elapsedTotal: now - monitor.startTime,
-        };
-      });
-
-      if (state.idleFor >= idleTime) {
-        break; // Network idle achieved
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  } finally {
-    // Always clean up network monitor
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveNetworkMonitor) {
-        // Restore original methods if they were patched
-        if ((window as any).__docDetectiveNetworkMonitor.originalFetch) {
-          window.fetch = (window as any).__docDetectiveNetworkMonitor.originalFetch;
-        }
-        if ((window as any).__docDetectiveNetworkMonitor.originalXHROpen) {
-          XMLHttpRequest.prototype.open = (window as any).__docDetectiveNetworkMonitor.originalXHROpen;
-        }
-        delete (window as any).__docDetectiveNetworkMonitor;
-      }
-    });
-  }
-}
-
-/**
- * Wait for the DOM to stop mutating for a specified duration.
- * Uses MutationObserver to detect changes.
- */
-async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
-  const startTime = Date.now(); // Only for Node.js timeout tracking
-
-  // Initialize monitor with browser time only
-  await driver.execute(() => {
-    if (!(window as any).__docDetectiveDOMMonitor) {
-      (window as any).__docDetectiveDOMMonitor = {
-        lastMutationTime: Date.now(), // Use browser time
-        mutationCount: 0,
-        startTime: Date.now(), // Track start in browser
-        observer: null,
-      };
-
-      const observer = new MutationObserver(() => {
-        (window as any).__docDetectiveDOMMonitor.lastMutationTime = Date.now();
-        (window as any).__docDetectiveDOMMonitor.mutationCount++;
-      });
-
-      // Observe all changes to the body and its descendants
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        characterData: true,
-      });
-
-      (window as any).__docDetectiveDOMMonitor.observer = observer;
-    }
-  });
-
-  // Fast path: check after 100ms
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  const initialCheck = await driver.execute(() => {
-    const monitor = (window as any).__docDetectiveDOMMonitor;
-    const now = Date.now();
-    return {
-      idleFor: now - monitor.lastMutationTime,
-      mutationCount: monitor.mutationCount,
-    };
-  });
-
-  if (initialCheck.idleFor >= idleTime && initialCheck.mutationCount === 0) {
-    // Clean up observer
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveDOMMonitor?.observer) {
-        (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-        delete (window as any).__docDetectiveDOMMonitor;
-      }
-    });
-    return; // Fast path
-  }
-
-  // Poll with browser-based time checks
-  try {
-    while (true) {
-      if (Date.now() - startTime > timeout) {
-        // Clean up observer before throwing
-        await driver.execute(() => {
-          if ((window as any).__docDetectiveDOMMonitor?.observer) {
-            (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-            delete (window as any).__docDetectiveDOMMonitor;
-          }
-        });
-        throw new Error("DOM stability timeout exceeded");
-      }
-
-      const state = await driver.execute(() => {
-        const monitor = (window as any).__docDetectiveDOMMonitor;
-        const now = Date.now();
-        return {
-          idleFor: now - monitor.lastMutationTime,
-          elapsedTotal: now - monitor.startTime,
-          mutationCount: monitor.mutationCount,
-        };
-      });
-
-      if (state.idleFor >= idleTime) {
-        // Clean up observer before returning
-        await driver.execute(() => {
-          if ((window as any).__docDetectiveDOMMonitor?.observer) {
-            (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-            delete (window as any).__docDetectiveDOMMonitor;
-          }
-        });
-        break; // DOM stable achieved
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  } catch (error: any) {
-    // Clean up observer before re-throwing
-    await driver.execute(() => {
-      if ((window as any).__docDetectiveDOMMonitor?.observer) {
-        (window as any).__docDetectiveDOMMonitor.observer.disconnect();
-        delete (window as any).__docDetectiveDOMMonitor;
-      }
-    });
-    throw new Error(`DOM stability check failed: ${error.message}`, {
-      cause: error,
-    });
-  }
 }

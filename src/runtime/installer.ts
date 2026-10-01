@@ -9,6 +9,7 @@ import {
   readInstalledRecord,
   type CacheDirContext,
 } from "./cacheDir.js";
+import { MINGIT_VERSION } from "./windowsBash.js";
 import {
   ensureRuntimeInstalled,
   resolveHeavyDepSource,
@@ -21,6 +22,7 @@ import {
   ensureBrowserInstalled,
   type BrowserAssetName,
   type BrowserDeps,
+  type EnsureBrowserResult,
 } from "./browsers.js";
 
 export type InstallAction =
@@ -33,7 +35,7 @@ export type InstallAction =
 
 export interface InstallReport {
   assetId: string;
-  kind: "npm" | "browser";
+  kind: "npm" | "browser" | "tool";
   action: InstallAction;
   installedVersion?: string;
   notes?: string[];
@@ -58,12 +60,22 @@ const defaultLogger: Logger = (msg, level = "info") => {
   else console.log(msg);
 };
 
+/**
+ * Per-npm-child cap for bulk installs: the ~1000-package batch legitimately
+ * outlasts the loader's 5-minute single-package default on slow runners, and
+ * must stay under the postinstall's 10-minute outer ceiling so the
+ * diagnosable inner timeout fires first (ADR 01035).
+ */
+export const BULK_INSTALL_TIMEOUT_MS = 9 * 60 * 1000;
+
 export interface InstallRuntimeOptions {
   packages?: string[];
   ctx?: CacheDirContext;
   deps?: InstallerDeps;
   force?: boolean;
   dryRun?: boolean;
+  /** Cap per spawned npm child; defaults to BULK_INSTALL_TIMEOUT_MS. Must be ≥ 0; `0` disables. */
+  installTimeoutMs?: number;
 }
 
 /**
@@ -81,7 +93,17 @@ export async function installRuntime(
     deps = {},
     force = false,
     dryRun = false,
+    installTimeoutMs = BULK_INSTALL_TIMEOUT_MS,
   } = options;
+  // ensureRuntimeInstalled treats any value ≤ 0 as "no timeout" (its
+  // `installTimeoutMs > 0` gate), so a negative/NaN value passed here by
+  // mistake would silently remove hang protection. Only an explicit 0 may
+  // disable; reject everything else that isn't a non-negative finite number.
+  if (!Number.isFinite(installTimeoutMs) || installTimeoutMs < 0) {
+    throw new Error(
+      `installTimeoutMs must be a non-negative number of milliseconds (0 disables the timeout); got ${installTimeoutMs}.`
+    );
+  }
   const logger = deps.logger ?? defaultLogger;
   const targets = packages && packages.length > 0
     ? packages
@@ -120,6 +142,7 @@ export async function installRuntime(
     ctx,
     deps: { logger, spawn: deps.spawn },
     force,
+    installTimeoutMs,
   });
 
   const bestEffortFailed = new Set<string>();
@@ -129,6 +152,7 @@ export async function installRuntime(
         ctx,
         deps: { logger, spawn: deps.spawn },
         force,
+        installTimeoutMs,
       });
     } catch {
       // Non-fatal: the dep has no installable binary here; runtime SKIPs it.
@@ -212,11 +236,32 @@ export async function installBrowsers(
 
   for (const name of targets) {
     const before = readInstalledRecord(ctx).browsers[name];
-    const result = await ensureBrowserInstalled(name, {
-      ctx,
-      deps: { ...deps.browserDeps, logger },
-      force,
-    });
+    let result: EnsureBrowserResult;
+    try {
+      result = await ensureBrowserInstalled(name, {
+        ctx,
+        deps: { ...deps.browserDeps, logger },
+        force,
+      });
+    } catch (err) {
+      // Best-effort, like BEST_EFFORT_NPM_DEPS on the npm side (ADR 01053):
+      // e.g. chromedriver has no native linux-arm64 build upstream, so a
+      // platform without an emulation layer can never install it. One
+      // asset's unavailability must not abort the rest of the batch — the
+      // corresponding feature degrades to a runtime fallback instead (ADR
+      // 01008 already validates drivers by execution and falls back
+      // across browsers when one is missing or broken).
+      const detail = err instanceof Error ? err.message : String(err);
+      const message = `failed to install and was skipped: ${detail}`;
+      logger(`${name} ${message}`, "warn");
+      reports.push({
+        assetId: name,
+        kind: "browser",
+        action: "skipped",
+        notes: [message],
+      });
+      continue;
+    }
     let action: InstallAction;
     if (force) action = "forced";
     else if (!before) action = "installed";
@@ -237,7 +282,7 @@ export async function installBrowsers(
 
 export interface StatusRow {
   assetId: string;
-  kind: "npm" | "browser";
+  kind: "npm" | "browser" | "tool";
   installed: boolean;
   installedVersion?: string;
   expectedVersion?: string;
@@ -324,6 +369,20 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
       latestKnownVersion: entry?.latestKnownVersion,
       outdated:
         Boolean(entry && entry.latestKnownVersion && entry.installedVersion !== entry.latestKnownVersion),
+    });
+  }
+  // Tool downloads (git-bash on Windows). Only rows for recorded installs —
+  // POSIX hosts and Windows hosts using a system Git Bash have no entry, and
+  // an unconditional `installed=—` row would read as a missing asset.
+  for (const [name, entry] of Object.entries(record.tools ?? {})) {
+    const expected = name === "git-bash" ? MINGIT_VERSION : undefined;
+    rows.push({
+      assetId: name,
+      kind: "tool",
+      installed: true,
+      installedVersion: entry.installedVersion,
+      expectedVersion: expected,
+      outdated: Boolean(expected && entry.installedVersion !== expected),
     });
   }
   return rows;

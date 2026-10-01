@@ -19,6 +19,7 @@ import YAML from "yaml";
 
 import type { AgentAdapter } from "../agents/types.js";
 import { listAdapters } from "../agents/registry.js";
+import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
 
 // Action keys recognized by the v3 `step` schema. Kept in sync with
@@ -26,8 +27,10 @@ import type { AgentDetection, HintContext } from "./types.js";
 // silently never match real results, so this list must mirror the
 // schema. Order doesn't matter; the consumer is `Set.has()`.
 const STEP_ACTION_KEYS = [
+  "annotate",
   "checkLink",
   "click",
+  "closeSurface",
   "dragAndDrop",
   "find",
   "goTo",
@@ -35,11 +38,14 @@ const STEP_ACTION_KEYS = [
   "loadCookie",
   "loadVariables",
   "record",
+  "runBrowserScript",
   "runCode",
   "runShell",
   "saveCookie",
   "screenshot",
+  "startSurface",
   "stopRecord",
+  "swipe",
   "type",
   "wait",
 ] as const;
@@ -132,6 +138,7 @@ export async function buildHintContext(
     usedStepTypes: walkData.usedStepTypes,
     usedBrowserContexts: walkData.usedBrowserContexts,
     producedScreenshots: walkData.producedScreenshots,
+    usedAnnotations: walkData.usedAnnotations,
     producedAutoScreenshots: walkData.producedAutoScreenshots,
     producedRecordings: walkData.producedRecordings,
     usedSelectorOnlyFinds: walkData.usedSelectorOnlyFinds,
@@ -141,6 +148,13 @@ export async function buildHintContext(
     usedCustomAssertions: walkData.usedCustomAssertions,
     usedRetry: walkData.usedRetry,
     failedTransientRequest: walkData.failedTransientRequest,
+    failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
+    failedAnnotationTargetWithoutTimeout:
+      walkData.failedAnnotationTargetWithoutTimeout,
+    ranIosContexts: walkData.ranIosContexts,
+    viewportFloored: walkData.viewportFloored,
+    ranMobileContexts: walkData.ranMobileContexts,
+    hasManagedWdaProducts: detectManagedWdaProducts(config),
     agentDetections,
     hasPackageJson,
     hasDocDetectiveNpmScript,
@@ -151,6 +165,8 @@ export async function buildHintContext(
     // ffmpeg recordings on the shared display (other contexts still ran in
     // parallel). Defensive read — results may be partial/absent.
     recordingSerialized: options.results?.recordingSerialized === true,
+    hasStaleRecordings: walkData.hasStaleRecordings,
+    repeatedAppSurfaceRefs: walkData.repeatedAppSurfaceRefs,
   };
 }
 
@@ -380,6 +396,7 @@ interface WalkData {
   usedStepTypes: Set<string>;
   usedBrowserContexts: Set<string>;
   producedScreenshots: boolean;
+  usedAnnotations: boolean;
   producedAutoScreenshots: boolean;
   producedRecordings: boolean;
   usedSelectorOnlyFinds: boolean;
@@ -389,6 +406,49 @@ interface WalkData {
   usedCustomAssertions: boolean;
   usedRetry: boolean;
   failedTransientRequest: boolean;
+  failedRunShellWithoutShell: boolean;
+  // True when a step FAILed specifically because an annotation's target
+  // couldn't be found, and no target in that step asked for extra time. The
+  // fix is a `timeout` on the target (ADR 01085). Powers
+  // `setAnnotationTimeout`.
+  failedAnnotationTargetWithoutTimeout: boolean;
+  ranIosContexts: boolean;
+  hasStaleRecordings: boolean;
+  viewportFloored: boolean;
+  ranMobileContexts: boolean;
+  // True when >= 3 surface-sensitive steps (find/click/type/screenshot/swipe)
+  // explicitly referenced the SAME app surface — redundant under the
+  // active-surface default (ADR 01081). Powers `omitSurfaceForActiveApp`.
+  repeatedAppSurfaceRefs: boolean;
+  // Internal counter behind `repeatedAppSurfaceRefs`: app name → explicit
+  // reference count, folded by inspectStep, reduced at the end of walkResults.
+  appSurfaceRefCounts: Map<string, number>;
+}
+
+/**
+ * Px delta above which a realized viewport counts as FLOORED by the browser.
+ * Mirrors `VIEWPORT_TOLERANCE_PX` in `src/core/utils.ts` — the threshold the
+ * runner itself uses to warn — so the hint fires exactly when the run warned.
+ * Duplicated rather than imported: `hints/` stays free of the core module graph
+ * (core/utils pulls axios and the runtime stack). `test/hints.test.js` asserts
+ * the two constants stay equal.
+ */
+export const VIEWPORT_FLOOR_TOLERANCE_PX = 16;
+
+/**
+ * True when a realized viewport came back LARGER than requested by more than
+ * the tolerance — the browser refusing to shrink below its minimum window size.
+ * A smaller-than-requested render isn't a floor, so it doesn't count.
+ */
+function isFlooredViewport(viewport: any): boolean {
+  if (!viewport || typeof viewport !== "object") return false;
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(viewport.requested?.[dim]);
+    const act = Number(viewport.actual?.[dim]);
+    if (!(req > 0) || !Number.isFinite(act)) continue;
+    if (act - req > VIEWPORT_FLOOR_TOLERANCE_PX) return true;
+  }
+  return false;
 }
 
 function emptyWalkData(): WalkData {
@@ -396,6 +456,7 @@ function emptyWalkData(): WalkData {
     usedStepTypes: new Set(),
     usedBrowserContexts: new Set(),
     producedScreenshots: false,
+    usedAnnotations: false,
     producedAutoScreenshots: false,
     producedRecordings: false,
     usedSelectorOnlyFinds: false,
@@ -405,8 +466,105 @@ function emptyWalkData(): WalkData {
     usedCustomAssertions: false,
     usedRetry: false,
     failedTransientRequest: false,
+    failedRunShellWithoutShell: false,
+    failedAnnotationTargetWithoutTimeout: false,
+    ranIosContexts: false,
+    hasStaleRecordings: false,
+    viewportFloored: false,
+    ranMobileContexts: false,
+    repeatedAppSurfaceRefs: false,
+    appSurfaceRefCounts: new Map(),
   };
 }
+
+/**
+ * Matches the runner's "target didn't resolve" annotation failures — both the
+ * single-element form ("the element to annotate") and the `all` form ("any
+ * element to annotate"). Mirrors the messages in
+ * `src/core/annotations/geometry.ts`; matched on text rather than imported so
+ * `hints/` stays free of the core module graph, the same trade the viewport
+ * tolerance and surface-key list above make. Exported so `test/hints.test.js`
+ * can drive a real resolution failure through geometry and assert the message
+ * still matches — a reword there would otherwise silence the hint quietly.
+ */
+export const ANNOTATION_TARGET_MISSING = /element to annotate/;
+
+/**
+ * The annotation type keys, whose value is the annotation's target. Mirrors
+ * the `oneOf` branches in `annotation_v3.schema.json`; listed rather than
+ * inferred because the target has to be told apart from the sibling options
+ * (`label` is a string too, and a top-level `position` is placement, not a
+ * target). Drift degrades to silence — a new type the hint doesn't know about
+ * simply won't trigger it — which is the right failure mode for a hint.
+ */
+const ANNOTATION_TYPE_KEYS = [
+  "outline",
+  "arrow",
+  "badge",
+  "callout",
+  "blur",
+  "text",
+];
+
+/**
+ * Whether this step has an element target that could have waited longer.
+ *
+ * Requires BOTH that the step declares at least one element-anchored target
+ * and that none of them asked for extra time:
+ *
+ * - No element target at all (a `clear`-only step, or position-anchored
+ *   annotations) means there is nothing to put a `timeout` on. That case is
+ *   reachable — renderLayer re-resolves every surviving annotation on each
+ *   render, so a `clear` step can FAIL on an annotation some earlier step
+ *   added, which may already carry a `timeout` of its own.
+ * - One target already carrying a `timeout` is enough to stay quiet: the
+ *   author knows the field exists, and which target needed it is their call.
+ *
+ * Covers both surfaces the field lives on: an `annotate` step's `add`/`update`
+ * entries, and a screenshot's own `annotations`.
+ */
+function annotationTargetCouldWaitLonger(step: any): boolean {
+  const annotations = [
+    ...(Array.isArray(step?.annotate?.add) ? step.annotate.add : []),
+    ...(Array.isArray(step?.annotate?.update) ? step.annotate.update : []),
+    ...(Array.isArray(step?.screenshot?.annotations)
+      ? step.screenshot.annotations
+      : []),
+  ];
+
+  let sawElementTarget = false;
+  for (const annotation of annotations) {
+    for (const key of ANNOTATION_TYPE_KEYS) {
+      const target = annotation?.[key];
+      if (target === undefined) continue;
+      // The selector-or-text shorthand is element-anchored but has nowhere to
+      // put a timeout — exactly the case worth teaching.
+      if (typeof target === "string") {
+        sawElementTarget = true;
+        continue;
+      }
+      if (!target || typeof target !== "object") continue;
+      // A position target resolves without a driver, so waiting is meaningless.
+      if (target.position !== undefined) continue;
+      if (typeof target.timeout === "number") return false;
+      sawElementTarget = true;
+    }
+  }
+  return sawElementTarget;
+}
+
+// The step keys whose actions route through the active-surface resolver
+// (ADR 01081). Mirrors SURFACE_SENSITIVE_STEP_KEYS in
+// `src/runtime/browserStepKeys.ts`; duplicated (like the viewport tolerance
+// above) so `hints/` stays import-light — `test/hints.test.js` asserts the
+// two lists stay equal.
+export const SURFACE_SENSITIVE_HINT_KEYS = [
+  "click",
+  "find",
+  "screenshot",
+  "swipe",
+  "type",
+];
 
 // Test/step routing handler keys.
 const ROUTING_HANDLER_KEYS = ["onPass", "onFail", "onWarning", "onSkip"];
@@ -425,6 +583,22 @@ export function walkResults(results: any): WalkData {
           if (typeof browserName === "string" && browserName.length > 0) {
             data.usedBrowserContexts.add(browserName);
           }
+          // Mobile contexts record the resolved device on the context report.
+          const devicePlatform = context?.device?.platform;
+          // iOS-only, powers `prebuildWebDriverAgent`.
+          if (devicePlatform === "ios") {
+            data.ranIosContexts = true;
+          }
+          // Any real mobile screen (android or ios) means the user already
+          // tests mobile — gates `useMobilePlatforms` off.
+          if (devicePlatform === "ios" || devicePlatform === "android") {
+            data.ranMobileContexts = true;
+          }
+          // A context-level `browser.viewport` has no step output to carry the
+          // realized size, so the runner stamps the context when it floors one.
+          if (context?.viewportFloored === true) {
+            data.viewportFloored = true;
+          }
           const steps = Array.isArray(context?.steps) ? context.steps : [];
           for (const step of steps) {
             inspectStep(step, data);
@@ -439,6 +613,9 @@ export function walkResults(results: any): WalkData {
   } catch {
     // Defensive: malformed result shape — return whatever we collected.
   }
+  data.repeatedAppSurfaceRefs = [...data.appSurfaceRefCounts.values()].some(
+    (count) => count >= 3
+  );
   return data;
 }
 
@@ -446,6 +623,43 @@ function inspectStep(step: any, data: WalkData): void {
   if (!step || typeof step !== "object") return;
   for (const key of STEP_ACTION_KEYS) {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
+  }
+
+  // Explicit app-surface references on surface-sensitive steps, counted per
+  // app name. Three or more on one app means the author is repeating a
+  // reference the active-surface default (ADR 01081) makes redundant.
+  for (const key of SURFACE_SENSITIVE_HINT_KEYS) {
+    const appName = step[key]?.surface?.app;
+    if (typeof appName === "string" && appName.length > 0) {
+      data.appSurfaceRefCounts.set(
+        appName,
+        (data.appSurfaceRefCounts.get(appName) ?? 0) + 1
+      );
+    }
+  }
+
+  // Stale recordings (ADR 01079): a phantom recording span — a checkpointed or
+  // aboveVariation record whose capture was skipped, headless or because the
+  // target already exists — sets `outputs.stale: true` on its stopRecord step
+  // when the committed baselines no longer match. Powers `refreshStaleRecording`.
+  if (step.outputs?.stale === true) {
+    data.hasStaleRecordings = true;
+  }
+  // A startSurface step that requested a viewport reports the realized size as
+  // `outputs.viewport` (single-surface form) or under each entry of
+  // `outputs.surfaces[]` (array form). A realized size larger than requested
+  // means the browser floored it. Powers `useMobilePlatforms`.
+  if (!data.viewportFloored) {
+    if (isFlooredViewport(step.outputs?.viewport)) {
+      data.viewportFloored = true;
+    } else if (Array.isArray(step.outputs?.surfaces)) {
+      for (const surface of step.outputs.surfaces) {
+        if (isFlooredViewport(surface?.outputs?.viewport)) {
+          data.viewportFloored = true;
+          break;
+        }
+      }
+    }
   }
 
   // Custom assertions: under the unified model every step report carries an
@@ -498,6 +712,13 @@ function inspectStep(step: any, data: WalkData): void {
   // Screenshot / recording outputs.
   if (step.screenshot !== undefined) {
     if (producesOutput(step.screenshot)) data.producedScreenshots = true;
+    // Read defensively: `screenshot` is boolean | string | object.
+    if (
+      Array.isArray((step.screenshot as any)?.annotations) &&
+      (step.screenshot as any).annotations.length > 0
+    ) {
+      data.usedAnnotations = true;
+    }
   }
   // Auto screenshots land in a separate result field (a relative path string),
   // not `step.screenshot`. Track it so the enableAutoScreenshot hint doesn't
@@ -512,6 +733,33 @@ function inspectStep(step: any, data: WalkData): void {
   // URL strings on goTo / checkLink.
   inspectUrl(step.goTo, data);
   inspectUrl(step.checkLink, data);
+
+  // A runShell step that FAILed without the author choosing a shell — on
+  // Windows that's often a cmd-flavored command running under the
+  // cross-platform `bash` default. Powers `setRunShellShell`. An explicit
+  // `shell` means the author already made the choice; nothing to teach.
+  if (
+    step.result === "FAIL" &&
+    step.runShell !== undefined &&
+    typeof step.runShell?.shell !== "string"
+  ) {
+    data.failedRunShellWithoutShell = true;
+  }
+
+  // A step that FAILed because an annotation's target was never found, where
+  // the step has an element target that could have waited longer. Gated on
+  // the resolution message rather than "an annotate step FAILed": the other
+  // failure modes (an invalid payload, updating an id that isn't on screen)
+  // have nothing to do with waiting, and a timeout suggestion there is noise.
+  // Powers `setAnnotationTimeout`.
+  if (
+    step.result === "FAIL" &&
+    typeof step.resultDescription === "string" &&
+    ANNOTATION_TARGET_MISSING.test(step.resultDescription) &&
+    annotationTargetCouldWaitLonger(step)
+  ) {
+    data.failedAnnotationTargetWithoutTimeout = true;
+  }
 
   // runShell command sniffing.
   const runShell = step.runShell;
@@ -688,6 +936,43 @@ export function hasDocDetectiveScriptInPackageJson(
  */
 export function readNpmScripts(cwd: string): boolean {
   return hasDocDetectiveScriptInPackageJson(findPackageJsonUpward(cwd));
+}
+
+// ---------------------------------------------------------------------
+// managed WDA products probe
+// ---------------------------------------------------------------------
+
+/**
+ * True when the managed WebDriverAgent cache holds at least one completed,
+ * VALID prebuild — i.e. the user already runs `install ios`, so the
+ * `prebuildWebDriverAgent` hint has nothing to teach. Validity uses the same
+ * `readProductsMarker` the session locator uses (marker shape + Runner app
+ * present), so a corrupt or gutted key dir doesn't suppress the hint. One
+ * bounded readdir of `<cacheDir>/ios/wda` plus a marker read per entry,
+ * capped at 100 entries (the walk-budget rule; a real wda root holds a
+ * handful of keys); false on any error (missing dir, unreadable cache,
+ * unsafe cache path).
+ */
+export function detectManagedWdaProducts(
+  config: any,
+  deps: {
+    fs?: Pick<typeof fs, "readdirSync" | "existsSync" | "readFileSync">;
+  } = {}
+): boolean {
+  const fsDep = deps.fs ?? fs;
+  try {
+    const wdaRoot = getWdaRoot({ cacheDir: config?.cacheDir });
+    const entries = fsDep.readdirSync(wdaRoot).slice(0, 100);
+    return entries.some(
+      (entry) =>
+        readProductsMarker(
+          path.join(wdaRoot, String(entry)),
+          fsDep as any
+        ) !== null
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------

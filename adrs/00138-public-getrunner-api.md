@@ -8,10 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`runTests()` owns the full lifecycle — detect, resolve, spin up Appium and a driver, run every step,
-tear down — as one opaque call. Programmatic consumers (the platform runner, integrations, and
-interactive/agent use) needed finer control: open a live browser session once, run individual steps
-against it, and clean up on their own schedule, without re-driving the whole detect/resolve pipeline.
+`runTests()` owns the full lifecycle as one opaque call. It detects, resolves, spins up Appium and a
+driver, runs every step, and tears down. Programmatic consumers needed finer control, including the
+platform runner, integrations, and interactive or agent use. They want to open a live browser
+session once, and run individual steps against it. They also want to clean up on their own
+schedule, without re-driving the whole detect/resolve pipeline.
 Should the core expose a lower-level session handle, and what should it return?
 
 ## Decision Drivers
@@ -23,9 +24,9 @@ Should the core expose a lower-level session handle, and what should it return?
 
 ## Considered Options
 
-* **A. A public `getRunner({ headless })` that returns `{ runner, appium, cleanup, runStep }` —
-  a live session the caller drives directly, with automatic headless fallback when Chrome start
-  fails** (chosen).
+* **A. A public `getRunner({ headless })` that returns `{ runner, appium, cleanup, runStep }`.
+  That's a live session the caller drives directly, with automatic headless fallback when Chrome
+  start fails** (chosen).
 * **B. Keep `runTests()` as the only entrypoint and document a config recipe for single steps.**
 * **C. Expose the raw WebdriverIO/Appium objects and let callers wire their own lifecycle.**
 
@@ -33,7 +34,7 @@ Should the core expose a lower-level session handle, and what should it return?
 
 Chosen option: **A**, because a small façade gives programmatic callers a live session plus the exact
 teardown handles they need while reusing the existing step dispatch. The contract: `getRunner({
-headless })` returns an object `{ runner, appium, cleanup, runStep }` — the caller drives a live
+headless })` returns an object `{ runner, appium, cleanup, runStep }`. The caller drives a live
 session and calls `runStep` to execute individual steps, then `cleanup` to tear down Appium and the
 driver. If Chrome fails to start, the runner falls back to headless automatically (commit `90f581`,
 `doc-detective-core`).

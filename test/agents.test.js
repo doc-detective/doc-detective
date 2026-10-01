@@ -988,6 +988,192 @@ describe("runInstallAgents() orchestration", function () {
       `expected a no-agents log; got: ${JSON.stringify(logged)}`
     );
   });
+
+  it("TTY without a prompts implementation throws when resolving agents interactively", async function () {
+    // isTTY:true but no `prompts` passed in deps — resolveTargetAgents must
+    // throw its own actionable error rather than crash on `ctx.prompts.pickAgents`.
+    const cc = makeStubAdapter("claude");
+    await assert.rejects(
+      runInstallAgents(
+        { force: false, yes: false, "dry-run": false },
+        { adapters: [cc], isTTY: () => true }
+      ),
+      /prompts|--agent/i
+    );
+  });
+
+  it("non-TTY throws when the scope intersection has more than one common scope", async function () {
+    // Two adapters that BOTH support {global, project} give an intersection
+    // of length 2 — resolveScope must fall through past the length===0 and
+    // length===1 short-circuits into the interactive-picker path, where
+    // isTTY:false makes it throw its own actionable error instead of
+    // crashing on `ctx.prompts.pickScope`. No --scope and no --yes so
+    // runInstallAgents doesn't short-circuit before reaching resolveScope.
+    const cc = makeStubAdapter("claude");
+    const other = makeStubAdapter("other");
+    await assert.rejects(
+      runInstallAgents(
+        { agent: ["claude", "other"], force: false, yes: false, "dry-run": false },
+        { adapters: [cc, other], isTTY: () => false }
+      ),
+      /tty|--scope/i
+    );
+  });
+
+  it("TTY without a prompts implementation throws when resolving scope interactively", async function () {
+    // Same multi-scope intersection as above, but isTTY:true with no
+    // `prompts` supplied — resolveScope must throw its own actionable error
+    // instead of crashing on `ctx.prompts.pickScope`.
+    const cc = makeStubAdapter("claude");
+    const other = makeStubAdapter("other");
+    await assert.rejects(
+      runInstallAgents(
+        { agent: ["claude", "other"], force: false, yes: false, "dry-run": false },
+        { adapters: [cc, other], isTTY: () => true }
+      ),
+      /prompts|--scope/i
+    );
+  });
+
+  it("prompts for scope when the chosen adapters' supported scopes only partially overlap", async function () {
+    // Three-plus adapters whose scope intersection has to actually run through
+    // the reduce() with more than one adapter narrowing it down to exactly
+    // one common scope — exercises the multi-adapter intersection branch
+    // (as opposed to the two-adapter cases covered elsewhere).
+    const bothA = makeStubAdapter("both-a");
+    const bothB = makeStubAdapter("both-b");
+    const globalOnly = makeStubAdapter("global-only", {});
+    globalOnly.supportsScopes = () => ["global"];
+    const reports = await runInstallAgents(
+      {
+        agent: ["both-a", "both-b", "global-only"],
+        force: false,
+        yes: false,
+        "dry-run": false,
+      },
+      { adapters: [bothA, bothB, globalOnly], isTTY: () => false }
+    );
+    // Intersection of {global,project} ∩ {global,project} ∩ {global} = {global}
+    // → resolveScope returns "global" without needing to prompt.
+    assert.equal(bothA.lastInstallOpts.scope, "global");
+    assert.equal(bothB.lastInstallOpts.scope, "global");
+    assert.equal(globalOnly.lastInstallOpts.scope, "global");
+    assert.equal(reports.length, 3);
+  });
+
+  it("summarizeReport renders every InstallReport action variant in the logged summary line", async function () {
+    // Each `install()` call below returns a different `action` value so the
+    // logger captures summarizeReport()'s full switch — including the
+    // 'updated' / 'already-up-to-date' / 'forced' / 'fallback' / unknown
+    // (default) cases that the other orchestration tests don't happen to hit.
+    const actions = ["updated", "already-up-to-date", "forced", "fallback", "some-future-action"];
+    const adapters = actions.map((action, i) =>
+      makeStubAdapter(`agent-${i}`, {
+        report: { adapterId: `agent-${i}`, scope: "project", action, installedVersion: "1.2.3" },
+      })
+    );
+    const logs = [];
+    await runInstallAgents(
+      {
+        agent: adapters.map((a) => a.id),
+        scope: "project",
+        force: false,
+        yes: true,
+        "dry-run": false,
+      },
+      { adapters, isTTY: () => false, logger: (m) => logs.push(m) }
+    );
+    const summaryLines = logs.filter((l) => typeof l === "string" && l.startsWith("  "));
+    assert.ok(summaryLines.some((l) => /updated.*1\.2\.3/.test(l)), `missing 'updated'; got: ${JSON.stringify(summaryLines)}`);
+    assert.ok(summaryLines.some((l) => /already up to date.*1\.2\.3/.test(l)), `missing 'already-up-to-date'; got: ${JSON.stringify(summaryLines)}`);
+    assert.ok(summaryLines.some((l) => /forced reinstall.*1\.2\.3/.test(l)), `missing 'forced'; got: ${JSON.stringify(summaryLines)}`);
+    assert.ok(summaryLines.some((l) => /wrote settings\.json fallback.*1\.2\.3/.test(l)), `missing 'fallback'; got: ${JSON.stringify(summaryLines)}`);
+    assert.ok(summaryLines.some((l) => /some-future-action.*1\.2\.3/.test(l)), `missing default-case fallthrough; got: ${JSON.stringify(summaryLines)}`);
+  });
+
+  it("uses the built-in default logger (console.log/console.error) when none is injected", async function () {
+    // No `logger` in deps -> defaultLogger's `level === "error"` branch (an
+    // install failure) and its `else` branch (a normal info log) both run.
+    // Stub console.log/console.error to keep the test's own output quiet
+    // rather than asserting on real stdout.
+    const originalLog = console.log;
+    const originalError = console.error;
+    const logged = [];
+    const errored = [];
+    console.log = (...args) => logged.push(args.join(" "));
+    console.error = (...args) => errored.push(args.join(" "));
+    try {
+      const ok = makeStubAdapter("ok");
+      const failing = makeStubAdapter("failing");
+      failing.install = async function () {
+        throw new Error("simulated failure via default logger");
+      };
+      await assert.rejects(
+        runInstallAgents(
+          { agent: ["ok", "failing"], scope: "project", force: false, yes: true, "dry-run": false },
+          { adapters: [ok, failing], isTTY: () => false }
+        ),
+        /failing/i
+      );
+      assert.ok(logged.length > 0, "expected the default logger to write to console.log");
+      assert.ok(
+        errored.some((l) => /failed:.*simulated failure via default logger/i.test(l)),
+        `expected the default logger to write the failure to console.error; got: ${JSON.stringify(errored)}`
+      );
+    } finally {
+      console.log = originalLog;
+      console.error = originalError;
+    }
+  });
+
+  it("stringifies a non-Error thrown value in the install-failure log", async function () {
+    // `err instanceof Error ? err.message : String(err)` — the else branch,
+    // for an adapter that throws a plain string instead of an Error.
+    const failing = makeStubAdapter("failing");
+    failing.install = async function () {
+      throw "a plain string rejection";
+    };
+    const logs = [];
+    await assert.rejects(
+      runInstallAgents(
+        { agent: ["failing"], scope: "project", force: false, yes: true, "dry-run": false },
+        { adapters: [failing], isTTY: () => false, logger: (m) => logs.push(m) }
+      ),
+      /failing/i
+    );
+    assert.ok(
+      logs.some((l) => /failed:.*a plain string rejection/i.test(l)),
+      `expected the stringified non-Error value in the log; got: ${JSON.stringify(logs)}`
+    );
+  });
+
+  it("drops a duplicate --agent id instead of installing it twice", async function () {
+    const cc = makeStubAdapter("claude");
+    const reports = await runInstallAgents(
+      { agent: ["claude", "claude"], scope: "project", force: false, yes: true, "dry-run": false },
+      { adapters: [cc], isTTY: () => false }
+    );
+    assert.equal(cc.calls.install, 1, "expected a duplicated --agent id to install only once");
+    assert.equal(reports.length, 1);
+  });
+
+  it("resolveScope returns 'global' when the chosen adapters share no common scope at all", async function () {
+    // Fully disjoint supportsScopes() (no --scope, no --yes) — the
+    // intersection is empty, so resolveScope must return "global" directly
+    // rather than falling through to the interactive picker.
+    const globalOnly = makeStubAdapter("global-only", {});
+    globalOnly.supportsScopes = () => ["global"];
+    const projectOnly = makeStubAdapter("project-only", {});
+    projectOnly.supportsScopes = () => ["project"];
+    const reports = await runInstallAgents(
+      { agent: ["global-only", "project-only"], force: false, yes: false, "dry-run": false },
+      { adapters: [globalOnly, projectOnly], isTTY: () => false }
+    );
+    // Both degrade to their own effective scope from the "global" pick.
+    assert.equal(globalOnly.lastInstallOpts.scope, "global");
+    assert.equal(projectOnly.lastInstallOpts.scope, "project"); // degraded from global
+    assert.equal(reports.length, 2);
+  });
 });
 
 describe("install-agents end-to-end (compiled CLI, settings-file fallback)", function () {

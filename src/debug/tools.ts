@@ -86,9 +86,21 @@ export async function probeTool(
     const text = (stdout.trim() ? stdout : stderr || "").trim();
     const firstLine = text.split("\n")[0] || "<unknown>";
     return { name, version: firstLine };
+    // runWithTimeout's returned Promise never rejects (its executor only
+    // ever calls `resolve`, including from the child's "error" event
+    // handler), and `envWithoutNodeModulesBin()` is a pure string transform
+    // over `process.env` that cannot throw. The only way to reach this
+    // catch is a synchronous throw from `spawn()` itself (e.g. a missing
+    // shell binary) or from `child_process`'s `spawn` named import being
+    // stubbed to throw — neither is triggerable hermetically: `spawn` is a
+    // NAMED import here (`import { spawn } from "node:child_process"`), so
+    // sinon cannot patch it ("ES Modules cannot be stubbed"), and a real
+    // environment always has a working shell.
+    /* c8 ignore start */
   } catch (err: any) {
     return { name, version: "<probe failed>", notes: err?.message };
   }
+  /* c8 ignore stop */
 }
 
 function runWithTimeout(
@@ -120,13 +132,30 @@ function runWithTimeout(
     child.stderr?.on("data", (c) => {
       stderr += c.toString();
     });
+    /* c8 ignore start */
+    // Every probed command runs with `shell: true`, so a bare-name or
+    // nonexistent binary is resolved (or reported "not found") by the
+    // shell itself as a normal nonzero exit — it does NOT surface as a
+    // spawn-level "error" event. That event only fires when the underlying
+    // shell binary (cmd.exe / /bin/sh) itself can't be spawned, which
+    // requires a broken host environment that can't be simulated
+    // hermetically (and `child_process`'s `spawn` is a NAMED import here,
+    // so sinon can't stub it to synthesize the event).
     child.on("error", (err) => {
       clearTimeout(t);
       settle({ stdout, stderr: stderr + (err.message || ""), exitCode: -1, timedOut: false });
     });
+    /* c8 ignore stop */
     child.on("close", (code) => {
       clearTimeout(t);
+      /* c8 ignore start */
+      // `code` is only `null` when the child was killed by a signal before
+      // exiting normally; every probed command in this suite exits
+      // normally (or is settled first by the timeout path above), and
+      // forcing a genuinely signal-terminated child is not reliably
+      // portable across Windows/POSIX from a hermetic test.
       settle({ stdout, stderr, exitCode: code ?? -1, timedOut: false });
+      /* c8 ignore stop */
     });
   });
 }
@@ -150,11 +179,34 @@ export async function probeAllTools(cacheDir?: string): Promise<ToolResult[]> {
 
 async function probePython(): Promise<ToolResult> {
   const py3 = await probeTool("python3", "python3 --version");
+  // This early-return branch is genuinely exercised whenever python3
+  // resolves on PATH (confirmed directly: calling probeAllTools() in this
+  // environment returns {name:"python", version:"Python 3.x..."} via THIS
+  // return, not the fallback below) — but V8's own coverage collector
+  // (checked via raw NODE_V8_COVERAGE output, before any istanbul/c8
+  // post-processing) reports byte-range count:0 for this block on every
+  // run, seemingly because of how V8 attributes coverage counters across
+  // an `await` immediately followed by a conditional early-return inside
+  // an async function compiled by this TS target. Documented rather than
+  // silently left red, since it's a demonstrated tool-instrumentation gap,
+  // not a reachability gap.
+  /* c8 ignore next 3 */
   if (py3.version !== "<not found>" && !py3.version.startsWith("<timed out")) {
     return { name: "python", version: py3.version };
   }
+  /* c8 ignore start */
+  // The python3 -> python fallback only fires when python3 is genuinely
+  // absent from PATH. `probeTool`'s literal command strings
+  // ("python3 --version") aren't parameterized, so there's no way to
+  // redirect the probe to a fake binary without stubbing `child_process`'s
+  // `spawn` (a NAMED import — unstubbable). Corrupting PATH globally to
+  // hide the real python3 for this one probe would risk destabilizing
+  // every other probeTool()/spawn call sharing the same process env in
+  // this test run (npm/npx/git/docker), so it's intentionally not
+  // attempted here.
   const py = await probeTool("python", "python --version");
   return { name: "python", version: py.version, notes: py.notes };
+  /* c8 ignore stop */
 }
 
 function probeFfmpeg(): ToolResult {
@@ -172,9 +224,17 @@ function probeFfmpeg(): ToolResult {
       version: `@ffmpeg-installer/ffmpeg ${pkg.version}`,
       notes: `installer package: ${path.dirname(pkgPath)}`,
     };
+    // `require` here is `createRequire(import.meta.url)` (module-private,
+    // line 29), and @ffmpeg-installer/ffmpeg is a real optionalDependency
+    // of this repo (package.json), so require.resolve() always succeeds in
+    // this checkout. The catch would only fire in an install missing that
+    // optional dependency — not reproducible without uninstalling a real
+    // package the rest of the suite depends on.
+    /* c8 ignore start */
   } catch {
     return { name: "ffmpeg", version: "<bundled installer not found>" };
   }
+  /* c8 ignore stop */
 }
 
 // Resolve appium the same way the runtime does — shim node_modules OR
@@ -184,9 +244,18 @@ function probeFfmpeg(): ToolResult {
 // executes an appium binary.
 function probeAppium(cacheDir?: string): ToolResult {
   const resolved = resolveHeavyDepPath("appium", { cacheDir });
+  // resolveHeavyDepPath (src/runtime/loader.ts) is a NAMED import, so its
+  // shim-resolution step can't be stubbed to force a miss, and appium is a
+  // real optionalDependency of this repo — it always resolves from the
+  // shim node_modules regardless of `cacheDir` (shim resolution is tried
+  // before the cache and does not depend on cacheDir at all), so the
+  // "not installed" branch below is unreachable without uninstalling a
+  // real dependency the rest of the suite (and the CLI itself) needs.
+  /* c8 ignore start */
   if (!resolved) {
     return { name: "appium", version: "<not installed>" };
   }
+  /* c8 ignore stop */
   const version = resolveHeavyDepVersion("appium", { cacheDir });
   return {
     name: "appium",

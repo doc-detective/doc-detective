@@ -1,0 +1,13 @@
+# Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
+# Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
+#
+extends: existence
+message: "Weasel attribution: '%s'. Name the source or cut the claim."
+level: error
+ignorecase: true
+tokens:
+  - experts agree
+  - industry reports suggest
+  - many argue
+  - widely regarded as
+  - studies show

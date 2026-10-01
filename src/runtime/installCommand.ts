@@ -170,6 +170,80 @@ const browsersSubcommand: CommandModule<any, InstallArgv & { _names?: string[] }
   },
 };
 
+const androidSubcommand: CommandModule<any, InstallArgv> = {
+  command: "android",
+  describe:
+    "Install the Android SDK toolchain (platform-tools, emulator, a system image) and create the default AVD. Augments an existing SDK (ANDROID_HOME/ANDROID_SDK_ROOT), or bootstraps commandline-tools into <cacheDir>/android-sdk. Downloads are multi-GB — requires --yes to proceed. Needs a Java runtime (JRE 17+).",
+  builder: (yargs) =>
+    sharedInstallOptions(yargs)
+      .option("os-version", {
+        type: "string",
+        describe:
+          "Android version for the system image / AVD (e.g. 14, or a raw API level like 34). Default: the newest available.",
+      })
+      .option("device-type", {
+        type: "string",
+        choices: ["phone", "tablet"] as const,
+        describe: "Abstract hardware profile for the default AVD. Default: phone.",
+      }) as any,
+  handler: async (argv: any) => {
+    const logger = makeLogger(pickLogLevel(argv));
+    const { installAndroid } = await import("./androidInstaller.js");
+    const reports = await installAndroid({
+      yes: Boolean(argv.yes),
+      force: Boolean(argv.force),
+      dryRun: Boolean(argv["dry-run"]),
+      osVersion: argv["os-version"],
+      deviceType: argv["device-type"],
+      ctx: ctxFromArgv(argv),
+      deps: { logger },
+    });
+    printReports(reports, logger);
+  },
+};
+
+// Shared by the `install bash` subcommand and `install all`'s Windows leg so
+// the two entry points can't drift on how installBash is invoked.
+async function runInstallBash(argv: any, logger: Logger): Promise<void> {
+  const { installBash } = await import("./windowsBash.js");
+  const reports = await installBash({
+    force: Boolean(argv.force),
+    dryRun: Boolean(argv["dry-run"]),
+    ctx: ctxFromArgv(argv),
+    deps: { logger },
+  });
+  printReports(reports, logger);
+}
+
+const bashSubcommand: CommandModule<any, InstallArgv> = {
+  command: "bash",
+  describe:
+    "Install Git Bash on Windows hosts (backs runShell's default `bash` shell). Uses an existing Git for Windows install when present; otherwise downloads MinGit (~40 MB) into <cacheDir>/tools/git-bash. No-op on macOS/Linux, which resolve bash from PATH.",
+  builder: (yargs) => sharedInstallOptions(yargs) as any,
+  handler: async (argv: any) => {
+    const logger = makeLogger(pickLogLevel(argv));
+    await runInstallBash(argv, logger);
+  },
+};
+
+const iosSubcommand: CommandModule<any, InstallArgv> = {
+  command: "ios",
+  describe:
+    "Prepare iOS simulator prerequisites on macOS hosts (Xcode command-line tools, simctl visibility, and guidance for WebDriverAgent/XCUITest).",
+  builder: (yargs) => sharedInstallOptions(yargs) as any,
+  handler: async (argv: any) => {
+    const logger = makeLogger(pickLogLevel(argv));
+    const { installIos } = await import("./iosInstaller.js");
+    const reports = await installIos({
+      yes: Boolean(argv.yes),
+      dryRun: Boolean(argv["dry-run"]),
+      ctx: ctxFromArgv(argv),
+      deps: { logger },
+    });
+    printReports(reports, logger);
+  },
+};
+
 const statusSubcommand: CommandModule<any, InstallArgv> = {
   command: "status",
   describe:
@@ -194,7 +268,7 @@ const statusSubcommand: CommandModule<any, InstallArgv> = {
 const allSubcommand: CommandModule<any, InstallArgv> = {
   command: "all",
   describe:
-    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools are installed separately via `install agents` (they require an interactive picker for per-agent scope choices).",
+    "Install all lazy-installed runtime assets: runtime npm packages, browser binaries, and (on Windows) Git Bash. Agent tools (`install agents`) and mobile toolchains (`install android`, `install ios`) are installed separately — agents need an interactive picker, Android pulls multi-GB downloads, and iOS preparation is macOS-only.",
   builder: (yargs) => sharedInstallOptions(yargs) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
@@ -219,11 +293,18 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
       }),
       logger
     );
+    // Git Bash backs runShell's default `bash` shell on Windows; POSIX hosts
+    // resolve bash from PATH, so the subcommand is skipped there (and gating
+    // here avoids a noisy skipped row on every macOS/Linux `install all`).
+    if (process.platform === "win32") {
+      logger("Installing bash…", "info");
+      await runInstallBash(argv, logger);
+    }
   },
 };
 
 /**
- * The `doc-detective install` command group. Registers four subcommands and
+ * The `doc-detective install` command group. Registers subcommands and
  * a bare `install` form that prints help. The existing `install-agents`
  * command keeps its top-level registration as a permanent hidden alias
  * (configured in cli.ts).
@@ -231,15 +312,18 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
 export const installCommand: CommandModule<{}, InstallArgv> = {
   command: "install <subcommand>",
   describe:
-    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers.",
+    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, bash, android, ios.",
   builder: (yargs) =>
     yargs
       .command(agentsSubcommand as any)
       .command(runtimeSubcommand as any)
       .command(browsersSubcommand as any)
+      .command(bashSubcommand as any)
+      .command(androidSubcommand as any)
+      .command(iosSubcommand as any)
       .command(statusSubcommand as any)
       .command(allSubcommand as any)
-      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | status | all.") as any,
+      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | bash | android | ios | status | all.") as any,
   handler: () => {
     // Each subcommand registers its own handler; this top-level handler is
     // only reached when yargs falls through (demandCommand should prevent

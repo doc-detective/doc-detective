@@ -1,17 +1,10 @@
-import { createServer } from "./server/index.js";
+import { createTestServers } from "./server/instances.js";
 
-const server = createServer({
-  port: 8092,
-  staticDir: "./test/server/public",
-  modifyResponse: (req, body) => {
-    return { ...body, extraField: "added by server" };
-  },
-});
-
-const apiServer = createServer({
-  port: 8093,
-  staticDir: "./test/server/public",
-});
+// Canonical two-server topology (8092 main / 8093 API) lives in
+// test/server/instances.js so the standalone CI launcher (test/server/start.js)
+// stays in lockstep with this mocha harness — the per-feature Action jobs must
+// stand up the same servers this suite relies on.
+const servers = createTestServers();
 
 // Late unhandled rejections from WebdriverIO's HTTP client (fired after
 // deleteSession's try/catch has resolved, when in-flight requests lose
@@ -72,7 +65,7 @@ export const mochaHooks = {
   async beforeAll() {
     process.on("unhandledRejection", onUnhandledRejection);
     process.on("uncaughtException", onUncaughtException);
-    for (const [name, s] of [["main", server], ["API", apiServer]]) {
+    for (const { name, server: s } of servers) {
       try {
         await s.start();
       } catch (error) {
@@ -85,7 +78,7 @@ export const mochaHooks = {
     }
   },
   async afterAll() {
-    for (const s of [server, apiServer]) {
+    for (const { server: s } of servers) {
       try {
         await s.stop();
       } catch (error) {

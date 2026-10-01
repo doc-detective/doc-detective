@@ -1,10 +1,11 @@
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { sanitizeFilesystemName } from "../utils.js";
+import { isMobileTargetPlatform } from "./mobilePlatform.js";
 
 // Fixed virtual-display size for the Linux Xvfb recording path. Used both to
 // start Xvfb and as the x11grab `-video_size`, so the capture matches the
@@ -13,12 +14,22 @@ const XVFB_SCREEN_SIZE = "1920x1080";
 
 export {
   resolveRecordPlan,
+  recordSurfaceApp,
   coerceRecordContextBrowser,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
   buildCaptureArgs,
   resolveCropGeometry,
+  ffmpegPathEnv,
+  parseCaptureFrameSize,
+  parseMediaProbeStderr,
+  probeVideoMetadata,
+  parseBlackdetect,
+  createMatchingLineCollector,
+  detectAllBlack,
+  deriveCropScale,
+  detectDisplayPointSize,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   stepHasRouting,
@@ -166,19 +177,38 @@ function safeContextId(contextId: any): string {
   const hash = crypto.createHash("sha1").update(raw).digest("hex").slice(0, 8);
   return `${base}-${hash}`;
 }
+// Browser-engine recordings are isolated by context AND by process. The
+// contextId alone isn't enough: ids repeat across runs ("default",
+// "windows-chrome"), so two doc-detective processes on one machine — a dev
+// running the CLI while the suite runs, or parallel worktree sessions (see
+// test/AGENTS.md) — would share both keys below and corrupt each other
+// silently: Chrome auto-selects a capture source by window title, and the
+// downloaded .webm lands at a title-independent path. Two concurrent runs
+// each recording `out.mp4` were observed producing byte-identical videos
+// (one transcoded the other's download) and, when a peer's start deletes an
+// in-flight download, "Recording download timed out". The pid is unique
+// among live processes by construction and stable for the run's lifetime,
+// which is exactly the scope these keys need (ADR 01076).
+function recordingProcessToken(): string {
+  return String(process.pid);
+}
 function browserCaptureTitle(contextId: string): string {
-  return `RECORD_ME_${safeContextId(contextId)}`;
+  return `RECORD_ME_${recordingProcessToken()}_${safeContextId(contextId)}`;
 }
 function browserDownloadDir(contextId: string): string {
   return path.join(
     os.tmpdir(),
     "doc-detective",
     "recordings",
-    safeContextId(contextId)
+    `${safeContextId(contextId)}-${recordingProcessToken()}`
   );
 }
 
-type RecordPlan = { name: "browser" | "ffmpeg"; target: string; fps: number };
+type RecordPlan = {
+  name: "browser" | "ffmpeg" | "device";
+  target: string;
+  fps: number;
+};
 
 // Pull the engine fields out of a `record` step value. `record` may be a
 // boolean, a string path, or a detailed object; only the object form can
@@ -196,9 +226,30 @@ function engineFields(record: any): {
   return {};
 }
 
+// Pull the app-surface name off a `record` step value, or undefined when the
+// step doesn't target an app surface. Only the detailed-object form can carry
+// a surface, and only the { app: … } object form names an app surface.
+function recordSurfaceApp(record: any): string | undefined {
+  const surface =
+    record && typeof record === "object" ? record.surface : undefined;
+  if (
+    surface &&
+    typeof surface === "object" &&
+    typeof surface.app === "string" &&
+    surface.app.trim().length > 0
+  ) {
+    return surface.app.trim();
+  }
+  return undefined;
+}
+
 // Normalize a record step into a concrete plan. An explicit engine always
-// wins; otherwise auto-resolve: a visible Chrome context uses the
-// concurrency-safe browser engine, everything else falls back to ffmpeg. The
+// wins; otherwise auto-resolve: mobile-target contexts (android/ios) record
+// the device screen through the app driver (the internal "device" plan — never
+// user-selectable), a visible Chrome context uses the concurrency-safe browser
+// engine, and everything else falls back to ffmpeg. A record that targets an
+// app surface is an ffmpeg capture cropped to that app's window by default
+// (target "window"); the browser engine can't capture a native window. The
 // context handed in here is already coerced (see coerceRecordContextBrowser),
 // so this stays a pure read.
 function resolveRecordPlan({
@@ -209,15 +260,22 @@ function resolveRecordPlan({
   context: any;
 }): RecordPlan {
   const { name, target, fps } = engineFields(step?.record);
+  const appSurface = recordSurfaceApp(step?.record);
   let engineName = name;
   if (!engineName) {
-    const b = context?.browser;
-    engineName =
-      b?.name === "chrome" && b?.headless === false ? "browser" : "ffmpeg";
+    if (isMobileTargetPlatform(context?.platform)) {
+      engineName = "device";
+    } else {
+      const b = context?.browser;
+      engineName =
+        b?.name === "chrome" && b?.headless === false && !appSurface
+          ? "browser"
+          : "ffmpeg";
+    }
   }
   return {
-    name: engineName as "browser" | "ffmpeg",
-    target: target || "display",
+    name: engineName as "browser" | "ffmpeg" | "device",
+    target: target || (appSurface ? "window" : "display"),
     fps: fps ?? 30,
   };
 }
@@ -228,6 +286,9 @@ function hasRecordStepWithoutEngine(context: any): boolean {
     // Falsy record (undefined, or an explicit `record: false`) is not an
     // active recording step.
     if (!s?.record) return false;
+    // App-surface records never use the browser engine, so they don't
+    // justify coercing a browser into the context.
+    if (recordSurfaceApp(s.record)) return false;
     return engineFields(s.record).name === undefined;
   });
 }
@@ -244,6 +305,9 @@ function coerceRecordContextBrowser({
   availableApps: any[];
 }): { name: string; headless: boolean } | null {
   if (context?.browser) return null; // user specified a browser
+  // Mobile-target contexts record the device screen through the app driver;
+  // a desktop browser would be the wrong engine on the wrong machine.
+  if (isMobileTargetPlatform(context?.platform)) return null;
   if (!hasRecordStepWithoutEngine(context)) return null;
   const chromeAvailable =
     Array.isArray(availableApps) &&
@@ -324,17 +388,25 @@ async function resolveCropGeometry({
   target: string;
 }): Promise<{ x: number; y: number; w: number; h: number } | null> {
   if (target === "viewport") {
-    const m = await driver.execute(() => {
-      return {
-        sx: (window as any).screenX,
-        sy: (window as any).screenY,
-        iw: (window as any).innerWidth,
-        ih: (window as any).innerHeight,
-        ow: (window as any).outerWidth,
-        oh: (window as any).outerHeight,
-        dpr: (window as any).devicePixelRatio || 1,
-      };
-    });
+    const m = await driver.execute(
+      /* c8 ignore start - runs inside the browser via driver.execute(): this callback body
+       * reads `window.*` metrics, which are serialized and evaluated by the WebDriver session
+       * in the browser process, never in the Node process c8 instruments. It IS exercised by the
+       * real E2E recording fixtures (viewport-target crop), just not visible to Node's coverage
+       * tool (ADR 01017). */
+      () => {
+        return {
+          sx: (window as any).screenX,
+          sy: (window as any).screenY,
+          iw: (window as any).innerWidth,
+          ih: (window as any).innerHeight,
+          ow: (window as any).outerWidth,
+          oh: (window as any).outerHeight,
+          dpr: (window as any).devicePixelRatio || 1,
+        };
+      }
+      /* c8 ignore stop */
+    );
     const dpr = m.dpr || 1;
     // screenX/screenY is the window's outer top-left, which sits above the
     // browser chrome (tabs, address bar, infobars). Offset to the content
@@ -371,6 +443,356 @@ async function resolveCropGeometry({
   return null;
 }
 
+// App-window crop rects now come from appWindows.appWindowRect (ADR 01036),
+// which is platform-aware: Windows uses the current root's getWindowRect
+// (physical px); macOS uses the window ELEMENT's rect (Mac2's getWindowRect
+// is the whole main screen). Both stay unscaled with a pending-scale marker.
+
+// A PATH env entry that puts the bundled @ffmpeg-installer binary's directory
+// first, so child processes that shell out to a bare `ffmpeg` (the XCUITest
+// driver's startRecordingScreen encoder) find ours — CI runners don't
+// reliably ship a system ffmpeg. Matches the existing PATH key
+// case-insensitively (Windows uses `Path`).
+function ffmpegPathEnv(
+  ffmpegPath: string,
+  baseEnv: NodeJS.ProcessEnv = process.env
+): Record<string, string> {
+  const dir = path.dirname(ffmpegPath);
+  const pathKey =
+    Object.keys(baseEnv).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+  const existing = baseEnv[pathKey];
+  return {
+    [pathKey]: existing ? `${dir}${path.delimiter}${existing}` : dir,
+  };
+}
+
+// Pull the capture frame size out of the capture ffmpeg's own stderr: the
+// input stream line (e.g. "Stream #0:0: Video: bmp, bgra, 2560x1440, …") is
+// printed once, early, by every capture backend (gdigrab / avfoundation /
+// x11grab). The first match is the input stream — the output stream line
+// prints later. The 3-digit lower bound on each dimension keeps digit runs
+// inside fourcc/hex tokens (e.g. "0x59565955") and small numeric fields from
+// matching; real display captures are never narrower than 100px. Pure parse;
+// callers accumulate stderr and stash the first hit.
+function parseCaptureFrameSize(
+  stderr: string
+): { w: number; h: number } | null {
+  const m = /Stream #\d+:\d+.*?Video:.*?\b(\d{3,5})x(\d{3,5})\b/.exec(
+    stderr ?? ""
+  );
+  if (!m) return null;
+  return { w: Number(m[1]), h: Number(m[2]) };
+}
+
+// The metadata a probe of a produced recording can yield. Every field is
+// best-effort — absent when the file (or its stderr dump) doesn't carry it.
+type RecordingProbeMetadata = {
+  duration?: number;
+  width?: number;
+  height?: number;
+  fps?: number;
+};
+
+// Parse recording metadata out of `ffmpeg -i <file>` stderr. Only the input
+// Video stream line is trusted for dimensions/fps (the same guard as
+// parseCaptureFrameSize, but with a 2-digit lower bound — produced recordings
+// can legitimately be tiny, unlike display captures). fps falls back to tbr
+// because gif streams report no fps token. Missing or `N/A` fields are simply
+// omitted — callers treat every field as best-effort.
+function parseMediaProbeStderr(stderr: string): RecordingProbeMetadata {
+  const meta: RecordingProbeMetadata = {};
+  const text = stderr ?? "";
+  const duration = /\bDuration:\s*(\d+):(\d{2}):(\d{2}(?:\.\d+)?)/.exec(text);
+  if (duration) {
+    meta.duration =
+      Number(duration[1]) * 3600 +
+      Number(duration[2]) * 60 +
+      Number(duration[3]);
+  }
+  const videoLine = /Stream #\d+:\d+.*?Video:.*/.exec(text)?.[0];
+  if (videoLine) {
+    const size = /\b(\d{2,5})x(\d{2,5})\b/.exec(videoLine);
+    if (size) {
+      meta.width = Number(size[1]);
+      meta.height = Number(size[2]);
+    }
+    const fps =
+      /([\d.]+)\s+fps\b/.exec(videoLine) ?? /([\d.]+)\s+tbr\b/.exec(videoLine);
+    if (fps && Number.isFinite(Number(fps[1]))) {
+      meta.fps = Number(fps[1]);
+    }
+  }
+  return meta;
+}
+
+// Probe a produced recording's metadata by running `ffmpeg -i <file>` and
+// parsing its stderr. ffmpeg exits non-zero without an output file by design,
+// so the exit code is ignored — the stderr dump is the product. Returns null
+// when no stderr was obtained (missing binary, spawn error); an unparsable
+// file yields {}. Callers report whatever fields they can and never fail the
+// step over metadata. Deliberately bounded on both axes:
+// - autoInstall: false — metadata is never worth a JIT npm install (the
+//   device .mp4 path reaches here on hosts that never needed ffmpeg).
+// - 5s kill timer — a wedged probe must not stall an already-passed stop
+//   (same bound as the detectMacScreenIndex probe).
+// The buffer keeps the HEAD of stderr: ffmpeg prints Duration/Stream metadata
+// first, and trailing demux warnings must not evict it.
+async function probeVideoMetadata({
+  cacheDir,
+  filePath,
+}: {
+  cacheDir?: string;
+  filePath: string;
+}): Promise<RecordingProbeMetadata | null> {
+  try {
+    const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
+    const stderr = await new Promise<string | null>((resolve) => {
+      let head = "";
+      let settled = false;
+      let proc: any = null;
+      let timer: any;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          proc?.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(v);
+      };
+      try {
+        proc = spawn(ffmpegPath, ["-hide_banner", "-i", filePath], {
+          stdio: ["ignore", "ignore", "pipe"],
+        });
+        proc.stderr?.on("data", (chunk: Buffer) => {
+          if (head.length < 4000) {
+            head = (head + chunk.toString()).slice(0, 4000);
+          }
+        });
+        proc.on("error", () => done(null));
+        proc.on("close", () => done(head));
+        timer = setTimeout(() => done(head.length > 0 ? head : null), 5000);
+      } catch {
+        done(null);
+      }
+    });
+    if (stderr === null) return null;
+    return parseMediaProbeStderr(stderr);
+  } catch {
+    return null;
+  }
+}
+
+// Parse ffmpeg blackdetect stderr lines and decide whether the detected
+// black intervals cover the clip. blackdetect emits one line per interval:
+// "[blackdetect @ 0x...] black_start:0 black_end:2.04 black_duration:2.04".
+// Coverage is the sum of reported durations — good enough for the all-black
+// failure mode this guards against (ADR 01080).
+//
+// Two allowances, both measured against real ffmpeg output:
+// - An interval ends at the last black FRAME's timestamp, not the clip end,
+//   so a fully-black clip under-reports by up to one frame interval (a 0.5s
+//   10fps black clip reports black_duration:0.4). `fps` sizes that tolerance;
+//   without it the gap can't be told from real content, so we don't guess.
+// - 5% slack on top, for encoders that shade the first/last frame.
+// Unknown/zero duration can't be judged -> false (not provably black).
+
+// Collect only the lines containing `needle` from a chunked stream, bounded so
+// progress spam from a long decode can't evict them.
+//
+// Filtering must happen per LINE, not per chunk. Stream chunks split wherever
+// the pipe flushes, with no regard for newlines, so a `black_duration:0.4` can
+// straddle two chunks — and then NEITHER chunk contains `black_`, the interval
+// is silently dropped, and an all-black video passes `notBlack`. That failure
+// mode is invisible on the short clips the tests generate (one chunk) and
+// shows up on exactly the long recordings the guard exists to protect.
+//
+// `push` keeps the trailing partial line back for the next chunk; `flush`
+// returns the collected text and consumes any final unterminated line, since
+// ffmpeg's last write may not end in a newline.
+function createMatchingLineCollector(needle: string, limit = 65536) {
+  let partial = "";
+  let collected = "";
+  const keep = (lines: string[]) => {
+    for (const line of lines) {
+      if (line.includes(needle) && collected.length < limit) {
+        collected = (collected + line + "\n").slice(0, limit);
+      }
+    }
+  };
+  return {
+    push(text: string) {
+      partial += text;
+      const lines = partial.split(/\r?\n/);
+      partial = lines.pop() ?? "";
+      keep(lines);
+    },
+    flush(): string {
+      if (partial) {
+        keep([partial]);
+        partial = "";
+      }
+      return collected;
+    },
+  };
+}
+
+function parseBlackdetect(
+  stderr: string,
+  duration?: number,
+  fps?: number
+): boolean {
+  if (typeof duration !== "number" || !(duration > 0)) return false;
+  let covered = 0;
+  const re = /black_duration:([\d.]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(stderr ?? "")) !== null) {
+    const d = Number(m[1]);
+    if (Number.isFinite(d)) covered += d;
+  }
+  const frameInterval =
+    typeof fps === "number" && fps > 0 ? 1 / fps : 0;
+  return covered >= (duration - frameInterval) * 0.95;
+}
+
+// Run a bounded ffmpeg blackdetect pass over a produced recording and report
+// whether it is (essentially) all black. Returns null when the analysis
+// couldn't run (missing binary, spawn error, timeout) — the caller skips the
+// guard rather than guessing. Bounded like probeVideoMetadata: no JIT
+// install, and a kill timer sized for a real decode pass (30s — doc
+// recordings are short).
+async function detectAllBlack({
+  cacheDir,
+  filePath,
+  duration,
+  fps,
+}: {
+  cacheDir?: string;
+  filePath: string;
+  duration?: number;
+  fps?: number;
+}): Promise<boolean | null> {
+  try {
+    const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
+    const stderr = await new Promise<string | null>((resolve) => {
+      let settled = false;
+      let proc: any = null;
+      let timer: NodeJS.Timeout | undefined;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        try {
+          proc?.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(v);
+      };
+      try {
+        proc = spawn(
+          ffmpegPath,
+          [
+            "-hide_banner",
+            "-i",
+            filePath,
+            "-vf",
+            "blackdetect=d=0.1:pix_th=0.10",
+            "-an",
+            "-f",
+            "null",
+            "-",
+          ],
+          { stdio: ["ignore", "ignore", "pipe"] }
+        );
+        const lines = createMatchingLineCollector("black_");
+        proc.stderr?.on("data", (chunk: Buffer) => lines.push(chunk.toString()));
+        proc.on("error", () => done(null));
+        proc.on("close", (code: number | null) =>
+          done(code === 0 ? lines.flush() : null)
+        );
+        timer = setTimeout(() => done(null), 30000);
+      } catch {
+        done(null);
+      }
+    });
+    if (stderr === null) return null;
+    return parseBlackdetect(stderr, duration, fps);
+  } catch {
+    return null;
+  }
+}
+
+// The physical-pixels-per-point scale for an app-window crop, derived from
+// measurements instead of a DOM probe (native drivers can't answer
+// devicePixelRatio — the A2-discovered scaling gap, fixed in A7):
+// - darwin: avfoundation captures physical pixels while Mac2's getWindowRect
+//   returns points, so the scale is captureFrameSize / displaySizeInPoints.
+// - win32: UIA rects (NovaWindows) and gdigrab both use physical desktop
+//   pixels, so the scale is 1 by construction.
+// - linux: X11 coordinates are pixels; scale 1.
+// Clamped to [1, 4] and rounded to two decimals; any missing input falls
+// back to 1 (today's behavior — correct on scale-1 displays).
+function deriveCropScale({
+  platform,
+  frameSize,
+  displayPointSize,
+}: {
+  platform: string;
+  frameSize: { w: number; h: number } | null | undefined;
+  displayPointSize: { w: number; h: number } | null | undefined;
+}): number {
+  if (platform !== "darwin") return 1;
+  if (!frameSize?.w || !displayPointSize?.w) return 1;
+  const raw = frameSize.w / displayPointSize.w;
+  if (!Number.isFinite(raw) || raw <= 0) return 1;
+  const clamped = Math.min(4, Math.max(1, raw));
+  return Math.round(clamped * 100) / 100;
+}
+
+// The main display's size in points (macOS only — the one platform where
+// points and capture pixels diverge). JXA through osascript, same pattern as
+// probeMacAccessibility; null on any failure or off-platform. Multi-display
+// note: assumes the capture targets the main screen (avfoundation screen
+// index and this probe can disagree on exotic setups — documented limitation).
+async function detectDisplayPointSize(): Promise<{
+  w: number;
+  h: number;
+} | null> {
+  if (process.platform !== "darwin") return null;
+  return await new Promise((resolve) => {
+    execFile(
+      "osascript",
+      [
+        "-l",
+        "JavaScript",
+        "-e",
+        "ObjC.import('AppKit'); const s = $.NSScreen.mainScreen.frame.size; JSON.stringify({w: s.width, h: s.height});",
+      ],
+      { timeout: 5000 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        try {
+          const parsed = JSON.parse(String(stdout).trim());
+          if (
+            typeof parsed?.w === "number" &&
+            parsed.w > 0 &&
+            typeof parsed?.h === "number" &&
+            parsed.h > 0
+          ) {
+            return resolve({ w: parsed.w, h: parsed.h });
+          }
+        } catch {
+          /* fall through */
+        }
+        resolve(null);
+      }
+    );
+  });
+}
+
 // True when a context will run at least one ffmpeg capture — either an
 // explicit ffmpeg-engine recording, or a browser-engine recording that will
 // fall back to ffmpeg at runtime because another browser recording is already
@@ -381,6 +803,11 @@ async function resolveCropGeometry({
 // coerced before this runs.
 function jobIsFfmpegRecording(job: any): boolean {
   const context = job?.context;
+  // Mobile-target contexts never capture the host display: auto-resolved
+  // recordings run on the device (the "device" plan), and an explicit
+  // ffmpeg/browser engine there is SKIPPED by startRecording — so neither
+  // occupies the display nor falls back.
+  if (isMobileTargetPlatform(context?.platform)) return false;
   const steps = Array.isArray(context?.steps) ? context.steps : [];
   // Names of active browser-engine recordings (LIFO), to detect overlap.
   const activeBrowser: Array<string | undefined> = [];
@@ -498,6 +925,9 @@ function contextHasRouting(context: any): boolean {
 // would fall back to ffmpeg. Used only for scheduling — never under-serialize
 // the shared display.
 function contextHasAnyFfmpegRecordStep(context: any): boolean {
+  // Same mobile rule as jobIsFfmpegRecording: device recordings hold no host
+  // display, and desktop engines on mobile contexts are runtime SKIPs.
+  if (isMobileTargetPlatform(context?.platform)) return false;
   const steps = Array.isArray(context?.steps) ? context.steps : [];
   let browserRecords = 0;
   for (const s of steps) {
@@ -554,18 +984,32 @@ function jobExclusiveResources(
 // Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a heavy
 // runtime dep that should only load when a recording step actually runs. The
 // ctx threads a user-overridden cacheDir through, matching the JIT installer.
-async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
-  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", { ctx });
+// autoInstall: false makes a missing install throw instead of JIT-installing —
+// for best-effort callers (the metadata probe) that must never spawn npm.
+async function getFfmpegPath({
+  cacheDir,
+  autoInstall = true,
+}: { cacheDir?: string; autoInstall?: boolean } = {}): Promise<string> {
+  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", {
+    ctx: { cacheDir },
+    autoInstall,
+  });
   // The package's CJS entry exports an object with a .path field; under an
   // ESM dynamic import we may get { default: { path }, path? }. Try both, then
   // guard before handing it to a child process so a malformed install fails
   // with an actionable message instead of a confusing deep node error.
   const candidate = mod && (mod.path ?? mod.default?.path);
+  /* c8 ignore start - real subprocess/install-dependent: the installed @ffmpeg-installer/ffmpeg
+   * package in this repo's node_modules always exposes a well-formed `.path`, and tryResolveFromShim
+   * in loader.ts always wins over any injected cacheDir override, so there is no hermetic way to
+   * make loadHeavyDep() return a malformed module here without corrupting a real, shared dependency.
+   * Only reachable with a genuinely broken/tampered @ffmpeg-installer/ffmpeg install (ADR 01017). */
   if (typeof candidate !== "string" || candidate.length === 0) {
     throw new Error(
       "ffmpeg binary path is missing or malformed in the installed @ffmpeg-installer/ffmpeg package. Try `doc-detective install runtime --force` to reinstall."
     );
   }
+  /* c8 ignore stop */
   return candidate;
 }
 
@@ -594,9 +1038,14 @@ async function detectMacScreenIndex(
       settled = true;
       try {
         proc?.kill();
+        /* c8 ignore start - structurally defensive: proc is either null (spawn threw, so
+         * kill() is never reached) or a real ChildProcess whose kill() reliably returns
+         * false rather than throwing (no signal permission/platform quirk reproduces a
+         * throw hermetically) (ADR 01017). */
       } catch {
         /* ignore */
       }
+      /* c8 ignore stop */
       resolve(v);
     };
     try {
@@ -633,17 +1082,27 @@ async function detectX11ScreenSize(display?: string): Promise<string | null> {
       settled = true;
       try {
         proc?.kill();
+        /* c8 ignore start - structurally defensive: proc is either null (spawn threw, so
+         * kill() is never reached) or a real ChildProcess whose kill() reliably returns
+         * false rather than throwing (no signal permission/platform quirk reproduces a
+         * throw hermetically) (ADR 01017). */
       } catch {
         /* ignore */
       }
+      /* c8 ignore stop */
       resolve(v);
     };
     try {
       const env = display ? { ...process.env, DISPLAY: display } : process.env;
       proc = spawn("xdpyinfo", [], { env, stdio: ["ignore", "pipe", "ignore"] });
+      /* c8 ignore start - real subprocess-dependent: this data handler only fires when a real
+       * xdpyinfo process is installed and writes to stdout. xdpyinfo is an X11 utility not present
+       * on this dev machine or most CI runners (no network/browser fixture can substitute for it),
+       * so the callback body is exercised only on a Linux host with the real binary (ADR 01017). */
       proc.stdout?.on("data", (d: any) => {
         out += d.toString();
       });
+      /* c8 ignore stop */
       proc.on("error", () => done(null));
       proc.on("close", () => {
         const m = /dimensions:\s+(\d+x\d+)\s+pixels/i.exec(out);
@@ -714,12 +1173,23 @@ async function startXvfb(
     if (proc.exitCode !== null)
       throw new Error(`Xvfb exited early on ${display} (code ${proc.exitCode})`);
     try {
+      /* c8 ignore next - real subprocess-dependent: this success return only fires once a
+       * genuine Xvfb process has created its X lock file. Xvfb is a Linux-only virtual
+       * framebuffer binary not present on this dev machine or non-Linux CI runners, and there is
+       * no hermetic, offline way to fabricate a real X lock file's readiness signal (ADR 01017). */
       if (fs.statSync(lock).mtimeMs >= startMs) return proc;
     } catch {
       /* lock not present yet */
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+  /* c8 ignore start - real subprocess-dependent: this 5s-exhausted cleanup+throw only runs when
+   * spawn() neither errors nor creates the lock file for the full timeout window -- i.e. a real
+   * Xvfb binary is present but hangs. Reproducing that hermetically would require either a real
+   * Xvfb install or an OS-specific long-lived fake binary on PATH (Windows spawn() without
+   * shell:true does not resolve .cmd wrappers by name), which is not a safe cross-platform test
+   * (ADR 01017). On every machine without Xvfb installed (this dev box, most CI runners), spawn()
+   * throws ENOENT asynchronously well before this loop exhausts, so `spawnErr` is thrown instead. */
   try {
     proc.kill();
   } catch {
@@ -727,3 +1197,6 @@ async function startXvfb(
   }
   throw new Error(`Xvfb did not become ready on ${display} within 5s.`);
 }
+/* c8 ignore stop - trailing closing brace after the unconditional throw above; a V8 phantom
+ * statement with nothing left to execute (same pattern as detectTests.ts's documented
+ * `c8 ignore start - V8 phantom branch on if-else/switch-case`, ADR 01017). */

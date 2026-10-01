@@ -1,7 +1,29 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { findElement } from "../dist/core/tests/findElement.js";
 
 const config = { logLevel: "silent" };
+
+// Read the AUTHORED schema, not a generated copy: the `default` keyword is
+// what the docs generator prints and what users read, and it's the half of
+// this invariant that nothing else covers.
+const FIND_V3 = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "src",
+      "common",
+      "src",
+      "schemas",
+      "src_schemas",
+      "find_v3.schema.json"
+    ),
+    "utf8"
+  )
+);
 
 // Helper: find the implicit assertion whose statement CONTAINS `needle`. Under
 // the unified model `statement` is a runtime `$$` expression, so we match on the
@@ -110,6 +132,126 @@ describe("findElement unified assertion model", function () {
     assert.equal(result.status, "FAIL");
     assert.equal(result.outputs.found, false);
     assert.equal(findAssertion(result.assertions, "found").result, "FAIL");
+  });
+
+  it("shorthand string + caller click request → click sub-effect runs", async () => {
+    let clicks = 0;
+    const element = makeElement({
+      clickImpl: async () => {
+        clicks++;
+      },
+    });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await findElement({
+      config,
+      step: { find: "Submit" },
+      driver,
+      click: true,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.found, true);
+    assert.equal(clicks, 1, "caller-requested click must fire on the shorthand path");
+    assert.ok(/Clicked element/.test(result.description));
+  });
+
+  it("shorthand string + click request, click throws → FAIL, found assertion still PASS", async () => {
+    const element = makeElement({
+      clickImpl: async () => {
+        throw new Error("not interactable");
+      },
+    });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await findElement({
+      config,
+      step: { find: "Submit" },
+      driver,
+      click: true,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.outputs.found, true);
+    assert.equal(result.assertions.length, 1);
+    assert.equal(findAssertion(result.assertions, "found").result, "PASS");
+    assert.ok(/Couldn't click/.test(result.description));
+  });
+
+  it("left-button clicks use the argument-less classic click (mobile-web compatible)", async () => {
+    // With options, WebdriverIO implements click via W3C pointer actions,
+    // which XCUITest rejects in a web context ("only supports W3C actions
+    // execution in the native context") — so a default/left click must call
+    // element.click() bare, which maps to the classic element-click endpoint
+    // and works on desktop AND device browsers (phase A5).
+    const calls = [];
+    const element = makeElement({
+      clickImpl: async (...args) => {
+        calls.push(args);
+      },
+    });
+    // Shorthand path.
+    const driver = makeDriver({ $impl: async () => element });
+    await findElement({ config, step: { find: "Submit" }, driver, click: true });
+    // Criteria path with an explicit left button.
+    const driver2 = makeDriver({ candidates: [element] });
+    await findElement({
+      config,
+      step: { find: { selector: "button", click: { button: "left" } } },
+      driver: driver2,
+    });
+    assert.equal(calls.length, 2);
+    for (const args of calls) {
+      assert.deepEqual(args, [], "left click must not pass options");
+    }
+  });
+
+  it("non-left buttons still pass the button option (needs pointer actions)", async () => {
+    const calls = [];
+    const element = makeElement({
+      clickImpl: async (...args) => {
+        calls.push(args);
+      },
+    });
+    const driver = makeDriver({ candidates: [element] });
+    await findElement({
+      config,
+      step: { find: { selector: "button", click: { button: "right" } } },
+      driver,
+    });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0], [{ button: "right" }]);
+  });
+
+  // A schema `default` is documentation, not behavior: find_v3's properties
+  // sit inside an `anyOf`, and Ajv skips defaults there, so nothing injects
+  // the value. The runtime carries its own default in the `step.find = {...}`
+  // normalization block, and the two drifted apart unnoticed — the schema and
+  // docs advertised `true` while every run behaved as `false`. These pin them
+  // together so the next divergence fails here instead of shipping.
+  it("moveTo's declared default is false", function () {
+    assert.equal(FIND_V3.components.schemas.object.properties.moveTo.default, false);
+  });
+
+  it("a bare find performs no moveTo, matching the declared default", async () => {
+    const element = makeElement();
+    const driver = makeDriver({ candidates: [element] });
+    const result = await findElement({
+      config,
+      step: { find: { selector: "button" } },
+      driver,
+    });
+
+    // findElement appends this only when it takes the moveTo branch, and it
+    // appends unconditionally once inside — so it reports whether the branch
+    // ran, independent of whether the move itself succeeded.
+    const movedAtRuntime = /Moved to element\./.test(result.description);
+    assert.equal(
+      movedAtRuntime,
+      false,
+      `a bare find moved to the element: ${result.description}`
+    );
+    assert.equal(
+      movedAtRuntime,
+      FIND_V3.components.schemas.object.properties.moveTo.default,
+      "find_v3's declared moveTo default no longer matches what a bare find does"
+    );
   });
 
   it("found but click sub-effect fails → status FAIL with NO extra assertion record", async () => {

@@ -8,11 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Recording a documented procedure required bracketing it with explicit `startRecording`/`stopRecording`
-steps, and the runner assumed a single active recording at a time — there was no `stopRecording`
-form that could close the *innermost* of several recordings. With the ffmpeg any-app engine
-(`00174`) able to capture multiple surfaces, authors wanted recording to start automatically and to
-support nested/overlapping captures (e.g. a whole-run recording with a finer recording inside it).
+Recording a documented procedure required bracketing it with explicit
+`startRecording`/`stopRecording` steps. The runner also assumed a single active recording at a
+time. There was no `stopRecording` form that could close the *innermost* of several recordings.
+The ffmpeg any-app engine (`00174`) can capture multiple surfaces. Authors wanted recording to
+start automatically, and to support nested or overlapping captures. An example is a whole-run
+recording with a finer recording inside it.
 How should automatic recording and overlapping recordings be modeled?
 
 ## Decision Drivers
@@ -31,9 +32,9 @@ How should automatic recording and overlapping recordings be modeled?
 
 ## Decision Outcome
 
-Chosen option: **A**, because `autoRecord` removes start/stop boilerplate and LIFO (last-in,
-first-out) is the natural, unambiguous rule for nested captures: stopping always closes the most
-recently started recording, matching how authors nest a fine-grained recording inside a coarser one.
+Chosen option: **A**. `autoRecord` removes start/stop boilerplate. LIFO (last-in, first-out) is the
+natural, unambiguous rule for nested captures. Stopping always closes the most recently started
+recording, matching how authors nest a fine-grained recording inside a coarser one.
 
 Contract decided:
 

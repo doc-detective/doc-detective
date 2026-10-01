@@ -5,7 +5,7 @@
   "anyOf": [
     {
       "title": "Run shell command (simple)",
-      "description": "Command to perform in the machine's default shell.",
+      "description": "Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).",
       "type": "string",
       "transform": [
         "trim"
@@ -20,7 +20,16 @@
       "properties": {
         "command": {
           "type": "string",
-          "description": "Command to perform in the machine's default shell."
+          "description": "Command to perform in the selected shell (see `shell`; defaults to `bash` on every platform)."
+        },
+        "shell": {
+          "type": "string",
+          "description": "Shell to run the command in. If unset, uses the config-level `shell` setting, which defaults to `bash`. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
+          "enum": [
+            "bash",
+            "cmd",
+            "powershell"
+          ]
         },
         "args": {
           "type": "array",
@@ -147,7 +156,7 @@
     "schemas": {
       "string": {
         "title": "Run shell command (simple)",
-        "description": "Command to perform in the machine's default shell.",
+        "description": "Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).",
         "type": "string",
         "transform": [
           "trim"
@@ -162,7 +171,16 @@
         "properties": {
           "command": {
             "type": "string",
-            "description": "Command to perform in the machine's default shell."
+            "description": "Command to perform in the selected shell (see `shell`; defaults to `bash` on every platform)."
+          },
+          "shell": {
+            "type": "string",
+            "description": "Shell to run the command in. If unset, uses the config-level `shell` setting, which defaults to `bash`. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
+            "enum": [
+              "bash",
+              "cmd",
+              "powershell"
+            ]
           },
           "args": {
             "type": "array",
@@ -288,6 +306,15 @@
   },
   "examples": [
     "docker run hello-world",
+    {
+      "command": "echo %USERNAME%",
+      "shell": "cmd"
+    },
+    {
+      "command": "[[ \"ok\" == o* ]] && echo bashism",
+      "shell": "bash",
+      "stdio": "bashism"
+    },
     {
       "command": "echo",
       "args": [

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watson & Holmes - Client Intake Form</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter for body, Libre Baskerville for headings -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Libre+Baskerville:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Custom styles to evoke 18th-century feel within Tailwind framework */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Default font for body text */
+            background-color: #f0e6d6;
+            /* Muted cream background */
+            color: #3e2723;
+            /* Deep brown text */
+        }
+        h1,
+        h2,
+        h3 {
+            font-family: 'Libre Baskerville', serif;
+            /* Headings font */
+        }
+
+        .form-container {
+            background-color: #ffffff;
+            /* White paper-like background for the form */
+            border: 1px solid #a1887f;
+            /* Muted brown border */
+            box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.1);
+            /* Subtle shadow for depth */
+        }
+
+        .form-header {
+            background-color: #795548;
+            /* Darker brown header */
+            color: #f0e6d6;
+            /* Cream text for header */
+            border-bottom: 1px solid #a1887f;
+        }
+
+        .input-field,
+        .textarea-field,
+        .select-field {
+            border: 1px solid #a1887f;
+            /* Muted brown border for inputs */
+            background-color: #fdfaf7;
+            /* Off-white input background */
+            color: #3e2723;
+            /* Deep brown text for inputs */
+        }
+
+        .input-field:focus,
+        .textarea-field:focus,
+        .select-field:focus {
+            border-color: #5d4037;
+            /* Darker brown on focus */
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(93, 64, 55, 0.2);
+            /* Subtle focus ring */
+        }
+
+        .button-primary {
+            background-color: #5d4037;
+            /* Dark brown button */
+            color: #f0e6d6;
+            /* Cream text */
+            border: 1px solid #3e2723;
+            box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .button-primary:hover {
+            background-color: #3e2723;
+            /* Even darker brown on hover */
+            box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.1);
+            transform: translate(2px, 2px);
+        }
+
+        .section-title {
+            color: #5d4037;
+            /* Dark brown for section titles */
+            border-bottom: 1px dashed #a1887f;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Styling for radio/checkbox labels to match the font */
+        input[type="radio"]+label,
+        input[type="checkbox"]+label {
+            font-family: 'Inter', sans-serif;
+            color: #3e2723;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6 md:p-8">
+    <div class="form-container w-full max-w-3xl mx-auto rounded-lg overflow-hidden">
+        <!-- Form Header -->
+                    <div class="form-header p-6 text-center rounded-t-lg">
+                        
+                        <h1 class="text-3xl sm:text-4xl font-bold mb-2">
+                            <svg style="width: 9%;" align="left" viewBox="0 0 40.236031 56.124626" xmlns="http://www.w3.org/2000/svg"><path style="fill:#f0e6d6;fill-opacity:0.945098" transform="translate(-30.705937,-36.003361)" d="m 70.016424,76.786459 c -0.178159,23.160652 -38.838627,17.103249 -38.660468,1.068954 0.04617,-4.155086 7.655119,-19.213306 3.022989,-20.1041 -4.63213,-0.890795 -5.339054,-3.056549 0.933288,-1.365647 1.096384,-28.357456 32.132607,-26.059527 31.819768,0.715869 4.713318,-0.53057 5.030718,1.08125 0.754906,1.615727 -4.275812,0.534476 2.129517,18.069197 2.129517,18.069197 z" /></svg>
+                            Watson & Holmes
+                            <svg style="width: 12%; height: auto;" align="right" viewBox="0 0 53.51049 51.322712" xmlns="http://www.w3.org/2000/svg"><path style="fill:#f0e6d6;fill-opacity:0.945098" transform="translate(-76.54299,-38.423636)" d="m 76.548025,57.853014 c 5.388349,0.514449 11.518816,-1.610411 14.88211,-7.973983 8.811095,-16.671149 36.877735,-15.953711 35.432575,8.09305 3.52525,16.20519 4.29117,20.741356 1.21211,23.313612 0,0 -2.29407,6.888065 -5.50593,8.284218 0,0 -27.500199,0.417719 -27.77631,-0.283497 -1.220313,-3.099125 2.356387,-4.303791 1.032599,-5.281631 -2.427976,-1.793455 -13.08033,3.551687 -11.872013,-0.688361 1.231402,-4.321059 5.879827,-10.819087 4.25555,-11.408247 C 86.355559,71.236 87.932598,71.723339 84.91056,71.39466 81.763336,71.052372 94.470587,56.710278 90.87835,58.768085" /></svg></h1>
+
+                        <h2 class="text-xl sm:text-2xl font-light">Forensic Consultants</h2>
+                        
+
+                    </div>
+        <!-- Form Body -->
+        <form class="p-6 sm:p-8 md:p-10 space-y-6">
+            <!-- Section: Client Information -->
+            <div class="section">
+                <h3 class="section-title text-xl font-semibold mb-4">Client Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="firstName" class="block text-sm font-medium mb-1">First Name:</label>
+                        <input type="text" id="firstName" name="firstName" class="input-field w-full p-2 rounded-md"
+                            required>
+                    </div>
+                    <div>
+                        <label for="lastName" class="block text-sm font-medium mb-1">Last Name:</label>
+                        <input type="text" id="lastName" name="lastName" class="input-field w-full p-2 rounded-md"
+                            required>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label for="address" class="block text-sm font-medium mb-1">Street Address:</label>
+                    <input type="text" id="address" name="address" class="input-field w-full p-2 rounded-md" required>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                    <div>
+                        <label for="city" class="block text-sm font-medium mb-1">City:</label>
+                        <input type="text" id="city" name="city" class="input-field w-full p-2 rounded-md" required>
+                    </div>
+                    <div>
+                        <label for="state" class="block text-sm font-medium mb-1">State/Province:</label>
+                        <input type="text" id="state" name="state" class="input-field w-full p-2 rounded-md">
+                    </div>
+                    <div>
+                        <label for="postalCode" class="block text-sm font-medium mb-1">Postal Code:</label>
+                        <input type="text" id="postalCode" name="postalCode" class="input-field w-full p-2 rounded-md">
+                    </div>
+                    <div>
+                        <label for="country" class="block text-sm font-medium mb-1">Country:</label>
+                        <input type="text" id="country" name="country" class="input-field w-full p-2 rounded-md"
+                            required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Contact Information -->
+            <div class="section mt-6">
+                <h3 class="section-title text-xl font-semibold mb-4">Contact Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium mb-1">Email Address:</label>
+                        <input type="email" id="email" name="email" class="input-field w-full p-2 rounded-md">
+                    </div>
+                    <div>
+                        <label for="phone" class="block text-sm font-medium mb-1">Phone Number:</label>
+                        <input type="tel" id="phone" name="phone" class="input-field w-full p-2 rounded-md">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Case Details -->
+            <div class="section mt-6">
+                <h3 class="section-title text-xl font-semibold mb-4">Case Details</h3>
+                <div>
+                    <label for="caseType" class="block text-sm font-medium mb-1">Type of Case:</label>
+                    <select id="caseType" name="caseType" class="select-field w-full p-2 rounded-md" required>
+                        <option value="">-- Select a Case Type --</option>
+                        <option value="missingPerson">Missing Person</option>
+                        <option value="theft">Theft/Burglary</option>
+                        <option value="espionage">Espionage/Conspiracy</option>
+                        <option value="fraud">Fraud/Deception</option>
+                        <option value="blackmail">Blackmail</option>
+                        <option value="other">Other (Please describe below)</option>
+                    </select>
+                </div>
+                <div class="mt-4">
+                    <label for="caseDescription" class="block text-sm font-medium mb-1">Brief Description of
+                        Case:</label>
+                    <textarea id="caseDescription" name="caseDescription" rows="5"
+                        class="textarea-field w-full p-2 rounded-md"></textarea>
+                </div>
+            </div>
+
+            <!-- Section: Preferences -->
+            <div class="section mt-6">
+                <h3 class="section-title text-xl font-semibold mb-4">Preferences</h3>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Preferred Contact Method:</label>
+                    <div class="flex flex-col sm:flex-row sm:space-x-6 space-y-2 sm:space-y-0">
+                        <div class="flex items-center">
+                            <input type="radio" id="contactEmail" name="preferredContact" value="email"
+                                class="mr-2 rounded" checked>
+                            <label for="contactEmail">Email</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="contactPhone" name="preferredContact" value="phone"
+                                class="mr-2 rounded">
+                            <label for="contactPhone">Phone</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="contactMail" name="preferredContact" value="mail"
+                                class="mr-2 rounded">
+                            <label for="contactMail">Postal Mail</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label for="inquiryDate" class="block text-sm font-medium mb-1">Date of Inquiry:</label>
+                    <input type="date" id="inquiryDate" name="inquiryDate" class="input-field w-full p-2 rounded-md"
+                        required>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-8 text-center">
+                <button type="submit" class="button-primary px-8 py-3 rounded-lg text-lg font-semibold tracking-wide">
+                    Submit Inquiry
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

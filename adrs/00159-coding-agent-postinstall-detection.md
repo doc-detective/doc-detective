@@ -10,9 +10,10 @@ decision-makers: doc-detective maintainers
 
 The `install-agents` subcommand (`00154`) installs Doc Detective's integration for a chosen
 coding agent, but users had to know it existed and run it manually. Many users install
-Doc Detective from inside an environment where a coding agent (Claude Code, Copilot, Gemini,
-Codex, Qwen, opencode) is already present, so the opportune moment to offer the integration
-is at install time. But a postinstall prompt must never hang CI or non-interactive installs,
+Doc Detective from inside an environment where a coding agent is already present. That includes
+Claude Code, Copilot, Gemini, Codex, Qwen, and opencode. So the best moment to offer the
+integration is at install time. But a postinstall prompt must never hang CI or non-interactive
+installs,
 and probing `PATH` for agent binaries must be done safely. Should postinstall detect coding
 agents and offer to install their integration, and under what guards?
 

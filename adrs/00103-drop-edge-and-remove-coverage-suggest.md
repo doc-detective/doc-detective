@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-As the v3 runner matured, two pieces of accumulated surface area no longer paid for themselves. The Microsoft Edge browser capabilities (`00073`) added another driver target with bespoke caps and an unconditional `--no-sandbox` flag, while the `runCoverage` (`00035`) and `suggestTests` (`00036`) analysis entrypoints — content-coverage measurement and test-suggestion generation — were ~943 lines of `analysis.js`/`suggest.js` that the v3 redesign was leaving behind. Should the v3 runner keep carrying Edge support and the coverage/suggest analysis features, or retire them to focus the test surface?
+As the v3 runner matured, two pieces of accumulated surface area no longer paid for themselves. The Microsoft Edge browser capabilities (`00073`) added another driver target, with bespoke caps and an unconditional `--no-sandbox` flag. The `runCoverage` (`00035`) and `suggestTests` (`00036`) analysis entrypoints covered content-coverage measurement and test-suggestion generation. They were ~943 lines of `analysis.js`/`suggest.js` that the v3 redesign was leaving behind. Should the v3 runner keep carrying Edge support and the coverage and suggest features, or retire them to focus the test surface?
 
 ## Decision Drivers
 
@@ -29,7 +29,7 @@ Chosen option: **A**, because both were add→remove lifecycle features the v3 p
 
 1. **Edge browser caps dropped**; Chrome caps simplified (`browserName` forced `chrome`).
 2. The unconditional **`--no-sandbox`** flag removed (sandbox handling becomes container-conditional elsewhere).
-3. **`runCoverage` and `suggestTests` removed** from the test surface — `analysis.js`/`suggest.js` deleted (−943 lines).
+3. **`runCoverage` and `suggestTests` removed** from the test surface, deleting `analysis.js`/`suggest.js` (−943 lines).
 
 Commits `0ef0f10d`, `12dd65e0`, `177f8102`, `9f426e6` in `core`. The wrapper-side removal of the `runCoverage`/`suggestTests` commands lands with the 3.0.0 redesign (`00108`).
 

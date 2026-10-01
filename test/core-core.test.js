@@ -11,24 +11,25 @@ describe("Run tests successfully", function () {
   // 30 minutes for the combined core test suite (runs all specs in one Appium session)
   this.timeout(1800000);
   describe("Core test suite", function () {
-    // Run the ENTIRE core suite in ONE concurrent pass (concurrentRunners=2) on
-    // every OS. The resource-aware scheduler auto-serializes display-bound
-    // ffmpeg recordings on a shared "display" mutex while everything else runs
-    // in parallel, so the recording specs (recording, recording-permutations,
-    // autorecord, "Do all the things!") no longer need a separate serial pass.
-    // cookie-tests is self-contained and ordered (its Docker container is
-    // started in the first step and removed in the last), so it is safe here
-    // too. concurrentRunners is set here (not in config.json) so the shared
-    // config_base stays serial for other consumers like
-    // appium-port-conflict.test.js, which probes single-Appium port behavior.
-    it("All core specs pass under concurrentRunners=2", async () => {
+    // Minimal smoke. The bulk of the fixtures now run OUTSIDE mocha, in the
+    // per-feature Doc Detective GitHub Action jobs (one group dir under
+    // test/core-artifacts/<group> per job, fanned across all 3 OSes) — see
+    // .github/workflows/fixtures.yml and adrs/01022-*. This pass only exercises
+    // the broad "Do all the things!" spec (test.spec.json: checkLink +
+    // httpRequest + goTo + find/type + recording in one test), so a gross
+    // breakage in the combined runTests() pipeline still fails fast under mocha.
+    // Deep per-feature coverage lives in the group jobs; the recording/display-
+    // mutex concurrency behavior is covered by the recording group job and
+    // test/concurrency.test.js. concurrentRunners is set here (not in
+    // config.json) so the shared config_base stays serial for other consumers
+    // like appium-port-conflict.test.js, which probes single-Appium port behavior.
+    it("Smoke: the 'do all the things' spec passes end-to-end", async () => {
       const config_tests = JSON.parse(JSON.stringify(config_base));
-      config_tests.input = artifactPath;
+      config_tests.input = path.resolve(artifactPath, "test.spec.json");
       config_tests.concurrentRunners = 2;
       const result = await runTests(config_tests);
       if (result === null) assert.fail("Expected result to be non-null");
-      // The run must NOT collapse to whole-run serial — recordings serialize on
-      // the display mutex while the rest of the contexts run in parallel.
+      // A single-spec run must not collapse to whole-run serial.
       assert.notEqual(
         result.recordingForcedSerial,
         true,
@@ -40,7 +41,609 @@ describe("Run tests successfully", function () {
         0,
         `${failedSpecs.length} spec(s) failed: ${failedSpecs.map((s) => s.specId).join(", ")}`
       );
+      // The inline warm phase ran before Phase 2 and reported its tasks: a
+      // browser run at concurrentRunners 2 always plans the browser install
+      // (skipped when already available) and the session probe. Enum
+      // membership (kind/outcome values) is the report_v3 schema's contract,
+      // policed by src/common/test/validate.test.js — this smoke asserts the
+      // shape and the browser tasks only.
+      assert.ok(result.warm, "report.warm missing");
+      assert.equal(typeof result.warm.durationMs, "number");
+      assert.ok(Array.isArray(result.warm.tasks));
+      for (const task of result.warm.tasks) {
+        assert.equal(typeof task.name, "string");
+        assert.equal(typeof task.kind, "string");
+        assert.equal(typeof task.outcome, "string");
+        assert.equal(typeof task.durationMs, "number");
+      }
+      assert.ok(
+        result.warm.tasks.some(
+          (t) => t.kind === "browser-install" || t.kind === "session-probe"
+        ),
+        `expected browser warm tasks, got: ${JSON.stringify(result.warm.tasks)}`
+      );
     });
+  });
+
+  it("A run with no provisioning needs reports an empty warm phase", async () => {
+    // Shell-only spec: the warm planner derives nothing, so the phase is a
+    // no-op by construction — baseline latency unchanged. Hermetic on every OS.
+    const shellOnly = {
+      tests: [{ testId: "warm-noop", steps: [{ runShell: "echo warm" }] }],
+    };
+    fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+    const tempFilePath = path.resolve("./.tmp/temp-warm-noop-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(shellOnly, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath });
+      assert.equal(result.summary.specs.fail, 0);
+      assert.deepEqual(result.warm, { durationMs: 0, tasks: [] });
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
+    // Two tests: one gated on a command that cannot exist (context must land
+    // SKIPPED with a reason naming the missing command — never FAIL), and one
+    // gated on `node` (must actually run and PASS, proving the gate doesn't
+    // over-skip). Non-driver steps only, so this is hermetic on every OS.
+    const requiresTest = {
+      tests: [
+        {
+          testId: "gate-unmet",
+          runOn: [{ requires: "doc-detective-no-such-binary-xyz" }],
+          steps: [{ runShell: "echo should-never-run" }],
+        },
+        {
+          testId: "gate-met",
+          runOn: [{ requires: "node" }],
+          steps: [{ runShell: "echo ran" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-requires-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(requiresTest, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const tests = result.specs[0].tests;
+      const unmet = tests.find((t) => t.testId === "gate-unmet");
+      const met = tests.find((t) => t.testId === "gate-met");
+
+      // Guard first so an empty contexts array can't render the per-context
+      // assertions vacuously true.
+      assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
+      for (const ctx of unmet.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /unmet requirements/);
+        assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
+      }
+      assert.equal(unmet.result, "SKIPPED");
+
+      assert.equal(met.result, "PASS");
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  describe("durationMs on report nodes", function () {
+    // Timing is a report *output*, so it can't be asserted through the
+    // fixture gate (a spec can't read its own report). These run the real
+    // pipeline over hermetic shell-only specs and assert the emitted shape.
+    // See adrs/01083-record-durationms-on-report-nodes.md.
+    this.timeout(300000);
+
+    async function runSpecObject(spec, name, configOverrides = {}) {
+      fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+      const tempFilePath = path.resolve(`./.tmp/temp-${name}.json`);
+      fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+      try {
+        return await runTests({ input: tempFilePath, ...configOverrides });
+      } finally {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+    const isDuration = (value, label) => {
+      assert.equal(typeof value, "number", `${label} durationMs is not a number`);
+      assert.ok(
+        Number.isInteger(value),
+        `${label} durationMs ${value} is not an integer`
+      );
+      assert.ok(value >= 0, `${label} durationMs ${value} is negative`);
+    };
+
+    it("records durationMs on every node of a completed run, and rolls up", async () => {
+      const spec = {
+        tests: [
+          {
+            testId: "dur-a",
+            steps: [{ runShell: "echo a1" }, { runShell: "echo a2" }],
+          },
+          { testId: "dur-b", steps: [{ runShell: "echo b1" }] },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-rollup");
+
+      isDuration(result.durationMs, "run");
+      assert.ok(result.specs.length > 0, "run produced no specs");
+      for (const specReport of result.specs) {
+        isDuration(specReport.durationMs, "spec");
+        assert.ok(specReport.tests.length > 0, "spec produced no tests");
+        let testSum = 0;
+        for (const testReport of specReport.tests) {
+          isDuration(testReport.durationMs, "test");
+          assert.ok(
+            testReport.contexts.length > 0,
+            "test resolved no contexts"
+          );
+          let contextSum = 0;
+          for (const contextReport of testReport.contexts) {
+            isDuration(contextReport.durationMs, "context");
+            assert.ok(contextReport.steps.length > 0, "context ran no steps");
+            let stepSum = 0;
+            for (const stepReport of contextReport.steps) {
+              isDuration(stepReport.durationMs, "step");
+              stepSum += stepReport.durationMs;
+            }
+            // Steps are serial within a context, and the context clock also
+            // covers preflight and teardown, so this is a true lower bound.
+            assert.ok(
+              contextReport.durationMs >= stepSum,
+              `context ${contextReport.durationMs}ms < sum of steps ${stepSum}ms`
+            );
+            contextSum += contextReport.durationMs;
+          }
+          assert.equal(
+            testReport.durationMs,
+            contextSum,
+            "test durationMs is not the sum of its contexts"
+          );
+          testSum += testReport.durationMs;
+        }
+        assert.equal(
+          specReport.durationMs,
+          testSum,
+          "spec durationMs is not the sum of its tests"
+        );
+      }
+    });
+
+    it("reports the final attempt's time for a step re-run by onFail retry", async () => {
+      // Always fails, so it burns all 3 attempts with a 400ms wait between
+      // them. The step itself is near-instant, so a final-attempt duration is
+      // far below the ~800ms of accumulated backoff a summed duration would
+      // have to exceed.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-retry",
+            steps: [
+              {
+                runShell: "node -e \"process.exit(1)\"",
+                onFail: [{ retry: { limit: 2, delay: 400 } }, { continue: true }],
+              },
+            ],
+          },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-retry");
+      const context = result.specs[0].tests[0].contexts[0];
+      const step = context.steps[0];
+
+      assert.equal(step.attempts, 3, "expected the step to run 3 times");
+      isDuration(step.durationMs, "retried step");
+      assert.ok(
+        step.durationMs < 800,
+        `step durationMs ${step.durationMs}ms looks like a sum across attempts, not the final attempt`
+      );
+      // The context clock DOES span every attempt plus the backoff waits.
+      assert.ok(
+        context.durationMs >= 800,
+        `context durationMs ${context.durationMs}ms should span both 400ms backoff waits`
+      );
+    });
+
+    it("records durationMs on steps that never executed", async () => {
+      // The second step is unreachable: the first fails and stops the test, so
+      // step 2 lands SKIPPED without ever running. It still carries the field.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-skipped",
+            steps: [
+              { runShell: "node -e \"process.exit(1)\"" },
+              { runShell: "echo unreachable" },
+            ],
+          },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-skipped");
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2, "expected both steps to be reported");
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.equal(steps[1].durationMs, 0);
+    });
+
+    it("records durationMs on contexts that were skipped before running", async () => {
+      // A false test guard makes prepareContextSlot synthesize a SKIPPED
+      // context report that never reaches the runner's clock — one of several
+      // such sites. The Phase 3 pass is what guarantees it still carries the
+      // field, so a reporter never sees `undefined`.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-guard-skip",
+            if: "$$env.DOC_DETECTIVE_NO_SUCH_VAR === 'never'",
+            steps: [{ runShell: "echo should-not-run" }],
+          },
+          { testId: "dur-guard-run", steps: [{ runShell: "echo ran" }] },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-guard-skip");
+      const tests = result.specs[0].tests;
+      const skipped = tests.find((t) => t.testId === "dur-guard-skip");
+      assert.ok(skipped.contexts.length > 0, "guard-skipped test had no contexts");
+      for (const context of skipped.contexts) {
+        assert.equal(context.result, "SKIPPED");
+        isDuration(context.durationMs, "guard-skipped context");
+      }
+      isDuration(skipped.durationMs, "guard-skipped test");
+    });
+
+    it("does not throw on a run where filters match no specs", async () => {
+      const spec = {
+        tests: [{ testId: "dur-filtered", steps: [{ runShell: "echo hi" }] }],
+      };
+      const result = await runSpecObject(spec, "durations-zero-spec", {
+        testFilter: ["no-such-test-matches-this"],
+      });
+      assert.deepEqual(result.specs, []);
+      isDuration(result.durationMs, "zero-spec run");
+    });
+  });
+
+  describe("runShell shell selection", function () {
+    // Shell steps run through real spawns; give slow Windows JIT paths room.
+    this.timeout(300000);
+
+    async function runShellSpec(steps, configOverrides = {}) {
+      const spec = { tests: [{ testId: "shell-test", steps }] };
+      // Scratch specs live under the gitignored .tmp/ (see CLAUDE.md
+      // "Testing behavior") so a killed run can't orphan them into a commit.
+      fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+      const tempFilePath = path.resolve(
+        `./.tmp/temp-shell-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
+      );
+      fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+      try {
+        return await runTests({ input: tempFilePath, ...configOverrides });
+      } finally {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+    it("defaults to bash on every platform (bash-only syntax passes)", async function () {
+      // `[[ ]]` is a bashism: it errors under cmd.exe AND under dash (the
+      // /bin/sh of Debian/Ubuntu), so this passing proves the default shell
+      // is genuinely bash — not the old platform default.
+      const result = await runShellSpec([
+        {
+          runShell: {
+            command: '[[ "ok" == o* ]] && echo bash-default-works',
+            stdio: "bash-default-works",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("honors a config-level shell default and a step-level override (Windows)", async function () {
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec(
+        [
+          {
+            // Inherits config.shell = cmd: %VAR% expansion only happens in cmd.
+            runShell: {
+              command: "echo %PROCESSOR_ARCHITECTURE%",
+              stdio: "/^(?!.*%PROCESSOR_ARCHITECTURE%).+/",
+            },
+          },
+          {
+            // Step-level bash wins over the config-level cmd.
+            runShell: {
+              command: '[[ "ok" == o* ]] && echo step-override-works',
+              shell: "bash",
+              stdio: "step-override-works",
+            },
+          },
+        ],
+        { shell: "cmd" }
+      );
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("FAILs cmd and powershell steps off Windows with an actionable message", async function () {
+      if (process.platform === "win32") this.skip();
+      for (const shell of ["cmd", "powershell"]) {
+        const result = await runShellSpec([
+          { runShell: { command: "echo hi", shell } },
+        ]);
+        assert.equal(result.summary.specs.fail, 1);
+        const step = result.specs[0].tests[0].contexts[0].steps[0];
+        assert.equal(step.result, "FAIL");
+        assert.match(step.resultDescription, /only supported on Windows/);
+      }
+    });
+
+    it("runs the powershell shell on Windows", async function () {
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec([
+        {
+          runShell: {
+            command: "echo $PSEdition",
+            shell: "powershell",
+            stdio: "Desktop",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+    });
+
+    it("runCode pins its interpreter shell — a powershell config default can't break it (Windows)", async function () {
+      // Regression: runCode's quoted interpreter path is NOT a valid command
+      // under `powershell -c` (a leading quoted string is a string
+      // expression there), so runCode must pin the shell for the generated
+      // runShell step instead of inheriting the config default.
+      if (process.platform !== "win32") this.skip();
+      const result = await runShellSpec(
+        [
+          {
+            runCode: {
+              language: "bash",
+              code: "echo pinned-shell-ok",
+              stdio: "pinned-shell-ok",
+            },
+          },
+          {
+            runCode: {
+              language: "javascript",
+              code: "console.log('js-pinned-ok')",
+              stdio: "js-pinned-ok",
+            },
+          },
+        ],
+        { shell: "powershell" }
+      );
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+
+    it("runCode language bash works on every platform, including Windows", async function () {
+      // The historical "runCode doesn't support bash on Windows" guard is
+      // lifted: the interpreter resolves the same lazily-installed Git Bash.
+      const result = await runShellSpec([
+        {
+          runCode: {
+            language: "bash",
+            code: 'echo "hello-from-bash-$((21 * 2))"',
+            stdio: "hello-from-bash-42",
+          },
+        },
+      ]);
+      assert.equal(result.summary.specs.fail, 0, JSON.stringify(result.specs, null, 2));
+      assert.equal(result.summary.specs.pass, 1);
+    });
+  });
+
+  it("An app-driver test on an unsupported host SKIPs via the app preflight with gating guidance", async function () {
+    // Covers runContext's app-surface preflight block (native app phases
+    // A1/A2). Windows and macOS hosts would attempt a REAL driver install
+    // here, and launching native sessions inside the mocha process is
+    // exactly the interaction #501 tracks — so this asserts the SKIP leg on
+    // the platforms where the preflight gates (Linux, until phase A8), and
+    // the fixture matrix's apps group covers the Windows/macOS launches
+    // out-of-process.
+    if (process.platform === "win32" || process.platform === "darwin")
+      this.skip();
+    const appTest = {
+      tests: [
+        {
+          testId: "app-preflight",
+          steps: [{ startSurface: { app: "/usr/bin/never-launched" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-app-preflight-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(appTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(
+          ctx.resultDescription,
+          /native app surfaces run on Windows, macOS, Android, and iOS/
+        );
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An android context with an unsupported browser SKIPs via the A5 support matrix", async function () {
+    // Covers runContext's mobile-platform branch. A *native* android context —
+    // and, as of phase A5, a chrome mobile-web context — can legitimately PASS
+    // on a capable host (and could lazily install the toolchain), so this test
+    // deliberately requests firefox: the mobile-browser support matrix SKIPs it
+    // *before* any SDK detection/install/boot — a deterministic, hermetic
+    // outcome on every host. NO_ANDROID_AUTOINSTALL is belt-and-suspenders
+    // against any toolchain download. (The gate permutations are covered
+    // hermetically in test/mobile-browser.test.js.)
+    const prevNoInstall = process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
+    process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = "1";
+    const androidTest = {
+      tests: [
+        {
+          testId: "android-gate",
+          runOn: [{ platforms: "android", browsers: "firefox" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(androidTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /'firefox' isn't available on android/);
+        assert.match(ctx.resultDescription, /chrome/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      if (prevNoInstall === undefined)
+        delete process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL;
+      else process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL = prevNoInstall;
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An ios context with an unsupported browser SKIPs via the A5 support matrix", async function () {
+    // chrome-on-ios lands on the matrix skip before the toolchain probe, so
+    // this is hermetic on every host — including macOS, where safari-on-ios
+    // would instead proceed to a real simulator (covered by the mobile-web-ios
+    // fixtures).
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-matrix-gate",
+          runOn: [{ platforms: "ios", browsers: "chrome" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-matrix-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /'chrome' isn't available on ios/);
+        assert.match(ctx.resultDescription, /safari/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A mobile context with device-fixed browser config FAILs with a device pointer", async function () {
+    // headless:false contradicts the device-owned display, so it's a loud FAIL
+    // (an authored contradiction), not a SKIP. Hermetic: the config gate runs
+    // before any toolchain work on every host.
+    const badConfigTest = {
+      tests: [
+        {
+          testId: "android-config-gate",
+          runOn: [
+            {
+              platforms: "android",
+              browsers: { name: "chrome", headless: false },
+            },
+          ],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-config-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(badConfigTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "FAIL");
+        assert.match(ctx.resultDescription, /device\.headless/);
+      }
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("A mixed native-app + web mobile context SKIPs with a split-the-test pointer", async function () {
+    // Interleaving app surfaces and the device browser in ONE mobile context is
+    // deferred (NATIVE_APP/WEBVIEW switching lands with the A6 vocabulary
+    // work); the gate skips deterministically before any device work.
+    const mixedTest = {
+      tests: [
+        {
+          testId: "android-mixed-gate",
+          runOn: [{ platforms: "android", browsers: "chrome" }],
+          steps: [
+            { startSurface: { app: "com.example.app" } },
+            { goTo: "https://example.com" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-android-mixed-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(mixedTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /separate/i);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("An ios target context SKIPs on a non-mac host with toolchain guidance", async function () {
+    // Host != target for mobile, so an ios context resolves on any host. On a
+    // NON-mac host the toolchain probe fails and the context SKIPs with macOS
+    // guidance (asserted here). On a macOS host iOS actually executes against a
+    // managed simulator (phase A4) — a real PASS/SKIP that needs a booted
+    // simulator, so it's covered by the apps-ios fixtures, not this unit leg.
+    if (process.platform === "darwin") this.skip();
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-gate",
+          runOn: [{ platforms: "ios" }],
+          steps: [{ startSurface: { app: "com.apple.Preferences" } }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-gate-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const test = result.specs[0].tests[0];
+      assert.ok(test.contexts.length > 0, "no contexts resolved");
+      for (const ctx of test.contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /iOS/);
+        assert.match(ctx.resultDescription, /macOS|Xcode|simctl/);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
   });
 
   it("Tests skip steps after a failure", async () => {
@@ -391,6 +994,39 @@ describe("Run tests successfully", function () {
       assert.equal(result.specs[0].tests[0].contexts[0].result, "SKIPPED");
     } finally {
       // Ensure cleanup even on failure
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a skipped stopRecord reports no recording outputs", async function () {
+    // stopRecord with no active recording SKIPs deterministically on every
+    // platform, headed or headless. Skip paths must not report `outputs` —
+    // recording metadata (recordingPath, duration, ...) is only set when a
+    // file was actually produced.
+    const spec = {
+      tests: [
+        {
+          testId: "skipped-recording-outputs",
+          steps: [{ goTo: "http://localhost:8092" }, { stopRecord: true }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-skipped-record-outputs.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    const config = { input: tempFilePath, logLevel: "silent" };
+    try {
+      const result = await runTests(config);
+      assert.equal(result.summary.specs.fail, 0);
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      const stopStep = steps.find((s) => typeof s.stopRecord !== "undefined");
+      assert.ok(stopStep, "stopRecord step should be reported");
+      assert.equal(stopStep.result, "SKIPPED");
+      assert.equal(
+        stopStep.outputs,
+        undefined,
+        "a skipped stopRecord must not report recording outputs"
+      );
+    } finally {
       fs.unlinkSync(tempFilePath);
     }
   });
@@ -894,9 +1530,178 @@ describe("Intelligent goTo behavior", function () {
   });
 });
 
+describe("browserJobCount() Appium pool sizing", function () {
+  let browserJobCount;
+  before(async function () {
+    const testsModule = await import("../dist/core/tests.js");
+    browserJobCount = testsModule.browserJobCount;
+  });
+
+  it("counts only contexts whose steps need a browser, excluding app-only and driver-free jobs", function () {
+    const jobs = [
+      // Browser context: a `find` with a CSS selector needs a real browser.
+      { context: { steps: [{ find: { selector: ".ready" } }] } },
+      // App-only context: startSurface + an app-targeted find run on the app
+      // session's own Appium server — no browser pool server is ever acquired.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { find: { elementText: "Select", surface: { app: "charmap" } } },
+          ],
+        },
+      },
+      // Driver-free context: pure shell, no Appium at all.
+      { context: { steps: [{ runShell: { command: "echo hi" } }] } },
+    ];
+    // Only the first context sizes the browser pool. Sizing with the old
+    // isDriverRequired predicate would have wrongly counted the app-only
+    // context and started an idle browser Appium server.
+    assert.equal(browserJobCount(jobs), 1);
+  });
+
+  it("tolerates stepless or malformed jobs without throwing", function () {
+    assert.equal(browserJobCount([]), 0);
+    assert.equal(browserJobCount([{ context: {} }, { context: { steps: [] } }, {}]), 0);
+  });
+
+  it("excludes surface-less interaction steps when the test opens a non-browser surface (ADR 01081)", function () {
+    const jobs = [
+      // App-only test with surface-less steps: they route to the active app
+      // at runtime, so no browser pool server is needed.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { find: { elementText: "Select" } },
+            { screenshot: true },
+          ],
+        },
+      },
+      // Process-only test with a surface-less type: routes to the process.
+      {
+        context: {
+          steps: [
+            { startSurface: { process: "node repl.js", name: "repl" } },
+            { type: ["hello"] },
+          ],
+        },
+      },
+      // Explicit process targeting also never needs a browser.
+      {
+        context: {
+          steps: [{ type: { keys: ["hi"], surface: { process: "repl" } } }],
+        },
+      },
+      // Mixed: a goTo still requires the browser even with an app signal.
+      {
+        context: {
+          steps: [
+            { startSurface: { app: "charmap" } },
+            { goTo: "https://x.test" },
+            { find: "Ready" },
+          ],
+        },
+      },
+      // No non-browser signal: a surface-less find keeps requiring a browser.
+      { context: { steps: [{ find: "Ready" }] } },
+    ];
+    assert.equal(browserJobCount(jobs), 2);
+  });
+
+  it("counts a context whose only browser touch is a startSurface browser descriptor (Phase 6)", function () {
+    const jobs = [
+      { context: { steps: [{ startSurface: { browser: "chrome" } }] } },
+      // Process- and app-only startSurface forms never size the browser pool.
+      { context: { steps: [{ startSurface: { process: "srv", name: "srv" } }] } },
+      { context: { steps: [{ startSurface: { app: "charmap" } }] } },
+      // Array form: one browser descriptor among others still counts once.
+      {
+        context: {
+          steps: [
+            {
+              startSurface: [
+                { app: "charmap" },
+                { browser: "firefox", name: "admin" },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    assert.equal(browserJobCount(jobs), 2);
+  });
+});
+
+describe("collectDeviceDescriptors() device planning", function () {
+  let collectDeviceDescriptors;
+  before(async function () {
+    const testsModule = await import("../dist/core/tests.js");
+    collectDeviceDescriptors = testsModule.collectDeviceDescriptors;
+  });
+
+  it("collects each app descriptor's device across object and parallel array forms (Phase 6)", function () {
+    const context = {
+      steps: [
+        { startSurface: { app: "com.example.a", device: "pixel" } },
+        {
+          startSurface: [
+            { app: "com.example.b", device: { platform: "android", name: "tab" } },
+            // Non-app descriptors have no device and contribute nothing.
+            { browser: "chrome" },
+            { process: "srv", name: "srv" },
+          ],
+        },
+      ],
+    };
+    assert.deepEqual(collectDeviceDescriptors(context), [
+      "pixel",
+      { platform: "android", name: "tab" },
+    ]);
+  });
+
+  it("falls back to [undefined] so a test with no explicit device still validates the default", function () {
+    assert.deepEqual(collectDeviceDescriptors({ steps: [] }), [undefined]);
+    // A device-less app descriptor still contributes its (undefined) slot —
+    // the context default / auto device.
+    assert.deepEqual(
+      collectDeviceDescriptors({
+        steps: [{ startSurface: { app: "com.example.a" } }],
+      }),
+      [undefined]
+    );
+  });
+
+  it("falls back to [undefined] for a parallel array with only browser/process descriptors (no app boots a device)", function () {
+    assert.deepEqual(
+      collectDeviceDescriptors({
+        steps: [
+          {
+            startSurface: [
+              { browser: "chrome" },
+              { process: "srv", name: "srv" },
+            ],
+          },
+        ],
+      }),
+      [undefined]
+    );
+  });
+});
+
 describe("getRunner() function", function () {
   // 5 minutes per test
   this.timeout(300000);
+
+  // Every test here drives a real Appium + Chromium session (or a runTests
+  // browser flow). On constrained CI runners — notably windows-latest — that
+  // session can crash shortly after launch, surfacing as an empty getTitle()
+  // ("first runner should work" assertion) or an ECONNREFUSED on teardown: a
+  // transient infra flake, not a getRunner defect. Retry like the sibling
+  // browser suites above (this.retries(2) on the runTests cases). Retries only
+  // re-run on failure, so a deterministic bug still fails all attempts — this
+  // heals a one-off session death without masking a real regression.
+  this.retries(2);
 
   let getRunner;
 
@@ -2168,15 +2973,21 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("type to a browser-engine surface (chrome) FAILs with 'surface kind not yet supported'", async () => {
-    // A reserved browser engine keyword is a future surface kind; Phase 1 must
-    // FAIL at runtime rather than mis-routing it to a process or element.
+  it("type to an UNOPENED browser surface FAILs pointing at goTo (Phase 4)", async () => {
+    // Phase 4 keys browser surfaces on the session registry; only goTo may
+    // open one. Pin the context to firefox so `surface: "chrome"` is
+    // deterministically unopened, and assert the loud FAIL with the
+    // open-it-with-goTo guidance.
     const t = {
       tests: [
         {
-          steps: [
-            { type: { keys: ["hello"], surface: "chrome" } },
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "firefox", headless: true }],
+            },
           ],
+          steps: [{ type: { keys: ["hello"], surface: "chrome" } }],
         },
       ],
     };
@@ -2187,9 +2998,94 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       assert.equal(result.summary.steps.fail, 1);
+      // runOn lists three platforms, so three contexts exist but only the
+      // current runner's platform actually runs; the rest are SKIPPED. Find
+      // the failing step across all contexts rather than assuming an index.
+      const step = result.specs[0].tests[0].contexts
+        .flatMap((c) => c.steps || [])
+        .find((s) => s.result === "FAIL");
+      assert.ok(step, "expected a failing step");
+      assert.match(step.resultDescription, /No browser surface named "chrome"/);
+      assert.match(step.resultDescription, /goTo/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a tab selector that matches nothing FAILs naming the selector (Phase 3)", async () => {
+    // Acting on a missing tab is a targeting error and must name the selector
+    // so the author can see what didn't resolve. (Contrast closeSurface, where
+    // a no-match is an idempotent PASS no-op.)
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "firefox", headless: true }],
+            },
+          ],
+          steps: [
+            { goTo: "http://localhost:8092" },
+            {
+              find: {
+                elementText: "anything",
+                surface: { browser: "firefox", tab: "missing-tab" },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-find-missing-tab.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
+      // Three platform contexts exist but only the runner's platform runs;
+      // locate the failing step across all of them (see the note above).
+      const step = result.specs[0].tests[0].contexts
+        .flatMap((c) => c.steps || [])
+        .find((s) => s.result === "FAIL");
+      assert.ok(step, "expected a failing step");
+      assert.match(step.resultDescription, /No tab matched/);
+      assert.match(step.resultDescription, /missing-tab/);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("type to an unopened NAMED browser surface FAILs pointing at goTo (Phase 4)", async () => {
+    // Named surfaces resolve against the session registry. A name nothing has
+    // opened is a targeting error naming the surface, with the
+    // open-it-with-goTo guidance — stable on any engine.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              type: {
+                keys: ["hello"],
+                surface: { browser: "firefox", name: "secondary" },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-type-named-surface.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    let result;
+    try {
+      result = await runTests(config);
+      assert.equal(result.summary.steps.fail, 1);
       const step = result.specs[0].tests[0].contexts[0].steps[0];
       assert.equal(step.result, "FAIL");
-      assert.match(step.resultDescription, /surface kind not yet supported/);
+      assert.match(step.resultDescription, /No browser surface named "secondary"/);
+      assert.match(step.resultDescription, /goTo/);
     } finally {
       fs.unlinkSync(tempFilePath);
     }

@@ -32,18 +32,18 @@ recording container be decided?
 ## Decision Outcome
 
 Chosen option: **A**, because the most specific scope (the test) should win, and `.mp4` is the most
-portable default container. Test-level `detectSteps` was made to override config-level — a test
-setting `false` always skips detection — and each matched action is deep-cloned to prevent
+portable default container. Test-level `detectSteps` was made to override config-level, so a test
+setting `false` always skips detection. Each matched action is deep-cloned to prevent
 shared-reference corruption (core `e8063e5`, `f790038`, Seq 130). In the same decision window, the
-default step-recording filename extension changed from `.webm` to `.mp4` when the path is unset,
-changing the output container (core `e1fd1d97`, Seq 128).
+default step-recording filename extension changed from `.webm` to `.mp4` when the path is unset.
+That changes the output container (core `e1fd1d97`, Seq 128).
 
 ### Consequences
 
 * Good: a test can authoritatively disable detection regardless of config.
 * Good: per-match deep-clone removes a class of shared-reference corruption bugs.
 * Good: `.mp4` is broadly playable, a safer default than `.webm`.
-* Neutral: the override is one-directional in spirit — test `false` is decisive.
+* Neutral: the override is one-directional in spirit, and test `false` is decisive.
 * Bad: changing the default container is observable for anyone relying on `.webm` output.
 
 ### Confirmation

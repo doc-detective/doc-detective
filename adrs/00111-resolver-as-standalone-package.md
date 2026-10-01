@@ -10,11 +10,11 @@ decision-makers: doc-detective maintainers
 
 Source-file discovery, markup-driven step detection, and context/identity resolution had grown
 into a substantial body of logic that lived inside `doc-detective-core` alongside the runner.
-By the v3 era this detection/parsing layer was a distinct concern: it turns input files and
-config into a fully-resolved `{config, specs[]}` tree the runner can execute, and it has no
+By the v3 era this detection/parsing layer was a distinct concern. It turns input files and
+config into a fully-resolved `{config, specs[]}` tree the runner can execute. It has no
 business owning browser drivers or running steps. The question was whether to keep that pipeline
-embedded in `core` or extract it into its own package with a clear entrypoint contract so the
-runner could depend on it as a black box.
+embedded in `core`, or extract it into its own package with a clear entrypoint contract. The
+runner could then depend on it as a black box.
 
 ## Decision Drivers
 
@@ -33,11 +33,11 @@ runner could depend on it as a black box.
 ## Decision Outcome
 
 Chosen option: **A**, because a package boundary forces a clean contract and lets the runner treat
-resolution as a black box. The resolver exposes three entrypoints — `detectTests`,
-`resolveTests`, and the combined `detectAndResolveTests` — driven by a `driverActions` list that
-determines `isDriverRequired` and feeds `resolveContexts`. It assigns `uuid`-based `specId` /
-`testId` / `contextId`, returns a `{config, specs[]}` shape, returns `null` when no tests are
-found, and deliberately does **not** default browsers — that remains the runner's job. Commits
+resolution as a black box. The resolver exposes three entrypoints: `detectTests`,
+`resolveTests`, and the combined `detectAndResolveTests`. A `driverActions` list drives them,
+determining `isDriverRequired` and feeding `resolveContexts`. It assigns `uuid`-based `specId` /
+`testId` / `contextId`, returns a `{config, specs[]}` shape, and returns `null` when no tests are
+found. It deliberately does **not** default browsers, which remains the runner's job. Commits
 `c911e006`, `0a626c4d`, `606b214e`, `d097ce06`, `5e1d8c86`, `9527d00c`.
 
 ### Consequences
