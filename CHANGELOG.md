@@ -1,3 +1,96 @@
+## [4.38.5](https://github.com/doc-detective/doc-detective/compare/v4.38.4...v4.38.5) (2026-09-30)
+
+
+### Bug Fixes
+
+* **validate:** silence Ajv console logging ([a9423fa](https://github.com/doc-detective/doc-detective/commit/a9423fadc8251d98e96619be56e27481ac8be605))
+
+## [4.38.4](https://github.com/doc-detective/doc-detective/compare/v4.38.3...v4.38.4) (2026-09-05)
+
+
+### Bug Fixes
+
+* **browsers:** make Firefox usable in the container image ([#715](https://github.com/doc-detective/doc-detective/issues/715)) ([dea9942](https://github.com/doc-detective/doc-detective/commit/dea99428b1eef1f51df94ead28e4ff7f668dc3be)), closes [#714](https://github.com/doc-detective/doc-detective/issues/714)
+
+## [4.38.3](https://github.com/doc-detective/doc-detective/compare/v4.38.2...v4.38.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **runtime:** never execute a foreign-architecture driver binary ([#714](https://github.com/doc-detective/doc-detective/issues/714)) ([7059c6d](https://github.com/doc-detective/doc-detective/commit/7059c6deea81e1d44b8b8584f8f312f7b904fec2))
+
+## [4.38.2](https://github.com/doc-detective/doc-detective/compare/v4.38.1...v4.38.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **engines:** align the node floor with the dependency tree ([#710](https://github.com/doc-detective/doc-detective/issues/710)) ([81e2e1c](https://github.com/doc-detective/doc-detective/commit/81e2e1ce13362eb5f4966797c5de8f69d2247bfb))
+
+## [4.38.1](https://github.com/doc-detective/doc-detective/compare/v4.38.0...v4.38.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **release:** verify the root lockfile as the last prepare step ([#707](https://github.com/doc-detective/doc-detective/issues/707)) ([c8aab4b](https://github.com/doc-detective/doc-detective/commit/c8aab4b55386dd51e2adeddb0e1374b6db664ec8)), closes [#705](https://github.com/doc-detective/doc-detective/issues/705) [#702](https://github.com/doc-detective/doc-detective/issues/702) [#702](https://github.com/doc-detective/doc-detective/issues/702)
+
+# [4.38.0](https://github.com/doc-detective/doc-detective/compare/v4.37.5...v4.38.0) (2026-08-11)
+
+
+### Features
+
+* **reporters:** add junit and markdown reporters ([#702](https://github.com/doc-detective/doc-detective/issues/702)) ([f6dc3b2](https://github.com/doc-detective/doc-detective/commit/f6dc3b22b9a88ac5c6c83d944276ea77ddf548e5)), closes [#683](https://github.com/doc-detective/doc-detective/issues/683) [#684](https://github.com/doc-detective/doc-detective/issues/684)
+
+## [4.37.5](https://github.com/doc-detective/doc-detective/compare/v4.37.4...v4.37.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **release:** rebuild the common lockfile and reconcile the root one during prepare ([#704](https://github.com/doc-detective/doc-detective/issues/704)) ([5155306](https://github.com/doc-detective/doc-detective/commit/5155306df71e7b41d65d06530abe9f2be39649ab)), closes [#705](https://github.com/doc-detective/doc-detective/issues/705)
+
+## [4.37.4](https://github.com/doc-detective/doc-detective/compare/v4.37.3...v4.37.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **lsp:** import the vscode-languageserver v10 ./node subpath ([#703](https://github.com/doc-detective/doc-detective/issues/703)) ([b887754](https://github.com/doc-detective/doc-detective/commit/b887754d702f76a13c85445cc541263acb2091e2))
+
+## [4.37.3](https://github.com/doc-detective/doc-detective/compare/v4.37.2...v4.37.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **goTo:** fail when the browser never left its initial blank document ([#695](https://github.com/doc-detective/doc-detective/issues/695)) ([f1444ad](https://github.com/doc-detective/doc-detective/commit/f1444adac0c79193c8b0d7e01bb7642e19fbcadf))
+
+## [4.37.2](https://github.com/doc-detective/doc-detective/compare/v4.37.1...v4.37.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **surfaces:** honor timeout 0 and stop deleting unadjudicated surfaces ([#697](https://github.com/doc-detective/doc-detective/issues/697)) ([8a4a8dc](https://github.com/doc-detective/doc-detective/commit/8a4a8dcd0f97b6167600df4cb3e3d6fc0ac91243))
+
+## [4.37.1](https://github.com/doc-detective/doc-detective/compare/v4.37.0...v4.37.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **platform:** resolve symlinks in the runner bin entry guard ([#698](https://github.com/doc-detective/doc-detective/issues/698)) ([851f2c5](https://github.com/doc-detective/doc-detective/commit/851f2c536cbf2b9fae0837117244f100ed7fb165))
+
+# [4.37.0](https://github.com/doc-detective/doc-detective/compare/v4.36.0...v4.37.0) (2026-07-26)
+
+
+### Bug Fixes
+
+* **core:** retry a context that FAILs on its initial blank document ([#687](https://github.com/doc-detective/doc-detective/issues/687)) ([9e21386](https://github.com/doc-detective/doc-detective/commit/9e21386bc5db2abde15fc82718180d6ae2f9092e))
+* **schema:** declare find's moveTo default as false, matching the runtime ([#689](https://github.com/doc-detective/doc-detective/issues/689)) ([4fa5bb6](https://github.com/doc-detective/doc-detective/commit/4fa5bb6ba31dbd4bb3841e0d92ee12a584e17b2f)), closes [#175](https://github.com/doc-detective/doc-detective/issues/175) [#170](https://github.com/doc-detective/doc-detective/issues/170)
+
+
+### Features
+
+* **annotate:** configurable timeout on annotation element targets ([#688](https://github.com/doc-detective/doc-detective/issues/688)) ([ba823f3](https://github.com/doc-detective/doc-detective/commit/ba823f3a588cd8518c2b65ac81bd44f8b5f51816)), closes [#679](https://github.com/doc-detective/doc-detective/issues/679)
+* **cli:** add --exit-on-fail gate for non-zero exit on spec failures ([#675](https://github.com/doc-detective/doc-detective/issues/675)) ([3376b33](https://github.com/doc-detective/doc-detective/commit/3376b330129a1d9a8aecfd7e58a648e2d475e12d))
+* **core:** record durationMs on every report node ([#686](https://github.com/doc-detective/doc-detective/issues/686)) ([b98d045](https://github.com/doc-detective/doc-detective/commit/b98d045dda56a0cca599c091f63c3736bc2c9541)), closes [#683](https://github.com/doc-detective/doc-detective/issues/683)
+* **core:** retry a context on a fresh session when its session dies or page breaks mid-run ([#680](https://github.com/doc-detective/doc-detective/issues/680)) ([9131e34](https://github.com/doc-detective/doc-detective/commit/9131e34527e62150fc70af03f244f358cbeb26b9)), closes [#675](https://github.com/doc-detective/doc-detective/issues/675) [#677](https://github.com/doc-detective/doc-detective/issues/677) [#678](https://github.com/doc-detective/doc-detective/issues/678)
+
 # [4.36.0](https://github.com/doc-detective/doc-detective/compare/v4.35.0...v4.36.0) (2026-07-19)
 
 

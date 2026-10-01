@@ -5,6 +5,8 @@ import {
   requiredBrowserAssets,
   verifyDriverBinary,
   geckodriverBinaryInCache,
+  foreignExecutableImageReason,
+  driverExecOptions,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -13,6 +15,7 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { execFileSync } from "node:child_process";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -336,6 +339,62 @@ describe("runtime/browsers", function () {
     expect(result.version).to.equal("0.37.0");
   });
 
+  it("ensureBrowserInstalled('geckodriver') resolves the version-suffixed binary the package writes", async function () {
+    // Regression (containerized install): geckodriver v6 exposes no `.path` and
+    // writes `geckodriver-<version>` at the cache root, so both the cache probe
+    // and the driver allowlist have to recognize that name. Previously this
+    // fell back to the cache DIRECTORY and failed the functional gate with
+    // "Refusing to execute '<cacheDir>': not a recognized driver binary path."
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const binPath = path.join(
+      browsersDir,
+      `geckodriver-0.37.1${process.platform === "win32" ? ".exe" : ""}`
+    );
+    const geckodriverModule = {
+      // No `path` field — matches geckodriver >= 6.
+      download: async () => {
+        fs.writeFileSync(binPath, "#!/bin/sh\n");
+        return binPath;
+      },
+    };
+    let verifiedPath;
+    const verifyExec = async (p) => {
+      verifiedPath = p;
+      return { code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" };
+    };
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(verifiedPath).to.equal(binPath);
+    expect(result.path).to.equal(binPath);
+    expect(result.version).to.equal("0.37.1");
+    expect(readInstalledRecord({}).browsers.geckodriver.installedVersion).to.equal(
+      "0.37.1"
+    );
+  });
+
+  it("ensureBrowserInstalled('geckodriver') reports no path rather than the cache dir when the binary can't be located", async function () {
+    // Honest failure: an unlocatable binary must not be laundered into the
+    // cache DIRECTORY masquerading as a driver path. The record is fresh, so
+    // no download runs; callers degrade to the runtime fallback (Layer 4).
+    const record = readInstalledRecord({});
+    record.browsers.geckodriver = {
+      installedVersion: "0.37.1",
+      installedAt: new Date().toISOString(),
+      latestKnownVersion: "0.37.1",
+      latestCheckedAt: new Date().toISOString(),
+    };
+    writeInstalledRecord(record, {});
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule: {}, logger: () => {}, verifyExec: async () => {
+        throw new Error("must not verify — nothing to verify");
+      } },
+    });
+    expect(result.path).to.equal(undefined);
+    expect(result.version).to.equal("0.37.1");
+  });
+
   it("ensureBrowserInstalled('geckodriver') ignores a `.path` pointing outside the current cache dir (import-cached module)", async function () {
     // The geckodriver module is import-cached, so a non-empty `.path` can point
     // at a different cache dir. resolveBinaryPath must reject it and use the
@@ -425,6 +484,8 @@ describe("runtime/browsers", function () {
   describe("geckodriverBinaryInCache", function () {
     const binName =
       process.platform === "win32" ? "geckodriver.exe" : "geckodriver";
+    const versioned = (version) =>
+      `geckodriver-${version}${process.platform === "win32" ? ".exe" : ""}`;
 
     it("finds the binary at the cache root", function () {
       const bin = path.join(tmpRoot, binName);
@@ -442,6 +503,144 @@ describe("runtime/browsers", function () {
 
     it("returns undefined when the binary isn't present", function () {
       expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    // The geckodriver npm package writes `geckodriver-<version>` (plus `.exe`
+    // on Windows) at the cache root — never the bare `geckodriver` name the
+    // original probe looked for. See ADR: geckodriver version-suffixed binary.
+    it("finds the version-suffixed binary the geckodriver package actually writes", function () {
+      const bin = path.join(tmpRoot, versioned("0.37.1"));
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("picks the highest version when several version-suffixed binaries are cached", function () {
+      for (const v of ["0.9.0", "0.37.1", "0.36.0"]) {
+        fs.writeFileSync(path.join(tmpRoot, versioned(v)), "x");
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(
+        path.join(tmpRoot, versioned("0.37.1"))
+      );
+    });
+
+    it("prefers a version-suffixed binary over a bare-named sibling", function () {
+      // The current package only ever writes versioned names, so a versioned
+      // file is the authoritative managed artifact AND carries a comparable
+      // version. A bare `geckodriver` is a legacy or hand-placed artifact whose
+      // version is unknowable without executing it, so it is the fallback, not
+      // the winner — otherwise a stale bare binary left by an older layout
+      // silently outranks the freshly installed one.
+      const bare = path.join(tmpRoot, binName);
+      fs.writeFileSync(bare, "x");
+      const suffixed = path.join(tmpRoot, versioned("0.37.1"));
+      fs.writeFileSync(suffixed, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(suffixed);
+    });
+
+    it("falls back to the bare name when no version-suffixed binary exists", function () {
+      const bare = path.join(tmpRoot, binName);
+      fs.writeFileSync(bare, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bare);
+    });
+
+    it("picks the newest version across BOTH the root and nested layouts", function () {
+      // Mixed layouts: scanning must complete before selecting, or a root
+      // 0.36.0 wins over a nested 0.37.1 purely because the root is checked
+      // first.
+      fs.writeFileSync(path.join(tmpRoot, versioned("0.36.0")), "x");
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const newest = path.join(nestedDir, versioned("0.37.1"));
+      fs.writeFileSync(newest, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(newest);
+    });
+
+    it("prefers a nested version-suffixed binary over a bare one at the root", function () {
+      fs.writeFileSync(path.join(tmpRoot, binName), "x");
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const nested = path.join(nestedDir, versioned("0.37.1"));
+      fs.writeFileSync(nested, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(nested);
+    });
+
+    it("ignores a leftover `geckodriver-*` staging directory and finds the real binary", function () {
+      // download() extracts through `fs.mkdtemp(<cacheDir>/geckodriver-)`, so a
+      // crashed run can leave a DIRECTORY whose name matches the binary pattern.
+      fs.mkdirSync(path.join(tmpRoot, "geckodriver-8fj2k1"), { recursive: true });
+      const bin = path.join(tmpRoot, versioned("0.37.1"));
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
+    });
+
+    it("ignores a DIRECTORY named exactly like the bare binary", function () {
+      // The sibling assets (chrome/, chromedriver/, firefox/) are directories at
+      // this level, so a `geckodriver/` directory is a plausible layout. Handing
+      // it back would reproduce the very bug this probe exists to prevent: a
+      // directory passed off as an executable, accepted by the allowlist because
+      // it ends in `geckodriver`, and only failing at execFile.
+      fs.mkdirSync(path.join(tmpRoot, binName), { recursive: true });
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("ignores a FIFO named like the binary (it would hang the run)", function () {
+      // Not merely wrong, but a HANG: verifyDriverBinary opens the candidate to
+      // read its ELF header, and opening a FIFO with no writer blocks forever.
+      // `!isDirectory()` admits a FIFO; only a regular-file check excludes it.
+      if (process.platform === "win32") return this.skip();
+      const fifo = path.join(tmpRoot, versioned("0.37.1"));
+      try {
+        execFileSync("mkfifo", [fifo]);
+      } catch {
+        return this.skip(); // no mkfifo on this box
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("ignores a FIFO named like the bare binary", function () {
+      if (process.platform === "win32") return this.skip();
+      const fifo = path.join(tmpRoot, binName);
+      try {
+        execFileSync("mkfifo", [fifo]);
+      } catch {
+        return this.skip();
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("still accepts a symlink that resolves to a regular file", function () {
+      // Tightening to "regular file" must not silently stop finding a binary
+      // someone linked into the cache: readdir reports the entry as a symlink,
+      // so the check has to resolve it rather than reject it outright.
+      if (process.platform === "win32") return this.skip();
+      const real = path.join(tmpRoot, "real-geckodriver");
+      fs.writeFileSync(real, "x");
+      const link = path.join(tmpRoot, versioned("0.37.1"));
+      try {
+        fs.symlinkSync(real, link);
+      } catch {
+        return this.skip(); // symlinks unavailable (permissions)
+      }
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(link);
+    });
+
+    it("ignores a bare-named DIRECTORY nested one level deep", function () {
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(path.join(nestedDir, binName), { recursive: true });
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("returns undefined when only a `geckodriver-*` staging directory is present", function () {
+      fs.mkdirSync(path.join(tmpRoot, "geckodriver-8fj2k1"), { recursive: true });
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(undefined);
+    });
+
+    it("finds a version-suffixed binary nested one level deep", function () {
+      const nestedDir = path.join(tmpRoot, "0.37.1");
+      fs.mkdirSync(nestedDir, { recursive: true });
+      const bin = path.join(nestedDir, versioned("0.37.1"));
+      fs.writeFileSync(bin, "x");
+      expect(geckodriverBinaryInCache(tmpRoot)).to.equal(bin);
     });
   });
 
@@ -489,6 +688,75 @@ describe("runtime/browsers", function () {
     it("returns not-ok when given no binary path", async function () {
       const res = await verifyDriverBinary("geckodriver", "");
       expect(res.ok).to.equal(false);
+    });
+
+    // The geckodriver package names its binary `geckodriver-<version>`, so the
+    // allowlist has to admit that shape or every containerized install fails
+    // the functional gate with "not a recognized driver binary path".
+    it("accepts a version-suffixed driver filename", async function () {
+      const suffixed =
+        process.platform === "win32"
+          ? "C:\\cache\\browsers\\geckodriver-0.37.1.exe"
+          : "/opt/doc-detective/browsers/geckodriver-0.37.1";
+      const res = await verifyDriverBinary("geckodriver", suffixed, {
+        exec: async () => ({ code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" }),
+      });
+      expect(res.ok, res.error).to.equal(true);
+      expect(res.version).to.equal("0.37.1");
+    });
+
+    it("still refuses the bare cache directory even though it is an absolute path", async function () {
+      let execCalled = false;
+      const res = await verifyDriverBinary(
+        "geckodriver",
+        process.platform === "win32" ? "C:\\cache\\browsers" : "/opt/doc-detective/browsers",
+        {
+          exec: async () => {
+            execCalled = true;
+            return { code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" };
+          },
+        }
+      );
+      expect(res.ok).to.equal(false);
+      expect(execCalled).to.equal(false);
+    });
+
+    it("does not extend the version suffix to chromedriver or safaridriver", async function () {
+      // Only geckodriver is ever written with a version-suffixed filename.
+      // @puppeteer/browsers writes a bare `chromedriver`, and safaridriver is a
+      // fixed OS path, so admitting those shapes would widen the exec allowlist
+      // for no functional gain.
+      for (const name of ["chromedriver-99.9.9", "safaridriver-1.2"]) {
+        let execCalled = false;
+        const res = await verifyDriverBinary(
+          name.split("-")[0],
+          process.platform === "win32" ? "C:" + String.fromCharCode(92) + "cache" + String.fromCharCode(92) + name : "/opt/dd/browsers/" + name,
+          {
+            exec: async () => {
+              execCalled = true;
+              return { code: 0, stdout: "x 1.2.3", stderr: "" };
+            },
+          }
+        );
+        expect(res.ok, name).to.equal(false);
+        expect(execCalled, name).to.equal(false);
+      }
+    });
+
+    it("refuses a look-alike name that merely starts with a driver name", async function () {
+      let execCalled = false;
+      const res = await verifyDriverBinary(
+        "geckodriver",
+        process.platform === "win32" ? "C:\\tmp\\geckodriver-evil.sh" : "/tmp/geckodriver-evil.sh",
+        {
+          exec: async () => {
+            execCalled = true;
+            return { code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" };
+          },
+        }
+      );
+      expect(res.ok).to.equal(false);
+      expect(execCalled).to.equal(false);
     });
 
     it("refuses to execute a path that isn't a recognized driver binary", async function () {
@@ -590,5 +858,198 @@ describe("runtime/browsers", function () {
     }
     expect(threw).to.equal(true);
     expect(downloads).to.equal(2); // initial + one re-download
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Foreign-architecture driver images (ADR 01096).
+//
+// Google publishes no native linux-arm64 chromedriver, and @puppeteer/browsers
+// maps BrowserPlatform.LINUX_ARM to the x64 asset — so on a native arm64 Linux
+// host the "installed" chromedriver is an x86-64 ELF. Handing that to
+// execFile() is not a benign failure: execve() returns ENOEXEC, glibc's execvp
+// retries the file through /bin/sh, and the shell then interprets 21 MB of
+// binary as a shell script *in the caller's working directory*. That is how the
+// arm64 Docker build ended up with an undecodable filename in /app.
+//
+// The guard is a header check that runs BEFORE any child process.
+// ---------------------------------------------------------------------------
+
+// Minimal 20-byte ELF header prefix: magic, class, data, version, ABI, then
+// e_type/e_machine. Enough for the check under test; nothing executes it.
+function elfHeader({ machine, class64 = true, littleEndian = true }) {
+  const h = Buffer.alloc(64);
+  h.write("\x7fELF", 0, "binary");
+  h[4] = class64 ? 2 : 1; // EI_CLASS
+  h[5] = littleEndian ? 1 : 2; // EI_DATA
+  h[6] = 1; // EI_VERSION
+  h.writeUInt16LE(2, 16); // e_type = ET_EXEC
+  if (littleEndian) h.writeUInt16LE(machine, 18);
+  else h.writeUInt16BE(machine, 18);
+  return h;
+}
+const EM_X86_64 = 0x3e;
+const EM_AARCH64 = 0xb7;
+
+describe("foreignExecutableImageReason", function () {
+  it("flags an x86-64 ELF on linux/arm64 (the chromedriver-on-arm64 case)", function () {
+    const reason = foreignExecutableImageReason(
+      elfHeader({ machine: EM_X86_64 }),
+      { platform: "linux", arch: "arm64" }
+    );
+    expect(reason).to.be.a("string");
+    expect(reason).to.match(/x86-64/i);
+    expect(reason).to.match(/arm64/i);
+  });
+
+  it("accepts a matching ELF for the host architecture", function () {
+    expect(
+      foreignExecutableImageReason(elfHeader({ machine: EM_AARCH64 }), {
+        platform: "linux",
+        arch: "arm64",
+      })
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(elfHeader({ machine: EM_X86_64 }), {
+        platform: "linux",
+        arch: "x64",
+      })
+    ).to.equal(undefined);
+  });
+
+  it("stays silent for a non-ELF image (no positive proof of a mismatch)", function () {
+    expect(
+      foreignExecutableImageReason(Buffer.from("#!/bin/sh\necho hi\n"), {
+        platform: "linux",
+        arch: "arm64",
+      })
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(Buffer.alloc(0), {
+        platform: "linux",
+        arch: "arm64",
+      })
+    ).to.equal(undefined);
+  });
+
+  it("stays silent off Linux — macOS and Windows on ARM emulate x64 transparently", function () {
+    for (const platform of ["darwin", "win32"]) {
+      expect(
+        foreignExecutableImageReason(elfHeader({ machine: EM_X86_64 }), {
+          platform,
+          arch: "arm64",
+        }),
+        platform
+      ).to.equal(undefined);
+    }
+  });
+
+  it("stays silent for an architecture it has no mapping for (fail open)", function () {
+    expect(
+      foreignExecutableImageReason(elfHeader({ machine: EM_X86_64 }), {
+        platform: "linux",
+        arch: "sparc64",
+      })
+    ).to.equal(undefined);
+  });
+
+  it("decodes a big-endian header in its own byte order", function () {
+    // s390x is the one big-endian architecture in the table, so the e_machine
+    // field has to be read big-endian or every verdict on that host is noise.
+    expect(
+      foreignExecutableImageReason(
+        elfHeader({ machine: 0x16, littleEndian: false }),
+        { platform: "linux", arch: "s390x" }
+      ),
+      "a matching big-endian image must be accepted"
+    ).to.equal(undefined);
+    expect(
+      foreignExecutableImageReason(
+        elfHeader({ machine: EM_X86_64, littleEndian: false }),
+        { platform: "linux", arch: "s390x" }
+      ),
+      "a foreign big-endian image must be refused"
+    ).to.match(/x86-64/i);
+  });
+
+  it("stays silent when EI_DATA declares neither byte order (malformed header)", function () {
+    // Only 1 (LE) and 2 (BE) define a byte order. Anything else means the
+    // e_machine field can't be decoded, so there is no proof of a mismatch and
+    // the normal execute-and-report path must still run.
+    const header = elfHeader({ machine: EM_X86_64 });
+    header[5] = 7;
+    expect(
+      foreignExecutableImageReason(header, { platform: "linux", arch: "arm64" })
+    ).to.equal(undefined);
+  });
+});
+
+describe("verifyDriverBinary — foreign-architecture images", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-foreign-drv-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("refuses an x86-64 chromedriver on linux/arm64 WITHOUT spawning it", async function () {
+    const bin = path.join(dir, "chromedriver");
+    fs.writeFileSync(bin, elfHeader({ machine: EM_X86_64 }));
+    let execCalled = false;
+    const res = await verifyDriverBinary("chromedriver", bin, {
+      imageEnv: { platform: "linux", arch: "arm64" },
+      exec: async () => {
+        execCalled = true;
+        return { code: 0, stdout: "ChromeDriver 1.2.3\n", stderr: "" };
+      },
+    });
+    expect(res.ok).to.equal(false);
+    expect(res.error).to.match(/x86-64/i);
+    // The whole point: never hand a foreign image to execFile, because the
+    // ENOEXEC → /bin/sh fallback executes it as a shell script.
+    expect(execCalled, "must not spawn a foreign-architecture image").to.equal(
+      false
+    );
+  });
+
+  it("still executes a matching-architecture driver", async function () {
+    const bin = path.join(dir, "chromedriver");
+    fs.writeFileSync(bin, elfHeader({ machine: EM_AARCH64 }));
+    const res = await verifyDriverBinary("chromedriver", bin, {
+      imageEnv: { platform: "linux", arch: "arm64" },
+      exec: async () => ({ code: 0, stdout: "ChromeDriver 1.2.3\n", stderr: "" }),
+    });
+    expect(res.ok, res.error).to.equal(true);
+    expect(res.version).to.equal("1.2.3");
+  });
+
+  it("falls open when the header can't be read (unreadable file, races)", async function () {
+    // Missing file: the header probe fails, so the existing spawn path still
+    // runs and reports the real failure rather than a bogus arch verdict.
+    const res = await verifyDriverBinary(
+      "chromedriver",
+      path.join(dir, "chromedriver"),
+      {
+        imageEnv: { platform: "linux", arch: "arm64" },
+        exec: async () => ({ code: null, stdout: "", stderr: "ENOENT" }),
+      }
+    );
+    expect(res.ok).to.equal(false);
+    expect(res.error).to.match(/spawn failed/i);
+  });
+});
+
+describe("driverExecOptions", function () {
+  it("runs the driver in a scratch directory, never the caller's cwd", function () {
+    // Defense in depth for the ENOEXEC → /bin/sh fallback the header check
+    // can't catch (a truncated but well-formed image, a missing loader): the
+    // shell then interprets the binary in a temp dir instead of the user's
+    // project, where its redirections would litter the input tree.
+    const opts = driverExecOptions(5000);
+    expect(opts.cwd).to.equal(os.tmpdir());
+    expect(opts.cwd).to.not.equal(process.cwd());
+    expect(opts.timeout).to.equal(5000);
+    expect(opts.windowsHide).to.equal(true);
   });
 });

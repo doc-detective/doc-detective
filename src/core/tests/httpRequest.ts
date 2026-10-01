@@ -302,6 +302,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   ) {
     const ajv = new Ajv({
       strictSchema: false,
+      logger: false,
       useDefaults: true,
       allErrors: true,
       allowUnionTypes: true,
@@ -425,6 +426,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   ) {
     const ajv = new Ajv({
       strictSchema: false,
+      logger: false,
       useDefaults: true,
       allErrors: true,
       allowUnionTypes: true,

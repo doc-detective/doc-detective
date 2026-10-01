@@ -6,6 +6,8 @@ import {
   appWindowOrigin,
   APP_UNSUPPORTED_CRITERIA,
   appCriteriaError,
+  criteriaFromTarget,
+  resolveAnnotationRects,
 } from "../dist/core/annotations/geometry.js";
 
 describe("annotations/geometry", function () {
@@ -212,6 +214,66 @@ describe("annotations/geometry", function () {
       assert.equal(
         allTargetError({ elementText: "Account ID" }, false, true),
         null
+      );
+    });
+  });
+
+  describe("target timeout", function () {
+    // Annotation targets resolve through the same findElement as `find`, so
+    // they take the same `timeout`. The only thing that used to stop it
+    // working was criteriaFromTarget's field whitelist dropping it, which
+    // pinned every target to findElementByCriteria's hardcoded 5000 ms.
+
+    it("carries a target's timeout into the find criteria", function () {
+      assert.equal(
+        criteriaFromTarget({ selector: "#slow", timeout: 15000 }).timeout,
+        15000
+      );
+    });
+
+    it("leaves the timeout unset when the target omits it, so find applies its own default", function () {
+      // Not defaulted to 5000 here: the number lives in one place (find), and
+      // duplicating it would be a second thing to keep in sync.
+      assert.equal(criteriaFromTarget({ selector: "#fast" }).timeout, undefined);
+    });
+
+    it("passes a string target through untouched", function () {
+      // The selector-or-text shorthand can't carry a timeout, exactly as
+      // find's own string form can't.
+      assert.equal(criteriaFromTarget("#submit"), "#submit");
+    });
+
+    it("honors the target's timeout when resolving an `all` target", async function () {
+      // End-to-end through the real findElementByCriteria against a driver
+      // that never matches: the deadline the target asks for is the deadline
+      // the poll actually uses. Before this field existed the call fell back
+      // to the hardcoded 5000 ms, so a short timeout here is what proves the
+      // value is threaded rather than ignored.
+      const driver = {
+        async $$() {
+          return [];
+        },
+      };
+      const started = Date.now();
+      const { placed, errors } = await resolveAnnotationRects({
+        config: {},
+        annotations: [
+          { type: "blur", target: { selector: ".nope", timeout: 300 }, all: true },
+        ],
+        driver,
+        canvas: { width: 800, height: 600 },
+        scale: 1,
+      });
+      const elapsed = Date.now() - started;
+
+      assert.equal(placed.length, 0);
+      assert.equal(errors.length, 1);
+      assert.match(errors[0], /Couldn't find any element to annotate/);
+      // Generous upper bound — the point is 300 ms rather than 5000 ms, not
+      // millisecond accuracy on a loaded CI runner.
+      assert.ok(
+        elapsed < 2500,
+        `expected the 300ms timeout to be honored, took ${elapsed}ms`
       );
     });
   });

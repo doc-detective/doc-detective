@@ -9,9 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Every `fixtures.yml` job ends with an `actions/upload-artifact` step that preserves the run's
-`dd-output-*.json` output(s) for debugging (`if: always()`, `retention-days: 3`) — a single
+`dd-output-*.json` outputs for debugging (`if: always()`, `retention-days: 3`). That's a single
 `dd-output-<group>.json` on the general matrix leg, and multiple files (`dd-output-apps-android.json`
-+ `dd-output-mobile-web-android.json`) on the Android KVM legs. This upload runs **after** the real
+plus `dd-output-mobile-web-android.json`) on the Android KVM legs. This upload runs **after** the real
 pass/fail gate (`Gate on results` → `scripts/check-fixture-results.cjs`), so its only purpose is
 diagnostics.
 
@@ -26,14 +26,14 @@ Attempt 1 of 5 failed with error: Request timeout: /twirp/github.actions.results
 Because the step was fatal, this failed the **whole fixture job even though the fixture run itself
 passed** (`All 11 spec(s) passed or skipped`). Observed on a `main` dispatch: `interactions
 (macos-latest)` went red purely on this upload timeout while every spec passed. A run's green/red
-signal should reflect the product, not a transient GitHub storage outage — this both produces false
-failures and, under a strict "all-green" release/merge gate, resets convergence for reasons entirely
-outside the code under test.
+signal should reflect the product, not a transient GitHub storage outage. This produces false
+failures. Under a strict "all-green" release or merge gate, it also resets convergence for reasons
+entirely outside the code under test.
 
 ## Decision Drivers
 
 * A job's conclusion must reflect the **test result**, not GitHub-infrastructure availability.
-* The real gate already ran and failed the job first on any genuine fixture FAIL — the upload is
+* The real gate already ran and failed the job first on any genuine fixture FAIL. The upload is
   strictly diagnostic and sequenced after it.
 * Must not weaken failure detection: a real fixture FAIL must still fail the job.
 * Minimal, uniform change across all fixture legs.
@@ -49,25 +49,25 @@ outside the code under test.
 ## Decision Outcome
 
 Chosen option: **A**. Add `continue-on-error: true` to the four `actions/upload-artifact` steps in
-`fixtures.yml` (the general matrix job + the three Android KVM legs). Each already runs `if: always()`
-and *after* its gate, so making it non-fatal cannot mask a real failure — it only prevents a GitHub
-ArtifactService outage from turning a passing run red. B adds complexity for no gain over the action's
+`fixtures.yml`: the general matrix job plus the three Android KVM legs. Each already runs
+`if: always()` and *after* its gate, so making it non-fatal cannot mask a real failure. It only
+prevents a GitHub ArtifactService outage from turning a passing run red. B adds complexity for no gain over the action's
 own retries; C keeps the false-failure toil.
 
 Trade-off accepted: when the ArtifactService is down, that job's diagnostic JSON is simply absent for
-those 3 days. That artifact only matters when a fixture FAILs — and a real FAIL fails the gate step
-regardless — so losing it on a passing run costs nothing, and on a failing run the gate log still
+those 3 days. That artifact only matters when a fixture FAILs, and a real FAIL fails the gate step
+regardless. So losing it on a passing run costs nothing, and on a failing run the gate log still
 carries the failure detail.
 
 ## Consequences
 
-* **Good** — a transient `CreateArtifact` timeout no longer produces a false job failure; the job's
-  status reflects the fixture result. Removes a whole class of environmental false-reds from the Test
-  workflow (relevant to strict all-green gating).
-* **Neutral** — on an ArtifactService outage the diagnostic JSON for that job is not uploaded; the
+* **Good:** a transient `CreateArtifact` timeout no longer produces a false job failure, and the
+  job's status reflects the fixture result. That removes a whole class of environmental false-reds
+  from the Test workflow, which matters under strict all-green gating.
+* **Neutral:** on an ArtifactService outage the diagnostic JSON for that job is not uploaded. The
   gate step's log still shows pass/fail and, for failures, the per-spec detail.
-* **Good / preserved** — real fixture FAILs and zero-spec/mis-pointed runs still fail the job via the
-  gate step, which runs before the upload. Failure detection is unchanged.
+* **Good / preserved:** real fixture FAILs and zero-spec or mis-pointed runs still fail the job
+  through the gate step, which runs before the upload. Failure detection is unchanged.
 
 ## Confirmation
 
@@ -81,7 +81,7 @@ carries the failure detail.
 ### A. `continue-on-error: true` on every diagnostic upload
 
 * Good: one-line, uniform; job status reflects the test, not GitHub storage availability.
-* Good: cannot mask real failures — the gate runs first; the upload is diagnostic-only.
+* Good: cannot mask real failures. The gate runs first, and the upload is diagnostic-only.
 * Neutral: diagnostic JSON missing for a passing run during an ArtifactService outage (no value lost).
 
 ### B. Bespoke retry/backoff wrapper around the upload

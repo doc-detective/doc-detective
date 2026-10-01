@@ -149,6 +149,8 @@ export async function buildHintContext(
     usedRetry: walkData.usedRetry,
     failedTransientRequest: walkData.failedTransientRequest,
     failedRunShellWithoutShell: walkData.failedRunShellWithoutShell,
+    failedAnnotationTargetWithoutTimeout:
+      walkData.failedAnnotationTargetWithoutTimeout,
     ranIosContexts: walkData.ranIosContexts,
     viewportFloored: walkData.viewportFloored,
     ranMobileContexts: walkData.ranMobileContexts,
@@ -405,6 +407,11 @@ interface WalkData {
   usedRetry: boolean;
   failedTransientRequest: boolean;
   failedRunShellWithoutShell: boolean;
+  // True when a step FAILed specifically because an annotation's target
+  // couldn't be found, and no target in that step asked for extra time. The
+  // fix is a `timeout` on the target (ADR 01085). Powers
+  // `setAnnotationTimeout`.
+  failedAnnotationTargetWithoutTimeout: boolean;
   ranIosContexts: boolean;
   hasStaleRecordings: boolean;
   viewportFloored: boolean;
@@ -460,6 +467,7 @@ function emptyWalkData(): WalkData {
     usedRetry: false,
     failedTransientRequest: false,
     failedRunShellWithoutShell: false,
+    failedAnnotationTargetWithoutTimeout: false,
     ranIosContexts: false,
     hasStaleRecordings: false,
     viewportFloored: false,
@@ -467,6 +475,82 @@ function emptyWalkData(): WalkData {
     repeatedAppSurfaceRefs: false,
     appSurfaceRefCounts: new Map(),
   };
+}
+
+/**
+ * Matches the runner's "target didn't resolve" annotation failures — both the
+ * single-element form ("the element to annotate") and the `all` form ("any
+ * element to annotate"). Mirrors the messages in
+ * `src/core/annotations/geometry.ts`; matched on text rather than imported so
+ * `hints/` stays free of the core module graph, the same trade the viewport
+ * tolerance and surface-key list above make. Exported so `test/hints.test.js`
+ * can drive a real resolution failure through geometry and assert the message
+ * still matches — a reword there would otherwise silence the hint quietly.
+ */
+export const ANNOTATION_TARGET_MISSING = /element to annotate/;
+
+/**
+ * The annotation type keys, whose value is the annotation's target. Mirrors
+ * the `oneOf` branches in `annotation_v3.schema.json`; listed rather than
+ * inferred because the target has to be told apart from the sibling options
+ * (`label` is a string too, and a top-level `position` is placement, not a
+ * target). Drift degrades to silence — a new type the hint doesn't know about
+ * simply won't trigger it — which is the right failure mode for a hint.
+ */
+const ANNOTATION_TYPE_KEYS = [
+  "outline",
+  "arrow",
+  "badge",
+  "callout",
+  "blur",
+  "text",
+];
+
+/**
+ * Whether this step has an element target that could have waited longer.
+ *
+ * Requires BOTH that the step declares at least one element-anchored target
+ * and that none of them asked for extra time:
+ *
+ * - No element target at all (a `clear`-only step, or position-anchored
+ *   annotations) means there is nothing to put a `timeout` on. That case is
+ *   reachable — renderLayer re-resolves every surviving annotation on each
+ *   render, so a `clear` step can FAIL on an annotation some earlier step
+ *   added, which may already carry a `timeout` of its own.
+ * - One target already carrying a `timeout` is enough to stay quiet: the
+ *   author knows the field exists, and which target needed it is their call.
+ *
+ * Covers both surfaces the field lives on: an `annotate` step's `add`/`update`
+ * entries, and a screenshot's own `annotations`.
+ */
+function annotationTargetCouldWaitLonger(step: any): boolean {
+  const annotations = [
+    ...(Array.isArray(step?.annotate?.add) ? step.annotate.add : []),
+    ...(Array.isArray(step?.annotate?.update) ? step.annotate.update : []),
+    ...(Array.isArray(step?.screenshot?.annotations)
+      ? step.screenshot.annotations
+      : []),
+  ];
+
+  let sawElementTarget = false;
+  for (const annotation of annotations) {
+    for (const key of ANNOTATION_TYPE_KEYS) {
+      const target = annotation?.[key];
+      if (target === undefined) continue;
+      // The selector-or-text shorthand is element-anchored but has nowhere to
+      // put a timeout — exactly the case worth teaching.
+      if (typeof target === "string") {
+        sawElementTarget = true;
+        continue;
+      }
+      if (!target || typeof target !== "object") continue;
+      // A position target resolves without a driver, so waiting is meaningless.
+      if (target.position !== undefined) continue;
+      if (typeof target.timeout === "number") return false;
+      sawElementTarget = true;
+    }
+  }
+  return sawElementTarget;
 }
 
 // The step keys whose actions route through the active-surface resolver
@@ -660,6 +744,21 @@ function inspectStep(step: any, data: WalkData): void {
     typeof step.runShell?.shell !== "string"
   ) {
     data.failedRunShellWithoutShell = true;
+  }
+
+  // A step that FAILed because an annotation's target was never found, where
+  // the step has an element target that could have waited longer. Gated on
+  // the resolution message rather than "an annotate step FAILed": the other
+  // failure modes (an invalid payload, updating an id that isn't on screen)
+  // have nothing to do with waiting, and a timeout suggestion there is noise.
+  // Powers `setAnnotationTimeout`.
+  if (
+    step.result === "FAIL" &&
+    typeof step.resultDescription === "string" &&
+    ANNOTATION_TARGET_MISSING.test(step.resultDescription) &&
+    annotationTargetCouldWaitLonger(step)
+  ) {
+    data.failedAnnotationTargetWithoutTimeout = true;
   }
 
   // runShell command sniffing.

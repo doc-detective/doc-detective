@@ -1,6 +1,6 @@
 const path = require("path");
-const assert = require("assert").strict;
 const fs = require("fs");
+const { assertRunOutcome } = require("./runOutcome.cjs");
 const artifactPath = path.resolve(__dirname, "./artifacts");
 const outputFile = path.resolve(artifactPath, "results.json");
 const publicDir = path.resolve(__dirname, "../../../test/server/public");
@@ -233,7 +233,11 @@ describe("Run tests successfully", function () {
               fs.readFileSync(outputFile, { encoding: "utf8" })
             );
             console.log(JSON.stringify(result, null, 2));
-            assert.equal(result.summary.specs.fail, 0);
+            // No failures AND at least one real pass — see runOutcome.cjs for
+            // why the arm64 image (no upstream linux-arm64 chromedriver) must
+            // be allowed to SKIP its browser specs without the gate going
+            // blind to an image that runs nothing at all.
+            assertRunOutcome(result);
             fs.unlinkSync(outputFile);
             resolve();
           } catch (error) {

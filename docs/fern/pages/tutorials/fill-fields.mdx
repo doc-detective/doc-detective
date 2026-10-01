@@ -40,9 +40,9 @@ To run the test:
 {/* This tutorial drives a browser against a locally served sample form; it needs the tutorial harness (a static server for the form), which the docs-test CI job doesn't provide, so it's skipped there. */}
 {/* test ignore start */}
 
-The test spec is a Markdown file with [inline tests](/docs/test-docs/inline-tests): each numbered step describes the action in prose, followed by a `{/* step ... */}` comment that Doc Detective runs.
+The test spec is a Markdown file with [inline tests](/docs/test-docs/inline-tests). Each numbered step describes the action in prose, followed by a `{/* step ... */}` comment that Doc Detective runs.
 
-The test opens with an inline `test` comment that defines the execution environment: the platform and browser the test runs on. You can specify your own platform, but making the test compatible with other platforms doesn't hurt. Chrome is currently the only browser that supports the record feature, which later examples use. When you run the test in the _headless_ state, it runs without showing the actions in a browser window; set `headless` to `false` to watch the actions instead. The form in this example is too large to fit on the screen, so the viewport is set to the full size, even when it isn't displayed. This matters for taking screenshots, which a later tutorial covers.
+The test opens with an inline `test` comment that defines the execution environment. That's the platform and browser the test runs on. You can specify your own platform, but making the test compatible with other platforms doesn't hurt. Chrome is currently the only browser that supports the record feature, which later examples use. In the _headless_ state, the test runs without showing the actions in a browser window. Set `headless` to `false` to watch the actions instead. The form in this example is too large to fit on the screen. The viewport is therefore set to the full size, even when it isn't displayed. This matters for taking screenshots, which a later tutorial covers.
 
 ```md
 {/* test {"testId":"form-filler1","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false,"viewport":{"width":1180,"height":1480}}}]} */}
@@ -66,7 +66,7 @@ Locate an element with the label "Last Name:" and type in the value _Betaux_.
 {/* step {"description":"Type in the Last Name","find":{"elementText":"Last Name:","click":true,"type":"Betaux"}} */}
 ```
 
-Capture a screenshot of the completed fields, then pause 10 seconds so you can see the results before the test ends. In real tests, you want to avoid long pauses to let tests run as quickly as possible, but pauses are invaluable when you're learning or debugging.
+Capture a screenshot of the completed fields, then pause 10 seconds so you can see the results before the test ends. In real tests, avoid long pauses so tests run as quickly as possible. Pauses are still invaluable when you're learning or debugging.
 
 ```md
 {/* step {"description":"Capture a screenshot of the completed form.","screenshot":"./output/form-filled-1-first-and-last-name.png"} */}

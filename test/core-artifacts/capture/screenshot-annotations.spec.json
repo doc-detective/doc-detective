@@ -431,6 +431,48 @@
           }
         }
       ]
+    },
+    {
+      "testId": "annotations-target-timeout",
+      "description": "`timeout` on an annotation's element target (ADR 01085). Screenshot annotations resolve their targets through the same code as an `annotate` step, so they take the same field — closing the gap for one and not the other would have traded one asymmetry for another. Both targets here appear at 6500 ms, past the 5000 ms default, so a permutation that dropped its `timeout` would FAIL rather than pass anyway. The annotate-step half lives in recording/annotate-timeout.spec.json.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-late-element.html"
+        },
+        {
+          "stepId": "annotation-late-single",
+          "screenshot": {
+            "path": "annotation-late-single.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": {
+                  "elementTestId": "late-panel",
+                  "timeout": 20000
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotation-late-redaction",
+          "screenshot": {
+            "path": "annotation-late-redaction.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "blur": {
+                  "selector": ".late-secret",
+                  "timeout": 20000
+                },
+                "all": true
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

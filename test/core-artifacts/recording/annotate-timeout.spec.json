@@ -1,0 +1,117 @@
+{
+  "specId": "annotate-timeout",
+  "description": "`timeout` on an annotation's element target (ADR 01085). Annotation targets resolve through the same findElement as `find`, so they take the same `timeout`; before it was threaded through, every target was pinned to a hardcoded 5000 ms and authors had to precede `annotate` with a guard `find` just to buy a longer wait. Every target here lives on annotate-late-element.html and appears at 6500 ms — deliberately past that default, so a permutation that dropped its `timeout` would FAIL rather than pass anyway. These permutations assert resolution, not visible output, so unlike annotate.spec.json they need no display and run headless everywhere. The FAIL path (a target that never appears) is pinned in test/annotate-step.test.js, since a spec can't assert FAIL. The screenshot-annotation half of the same field lives in capture/screenshot-annotations.spec.json.",
+  "tests": [
+    {
+      "testId": "annotate-timeout-omitted",
+      "description": "Control: a target that's present at load, with no `timeout`. Find applies its own default, exactly as before — the new field is opt-in and changes nothing when unset.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-late-element.html"
+        },
+        {
+          "stepId": "annotate-default-timeout",
+          "annotate": {
+            "add": [
+              {
+                "id": "instant",
+                "outline": {
+                  "selector": "#instant-target"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-timeout-single-element",
+      "description": "The permutation the feature exists for: annotate an element that appears at 6500 ms, with no guard `find` in front of it. The 20000 ms `timeout` is what makes this resolve — on the old hardcoded 5000 ms the target isn't in the DOM yet and the step FAILs.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-late-element.html"
+        },
+        {
+          "stepId": "annotate-late-target",
+          "annotate": {
+            "add": [
+              {
+                "id": "late-callout",
+                "callout": {
+                  "elementTestId": "late-panel",
+                  "timeout": 20000
+                },
+                "label": "Appears once the first sync finishes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-timeout-all-matches",
+      "description": "`all: true` takes a different code path — it reaches findElementByCriteria directly instead of going through findElement — so it needs its own permutation. Redacting only some of the late `.late-secret` elements because the rest hadn't rendered would be a disclosure, not a cosmetic miss.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-late-element.html"
+        },
+        {
+          "stepId": "annotate-late-redaction",
+          "annotate": {
+            "add": [
+              {
+                "id": "redact-late-secrets",
+                "blur": {
+                  "selector": ".late-secret",
+                  "timeout": 20000
+                },
+                "all": true,
+                "transition": {
+                  "enter": "none"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "annotate-timeout-on-update",
+      "description": "`update` re-resolves its target, so it needs a `timeout` of its own. Here the annotation starts on an element present at load and is then repointed at one that doesn't appear until 8000 ms.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-late-element.html"
+        },
+        {
+          "stepId": "annotate-update-seed",
+          "annotate": {
+            "add": [
+              {
+                "id": "wandering",
+                "badge": {
+                  "selector": "#instant-target"
+                },
+                "label": "1"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "annotate-update-late",
+          "annotate": {
+            "update": [
+              {
+                "id": "wandering",
+                "badge": {
+                  "selector": "#late-second",
+                  "timeout": 20000
+                },
+                "label": "2"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

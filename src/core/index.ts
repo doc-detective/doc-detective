@@ -195,8 +195,14 @@ async function runTests(config: any, options: any = {}) {
           // requiredBrowserAssets returns [] for safari (ships with the OS)
           // and any unknown name, so the loop body simply no-ops for those.
           const assets = requiredBrowserAssets(browser);
-          const assetResults: Record<string, { path: string; version: string }> =
-            {};
+          // `path` is optional: an asset can be recorded as installed while
+          // its binary can't be located, in which case patchAppCache builds a
+          // descriptor with no driverPath and the app falls through to the
+          // runtime fallback rather than carrying a bogus path.
+          const assetResults: Record<
+            string,
+            { path?: string; version: string }
+          > = {};
           for (const asset of assets) {
             assetResults[asset] = await ensureBrowserInstalled(asset, {
               ctx,

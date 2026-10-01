@@ -376,7 +376,19 @@ async function startSurfaceStep({
   if (browserRegistry) {
     for (const slot of browserSlots) {
       if (results[slot.i]?.status === "PASS") {
-        activateSession(browserRegistry, results[slot.i].outputs?.name ?? slot.name);
+        const name = results[slot.i].outputs?.name ?? slot.name;
+        // A miss means the session opened but isn't in the registry under the
+        // name we'd address it by, so `activeName` would silently keep pointing
+        // at the previous session while the MRU tracker says otherwise — every
+        // later surface-less step would then act on the wrong browser. Fail
+        // loudly instead: a diagnosable error beats a wrong-surface run.
+        if (!activateSession(browserRegistry, name)) {
+          results[slot.i] = {
+            ...results[slot.i],
+            status: "FAIL",
+            description: `Opened browser surface "${name}", but it couldn't be made the active surface — no session is registered under that name. This is a runner bug; surface-less steps after this one would act on the wrong browser.`,
+          };
+        }
       }
     }
   }

@@ -50,6 +50,12 @@
       "description": "Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.",
       "$ref": "annotationDefaults_v3.schema.json#"
     },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.",
+      "readOnly": true
+    },
     "tests": {
       "description": "[Tests](test) to perform.",
       "type": "array",

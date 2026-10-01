@@ -6,7 +6,7 @@
 // `npm run docs:build-cli-ref`.
 //
 // Sibling of docs/.scripts/buildSchemaReferencesV4.js (which generates the
-// reference/schemas/*.md pages). Like that script it is build-free: it reads
+// reference/schemas/*.mdx pages). Like that script it is build-free: it reads
 // the TypeScript sources statically with the compiler API rather than
 // executing the compiled CLI, so it needs no `npm run build` and no heavy
 // runtime import graph. Flag/command metadata comes from the yargs `.option()`
@@ -18,7 +18,21 @@
 
 const fs = require("fs");
 const path = require("path");
-const ts = require("typescript");
+// Pinned TypeScript 6 alias, NOT the `typescript` the repo builds with.
+//
+// TypeScript 7 is the native port: `require("typescript")` resolves to
+// lib/version.cjs and exports only { version, versionMajorMinor }. The
+// syntactic compiler API this script relies on — createSourceFile,
+// forEachChild, the isX type guards — is gone from that entry point. What TS 7
+// offers instead lives under `typescript/unstable/*`: an ESM, project-oriented
+// API that spawns the native binary and has no drop-in for parsing one file
+// into a walkable AST.
+//
+// Rewriting this generator against an explicitly unstable API would risk
+// changing its output, and docs-cli-ref.yml compares the generated page
+// byte-for-byte. Pinning the parser instead keeps the output identical and
+// leaves the repo's own TypeScript free to move.
+const ts = require("typescript-compiler-api");
 
 const repoRoot = path.resolve(__dirname, "../..");
 const srcDir = path.join(repoRoot, "src");

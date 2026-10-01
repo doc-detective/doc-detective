@@ -27,15 +27,7 @@ export type AtLeastOneElementFindingField = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -51,15 +43,7 @@ export type AtLeastOneElementFindingField1 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion1 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -75,15 +59,7 @@ export type AtLeastOneElementFindingField2 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion2 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -99,15 +75,7 @@ export type AtLeastOneElementFindingField3 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion3 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -123,15 +91,7 @@ export type AtLeastOneElementFindingField4 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion4 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -147,28 +107,12 @@ export type AtLeastOneElementFindingField5 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion5 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion6 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType = {
   [k: string]: unknown;
 };
@@ -195,15 +139,7 @@ export type AtLeastOneElementFindingField6 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion7 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -219,15 +155,7 @@ export type AtLeastOneElementFindingField7 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion8 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -243,15 +171,7 @@ export type AtLeastOneElementFindingField8 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion9 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -267,15 +187,7 @@ export type AtLeastOneElementFindingField9 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion10 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -291,15 +203,7 @@ export type AtLeastOneElementFindingField10 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion11 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
@@ -315,28 +219,12 @@ export type AtLeastOneElementFindingField11 = {
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion12 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
 export type NamedRegion13 =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "center"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType1 = {
   [k: string]: unknown;
 };
@@ -449,6 +337,10 @@ export interface ElementFindingFields {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -500,6 +392,10 @@ export interface ElementFindingFields1 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -551,6 +447,10 @@ export interface ElementFindingFields2 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -602,6 +502,10 @@ export interface ElementFindingFields3 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -653,6 +557,10 @@ export interface ElementFindingFields4 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -704,6 +612,10 @@ export interface ElementFindingFields5 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -900,6 +812,10 @@ export interface ElementFindingFields6 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -951,6 +867,10 @@ export interface ElementFindingFields7 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1002,6 +922,10 @@ export interface ElementFindingFields8 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1053,6 +977,10 @@ export interface ElementFindingFields9 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1104,6 +1032,10 @@ export interface ElementFindingFields10 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
@@ -1155,6 +1087,10 @@ export interface ElementFindingFields11 {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
 }
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
