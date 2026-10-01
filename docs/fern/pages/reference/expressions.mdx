@@ -49,7 +49,7 @@ Doc Detective sometimes can't resolve an embedded expression, such as one contai
 
 ## Operators
 
-Use operators wherever Doc Detective evaluates a condition, such as a step or test `if` guard or a custom assertion. In a plain variable assignment, Doc Detective resolves meta-value references but doesn't evaluate operators. Operator-like text in a captured value therefore stays untouched.
+Use operators wherever Doc Detective evaluates a condition, such as a step or test `if` guard or a custom assertion. In a plain variable assignment, Doc Detective resolves meta-value references but doesn't evaluate comparison or word operators. Operator-like text in a captured value therefore stays untouched. The two [function operators](#function-operators) are the exception, and they run everywhere.
 
 ### Comparison operators
 
