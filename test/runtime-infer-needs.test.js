@@ -392,4 +392,55 @@ describe("runtime/inferRuntimeNeeds", function () {
     );
     expect(withCmdDefault.windowsBash).to.equal(false);
   });
+
+  it("an app-only spec with surface-less interaction steps infers no browser (ADR 01081)", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        { startSurface: { app: "charmap" } },
+        { find: { elementText: "Select" } },
+        { screenshot: true },
+      ]),
+    ]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+    expect([...needs.browsers]).to.deep.equal([]);
+    // App screenshots still need the image stack.
+    expect(needs.npmPackages.has("sharp")).to.equal(true);
+  });
+
+  it("a process-only spec with a surface-less type infers no browser", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        { startSurface: { process: "node repl.js", name: "repl" } },
+        { type: ["hello"] },
+      ]),
+    ]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+    expect([...needs.browsers]).to.deep.equal([]);
+  });
+
+  it("an explicit process-targeted type infers no browser", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ type: { keys: ["hi"], surface: { process: "repl" } } }]),
+    ]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(false);
+  });
+
+  it("a surface-less interaction step with no non-browser signal still infers a browser", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([{ find: { elementText: "Ready" } }]),
+    ]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+    expect([...needs.browsers]).to.deep.equal(["chrome"]);
+  });
+
+  it("a goTo in an app-signal spec still infers the browser stack", function () {
+    const needs = inferRuntimeNeeds([
+      makeSpec([
+        { startSurface: { app: "charmap" } },
+        { goTo: { url: "https://x.test" } },
+        { find: "Ready" },
+      ]),
+    ]);
+    expect(needs.npmPackages.has("webdriverio")).to.equal(true);
+  });
 });

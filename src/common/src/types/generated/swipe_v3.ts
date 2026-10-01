@@ -108,7 +108,7 @@ export interface SwipeDirectional {
    */
   duration?: number;
   /**
-   * The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }).
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
   surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
 }
@@ -189,7 +189,7 @@ export interface SwipePointToPoint {
    */
   duration?: number;
   /**
-   * The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }).
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
   surface?: SurfaceByBrowserEngine1 | BrowserSurface1 | AppSurface1;
 }

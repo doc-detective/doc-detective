@@ -8,19 +8,19 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`startRecording` writes video to a fixed path, so re-running a test silently clobbered prior
-output and offered no way to express "keep what is already there." Separately, when a test failed
-there was no artifact to inspect after the fact — the only recordings were the explicit
+`startRecording` writes video to a fixed path. Re-running a test silently clobbered prior
+output, and offered no way to express "keep what is already there." Separately, when a test failed
+there was no artifact to inspect after the fact. The only recordings were the explicit
 `startRecording`/`stopRecording` ones authored in the test. How should the recorder handle a target
-file that already exists, and how do we automatically capture a video when a test fails so authors
+file that already exists? And how do we automatically capture a video when a test fails, so authors
 can debug it?
 
 ## Decision Drivers
 
 * Re-running a spec must not destroy an existing recording unless the author opts in.
 * Failing tests need a debuggable artifact without the author wiring recording steps by hand.
-* Failed-test capture must be configurable (global default, env, and per-test override) and tidy —
-  it should not leave videos behind for tests that passed.
+* Failed-test capture must be configurable (global default, env, and per-test override) and tidy,
+  leaving no videos behind for tests that passed.
 * Encode quality must be predictable enough to be useful for debugging.
 
 ## Considered Options
@@ -31,19 +31,19 @@ can debug it?
 
 ## Decision Outcome
 
-Chosen option: **A**, because it gives the author explicit control over destructive writes while
-making failure debugging the default, and it cleans up after itself so passing runs stay quiet.
+Chosen option: **A**. It gives the author explicit control over destructive writes, while making
+failure debugging the default. It also cleans up after itself, so passing runs stay quiet.
 
 Behavior decided:
 
-1. **`overwrite` on `startRecording`** — when the target file exists, the step resolves PASS and
-   skips re-recording instead of clobbering; an in-progress recording is guarded against a second
+1. **`overwrite` on `startRecording`.** When the target file exists, the step resolves PASS and
+   skips re-recording instead of clobbering. An in-progress recording is guarded against a second
    start.
-2. **Failed-test capture** — defaults `saveFailedTestRecordings` (true) and `failedTestDirectory`,
+2. **Failed-test capture.** Defaults are `saveFailedTestRecordings` (true) and `failedTestDirectory`,
    with matching env vars and test-level overrides. The runner auto-records a baseline for every
    test, gates the save on the flag, names the artifact `<id>-<ts>.mp4`, and deletes it when the
    test passes.
-3. **Encode floor** — recordings are re-encoded with an FPS floor of 30 for a usable playback rate.
+3. **Encode floor.** Recordings are re-encoded with an FPS floor of 30 for a usable playback rate.
 
 ### Consequences
 

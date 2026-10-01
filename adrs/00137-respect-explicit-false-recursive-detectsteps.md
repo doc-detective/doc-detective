@@ -11,7 +11,7 @@ decision-makers: doc-detective maintainers
 When the wrapper merged the resolved config, it defaulted `recursive` and `detectSteps` with the
 `||` operator: `config.recursive || true` and `config.detectSteps || true`. Because `false || true`
 evaluates to `true`, an author who *explicitly set* `recursive: false` or `detectSteps: false` had
-their choice silently overridden — the values were impossible to turn off through config. Only
+their choice silently overridden, and the values were impossible to turn off through config. Only
 `undefined`/missing should fall back to the default; an explicit `false` must be honored. How should
 the merge distinguish "unset" from "set to false"?
 
@@ -40,7 +40,7 @@ missing value still defaults to `true` (commit `2f0d969`, PR #160, `doc-detectiv
 
 * Good: `recursive: false` and `detectSteps: false` now behave as written.
 * Good: one-token change per field; no behavior change for `true`/unset.
-* Bad: none material — corrects a latent coercion bug.
+* Bad: none material; this corrects a latent coercion bug.
 * Neutral: reinforces the convention that only nullish values trigger config defaults.
 
 ### Confirmation

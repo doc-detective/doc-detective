@@ -9,25 +9,38 @@ import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
 
+// Cache of compiled patterns, keyed by `pattern + ' ' + flags`. parseContent
+// re-derives the same handful of file-type regexes for EVERY file it scans
+// (~36 per markdown file), so compiling each pattern once and reusing it
+// removes almost all of that RegExp construction. Both the compiled RegExp and
+// the `null` (invalid/unsafe) outcome are cached. Safe to share the returned
+// instance: callers only use it via `String.prototype.matchAll`, which clones
+// the regexp internally and so never mutates the cached object's `lastIndex`.
+const compiledRegExpCache = new Map<string, RegExp | null>();
+
 /**
  * Creates a RegExp from a pattern string with safety checks against ReDoS.
- * Returns null if the pattern is invalid or potentially unsafe.
+ * Returns null if the pattern is invalid or potentially unsafe. Results are
+ * memoized per `(pattern, flags)` for the lifetime of the process.
  *
- * The pattern is reconstructed character-by-character to establish a
- * sanitization boundary, since these patterns come from trusted file type
- * configuration rather than arbitrary user input.
+ * These patterns come from trusted file type configuration rather than
+ * arbitrary user input.
  */
-function safeRegExp(pattern: string, flags: string): RegExp | null {
+export function safeRegExp(pattern: string, flags: string): RegExp | null {
   if (typeof pattern !== 'string' || pattern.length === 0) return null;
   // Reject excessively long patterns
   if (pattern.length > 1500) return null;
-  // Reconstruct pattern to establish sanitization boundary
-  const sanitized = Array.from(pattern, c => String.fromCharCode(c.charCodeAt(0))).join('');
+  const cacheKey = pattern + ' ' + flags;
+  const cached = compiledRegExpCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+  let compiled: RegExp | null;
   try {
-    return new RegExp(sanitized, flags);
+    compiled = new RegExp(pattern, flags);
   } catch {
-    return null;
+    compiled = null;
   }
+  compiledRegExpCache.set(cacheKey, compiled);
+  return compiled;
 }
 
 // Keys excluded when hashing a test/step definition for an ID: IDs are what

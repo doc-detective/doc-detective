@@ -21,6 +21,7 @@ export {
   outputResults,
   loadEnvs,
   log,
+  logLevelEnabled,
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
@@ -52,9 +53,15 @@ export {
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isSessionAlive,
+  isPageBroken,
+  isPageUnnavigated,
+  isInitialBlankDocument,
+  classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
+  shouldFailRun,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -801,7 +808,7 @@ async function waitForReady(
 //      concurrent-startup contention: a staggered retry lets it clear and
 //      recovers on the next attempt in practice.
 const TRANSIENT_SESSION_ERROR =
-  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server/i;
+  /ECONNREFUSED|ECONNRESET|socket hang up|could not proxy command|crashed during startup|cannot connect to|DevToolsActivePort|session not created|cannot be proxied to Gecko Driver server|invalid session id|no such session|session deleted because of page crash|chrome not reachable/i;
 
 // The wdio client aborts POST /session with "aborted due to timeout" when the
 // request exceeds connectionRetryTimeout. For native sessions that declared a
@@ -820,6 +827,146 @@ function isRetryableSessionError(
   if (typeof message !== "string" || !message) return false;
   if (TRANSIENT_SESSION_ERROR.test(message)) return true;
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+}
+
+// Active liveness probe for the `retries` context-retry policy. A dead session
+// surfaces a step FAIL that is indistinguishable at the result level from a
+// legitimate assertion FAIL (handlers catch driver errors and return FAIL), so
+// after a FAIL we probe the session directly: a session-scoped, driver-agnostic
+// command (`getPageSource` — valid for browser, webview, and native/app
+// sessions; NOT `status`, which queries the Appium *server* and would pass for a
+// dead session behind a live server). Returns false ONLY when the session is
+// provably gone (probe throws a classified session-death error), so a
+// live-session failure is never mistaken for a dead one and a real bug is never
+// retried away. Any non-session probe error, or a missing driver's probe, is
+// treated conservatively: a null driver is dead; a non-session throw is alive.
+// The probe is bounded by `probeTimeoutMs`: a cleanly-dead session rejects fast
+// (ECONNREFUSED / invalid session id), but a wedged one (socket open, no
+// response) could otherwise hang for the underlying transport timeout — minutes,
+// on the failure path, while the context holds its concurrency slot. On timeout
+// we return `true` (alive), the conservative outcome: never retry a real failure
+// just because the probe was slow, and cap the added latency to `probeTimeoutMs`.
+async function isSessionAlive(
+  driver: any,
+  probeTimeoutMs: number = 15000
+): Promise<boolean> {
+  if (!driver || typeof driver.getPageSource !== "function") return false;
+  let timer: any;
+  try {
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(resolve, probeTimeoutMs);
+    });
+    const probe = Promise.resolve(driver.getPageSource());
+    // If the timeout wins the race, the probe stays pending; swallow its
+    // eventual rejection so a wedged session doesn't surface an unhandled
+    // rejection later. The race itself still sees a fast rejection (caught below).
+    probe.catch(() => {});
+    // Race the probe against the timeout. Reaching here without a throw means
+    // either the probe resolved (unambiguously alive) or it timed out (slow but
+    // not provably dead) — both count as alive. Only a thrown, classified
+    // session-death error (caught below) marks the session dead.
+    await Promise.race([probe, timeout]);
+    return true;
+  } catch (err: any) {
+    const message = String(err?.message ?? err ?? "");
+    // Classified session-death → dead. Anything else → assume alive (don't
+    // retry a live-session failure on an unrelated probe blip).
+    return !isRetryableSessionError(message);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+// Browser error pages a renderer crash or failed navigation lands on. A test is
+// never legitimately on one, so they unambiguously signal a broken page.
+const BROWSER_ERROR_PAGE = /^(chrome-error:|about:neterror|about:certerror)/i;
+
+// Companion to isSessionAlive for the "alive but broken page" retry case: the
+// session responds (getPageSource succeeds), but the browser sits on a crash /
+// error page instead of the page under test (a renderer crash navigates to
+// `chrome-error://chromewebdata/`; Firefox to `about:neterror`/`about:certerror`).
+// True ONLY for an unambiguous browser error page — NOT `about:blank`, which a
+// test may legitimately be on, so a genuine "element not on a correctly-loaded
+// page" failure still FAILs and is never retried. App/mobile sessions have no URL
+// and a thrown `getUrl` (dead session, already caught by isSessionAlive) both
+// yield false.
+async function isPageBroken(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    const url = String((await driver.getUrl()) ?? "");
+    return BROWSER_ERROR_PAGE.test(url);
+  } catch {
+    return false;
+  }
+}
+
+// Chromium parks a brand-new session on the EMPTY data URL (`data:,`) until its
+// first navigation, so a context still sitting there when it FAILs never got
+// started — its `goTo` silently didn't take effect, or the driver ended up
+// attached to a window that never navigated. Matched exactly: `data:,` (and the
+// bare `data:`), never a data URL carrying content, which is a deliberate
+// navigation target.
+//
+// Deliberately NOT `about:blank`. Chromium's initial page is `data:,`, while
+// `about:blank` is somewhere a test can legitimately navigate — the same
+// distinction BROWSER_ERROR_PAGE already makes — so keeping it out preserves the
+// guarantee that a genuine "element not on a correctly-loaded page" failure
+// still FAILs. Firefox's initial page IS `about:blank`, so this heuristic is
+// Chromium-only by construction; see adrs/01084-retry-unnavigated-context.md.
+const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
+
+// Companion to isSessionAlive / isPageBroken for the "alive but never navigated"
+// retry case (ADR 01084). The session responds and the page isn't a crash page,
+// but the browser is still on its initial blank document, which no correctly
+// loaded page under test ever is. App/mobile sessions have no URL, and a thrown
+// `getUrl` (dead session, already caught by isSessionAlive) both yield false.
+async function isPageUnnavigated(driver: any): Promise<boolean> {
+  if (!driver || typeof driver.getUrl !== "function") return false;
+  try {
+    return isInitialBlankDocument(await driver.getUrl());
+  } catch {
+    return false;
+  }
+}
+
+// Pure form of the same test, for a caller that already holds the URL. Lets a
+// diagnostic decide and report from ONE observation: probing twice can decide
+// on one URL and print another if the page moves in between, which reads as the
+// tool contradicting itself. Sharing the predicate keeps the two call sites
+// from drifting on what "unnavigated" means.
+function isInitialBlankDocument(url: unknown): boolean {
+  return INITIAL_BLANK_DOCUMENT.test(String(url ?? "").trim());
+}
+
+export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
+
+// The retry DECISION for a FAILed context, composed from the three probes above.
+// Returns the reason to retry on a fresh session, or null to let the FAIL stand.
+// Split out from runContext so the rules that the individual probes can't
+// express are directly testable — which sessions each check applies to, and how
+// they rank:
+//
+//   • Dead session or browser error page — checked on EVERY session the context
+//     holds (a dead app session behind a live browser, or vice versa, still
+//     breaks the context), first match wins.
+//   • Never navigated — checked ONLY on the primary session. A secondary surface
+//     opened via `goTo newTab` may be deliberately left on `data:,`, so applying
+//     "any session" here would retry contexts whose real assertion failed on the
+//     primary page. `probeDrivers[0]` is the first-registered session: the array
+//     comes from a Map's values(), whose iteration order is insertion order per
+//     the language spec, not an implementation detail.
+//
+// See adrs/01082-retries-mid-session-context-retry.md and
+// adrs/01084-retry-unnavigated-context.md.
+async function classifyContextRetry(
+  probeDrivers: any[]
+): Promise<ContextRetryReason | null> {
+  for (const probeDriver of probeDrivers) {
+    if (!(await isSessionAlive(probeDriver))) return "session-died";
+    if (await isPageBroken(probeDriver)) return "page-broken";
+  }
+  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  return null;
 }
 
 // Windows NTSTATUS exit codes for a process that died *during initialization*
@@ -898,6 +1045,16 @@ function selectSpecsForRun(specs: any[], config: any): any[] {
     out.push({ ...spec, tests: filteredTests });
   }
   return out;
+}
+
+// The exitOnFail gate. Keys on summary.specs.fail — the roll-up equivalent of
+// the fixture gate's per-spec FAIL check (scripts/check-fixture-results.cjs).
+// WARNING/SKIPPED and a zero-spec run (e.g. a filter matching nothing) are not
+// failures. Defensive: a missing/malformed summary yields false, never a
+// spurious build failure.
+function shouldFailRun(results: any): boolean {
+  const failCount = results?.summary?.specs?.fail;
+  return typeof failCount === "number" && failCount > 0;
 }
 
 function isRelativeUrl(url: string) {
@@ -1288,34 +1445,206 @@ async function loadEnvs(envsFile: string) {
   }
 }
 
+// Pure predicate: would `log(config, level, ...)` actually print at this
+// config.logLevel? Exported so hot call sites can GUARD expensive message
+// construction (e.g. `JSON.stringify(bigObject, null, 2)`) behind a cheap
+// check — the stringify then only runs when the message would be printed.
+// `log` itself delegates to this so the level policy has a single source of
+// truth and can never drift from the guard.
+function logLevelEnabled(config: any, level: string): boolean {
+  // Default an undefined/empty logLevel to "info" (parity with src/utils.ts#log,
+  // which already defaults to info). Without this fallback none of the branches
+  // below match an undefined logLevel, so the 2-arg `log(message, level)` form —
+  // which resets config to {} — silently dropped EVERY message, swallowing the
+  // error/warning logs emitted at 2-arg call sites in expressions.ts. An explicit
+  // level such as "silent" is preserved, so intentional silencing still
+  // suppresses all output. Defaulting here (rather than in `log`) keeps the guard
+  // predicate and `log` as a single source of truth for the level policy.
+  const currentLevel = config.logLevel || "info";
+  if (currentLevel === "error" && level === "error") return true;
+  if (
+    currentLevel === "warning" &&
+    (level === "error" || level === "warning")
+  )
+    return true;
+  if (
+    currentLevel === "info" &&
+    (level === "error" || level === "warning" || level === "info")
+  )
+    return true;
+  if (
+    currentLevel === "debug" &&
+    (level === "error" ||
+      level === "warning" ||
+      level === "info" ||
+      level === "debug")
+  )
+    return true;
+  return false;
+}
+
+/**
+ * Benign viewport delta (px) that must not raise a mismatch warning. A vertical
+ * scrollbar appearing/disappearing after a resize shifts the content width by
+ * ~15px on desktop; this absorbs that so only a meaningful floor (e.g. a mobile
+ * width clamped up by a hundred-plus pixels) is flagged.
+ */
+export const VIEWPORT_TOLERANCE_PX = 16;
+
+/**
+ * Compare a requested browser viewport against the viewport the page actually
+ * rendered (window.innerWidth/innerHeight read back after a resize) and produce
+ * a warning when they diverge.
+ *
+ * Browsers and the host OS enforce a minimum window size, so a requested
+ * viewport — a 375px mobile width, say — can be silently floored to a larger
+ * size with no error and no failing step (the "the browser had a floor I didn't
+ * know about" case). This surfaces that gap so the rendered size is honest
+ * rather than assumed.
+ *
+ * Only dimensions the caller actually requested (a positive number) are
+ * compared, so a width-only request is never warned about an unrequested
+ * height. A requested dimension that couldn't be read back (non-finite actual)
+ * is treated as a mismatch — an unconfirmed size is not a matched size.
+ * `tolerance` (px) absorbs benign deltas such as a scrollbar's width. Returns
+ * null when every requested dimension landed within tolerance.
+ */
+export function viewportMismatchWarning(
+  requested: { width?: number; height?: number } | undefined,
+  actual: { width?: number; height?: number } | undefined,
+  tolerance = 0
+): string | null {
+  const parts: string[] = [];
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(requested?.[dim]);
+    if (!(req > 0)) continue; // only compare dimensions the caller requested
+    const act = Number(actual?.[dim]);
+    if (!Number.isFinite(act)) {
+      parts.push(`${dim} requested ${req}px, rendered unknown`);
+    } else if (Math.abs(act - req) > tolerance) {
+      parts.push(`${dim} requested ${req}px, rendered ${act}px`);
+    }
+  }
+  if (parts.length === 0) return null;
+  return `Requested viewport not fully realized — the browser or OS enforces a minimum window size: ${parts.join(
+    "; "
+  )}. Screenshots and measurements reflect the rendered size, not the requested size.`;
+}
+
+/**
+ * True when the browser FLOORED a requested viewport — the realized size came
+ * back LARGER than requested by more than `tolerance`, i.e. the window refused
+ * to shrink past its minimum. A smaller-than-requested render is not a floor.
+ *
+ * Distinct from `viewportMismatchWarning`, which flags any divergence (either
+ * direction, plus unreadable dimensions). This is the narrower "the user asked
+ * for a phone-sized viewport and couldn't get it" signal.
+ */
+export function isViewportFloored(
+  requested: { width?: number; height?: number } | undefined,
+  actual: { width?: number; height?: number } | undefined,
+  tolerance = VIEWPORT_TOLERANCE_PX
+): boolean {
+  for (const dim of ["width", "height"] as const) {
+    const req = Number(requested?.[dim]);
+    const act = Number(actual?.[dim]);
+    if (!(req > 0) || !Number.isFinite(act)) continue;
+    if (act - req > tolerance) return true;
+  }
+  return false;
+}
+
+/**
+ * Resolve the concrete target the viewport should be set to. A request may name
+ * only one dimension (width OR height); the other is filled from the current
+ * viewport so the unrequested dimension is left as-is. Non-positive/absent
+ * values fall back to the current size.
+ */
+export function resolveViewportTarget(
+  requested: { width?: number; height?: number } | undefined,
+  current: { width?: number; height?: number } | undefined
+): { width: number; height: number } {
+  const w = Number(requested?.width);
+  const h = Number(requested?.height);
+  return {
+    width: w > 0 ? w : Number(current?.width),
+    height: h > 0 ? h : Number(current?.height),
+  };
+}
+
+async function readViewport(
+  driver: any
+): Promise<{ width: number; height: number }> {
+  const v = await driver.execute(
+    "return { width: window.innerWidth, height: window.innerHeight }",
+    []
+  );
+  return { width: Number(v?.width), height: Number(v?.height) };
+}
+
+/**
+ * Realize a requested browser viewport by resizing the OS window, then read the
+ * viewport back and return the size the page actually rendered.
+ *
+ * The window is grown/shrunk by the delta between the requested and current
+ * viewport. This is subject to the browser/OS minimum *window* size, so a small
+ * mobile width (375px) can be floored to a larger size; the realized size is
+ * read back and a warning is emitted when the request wasn't met, since the size
+ * the page rendered — not the size requested — is ground truth.
+ *
+ * True viewport *emulation* (`driver.setViewport`, setting the content size
+ * below the window floor) was evaluated and rejected: it needs a WebDriver BiDi
+ * socket, which crashed headed recording contexts with a stack overflow and
+ * flaked geckodriver startup — the cross-driver instability ADR 00132 documented.
+ * See [ADR 01072] (rejected). This resize-and-warn path is the shipped behavior.
+ *
+ * Only meaningful when at least one dimension was requested; callers guard that.
+ */
+export async function realizeViewport(
+  driver: any,
+  requested: { width?: number; height?: number },
+  config: any = {},
+  label?: string
+): Promise<{ width: number; height: number }> {
+  const current = await readViewport(driver);
+  const target = resolveViewportTarget(requested, current);
+
+  const windowSize = await driver.getWindowSize();
+  // If the viewport read-back failed (non-finite current/target), keep the
+  // window as-is for that axis rather than passing NaN to setWindowSize (which
+  // some drivers reject). Round to integers — drivers expect whole pixels.
+  const deltaWidth =
+    Number.isFinite(current.width) && Number.isFinite(target.width)
+      ? target.width - current.width
+      : 0;
+  const deltaHeight =
+    Number.isFinite(current.height) && Number.isFinite(target.height)
+      ? target.height - current.height
+      : 0;
+  await driver.setWindowSize(
+    Math.round(windowSize.width + deltaWidth),
+    Math.round(windowSize.height + deltaHeight)
+  );
+
+  const actual = await readViewport(driver);
+  const warning = viewportMismatchWarning(
+    requested,
+    actual,
+    VIEWPORT_TOLERANCE_PX
+  );
+  if (warning) {
+    await log(config, "warning", label ? `${label}: ${warning}` : warning);
+  }
+  return actual;
+}
+
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)
     message = config;
     config = {};
   }
-  let logLevelMatch = false;
-  if (config.logLevel === "error" && level === "error") {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "warning" &&
-    (level === "error" || level === "warning")
-  ) {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "info" &&
-    (level === "error" || level === "warning" || level === "info")
-  ) {
-    logLevelMatch = true;
-  } else if (
-    config.logLevel === "debug" &&
-    (level === "error" ||
-      level === "warning" ||
-      level === "info" ||
-      level === "debug")
-  ) {
-    logLevelMatch = true;
-  }
+  const logLevelMatch = logLevelEnabled(config, level);
 
   if (logLevelMatch) {
     if (typeof message === "string") {
@@ -1458,6 +1787,18 @@ function evaluateContextRequirements({
   return { met: missing.length === 0, missing };
 }
 
+// Env-var reference matcher for replaceEnvs, hoisted to module scope so it is
+// compiled ONCE rather than per string node on every recursive walk. The
+// trailing `(?![a-zA-Z0-9_$])` guard means a `$NAME$` token (a dollar on BOTH
+// sides — the `$KEY$` special-key / device-key sentinel vocabulary, e.g.
+// `$HOME$`, `$ENTER$`) is never treated as an env-var reference. Without it,
+// `$HOME$` matched the `$HOME` prefix and — on any host where $HOME is set
+// (every Unix box) — got rewritten to the home path, corrupting the sentinel.
+// A real env ref is `$NAME` NOT followed by another `$` (or word char).
+// Safe to share: used only via `String.prototype.match`, which does not rely
+// on or leave mutated `lastIndex` state.
+const ENV_VAR_REGEX = /\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/g;
+
 function replaceEnvs(stringOrObject: any): any {
   if (!stringOrObject) return stringOrObject;
   if (typeof stringOrObject === "object") {
@@ -1468,15 +1809,7 @@ function replaceEnvs(stringOrObject: any): any {
       stringOrObject[key] = replaceEnvs(stringOrObject[key]);
     });
   } else if (typeof stringOrObject === "string") {
-    // Load variable from string. The trailing `(?![a-zA-Z0-9_$])` guard means
-    // a `$NAME$` token (a dollar on BOTH sides — the `$KEY$` special-key /
-    // device-key sentinel vocabulary, e.g. `$HOME$`, `$ENTER$`) is never
-    // treated as an env-var reference. Without it, `$HOME$` matched the
-    // `$HOME` prefix and — on any host where $HOME is set (every Unix box) —
-    // got rewritten to the home path, corrupting the sentinel. A real env ref
-    // is `$NAME` NOT followed by another `$` (or word char).
-    const variableRegex = new RegExp(/\$[a-zA-Z0-9_]+(?![a-zA-Z0-9_$])/, "g");
-    const matches = stringOrObject.match(variableRegex);
+    const matches = stringOrObject.match(ENV_VAR_REGEX);
     // If no matches, return string
     if (!matches) return stringOrObject;
     // Iterate matches
@@ -1561,7 +1894,10 @@ function getRunOutputDir(
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
   let base = String(config?.output || ".");
-  const reportFileExtensions = [".json", ".html", ".htm"];
+  // Must match the lists in runFolderBaseDir (src/utils.ts) and
+  // reportOutputDir (src/reporters/outputDir.ts) — a divergence would place
+  // the run folder inside a path another reporter writes as a file.
+  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     base = path.dirname(base);
   }

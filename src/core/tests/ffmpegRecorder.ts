@@ -23,6 +23,11 @@ export {
   resolveCropGeometry,
   ffmpegPathEnv,
   parseCaptureFrameSize,
+  parseMediaProbeStderr,
+  probeVideoMetadata,
+  parseBlackdetect,
+  createMatchingLineCollector,
+  detectAllBlack,
   deriveCropScale,
   detectDisplayPointSize,
   jobIsFfmpegRecording,
@@ -172,15 +177,30 @@ function safeContextId(contextId: any): string {
   const hash = crypto.createHash("sha1").update(raw).digest("hex").slice(0, 8);
   return `${base}-${hash}`;
 }
+// Browser-engine recordings are isolated by context AND by process. The
+// contextId alone isn't enough: ids repeat across runs ("default",
+// "windows-chrome"), so two doc-detective processes on one machine — a dev
+// running the CLI while the suite runs, or parallel worktree sessions (see
+// test/AGENTS.md) — would share both keys below and corrupt each other
+// silently: Chrome auto-selects a capture source by window title, and the
+// downloaded .webm lands at a title-independent path. Two concurrent runs
+// each recording `out.mp4` were observed producing byte-identical videos
+// (one transcoded the other's download) and, when a peer's start deletes an
+// in-flight download, "Recording download timed out". The pid is unique
+// among live processes by construction and stable for the run's lifetime,
+// which is exactly the scope these keys need (ADR 01076).
+function recordingProcessToken(): string {
+  return String(process.pid);
+}
 function browserCaptureTitle(contextId: string): string {
-  return `RECORD_ME_${safeContextId(contextId)}`;
+  return `RECORD_ME_${recordingProcessToken()}_${safeContextId(contextId)}`;
 }
 function browserDownloadDir(contextId: string): string {
   return path.join(
     os.tmpdir(),
     "doc-detective",
     "recordings",
-    safeContextId(contextId)
+    `${safeContextId(contextId)}-${recordingProcessToken()}`
   );
 }
 
@@ -464,6 +484,247 @@ function parseCaptureFrameSize(
   return { w: Number(m[1]), h: Number(m[2]) };
 }
 
+// The metadata a probe of a produced recording can yield. Every field is
+// best-effort — absent when the file (or its stderr dump) doesn't carry it.
+type RecordingProbeMetadata = {
+  duration?: number;
+  width?: number;
+  height?: number;
+  fps?: number;
+};
+
+// Parse recording metadata out of `ffmpeg -i <file>` stderr. Only the input
+// Video stream line is trusted for dimensions/fps (the same guard as
+// parseCaptureFrameSize, but with a 2-digit lower bound — produced recordings
+// can legitimately be tiny, unlike display captures). fps falls back to tbr
+// because gif streams report no fps token. Missing or `N/A` fields are simply
+// omitted — callers treat every field as best-effort.
+function parseMediaProbeStderr(stderr: string): RecordingProbeMetadata {
+  const meta: RecordingProbeMetadata = {};
+  const text = stderr ?? "";
+  const duration = /\bDuration:\s*(\d+):(\d{2}):(\d{2}(?:\.\d+)?)/.exec(text);
+  if (duration) {
+    meta.duration =
+      Number(duration[1]) * 3600 +
+      Number(duration[2]) * 60 +
+      Number(duration[3]);
+  }
+  const videoLine = /Stream #\d+:\d+.*?Video:.*/.exec(text)?.[0];
+  if (videoLine) {
+    const size = /\b(\d{2,5})x(\d{2,5})\b/.exec(videoLine);
+    if (size) {
+      meta.width = Number(size[1]);
+      meta.height = Number(size[2]);
+    }
+    const fps =
+      /([\d.]+)\s+fps\b/.exec(videoLine) ?? /([\d.]+)\s+tbr\b/.exec(videoLine);
+    if (fps && Number.isFinite(Number(fps[1]))) {
+      meta.fps = Number(fps[1]);
+    }
+  }
+  return meta;
+}
+
+// Probe a produced recording's metadata by running `ffmpeg -i <file>` and
+// parsing its stderr. ffmpeg exits non-zero without an output file by design,
+// so the exit code is ignored — the stderr dump is the product. Returns null
+// when no stderr was obtained (missing binary, spawn error); an unparsable
+// file yields {}. Callers report whatever fields they can and never fail the
+// step over metadata. Deliberately bounded on both axes:
+// - autoInstall: false — metadata is never worth a JIT npm install (the
+//   device .mp4 path reaches here on hosts that never needed ffmpeg).
+// - 5s kill timer — a wedged probe must not stall an already-passed stop
+//   (same bound as the detectMacScreenIndex probe).
+// The buffer keeps the HEAD of stderr: ffmpeg prints Duration/Stream metadata
+// first, and trailing demux warnings must not evict it.
+async function probeVideoMetadata({
+  cacheDir,
+  filePath,
+}: {
+  cacheDir?: string;
+  filePath: string;
+}): Promise<RecordingProbeMetadata | null> {
+  try {
+    const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
+    const stderr = await new Promise<string | null>((resolve) => {
+      let head = "";
+      let settled = false;
+      let proc: any = null;
+      let timer: any;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          proc?.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(v);
+      };
+      try {
+        proc = spawn(ffmpegPath, ["-hide_banner", "-i", filePath], {
+          stdio: ["ignore", "ignore", "pipe"],
+        });
+        proc.stderr?.on("data", (chunk: Buffer) => {
+          if (head.length < 4000) {
+            head = (head + chunk.toString()).slice(0, 4000);
+          }
+        });
+        proc.on("error", () => done(null));
+        proc.on("close", () => done(head));
+        timer = setTimeout(() => done(head.length > 0 ? head : null), 5000);
+      } catch {
+        done(null);
+      }
+    });
+    if (stderr === null) return null;
+    return parseMediaProbeStderr(stderr);
+  } catch {
+    return null;
+  }
+}
+
+// Parse ffmpeg blackdetect stderr lines and decide whether the detected
+// black intervals cover the clip. blackdetect emits one line per interval:
+// "[blackdetect @ 0x...] black_start:0 black_end:2.04 black_duration:2.04".
+// Coverage is the sum of reported durations — good enough for the all-black
+// failure mode this guards against (ADR 01080).
+//
+// Two allowances, both measured against real ffmpeg output:
+// - An interval ends at the last black FRAME's timestamp, not the clip end,
+//   so a fully-black clip under-reports by up to one frame interval (a 0.5s
+//   10fps black clip reports black_duration:0.4). `fps` sizes that tolerance;
+//   without it the gap can't be told from real content, so we don't guess.
+// - 5% slack on top, for encoders that shade the first/last frame.
+// Unknown/zero duration can't be judged -> false (not provably black).
+
+// Collect only the lines containing `needle` from a chunked stream, bounded so
+// progress spam from a long decode can't evict them.
+//
+// Filtering must happen per LINE, not per chunk. Stream chunks split wherever
+// the pipe flushes, with no regard for newlines, so a `black_duration:0.4` can
+// straddle two chunks — and then NEITHER chunk contains `black_`, the interval
+// is silently dropped, and an all-black video passes `notBlack`. That failure
+// mode is invisible on the short clips the tests generate (one chunk) and
+// shows up on exactly the long recordings the guard exists to protect.
+//
+// `push` keeps the trailing partial line back for the next chunk; `flush`
+// returns the collected text and consumes any final unterminated line, since
+// ffmpeg's last write may not end in a newline.
+function createMatchingLineCollector(needle: string, limit = 65536) {
+  let partial = "";
+  let collected = "";
+  const keep = (lines: string[]) => {
+    for (const line of lines) {
+      if (line.includes(needle) && collected.length < limit) {
+        collected = (collected + line + "\n").slice(0, limit);
+      }
+    }
+  };
+  return {
+    push(text: string) {
+      partial += text;
+      const lines = partial.split(/\r?\n/);
+      partial = lines.pop() ?? "";
+      keep(lines);
+    },
+    flush(): string {
+      if (partial) {
+        keep([partial]);
+        partial = "";
+      }
+      return collected;
+    },
+  };
+}
+
+function parseBlackdetect(
+  stderr: string,
+  duration?: number,
+  fps?: number
+): boolean {
+  if (typeof duration !== "number" || !(duration > 0)) return false;
+  let covered = 0;
+  const re = /black_duration:([\d.]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(stderr ?? "")) !== null) {
+    const d = Number(m[1]);
+    if (Number.isFinite(d)) covered += d;
+  }
+  const frameInterval =
+    typeof fps === "number" && fps > 0 ? 1 / fps : 0;
+  return covered >= (duration - frameInterval) * 0.95;
+}
+
+// Run a bounded ffmpeg blackdetect pass over a produced recording and report
+// whether it is (essentially) all black. Returns null when the analysis
+// couldn't run (missing binary, spawn error, timeout) — the caller skips the
+// guard rather than guessing. Bounded like probeVideoMetadata: no JIT
+// install, and a kill timer sized for a real decode pass (30s — doc
+// recordings are short).
+async function detectAllBlack({
+  cacheDir,
+  filePath,
+  duration,
+  fps,
+}: {
+  cacheDir?: string;
+  filePath: string;
+  duration?: number;
+  fps?: number;
+}): Promise<boolean | null> {
+  try {
+    const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
+    const stderr = await new Promise<string | null>((resolve) => {
+      let settled = false;
+      let proc: any = null;
+      let timer: NodeJS.Timeout | undefined;
+      const done = (v: string | null) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        try {
+          proc?.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(v);
+      };
+      try {
+        proc = spawn(
+          ffmpegPath,
+          [
+            "-hide_banner",
+            "-i",
+            filePath,
+            "-vf",
+            "blackdetect=d=0.1:pix_th=0.10",
+            "-an",
+            "-f",
+            "null",
+            "-",
+          ],
+          { stdio: ["ignore", "ignore", "pipe"] }
+        );
+        const lines = createMatchingLineCollector("black_");
+        proc.stderr?.on("data", (chunk: Buffer) => lines.push(chunk.toString()));
+        proc.on("error", () => done(null));
+        proc.on("close", (code: number | null) =>
+          done(code === 0 ? lines.flush() : null)
+        );
+        timer = setTimeout(() => done(null), 30000);
+      } catch {
+        done(null);
+      }
+    });
+    if (stderr === null) return null;
+    return parseBlackdetect(stderr, duration, fps);
+  } catch {
+    return null;
+  }
+}
+
 // The physical-pixels-per-point scale for an app-window crop, derived from
 // measurements instead of a DOM probe (native drivers can't answer
 // devicePixelRatio — the A2-discovered scaling gap, fixed in A7):
@@ -723,8 +984,16 @@ function jobExclusiveResources(
 // Resolve the ffmpeg binary path lazily — @ffmpeg-installer/ffmpeg is a heavy
 // runtime dep that should only load when a recording step actually runs. The
 // ctx threads a user-overridden cacheDir through, matching the JIT installer.
-async function getFfmpegPath(ctx: { cacheDir?: string } = {}): Promise<string> {
-  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", { ctx });
+// autoInstall: false makes a missing install throw instead of JIT-installing —
+// for best-effort callers (the metadata probe) that must never spawn npm.
+async function getFfmpegPath({
+  cacheDir,
+  autoInstall = true,
+}: { cacheDir?: string; autoInstall?: boolean } = {}): Promise<string> {
+  const mod = await loadHeavyDep<any>("@ffmpeg-installer/ffmpeg", {
+    ctx: { cacheDir },
+    autoInstall,
+  });
   // The package's CJS entry exports an object with a .path field; under an
   // ESM dynamic import we may get { default: { path }, path? }. Try both, then
   // guard before handing it to a child process so a malformed install fails

@@ -11,10 +11,10 @@ decision-makers: doc-detective maintainers
 To enable parallel execution of test contexts, the config needed a single knob expressing "how many
 runners may execute at once." Operators want two ergonomic forms: an explicit integer count, and a
 convenient `true` meaning "use the machine's capacity." But a raw boolean is ambiguous to runtime
-code, `false` is a footgun (it reads as "zero runners"), and the runner ultimately needs a concrete
+code. `false` is a footgun, reading as "zero runners". And the runner ultimately needs a concrete
 positive integer. The question: what schema should `concurrentRunners` accept, and how is it
 normalized into the integer the runner uses? (The runner-side scheduling behavior is decided
-separately — this ADR fixes only the config contract.)
+separately. This ADR fixes only the config contract.)
 
 ## Decision Drivers
 

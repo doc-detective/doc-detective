@@ -20,6 +20,12 @@
       "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
       "readOnly": true
     },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock duration of the run's execution phase in milliseconds, spanning the warm phase, every spec, and teardown. Excludes what happens before execution starts — test detection, resolution, and any just-in-time dependency install — so on a cold runner the process takes longer than this. Because contexts run concurrently, this can be LESS than the sum of the per-spec durations. Present only in test results. System-populated.",
+      "readOnly": true
+    },
     "specs": {
       "description": "Test specifications that were performed.",
       "type": "array",

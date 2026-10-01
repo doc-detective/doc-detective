@@ -21,6 +21,7 @@ export {
   setMeta,
   getVersionData,
   log,
+  logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
   reporters,
@@ -43,14 +44,22 @@ function isDebugRequested(): boolean {
 }
 
 // Log function that respects logLevel
-function log(message: any, level: string = "info", config: any = {}) {
+// Pure predicate: would `log(message, level, config)` actually print at this
+// config.logLevel? Exported so CLI call sites can GUARD expensive message
+// construction (e.g. `JSON.stringify(config, null, 2)`) behind a cheap check —
+// the stringify then only runs when the message would be printed. `log`
+// delegates to this so the level policy has a single source of truth.
+function logLevelEnabled(level: string, config: any = {}): boolean {
   const logLevels = ["silent", "error", "warning", "info", "debug"];
   const currentLevel = config.logLevel || "info";
   const currentLevelIndex = logLevels.indexOf(currentLevel);
   const messageLevelIndex = logLevels.indexOf(level);
+  return currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0;
+}
 
+function log(message: any, level: string = "info", config: any = {}) {
   // Only log if the message level is at or above the current log level
-  if (currentLevelIndex >= messageLevelIndex && messageLevelIndex > 0) {
+  if (logLevelEnabled(level, config)) {
     if (level === "error") {
       console.error(message);
     } else {
@@ -101,7 +110,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -156,6 +165,12 @@ function buildYargs(args: any): any {
       description:
         "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
       type: "string",
+    })
+    .option("exit-on-fail", {
+      alias: "e",
+      description:
+        "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
+      type: "boolean",
     })
     .version(require("../package.json").version)
     .help()
@@ -407,6 +422,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
   }
+  if (typeof args.exitOnFail === "boolean") {
+    config.exitOnFail = args.exitOnFail;
+  }
   if (typeof args.autoScreenshot === "boolean") {
     config.autoScreenshot = args.autoScreenshot;
   }
@@ -495,19 +513,26 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // the reporter also accepts a file path (e.g. `results.json`), in which case
 // the run folder belongs *beside* the file, not inside it.
 //
-// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
-// parent, matching getRunOutputDir exactly — even for an existing directory
-// oddly named `reports.json` — so the archive root never diverges from the
-// stamped runDir (a divergence would reject the stamp and break runId/runDir
-// correlation with autoScreenshot). Any other path is then resolved by real
-// filesystem type: an existing file (any extension) archives beside it, an
-// existing or not-yet-created directory (including a dotted name like
-// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
-// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
-// are unaffected.
+// A report-file extension (`.json`/`.html`/`.htm`/`.xml`/`.md`) always
+// resolves to the parent, matching getRunOutputDir exactly — even for an
+// existing directory oddly named `reports.json` — so the archive root never
+// diverges from the stamped runDir (a divergence would reject the stamp and
+// break runId/runDir correlation with autoScreenshot). Any other path is then
+// resolved by real filesystem type: an existing file (any extension) archives
+// beside it, an existing or not-yet-created directory (including a dotted name
+// like `reports.v1`) archives inside it.
+//
+// `.xml`/`.md` joined the list when the junit and markdown reporters landed;
+// getRunOutputDir carries the same two so the three resolvers stay in
+// agreement (see the note on the list below).
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
-  const reportFileExtensions = [".json", ".html", ".htm"];
+  // Must match the lists in getRunOutputDir (src/core/utils.ts) and
+  // reportOutputDir (src/reporters/outputDir.ts). If `.xml`/`.md` were missing
+  // here, `--output junit.xml --reporters runFolder junit` would have the
+  // junit reporter write the file while this resolver tried to create a
+  // directory of the same name — concurrently, under Promise.all.
+  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     return path.dirname(base);
   }
@@ -528,6 +553,18 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     return htmlReporter(config, outputPath, results, options);
   },
 
+  // JUnit reporter: writes `junit.xml` for CI test-summary widgets
+  junitReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { junitReporter } = await import("./reporters/junitReporter.js");
+    return junitReporter(config, outputPath, results, options);
+  },
+
+  // Markdown reporter: writes a run summary for CI job summaries and comments
+  markdownReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { markdownReporter } = await import("./reporters/markdownReporter.js");
+    return markdownReporter(config, outputPath, results, options);
+  },
+
   // JSON reporter: outputs results to a JSON file
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     // Define supported output extensions
@@ -536,7 +573,13 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // Normalize output path
     outputPath = path.resolve(outputPath);
 
-    const data = JSON.stringify(results, null, 2);
+    // Reuse the results JSON serialized once by outputResults when present
+    // (byte-identical to serializing `results` here); fall back for direct
+    // callers that don't pass it.
+    const data =
+      typeof options.resultsJson === "string"
+        ? options.resultsJson
+        : JSON.stringify(results, null, 2);
     let outputFile = "";
     let outputDir = "";
     let reportType = "doc-detective-results";
@@ -647,11 +690,19 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
           // The run folder name IS the runId under the `runs/<id>` layout.
           runId: path.basename(runDir),
         };
+    // When we archive the unmodified `results` (stamped-runDir case), reuse the
+    // JSON outputResults already serialized. When we rewrote runId/runDir into a
+    // fresh copy, that object differs from `results`, so serialize it directly —
+    // keeping the written file byte-identical to before this optimization.
+    const persistedJson =
+      useStampedRunDir && typeof options.resultsJson === "string"
+        ? options.resultsJson
+        : JSON.stringify(persistedResults, null, 2);
     const outputFile = path.resolve(runDir, `${reportType}.json`);
 
     try {
       fs.mkdirSync(runDir, { recursive: true });
-      fs.writeFileSync(outputFile, JSON.stringify(persistedResults, null, 2));
+      fs.writeFileSync(outputFile, persistedJson);
 
       // Archive a human-readable HTML report beside the JSON, so the run folder
       // is a complete shareable artifact without the standalone `html` reporter.
@@ -1173,8 +1224,6 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
     const url = `${apiConfig.url}/contexts`;
     const payload = { contexts };
 
-    console.log(payload);
-
     const response = await axios.post(url, payload, {
       headers: {
         "x-runner-token": apiConfig.token,
@@ -1215,6 +1264,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
+          case "junit":
+            return "junitReporter";
+          case "markdown":
+            return "markdownReporter";
           default:
             return reporter;
         }
@@ -1223,14 +1276,30 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
     });
   }
 
+  // Serialize the canonical results tree ONCE and share the string with the
+  // JSON-writing reporters (json + runFolder) instead of each calling
+  // JSON.stringify on the full tree independently. Only computed when a
+  // JSON-writing reporter is actually active, so a terminal-only run pays
+  // nothing. Each reporter still falls back to serializing itself when the
+  // shared string is absent (so they stay correct if called directly), and
+  // runFolder only reuses it when it archives the unmodified `results` (the
+  // stamped-runDir case) — a rewritten runId/runDir copy is serialized fresh,
+  // keeping every written file byte-identical to before.
+  const writesJson =
+    activeReporters.includes("jsonReporter") ||
+    activeReporters.includes("runFolderReporter");
+  const reporterOptions = writesJson
+    ? { ...options, resultsJson: JSON.stringify(results, null, 2) }
+    : options;
+
   // Execute each reporter
   const reporterPromises = activeReporters.map((reporter: any) => {
     if (typeof reporter === "function") {
       // Direct function reference
-      return reporter(config, outputPath, results, options);
+      return reporter(config, outputPath, results, reporterOptions);
     } else if (typeof reporter === "string" && reporters[reporter]) {
       // String reference to built-in or registered reporter
-      return reporters[reporter](config, outputPath, results, options);
+      return reporters[reporter](config, outputPath, results, reporterOptions);
     } else if (typeof reporter === "string" && !reporters[reporter]) {
       console.error(
         `Reporter "${reporter}" not found. Available reporters: ${Object.keys(

@@ -8,9 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-After the engine (`00145`) and schema package (`00146`) merged in, the container build artifacts —
-the Linux and Windows Dockerfiles, the build script, and the publish workflow — still lived in a
-separate `docker` repo. The image base/runtime contract therefore drifted out of sync with the code
+After the engine (`00145`) and schema package (`00146`) merged in, the container build artifacts
+still lived in a separate `docker` repo. Those are the Linux and Windows Dockerfiles, the build
+script, and the publish workflow. The image base/runtime contract therefore drifted out of sync
+with the code
 it packages, and shipping a new image meant a cross-repo change. With the rest of the v4 line
 consolidated, should the docker configuration move into the `doc-detective` monorepo?
 
@@ -30,8 +31,8 @@ consolidated, should the docker configuration move into the `doc-detective` mono
 
 ## Decision Outcome
 
-Chosen option: **A**, because co-locating the image definitions and their publish workflow with the
-source makes the container's base/runtime contract an in-repo, versioned artifact that moves in
+Chosen option: **A**. Co-locate the image definitions and their publish workflow with the source.
+That makes the container's base/runtime contract an in-repo, versioned artifact. It then moves in
 lockstep with the code.
 
 The contract:

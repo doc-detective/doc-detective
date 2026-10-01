@@ -13,6 +13,7 @@ import sinon from "sinon";
 import dnsPromises from "node:dns/promises";
 import {
   log,
+  logLevelEnabled,
   outputResults,
   replaceEnvs,
   timestamp,
@@ -28,9 +29,14 @@ import {
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isSessionAlive,
+  isPageBroken,
+  isPageUnnavigated,
+  classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
+  shouldFailRun,
   findFreePort,
   evaluateContextRequirements,
 } from "../dist/core/utils.js";
@@ -101,6 +107,34 @@ describe("core/utils coverage", function () {
       assert.deepEqual(out, []);
       const out2 = selectSpecsForRun([{ specId: "x" }], { testFilter: ["y"] });
       assert.deepEqual(out2, []);
+    });
+  });
+
+  describe("shouldFailRun", function () {
+    it("returns true when the spec fail count is greater than zero", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 1, fail: 2, warning: 0, skipped: 0 } } }),
+        true
+      );
+    });
+    it("returns false when there are no spec failures", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 3, fail: 0, warning: 0, skipped: 1 } } }),
+        false
+      );
+    });
+    it("treats warnings as non-fatal (fail stays 0)", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 0, fail: 0, warning: 5, skipped: 0 } } }),
+        false
+      );
+    });
+    it("returns false for a missing or malformed results/summary shape", function () {
+      assert.equal(shouldFailRun(undefined), false);
+      assert.equal(shouldFailRun(null), false);
+      assert.equal(shouldFailRun({}), false);
+      assert.equal(shouldFailRun({ summary: {} }), false);
+      assert.equal(shouldFailRun({ summary: { specs: {} } }), false);
     });
   });
 
@@ -364,10 +398,92 @@ describe("core/utils coverage", function () {
       assert.equal(logged[0], "(INFO)");
       assert.equal(logged[1], JSON.stringify({ a: 1 }, null, 2));
     });
-    it("supports the 2-arg form log(message, level) with empty config (no match)", async function () {
-      // config defaults to {} so logLevel is undefined → no match → nothing logged
+    it("2-arg form log(message, level) defaults an undefined logLevel to info and emits", async function () {
+      // config defaults to {} so logLevel is undefined → treated as "info" (parity
+      // with src/utils.ts#log). error/warning/info messages must surface rather
+      // than being silently dropped (regression: 2-arg expressions.ts log sites).
       await log("just a message", "info");
+      await log("an error", "error");
+      await log("a warning", "warning");
+      assert.deepEqual(logged, ["(INFO) just a message", "(ERROR) an error", "(WARNING) a warning"]);
+    });
+    it("2-arg form still suppresses debug under the info default", async function () {
+      // The info default surfaces error/warning/info but NOT debug — matching the
+      // configured-info semantics, so 2-arg calls don't force debug spam.
+      await log("a debug line", "debug");
       assert.equal(logged.length, 0);
+    });
+    it("3-arg form with explicit logLevel is unaffected by the default", async function () {
+      // A caller that DOES supply logLevel keeps exact configured semantics: an
+      // explicit "error" level still suppresses info.
+      await log({ logLevel: "error" }, "info", "quiet");
+      assert.equal(logged.length, 0);
+    });
+  });
+
+  describe("logLevelEnabled (lazy-log gate, mirrors log's level policy)", function () {
+    let logged;
+    beforeEach(function () {
+      sandbox = sinon.createSandbox();
+      logged = [];
+      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+    });
+    afterEach(function () {
+      sandbox.restore();
+      sandbox = undefined;
+    });
+    it("error level: only error is enabled", function () {
+      const c = { logLevel: "error" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), false);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("warning level: error + warning enabled", function () {
+      const c = { logLevel: "warning" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("info level: error/warning/info enabled, debug not", function () {
+      const c = { logLevel: "info" };
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("debug level: everything enabled", function () {
+      const c = { logLevel: "debug" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), true);
+    });
+    it("undefined/empty logLevel defaults to info (parity with log's 2-arg default)", function () {
+      // Undefined/empty logLevel is treated as "info": error/warning/info enabled,
+      // debug not. This mirrors log()'s default so the guard never drifts from the
+      // emit — the fix that stopped 2-arg calls being silently dropped.
+      assert.equal(logLevelEnabled({}, "error"), true);
+      assert.equal(logLevelEnabled({}, "warning"), true);
+      assert.equal(logLevelEnabled({}, "info"), true);
+      assert.equal(logLevelEnabled({}, "debug"), false);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "error"), true);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "debug"), false);
+    });
+    it("explicit silent logLevel suppresses everything", function () {
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "error"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "warning"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "info"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "debug"), false);
+    });
+    it("agrees with log(): guarding a debug dump prints iff enabled", async function () {
+      // At info level the guard is false, so the expensive message is never
+      // built or printed; at debug it prints exactly once.
+      const infoCfg = { logLevel: "info" };
+      if (logLevelEnabled(infoCfg, "debug")) await log(infoCfg, "debug", "X");
+      assert.equal(logged.length, 0);
+      const dbgCfg = { logLevel: "debug" };
+      if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
+      assert.deepEqual(logged, ["(DEBUG) X"]);
     });
   });
 
@@ -461,6 +577,31 @@ describe("core/utils coverage", function () {
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
+    });
+    it("module-hoisted regex is safe across multiple matches and repeated calls (1.5)", function () {
+      // The matcher is now a single module-scoped /g RegExp reused on every
+      // string node. `String.prototype.match` with /g does not depend on or
+      // leave mutated lastIndex, so multiple matches in one string and repeated
+      // calls must all resolve correctly (a shared stateful regex would drop
+      // matches on alternate calls).
+      const prev = process.env.DD_TEST_VAL;
+      process.env.DD_TEST_VAL = "X";
+      try {
+        // Two references in one string → both replaced in a single call.
+        assert.equal(
+          replaceEnvs("$DD_TEST_VAL-$DD_TEST_VAL"),
+          "X-X"
+        );
+        // Repeated invocations stay correct (no lastIndex carry-over).
+        for (let i = 0; i < 3; i++) {
+          assert.equal(replaceEnvs("a $DD_TEST_VAL b"), "a X b");
+        }
+      } finally {
+        // Restore so this mutation can't make later env-sensitive tests
+        // order-dependent.
+        if (prev === undefined) delete process.env.DD_TEST_VAL;
+        else process.env.DD_TEST_VAL = prev;
+      }
     });
   });
 
@@ -800,6 +941,25 @@ describe("core/utils coverage", function () {
       }
     });
 
+    it("treats mid-run session-death markers as retryable (for context retry)", function () {
+      // When a session dies mid-run, a later command — or the context-retry
+      // health-probe (getPageSource) — hits the dead session and surfaces one of
+      // these. The `retries` policy keys on this classification to re-provision a
+      // fresh session instead of accepting the spurious FAIL. These can't occur
+      // before a session exists, so adding them is inert for driverStart's
+      // creation-retry path.
+      for (const message of [
+        "invalid session id: Tried to run command without establishing a connection",
+        "WebDriverError: invalid session id",
+        "no such session",
+        "unknown error: session deleted because of page crash",
+        "chrome not reachable",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 0), true, message);
+        assert.equal(isRetryableSessionError(message, 900000), true, message);
+      }
+    });
+
     it("retries a session-creation timeout abort only when a slow-startup ceiling was declared", function () {
       // Native sessions (XCUITest/Mac2) declare wdaLaunchTimeout etc., which
       // raises the ceiling past the 2-minute default: the server-side WDA
@@ -823,6 +983,195 @@ describe("core/utils coverage", function () {
         assert.equal(isRetryableSessionError(message, 900000), false, message);
       }
       assert.equal(isRetryableSessionError(undefined, 900000), false);
+    });
+  });
+
+  describe("isSessionAlive", function () {
+    it("returns true when the session-scoped probe resolves", async function () {
+      const driver = { getPageSource: async () => "<html></html>" };
+      assert.equal(await isSessionAlive(driver), true);
+    });
+    it("returns false when the probe throws a classified session-death error", async function () {
+      for (const msg of [
+        "invalid session id",
+        "no such session",
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        "chrome not reachable",
+        "unknown error: session deleted because of page crash",
+      ]) {
+        const driver = {
+          getPageSource: async () => {
+            throw new Error(msg);
+          },
+        };
+        assert.equal(await isSessionAlive(driver), false, msg);
+      }
+    });
+    it("assumes alive (true) when the probe throws a non-session error", async function () {
+      // A live session that legitimately failed a step must not be retried, so a
+      // non-session probe error is treated as alive.
+      const driver = {
+        getPageSource: async () => {
+          throw new Error("some unrelated transient blip");
+        },
+      };
+      assert.equal(await isSessionAlive(driver), true);
+    });
+    it("returns false for a null/undefined driver", async function () {
+      assert.equal(await isSessionAlive(null), false);
+      assert.equal(await isSessionAlive(undefined), false);
+    });
+    it("treats a wedged (never-resolving) probe as alive within the probe timeout", async function () {
+      // A wedged session (socket open, no response): getPageSource never
+      // settles. The bounded probe must return within probeTimeoutMs and treat
+      // it as alive (conservative — never retry a real failure on a slow probe),
+      // rather than hang for the transport timeout.
+      const driver = { getPageSource: () => new Promise(() => {}) };
+      const start = Date.now();
+      const alive = await isSessionAlive(driver, 100);
+      assert.equal(alive, true);
+      assert.ok(Date.now() - start < 2000, "probe should return promptly, not hang");
+    });
+  });
+
+  describe("isPageBroken", function () {
+    const brokenDriver = (url) => ({ getUrl: async () => url });
+    it("returns true for a browser crash/error page", async function () {
+      for (const url of [
+        "chrome-error://chromewebdata/",
+        "about:neterror?e=dnsNotFound&u=http%3A//x",
+        "about:certerror?e=nssBadCert",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), true, url);
+      }
+    });
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), false, url);
+      }
+    });
+    it("does NOT treat about:blank as broken (a test may legitimately be there)", async function () {
+      assert.equal(await isPageBroken(brokenDriver("about:blank")), false);
+    });
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageBroken({}), false);
+      assert.equal(await isPageBroken(null), false);
+      assert.equal(
+        await isPageBroken({ getUrl: async () => { throw new Error("invalid session id"); } }),
+        false
+      );
+    });
+    it("does NOT treat the initial blank document as broken (isPageUnnavigated owns that)", async function () {
+      // Keeps the two predicates disjoint: `data:,` is a never-navigated page,
+      // not a crashed one, and they carry different diagnostics.
+      assert.equal(await isPageBroken(brokenDriver("data:,")), false);
+    });
+  });
+
+  describe("isPageUnnavigated", function () {
+    // Chromium parks a brand-new session on `data:,` until the first
+    // navigation. A context that FAILs while still there never got started —
+    // see adrs/01084-retry-unnavigated-context.md.
+    const at = (url) => ({ getUrl: async () => url });
+
+    it("returns true for Chromium's initial blank document", async function () {
+      assert.equal(await isPageUnnavigated(at("data:,")), true);
+      assert.equal(await isPageUnnavigated(at("data:")), true);
+    });
+
+    it("does NOT treat about:blank as unnavigated (a test may legitimately be there)", async function () {
+      // Mirrors the isPageBroken contract: about:blank is a reachable, valid
+      // target, so a genuine element-not-found there must still FAIL.
+      assert.equal(await isPageUnnavigated(at("about:blank")), false);
+    });
+
+    it("does NOT treat a real data: URL as unnavigated", async function () {
+      // Only the EMPTY data URL is the initial document; a data: page with
+      // content is a deliberate navigation target.
+      assert.equal(
+        await isPageUnnavigated(at("data:text/html,<h1>hello</h1>")),
+        false
+      );
+      assert.equal(await isPageUnnavigated(at("data:,notempty")), false);
+    });
+
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageUnnavigated(at(url)), false, url);
+      }
+    });
+
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageUnnavigated({}), false);
+      assert.equal(await isPageUnnavigated(null), false);
+      assert.equal(
+        await isPageUnnavigated({
+          getUrl: async () => {
+            throw new Error("invalid session id");
+          },
+        }),
+        false
+      );
+    });
+  });
+
+  describe("classifyContextRetry", function () {
+    // The retry DECISION, composed from the three probes. Covers the rules the
+    // probes themselves can't express: which sessions each check applies to,
+    // and the precedence between them (ADR 01084).
+    const alive = (url) => ({
+      getPageSource: async () => "<html></html>",
+      getUrl: async () => url,
+    });
+    const dead = () => ({
+      getPageSource: async () => {
+        throw new Error("invalid session id");
+      },
+    });
+    const REAL = "http://localhost:8092/enhanced-elements.html";
+
+    it("returns null when every session is alive on a real page", async function () {
+      assert.equal(await classifyContextRetry([alive(REAL), alive(REAL)]), null);
+    });
+
+    it("returns null for no sessions at all", async function () {
+      assert.equal(await classifyContextRetry([]), null);
+    });
+
+    it("reports a dead session anywhere in the context", async function () {
+      assert.equal(await classifyContextRetry([alive(REAL), dead()]), "session-died");
+      assert.equal(await classifyContextRetry([dead(), alive(REAL)]), "session-died");
+    });
+
+    it("reports a browser error page anywhere in the context", async function () {
+      assert.equal(
+        await classifyContextRetry([alive(REAL), alive("chrome-error://chromewebdata/")]),
+        "page-broken"
+      );
+    });
+
+    it("reports an unnavigated PRIMARY session", async function () {
+      assert.equal(await classifyContextRetry([alive("data:,")]), "unnavigated");
+      assert.equal(await classifyContextRetry([alive("data:,"), alive(REAL)]), "unnavigated");
+    });
+
+    it("does NOT retry when only a SECONDARY session is unnavigated", async function () {
+      // The rule that keeps this from firing on a `goTo newTab` surface the
+      // test deliberately never navigated: the real assertion failed on the
+      // primary page, so the context must FAIL rather than retry.
+      assert.equal(await classifyContextRetry([alive(REAL), alive("data:,")]), null);
+    });
+
+    it("prefers a dead session over an unnavigated primary", async function () {
+      // A dead session is the stronger, more actionable signal; both retry, but
+      // only one of them is worth logging as 'never navigated'.
+      assert.equal(await classifyContextRetry([dead(), alive("data:,")]), "session-died");
     });
   });
 

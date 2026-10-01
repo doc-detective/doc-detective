@@ -822,6 +822,55 @@ describe("stopRecording: device (appium) handles", function () {
     assert.equal(host.state.recordings.length, 0);
   });
 
+  it("reports probe-derived metadata outputs for a real mp4 target", async function () {
+    const samplePath = path.join(tmpDir, "sample.mp4");
+    await generateSampleMp4(samplePath);
+    const b64 = fs.readFileSync(samplePath).toString("base64");
+    const target = path.join(tmpDir, "out.mp4");
+    const handle = {
+      type: "appium",
+      driver: { stopRecordingScreen: async () => b64 },
+      targetPath: target,
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.recordingPath, target);
+    assert.equal(result.outputs.format, "mp4");
+    assert.ok(result.outputs.duration > 0, "duration > 0");
+    assert.equal(result.outputs.width, 64);
+    assert.equal(result.outputs.height, 64);
+    assert.ok(result.outputs.fps > 0, "fps > 0");
+  });
+
+  it("keeps PASS and path/format outputs when the file can't be probed", async function () {
+    // A payload that is not real video: the write succeeds, the metadata
+    // probe fails, and the step must stay PASS with only the probe-derived
+    // fields omitted.
+    const payload = Buffer.from("fake-device-video");
+    const target = path.join(tmpDir, "out.mp4");
+    const handle = {
+      type: "appium",
+      driver: { stopRecordingScreen: async () => payload.toString("base64") },
+      targetPath: target,
+    };
+    const host = hostWith([handle]);
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: host,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.recordingPath, target);
+    assert.equal(result.outputs.format, "mp4");
+    assert.equal(result.outputs.duration, undefined);
+    assert.equal(result.outputs.width, undefined);
+  });
+
   it("transcodes the device payload for non-mp4 targets (.gif)", async function () {
     const samplePath = path.join(tmpDir, "sample.mp4");
     await generateSampleMp4(samplePath);

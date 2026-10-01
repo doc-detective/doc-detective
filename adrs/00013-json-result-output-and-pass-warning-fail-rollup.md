@@ -10,9 +10,9 @@ decision-makers: doc-detective maintainers
 
 Once the runner could execute actions, it needed a durable, machine-readable record of what happened
 and a way to express an overall verdict. Early runs produced no result file and had no defined notion
-of a per-test or per-action status. This ADR records three tightly related decisions: what the result
-object looks like, where it is written, and how individual action outcomes roll up into a single
-verdict. How should results be shaped, persisted, and summarized?
+of a per-test or per-action status. This ADR records three tightly related decisions. Those are what
+the result object looks like, where it is written, and how individual action outcomes roll up into a
+single verdict. How should results be shaped, persisted, and summarized?
 
 ## Decision Drivers
 

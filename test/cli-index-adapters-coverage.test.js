@@ -106,6 +106,109 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
+  // exit-on-fail gate. An unreachable httpRequest is a deterministic offline
+  // FAIL (connection refused on a closed loopback port) with no browser/network
+  // dependency, so it exercises the real summary.specs.fail path end-to-end.
+  const FAILING_SPEC = {
+    tests: [
+      {
+        steps: [
+          { httpRequest: { url: "http://127.0.0.1:1/nope", statusCodes: [200] } },
+        ],
+      },
+    ],
+  };
+  const PASSING_SPEC = { tests: [{ steps: [{ wait: 10 }] }] };
+
+  function writeSpec(dir, name, spec) {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, JSON.stringify(spec));
+    return p;
+  }
+
+  it("--exit-on-fail exits non-zero when a spec FAILs", function () {
+    const dir = mkTmp("dd-cli-eof-fail-");
+    try {
+      const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
+      const r = runCli([
+        "--input", spec,
+        "--output", path.join(dir, "out.json"),
+        "--exit-on-fail",
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 1, `expected exit 1 on failure; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("without --exit-on-fail a FAILing run still exits 0 (historical default preserved)", function () {
+    const dir = mkTmp("dd-cli-eof-default-");
+    try {
+      const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
+      const r = runCli([
+        "--input", spec,
+        "--output", path.join(dir, "out.json"),
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 0, `expected exit 0 by default; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("--exit-on-fail exits 0 when every spec passes", function () {
+    const dir = mkTmp("dd-cli-eof-pass-");
+    try {
+      const spec = writeSpec(dir, "p.spec.json", PASSING_SPEC);
+      const r = runCli([
+        "--input", spec,
+        "--output", path.join(dir, "out.json"),
+        "--exit-on-fail",
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 0, `expected exit 0 on all-pass; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("--exit-on-fail exits 0 for a zero-spec run (a filtered/empty run is not a failure)", function () {
+    const dir = mkTmp("dd-cli-eof-zero-");
+    try {
+      // An input directory that exists but contains no specs → 0 specs run.
+      // summary.specs.fail is 0, so the gate must not fail the build; failing
+      // here would break legitimately-filtered runs that match nothing.
+      const r = runCli([
+        "--input", dir,
+        "--output", path.join(dir, "out.json"),
+        "--exit-on-fail",
+        "--logLevel", "silent",
+      ]);
+      assert.equal(r.status, 0, `expected exit 0 for a zero-spec run; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("exitOnFail via config file gates the same as the flag (file→config→runtime path)", function () {
+    const dir = mkTmp("dd-cli-eof-cfg-");
+    try {
+      const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
+      fs.writeFileSync(
+        path.join(dir, ".doc-detective.json"),
+        JSON.stringify({ exitOnFail: true })
+      );
+      const r = runCli(
+        ["--input", spec, "--output", path.join(dir, "out.json"), "--logLevel", "silent"],
+        { cwd: dir }
+      );
+      assert.equal(r.status, 1, `expected config-driven exit 1; stderr: ${r.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("DOC_DETECTIVE_DEBUG=1 with a valid config prints the diagnostic dump and returns", function () {
     const dir = mkTmp("dd-cli-dbg-");
     try {
@@ -434,6 +537,77 @@ describe("core/index.ts — runTests offline branches", function () {
         delete process.env.DOC_DETECTIVE_API;
       }
     }
+  });
+
+  // 2.3: the CLI starts the self-update registry check concurrently with
+  // detection/resolution and hands runTests an `updateJoin` that runTests must
+  // await BEFORE any test runs or any dry-run output is emitted — preserving
+  // the "update before the run" guarantee while hiding the registry latency.
+  it("awaits options.updateJoin before dry-run output / test execution", async function () {
+    const spec = path.join(tmpDir, "u.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    captured.length = 0;
+
+    let calls = 0;
+    let capturedLenAtJoin = -1;
+    const updateJoin = async () => {
+      calls += 1;
+      // At join time no dry-run stdout has been emitted yet (join precedes the
+      // dry-run JSON print, and thus any test execution).
+      capturedLenAtJoin = captured.length;
+    };
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: JSON.parse(JSON.stringify(seed)), updateJoin }
+    );
+    assert.equal(calls, 1, "updateJoin must be awaited exactly once");
+    assert.equal(
+      capturedLenAtJoin,
+      0,
+      "updateJoin must run before the dry-run stdout (and before execution)"
+    );
+    assert.ok(result.resolvedTestsId, "dry-run still returns the resolved tests");
+  });
+
+  // 2.4(a): the full results tree is demoted from info to debug. At the default
+  // info level the reporters render results; the raw tree dump must not flood
+  // the terminal. A wait-only spec executes fully offline (no browser/driver).
+  it("does not dump the full results tree at info level, but does at debug", async function () {
+    const spec = path.join(tmpDir, "r.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+
+    const runAt = async (logLevel) => {
+      captured.length = 0;
+      const res = await runTests({
+        input: [spec],
+        output: tmpDir,
+        logLevel,
+        telemetry: { send: false },
+        reporters: [],
+      });
+      assert.ok(res && res.summary, `expected the wait spec to execute at ${logLevel}`);
+      return captured.join("\n");
+    };
+
+    const infoOut = await runAt("info");
+    assert.ok(
+      !infoOut.includes("RESULTS:"),
+      "the results-tree dump must be absent at info level"
+    );
+
+    const debugOut = await runAt("debug");
+    assert.ok(
+      debugOut.includes("RESULTS:"),
+      "the results-tree dump must still be available at debug level"
+    );
   });
 });
 

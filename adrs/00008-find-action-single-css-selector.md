@@ -59,4 +59,4 @@ Observable in the `findElement` call and the `element_*` → `css` field change.
 
 ## More Information
 
-Recorded retrospectively (ADR backfill). Origin: doc-detective commits `565cfa43`, `b5eac578`. Inventory ref: BACKFILL-INVENTORY.md Seq 9. Related: ADR 00010 (`click`), ADR 00025 (supercharged `find` sub-actions).
+Recorded retrospectively (ADR backfill). Origin: doc-detective commits `565cfa43`, `b5eac578`. Inventory ref: BACKFILL-INVENTORY.md Seq 9. Related: ADR 00010 (`click`), ADR 00025 (expanded `find` sub-actions).

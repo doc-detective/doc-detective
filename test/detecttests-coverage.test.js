@@ -332,6 +332,18 @@ describe("detectTests coverage", function () {
       assert.deepEqual(specs, []);
     });
 
+    it("skips a JSON file that parses to null without crashing", async function () {
+      // A JSON file whose entire content is the literal `null` parses to null.
+      // Because typeof null === "object", without the null guard parseTests would
+      // enter the spec branch and crash on the first property access. It must be
+      // skipped (no spec emitted) instead. Bypasses qualifyFiles, which would
+      // otherwise filter it — this guards direct parseTests callers.
+      const f = write("null.json", "null");
+      const config = await makeConfig({ input: [f] });
+      const specs = await parseTests({ config, files: [f] });
+      assert.deepEqual(specs, []);
+    });
+
     it("suffixes the testId when two tests hash identically", async function () {
       // Two byte-identical tests produce the same `<specId>~<contentHash>`
       // base, so the second gets a `-2` collision suffix.
