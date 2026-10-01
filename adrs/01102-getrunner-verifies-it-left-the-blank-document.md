@@ -115,6 +115,10 @@ keeps unit-test stubs working. The real session always has the method.
   They call the same two helpers.
 * Neutral, because a healthy navigation pays one extra `getUrl()` round trip,
   the same cost 01088 accepted inside `goTo`.
+* Neutral, because the probe fires on about a fifth of fresh-session navigations,
+  measured below, so the extra `url()` is common rather than rare. Re-navigating
+  to the same target is idempotent for a page under test, and 01088 already
+  accepted that cost.
 * Neutral, because nothing inside the runner calls `getRunner`. The wrapper
   reaches only the sessions handed to a library consumer, so a `runStep` driver
   still relies on `goTo`'s guard alone.
@@ -157,10 +161,28 @@ names where the session actually was. A new case asserts the contract directly:
 after `runner.url()` resolves, the session is not on the blank document and the
 page's real title is there.
 
-The flake rate was measured rather than inferred. Eight `windows-latest` jobs ran
-`test/core-core.test.js` on the commit carrying only the diagnostics, then eight
-more on the commit carrying the fix. The numbers are in the pull request, along
-with the diagnostic line that identified which mode was firing.
+The flake rate was measured rather than inferred. A temporary workflow ran the
+`getRunner` suite six times on each of eight `windows-latest` jobs. One branch
+carried only the diagnostics, the other carried the guard. Both hold the same
+tests, and the two runs were launched together so runner-pool conditions match.
+
+| Measurement | Before (run 36906427549) | After (run 36906445445) |
+|---|---|---|
+| Suite runs failed | 4 of 48 | **0 of 48** |
+| Jobs with a failure | 4 of 8 | **0 of 8** |
+| Guard re-issues | 0, no guard present | 129 |
+
+Every before-failure named the mode, which is what the diagnostics were added
+for. `first runner should work (session at data:,)` appeared twice, alongside the
+custom-config and headless title assertions. Against the measured 8.3% before
+rate, 48 clean runs is unlikely by chance, at about one in 65.
+
+The re-issue count is an upper bound on the mode, not a count of averted
+failures. 48 of the 129 come from the deliberate real-session test, which forces
+the stuck state. The remaining 81 fired across 384 real navigations, so about a
+fifth of them read `data:,` at the probe. Only a fraction of those would have
+reached a title assertion while still blank. That gap explains the 8.3% before
+rate against a 20% probe rate.
 
 ## Pros and Cons of the Options
 
