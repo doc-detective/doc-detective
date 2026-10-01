@@ -192,7 +192,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
         with:
-          path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}  # Must match DOC_DETECTIVE_CACHE_DIR
+          path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}  # Reads DOC_DETECTIVE_CACHE_DIR so the paths stay in sync
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
