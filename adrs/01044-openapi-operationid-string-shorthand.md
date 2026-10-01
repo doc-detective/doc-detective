@@ -10,14 +10,14 @@ decision-makers: doc-detective maintainers
 
 An `httpRequest` step can target an OpenAPI operation with `openApi` (by `operationId`, by
 registered `name`, or by inline `descriptionPath`). Reviewing a new "Generate requests from OpenAPI"
-guide (PR #412) surfaced that the feature did **not work end to end** — for two independent reasons.
+guide (PR #412) surfaced that the feature did **not work end to end**, for two independent reasons.
 
 **1. Loaded descriptions never reached the step.** `resolveTests` loads each spec/test OpenAPI
 description (`fetchOpenApiDocuments` over `spec.openApi` + `test.openApi`, attaching a dereferenced
 `definition`) onto `resolvedTest.openApi`. But `resolveContext` seeded each context's `openApi` from
-the **original** `test.openApi` — an array that carries no loaded `definition` and omits spec-level
+the **original** `test.openApi`, an array that carries no loaded `definition` and omits spec-level
 entries. At execution the runner passes `context.openApi` to `httpRequest` as `openApiDefinitions`,
-so it received an **empty** array. Every OpenAPI step — object form included — failed with:
+so it received an **empty** array. Every OpenAPI step, object form included, failed with:
 
 ```text
 OpenAPI definition not found.
@@ -51,8 +51,8 @@ the same "OpenAPI definition not found."
 Chosen option: **propagate + normalize.**
 
 * **Propagation** (`src/core/resolveTests.ts`): `resolveTest` passes the loaded set
-  (`resolvedTest.openApi`) into `resolveContext`, which uses it for `context.openApi` — so the
-  description-loaded, spec+test-merged documents reach `httpRequest`'s `openApiDefinitions`.
+  (`resolvedTest.openApi`) into `resolveContext`, which uses it for `context.openApi`. The
+  description-loaded, spec+test-merged documents then reach `httpRequest`'s `openApiDefinitions`.
 * **Normalization** (`src/core/tests/httpRequest.ts`): at the top of the `openApi` block, a bare
   string becomes `{ operationId: <string> }`, then the existing object-form resolution runs
   unchanged.
@@ -62,21 +62,22 @@ Together these make the schema, docs, and runtime agree: `openApi: "getUsers"` r
 
 ### Consequences
 
-* Good: OpenAPI `httpRequest` steps resolve their descriptions at runtime — the feature works end to
+* Good: OpenAPI `httpRequest` steps resolve their descriptions at runtime. The feature works end to
   end for the first time, and the string shorthand works as documented.
-* Good: no change to the object-shape API, to steps without `openApi`, or to non-OpenAPI resolution
-  (the propagation line only sets a field that was previously mis-sourced).
+* Good: no change to the object-shape API, to steps without `openApi`, or to non-OpenAPI
+  resolution. The propagation line only sets a field that was previously mis-sourced.
 * Neutral: the shorthand searches every registered description for the `operationId`, resolving to
-  the first match — the same behavior the object form already had; pin with `name` when ambiguous.
+  the first match. That's the same behavior the object form already had, so pin with `name` when
+  ambiguous.
 
 ### Confirmation
 
-* Red→green unit tests in `test/httpRequest.test.js` ("httpRequest openApi string shorthand"):
-  before, the string form FAILs with `OpenAPI definition not found` while the object form PASSes;
-  after, the string form resolves and matches the object form.
-* A hermetic feature fixture (`test/core-artifacts/http/openapi-string-shorthand.spec.json`,
-  `mockResponse` so it never hits the network) exercises both the shorthand and the object form
-  end to end through the real runner in the `http` fixtures job — this fixture only passes because
+* Red→green unit tests in `test/httpRequest.test.js` ("httpRequest openApi string shorthand").
+  Before, the string form FAILs with `OpenAPI definition not found` while the object form PASSes.
+  After, the string form resolves and matches the object form.
+* A hermetic feature fixture, `test/core-artifacts/http/openapi-string-shorthand.spec.json`, uses
+  `mockResponse` so it never hits the network. It exercises both the shorthand and the object form
+  end to end through the real runner in the `http` fixtures job. This fixture only passes because
   the propagation fix delivers the loaded description to the step.
 * Existing `resolvedTests` / `resolvetests-coverage` / `httpRequest` suites still pass (no
   resolution regression).
@@ -91,7 +92,7 @@ Together these make the schema, docs, and runtime agree: `openApi: "getUsers"` r
 
 ### Only normalize the shorthand
 
-* Bad: descriptions still never reach the step, so nothing resolves — the shorthand fix would be
+* Bad: descriptions still never reach the step, so nothing resolves. The shorthand fix would be
   unreachable and unverifiable end to end.
 
 ### Remove the string branch and the guide

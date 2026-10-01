@@ -11,7 +11,7 @@ You can specify the screenshot action in several ways:
 - **Boolean Shorthand:** Set `screenshot: true` to capture the full viewport with default settings.
 - **String Shorthand:** Provide a file path directly as the value for the `screenshot` key (for example, `screenshot: "my_screenshot.png"`). This saves the full viewport screenshot to the specified path.
 - **Object Format:** Use an object for more control over the path, visual comparison, and cropping:
-  - `path`: (Optional) The file path where the screenshot will be saved, or an `http(s)://` URL to a remote PNG image. Can include directories. If omitted, a default path is generated. When a URL is provided, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to `./doc-detective-runs/<run-timestamp>/` instead of overwriting the remote image.
+  - `path`: (Optional) The file path to save the screenshot to, or an `http(s)://` URL to a remote PNG image. It can include directories. Omitting it generates a default path. Given a URL, Doc Detective downloads the remote image and uses it as a read-only reference for comparison. It writes the new capture to `./doc-detective-runs/<run-timestamp>/` instead of overwriting the remote image.
   - `directory`: (Optional) The directory where the screenshot will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
   - `maxVariation`: (Optional) The maximum acceptable visual difference (0 to 1) when comparing against a reference image. If the variation exceeds this threshold, the step returns WARNING. If set, visual comparison is enabled.
   - `overwrite`: (Optional) Controls when to overwrite the reference image. Ignored when `path` is a URL (remote storage is never mutated). Options:
@@ -22,7 +22,7 @@ You can specify the screenshot action in several ways:
     - `selector`: (Required in object) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text to further specify the element if the selector isn't unique.
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
-  - `surface`: (Optional) The browser (session, window, or tab) to capture, for example `{ "browser": "chrome", "tab": "cart" }`, or the [native app surface](/docs/actions/startsurface) to capture, for example `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }` (on macOS the capture is that window element, on Windows the switched window). Omit to capture the active surface (the most recently opened, focused, or explicitly targeted surface, whether that's a browser tab or an app window). Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
+  - `surface`: (Optional) The browser session, window, or tab to capture, such as `{ "browser": "chrome", "tab": "cart" }`. It can also be the [native app surface](/docs/actions/startsurface) to capture, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }`. On macOS the capture is that window element, and on Windows the switched window. Omit it to capture the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
   - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).
 
 ## Annotations
@@ -42,7 +42,7 @@ Annotations mark up a screenshot as part of capturing it, so the callouts regene
 }
 ```
 
-Doc Detective composites annotations into the image instead of injecting them into the page. It never modifies the page under test, so an annotated screenshot can't disturb a test or leak into a recording that's running at the same time.
+Doc Detective composites annotations into the image instead of injecting them into the page. It never modifies the page under test. An annotated screenshot therefore can't disturb a test or leak into a concurrent recording.
 
 ### Types
 
@@ -69,7 +69,7 @@ An element target waits up to 5000 milliseconds for its element to appear. Set `
 { "outline": { "elementTestId": "dashboard", "timeout": 20000 } }
 ```
 
-`timeout` works the same way as [`find`](/docs/actions/find)'s, and like find's, it needs the object form of the target: the string shorthand has nowhere to put it.
+`timeout` works the same way as [`find`](/docs/actions/find)'s. Like find's, it needs the object form of the target, because the string shorthand has nowhere to put it.
 
 ### Options
 
@@ -129,17 +129,17 @@ Annotations change the image's pixels. If you compare against a reference image 
 
 **Visual Regression Testing:** If `maxVariation` is set and a reference image exists at the target `path`, the action compares the new screenshot to the reference. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting.
 
-**URL Paths:** When `path` is an `http(s)://` URL pointing to a PNG image, Doc Detective downloads the remote image once per run and uses it as a read-only reference for comparison. The new screenshot is saved to `./doc-detective-runs/<run-timestamp>/<stepId>_<filename>.png` for inspection. The `overwrite` setting is ignored because remote storage is never mutated. The step result includes `outputs.referenceUrl` for traceability. This works well for teams that store reference images in cloud storage like S3 without managing local files.
+**URL Paths:** When `path` is an `http(s)://` URL pointing to a PNG image, Doc Detective downloads that image once per run. It uses the image as a read-only reference for comparison. The new screenshot is saved to `./doc-detective-runs/<run-timestamp>/<stepId>_<filename>.png` for inspection. The `overwrite` setting is ignored, because remote storage is never mutated. The step result includes `outputs.referenceUrl` for traceability. This suits teams that store reference images in cloud storage like S3 without managing local files.
 
 <Note>
 URL paths must end in `.png` (or `.PNG`) and can include query strings for signed URLs. The step fails if the URL is unreachable or returns invalid image data.
 </Note>
 
-**Private addresses:** remote reference URLs must resolve to a public host. To guard against server-side request forgery (SSRF), Doc Detective won't fetch reference images from private, loopback, or link-local addresses—including their IPv4-mapped IPv6 forms. This covers hosts like `localhost` and `127.0.0.1`, ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`, and the `169.254.169.254` cloud-metadata endpoint. A blocked URL fails the step with a message that starts with `Couldn't fetch remote reference image` and notes it's `Refusing to fetch private/loopback address`. To compare against a reference image on an internal address, such as a local development server, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to opt out of this check.
+**Private addresses:** remote reference URLs must resolve to a public host. Doc Detective won't fetch reference images from private, loopback, or link-local addresses, including their IPv4-mapped IPv6 forms. This guards against server-side request forgery (SSRF). This covers hosts like `localhost` and `127.0.0.1`. It also covers ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`, plus the `169.254.169.254` cloud-metadata endpoint. A blocked URL fails the step with a message that starts with `Couldn't fetch remote reference image`. The message notes it's `Refusing to fetch private/loopback address`. To compare against a reference image on an internal address, such as a local development server, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true`.
 
 **Outputs:** depending on which options you configure, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Each output is present only when its check applies:
 
-- `$$width` / `$$height`: the saved image's actual pixel dimensions, after any crop. If the browser floors a requested viewport, these report the size the page rendered rather than the size you asked for, so you can reconcile a caption or report against the file. Present when Doc Detective can read the saved image's dimensions; omitted if the metadata read fails or the image has no readable size.
+- `$$width` and `$$height`: the saved image's actual pixel dimensions, after any crop. When the browser floors a requested viewport, these report the size the page rendered rather than the size you asked for. You can then reconcile a caption or report against the file. They're present when Doc Detective can read the saved image's dimensions. They're omitted when the metadata read fails or the image has no readable size.
 - `$$cropElementFound`: whether the element to crop to was located (when `crop` is set).
 - `$$fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
 - `$$annotationTargetsFound`: whether every annotation's target resolved (when `annotations` is set). The step fails if any target is missing.
@@ -388,12 +388,12 @@ Doc Detective saves auto screenshots under `<output>/.doc-detective/runs/<runId>
                             └── 01-goTo-s4f2a91c.png
 ```
 
-The HTML report provides a human-readable view of the same results, making run folders self-contained artifacts you can share or compare without needing the standalone `html` reporter.
+The HTML report provides a human-readable view of the same results. Run folders therefore become self-contained artifacts you can share or compare without the standalone `html` reporter.
 
 Doc Detective generates deterministic IDs based on content rather than random UUIDs, so the same test step produces the same relative path in every run. This lets you diff two run folders and spot UI changes over time.
 
 <Note>
-Auto screenshot capture skips steps that already define an explicit `screenshot`, since those steps already produce an image. Doc Detective still captures failed steps—the failure state is often the most useful frame for debugging.
+Auto screenshot capture skips steps that already define an explicit `screenshot`, since those steps already produce an image. Doc Detective still captures failed steps, because the failure state is often the most useful frame for debugging.
 </Note>
 
 

@@ -14,13 +14,13 @@ You can choose which recording to stop:
 
 When you target by name, Doc Detective stops that recording wherever it falls in the active set, not just the most recent one. For more about running several recordings at once, see [Multiple overlapping recordings](record#multiple-overlapping-recordings).
 
-The same untargeted and named forms stop recordings of every kind—browser, desktop app window, and mobile device-screen recordings all live on the same stack. For device recordings, `stopRecord` is also the point where the video transfers from the device and saves (converting to `.webm`/`.gif` when the target path calls for it).
+The same untargeted and named forms stop recordings of every kind. Browser, desktop app window, and mobile device-screen recordings all live on the same stack. For device recordings, `stopRecord` is also the point where the video transfers from the device and saves. It converts to `.webm` or `.gif` when the target path calls for it.
 
 >Note: To finalize and save a recording started with the `record` action, include a `stopRecord` step. An untargeted `stopRecord` skips recordings created by [`autoRecord`](record#automatic-recordings); Doc Detective finalizes those automatically at the end of the context.
 >
 > For comprehensive options, see the [`stopRecord`](/reference/schemas/stoprecord) reference.
 
-**Outputs:** when a recording saves, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Metadata fields are best-effort—if Doc Detective can't read the saved file's metadata, it omits those fields without failing the step:
+**Outputs:** when a recording saves, the action exposes the following values in its `outputs` object. To capture any of them for later steps, use the step-level `variables` object with the matching expression. Metadata fields are best-effort. When Doc Detective can't read the saved file's metadata, it omits those fields without failing the step:
 
 - `$$recordingPath`: the absolute path of the saved video file.
 - `$$format`: the saved file's format (`mp4`, `webm`, or `gif`).
@@ -33,13 +33,13 @@ When the recording ran with [checkpoints](record#recording-checkpoints) enabled,
 - `$$checkpoints`: per-checkpoint results (file name, variation, whether the baseline was missing).
 - `$$maxCheckpointVariation`: the highest variation across the span's checkpoints. Beyond the configured `maxVariation`, the step returns WARNING.
 - `$$seededBaselines`: how many baselines this stop seeded (first run only; `0` when every checkpoint compared against an existing baseline).
-- `$$checkpointErrors`: how many checkpoints couldn't be captured or compared (for example, an aspect-ratio mismatch against the baseline). Any errors also return WARNING—an incomparable checkpoint is a drift signal, not a clean pass.
+- `$$checkpointErrors`: how many checkpoints couldn't be captured or compared, such as an aspect-ratio mismatch against the baseline. Any errors also return WARNING, because an incomparable checkpoint is a drift signal rather than a clean pass.
 
 With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automatically):
 
 - `$$changed`: whether the span meaningfully changed and the recording (plus its baselines) was refreshed. `false` means the fresh capture was discarded and the existing file kept.
 - `$$changeReasons`: why the recording refreshed (drift, added/removed steps, missing file). Present only when `changed` is `true`.
-- `$$baselineFailures`: how many checkpoint baselines Doc Detective couldn't write during a refresh. Present only when at least one failed—the video refreshed but its baselines didn't fully follow, so the next run treats the mismatch as drift and refreshes both again.
+- `$$baselineFailures`: how many checkpoint baselines Doc Detective couldn't write during a refresh. It's present only when at least one failed. The video refreshed but its baselines didn't fully follow, so the next run treats the mismatch as drift and refreshes both again.
 
 With [`verify` guards](record#verifying-the-video-file-itself):
 
@@ -48,7 +48,7 @@ With [`verify` guards](record#verifying-the-video-file-itself):
 
 In a headless run of an `aboveVariation` or checkpointed span (the recording itself is skipped):
 
-- `$$stale`: whether the committed recording appears stale—its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint suggesting a headed re-run.
+- `$$stale`: whether the committed recording appears stale, meaning its baselines no longer match the current content. `true` also returns WARNING and fires a post-run hint suggesting a headed re-run.
 
 A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
 

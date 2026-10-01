@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-CI and containerized runs needed to supply configuration without writing a config file to disk, and some users wanted to delegate execution to a hosted Doc Detective service rather than run everything locally. Doc Detective had file config and CLI flags, but no environment-variable config channel and no remote-run integration. How should an env-supplied config slot into the existing precedence order, and how should a remote run be expressed in config?
+CI and containerized runs needed to supply configuration without writing a config file to disk. Some users also wanted to delegate execution to a hosted Doc Detective service, rather than run everything locally. Doc Detective had file config and CLI flags, but no environment-variable config channel and no remote-run integration. How should an env-supplied config slot into the existing precedence order, and how should a remote run be expressed in config?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ CI and containerized runs needed to supply configuration without writing a confi
 
 ## Decision Outcome
 
-Chosen option: **A**, because a single JSON env var validated against `config_v3` reuses the existing schema contract exactly, and inserting it between file and CLI keeps the precedence rule a clean total order. Parse/validation failures `exit(1)` so a malformed env config fails loudly rather than silently running with defaults.
+Chosen option: **A**. A single JSON env var validated against `config_v3` reuses the existing schema contract exactly. Inserting it between file and CLI keeps the precedence rule a clean total order. Parse/validation failures `exit(1)` so a malformed env config fails loudly rather than silently running with defaults.
 
 Contract decided:
 

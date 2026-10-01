@@ -31,7 +31,7 @@ DOC_DETECTIVE_DEBUG=true doc-detective
 
 <Note>
 
-Setting `DOC_DETECTIVE_DEBUG=true` causes Doc Detective to print the diagnostic dump and exit — tests do not run. Unset it before a normal run.
+Setting `DOC_DETECTIVE_DEBUG=true` causes Doc Detective to print the diagnostic dump and exit. Tests do not run. Unset it before a normal run.
 
 </Note>
 
@@ -52,7 +52,7 @@ The diagnostic dump reports:
 
 ## Start with the findings
 
-The dump opens with a **Findings / next steps** section. Instead of leaving you to interpret the raw data below it, Doc Detective evaluates what it collected and surfaces the likely cause of each problem along with the command that resolves it. Each finding has a severity (`ERROR`, `WARNING`, or `INFO`), a description of what's wrong, and, where one applies, a `fix:` command you can run directly. When nothing looks wrong, the section reports `No problems detected.`
+The dump opens with a **Findings / next steps** section. Rather than leaving you to interpret the raw data below it, Doc Detective evaluates what it collected. It surfaces the likely cause of each problem along with the command that resolves it. Each finding has a severity (`ERROR`, `WARNING`, or `INFO`) and a description of what's wrong. Where one applies, it also has a `fix:` command you can run directly. When nothing looks wrong, the section reports `No problems detected.`
 
 ```
 -- Findings / next steps --------------------------------------------
@@ -113,7 +113,7 @@ doc-detective install browsers
 
 ### A browser is present but its driver won't run
 
-Sometimes a browser driver exists on disk but won't run. The most common case is a partially downloaded `geckodriver`. Doc Detective validates each driver by running it, not just by checking that the file is present, so a broken driver no longer silently drops that browser's coverage. Doc Detective catches a driver from the wrong CPU architecture earlier, and never runs it. See [A driver was built for a different CPU architecture](#a-driver-was-built-for-a-different-cpu-architecture).
+Sometimes a browser driver exists on disk but won't run. The most common case is a partially downloaded `geckodriver`. Doc Detective validates each driver by running it, not just by checking that the file is present. A broken driver no longer silently drops that browser's coverage. Doc Detective also catches a driver from the wrong CPU architecture earlier, and never runs it. See [A driver was built for a different CPU architecture](#a-driver-was-built-for-a-different-cpu-architecture).
 
 When a driver can't start a session, Doc Detective falls back to another available browser. Chrome, Firefox, and Safari/WebKit can each substitute for one another. The run then reports one of the following:
 
@@ -243,7 +243,7 @@ Reinstall the runtime so Appium registers the driver under the active `APPIUM_HO
 doc-detective install runtime
 ```
 
-When the manifest is missing, Doc Detective reports registration as unknown rather than flagging the drivers, so a fresh environment won't trigger a false alarm.
+When the manifest is missing, Doc Detective reports registration as unknown rather than flagging the drivers. A fresh environment therefore won't trigger a false alarm.
 
 ### Lazy install fails behind a proxy
 
@@ -259,7 +259,7 @@ If installs fail behind a proxy, confirm the proxy and registry are reachable an
 
 ### Effective config isn't what you expect
 
-When your merged configuration doesn't match what you intended, the **Config provenance** section shows where each piece came from: the resolved config file path, whether Doc Detective applied `DOC_DETECTIVE_CONFIG` or `DOC_DETECTIVE_API`, and which CLI flags overrode the validated config.
+When your merged configuration doesn't match what you intended, the **Config provenance** section shows where each piece came from. It gives the resolved config file path, whether Doc Detective applied `DOC_DETECTIVE_CONFIG` or `DOC_DETECTIVE_API`, and which CLI flags overrode the validated config.
 
 ```
 -- Config provenance ------------------------------------------------

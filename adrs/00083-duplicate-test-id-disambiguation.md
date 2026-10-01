@@ -8,9 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Tests may carry an author-declared `id`. When two tests share the same declared `id` — easy to do
-across files or by copy-paste — they collide: result keying, reporting, and any per-test lookup
-become ambiguous because two distinct tests claim the same identifier. How should the resolver
+Tests may carry an author-declared `id`. Two tests can share the same declared `id`, which is easy
+to do across files or by copy-paste. They then collide, and result keying, reporting, and any
+per-test lookup become ambiguous, because two distinct tests claim the same identifier. How should
+the resolver
 guarantee unique test identity while still honoring the author's declared id where it is unique?
 
 ## Decision Drivers
@@ -30,7 +31,7 @@ guarantee unique test identity while still honoring the author's declared id whe
 
 Chosen option: **A**, because it keeps a unique, collision-free identity while preserving the
 author-declared id as a readable prefix. When the resolver finds a declared test `id` that is
-already in use, it rewrites the colliding occurrence to `${id}-${uuid}` so the two no longer
+already in use, it rewrites the colliding occurrence to `${id}-${uuid}`. The two then no longer
 collide (core `8e7187e4`, Seq 124). Unique declared ids pass through unchanged; only collisions
 are suffixed.
 

@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When a test misbehaves, authors had no in-runner way to pause execution and inspect state step by step — the run either passed or failed wholesale. Doc Detective needed an interactive debugging affordance: a config-level switch to step through a run, plus a per-step way to mark exactly where execution should halt. What should the schema contract for that debugging mode be, and how should authors mark a breakpoint on an individual step?
+When a test misbehaves, authors had no in-runner way to pause execution and inspect state step by step. The run either passed or failed wholesale. Doc Detective needed an interactive debugging affordance. That's a config-level switch to step through a run, plus a per-step way to mark exactly where execution should halt. What should the schema contract for that debugging mode be, and how should authors mark a breakpoint on an individual step?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ When a test misbehaves, authors had no in-runner way to pause execution and insp
 
 ## Decision Outcome
 
-Chosen option: **A**, because an `anyOf(boolean, enum)` keeps the simple on/off ergonomics while reserving a named-mode slot (`"stepThrough"`) for richer behavior, and a step-level `breakpoint` lets authors halt precisely where they need to rather than at every step.
+Chosen option: **A**. An `anyOf(boolean, enum)` keeps the simple on/off ergonomics, while reserving a named-mode slot (`"stepThrough"`) for richer behavior. A step-level `breakpoint` lets authors halt precisely where they need to, rather than at every step.
 
 Contract decided:
 

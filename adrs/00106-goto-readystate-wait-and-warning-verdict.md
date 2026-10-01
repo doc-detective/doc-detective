@@ -8,12 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The `goTo` step navigated the browser but did not wait for the page to finish loading before subsequent steps ran, so a `find` or `screenshot` immediately after a `goTo` could race an incomplete page. The natural fix is to wait for the document to be ready — but that raises a verdict question: if a page never reaches a ready state within the timeout, is that a hard FAIL (the test author's procedure is broken) or a softer signal (the page was slow, but the navigation itself happened)? How should `goTo` wait, and what verdict should a wait timeout produce?
+The `goTo` step navigated the browser but did not wait for the page to finish loading. A `find` or `screenshot` immediately after a `goTo` could then race an incomplete page. The natural fix is to wait for the document to be ready. But that raises a verdict question. If a page never reaches a ready state within the timeout, is that a hard FAIL, meaning the author's procedure is broken? Or is it a softer signal, where the page was slow but the navigation itself happened? How should `goTo` wait, and what verdict should a wait timeout produce?
 
 ## Decision Drivers
 
 * Steps after `goTo` must not race a page that hasn't finished loading.
-* A slow page is not the same failure class as a wrong assertion — a hard FAIL overstates it.
+* A slow page is not the same failure class as a wrong assertion, and a hard FAIL overstates it.
 * A timeout should still surface visibly, not pass silently.
 * The verdict model needed a middle state between PASS and FAIL for soft regressions.
 
@@ -28,7 +28,7 @@ The `goTo` step navigated the browser but did not wait for the page to finish lo
 Chosen option: **A**, because navigation succeeding-but-slow is a soft signal, and the existing PASS/FAIL pair could not express it. The contract:
 
 1. `goTo` waits for **`document.readyState === "complete"`**, default timeout **15000 ms**.
-2. A wait timeout sets the step result to **WARNING** — establishing WARNING as a third verdict state (distinct from FAIL) at the step level.
+2. A wait timeout sets the step result to **WARNING**. That establishes WARNING as a third verdict state at the step level, distinct from FAIL.
 
 Commit `dcec4374` in `core`.
 
@@ -51,7 +51,7 @@ Shipped in `core` commit `dcec4374`; `goTo` blocking on `readyState=complete` an
 
 ### B. readyState wait + FAIL on timeout
 * Good: simpler binary verdict.
-* Bad: a slow-but-loaded page fails the test — overstated.
+* Bad: a slow-but-loaded page fails the test, which overstates it.
 
 ### C. No implicit wait
 * Good: explicit and predictable.

@@ -9,9 +9,10 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The core runner had to turn a tree of specs → tests → contexts → steps into a single, predictable
-result. Two things were missing: a uniform way to dispatch each step to its handler based on the
-step's `action`, and a deterministic rule for combining many step results into one verdict at each
-level of the tree. Without these, every action returned an ad-hoc shape and there was no agreed
+result. Two things were missing. One was a uniform way to dispatch each step to its handler based on
+the step's `action`. The other was a deterministic rule for combining many step results into one
+verdict at each level of the tree. Without these, every action returned an ad-hoc shape and there
+was no agreed
 precedence for mixing passes, warnings, and failures. How should steps be dispatched and how should
 verdicts roll up?
 
@@ -33,8 +34,8 @@ verdicts roll up?
 Chosen option: **A**, because a single dispatch point and an associative precedence rule make
 results deterministic and easy to reason about. `runStep` switches on `step.action` and returns a
 standard `{status, description}`; an unknown action yields **FAIL**. Results roll up by the
-precedence **FAIL > WARNING > PASS** at every level (step → context → test → spec), so any failure
-dominates a warning and any warning dominates a pass. Appium warm-up is gated by `isAppiumRequired`
+precedence **FAIL > WARNING > PASS** at every level (step → context → test → spec). Any failure
+dominates a warning, and any warning dominates a pass. Appium warm-up is gated by `isAppiumRequired`
 so non-browser tests don't pay for a driver. This dispatch-and-rollup contract underpins later
 verdict work: `SKIP`→`SKIPPED` canonicalization (`00067`), the WARNING third verdict for timeouts
 (`00106`), and stop-on-fail step skipping (`00117`).
@@ -49,8 +50,8 @@ verdict work: `SKIP`→`SKIPPED` canonicalization (`00067`), the WARNING third v
 
 ### Confirmation
 
-`runStep` dispatch and the FAIL>WARNING>PASS roll-up are implemented in `doc-detective-core`;
-observable in result objects at every tree level and in the unknown-action FAIL path.
+`runStep` dispatch and the FAIL>WARNING>PASS roll-up are implemented in `doc-detective-core`. Both
+are observable in result objects at every tree level, and in the unknown-action FAIL path.
 
 ## Pros and Cons of the Options
 
