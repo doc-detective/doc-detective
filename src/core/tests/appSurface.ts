@@ -19,6 +19,11 @@ import {
 } from "../../runtime/loader.js";
 import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
+import {
+  applyManagedWdaCapabilities,
+  locateManagedWda,
+  type ManagedWdaHit,
+} from "../../runtime/wdaProducts.js";
 import { log } from "../utils.js";
 import {
   snapshotAppWindows,
@@ -32,6 +37,10 @@ import {
   stepTargetsAppSurface,
   stepOpensAppSurface,
 } from "../../runtime/browserStepKeys.js";
+import {
+  activateSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 import { validate } from "../../common/src/validate.js";
 
 export {
@@ -416,7 +425,12 @@ interface AppDriverPlatform {
   buildCapabilities(
     descriptor: any,
     appId: string,
-    extras?: { udid?: string }
+    extras?: {
+      udid?: string;
+      // iOS only: locate managed prebuilt WDA products (injected by the
+      // caller so config-resolved cache context and test stubs both flow).
+      locateWda?: () => ManagedWdaHit | null;
+    }
   ): Record<string, any>;
   // Whether elementText and elementAria's accessible name map to the SAME
   // underlying attribute (Windows @Name, macOS title/label) — so two different
@@ -446,7 +460,9 @@ const DESKTOP_UNSUPPORTED_MOBILE_FIELDS = ["device", "install", "activity"].map(
   })
 );
 
-const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
+// Exported for the warm-phase planner (buildWarmPlanDeps in tests.ts): the
+// platform → driver-package mapping is this table's single source of truth.
+export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
   windows: {
     driverPackage: "appium-novawindows-driver",
     driverLabel: "Windows app driver",
@@ -619,17 +635,14 @@ const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       const timeout = descriptor.timeout ?? 60000;
       capabilities["appium:wdaLaunchTimeout"] = Math.max(timeout, 120000);
       capabilities["appium:wdaConnectionTimeout"] = Math.max(timeout, 120000);
-      // Persisting WebDriverAgent's Xcode build products across sessions/runs
-      // turns the cold ~10-minute WDA compile into a fast incremental build.
-      // Opt-in via env so a shared derivedDataPath is only used where the caller
-      // manages it (e.g. a CI cache keyed by driver + Xcode version); unset by
-      // default, appium uses a throwaway per-session temp dir. A caller sharing
-      // one path across concurrent iOS sessions owns serializing them.
-      const derivedDataPath =
-        process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-      if (derivedDataPath && derivedDataPath.trim()) {
-        capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
-      }
+      // WDA derived-data: env override wins (historical contract), else the
+      // managed products `install ios` prebuilt for this exact toolchain are
+      // consumed read-only (docs/design/ios-wda-prebuild.md). The precedence
+      // and capability pair live in applyManagedWdaCapabilities so this
+      // builder and the mobile-web one cannot drift. No bare locator default
+      // here: the caller threads a config-aware locator via extras, and its
+      // absence means "no managed consumption", never "guess a cache root".
+      applyManagedWdaCapabilities(capabilities, extras?.locateWda);
       return capabilities;
     },
     unsupportedFields: [
@@ -706,6 +719,11 @@ interface AppSessionState {
   appiumHome?: string;
   surfaces: Map<string, AppSurfaceEntry>;
   activeApp?: string;
+  // Cross-kind active-surface tracker (ADR 01081), shared with the context's
+  // browser session registry: app activations mark the app as the context's
+  // active surface, so surface-less steps route here after an app opens or
+  // is explicitly targeted.
+  tracker?: ActiveSurfaceTracker;
   recordingHost: { state: { recordings: any[] } };
   // Android (phase A3b): one shared driver session per device, keyed by device
   // name. Multiple app surfaces on the same device reuse its session and switch
@@ -1219,6 +1237,9 @@ async function startAppSurface({
     acquireDevice?: (
       desc: any
     ) => Promise<{ entry: { name: string; udid: string } } | { skip: string }>;
+    // iOS only: locate managed prebuilt WDA products. Injected by tests for
+    // hermeticity; the default reads the cache under config.cacheDir.
+    locateWda?: () => ManagedWdaHit | null;
   };
 }): Promise<any> {
   const result: any = { status: "PASS", description: "", outputs: {} };
@@ -1325,6 +1346,9 @@ async function startAppSurface({
       // (and installs, when `install` is set) the app.
       const capabilities = platformDriver.buildCapabilities(descriptor, appId, {
         udid: acquired.entry.udid,
+        locateWda:
+          serverDeps.locateWda ??
+          (() => locateManagedWda({ ctx: { cacheDir: config?.cacheDir } })),
       });
       Object.assign(capabilities, descriptor.driverOptions ?? {});
       try {
@@ -1431,6 +1455,7 @@ async function startAppSurface({
     deviceName,
   });
   appSession.activeApp = name;
+  activateSurface(appSession.tracker, { kind: "app", name });
 
   // Window-selector baseline (ADR 01036, desktop): capture the main window
   // handle / pid / known-vs-foreign handles (Windows) or the (title, frame)
@@ -1515,13 +1540,21 @@ async function startAppSurface({
 
 // Bring an app surface's app to the foreground on its shared Android device
 // session before acting on it — the active-surface switch, mirroring browser
-// tab focus. No-op for desktop surfaces (one driver per app) and when the app
-// is already foreground. Returns an error string if activation fails.
+// tab focus. Desktop surfaces (one driver per app) need no driver-level
+// foregrounding, but the ACTIVE-SURFACE pointer still moves (ADR 01081): a
+// step that references an app surface makes it the surface later
+// surface-less steps act on, uniformly across kinds. Returns an error string
+// if activation fails.
 async function ensureAppForeground(
   entry: AppSurfaceEntry,
   appSession?: AppSessionState
 ): Promise<{ error?: string }> {
-  if (!entry.deviceName || !appSession) return {};
+  if (!appSession) return {};
+  if (!entry.deviceName) {
+    appSession.activeApp = entry.name;
+    activateSurface(appSession.tracker, { kind: "app", name: entry.name });
+    return {};
+  }
   const session = appSession.deviceSessions?.get(entry.deviceName);
   // A surface carrying a deviceName must have a live device session. A missing
   // one is an internal inconsistency — fail loudly instead of skipping the
@@ -1531,16 +1564,18 @@ async function ensureAppForeground(
       error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}): no active session for device "${entry.deviceName}".`,
     };
   }
-  if (session.foregroundApp === entry.appId) return {};
-  try {
-    await session.driver.activateApp(entry.appId);
-  } catch (error: any) {
-    return {
-      error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}) on device "${entry.deviceName}": ${error?.message ?? error}`,
-    };
+  if (session.foregroundApp !== entry.appId) {
+    try {
+      await session.driver.activateApp(entry.appId);
+    } catch (error: any) {
+      return {
+        error: `Couldn't switch to app surface "${entry.name}" (${entry.appId}) on device "${entry.deviceName}": ${error?.message ?? error}`,
+      };
+    }
+    session.foregroundApp = entry.appId;
   }
-  session.foregroundApp = entry.appId;
   appSession.activeApp = entry.name;
+  activateSurface(appSession.tracker, { kind: "app", name: entry.name });
   return {};
 }
 

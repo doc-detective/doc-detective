@@ -1,0 +1,14 @@
+# Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
+# Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
+#
+extends: existence
+message: "Importance puffery: '%s'. State the fact and let the reader judge."
+level: error
+ignorecase: true
+tokens:
+  - stands as a testament
+  - '(?:marks|represents) a pivotal moment'
+  - '(?:thrilled|excited|proud) to (?:announce|share)'
+  - plays a vital role
+  - solidifies its position
+  - underscores its significance

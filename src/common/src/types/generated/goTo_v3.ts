@@ -68,11 +68,11 @@ export type GoToURLDetailed = {
    */
   waitUntil?: {
     /**
-     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.
+     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).
      */
     networkIdleTime?: number | null;
     /**
-     * Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.
+     * Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).
      */
     domIdleTime?: number | null;
     /**
@@ -80,6 +80,37 @@ export type GoToURLDetailed = {
      */
     find?: {
       [k: string]: unknown;
+    } & {
+      /**
+       * CSS selector for the element to wait for.
+       */
+      selector?: string;
+      /**
+       * Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text.
+       */
+      elementText?: string;
+      /**
+       * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementId?: string;
+      /**
+       * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementTestId?: string;
+      /**
+       * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+       */
+      elementClass?: string | string[];
+      /**
+       * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+       */
+      elementAttribute?: {
+        [k: string]: string | number | boolean;
+      };
+      /**
+       * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementAria?: string;
     };
   };
 } & NewTabAndNewWindowAreMutuallyExclusive &

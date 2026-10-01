@@ -3,16 +3,23 @@ title: Set up your test environment
 description: Set up an environment for Doc Detective tests.
 ---
 
-You can use Doc Detective directly against your production site. For testing, it's often useful to set up a local HTML server to run your tests. There are many server options. Live Server is a free utility that creates a local server that monitors your files for changes and updates the browser window automatically.
+You can use Doc Detective directly against your production site. For testing, it's often useful to set up a local HTML server to run your tests against. The tutorials that follow fill in a sample intake form, so you need to serve that form locally before you run them.
 
-1. Download [TestExamples.zip](./TestExamples.zip) and expand the file to your local disk.
-1. In a terminal, navigate to the expanded folder:
+The sample test specs themselves are hosted online, so you don't need to download them. You pass each one to Doc Detective by URL with the `--input` argument, as shown in the following tutorials.
+
+1. Download the sample intake form, [watson_and_holmes_intake_form.html](https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/examples/watson-and-holmes/watson_and_holmes_intake_form.html), into an empty folder. The file is self-contained, so it's the only file you need.
 
    ```shell
-   cd <path-to-expanded-test-examples>
+   curl -O https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/examples/watson-and-holmes/watson_and_holmes_intake_form.html
    ```
 
-   Replace `<path-to-expanded-test-examples>` with the actual path where you expanded the `TestExamples.zip` file.
+1. In a terminal, navigate to the folder that contains the form:
+
+   ```shell
+   cd <path-to-form-folder>
+   ```
+
+   Replace `<path-to-form-folder>` with the actual path to the folder where you saved the form.
 1. Install and run a webserver. Running your tests against a local server allows you to make edits and see them in real time. Also, you need to serve the files in a web browser to experiment with video recording and other features.
 
    Any web server works, but here are a few options (unassociated with Doc Detective):
@@ -29,7 +36,7 @@ You can use Doc Detective directly against your production site. For testing, it
          To run a local server with Node.js, you can use the `http-server` package:
 
          ```bash
-         npx http-server <path-to-expanded-test-examples>
+         npx http-server -p 8080
          ```
       </Tab>
       <Tab language='vscode' title='VSCode'>
@@ -45,4 +52,4 @@ You can use Doc Detective directly against your production site. For testing, it
       </Tab>
    </Tabs>
 
-   Once the server is started, you can open a browser window to `http://localhost:8080`. If you see a rendered page, you're ready to start testing.
+   Once the server is started, you can open a browser window to `http://localhost:8080/watson_and_holmes_intake_form.html`. If you see the rendered intake form, you're ready to start testing.

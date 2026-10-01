@@ -435,6 +435,18 @@ async function teardownDeviceRegistry(
 ): Promise<void> {
   for (const entry of registry.values()) {
     if (!entry.bootedByUs) continue;
+    // A warm-phase boot can still be in flight at run end (the warm task
+    // resolves at boot initiation). Await it so the entry carries its real
+    // process/udid before the kill — sweeping mid-boot would no-op on the
+    // unset process and orphan the emulator. A boot that fails booted
+    // nothing, so there's nothing to kill.
+    if (entry.ready) {
+      try {
+        await entry.ready;
+      } catch {
+        continue;
+      }
+    }
     try {
       await kill(entry);
     } catch {

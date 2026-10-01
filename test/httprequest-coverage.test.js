@@ -626,6 +626,133 @@ describe("httpRequest coverage (stubbed axios)", function () {
   });
 
   // ---------------------------------------------------------------------------
+  // No implicit body assertion when response.body is unset (#576 regression):
+  // httpRequest used to default response.body to {} even when the step never
+  // asked for a body assertion, so a non-JSON (or empty) response failed a
+  // type-match check the user never requested. Sanity-check a handful of
+  // realistic response shapes with NO response.body set at all — every one
+  // must PASS with no bodyMatches output at all, regardless of content type.
+  // ---------------------------------------------------------------------------
+  describe("no implicit body assertion when response.body is unset", function () {
+    it("PASSes an HTML response with no response.body set", async function () {
+      stubResponse({
+        status: 200,
+        headers: { "content-type": "text/html" },
+        data: "<html><body>Directory listing</body></html>",
+      });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.bodyMatches, undefined);
+    });
+
+    it("PASSes a plain-text response with no response.body set", async function () {
+      stubResponse({
+        status: 200,
+        headers: { "content-type": "text/plain" },
+        data: "ok",
+      });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.bodyMatches, undefined);
+    });
+
+    it("PASSes an empty 204-style response (no body at all) with no response.body set", async function () {
+      stubResponse({ status: 204, headers: {}, data: "" });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [204],
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.bodyMatches, undefined);
+    });
+
+    it("PASSes a JSON object response with no response.body set", async function () {
+      stubResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        data: { id: 1, name: "morpheus" },
+      });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.bodyMatches, undefined);
+    });
+
+    it("PASSes a JSON array response with no response.body set", async function () {
+      stubResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        data: [1, 2, 3],
+      });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.bodyMatches, undefined);
+    });
+
+    it("still asserts the body when response.body IS explicitly set (control case)", async function () {
+      stubResponse({
+        status: 200,
+        headers: { "content-type": "text/plain" },
+        data: "unexpected-text",
+      });
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            url: "http://api.example.com/",
+            method: "get",
+            statusCodes: [200],
+            response: { body: "expected-text" },
+          },
+        },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.outputs.bodyMatches, false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Required-field checks (fieldExistsAtPath)
   // ---------------------------------------------------------------------------
   describe("required response fields (fieldExistsAtPath)", function () {

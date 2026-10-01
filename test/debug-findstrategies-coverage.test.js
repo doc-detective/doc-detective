@@ -369,12 +369,13 @@ describe("findStrategies coverage (phase 13)", function () {
 
   describe("findElementByShorthand (regex)", function () {
     it("finds by text regex (selector strategy resolves first)", async function () {
-      // //*[normalize-space(text())] drives findElementByRegex; the first
-      // resolving strategy ("selector") wins by precedence.
+      // //*[text()[normalize-space()]] drives findElementByRegex (elements with
+      // their own text, ADR 01061); the first resolving strategy ("selector")
+      // wins by precedence.
       const el = makeElement({ text: "Total: 42" });
       const driver = makeDriver({
         $$: (q) => {
-          if (q.includes("normalize-space(text())")) return [el];
+          if (q.includes("text()[normalize-space()]")) return [el];
           return [];
         },
       });

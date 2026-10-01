@@ -3,6 +3,9 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { symlinkSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   apiCall,
   buildEffectiveConfig,
@@ -759,11 +762,11 @@ describe("runner-entrypoint: main()", () => {
   let runnerScriptPath;
 
   async function setupSpec(spec) {
-    observed = { logs: [], finalize: null, specReturned: false };
+    observed = { logs: [], finalize: null, specHit: false };
     api = await makeApiServer((req, res, body) => {
       const url = req.url;
       if (req.method === "GET" && url.endsWith("/spec")) {
-        observed.specReturned = true;
+        observed.specHit = true;
         if (spec === 410) {
           res.writeHead(410);
           res.end();
@@ -834,6 +837,49 @@ describe("runner-entrypoint: main()", () => {
     const code = await main();
     assert.equal(code, 0);
     assert.equal(observed.finalize, null, "no finalize POST expected on 410");
+  });
+
+  it("posts failed finalize with spec_fetch_failed reason and the real error when /spec's network call fails", async function () {
+    if (isWindows) this.skip();
+    // Regression: previously an uncaught fetchSpec() failure crashed
+    // main() with zero report back to the platform — the run just sat
+    // at 'starting' until Sweep A reaped it as a generic
+    // 'cold_start_exceeded' with no indication of the real cause. This
+    // simulates a network-level failure (connection reset, no
+    // response) on GET /spec specifically, while /finalize is still
+    // served normally by the same loopback server — mirroring a Fly
+    // machine whose outbound call intermittently fails on the very
+    // first hop but can still reach the platform moments later.
+    observed = { logs: [], finalize: null, specHit: false };
+    api = await makeApiServer((req, res, body) => {
+      const url = req.url;
+      if (req.method === "GET" && url.endsWith("/spec")) {
+        observed.specHit = true;
+        req.socket.destroy();
+        return;
+      }
+      if (req.method === "POST" && url.endsWith("/finalize")) {
+        observed.finalize = JSON.parse(body);
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+    envForRun();
+    const code = await main();
+    assert.equal(code, 1);
+    assert.ok(observed.specHit, "expected /spec to have been hit");
+    assert.ok(observed.finalize, "expected a /finalize POST to have been received");
+    assert.equal(observed.finalize.status, "failed");
+    assert.equal(observed.finalize.exit_code, 1);
+    assert.equal(observed.finalize.summary.reason, "spec_fetch_failed");
+    assert.ok(
+      typeof observed.finalize.summary.error === "string" &&
+        observed.finalize.summary.error.length > 0,
+      "expected the real fetch error to be captured in summary.error"
+    );
   });
 
   it("posts succeeded finalize when child exits 0", async function () {
@@ -987,5 +1033,74 @@ describe("runner-entrypoint: main()", () => {
     assert.equal(code, 1);
     assert.equal(observed.finalize.status, "failed");
     assert.equal(observed.finalize.summary.reason, "workspace_provision_failed");
+  });
+});
+
+describe("runner-entrypoint: bin entry guard", () => {
+  // Regression: npm links `bin` entries as symlinks, so process.argv[1] is
+  // /usr/local/bin/doc-detective-runner while import.meta.url resolves to the
+  // real file under node_modules. A `file://${process.argv[1]}` comparison
+  // never matches, main() never runs, and the process exits 0 having done
+  // nothing — which on Fly looked like a machine that booted, "succeeded",
+  // and never called /spec. See ADR 01087.
+  let dir;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(os.tmpdir(), "dd-bin-entry-"));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  /** Runs the entrypoint with no DD_* env, so main() fails fast and loudly. */
+  function runEntrypoint(target) {
+    return new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, [target], {
+        env: {
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          SystemRoot: process.env.SystemRoot,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let out = "";
+      child.stdout.on("data", (c) => (out += c));
+      child.stderr.on("data", (c) => (out += c));
+      // A failed spawn emits 'error', and 'close' is not guaranteed to
+      // follow — without this the promise never settles and the test dies
+      // on the mocha timeout instead of naming the cause. Whichever event
+      // fires first wins; a later one is a no-op.
+      child.on("error", (err) =>
+        reject(new Error(`failed to spawn ${target}: ${err.message}`))
+      );
+      child.on("close", (code) => resolve({ code, out }));
+    });
+  }
+
+  const realEntrypoint = fileURLToPath(
+    new URL("../bin/runner-entrypoint.js", import.meta.url)
+  );
+
+  it("runs main() when invoked through a symlink, as npm installs it", async function () {
+    const link = path.join(dir, "doc-detective-runner");
+    try {
+      symlinkSync(realEntrypoint, link);
+    } catch {
+      // Windows without developer mode can't create symlinks unprivileged.
+      this.skip();
+    }
+    const { code, out } = await runEntrypoint(link);
+    // Missing DD_API_BASE => readRequiredEnv throws => fatal log, exit 1.
+    // Before the fix this was a silent exit 0 with no output at all.
+    assert.equal(code, 1, `expected exit 1, got ${code}; output: ${out}`);
+    assert.match(out, /entrypoint crashed/);
+    assert.match(out, /DD_API_BASE/);
+  });
+
+  it("still runs main() when invoked by its real path", async () => {
+    const { code, out } = await runEntrypoint(realEntrypoint);
+    assert.equal(code, 1, `expected exit 1, got ${code}; output: ${out}`);
+    assert.match(out, /DD_API_BASE/);
   });
 });

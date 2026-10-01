@@ -528,6 +528,18 @@ async function teardownSimulatorRegistry(
 ): Promise<void> {
   for (const entry of registry.values()) {
     if (!entry.bootedByUs) continue;
+    // A warm-phase boot can still be in flight at run end (the warm task
+    // resolves at boot initiation). Await it so the placeholder carries its
+    // real udid before shutdown — sweeping mid-create would shut down an
+    // empty udid and orphan the simulator. A boot that fails booted
+    // nothing, so there's nothing to shut down.
+    if (entry.ready) {
+      try {
+        await entry.ready;
+      } catch {
+        continue;
+      }
+    }
     try {
       await shutdown(entry);
     } catch {

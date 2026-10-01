@@ -2,6 +2,7 @@ import {
   loadHeavyDep,
   ensureRuntimeInstalled,
   resolveHeavyDepPath,
+  resolveHeavyDepPathInCache,
   resolveHeavyDepSource,
   resolveHeavyDepVersion,
 } from "../dist/runtime/loader.js";
@@ -194,6 +195,110 @@ describe("runtime/loader", function () {
       } catch (err) {
         expect(String(err.message)).to.match(/not installed/i);
       }
+    });
+  });
+
+  // An unusable cacheDir must not crash the read-only resolvers: they only
+  // LOCATE a dep, so "the cache can't be constructed" means "not in cache"
+  // (null), never a throw. `bad;chars` trips assertSafeRuntimePath, which is
+  // the security gate that still fires at the one place that shells out.
+  describe("an unusable cacheDir", function () {
+    const BAD_CACHE_DIR = "bad;chars";
+    const BOGUS = "definitely-not-a-real-heavy-dep-xyz";
+
+    beforeEach(function () {
+      // getCacheDir prefers DOC_DETECTIVE_CACHE_DIR over ctx.cacheDir, and the
+      // outer beforeEach points it at a real tmpdir — clear it so the `ctx`
+      // values under test are the ones that actually take effect.
+      delete process.env.DOC_DETECTIVE_CACHE_DIR;
+    });
+
+    it("resolveHeavyDep* return null rather than throwing when the cacheDir is unsafe", function () {
+      const ctx = { cacheDir: BAD_CACHE_DIR };
+      expect(resolveHeavyDepPath(BOGUS, ctx)).to.equal(null);
+      expect(resolveHeavyDepPathInCache(BOGUS, ctx)).to.equal(null);
+      expect(resolveHeavyDepSource(BOGUS, ctx)).to.equal(null);
+      expect(resolveHeavyDepVersion(BOGUS, ctx)).to.equal(null);
+    });
+
+    it("an unsafe cacheDir set via DOC_DETECTIVE_CACHE_DIR also degrades to null", function () {
+      process.env.DOC_DETECTIVE_CACHE_DIR = BAD_CACHE_DIR;
+      expect(resolveHeavyDepPath(BOGUS)).to.equal(null);
+      expect(resolveHeavyDepPathInCache(BOGUS)).to.equal(null);
+    });
+
+    it("a shim-resolvable dep still resolves — the bad cache is never consulted", function () {
+      if (!resolveHeavyDepPath("pngjs")) this.skip();
+      expect(resolveHeavyDepPath("pngjs", { cacheDir: BAD_CACHE_DIR })).to.be.a("string");
+      expect(resolveHeavyDepSource("pngjs", { cacheDir: BAD_CACHE_DIR })).to.equal("shim");
+    });
+
+    it("autoInstall:false surfaces the unsafe-cacheDir cause, not a generic 'not installed'", async function () {
+      // Telling the user to run `doc-detective install runtime` would be
+      // actively misdirecting: that command fails the same way. Report the
+      // real reason the cache was unusable instead.
+      try {
+        await loadHeavyDep(BOGUS, {
+          autoInstall: false,
+          ctx: { cacheDir: BAD_CACHE_DIR },
+          deps: { logger: () => {} },
+        });
+        throw new Error("expected loadHeavyDep to throw");
+      } catch (err) {
+        expect(String(err.message)).to.match(/shell-metacharacter/);
+      }
+    });
+
+    it("autoInstall:true with an undeclared dep throws and never spawns npm", async function () {
+      // Deliberately narrow: this asserts ONLY throws-and-never-spawns, which is
+      // all it can. With an *undeclared* name the throw comes from
+      // getDeclaredVersion, not from cacheDir validation — `specs =
+      // toInstall.map(getDeclaredVersion)` runs before `getRuntimeDir(ctx)` in
+      // ensureRuntimeInstalled. So this is NOT a guard on the unsafe-cacheDir
+      // path and must not be read as one: it would still pass if that
+      // protection regressed. The real cacheDir guard (declared dep →
+      // getRuntimeDir throws before any spawn) is the ensureRuntimeInstalled
+      // test below, which reaches validation via force:true.
+      //
+      // Forcing a declared dep to miss shim resolution isn't possible here:
+      // tryResolveFromShim binds `require` at module scope and every declared
+      // heavy dep is really installed in this checkout.
+      let spawnCalled = false;
+      const spawner = makeFakeSpawner({ onSpawn: () => { spawnCalled = true; } });
+      let caught;
+      try {
+        await loadHeavyDep(BOGUS, {
+          autoInstall: true,
+          ctx: { cacheDir: BAD_CACHE_DIR },
+          deps: { spawn: spawner, logger: () => {} },
+        });
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught, "expected loadHeavyDep to throw").to.exist;
+      expect(spawnCalled, "npm must never be spawned with an unsafe cacheDir").to.equal(false);
+    });
+
+    it("ensureRuntimeInstalled still refuses to spawn npm with an unsafe cacheDir", async function () {
+      // Security regression guard: swallowing the throw in the read-only
+      // resolver must never let an unsafe path reach the `shell: true` npm
+      // spawn on Windows. force:true bypasses the already-installed fast path
+      // so we reach the spawn site's own assertSafeRuntimePath check.
+      let spawnCalled = false;
+      const spawner = makeFakeSpawner({ onSpawn: () => { spawnCalled = true; } });
+      let caught;
+      try {
+        await ensureRuntimeInstalled(["pngjs"], {
+          ctx: { cacheDir: BAD_CACHE_DIR },
+          force: true,
+          deps: { spawn: spawner, logger: () => {} },
+        });
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught, "expected ensureRuntimeInstalled to throw").to.exist;
+      expect(String(caught.message)).to.match(/shell-metacharacter/);
+      expect(spawnCalled, "npm must never be spawned with an unsafe cacheDir").to.equal(false);
     });
   });
 

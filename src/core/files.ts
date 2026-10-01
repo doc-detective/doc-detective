@@ -97,12 +97,14 @@ async function resolvePaths({
   filePath,
   nested = false,
   objectType,
+  isStep = false,
 }: {
   config: any;
   object: any;
   filePath: string;
   nested?: boolean;
   objectType?: string;
+  isStep?: boolean;
 }) {
   // Config properties that contain paths
   const configPaths = [
@@ -144,6 +146,13 @@ async function resolvePaths({
     "requestParams",
     "responseParams",
   ];
+  // Step actions whose STRING (not object) shorthand value IS a path itself
+  // (e.g. `"screenshot": "shot.png"`), rather than a wrapper containing a
+  // `path`/`directory` key. The object form already resolves via the generic
+  // `path`/`directory` handling above; only the bare-string form needs this
+  // separate list. Scoped to `isStep` so a coincidentally-named field nested
+  // inside request/response data (not a step) is never mistaken for one.
+  const stepShorthandPathProperties = ["screenshot", "record"];
 
   function resolve(baseType: string, relativePath: string, filePath: string) {
     // If the path is an http:// or https:// URL, or a heretto: URI, return it
@@ -227,6 +236,7 @@ async function resolvePaths({
             filePath: filePath,
             nested: true,
             objectType: objectType,
+            isStep: property === "steps",
           });
         } else if (
           typeof item === "string" &&
@@ -261,7 +271,10 @@ async function resolvePaths({
       ) {
         continue;
       }
-      if (pathProperties!.includes(property)) {
+      if (
+        pathProperties!.includes(property) ||
+        (isStep && stepShorthandPathProperties.includes(property))
+      ) {
         if (property === "path" && object.directory) {
           const directory = path.isAbsolute(object.directory)
             ? object.directory

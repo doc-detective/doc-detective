@@ -391,6 +391,13 @@ function containsOperators(expression: string, allowOperators: boolean = false):
   return false;
 }
 
+// Compiled-evaluator cache for evaluateExpression. `new Function(...)` is a
+// full parse + JIT compile; the same (argNames, preprocessed-source) pair
+// always yields an identical function body, so caching it removes the
+// per-evaluation compile cost for conditional/routed steps that re-evaluate
+// the same expressions. See the keying rationale at the construction site.
+const compiledEvaluatorCache = new Map<string, Function>();
+
 /**
  * Evaluates an expression containing operators.
  * @param {string} expression - The expression to evaluate.
@@ -484,10 +491,24 @@ async function evaluateExpression(expression: string, context: any): Promise<any
     // escapes its own backslashes/quotes. A previous blunt global
     // `\\` -> `\\\\` doubling here corrupted intentional escapes (e.g. \" inside
     // a literal, or a regex containing a double-quote), so it has been removed.
-    const evaluator = new Function(
-      ...Object.keys(evalContext),
-      `return ${expression};`
-    );
+    //
+    // Memoize the compiled evaluator: `new Function(...)` re-parses + re-JITs
+    // the body on every call, but the compiled function depends ONLY on the
+    // preprocessed expression source and the argument-name list (the helper
+    // names plus this call's context keys, in order). The context VALUES are
+    // passed in per call, so a cached function is reused safely across calls
+    // with the same key. Keyed by comma-joined argNames + space + source (arg
+    // names are identifiers with no spaces, so the first space is an
+    // unambiguous delimiter). Encoding arg ORDER means a different
+    // key order (which changes the positional arg binding) never reuses a
+    // function compiled for a different order.
+    const argNames = Object.keys(evalContext);
+    const cacheKey = `${argNames.join(",")} ${expression}`;
+    let evaluator = compiledEvaluatorCache.get(cacheKey);
+    if (!evaluator) {
+      evaluator = new Function(...argNames, `return ${expression};`);
+      compiledEvaluatorCache.set(cacheKey, evaluator);
+    }
     return evaluator(...Object.values(evalContext));
   } catch (error: any) {
     log(
@@ -543,6 +564,50 @@ function preprocessExpression(expression: string): string {
     return `"${token}"`;
   };
 
+  // Helper: quote bare words inside a `oneOf` options array literal, e.g.
+  // `[linux, mac, windows]` -> `["linux", "mac", "windows"]`. Unlike
+  // `contains`'s single RHS operand, `oneOf`'s RHS is a whole array literal,
+  // so quoteIfLiteral alone (applied to the full "[...]" string) never fires:
+  // the string starts with "[" and is returned unchanged, leaving bare words
+  // inside as unquoted JS identifiers that throw a ReferenceError in the
+  // generated function — caught by evaluateExpression's try/catch and
+  // surfaced as `undefined`, i.e. the condition fails closed with no
+  // diagnostic (issue #585). Only rewrite an actual "[...]" literal; a bare
+  // variable reference (e.g. an unresolved "$$opts") is left untouched so it
+  // fails the same way it always has.
+  const quoteArrayItems = (arrayLiteral: string): string => {
+    const match = arrayLiteral.match(/^\[([\s\S]*)\]$/);
+    if (!match) return arrayLiteral;
+    const inner = match[1]!;
+    if (inner.trim() === "") return arrayLiteral;
+    // Split on top-level commas only, tracking bracket/brace/paren depth so a
+    // nested literal item (e.g. a nested array) isn't split mid-way.
+    const items: string[] = [];
+    let depth = 0;
+    let current = "";
+    for (const char of inner) {
+      if (char === "[" || char === "{" || char === "(") depth++;
+      if (char === "]" || char === "}" || char === ")") depth--;
+      if (char === "," && depth === 0) {
+        items.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    items.push(current);
+    // Drop empty segments (a trailing comma, e.g. "[0, 1,]", or a hole, e.g.
+    // "[a,,b]") instead of quoting them into a spurious "" element — real JS
+    // array-literal syntax elides a trailing comma entirely, and quoting a
+    // hole into "" would let an accidental extra comma silently make "" a
+    // valid oneOf match.
+    return `[${items
+      .map((item) => item.trim())
+      .filter((item) => item !== "")
+      .map((item) => quoteIfLiteral(item))
+      .join(", ")}]`;
+  };
+
   // ReDoS hardening (CodeQL js/polynomial-redos). The infix-operator rewrites
   // below scan the WHOLE expression with a global `replace`. Their left operand
   // pattern (`LEFT`) and the bare RHS used an UNBOUNDED `\S+` (and the unrolled
@@ -586,7 +651,7 @@ function preprocessExpression(expression: string): string {
     expression = expression.replace(
       new RegExp(`${LEFT}\\s+oneOf\\s+(.+)$`),
       (_m: string, left: string, right: string) =>
-        `oneOf(${quoteIfLiteral(left)}, ${right.trim()})`
+        `oneOf(${quoteIfLiteral(left)}, ${quoteArrayItems(right.trim())})`
     );
   }
 

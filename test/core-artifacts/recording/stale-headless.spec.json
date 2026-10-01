@@ -1,0 +1,48 @@
+{
+  "specId": "recording-stale-headless",
+  "description": "Phantom recording spans (ADR 01079): a headless context skips the recording itself, but an aboveVariation record still runs checkpoint comparisons against committed baselines and reports staleness on stopRecord. This spec uses a recording path that is never recorded headed, so no baselines ever exist and the span deterministically reports stale (WARNING, outputs.stale true) on every run — proving headless staleness detection end-to-end. Windows/mac only: on Linux fixture jobs an Xvfb display can make headless ffmpeg recording real instead of skipped.",
+  "tests": [
+    {
+      "testId": "stale-headless-phantom",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "stale-headless-never-recorded.mp4",
+            "overwrite": "aboveVariation"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "PHANTOM_STALE": "$$stale"
+          }
+        },
+        {
+          "description": "Assert the phantom span flagged the never-recorded video as stale.",
+          "runShell": "node -e \"process.exit(process.env.PHANTOM_STALE === 'true' ? 0 : 1)\""
+        }
+      ]
+    }
+  ]
+}

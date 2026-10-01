@@ -284,7 +284,7 @@
               "additionalProperties": false,
               "properties": {
                 "networkIdleTime": {
-                  "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.",
+                  "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).",
                   "anyOf": [
                     {
                       "type": "integer",
@@ -297,7 +297,7 @@
                   "default": 500
                 },
                 "domIdleTime": {
-                  "description": "Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.",
+                  "description": "Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).",
                   "anyOf": [
                     {
                       "type": "integer",
@@ -357,7 +357,7 @@
                     },
                     "elementText": {
                       "type": "string",
-                      "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                      "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
                     },
                     "elementId": {
                       "type": "string",
@@ -816,7 +816,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "networkIdleTime": {
-                    "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. Set to `null` to skip this check.",
+                    "description": "Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).",
                     "anyOf": [
                       {
                         "type": "integer",
@@ -829,7 +829,7 @@
                     "default": 500
                   },
                   "domIdleTime": {
-                    "description": "Wait for DOM mutations to stop for this duration in milliseconds. Set to `null` to skip this check.",
+                    "description": "Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).",
                     "anyOf": [
                       {
                         "type": "integer",
@@ -889,7 +889,7 @@
                       },
                       "elementText": {
                         "type": "string",
-                        "description": "Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax."
+                        "description": "Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text."
                       },
                       "elementId": {
                         "type": "string",
@@ -1112,7 +1112,7 @@
       "url": "https://www.example.com/app",
       "timeout": 60000,
       "waitUntil": {
-        "networkIdleTime": null
+        "networkIdleTime": 0
       }
     },
     {

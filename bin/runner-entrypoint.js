@@ -35,9 +35,11 @@
  */
 
 import { spawn } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 
 const WORKSPACE_DIR = '/workspace';
 const SPECS_SUBDIR = 'specs';
@@ -610,8 +612,23 @@ async function main() {
 	};
 	process.on('SIGTERM', onPreSpawnSigterm);
 
-	// Step 1: fetch spec.
-	const { canceled, spec } = await fetchSpec(apiBase, runId, token);
+	// Step 1: fetch spec. See ADR 01045 — an uncaught failure here used
+	// to crash silently, leaving Sweep A's generic 'cold_start_exceeded'
+	// as the only signal.
+	let canceled, spec;
+	try {
+		({ canceled, spec } = await fetchSpec(apiBase, runId, token));
+	} catch (e) {
+		localLog('error', 'spec fetch failed', { err: String(e) });
+		// Best-effort (see postFinalize) — surfaces the real cause instead
+		// of disappearing into Sweep A's generic reap message.
+		await postFinalize(apiBase, runId, token, {
+			status: 'failed',
+			exit_code: 1,
+			summary: { reason: 'spec_fetch_failed', error: String(e) }
+		});
+		return 1;
+	}
 	if (canceled) {
 		localLog('info', 'run canceled before spec fetch (410); exiting cleanly');
 		// Nothing to finalize — the row is already terminal on the server.
@@ -752,10 +769,29 @@ async function main() {
 }
 
 // Module-import guard so the test file can `import` from this module
-// without triggering main(). Node's `import.meta.url === ...` idiom
-// for "am I the entrypoint?" — works under both `node` and `tsx` and
-// doesn't require require.main.
-const isEntry = import.meta.url === `file://${process.argv[1]}`;
+// without triggering main().
+//
+// Both halves of this comparison matter. npm installs `bin` entries as
+// symlinks, so when the container runs `doc-detective-runner`,
+// process.argv[1] is /usr/local/bin/doc-detective-runner while
+// import.meta.url is the realpath under node_modules — hence realpathSync
+// before comparing. And a hand-built `file://${...}` template mangles
+// Windows paths and anything containing a space or `#`, so the conversion
+// goes through pathToFileURL. Getting either wrong makes this silently
+// false: main() never runs, nothing is logged, and the process exits 0
+// looking like a clean success. See ADR 01087.
+const isEntry = (() => {
+	const argv1 = process.argv[1];
+	if (!argv1) return false;
+	try {
+		return import.meta.url === pathToFileURL(realpathSync(argv1)).href;
+	} catch {
+		// argv[1] can be unresolvable (deleted file, permission error). Not
+		// being the entrypoint is the safe answer — worst case the process
+		// no-ops, exactly as it would have before.
+		return false;
+	}
+})();
 if (isEntry) {
 	main()
 		.then((code) => process.exit(code))

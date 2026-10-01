@@ -1,5 +1,13 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import {
+  isRelativeUrl,
+  appendQueryParams,
+  isDeviceWebContext,
+  computeSettleCeiling,
+  isPageUnnavigated,
+  isInitialBlankDocument,
+  redactUrlForOutput,
+} from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
 import {
@@ -172,6 +180,19 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
   try {
     await driver.url(step.goTo.url);
 
+    // A navigation can silently not take: a fresh Chromium session stays parked
+    // on its initial blank document (`data:,`) while `url()` resolves and every
+    // wait condition below passes trivially against that blank page (ADR 01084,
+    // ADR 01088). Re-issue BEFORE the waits run, so they are evaluated against
+    // the real page — retrying afterwards would leave the step reporting "all
+    // wait conditions met" for conditions that were only ever checked against
+    // the blank document.
+    let retriedNavigation = false;
+    if (await isPageUnnavigated(driver)) {
+      await driver.url(step.goTo.url);
+      retriedNavigation = true;
+    }
+
     // Wait for page to load with wait logic
     const waitStartTime = Date.now();
     const waitTimeout = step.goTo.timeout;
@@ -340,6 +361,101 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
           // All waitResults have been updated by individual catch blocks
           throw (failures[0] as PromiseRejectedResult).reason;
         }
+      }
+
+      // Device-web post-navigation settle (ADR 01047). goTo's readiness gate
+      // above queries the JS bridge (document.readyState / network / DOM), a
+      // SEPARATE path from the WebDriver element tree (the remote-debugger DOM
+      // the next `find` walks). On a freshly-built WDA under macOS-runner load,
+      // an iOS Safari (XCUITest web) context can momentarily hand back an EMPTY
+      // element tree right after navigation even though readyState already
+      // reports "complete" — so the first `find` after goTo can spuriously miss.
+      //
+      // Bound-wait for the element tree to become queryable before returning,
+      // reusing the driver's own waitUntil (returns as soon as satisfied — NOT a
+      // fixed sleep). Gated as tightly as possible to device web contexts, so
+      // desktop (and every app context) keeps a byte-identical control path with
+      // no added latency. This is best-effort: it does not weaken the gate above
+      // and never fails goTo — if the ceiling elapses we still hand control to
+      // `find`, which owns the real "element genuinely absent" verdict via its
+      // own wait.
+      if (isDeviceWebContext(driver)) {
+        try {
+          const settleCeiling = computeSettleCeiling(
+            waitTimeout,
+            Date.now() - waitStartTime
+          );
+          if (settleCeiling > 0) {
+            await driver.waitUntil(
+              async () => {
+                try {
+                  // Probe just `body`, not `body *`/`body > *`: goTo already
+                  // gated on readyState === "complete", so the DOM (and its
+                  // content) is parsed — the only thing this settle waits on is
+                  // the WDA element-tree BRIDGE becoming queryable, which
+                  // `$$("body")` tests with one well-known element instead of
+                  // serializing an unbounded descendant set across the bridge.
+                  const elements = await driver.$$("body");
+                  if (Array.isArray(elements)) return elements.length > 0;
+                  // Some driver shims return an array-LIKE (not a real Array).
+                  // Honor its numeric length so a `{ length: 0 }` shim is
+                  // correctly treated as "still empty" — falling back to bare
+                  // truthiness only when there is no length to read.
+                  if (elements && typeof elements.length === "number") {
+                    return elements.length > 0;
+                  }
+                  return !!elements;
+                } catch {
+                  return false;
+                }
+              },
+              // interval 100ms (not wdio's 500ms default): the empty-tree
+              // window is typically 10-100ms, so poll often enough to return
+              // as soon as it repopulates instead of holding ~500ms — otherwise
+              // the settle would add up to half a second to every iOS web goTo.
+              { timeout: settleCeiling, interval: 100 }
+            );
+          }
+        } catch {
+          // Ceiling elapsed with the tree still empty: proceed anyway. find's
+          // own wait remains the authority on a genuinely-absent element.
+        }
+      }
+
+      // Final guard, only when the retry above actually fired: still sitting on
+      // the initial blank document then means the navigation never took.
+      // Reporting PASS would strand the failure on whatever step next needs the
+      // page — a `find` timing out against a page that was never loaded, with
+      // nothing pointing at the navigation (issue #696). ADR 01084's retry
+      // covers the context's PRIMARY session only, so a secondary session
+      // opened by `startSurface` reaches here unprotected.
+      //
+      // Gated so the healthy path pays exactly one extra `getUrl()`: if the
+      // pre-wait probe already saw a navigated page, re-probing proves nothing.
+      // Read the URL ONCE and both decide and report from it. Probing twice
+      // (predicate, then again for the message) can decide on one URL and print
+      // another if the page moves in between.
+      let observedUrl: string | null = null;
+      if (retriedNavigation) {
+        try {
+          observedUrl = String((await driver.getUrl()) ?? "").trim();
+        } catch {
+          // Unreadable URL is not evidence of anything; leave the page alone,
+          // matching isPageUnnavigated's own swallow-and-return-false.
+          observedUrl = null;
+        }
+      }
+      if (observedUrl !== null && isInitialBlankDocument(observedUrl)) {
+        // No fallback needed: reaching here means isInitialBlankDocument
+        // matched, so observedUrl is a non-empty `data:` / `data:,`.
+        //
+        // Redact both URLs anyway: step descriptions land in reports, logs and
+        // CI artifacts, and a target URL can carry tokens or signed query
+        // params.
+        const stuckOn = redactUrlForOutput(observedUrl);
+        result.status = "FAIL";
+        result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${redactUrlForOutput(step.goTo.url)} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
+        return result;
       }
 
       result.description = "Opened URL and all wait conditions met.";

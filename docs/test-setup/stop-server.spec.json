@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "testId": "stop-docs-test-server",
+      "detectSteps": false,
+      "steps": [
+        {
+          "stepId": "stop-test-server",
+          "description": "Stop the local test server after docs tests",
+          "closeSurface": "docs-test-server"
+        }
+      ]
+    }
+  ]
+}

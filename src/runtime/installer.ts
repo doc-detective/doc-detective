@@ -9,6 +9,7 @@ import {
   readInstalledRecord,
   type CacheDirContext,
 } from "./cacheDir.js";
+import { MINGIT_VERSION } from "./windowsBash.js";
 import {
   ensureRuntimeInstalled,
   resolveHeavyDepSource,
@@ -21,6 +22,7 @@ import {
   ensureBrowserInstalled,
   type BrowserAssetName,
   type BrowserDeps,
+  type EnsureBrowserResult,
 } from "./browsers.js";
 
 export type InstallAction =
@@ -33,7 +35,7 @@ export type InstallAction =
 
 export interface InstallReport {
   assetId: string;
-  kind: "npm" | "browser";
+  kind: "npm" | "browser" | "tool";
   action: InstallAction;
   installedVersion?: string;
   notes?: string[];
@@ -234,11 +236,32 @@ export async function installBrowsers(
 
   for (const name of targets) {
     const before = readInstalledRecord(ctx).browsers[name];
-    const result = await ensureBrowserInstalled(name, {
-      ctx,
-      deps: { ...deps.browserDeps, logger },
-      force,
-    });
+    let result: EnsureBrowserResult;
+    try {
+      result = await ensureBrowserInstalled(name, {
+        ctx,
+        deps: { ...deps.browserDeps, logger },
+        force,
+      });
+    } catch (err) {
+      // Best-effort, like BEST_EFFORT_NPM_DEPS on the npm side (ADR 01053):
+      // e.g. chromedriver has no native linux-arm64 build upstream, so a
+      // platform without an emulation layer can never install it. One
+      // asset's unavailability must not abort the rest of the batch — the
+      // corresponding feature degrades to a runtime fallback instead (ADR
+      // 01008 already validates drivers by execution and falls back
+      // across browsers when one is missing or broken).
+      const detail = err instanceof Error ? err.message : String(err);
+      const message = `failed to install and was skipped: ${detail}`;
+      logger(`${name} ${message}`, "warn");
+      reports.push({
+        assetId: name,
+        kind: "browser",
+        action: "skipped",
+        notes: [message],
+      });
+      continue;
+    }
     let action: InstallAction;
     if (force) action = "forced";
     else if (!before) action = "installed";
@@ -259,7 +282,7 @@ export async function installBrowsers(
 
 export interface StatusRow {
   assetId: string;
-  kind: "npm" | "browser";
+  kind: "npm" | "browser" | "tool";
   installed: boolean;
   installedVersion?: string;
   expectedVersion?: string;
@@ -346,6 +369,20 @@ export function status(ctx: CacheDirContext = {}): StatusRow[] {
       latestKnownVersion: entry?.latestKnownVersion,
       outdated:
         Boolean(entry && entry.latestKnownVersion && entry.installedVersion !== entry.latestKnownVersion),
+    });
+  }
+  // Tool downloads (git-bash on Windows). Only rows for recorded installs —
+  // POSIX hosts and Windows hosts using a system Git Bash have no entry, and
+  // an unconditional `installed=—` row would read as a missing asset.
+  for (const [name, entry] of Object.entries(record.tools ?? {})) {
+    const expected = name === "git-bash" ? MINGIT_VERSION : undefined;
+    rows.push({
+      assetId: name,
+      kind: "tool",
+      installed: true,
+      installedVersion: entry.installedVersion,
+      expectedVersion: expected,
+      outdated: Boolean(expected && entry.installedVersion !== expected),
     });
   }
   return rows;

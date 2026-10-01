@@ -1,6 +1,9 @@
 import {
   BROWSER_STEP_KEYS,
   stepTargetsAppSurface,
+  stepTargetsProcessSurface,
+  stepIsSurfacelessInteraction,
+  testHasNonBrowserSurfaceSignal,
   startSurfaceDescriptors,
   stepOpensBrowserSurface,
 } from "./browserStepKeys.js";
@@ -10,6 +13,17 @@ export type BrowserName = "chrome" | "firefox" | "safari";
 export interface RuntimeNeeds {
   browsers: Set<BrowserName>;
   npmPackages: Set<string>;
+  // True when any runShell/runCode step resolves to the `bash` shell (or
+  // runCode targets the bash language) — on Windows that means Git Bash must
+  // be available. The inference is platform-agnostic; the preflight caller
+  // gates on process.platform === "win32".
+  windowsBash: boolean;
+}
+
+export interface InferRuntimeNeedsOptions {
+  // The config-level `shell` default (config_v3 `shell`, default `bash`).
+  // Step-level `shell` fields win over it, mirroring the runtime resolver.
+  configShell?: string;
 }
 
 // Set view of the shared canonical list for O(1) membership checks below.
@@ -27,9 +41,13 @@ const RECORDING_STEP_KEYS = new Set(["record", "stopRecord"]);
  * survives ongoing v3-shape refinements. Missing/optional fields degrade
  * gracefully to "no need."
  */
-export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
+export function inferRuntimeNeeds(
+  resolvedSpecs: any,
+  options: InferRuntimeNeedsOptions = {}
+): RuntimeNeeds {
   const browsers = new Set<BrowserName>();
   const npmPackages = new Set<string>();
+  const configShell = options.configShell ?? "bash";
 
   const specs: any[] = Array.isArray(resolvedSpecs)
     ? resolvedSpecs
@@ -40,6 +58,7 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
   let sawBrowserStep = false;
   let sawScreenshotStep = false;
   let sawRecordingStep = false;
+  let sawBashShellStep = false;
 
   for (const spec of specs) {
     collectBrowserNamesFromRunOn(spec?.runOn, browsers);
@@ -50,19 +69,27 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
         if (typeof ctx?.browser?.name === "string") {
           addBrowserName(browsers, ctx.browser.name);
         }
+        const ctxHasNonBrowserSignal = testHasNonBrowserSurfaceSignal(
+          ctx?.steps
+        );
         for (const step of arrayOrEmpty<any>(ctx?.steps)) {
-          const flags = classifyStep(step);
+          const flags = classifyStep(step, ctxHasNonBrowserSignal);
           if (flags.browser) sawBrowserStep = true;
           if (flags.screenshot) sawScreenshotStep = true;
           if (flags.recording) sawRecordingStep = true;
+          if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
           collectStartSurfaceEngines(step, browsers);
         }
       }
+      const testHasNonBrowserSignal = testHasNonBrowserSurfaceSignal(
+        test?.steps
+      );
       for (const step of arrayOrEmpty<any>(test?.steps)) {
-        const flags = classifyStep(step);
+        const flags = classifyStep(step, testHasNonBrowserSignal);
         if (flags.browser) sawBrowserStep = true;
         if (flags.screenshot) sawScreenshotStep = true;
         if (flags.recording) sawRecordingStep = true;
+        if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
         collectStartSurfaceEngines(step, browsers);
       }
     }
@@ -93,7 +120,36 @@ export function inferRuntimeNeeds(resolvedSpecs: any): RuntimeNeeds {
     npmPackages.add("@ffmpeg-installer/ffmpeg");
   }
 
-  return { browsers, npmPackages };
+  return { browsers, npmPackages, windowsBash: sawBashShellStep };
+}
+
+// Whether a step's shell-based execution resolves to bash. runShell honors
+// its own `shell` field over the config default. runCode pins its
+// interpreter shell independently of the config default (platform-native on
+// Windows for non-bash languages, exactly so a python/node step never forces
+// a bash install), so only `language: "bash"` — which needs the bash
+// interpreter itself — creates a bash need there.
+function stepNeedsBash(step: any, configShell: string): boolean {
+  if (!step || typeof step !== "object") return false;
+  if ("runShell" in step) {
+    const stepShell =
+      step.runShell && typeof step.runShell === "object"
+        ? step.runShell.shell
+        : undefined;
+    if ((stepShell ?? configShell) === "bash") return true;
+  }
+  if ("runCode" in step && step.runCode?.language === "bash") return true;
+  // startSurface process descriptors run through the same launcher and the
+  // same config-level shell default as runShell.background (they have no
+  // per-step shell field).
+  if ("startSurface" in step && configShell === "bash") {
+    for (const d of startSurfaceDescriptors(step)) {
+      if (d && typeof d === "object" && typeof d.process === "string") {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function arrayOrEmpty<T>(v: any): T[] {
@@ -142,7 +198,10 @@ function collectBrowserNamesFromRunOn(
   }
 }
 
-function classifyStep(step: any): {
+function classifyStep(
+  step: any,
+  hasNonBrowserSignal = false
+): {
   browser: boolean;
   screenshot: boolean;
   recording: boolean;
@@ -152,14 +211,20 @@ function classifyStep(step: any): {
   let browser = false;
   let screenshot = false;
   let recording = false;
-  // An app-object-targeted step (`surface: { app: … }`) drives a native app
-  // driver, not a browser — mirror the runner's `isBrowserRequired` exclusion
-  // so app-only specs don't provision a browser binary. This gates ONLY the
-  // browser flag: an app screenshot still needs the image stack, and an app
-  // recording still needs ffmpeg.
-  const appTargeted = stepTargetsAppSurface(step);
+  // A non-browser-targeted step drives a native app driver or a background
+  // process's stdin, not a browser — mirror the runner's `isBrowserRequired`
+  // exclusions so app/process-only specs don't provision a browser binary:
+  // explicit `surface: { app: … }` / `surface: { process: … }` payloads, and
+  // (ADR 01081) surface-less interaction steps in a test that opens or
+  // targets a non-browser surface (they route to the active surface at
+  // runtime). This gates ONLY the browser flag: an app screenshot still
+  // needs the image stack, and an app recording still needs ffmpeg.
+  const nonBrowserTargeted =
+    stepTargetsAppSurface(step) ||
+    stepTargetsProcessSurface(step) ||
+    (hasNonBrowserSignal && stepIsSurfacelessInteraction(step));
   for (const key of Object.keys(step)) {
-    if (!appTargeted && BROWSER_STEP_KEY_SET.has(key)) browser = true;
+    if (!nonBrowserTargeted && BROWSER_STEP_KEY_SET.has(key)) browser = true;
     if (SCREENSHOT_STEP_KEYS.has(key)) screenshot = true;
     if (RECORDING_STEP_KEYS.has(key)) recording = true;
   }

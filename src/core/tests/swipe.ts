@@ -4,12 +4,12 @@
 // on app and browser surfaces; a process has no screen to swipe. Pure
 // execution: no implicit assertions, like goTo.
 import { validate } from "../../common/src/validate.js";
+import { switchToSurface } from "./browserSurface.js";
+import { ensureAppForeground } from "./appSurface.js";
 import {
-  parseSurfaceRef,
-  reinterpretForSessions,
-  switchToSurface,
-} from "./browserSurface.js";
-import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
+  resolveTargetSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
 import {
   resolveAppWindow,
   activeAppWindow,
@@ -62,11 +62,15 @@ async function swipeSurface({
   step,
   driver,
   appSession,
+  processRegistry,
+  surfaceTracker,
 }: {
   config: any;
   step: any;
   driver: any;
   appSession?: any;
+  processRegistry?: Map<string, any>;
+  surfaceTracker?: ActiveSurfaceTracker;
 }) {
   const result: any = {
     status: "PASS",
@@ -94,14 +98,30 @@ async function swipeSurface({
     duration: gesture.duration,
   };
 
-  // App-surface branch: an app registry hit is authoritative for its name.
-  const appRef = resolveAppSurfaceRef(surface, appSession);
-  if (appRef) {
-    if (appRef.error) {
-      result.status = "FAIL";
-      result.description = appRef.error;
-      return result;
-    }
+  // Uniform surface routing (ADR 01081): classify the step's target — the
+  // explicit `surface` reference, or the context's active surface — then
+  // dispatch to the kind's execution path.
+  const target = resolveTargetSurface({
+    surface,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "error") {
+    result.status = "FAIL";
+    result.description = target.message;
+    return result;
+  }
+  if (target.kind === "process") {
+    // A background process has no screen to swipe — a capability gap, not a
+    // reroute.
+    result.status = "FAIL";
+    result.description = `The resolved surface is the background process "${target.name}", which doesn't support swipe steps. Target a browser or app surface with \`surface\`.`;
+    return result;
+  }
+  if (target.kind === "app") {
+    const appRef = { entry: target.entry, window: target.window };
     // Window selectors (ADR 01036): resolve to a real window; the gesture's
     // coordinate math then uses THAT window's rect (macOS especially — Mac2's
     // getWindowRect is the whole main screen).
@@ -155,19 +175,11 @@ async function swipeSurface({
     return result;
   }
 
-  // Everything else resolves to a browser surface: swipe's schema restricts
-  // bare strings to engine keywords and has NO process branch (a background
-  // process has no screen to swipe — the kind is unrepresentable, per the
-  // byEngineName precedent), so the process kind can't reach this point.
-  const resolved = reinterpretForSessions(driver, parseSurfaceRef(surface));
-  if (resolved.kind === "unsupported") {
-    // An { app: … } reference in a context with no app session lands here.
-    result.status = "FAIL";
-    result.description = `The surface names an app, but no app session is active in this context. Open the app first with startSurface.`;
-    return result;
-  }
-  if (resolved.kind === "browser") {
-    const switched = await switchToSurface(driver, surface);
+  // Browser execution path: an explicit reference focuses the requested
+  // session + window/tab first; a surface-less swipe acts on the active
+  // browser surface's driver.
+  if (target.surface !== undefined) {
+    const switched = await switchToSurface(driver, target.surface);
     if (!switched.ok) {
       result.status = "FAIL";
       result.description = switched.message;
@@ -176,8 +188,11 @@ async function swipeSurface({
     driver = switched.driver ?? driver;
   }
   if (!driver) {
+    // Defense-in-depth: the resolver should never route here without a
+    // driver, but a missing one must be a clean FAIL, not a TypeError.
     result.status = "FAIL";
-    result.description = `swipe needs a surface to act on in an app-only context. Name the app surface: { "swipe": { "direction": "up", "surface": { "app": "…" } } }.`;
+    result.description =
+      "No active surface to act on. Open one first with a startSurface step (or a goTo step for a browser), or target a surface explicitly with `surface`.";
     return result;
   }
 

@@ -1,0 +1,57 @@
+{
+  "specId": "findTextMatching",
+  "description": "find matches on-screen text robustly (ADR 01061): whole-element text so framework-fragmented nodes still match, and whitespace normalization so a driver's surrounding/collapsed whitespace can't reject an identical string. Runs on Firefox headless via the group config — the engine whose getText() keeps whitespace chromedriver strips and whose geckodriver path exercises the fix.",
+  "tests": [
+    {
+      "testId": "find-text-matching-permutations",
+      "steps": [
+        {
+          "stepId": "goto-waituntil-find-fragmented-text",
+          "description": "goTo blocks until a heading whose text is fragmented across nodes (['', 'Garden companion API', '']) renders — the exact shape that broke find and motivated ADR 01061.",
+          "goTo": {
+            "url": "http://localhost:8092/find-text-matching.html",
+            "waitUntil": {
+              "find": {
+                "elementText": "Garden companion API"
+              }
+            }
+          }
+        },
+        {
+          "stepId": "fragmented-text-string-shorthand",
+          "description": "Bare string shorthand finds the fragmented heading via whole-element text.",
+          "find": "Garden companion API"
+        },
+        {
+          "stepId": "fragmented-text-regex",
+          "description": "Regex elementText also matches the fragmented heading.",
+          "find": {
+            "elementText": "/Garden companion API/"
+          }
+        },
+        {
+          "stepId": "elementText-internal-whitespace",
+          "description": "Internal run of whitespace is collapsed: getText() 'Submit    Order' matches 'Submit Order'.",
+          "find": {
+            "elementText": "Submit Order"
+          }
+        },
+        {
+          "stepId": "selector-and-text-combo",
+          "description": "selector + elementText combo normalizes whitespace the same way.",
+          "find": {
+            "selector": "#padded-button",
+            "elementText": "Save changes"
+          }
+        },
+        {
+          "stepId": "regex-unchanged",
+          "description": "A /regex/ still tests the raw text, so whitespace-bearing patterns keep working.",
+          "find": {
+            "elementText": "/Order #\\d+/"
+          }
+        }
+      ]
+    }
+  ]
+}

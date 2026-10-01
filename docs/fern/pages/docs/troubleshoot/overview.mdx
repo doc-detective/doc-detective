@@ -3,13 +3,13 @@ title: Troubleshoot a failing or flaky test
 description: Map a failure to the step that caused it, fix it, and stabilize tests that pass and fail intermittently.
 ---
 
-When a test fails, the result tells you which step broke and why. This guide shows you how to read that result, fix the most common causes, and stabilize a flaky test—one that passes on some runs and fails on others. If Doc Detective won't run at all, or it fails with environment errors, start with [Troubleshooting setup issues](/docs/troubleshooting/setup-issues) instead.
+When a test fails, the result tells you which step broke and why. This guide shows you how to read that result, fix the most common causes, and stabilize a flaky test. A flaky test passes on some runs and fails on others. If Doc Detective won't run at all, or it fails with environment errors, start with [Troubleshooting setup issues](/docs/troubleshooting/setup-issues) instead.
 
 ## Step 1: Read the result and find the failing step
 
 Doc Detective reports a result for every step. Open the terminal summary or the JSON results file (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts)) and find the step whose `result` is `FAIL`. Each step includes a `resultDescription` that states what was expected and what happened.
 
-Note which action failed—`find`, `httpRequest`, `runShell`, and so on. The action determines what to check next.
+Note which action failed, such as `find`, `httpRequest`, or `runShell`. The action determines what to check next.
 
 ## Step 2: Fix the most common causes
 

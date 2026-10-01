@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "testId": "stop-docs-preview-server",
+      "detectSteps": false,
+      "steps": [
+        {
+          "stepId": "stop-docs-server",
+          "description": "Stop the Fern docs preview server",
+          "closeSurface": "docs-site"
+        }
+      ]
+    }
+  ]
+}

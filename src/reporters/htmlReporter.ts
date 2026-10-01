@@ -1052,7 +1052,9 @@ function collectMedia(step) {
   if (step.record && (step.record.path || outs.recordingPath)) {
     media.push({ kind: "video", path: outs.recordingPath || step.record.path });
   }
-  if (step.stopRecord && outs.recordingPath) {
+  // Match the runner's dispatch (presence, not truthiness): stopRecord null
+  // is a valid untargeted stop that still saves a video.
+  if (typeof step.stopRecord !== "undefined" && outs.recordingPath) {
     media.push({ kind: "video", path: outs.recordingPath });
   }
   return media;
@@ -1134,7 +1136,7 @@ function buildHeader() {
     ["runtime", (meta.platform || "\\u2014") + " \\u00B7 node " + (meta.node || "\\u2014")],
     ["branch", meta.branch || meta.commit ? (meta.branch || "\\u2014") + (meta.commit ? "@" + meta.commit.slice(0, 7) : "") : "\\u2014"],
     ["actor", meta.actor || "\\u2014"],
-    ["duration", fmtDuration(meta.startedAt && meta.finishedAt ? new Date(meta.finishedAt) - new Date(meta.startedAt) : null)],
+    ["duration", fmtDuration(report.durationMs)],
     ["cwd", meta.cwd || "\\u2014"]
   ];
   fields.forEach(function(f) {
@@ -1230,7 +1232,7 @@ function buildStepDetail(step) {
 
   // Input/output panels
   var rest = Object.assign({}, step);
-  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration;
+  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs;
   var inputJson = JSON.stringify(rest, null, 2);
   var outputJson = step.outputs && Object.keys(step.outputs).length ? JSON.stringify(step.outputs, null, 2) : null;
 
@@ -1264,7 +1266,7 @@ function buildStep(step, idx, ctxId, keyIdx) {
   row.innerHTML = '<span class="chev">' + ICON.chevron + '</span>' +
     badge(step.result) + tag(ak) +
     '<span class="desc" title="' + escAttr(primary) + '"><span style="color:var(--fg3);font-family:var(--font-mono);font-size:11px;margin-right:8px">' + String(idx + 1).padStart(2, "0") + '</span>' + esc(primary) + '</span>' +
-    '<span class="dur">' + fmtDuration(step.duration) + '</span>';
+    '<span class="dur">' + fmtDuration(step.durationMs) + '</span>';
 
   if (isOpen) {
     row.appendChild(buildStepDetail(step));

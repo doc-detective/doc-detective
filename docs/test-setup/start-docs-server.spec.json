@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "testId": "start-docs-preview-server",
+      "detectSteps": false,
+      "steps": [
+        {
+          "stepId": "start-docs-server",
+          "description": "Start the Fern docs preview server in the background",
+          "runShell": {
+            "command": "npx fern docs dev --legacy --port 3000",
+            "workingDirectory": "..",
+            "background": {
+              "name": "docs-site",
+              "waitUntil": {
+                "port": 3000
+              }
+            },
+            "timeout": 120000
+          }
+        }
+      ]
+    }
+  ]
+}
