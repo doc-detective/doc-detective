@@ -1,0 +1,180 @@
+{
+  "specId": "android-recording-a7",
+  "description": "Native app surfaces phase A7 (docs/design/native-app-surfaces.md): recording on Android devices. Mobile contexts record the DEVICE screen through the UiAutomator2 driver (adb screenrecord via startRecordingScreen) — no host display is involved, so device recordings never join the ffmpeg display mutex and run under concurrency. The base64 payload is written directly for .mp4 targets and transcoded through the shared ffmpeg path for .webm/.gif. Only one device recording can run per device at a time (screenrecord is single-instance), so no overlap permutation exists here — overlap/LIFO is exercised on the desktop legs. Settings is the target app (preinstalled on every system image). SKIPPED on hosts without emulator acceleration — the real PASS coverage runs on the KVM legs.",
+  "tests": [
+    {
+      "testId": "android-record-mp4",
+      "description": "Record the device screen to .mp4 (direct write, no transcode) around a find interaction.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "android-screen.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "System",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "android-record-transcode-webm",
+      "description": "A .webm target routes the device payload through the shared ffmpeg transcode.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "android-screen.webm",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.3,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "android-record-transcode-gif",
+      "description": "A .gif target routes the device payload through the shared ffmpeg transcode with the gif scale filter. The record step is named and stopped by name.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "android-screen.gif",
+            "overwrite": "true",
+            "name": "gif-clip",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "down",
+            "distance": 0.3,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "stopRecord": "gif-clip"
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "android-record-autorecord",
+      "description": "autoRecord in a mobile app-only context: the synthetic record step runs before any device session exists (pending handle), the first startSurface late-starts the device recording, and the end-of-context sweep saves it.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Network & internet",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}

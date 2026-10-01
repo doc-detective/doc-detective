@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`detectTests` and `parseContent` — the functions that scan documentation content and emit
-candidate tests — were coupled to Node built-ins (`fs`, `path`), so they could only run server-side.
-Tooling that wants to preview "what tests would this content produce" inside a browser (editors,
-playgrounds, web dashboards) had no way to call this logic without a Node backend. Should
+`detectTests` and `parseContent` scan documentation content and emit candidate tests. They were
+coupled to Node built-ins, `fs` and `path`, so they could only run server-side. Some tooling wants
+to preview "what tests would this content produce" inside a browser, such as editors, playgrounds,
+and web dashboards. It had no way to call this logic without a Node backend. Should
 `doc-detective-common` expose a pure, browser-safe detection path, and ship a browser bundle for it?
 
 ## Decision Drivers
@@ -29,14 +29,14 @@ playgrounds, web dashboards) had no way to call this logic without a Node backen
 
 ## Decision Outcome
 
-Chosen option: **A**, because content-string detection is inherently pure — it operates on text, not
-the filesystem — so extracting a fs/path-free variant lets the same logic run in any JavaScript
-environment without shims or a backend hop.
+Chosen option: **A**. Content-string detection is inherently pure, operating on text rather than
+the filesystem. Extracting an fs- and path-free variant lets the same logic run in any JavaScript
+environment, without shims or a backend hop.
 
 The contract:
 
-* `detectTests` and `parseContent` are exposed as a **pure module** with no `fs`/`path` (and no
-  other Node-only) imports — they take content in and return detected tests out.
+* `detectTests` and `parseContent` are exposed as a **pure module** with no `fs`/`path` imports,
+  and no other Node-only imports. They take content in and return detected tests out.
 * These functions are added to the package's **public exports**.
 * `dist` ships an `index.cjs` browser bundle so the module is consumable in a browser.
 * First released in `v4.0.0-beta`.
@@ -45,8 +45,8 @@ The contract:
 
 * Good: detection runs in the browser for live previews and authoring tools, no backend required.
 * Good: the same logic backs both server and browser paths (no fork).
-* Bad: the pure module must stay disciplined — accidentally importing a Node built-in breaks the
-  browser bundle.
+* Bad: the pure module must stay disciplined, since accidentally importing a Node built-in breaks
+  the browser bundle.
 * Neutral: file-based discovery (walking directories) still lives in the Node/resolver path; only
   content-string detection is browser-safe.
 

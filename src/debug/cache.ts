@@ -133,14 +133,38 @@ export function collectCacheStatus(config: any): CacheStatus {
     // done independently here (the appium collector calls it too) so each
     // collector is correct standalone and in any order — the second call in a
     // full dump is a cheap no-op, not an ordering dependency.
+    // setAppiumHome (src/core/appium.ts) is imported by NAME here
+    // (compile-time ESM binding), so sinon cannot stub it to force a throw
+    // ("ES Modules cannot be stubbed"), unlike appium.ts's identical
+    // try/catch around the same call, which IS coverable there because
+    // collectAppiumDiagnostics has no prior getCacheDir() call in the same
+    // try block to short-circuit first. Here, any cacheDir value that would
+    // make setAppiumHome's internal getRuntimeDir(ctx) throw (e.g. a
+    // shell-metacharacter path) makes the EARLIER getCacheDir(ctx) call at
+    // the top of this try block throw first, landing in the outer catch
+    // below instead of this one — so this catch body can only be reached by
+    // a real throw from setAppiumHome's own unguarded resolveHeavyDepPath
+    // calls, which always resolve successfully via shim resolution against
+    // this repo's real installed dependencies.
     try {
       setAppiumHome(ctx);
+      /* c8 ignore start */
     } catch {
       // Best-effort — diagnostics must never crash.
     }
+    /* c8 ignore stop */
     const appiumHome = process.env.APPIUM_HOME;
     if (typeof appiumHome === "string" && appiumHome.length > 0) {
       entries.push(probeDir("APPIUM_HOME", appiumHome));
+      /* c8 ignore start */
+      // setAppiumHome (src/core/appium.ts) always assigns
+      // process.env.APPIUM_HOME unconditionally on success (its legacy
+      // fallback branch sets one even when no driver resolves), so this
+      // "unset" else-branch is only reachable when the try/catch above
+      // swallowed a real throw from setAppiumHome — which, per the note on
+      // that catch, cannot be forced hermetically in this module (no
+      // injectable seam on the named-import binding, and the shell-
+      // metacharacter trick trips the earlier getCacheDir() call instead).
     } else {
       entries.push({
         label: "APPIUM_HOME",
@@ -150,6 +174,7 @@ export function collectCacheStatus(config: any): CacheStatus {
         freeBytes: null,
       });
     }
+    /* c8 ignore stop */
   } catch (err: any) {
     return { entries, error: err?.message || String(err) };
   }

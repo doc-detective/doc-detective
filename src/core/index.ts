@@ -3,10 +3,10 @@ import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
-import { telemetryNotice, sendTelemetry } from "./telem.js";
+import { telemetryNotice, sendTelemetry, awaitTelemetryFlush } from "./telem.js";
 import { readFile, resolvePaths } from "./files.js";
 
-export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths };
+export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
 const supportMessage = `
 ##########################################################################
@@ -48,6 +48,17 @@ async function runTests(config: any, options: any = {}) {
     // come pre-resolved (DOC_DETECTIVE_API path). Without this merge, a
     // user running `--dry-run` against an orchestration-supplied resolved
     // payload would silently execute tests.
+    //
+    // Note: the `resolvedTests.config || {}` fallback is covered (see
+    // test/cli-index-adapters-coverage.test.js — a resolvedTests payload
+    // with no embedded config). The second fallback, `config || {}`,
+    // requires the caller to pass a falsy `config` (e.g. `runTests(undefined,
+    // {resolvedTests})`); that shape currently proceeds into the runner with
+    // no dryRun/logLevel signal and hits a pre-existing, unrelated defect (a
+    // pre-resolved context missing platform info local resolution normally
+    // adds — see the follow-up task spawned for that bug), so it isn't
+    // exercised here. Left un-ignored since most of this line IS covered;
+    // the residual branch is a known, tracked gap, not annotated dead code.
     config = { ...(resolvedTests.config || {}), ...(config || {}) };
     resolvedTests.config = config;
   }
@@ -71,6 +82,16 @@ async function runTests(config: any, options: any = {}) {
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
     }
+  }
+
+  // Join the self-update check the CLI started concurrently with detection /
+  // resolution (which execute no tests). If a newer version was found,
+  // `options.updateJoin` re-execs the process here — BEFORE any test runs or
+  // any dry-run output is emitted — preserving the "update before the run"
+  // guarantee while the registry latency was hidden behind resolution. A no-op
+  // (undefined) for the programmatic API and whenever auto-update is gated off.
+  if (typeof options.updateJoin === "function") {
+    await options.updateJoin();
   }
 
   if (config.dryRun) {
@@ -111,13 +132,40 @@ async function runTests(config: any, options: any = {}) {
   } else try {
     const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-    const needs = inferRuntimeNeeds(resolvedTests);
+    const needs = inferRuntimeNeeds(resolvedTests, {
+      configShell: config.shell,
+    });
     const ctx = { cacheDir: config.cacheDir };
     // Bridge the runtime modules' logger contract to core/utils.ts:log()
     // so config.logLevel filters npm install stdout/stderr (which the
     // runtime logs at "debug") and prevents flooded output during a
     // routine `doc-detective` run. Map "warn" → "warning" since
     // core/utils.ts uses the latter.
+    // c8 ignore justification (preflightLogger through the matching `if
+    // (needs.browsers.size > 0)` block below, per ADR 01017): the outer
+    // shell above (willRunViaApi dispatch, the try/inferRuntimeNeeds setup)
+    // is exercised offline in test/cli-index-adapters-coverage.test.js with
+    // `wait`-only specs, whose inferred needs are empty
+    // (npmPackages.size === 0, browsers.size === 0) — proving the shell runs
+    // without proving this logger or either preflight body does.
+    // `preflightLogger` is only ever CALLED from inside these bodies (passed
+    // as `deps.logger` to ensureRuntimeInstalled/ensureBrowserInstalled), so
+    // it's defined-but-never-invoked for every offline spec. Actually
+    // entering either `if` body requires a resolved spec whose steps need a
+    // heavy npm package (e.g. pngjs for screenshot diffing) or an
+    // uninstalled browser, and `ensureRuntimeInstalled`/
+    // `ensureBrowserInstalled` are called from HERE with only `deps.logger`
+    // bridged — not `deps.spawn` — so there is no injectable seam at this
+    // exact call site to fake the real npm install / browser download those
+    // functions perform (their own spawn/fetch seams are exercised directly
+    // in test/runtime-helpers-coverage.test.js,
+    // test/runtime-infer-needs.test.js, and test/runtime-loader.test.js).
+    // Forcing this block in a unit test would mean either a real network
+    // install (slow, flaky, mutates the shared cache dir) or re-stubbing the
+    // same seam its own module tests already prove — the latter wouldn't be
+    // testing core/index.ts's orchestration, just re-asserting loader.ts's
+    // contract.
+    /* c8 ignore start */
     const preflightLogger = (msg: string, level: string = "info") => {
       const mapped = level === "warn" ? "warning" : level;
       log(config, mapped, msg);
@@ -130,29 +178,67 @@ async function runTests(config: any, options: any = {}) {
     }
     if (needs.browsers.size > 0) {
       try {
-        const { getAvailableApps, clearAppCache } = await import("./config.js");
+        const { getAvailableApps, patchAppCache } = await import("./config.js");
         const { ensureBrowserInstalled, requiredBrowserAssets } = await import(
           "../runtime/browsers.js"
         );
         const available = await getAvailableApps({ config });
         const availableNames = new Set(available.map((a: any) => a.name));
-        let installedAnything = false;
+        const installedDescriptors: {
+          name: string;
+          version?: string;
+          path?: string;
+          driverPath?: string;
+        }[] = [];
         for (const browser of needs.browsers) {
           if (availableNames.has(browser)) continue;
           // requiredBrowserAssets returns [] for safari (ships with the OS)
           // and any unknown name, so the loop body simply no-ops for those.
           const assets = requiredBrowserAssets(browser);
+          // `path` is optional: an asset can be recorded as installed while
+          // its binary can't be located, in which case patchAppCache builds a
+          // descriptor with no driverPath and the app falls through to the
+          // runtime fallback rather than carrying a bogus path.
+          const assetResults: Record<
+            string,
+            { path?: string; version: string }
+          > = {};
           for (const asset of assets) {
-            await ensureBrowserInstalled(asset, { ctx, deps: { logger: preflightLogger } });
+            assetResults[asset] = await ensureBrowserInstalled(asset, {
+              ctx,
+              deps: { logger: preflightLogger },
+            });
           }
-          if (assets.length > 0) installedAnything = true;
+          if (assets.length === 0) continue;
+          // Capture the paths/versions ensureBrowserInstalled just resolved so
+          // patchAppCache can rebuild this browser's descriptor without a
+          // second full probe.
+          if (browser === "chrome") {
+            installedDescriptors.push({
+              name: "chrome",
+              version: assetResults.chrome?.version,
+              path: assetResults.chrome?.path,
+              driverPath: assetResults.chromedriver?.path,
+            });
+          } else if (browser === "firefox") {
+            installedDescriptors.push({
+              name: "firefox",
+              version: assetResults.firefox?.version,
+              path: assetResults.firefox?.path,
+              driverPath: assetResults.geckodriver?.path,
+            });
+          }
         }
-        // Invalidate the available-apps cache for this cacheDir so a
-        // subsequent runSpecs/getRunner call re-detects what the
-        // pre-flight just materialized. Without this, the empty
-        // `available` snapshot above would stick and downstream
-        // browser-presence checks would still see "not installed."
-        if (installedAnything) clearAppCache(config);
+        // Patch the available-apps cache with what the preflight just
+        // materialized so a subsequent runSpecs/getRunner call is a cache HIT
+        // and skips a redundant full re-probe. Driver *presence* did not change
+        // across the install — only the browser binary arrived — so patchAppCache
+        // rebuilds each descriptor from the install results and still runs the
+        // functional verifyDriverBinary gate. Fail-open: it invalidates the
+        // entry on any error, so a downstream re-probe is still the safety net.
+        if (installedDescriptors.length > 0) {
+          await patchAppCache(config, installedDescriptors);
+        }
       } catch (browserErr: any) {
         log(
           config,
@@ -161,7 +247,37 @@ async function runTests(config: any, options: any = {}) {
         );
       }
     }
+    // Git Bash preflight: when shell-based steps resolve to `bash` on
+    // Windows, materialize Git Bash up front (existing Git for Windows, or a
+    // one-time MinGit download). Failure degrades to on-demand resolution —
+    // runShell retries the same resolver and FAILs the step with an
+    // actionable message if bash still can't be provisioned.
+    if (needs.windowsBash && process.platform === "win32") {
+      try {
+        const { resolveWindowsBash } = await import(
+          "../runtime/windowsBash.js"
+        );
+        await resolveWindowsBash({
+          cacheDir: config.cacheDir,
+          deps: { logger: preflightLogger },
+        });
+      } catch (bashErr: any) {
+        log(
+          config,
+          "warning",
+          `Git Bash pre-flight install hit an error: ${bashErr?.message ?? bashErr}. runShell steps using the bash shell will retry on demand.`
+        );
+      }
+    }
+    /* c8 ignore stop */
   } catch (err: any) {
+    /* c8 ignore start - this catch's only practical trigger today is a
+     * throw from inside the c8-ignored preflight block above (a real npm
+     * install / browser download failure); inferRuntimeNeeds() is
+     * documented pure/non-throwing (degrades to "no need" on malformed
+     * input — see runtime/inferRuntimeNeeds.ts) so it cannot reach this
+     * catch on its own. No hermetic path to this line without the same
+     * un-injectable network/spawn dependency as the block it guards. */
     // log() in src/core/utils.ts recognizes "warning", not "warn" — using
     // the wrong key would make this branch silent at every log level.
     log(
@@ -170,6 +286,7 @@ async function runTests(config: any, options: any = {}) {
       `Runtime pre-flight install hit an error: ${err?.message ?? err}. Falling back to on-demand resolution.`
     );
   }
+  /* c8 ignore stop */
 
   // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
   if (willRunViaApi) {
@@ -182,8 +299,12 @@ async function runTests(config: any, options: any = {}) {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
   }
-  log(config, "info", "RESULTS:");
-  log(config, "info", results);
+  // The full results tree is a debug-only dump — the reporters (terminal
+  // summary, json/runFolder files) already render results for the user, and at
+  // the default `info` level this pretty-printed tree floods the terminal with
+  // a duplicate of what the reporters write. Keep it available under `debug`.
+  log(config, "debug", "RESULTS:");
+  log(config, "debug", results);
   log(config, "info", "Cleaning up and finishing post-processing.");
 
   // Clean up

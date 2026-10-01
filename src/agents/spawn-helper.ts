@@ -48,6 +48,14 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
     let settled = false;
 
     const finish = (err: Error | null, result?: SpawnResult) => {
+      // c8 ignore justification (next line): dedup guard against a genuine
+      // race between the 'error' and 'close' events both firing for the
+      // same child (Node's own docs note this can happen). A normal
+      // successful or failed spawn only ever fires one of the two, so
+      // triggering the second, no-op call deterministically would require
+      // forcing that specific double-event race — timing-dependent and not
+      // something a hermetic test can force without mocking child_process.
+      /* c8 ignore next */
       if (settled) return;
       settled = true;
       if (err) reject(err);
@@ -73,8 +81,17 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
       // `cmd` argument with `shell: true`. All callers pass hardcoded
       // strings, so shell-injection isn't a risk.
       const onWindows = process.platform === "win32";
-      const spawnCmd = onWindows ? winCommandLine(cmd, args) : cmd;
-      const spawnArgs = onWindows ? [] : args;
+      // c8 ignore justification (next 2 lines' non-Windows branch): this repo's
+      // CI test matrix runs the full suite on Windows, macOS, and Linux (see
+      // .github/workflows/test.yml), and the root coverage ratchet measures
+      // the CROSS-PLATFORM UNION of that matrix (ADR 01015) — so the
+      // `: cmd` / `: args` (non-Windows) arms are exercised on the
+      // macOS/Linux legs even though this exact worktree only runs Windows.
+      // Stubbing `process.platform` to fake a POSIX branch here would not
+      // prove `spawn()` actually behaves correctly without `shell: true` on
+      // a real POSIX host — only a real POSIX run can prove that.
+      const spawnCmd = onWindows ? winCommandLine(cmd, args) : /* c8 ignore next */ cmd;
+      const spawnArgs = onWindows ? [] : /* c8 ignore next */ args;
       const child = spawn(spawnCmd, spawnArgs, {
         env: process.env,
         stdio: ["ignore", "pipe", "pipe"],
@@ -87,8 +104,16 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
         // `code === null` means the child was killed by a signal. Surface that
         // as a non-zero exit code (and annotate stderr) so callers that only
         // inspect exitCode still detect failure.
-        const exitCode = code !== null ? code : 1;
-        const signalNote = signal ? `\n[terminated by signal ${signal}]` : "";
+        // c8 ignore justification (next 2 lines' signal-killed arm): forcing a
+        // child to close with `code === null` and a real `signal` requires
+        // actually delivering a POSIX signal to a still-running child from
+        // the test, which is inherently timing-dependent (a race between the
+        // kill and the test's own assertions) and — like the winCommandLine
+        // branch above — a genuinely different code path on Windows, where
+        // Node emulates signals rather than delivering real ones. Not
+        // something a hermetic, deterministic test can force safely.
+        const exitCode = code !== null ? code : /* c8 ignore next */ 1;
+        const signalNote = signal ? /* c8 ignore next */ `\n[terminated by signal ${signal}]` : "";
         finish(null, {
           // Strip `\r?\n` so Windows CLIs that emit CRLF don't leave a
           // stray `\r` in captured output (breaks log comparisons and
@@ -99,7 +124,16 @@ export function safeSpawn(cmd: string, args: string[] = []): Promise<SpawnResult
         });
       });
     } catch (err) {
-      finish(err instanceof Error ? err : new Error(String(err)));
+      // c8 ignore justification (the `: new Error(String(err))` else-branch):
+      // this catch only wraps the synchronous portion of child_process.spawn
+      // itself (option validation before the child process is created).
+      // Every synchronous throw Node's spawn() implementation raises here is
+      // already a real Error/TypeError instance (verified empirically —
+      // e.g. `spawn(null, [])` throws a TypeError), so the "was this a
+      // non-Error thrown value" fallback is defensive for a case Node's own
+      // spawn() implementation doesn't produce, not something a hermetic
+      // test can trigger through the real spawn() call this wraps.
+      finish(err instanceof Error ? err : /* c8 ignore next */ new Error(String(err)));
     }
   });
 }

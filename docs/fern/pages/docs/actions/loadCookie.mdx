@@ -65,6 +65,8 @@ Load a cookie with detailed configuration:
 
 ### Load from default location
 
+{/* test {"testId":"loadcookie-string-shorthand","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -79,6 +81,14 @@ Load a cookie with detailed configuration:
   ]
 }
 ```
+
+{/* step {"stepId":"goto-loadcookie-string-setup","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"set-cookie-loadstring","description":"Set a cookie to save, then clear it to prove the reload really restores it","runBrowserScript":"document.cookie = 'session_token=reload-me-111; path=/;';"} */}
+{/* step {"stepId":"savecookie-loadstring","description":"Save it to an environment variable","saveCookie":"session_token"} */}
+{/* step {"stepId":"clear-cookie-loadstring","description":"Clear the cookie from the browser","runBrowserScript":"document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';"} */}
+{/* step {"stepId":"loadcookie-string","description":"Load the saved session cookie back into the browser (string shorthand)","loadCookie":"session_token"} */}
+{/* step {"stepId":"verify-loadcookie-string","description":"Confirm the cookie is present again after loading it","runBrowserScript":{"script":"return document.cookie.includes('session_token=reload-me-111');","output":"true"}} */}
+{/* test end */}
 
 ### Load from specific file
 
@@ -99,6 +109,8 @@ Load a cookie with detailed configuration:
 
 ### Load from environment variable
 
+{/* test {"testId":"loadcookie-object-variable","detectSteps":false} */}
+
 ```json
 {
   "steps": [
@@ -113,7 +125,17 @@ Load a cookie with detailed configuration:
 }
 ```
 
+{/* step {"stepId":"goto-loadcookie-object-setup","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"set-cookie-loadobject","description":"Set a cookie to save, then clear it","runBrowserScript":"document.cookie = 'session_token=reload-me-222; path=/;';"} */}
+{/* step {"stepId":"savecookie-loadobject","description":"Save it to a named environment variable","saveCookie":{"name":"session_token","variable":"DD_DOCS_LOADCOOKIE_TOKEN"}} */}
+{/* step {"stepId":"clear-cookie-loadobject","description":"Clear the cookie from the browser","runBrowserScript":"document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';"} */}
+{/* step {"stepId":"loadcookie-object","description":"Load the saved cookie from the named environment variable (object format)","loadCookie":{"name":"session_token","variable":"DD_DOCS_LOADCOOKIE_TOKEN"}} */}
+{/* step {"stepId":"verify-loadcookie-object","description":"Confirm the cookie is present again after loading it","runBrowserScript":{"script":"return document.cookie.includes('session_token=reload-me-222');","output":"true"}} */}
+{/* test end */}
+
 ### Load with domain filtering
+
+{/* test {"testId":"loadcookie-domain-filter","detectSteps":false} */}
 
 ```json
 {
@@ -129,6 +151,14 @@ Load a cookie with detailed configuration:
   ]
 }
 ```
+
+{/* step {"stepId":"goto-loadcookie-domain-setup","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"set-cookie-loaddomain","description":"Set a cookie to save, then clear it","runBrowserScript":"document.cookie = 'user_session=reload-me-333; path=/;';"} */}
+{/* step {"stepId":"savecookie-loaddomain","description":"Save it, filtering by the local server's domain","saveCookie":{"name":"user_session","variable":"DD_DOCS_USER_SESSION","domain":"localhost"}} */}
+{/* step {"stepId":"clear-cookie-loaddomain","description":"Clear the cookie from the browser","runBrowserScript":"document.cookie = 'user_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';"} */}
+{/* step {"stepId":"loadcookie-domain","description":"Load the domain-filtered cookie back into the browser","loadCookie":{"name":"user_session","variable":"DD_DOCS_USER_SESSION","domain":"localhost"}} */}
+{/* step {"stepId":"verify-loadcookie-domain","description":"Confirm the cookie is present again after loading it","runBrowserScript":{"script":"return document.cookie.includes('user_session=reload-me-333');","output":"true"}} */}
+{/* test end */}
 
 ### Complete workflow example
 

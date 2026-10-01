@@ -1,0 +1,630 @@
+# Reusable feature-fixture matrix. The core Doc Detective *.spec.json fixtures
+# no longer run inside the mocha suite (that combined pass timed out at 90 min
+# on Windows — see adrs/01022-*). Instead they live in per-feature subdirectories
+# under test/core-artifacts/<group>/ and run here, one small job per
+# (bundle x OS): heavy or special-cased groups get a job to themselves, and
+# fast groups share a job via a comma-joined `input` (see ADR 01048, which
+# amends ADR 01022's one-job-per-group shape), so no single job is a monolith
+# and the job count stays off the runner-concurrency ceiling.
+#
+# Each job builds the PR's own code, `npm link`s it, and drives it through the
+# Doc Detective GitHub Action with an empty `version` so the action's
+# `npx doc-detective` resolves THIS build — not the published npm package — and
+# the gate exercises the change under review (see doc-detective/github-action#70).
+# The action writes results to $RUNNER_TEMP/doc-detective-output.json; each job
+# runs scripts/check-fixture-results.cjs against it to fail the job on any FAILed
+# spec (or a zero-spec, mis-pointed run). Per policy every spec must resolve to
+# PASS or SKIPPED, so display/engine-gated permutations (recording on headless
+# Linux, browser engines, etc.) land as SKIPPED where they can't run and still
+# pass the gate.
+#
+# Callers: npm-test.yaml (PR gate) and release.yml (release gate).
+
+name: Fixture Matrix
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  # The `select` job reads the PR's changed files to narrow the matrix.
+  pull-requests: read
+
+jobs:
+  # Compute the fixture matrix for this run (ADR 01055). scripts/
+  # select-fixture-bundles.cjs is the SINGLE SOURCE OF TRUTH for the bundle
+  # definitions; `--matrix` emits the JSON the matrix below consumes via
+  # fromJSON. Narrowing happens ONLY when a PR's change set is confined to
+  # fixture group directories; product/script/workflow/shared-infra changes,
+  # non-PR triggers (the release gate calls this on push — no PR), and every
+  # error path all fall back to the FULL matrix. Fail-safe by construction: an
+  # empty matrix would run zero fixtures, so the job never emits one.
+  #
+  # Why a dynamic matrix and not a per-job `if:`: the `matrix` context is not
+  # available in a job-level `if:` (only github/needs/vars/inputs are), so a
+  # bundle can't gate itself on its own matrix value. Emitting only the
+  # selected bundles into the matrix sidesteps that entirely — and a deselected
+  # bundle produces no job at all (cleaner than a skipped one).
+  select:
+    name: Select fixture bundles
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+      # "true"/"false": whether the heavy Android KVM legs run (ADR 01056).
+      androidLegs: ${{ steps.pick.outputs.androidLegs }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Pick the matrix for this change set
+        id: pick
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          matrix=''
+          androidLegs=true
+          # Only a PR context can narrow. `if files=$(...)` tolerates a non-zero
+          # gh api (transient 5xx / rate limit) without tripping `set -e`, and
+          # `timeout 120` makes a HANG fail-safe too (exit 124 → the full
+          # matrix + legs on) instead of silently eating the job's 5-min budget.
+          if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
+            printf 'changed files:\n%s\n' "$files"
+            matrix=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --matrix || echo '')
+            androidLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --android-legs || echo true)
+          fi
+          # Fail-safe: no PR, API/selector failure, or an empty/degenerate value
+          # → the full matrix (never zero fixtures). Empty stdin selects all.
+          if [ -z "$matrix" ] || [ "$matrix" = "[]" ]; then
+            echo "defaulting to the full fixture matrix"
+            matrix=$(printf '' | node scripts/select-fixture-bundles.cjs --matrix)
+          fi
+          # androidLegs must be exactly false to skip the legs; anything else
+          # (crash, empty, unexpected) coerces to true so the legs stay on.
+          [ "$androidLegs" = "false" ] || androidLegs=true
+          echo "selected matrix: $matrix"
+          echo "android KVM legs: $androidLegs"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "androidLegs=$androidLegs" >> "$GITHUB_OUTPUT"
+
+  fixtures:
+    needs: select
+    name: ${{ matrix.bundle.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # Default headroom is 20 min; entries that need more carry their own
+    # `timeout` (apps: the first Mac2/XCUITest session on a macOS runner
+    # builds WebDriverAgent(Mac) via xcodebuild — minutes on a cold runner;
+    # apps-ios / mobile-web-ios: a cold WDA build precedes their first
+    # simulator session, and a session POST that aborts at the 15-minute
+    # startup ceiling is retried once (ADR 01033), so the worst case is two
+    # ceiling-length attempts).
+    timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        # One (bundle x OS) job. The bundle list comes from select-fixture-
+        # bundles.cjs (`--matrix`) via the `select` job — the single source of
+        # truth for names, `input` (comma-joined group dirs; the action passes
+        # it verbatim to `--input`, which splits on commas), and the per-bundle
+        # timeout / android / prebootIos attributes. Bundle composition, the
+        # zero-spec-typo caution, and the iOS-solo rule are documented in that
+        # script and ADR 01048 / 01055.
+        bundle: ${{ fromJSON(needs.select.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          # Fixture runtime behavior is node-line-independent; the smoke +
+          # unit matrix in test.yml still exercises node 22 and 24. Pin the
+          # fixture jobs to one line to keep the job count at group x OS.
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # Kick off the iOS simulator boot NOW so it overlaps npm ci/build/link/
+      # servers (~4 min): the iOS legs' dominant cost is the first XCUITest
+      # session (~14 min observed), which starts with a cold simulator boot.
+      # `simctl boot` returns immediately and boots in the background.
+      #
+      # IMPORTANT — this changes the DEVICE, not just the timing. Doc
+      # Detective's default-device plan reuses ANY booted iPhone before booting
+      # its own (src/core/tests/iosSimulator.ts: `reuse-booted` precedes
+      # boot/create), so whatever we boot here becomes the device the fixtures
+      # run on. We therefore pick the newest iPhone Doc Detective would itself
+      # pick — newest runtime, then highest model number, Pro/Max ahead of
+      # plain (SE, which has no model number, sorts last). This must track
+      # iosSimulator.ts's newest-device intent, and the iOS fixtures must stay
+      # device-model-robust (stock apps + version-robust selectors). See
+      # docs/maintenance/ci-ios-preboot.md.
+      - name: Pre-boot iOS simulator (overlaps setup)
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        shell: bash
+        run: |
+          udid=$(xcrun simctl list devices available -j | node -e "
+            let s = '';
+            process.stdin.on('data', (d) => (s += d)).on('end', () => {
+              const { devices } = JSON.parse(s);
+              const modelNum = (name) => { const m = name.match(/iPhone (\d+)/); return m ? Number(m[1]) : 0; };
+              const c = [];
+              for (const [rt, list] of Object.entries(devices))
+                for (const d of list)
+                  if (d.isAvailable && /^iPhone/.test(d.name)) c.push({ rt, udid: d.udid, name: d.name });
+              c.sort((a, b) =>
+                b.rt.localeCompare(a.rt, undefined, { numeric: true }) ||  // newest runtime
+                modelNum(b.name) - modelNum(a.name) ||                     // highest model (SE -> 0, last)
+                b.name.length - a.name.length);                           // Pro Max > Pro > plain (proxy)
+              if (c[0]) console.log(c[0].udid);
+            });
+          ")
+          if [ -z "$udid" ]; then
+            echo "no available iPhone simulator found; skipping pre-boot"
+            exit 0
+          fi
+          # Only export PREBOOT_UDID when the boot command actually succeeds, so
+          # a failed boot doesn't make the wait step below block on a device
+          # that never started. `simctl boot` accepting the request (exit 0) is
+          # the signal; the async boot itself is what the wait step confirms.
+          echo "pre-booting simulator $udid"
+          if xcrun simctl boot "$udid"; then
+            echo "PREBOOT_UDID=$udid" >> "$GITHUB_ENV"
+          else
+            echo "simctl boot failed; skipping pre-boot (Doc Detective will boot its own)"
+          fi
+
+      # Restore/save the Doc Detective install cache (browsers, drivers, heavy
+      # runtime deps, git-bash) via the shared composite action — the single
+      # home for the junction + weekly-key mechanics, shared with test.yml and
+      # the Sunday cache warmer so the key cannot drift between producers and
+      # consumers (docs/maintenance/ci-cache-warming.md). Fixture jobs pin
+      # node 24, so the key SHARES entries with test.yml's node-24 cells
+      # (whose `install all` populates the complete set). The android KVM/lazy
+      # jobs below deliberately do NOT get this cache — they exist to prove
+      # the cold install/bootstrap paths.
+      - uses: ./.github/actions/dd-cache
+        with:
+          node: '24'
+
+      - run: npm ci
+      - run: npm run build
+
+      # Expose the freshly-built package so the action's `npx doc-detective`
+      # (run with an empty `version`, see below) resolves THIS build instead of
+      # fetching the published one from the registry.
+      - name: Link local build
+        run: npm link
+
+      # iOS legs: prebuild WebDriverAgent into the dd-cache
+      # (docs/design/ios-wda-prebuild.md). Seconds on a warm week (check-and-
+      # skip on the keyed products the Sunday warmer built); one ~10-minute
+      # build on a cold one. Sessions then consume the products read-only via
+      # usePrebuiltWDA instead of compiling WDA inside the first XCUITest
+      # session — which is also why the action's `ios` WDA cache is off below.
+      - name: Prebuild WebDriverAgent
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        run: node ./bin/doc-detective.js install ios --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      # Bring up the static/echo test servers (8092 main, 8093 API) that the
+      # browser and http fixtures hit. Backgrounded, then gated on readiness by
+      # a dependency-free poll. Groups that don't touch the servers just ignore
+      # them. bash is used so the same script works on the Windows runner too.
+      - name: Start test servers
+        shell: bash
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      # Diagnostic: make the CI log show which doc-detective the action will run,
+      # so a silent fallback to the published package is visible. The linked
+      # build's version and the global link should both point at this checkout.
+      - name: Resolution diagnostic
+        shell: bash
+        run: |
+          echo "local package version: $(node -p 'require("./package.json").version')"
+          npm ls -g doc-detective || true
+          npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+
+      # Block on the pre-booted simulator reaching `Booted`. This wait is NOT
+      # additive on the happy path — Doc Detective's first startSurface would
+      # wait for the same boot anyway; doing it here just gives the boot cost
+      # its own step in the timing breakdown AND fails faster than DD's
+      # generous per-session timeout would if a sim wedges in `Booting`. Only
+      # runs when the pre-boot succeeded (PREBOOT_UDID set). Bounded at 5 min
+      # (a healthy simulator boots in ~1-3); on timeout it's non-fatal — DD
+      # still reuses whatever state the sim reached, or boots its own.
+      - name: Wait for pre-booted simulator
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
+        shell: bash
+        run: timeout 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
+
+      # Run the group through the Doc Detective GitHub Action, against the linked
+      # local build (version: "" → bare `npx doc-detective`, see
+      # doc-detective/github-action#70). The action writes its results to
+      # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
+      # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
+      - name: Run ${{ matrix.bundle.name }} fixtures
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        # The general matrix only asserts the SKIP paths. Disable the android
+        # lazy-install here so no general leg ever triggers a multi-GB SDK
+        # download, and turn OFF the action's KVM setup (`android: false`) — the
+        # real install/boot coverage lives in the KVM jobs below. `ios: 'false'`
+        # turns off the action's WDA build cache: the managed prebuild above
+        # (install ios + dd-cache) owns WDA now, keyed by driver AND Xcode
+        # version — leaving `ios: auto` on would set the derived-data env var,
+        # which overrides the managed products and double-builds WDA on cold
+        # weeks (and its driver-blind key is the ADR 01033 stale-cache mode).
+        # Retiring the action-side cache entirely is tracked in
+        # doc-detective/github-action.
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.bundle.android && '1' || '' }}
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: ${{ matrix.bundle.input }}
+          android: 'false'
+          ios: 'false'
+
+      # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
+      # job. PASS and SKIPPED both pass the gate. Two legs additionally require
+      # at least one PASS, because their runners are known to support native app
+      # surfaces so an all-SKIPPED run means the environment regressed, not that
+      # skipping is expected:
+      #   - `apps` on Windows AND macOS (macOS images pre-grant Accessibility to
+      #     Xcode-Helper, which WebDriverAgentMac runs under);
+      #   - `apps-ios` AND `mobile-web-ios` on macOS only (iOS simulators +
+      #     XCUITest are macOS-only; Windows/Linux legitimately SKIP).
+      # Linux `apps` and non-macOS iOS groups stay skip-tolerant until phase A8;
+      # `mobile-web-android` is skip-tolerant on the whole general matrix (its
+      # real PASS coverage is the KVM jobs below).
+      - name: Gate on results
+        shell: bash
+        env:
+          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.bundle.name == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.bundle.name == 'apps-ios' || matrix.bundle.name == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
+        run: |
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.bundle.name }}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${{ matrix.bundle.name }}.json"
+
+      # Preserve the run's JSON for debugging a failure.
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
+      - if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-${{ matrix.bundle.name }}-${{ matrix.os }}
+          path: dd-output-${{ matrix.bundle.name }}.json
+          retention-days: 3
+          if-no-files-found: warn
+
+  # Native app surfaces phase A3b: the real Android PASS coverage. The emulator
+  # only boots where hardware acceleration exists — a Linux runner with KVM — so
+  # these two jobs live outside the general matrix (which SKIPs android
+  # everywhere). Both gate with DD_FIXTURES_REQUIRE_PASS=1: an all-SKIPPED run
+  # here would mean the emulator or driver regressed, not that skipping is
+  # expected. Expect boot-time/locator tuning as Android system images evolve.
+  #
+  # reactivecircus/android-emulator-runner is pinned to a commit SHA (v2.37.0)
+  # to match this repo's action-pinning policy.
+  #
+  # All three KVM legs (reuse, managed-boot, action) are gated on the `select`
+  # job's `androidLegs` output (ADR 01056): they run unless every changed file
+  # is provably android-inert. Fail-safe — any uncertainty keeps them on — and
+  # non-PR triggers (the release gate) always run them.
+
+  # Reuse leg: the emulator-runner boots an emulator, and Doc Detective detects
+  # and REUSES it (bootedByUs=false, left running) — the default-device path.
+  fixtures-android-reuse:
+    name: apps-android + mobile-web (ubuntu KVM, reuse)
+    needs: select
+    if: needs.select.outputs.androidLegs != 'false'
+    runs-on: ubuntu-latest
+    # Headroom for the second (mobile-web, phase A5) gated run on the same
+    # emulator — chromedriver download + Chrome session.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm link
+
+      # The install/activity fixture is gated on this file (requires.files); the
+      # sample is Appium's stable ApiDemos APK (io.appium.android.apis).
+      - name: Fetch sample APK
+        # Pinned to an immutable commit (not the mutable `master` ref) so the
+        # fixture can't break under us. Appium's stable ApiDemos sample.
+        # --retry (with --retry-all-errors so HTTP 429/5xx count) rides out a
+        # transient GitHub raw rate-limit that otherwise fails the whole leg.
+        run: |
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
+            -o test/core-artifacts/apps-android/sample.apk \
+            https://github.com/appium/appium/raw/a1a7b7e981335da5f21304635969ee4222e3ba56/packages/appium/sample-code/apps/ApiDemos-debug.apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # The mobile-web fixtures hit the test server from INSIDE the emulator
+      # via the 10.0.2.2 host-loopback alias, so the server must be up on the
+      # host before that run.
+      - name: Start test servers
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      # Two gated runs on the same booted emulator: the native app group, then
+      # the mobile-web group (phase A5 — Chrome through the shared device
+      # session, chromedriver auto-downloaded to match the image's Chrome).
+      # Both REUSE the runner-booted emulator (bootedByUs=false, left running).
+      # The emulator-runner has no built-in retry, and its slowest-to-fail step is
+      # the pre-boot `sdkmanager --install` of the system image: the Google SDK
+      # repo intermittently serves a truncated package, sdkmanager aborts with
+      # "Error on ZipFile unknown archive", the emulator never launches, and the
+      # action's cleanup then reports the misleading `could not connect to TCP
+      # port 5554: Connection refused` (the boot timeout is never reached — the
+      # whole step dies in <1 min). That download corruption is transient, so we
+      # run the step with `continue-on-error` and retry it ONCE on failure; the
+      # retry re-downloads a fresh SDK package and re-boots. A genuine fixture
+      # FAIL also triggers the single retry (cheap insurance against a flaky
+      # first run) and, if it recurs, still fails the job on the second attempt.
+      #
+      # emulator-options match reactivecircus's documented-stable CI string
+      # (adds `-gpu swiftshader_indirect` for headless-Linux software GL). The
+      # two steps below are intentional duplicates — GitHub Actions can't share
+      # a `uses:` step's `with:` block via a YAML anchor — so keep them in sync.
+      - name: Run apps-android + mobile-web-android on a booted emulator (reuse)
+        id: android-reuse
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # Single-line the doc-detective command: the emulator-runner passes
+          # `script` to the shell in a way that doesn't preserve backslash
+          # line-continuations (they reach doc-detective as a literal `\` arg).
+          # Both gates run regardless of the other's outcome and their exit
+          # codes aggregate at the end, so a mobile-web pass can't mask an
+          # apps-android failure (or vice versa) in this single sh -c script.
+          script: |
+            rc=0
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json || rc=1
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
+            exit $rc
+
+      # Retry once when the first attempt failed (transient SDK download / boot).
+      # This step is NOT continue-on-error, so a second failure fails the job.
+      - name: Retry apps-android + mobile-web-android (reuse)
+        if: steps.android-reuse.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            rc=0
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/apps-android --output dd-output-apps-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json || rc=1
+            npx doc-detective runTests --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-android --output dd-output-mobile-web-android.json || true
+            DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json || rc=1
+            exit $rc
+
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
+      - if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-apps-android-reuse
+          path: |
+            dd-output-apps-android.json
+            dd-output-mobile-web-android.json
+          retention-days: 3
+          if-no-files-found: warn
+
+  # Managed-boot leg: no emulator-runner. `doc-detective install android`
+  # augments the runner's preinstalled SDK (installs a system image + creates
+  # the default AVD), then Doc Detective BOOTS the AVD itself and sweeps it at
+  # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec;
+  # DD_FIXTURE_MULTIDEVICE un-gates the phase A6 two-device spec (two more AVD
+  # creations + serial boots — too heavy for the other legs).
+  fixtures-android-managed:
+    name: apps-android + mobile-web (ubuntu KVM, managed-boot)
+    needs: select
+    if: needs.select.outputs.androidLegs != 'false'
+    runs-on: ubuntu-latest
+    # Headroom for the second (mobile-web, phase A5) gated run, which boots the
+    # managed AVD again after the first run's sweep, plus the two serial
+    # two-device boots (phase A6).
+    timeout-minutes: 60
+    env:
+      DD_FIXTURE_PROVISION: '1'
+      DD_FIXTURE_MULTIDEVICE: '1'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm link
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Augment the runner's SDK: install a system image + create the default
+      # AVD. Dogfoods the A3a installer's augment path. Retried once because the
+      # underlying `sdkmanager` system-image download intermittently serves a
+      # truncated package ("Error on ZipFile unknown archive"); the retry pulls
+      # a fresh copy. A second failure fails the step.
+      - name: Provision Android toolchain (augment)
+        shell: bash
+        run: |
+          npx doc-detective install android --yes --os-version 34 || {
+            echo "install android failed (likely a transient SDK download) — retrying once"
+            npx doc-detective install android --yes --os-version 34
+          }
+
+      # The mobile-web run needs the test server up on the host (reached from
+      # the emulator via 10.0.2.2).
+      - name: Start test servers
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      - name: Run apps-android (Doc Detective boots the emulator)
+        run: |
+          npx doc-detective runTests \
+            --config test/core-artifacts/config.groups.json \
+            --input test/core-artifacts/apps-android \
+            --output dd-output-apps-android.json || true
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
+
+      # Mobile web (phase A5) on the managed-boot path: Doc Detective boots the
+      # AVD itself, opens Chrome through the device session, and sweeps the
+      # emulator at run end.
+      - name: Run mobile-web-android (Doc Detective boots the emulator)
+        run: |
+          npx doc-detective runTests \
+            --config test/core-artifacts/config.groups.json \
+            --input test/core-artifacts/mobile-web-android \
+            --output dd-output-mobile-web-android.json || true
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
+
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
+      - if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-apps-android-managed
+          path: |
+            dd-output-apps-android.json
+            dd-output-mobile-web-android.json
+          retention-days: 3
+          if-no-files-found: warn
+
+  # Native app surfaces phase A3b: the FULL ergonomics path, end-to-end through
+  # the Doc Detective GitHub Action. On a plain ubuntu-latest runner with NO
+  # manual KVM step and NO pre-install, the action's `android: auto` detects the
+  # android specs and enables KVM itself; Doc Detective then LAZILY bootstraps the
+  # SDK, emulator, system image, AVD, and driver at test time and boots the
+  # emulator — proving a bare workflow needs only the action (`android: auto`) to
+  # run Android tests. Gated to require at least one PASS. (This is the
+  # `reactivecircus`-free, install-free counterpart to the two jobs above.)
+  fixtures-android-action:
+    name: apps-android (action auto-KVM, lazy)
+    needs: select
+    if: needs.select.outputs.androidLegs != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # Expose the freshly-built package so the action's bare `npx doc-detective`
+      # (version: '') resolves THIS build instead of the published one.
+      - run: npm link
+
+      # The action enables KVM (android: auto detects the android specs) and runs
+      # the linked local build — no manual KVM step, no `install android`. Doc
+      # Detective downloads the toolchain and boots the emulator itself.
+      #
+      # Retried once on failure: the lazy bootstrap's `sdkmanager` system-image
+      # download intermittently serves a truncated package ("Error on ZipFile
+      # unknown archive"), aborting before the emulator can boot. The first
+      # attempt runs with `continue-on-error`; the retry re-downloads and
+      # re-boots. The gate below reads the final run's output, so a second
+      # failure still fails the job.
+      - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
+        id: android-action
+        continue-on-error: true
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/apps-android
+          android: auto
+
+      - name: Retry apps-android via the action
+        if: steps.android-action.outcome == 'failure'
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        with:
+          version: ''
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/apps-android
+          android: auto
+
+      # Require a PASS: KVM enabled + lazy bootstrap + boot + run must all work,
+      # or this is an all-SKIP that fails the gate.
+      - name: Gate on results
+        shell: bash
+        run: |
+          cp "$RUNNER_TEMP/doc-detective-output.json" dd-output-apps-android.json
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
+
+      # continue-on-error: the diagnostic artifact upload runs AFTER the gate
+      # step (real pass/fail), so a transient GitHub ArtifactService outage
+      # ("Failed to CreateArtifact … Request timeout") must not fail an
+      # otherwise-passing fixture job (ADR 01043). A real fixture FAIL is caught
+      # by the gate above, which runs first.
+      - if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-apps-android-action
+          path: dd-output-apps-android.json
+          retention-days: 3
+          if-no-files-found: warn

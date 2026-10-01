@@ -1,0 +1,103 @@
+# Manual single-leg fixture runner for iterating on platform-specific fixture
+# work from a machine that can't run that platform (e.g. developing macOS app
+# surfaces from a Windows box, or an iOS phase later). Mirrors one
+# (group x OS) leg of fixtures.yml without burning the full 30-job matrix:
+#
+#   gh workflow run fixtures-debug.yml --ref <branch> -f os=macos-latest -f group=apps
+#   gh run watch
+#
+# Keep the steps in sync with fixtures.yml — this is deliberately a copy of a
+# single leg, not a reusable-workflow call, because fixtures.yml pins its own
+# full matrix.
+
+name: Fixture Debug (single leg)
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Runner image
+        type: choice
+        default: macos-latest
+        options:
+          - macos-latest
+          - windows-latest
+          - ubuntu-latest
+      group:
+        description: Fixture group (directory under test/core-artifacts/)
+        type: string
+        default: apps
+      require_pass:
+        description: Fail if no spec actually PASSes (DD_FIXTURES_REQUIRE_PASS)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    name: ${{ inputs.group }} (${{ inputs.os }})
+    runs-on: ${{ inputs.os }}
+    # iOS-flavored groups can cold-build WebDriverAgent; give them headroom.
+    timeout-minutes: ${{ (inputs.group == 'apps-ios' || inputs.group == 'mobile-web-ios') && 45 || 30 }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Link local build
+        run: npm link
+
+      - name: Start test servers
+        shell: bash
+        run: |
+          node test/server/start.js &
+          node test/server/wait-ready.js
+
+      - name: Resolution diagnostic
+        shell: bash
+        run: |
+          echo "local package version: $(node -p 'require("./package.json").version')"
+          npm ls -g doc-detective || true
+          npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+
+      - name: Run ${{ inputs.group }} fixtures
+        # `ios: auto` lets the action cache the WebDriverAgent build for the
+        # apps-ios macOS leg (first cold WDA compile ~10 min; later runs restore
+        # it), which replaces the workflow-level cache.
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        with:
+          version: ''
+          ios: auto
+          working_directory: .
+          config: test/core-artifacts/config.groups.json
+          input: test/core-artifacts/${{ inputs.group }}
+
+      - name: Gate on results
+        shell: bash
+        env:
+          DD_FIXTURES_REQUIRE_PASS: ${{ inputs.require_pass && '1' || '0' }}
+          # Route the free-form workflow_dispatch input through env rather than
+          # interpolating ${{ inputs.group }} straight into the shell body.
+          FIXTURE_GROUP: ${{ inputs.group }}
+        run: |
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${FIXTURE_GROUP}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${FIXTURE_GROUP}.json"
+
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-output-${{ inputs.group }}-${{ inputs.os }}
+          path: dd-output-${{ inputs.group }}.json
+          retention-days: 3
+          if-no-files-found: warn

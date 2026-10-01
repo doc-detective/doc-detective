@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 
 describe("GeminiCliAdapter — identity", function () {
   let GeminiCliAdapter;
@@ -12,6 +14,47 @@ describe("GeminiCliAdapter — identity", function () {
     assert.equal(a.id, "gemini");
     assert.equal(a.displayName, "Gemini CLI");
     assert.deepEqual(a.supportsScopes(), ["global"]);
+  });
+});
+
+describe("defaultGeminiCliDeps() — fs/spawn closures", function () {
+  let defaultGeminiCliDeps;
+  before(async function () {
+    ({ defaultGeminiCliDeps } = await import("../dist/agents/adapters/gemini-cli.js"));
+  });
+
+  it("readFileSync wraps fs.readFileSync with a default utf8 encoding", function () {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-gemini-deps-"));
+    try {
+      const file = path.join(dir, "note.txt");
+      fs.writeFileSync(file, "hello gemini");
+      const deps = defaultGeminiCliDeps();
+      assert.equal(deps.readFileSync(file), "hello gemini");
+      assert.equal(deps.readFileSync(file, "utf8"), "hello gemini");
+      assert.equal(deps.existsSync(file), true);
+      assert.equal(typeof deps.homedir(), "string");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("run forwards to safeSpawn for a nonexistent binary (offline, no real tool required)", async function () {
+    // Deterministic and offline: spawning a binary name that cannot exist on
+    // PATH never succeeds. The exact failure shape is OS-dependent — POSIX
+    // `spawn` rejects with ENOENT, while Windows resolves via cmd.exe
+    // (shell:true, see spawn-helper.ts) with a non-zero exit code and a
+    // "not recognized" stderr message — so this only asserts the
+    // OS-independent contract (closure is reachable, never silently
+    // succeeds), not a specific error shape. Exercises the `run` closure
+    // body itself (distinct from the winCommandLine unit tests in
+    // test/agents-spawn-helper.test.js).
+    const deps = defaultGeminiCliDeps();
+    try {
+      const result = await deps.run("dd-definitely-not-a-real-binary-xyz", ["--version"]);
+      assert.notEqual(result.exitCode, 0, "a nonexistent binary must not report success");
+    } catch (err) {
+      assert.ok(err instanceof Error, "expected an Error on spawn failure");
+    }
   });
 });
 

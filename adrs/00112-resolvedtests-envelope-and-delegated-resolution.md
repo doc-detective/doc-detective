@@ -9,11 +9,11 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Once detection/parsing was extracted into `doc-detective-resolver` (`00111`), the runner needed a
-stable, validated handoff: a single object carrying the merged `config` plus the fully-resolved
-`specs[]` that `runTests` could execute without re-running discovery. There was no schema for that
-handoff, and `core` still owned detection helpers (`arazzo.js`, parts of `utils.js`/`sanitize.js`).
-The question was what shape the resolved-tests envelope should take, and whether the runner should
-keep doing its own detection or delegate it entirely to the resolver.
+stable, validated handoff. That's a single object carrying the merged `config`, plus the
+fully-resolved `specs[]` that `runTests` could execute without re-running discovery. There was no
+schema for that handoff, and `core` still owned detection helpers (`arazzo.js`, parts of
+`utils.js`/`sanitize.js`). The question was what shape the resolved-tests envelope should take.
+Should the runner keep doing its own detection, or delegate it entirely to the resolver?
 
 ## Decision Drivers
 

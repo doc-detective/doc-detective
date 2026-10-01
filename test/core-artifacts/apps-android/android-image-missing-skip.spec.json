@@ -1,0 +1,27 @@
+{
+  "specId": "android-image-missing-skip-a3b",
+  "description": "Native app surfaces phase A3b: the creation-dependency gate. A device whose creation needs a system image that isn't installed lands the context SKIPPED with a pointer to `doc-detective install android` — the reference-or-provision device plan runs at preflight, so a missing dependency gates rather than fails. This spec requests an implausibly high Android version (no matching installed image on any runner, including the emulator legs), so it SKIPs everywhere — the asserted creation-gap path.",
+  "tests": [
+    {
+      "testId": "android-uninstallable-image",
+      "description": "Provisioning form naming a version with no installed system image → SKIPPED (never FAIL), on every host including the KVM emulator legs.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "device": {
+            "name": "dd-no-such-image",
+            "deviceType": "phone",
+            "osVersion": "99"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings"
+          }
+        }
+      ]
+    }
+  ]
+}

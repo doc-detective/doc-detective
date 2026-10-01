@@ -1,0 +1,65 @@
+{
+  "specId": "android-multi-app-a3b",
+  "description": "Native app surfaces phase A3b: multiple apps on one device share a single UiAutomator2 session, and targeting a surface by name activates (foregrounds) it — the active-surface switch. Two preinstalled apps (Settings and the AOSP Clock) open on the context's default device; interleaved surface-named steps prove activate-on-switch. SKIPPED on hosts without emulator acceleration.",
+  "tests": [
+    {
+      "testId": "android-two-apps",
+      "description": "Open Settings and Clock on the same device, then screenshot each by surface name — the second screenshot forces a foreground switch back to Settings via activateApp.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "startSurface": {
+            "app": "com.google.android.deskclock",
+            "name": "clock",
+            "timeout": 120000,
+            "waitUntil": {
+              "delayMs": 2000
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-clock.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "clock"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "android-settings-again.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "clock"
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}

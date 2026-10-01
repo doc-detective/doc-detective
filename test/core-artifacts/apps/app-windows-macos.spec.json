@@ -1,0 +1,110 @@
+{
+  "specId": "app-window-selectors-macos",
+  "description": "App window selectors on macOS (ADR 01036): Mac2 has no window handles — windows are XCUIElementTypeWindow elements, so a selector holds the window element, finds chain under it (window-as-element), and closing uses the stoplight close button (this fixture is the live verification of the _XCUI:CloseWindow identifier, with a Cmd+W fallback in the runner). TextEdit opens a second document window via menu-bar clicks (File → New — the menu bar is part of the app-rooted AX tree); the windows carry distinct titles (Untitled / Untitled 2). The second window stays untyped so closing it never raises a save sheet. Gated to macOS hosts; SKIPPED elsewhere.",
+  "tests": [
+    {
+      "testId": "mac-window-select-and-close",
+      "description": "Open a second TextEdit document via File → New, find its text view through a title-regex window selector, screenshot that window element, close JUST that window, then type in the surviving document and close the surface.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "selector": "//XCUIElementTypeMenuBarItem[@title=\"File\"]",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "click": {
+            "selector": "//XCUIElementTypeMenuItem[@title=\"New\"]",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit",
+              "window": {
+                "title": "/Untitled 2/"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "textedit-second-window.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "TextEdit",
+              "window": {
+                "title": "Untitled 2"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit",
+            "window": {
+              "title": "Untitled 2"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Survivor window"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Survivor window",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    }
+  ]
+}

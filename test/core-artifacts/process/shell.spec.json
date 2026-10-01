@@ -1,0 +1,188 @@
+{
+  "specId": "runShell-shell-selection",
+  "description": "Validates the runShell `shell` field permutations: the built-in bash default (bash-only syntax must pass on every OS, exercising the lazy Git Bash resolution on Windows), an explicit `shell: bash`, the Windows-only `cmd` and `powershell` shells (runOn-gated so they SKIP elsewhere), pipes through bash's coreutils on Windows, and runCode's bash interpreter on Windows (the historical unsupported-on-Windows guard is lifted). The cmd/powershell-off-Windows FAIL guard and the config-level `shell` default can't be expressed as PASS/SKIPPED fixtures; they're asserted in test/core-core.test.js and test/shell-resolution.test.js.",
+  "tests": [
+    {
+      "testId": "shell-default-bash",
+      "description": "No shell field: defaults to bash on every platform. `[[ ]]` is a bashism that errors under cmd.exe and under dash, so this passing proves the default is genuinely bash.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "[[ \"ok\" == o* ]] && echo bash-default-works",
+            "stdio": "bash-default-works"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-explicit-bash",
+      "description": "Explicit `shell: bash` behaves identically to the default, on every platform.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo \"sum-$((21 * 2))\"",
+            "shell": "bash",
+            "stdio": "sum-42"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-bash-pipes-windows",
+      "description": "Pipes through bash's coreutils work on Windows (grep ships with Git Bash / MinGit, and the runner puts the bash toolbox on PATH).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo dev | grep dev",
+            "stdio": "dev"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-cmd-windows",
+      "description": "`shell: cmd` runs through cmd.exe on Windows: %VAR% expansion and the `ver` builtin only exist there. SKIPPED on macOS/Linux via runOn.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "ver",
+            "shell": "cmd",
+            "stdio": "Windows"
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo %PROCESSOR_ARCHITECTURE%",
+            "shell": "cmd",
+            "stdio": "/^(?!.*%PROCESSOR_ARCHITECTURE%).+/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-powershell-windows",
+      "description": "`shell: powershell` runs through Windows PowerShell: $PSEdition is Desktop there and unexpanded anywhere else. SKIPPED on macOS/Linux via runOn.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo $PSEdition",
+            "shell": "powershell",
+            "stdio": "Desktop"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-cmd-pipes-quotes-windows",
+      "description": "Pipes and nested double quotes through cmd.exe's `/d /s /c` invocation — coverage for the cmd-specific spawn plumbing that the bash default no longer exercises implicitly. SKIPPED on macOS/Linux via runOn.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo dev | find \"dev\"",
+            "shell": "cmd",
+            "stdio": "dev"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-bash-background",
+      "description": "A background process started through the bash shell honors the resolved shell in the background spawn path (bash-only $(( )) syntax in the readiness output), then stops via closeSurface.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo \"bg-ready-$((40 + 2))\" && node -e \"setInterval(() => {}, 1000)\"",
+            "shell": "bash",
+            "background": {
+              "name": "shell-bash-bg",
+              "waitUntil": {
+                "stdio": "bg-ready-42"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "closeSurface": "shell-bash-bg"
+        }
+      ]
+    },
+    {
+      "testId": "shell-cmd-background",
+      "description": "A background process started through the cmd shell honors the resolved shell in the background spawn path (%VAR% expansion only happens in cmd). SKIPPED on macOS/Linux via runOn.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo bg-%PROCESSOR_ARCHITECTURE%-ready && node -e \"setInterval(() => {}, 1000)\"",
+            "shell": "cmd",
+            "background": {
+              "name": "shell-cmd-bg",
+              "waitUntil": {
+                "stdio": "/bg-(?!%PROCESSOR_ARCHITECTURE%)\\S+-ready/"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "closeSurface": "shell-cmd-bg"
+        }
+      ]
+    },
+    {
+      "testId": "shell-runcode-bash-windows",
+      "description": "runCode language bash on Windows resolves the same lazily-installed Git Bash (the old hard FAIL is lifted). POSIX coverage for runCode bash lives in runCode.spec.json.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runCode": {
+            "language": "bash",
+            "code": "echo \"hello-from-bash-$((21 * 2))\"",
+            "stdio": "hello-from-bash-42"
+          }
+        }
+      ]
+    }
+  ]
+}

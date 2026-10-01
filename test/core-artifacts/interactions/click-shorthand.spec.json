@@ -1,0 +1,59 @@
+{
+  "specId": "clickStringShorthand",
+  "tests": [
+    {
+      "testId": "click-string-shorthand-permutations",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/click-shorthand.html"
+        },
+        {
+          "stepId": "click-shorthand-by-text",
+          "click": "Reveal by text"
+        },
+        {
+          "stepId": "assert-text-click-side-effect",
+          "find": "Text click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-selector",
+          "click": "#reveal-by-selector"
+        },
+        {
+          "stepId": "assert-selector-click-side-effect",
+          "find": "Selector click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-regex",
+          "click": "/Reveal via regex/"
+        },
+        {
+          "stepId": "assert-regex-click-side-effect",
+          "find": "Regex click landed"
+        },
+        {
+          "stepId": "click-object-form-parity",
+          "click": {
+            "elementText": "Reveal by object"
+          }
+        },
+        {
+          "stepId": "assert-object-click-side-effect",
+          "find": "Object click landed"
+        },
+        {
+          "stepId": "find-click-button-string-shorthand",
+          "description": "The find click sub-effect's string shorthand names the button ('left'|'right'|'middle', per the find docs) — a right-click must not fall back to a left click (phase A6 review fix).",
+          "find": {
+            "selector": "#reveal-by-selector",
+            "click": "right"
+          }
+        },
+        {
+          "stepId": "assert-right-click-side-effect",
+          "find": "Right-click landed"
+        }
+      ]
+    }
+  ]
+}

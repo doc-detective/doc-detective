@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "contexts": [
+        {
+          "app": { "name": "firefox" },
+          "platforms": ["windows", "mac", "linux"]
+        }
+      ],
+      "steps": [
+        {
+          "action": "runShell",
+          "command": "echo dev | grep dev",
+          "output": "dev"
+        }
+      ]
+    }
+  ]
+}

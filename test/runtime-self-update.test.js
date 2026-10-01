@@ -60,6 +60,11 @@ describe("runtime/selfUpdate", function () {
       // Numeric vs alphanumeric — numeric ranks lower.
       expect(compareVersions("4.5.0-alpha.1", "4.5.0-1")).to.be.greaterThan(0);
     });
+    it("orders two alphanumeric prerelease identifiers lexically", function () {
+      // Both identifiers non-numeric -> the a<b / a>b lexical arms.
+      expect(compareVersions("1.0.0-beta", "1.0.0-alpha")).to.be.greaterThan(0);
+      expect(compareVersions("1.0.0-alpha", "1.0.0-beta")).to.be.lessThan(0);
+    });
   });
 
   describe("checkForUpdate", function () {
@@ -88,12 +93,63 @@ describe("runtime/selfUpdate", function () {
       const res = await checkForUpdate("4.5.0", { http, logger: () => {} });
       expect(res.newer).to.equal(false);
     });
+
+    it("falls back to the default logger when deps.logger is omitted", async function () {
+      // Exercises the `deps.logger ?? defaultLogger` fallback with an injected
+      // http so no real network call happens.
+      const http = fakeHttp({ "dist-tags": { latest: "4.6.0" } });
+      const res = await checkForUpdate("4.5.0", { http });
+      expect(res.newer).to.equal(true);
+      expect(res.latest).to.equal("4.6.0");
+    });
   });
 
   describe("detectInstallMode", function () {
+    // Save/restore process.argv[1] + npm_execpath around each classifier probe.
+    // Paths use forward slashes so the `split(path.sep).join("/")` normalization
+    // yields the same result on both the POSIX and Windows CI legs.
+    let savedArgv, savedExecpath;
+    beforeEach(function () {
+      savedArgv = process.argv;
+      savedExecpath = process.env.npm_execpath;
+    });
+    afterEach(function () {
+      process.argv = savedArgv;
+      if (savedExecpath === undefined) delete process.env.npm_execpath;
+      else process.env.npm_execpath = savedExecpath;
+    });
+
     it("returns a string from the canonical set", function () {
       const mode = detectInstallMode();
       expect(["global", "local", "npx", "unknown"]).to.include(mode);
+    });
+
+    it("returns 'unknown' when process.argv[1] is absent (the ?? '' fallback)", function () {
+      process.argv = [process.argv[0]];
+      delete process.env.npm_execpath;
+      expect(detectInstallMode()).to.equal("unknown");
+    });
+
+    it("detects npx via npm_execpath when the entry path isn't an _npx path", function () {
+      process.argv = [process.argv[0], "/home/u/project/bin/doc-detective.js"];
+      process.env.npm_execpath =
+        "/home/u/.npm/_cache/_npx/abc/node_modules/npm/bin/npx-cli.js";
+      expect(detectInstallMode()).to.equal("npx");
+    });
+
+    it("detects a Windows global install via the AppData npm path", function () {
+      process.argv = [
+        process.argv[0],
+        "/c/users/u/appdata/roaming/npm/node_modules/doc-detective/bin.js",
+      ];
+      delete process.env.npm_execpath;
+      expect(detectInstallMode()).to.equal("global");
+    });
+
+    it("detects a global install under an .npm-global prefix", function () {
+      process.argv = [process.argv[0], "/home/u/.npm-global/doc-detective/bin.js"];
+      delete process.env.npm_execpath;
+      expect(detectInstallMode()).to.equal("global");
     });
   });
 
@@ -142,9 +198,35 @@ describe("runtime/selfUpdate", function () {
       expect(errors[0]).to.match(/semver charset/);
     });
 
-    // global / npx modes call process.exit after spawning. We don't test
-    // those here because process.exit kills the test runner; the spawn
-    // commands are mechanically simple and the behavior is exercised by
-    // the integration tests in CI.
+    it("resolves the default logger and spawner when deps are omitted (local mode)", async function () {
+      // Exercises the `?? defaultLogger` and `?? nodeSpawn` fallbacks. local
+      // mode returns before spawning, so the real nodeSpawn is never invoked.
+      const result = await selfUpdate("4.6.0", "local");
+      expect(result.updated).to.equal(false);
+      expect(result.reexec).to.equal(false);
+    });
+
+    it("treats a null child close code as exit 1 (npx re-exec path)", async function () {
+      // runChild resolves `code ?? 1`; a child that closes with a null code
+      // (killed by signal) must resolve to 1. The npx path calls process.exit
+      // with that code, so stub process.exit to capture it without killing the
+      // runner.
+      const savedExit = process.exit;
+      const nullSpawner = () => {
+        const child = new EventEmitter();
+        setImmediate(() => child.emit("close", null));
+        return child;
+      };
+      let exitArg;
+      try {
+        process.exit = (code) => {
+          exitArg = code;
+        };
+        await selfUpdate("4.6.0", "npx", { logger: () => {}, spawn: nullSpawner });
+      } finally {
+        process.exit = savedExit;
+      }
+      expect(exitArg).to.equal(1);
+    });
   });
 });

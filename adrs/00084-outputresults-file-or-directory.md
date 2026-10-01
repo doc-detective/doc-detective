@@ -9,8 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Results are written by `outputResults()`. Users want two different behaviors from the output
-target: write to one specific JSON file, or drop a results file into a directory (creating it if
-needed). A single string argument is ambiguous between these, and writing to a fixed file path
+target. One writes to a specific JSON file. The other drops a results file into a directory,
+creating it if needed. A single string argument is ambiguous between these, and writing to a fixed
+file path
 risks silently overwriting a previous run's results. How should `outputResults` interpret its
 output target and avoid clobbering existing files?
 
@@ -31,9 +32,9 @@ output target and avoid clobbering existing files?
 ## Decision Outcome
 
 Chosen option: **A**, because the `.json` extension is an unambiguous, flag-free signal of intent.
-`outputResults()` was reworked so a `.json` file path is treated as a file, auto-incrementing to
-`-N.json` on collision instead of overwriting; any other path is treated as a directory and created
-with a recursive mkdir (doc-detective `2cf919b7`, Seq 125).
+`outputResults()` was reworked so a `.json` file path is treated as a file. It auto-increments to
+`-N.json` on collision, instead of overwriting. Any other path is treated as a directory, and
+created with a recursive mkdir (doc-detective `2cf919b7`, Seq 125).
 
 ### Consequences
 

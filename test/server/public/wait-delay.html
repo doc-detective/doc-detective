@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wait Delay Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Wait Delay Test Page</h1>
+
+    <!-- Reveals its message 2 seconds after this page's script runs (near the
+         end of parsing, just before the load event). A find step that runs
+         before the delay elapses will not see it; a preceding wait of 2
+         seconds or more proves the wait action's effect. -->
+    <p id="auto-message"></p>
+
+    <!-- Reveals its message 200ms after the button is clicked, simulating a
+         short animation/transition. A find step immediately after the click
+         (with no wait) would race the timeout; a short wait proves it out. -->
+    <button id="click-trigger" onclick="revealClickMessage()">Trigger delayed action</button>
+    <p id="click-message"></p>
+
+    <script>
+        function revealAutoMessage() {
+            document.getElementById("auto-message").textContent = "Loaded after 2 seconds";
+        }
+
+        function revealClickMessage() {
+            setTimeout(function () {
+                document.getElementById("click-message").textContent = "Action complete!";
+            }, 200);
+        }
+
+        setTimeout(revealAutoMessage, 2000);
+    </script>
+</body>
+</html>

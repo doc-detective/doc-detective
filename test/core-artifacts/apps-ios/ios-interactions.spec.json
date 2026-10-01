@@ -1,0 +1,96 @@
+{
+  "specId": "ios-interactions-a6",
+  "description": "Native app surfaces phase A6 (docs/design/native-app-surfaces.md): the mobile interaction vocabulary on iOS. swipe (directional and point-to-point forms) drives mobile: dragFromToForDuration; click.duration long-presses (mobile: touchAndHold); type presses the device Home button (mobile: pressButton) with no element criteria. Settings (com.apple.Preferences) is the target because it ships on every simulator runtime, and the steps stay robust across runtimes ('General' is present on every version; no dependency on Developer mode or version-specific rows). find auto-scroll on app surfaces is exercised end-to-end on the Android leg and by unit tests (test/find-autoscroll.test.js). SKIPs on non-macOS hosts via the platform gate; the first XCUITest session on a cold runner builds WebDriverAgent, so the startSurface timeout is generous.",
+  "tests": [
+    {
+      "testId": "ios-swipe-longpress-home",
+      "description": "Find the 'General' row and long-press it (touchAndHold; Settings ignores it, so the list stays put), swipe with both object forms, screenshot the app, then press the device Home button criteria-less and close the app.",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "settings",
+            "timeout": 900000,
+            "waitUntil": {
+              "delayMs": 5000
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "General",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "click": {
+            "elementText": "General",
+            "duration": 700,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.4,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 190,
+              "y": 600
+            },
+            "to": {
+              "x": 190,
+              "y": 420
+            },
+            "duration": 600,
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "ios-interactions.png",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "$HOME$"
+            ],
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "detectSteps": false,
+  "beforeAny": [
+    "./test-setup/start-server.spec.json",
+    "./test-setup/start-docs-server.spec.json"
+  ],
+  "afterAll": [
+    "./test-setup/stop-docs-server.spec.json",
+    "./test-setup/stop-server.spec.json"
+  ],
+  "telemetry": {
+    "send": true
+  }
+}

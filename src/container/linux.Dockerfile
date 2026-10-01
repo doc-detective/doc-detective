@@ -52,7 +52,23 @@ RUN apt-get update \
 # command line in root help text IS reliable. Real `install all`
 # failures (transient npm errors, partial cache writes) then propagate
 # normally and fail the build instead of being swallowed.
-RUN npm install -g doc-detective@$PACKAGE_VERSION \
+#
+# A CI build of a pull request has nothing to gain from installing the last
+# PUBLISHED package — that image can't show whether the change under review
+# works. `scripts/build.cjs --local-package=<tarball>` stages a locally packed
+# tarball into `.local-package/`, and the install below prefers it when it's
+# there. The directory is always present (a committed `.gitkeep`, plus
+# `ensureLocalPackageDir`) because COPY fails on a missing source, and a build
+# that wasn't asked for a local package clears it so a registry build stays a
+# registry build. See src/container/scripts/localPackage.cjs and ADR 01097.
+COPY .local-package/ /tmp/local-package/
+
+RUN if ls /tmp/local-package/*.tgz >/dev/null 2>&1; then \
+      echo "[build] installing the locally packed $(ls /tmp/local-package/*.tgz) instead of doc-detective@$PACKAGE_VERSION"; \
+      npm install -g /tmp/local-package/*.tgz; \
+    else \
+      npm install -g doc-detective@$PACKAGE_VERSION; \
+    fi \
     && if doc-detective --help 2>&1 | grep -q "install <subcommand>"; then \
          doc-detective install all --yes; \
        else \

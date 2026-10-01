@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "annotate",
+  "description": "Adds, updates, or clears annotations that stay on screen until something clears them. Unlike a screenshot's own `annotations` — which live only for that capture — these are drawn into the page, so they appear in recordings and in any screenshot taken while they're up. Annotations added here persist across steps and across navigation until an `annotate` step clears them, their `duration` elapses, or the context ends.",
+  "$comment": "Structured as allOf [shape, guard] with both halves written INLINE rather than $ref'd into components: the dereferencer inlines them into the root anyway AND keeps the components copy, which would double this schema's size in every consumer (it already carries two copies of annotation_v3, one for `add` and one for `update`).",
+  "allOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Annotate fields",
+      "properties": {
+        "add": {
+          "type": "array",
+          "description": "Annotations to draw. Give an annotation an `id` to update or clear it later.",
+          "items": {
+            "$ref": "annotation_v3.schema.json#"
+          }
+        },
+        "update": {
+          "type": "array",
+          "description": "Changes to annotations that are already on screen, matched by `id`. Each entry replaces the annotation with that id.",
+          "items": {
+            "title": "Identified annotation",
+            "description": "An annotation that names the `id` of the annotation to replace.",
+            "allOf": [
+              {
+                "$ref": "annotation_v3.schema.json#"
+              },
+              {
+                "type": "object",
+                "title": "id is required for updates",
+                "$comment": "`update` addresses an annotation that's already on screen; without an id there's nothing to address, so this is rejected at validation time rather than becoming a silent no-op.",
+                "required": ["id"]
+              }
+            ]
+          }
+        },
+        "clear": {
+          "description": "Annotations to remove. `true` clears every annotation; a list of ids clears just those.",
+          "anyOf": [
+            {
+              "title": "Clear all",
+              "type": "boolean",
+              "description": "If `true`, clears every annotation currently on screen. If `false`, clears nothing."
+            },
+            {
+              "title": "Clear by id",
+              "type": "array",
+              "description": "Ids of the annotations to clear. Ids that aren't on screen are ignored.",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "transform": ["trim"]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "title": "At least one of add, update, or clear",
+      "$comment": "An annotate step that does none of the three is a no-op the author didn't mean to write.",
+      "anyOf": [
+        { "type": "object", "required": ["add"] },
+        { "type": "object", "required": ["update"] },
+        { "type": "object", "required": ["clear"] }
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "add": [{ "outline": "#submit-button" }]
+    },
+    {
+      "add": [
+        { "id": "step-counter", "badge": "#username", "label": "1" },
+        {
+          "id": "guide",
+          "callout": "#username",
+          "label": "Pick your identity provider first",
+          "position": "right",
+          "track": true
+        }
+      ]
+    },
+    {
+      "add": [
+        {
+          "id": "redact-api-keys",
+          "blur": { "selector": ".api-key" },
+          "all": true,
+          "track": true,
+          "transition": { "enter": "none" }
+        }
+      ]
+    },
+    {
+      "update": [
+        { "id": "step-counter", "badge": "#metadata-url", "label": "2" }
+      ]
+    },
+    {
+      "add": [
+        {
+          "outline": "#usage-meter",
+          "duration": 3500,
+          "transition": { "enter": "draw", "exit": "fade", "durationMs": 400 }
+        }
+      ]
+    },
+    {
+      "clear": ["guide"]
+    },
+    {
+      "clear": true
+    }
+  ]
+}

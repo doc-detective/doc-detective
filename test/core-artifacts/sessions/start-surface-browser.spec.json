@@ -1,0 +1,96 @@
+{
+  "specId": "start-surface-browser",
+  "description": "Multi-surface Phase 6: startSurface's BROWSER descriptor opens a blank ready session explicitly (the goTo-opener sibling). Covers the named form with launch overrides (headless + size), the engine-only form (name defaults to the engine keyword), viewport (which wins over size for page dimensions), activation (a just-opened surface is the active one for surface-less steps), goTo navigating the opened session by name, and whole-browser closeSurface. Runs in the default headless-firefox context on every platform; engine-only descriptors use chrome so the default firefox session's name is never duplicated (an unnamed same-engine descriptor is a documented duplicate-name FAIL, covered at unit level).",
+  "tests": [
+    {
+      "testId": "start-surface-browser-named",
+      "description": "Open a second, named firefox session with explicit headless + size overrides; the new session is active (surface-less goTo navigates it), by-name addressing works, and closeSurface ends it with focus falling back to the default session.",
+      "steps": [
+        {
+          "description": "The default session exists first, with a page loaded",
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "startSurface opens a SECOND firefox session (blank, ready)",
+          "startSurface": {
+            "browser": "firefox",
+            "name": "admin",
+            "headless": true,
+            "size": {
+              "width": 1000,
+              "height": 700
+            }
+          }
+        },
+        {
+          "description": "The opened session is the active surface: a surface-less goTo navigates IT, not the default session",
+          "goTo": "http://localhost:8092/multi-tab-child.html?page=admin1"
+        },
+        {
+          "find": {
+            "elementText": "PAGE admin1"
+          }
+        },
+        {
+          "description": "The default session still shows its own page (by engine keyword)",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": "firefox"
+          }
+        },
+        {
+          "description": "Address the opened session by name",
+          "find": {
+            "elementText": "PAGE admin1",
+            "surface": {
+              "browser": "firefox",
+              "name": "admin"
+            }
+          }
+        },
+        {
+          "description": "Close the opened session by name; focus falls back to the default",
+          "closeSurface": "admin"
+        },
+        {
+          "find": {
+            "elementText": "MULTI-TAB HOME"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "start-surface-browser-engine-viewport",
+      "description": "Engine-only descriptor: the name defaults to the engine keyword (chrome — distinct from the default firefox session), and `viewport` sets exact page dimensions post-start (runBrowserScript reads window.innerWidth back).",
+      "steps": [
+        {
+          "startSurface": {
+            "browser": "chrome",
+            "viewport": {
+              "width": 800,
+              "height": 600
+            }
+          }
+        },
+        {
+          "description": "goTo selects the opened chrome session by engine keyword (no duplicate open)",
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab.html",
+            "surface": "chrome"
+          }
+        },
+        {
+          "description": "The viewport override landed: the page sees exactly 800 CSS pixels",
+          "runBrowserScript": {
+            "script": "return String(window.innerWidth);",
+            "output": "800",
+            "surface": "chrome"
+          }
+        },
+        {
+          "closeSurface": "chrome"
+        }
+      ]
+    }
+  ]
+}

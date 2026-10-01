@@ -1,12 +1,54 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { spawnCommand } from "../dist/utils.js";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const artifactPath = path.resolve(__dirname, "./artifacts");
-const outputFile = path.resolve(`${artifactPath}/resolvedTestsResults.json`);
+// A DOC_DETECTIVE_API run never writes to `-o`/config.output — cli.ts routes
+// its results through reportResults() (a POST back to the orchestration
+// API's /contexts endpoint) instead of outputResults(). The results object is
+// logged to stdout as a "(DEBUG) RESULTS:" marker followed by pretty JSON, so
+// tests recover it from there rather than waiting on a file that this run mode
+// never produces. The dump is debug-level (ADR 01064 demoted it from info so it
+// no longer floods the default-level terminal), so these tests run the CLI at
+// logLevel "debug" via DOC_DETECTIVE_CONFIG to surface it.
+function extractResultsJson(stdout) {
+  const marker = "(DEBUG) RESULTS:";
+  const markerIndex = stdout.indexOf(marker);
+  assert.ok(
+    markerIndex !== -1,
+    `Expected "${marker}" in stdout. Full stdout:\n${stdout}`
+  );
+  const jsonStart = stdout.indexOf("{", markerIndex);
+  assert.ok(
+    jsonStart !== -1,
+    `Expected a JSON results blob after "${marker}". Full stdout:\n${stdout}`
+  );
+  let depth = 0;
+  let jsonEnd = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = jsonStart; i < stdout.length; i++) {
+    const char = stdout[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === "{") depth++;
+    else if (char === "}") {
+      depth--;
+      if (depth === 0) {
+        jsonEnd = i;
+        break;
+      }
+    }
+  }
+  assert.ok(
+    jsonEnd !== -1,
+    `Could not find the end of the JSON results blob. Full stdout:\n${stdout}`
+  );
+  return JSON.parse(stdout.slice(jsonStart, jsonEnd + 1));
+}
 
 describe("DOC_DETECTIVE_API environment variable", function () {
   // 5 minutes per test
@@ -15,45 +57,47 @@ describe("DOC_DETECTIVE_API environment variable", function () {
   it("Should fetch and run resolved tests from API", async () => {
     const apiConfig = {
       accountId: "test-account",
-      url: "http://localhost:8093/api/resolved-tests",
+      url: "http://localhost:8093/api",
       token: "test-token-123",
       contextIds: "test-context",
     };
 
-    // Set environment variable
+    // Set environment variables. logLevel "debug" surfaces the "(DEBUG)
+    // RESULTS:" dump that extractResultsJson parses (ADR 01064 demoted it from
+    // info); the API path writes no results file, so stdout is the only source.
     const originalEnv = process.env.DOC_DETECTIVE_API;
+    const originalConfigEnv = process.env.DOC_DETECTIVE_CONFIG;
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfig);
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ logLevel: "debug" });
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
+      const result = await spawnCommand("node ./bin/doc-detective.js");
+
+      assert.equal(
+        result.exitCode,
+        0,
+        `Expected a successful run. exitCode=${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
+      );
+      const testResult = extractResultsJson(result.stdout);
+      console.log(
+        "API Result summary:",
+        JSON.stringify(testResult.summary, null, 2)
       );
 
-      // Wait until the file is written
-      let waitCount = 0;
-      while (!fs.existsSync(outputFile) && waitCount < 50) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        waitCount++;
-      }
-
-      if (fs.existsSync(outputFile)) {
-        const testResult = JSON.parse(fs.readFileSync(outputFile, "utf8"));
-        console.log(
-          "API Result summary:",
-          JSON.stringify(testResult.summary, null, 2)
-        );
-        fs.unlinkSync(outputFile);
-
-        // Check that tests were run
-        assert.ok(testResult.summary);
-        assert.ok(testResult.specs);
-      }
+      // Check that tests were run
+      assert.ok(testResult.summary);
+      assert.ok(testResult.specs);
     } finally {
       // Restore original env
       if (originalEnv !== undefined) {
         process.env.DOC_DETECTIVE_API = originalEnv;
       } else {
         delete process.env.DOC_DETECTIVE_API;
+      }
+      if (originalConfigEnv !== undefined) {
+        process.env.DOC_DETECTIVE_CONFIG = originalConfigEnv;
+      } else {
+        delete process.env.DOC_DETECTIVE_CONFIG;
       }
     }
   });
@@ -68,9 +112,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_API = JSON.stringify(invalidApiConfig);
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
-      );
+      const result = await spawnCommand("node ./bin/doc-detective.js");
 
       // Should exit with non-zero code
       assert.notEqual(result.exitCode, 0);
@@ -87,7 +129,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
   it("Should reject unauthorized API requests", async () => {
     const apiConfigBadToken = {
       accountId: "test-account",
-      url: "http://localhost:8093/api/resolved-tests",
+      url: "http://localhost:8093/api",
       token: "wrong-token",
       contextIds: "test-context",
     };
@@ -96,9 +138,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfigBadToken);
 
     try {
-      const result = await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
-      );
+      const result = await spawnCommand("node ./bin/doc-detective.js");
 
       // Should exit with non-zero code due to 401 response
       assert.notEqual(result.exitCode, 0);
@@ -115,7 +155,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
   it("Should apply config overrides from DOC_DETECTIVE_CONFIG to API-fetched tests", async () => {
     const apiConfig = {
       accountId: "test-account",
-      url: "http://localhost:8093/api/resolved-tests",
+      url: "http://localhost:8093/api",
       token: "test-token-123",
       contextIds: "test-context",
     };
@@ -130,25 +170,26 @@ describe("DOC_DETECTIVE_API environment variable", function () {
     process.env.DOC_DETECTIVE_CONFIG = JSON.stringify(configOverride);
 
     try {
-      await spawnCommand(
-        `node ./bin/doc-detective.js -o ${outputFile}`
+      const result = await spawnCommand("node ./bin/doc-detective.js");
+
+      assert.equal(
+        result.exitCode,
+        0,
+        `Expected a successful run. exitCode=${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
       );
+      const testResult = extractResultsJson(result.stdout);
 
-      // Wait until the file is written
-      let waitCount = 0;
-      while (!fs.existsSync(outputFile) && waitCount < 50) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        waitCount++;
-      }
-
-      if (fs.existsSync(outputFile)) {
-        const testResult = JSON.parse(fs.readFileSync(outputFile, "utf8"));
-        fs.unlinkSync(outputFile);
-
-        // Check that tests were run
-        assert.ok(testResult.summary);
-        assert.ok(testResult.specs);
-      }
+      // Check that tests were run
+      assert.ok(testResult.summary);
+      assert.ok(testResult.specs);
+      // The API-fetched config sets logLevel "info"; only the
+      // DOC_DETECTIVE_CONFIG override raises it to "debug", which is the only
+      // thing that would make the runner emit "(DEBUG)"-prefixed log lines.
+      assert.match(
+        result.stdout,
+        /\(DEBUG\)/,
+        `Expected debug-level log output, indicating the DOC_DETECTIVE_CONFIG logLevel override was applied. Full stdout:\n${result.stdout}`
+      );
     } finally {
       // Restore original env
       if (originalApiEnv !== undefined) {

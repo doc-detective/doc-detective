@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The step-report builder copied only a fixed pair of fields (status and description) from each action
-handler's result, so any extra fields a handler produced were silently dropped before reaching the
-report. Separately, `runShell` failed a step whenever the spawned command wrote anything to stderr —
-but many well-behaved tools (and progress meters) write to stderr on success, so legitimate commands
+The step-report builder copied only a fixed pair of fields, status and description, from each action
+handler's result. Any extra fields a handler produced were silently dropped before reaching the
+report. Separately, `runShell` failed a step whenever the spawned command wrote anything to stderr.
+But many well-behaved tools and progress meters write to stderr on success, so legitimate commands
 were reported FAIL. How should handler results flow into the report, and what actually constitutes a
 `runShell` failure?
 
@@ -32,8 +32,8 @@ were reported FAIL. How should handler results flow into the report, and what ac
 
 Chosen option: **A** (`core`, commits `039c0353`, `300a592`):
 
-1. **Full spread**: the step report spreads the entire `stepResult` — `status` maps to `result` and
-   `description` to `resultDescription` — so any extra fields a handler emits flow through.
+1. **Full spread**: the step report spreads the entire `stepResult`. `status` maps to `result` and
+   `description` to `resultDescription`, so any extra fields a handler emits flow through.
 2. **Verdict source**: context-level failure detection reads `step.result === "FAIL"` (the spread
    field), not the old fixed copy.
 3. **runShell**: stderr output no longer fails the step; only a non-success exit code does.
@@ -50,7 +50,7 @@ Chosen option: **A** (`core`, commits `039c0353`, `300a592`):
 
 ### C. stderr-fails with opt-out
 * Good: preserves the strict default.
-* Bad: forces an opt-out on every command that logs to stderr — noisy and surprising.
+* Bad: forces an opt-out on every command that logs to stderr, which is noisy and surprising.
 
 ### Consequences
 

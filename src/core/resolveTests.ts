@@ -5,12 +5,16 @@
  */
 
 import crypto from "node:crypto";
-import { log } from "./utils.js";
+import { log, logLevelEnabled } from "./utils.js";
 import { generateSpecId } from "./detectTests.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
-import { BROWSER_STEP_KEYS as driverActions } from "../runtime/browserStepKeys.js";
+import {
+  BROWSER_STEP_KEYS as driverActions,
+  stepOpensBrowserSurface,
+} from "../runtime/browserStepKeys.js";
+import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -19,6 +23,9 @@ function isDriverRequired({ test }: { test: any }) {
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") driverRequired = true;
     });
+    // A startSurface browser descriptor opens a WebDriver session (Phase 6);
+    // app/process descriptors provision their own runtimes and don't count.
+    if (stepOpensBrowserSurface(step)) driverRequired = true;
   });
   return driverRequired;
 }
@@ -34,6 +41,8 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     driverActions.forEach((action) => {
       if (typeof step[action] !== "undefined") browserRequired = true;
     });
+    // Phase 6: `startSurface: { browser: … }` opens a session too.
+    if (stepOpensBrowserSurface(step)) browserRequired = true;
   });
 
   // Standardize context format
@@ -51,7 +60,6 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         if (typeof browser === "string") {
           browser = { name: browser };
         }
-        if (browser.name === "safari") browser.name = "webkit";
         // Mark the engine as explicitly requested by the author. The runner's
         // cross-engine fallback uses this to decide PASS vs WARNING when it has
         // to substitute another browser: an auto-selected default falls back
@@ -77,24 +85,53 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     const carry = { ...context };
     delete carry.platforms;
     delete carry.browsers;
-    context.platforms.forEach((platform: any) => {
+    // An entry may omit `platforms` (e.g. a `requires`-only gate) and, for
+    // driver tests, `browsers`. Expand those with an undefined slot so the
+    // static context carries no platform/browser key — runContext fills the
+    // current platform and default browser at run time, exactly as it does
+    // for a test with no runOn at all.
+    const platformsToExpand = context.platforms ?? [undefined];
+    const browsersToExpand = context.browsers ?? [undefined];
+    platformsToExpand.forEach((platform: any) => {
       if (!browserRequired) {
-        const staticContext = { ...carry, platform };
+        const staticContext = { ...carry };
+        if (platform !== undefined) staticContext.platform = platform;
         staticContexts.push(staticContext);
       } else {
-        context.browsers.forEach((browser: any) => {
-          const staticContext = { ...carry, platform, browser };
+        browsersToExpand.forEach((browser: any) => {
+          const staticContext = { ...carry };
+          if (platform !== undefined) staticContext.platform = platform;
+          if (browser !== undefined) {
+            // Desktop `safari` is an alias for the `webkit` engine, so the
+            // rewrite happens per platform pair (not during normalization):
+            // on a mobile target platform (android/ios) the authored name is
+            // preserved — `safari` on ios is the real device browser (phase
+            // A5), and the mobile support matrix, not engine aliasing,
+            // decides unsupported combinations. Every pair gets its own
+            // clone so contexts sharing one authored browser object can't
+            // leak a rewrite (or any later per-context mutation) across
+            // platforms.
+            staticContext.browser =
+              browser.name === "safari" && !isMobileTargetPlatform(platform)
+                ? { ...browser, name: "webkit" }
+                : { ...browser };
+          }
           staticContexts.push(staticContext);
         });
       }
     });
-    // For each static context, check if a matching object already exists in resolvedContexts.
+    // For each static context, check if a matching object already exists in
+    // resolvedContexts. `requires` participates in identity: two entries that
+    // differ only in their capability gate must stay distinct, or one gate
+    // would silently swallow the other.
     staticContexts.forEach((staticContext) => {
       const existingContext = resolvedContexts.find((resolvedContext) => {
         return (
           resolvedContext.platform === staticContext.platform &&
           JSON.stringify(resolvedContext.browser) ===
-            JSON.stringify(staticContext.browser)
+            JSON.stringify(staticContext.browser) &&
+          JSON.stringify(resolvedContext.requires) ===
+            JSON.stringify(staticContext.requires)
         );
       });
       if (!existingContext) {
@@ -108,22 +145,47 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
     resolvedContexts.push({});
   }
 
-  log(config, "debug", `Resolved contexts for test ${test.testId}:\n${JSON.stringify(resolvedContexts, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `Resolved contexts for test ${test.testId}:\n${JSON.stringify(resolvedContexts, null, 2)}`);
   return resolvedContexts;
 }
 
 async function fetchOpenApiDocuments({ config, documentArray }: { config: any; documentArray: any[] }) {
-  log(config, "debug", `Fetching OpenAPI documents:\n${JSON.stringify(documentArray, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `Fetching OpenAPI documents:\n${JSON.stringify(documentArray, null, 2)}`);
   const openApiDocuments: any[] = [];
   if (config?.integrations?.openApi?.length > 0)
     openApiDocuments.push(...config.integrations.openApi);
+  // Per-run cache of dereferenced OpenAPI descriptions, keyed by resolved
+  // description path. resolveTests seeds a fresh Map at the start of each run;
+  // the `||=` fallback covers direct resolveSpec/resolveTest callers. Without
+  // this, a spec's T tests each re-enter here with the SAME spec-level
+  // definition objects and re-read + re-dereference the same document T more
+  // times (resolveSpec already loaded it once). Promises are cached (not just
+  // resolved values) so concurrent callers share one in-flight load.
+  const descriptionCache: Map<string, Promise<any>> =
+    config._openApiDescriptionCache ||
+    (config._openApiDescriptionCache = new Map());
   if (documentArray?.length > 0) {
     for (const definition of documentArray) {
       try {
-        const openApiDefinition = await loadDescription(
-          definition.descriptionPath
-        );
-        definition.definition = openApiDefinition;
+        // Reuse a definition already dereferenced onto this object earlier in
+        // the run (resolveSpec attaches spec-level definitions before the tests
+        // re-process them); otherwise load through the per-run path cache.
+        if (!definition.definition) {
+          const key = definition.descriptionPath;
+          let pending = descriptionCache.get(key);
+          if (!pending) {
+            // Evict on failure so one failed load (especially a transient remote
+            // fetch error) doesn't poison every later test for this path — the
+            // next caller re-attempts, matching the old per-call behavior. The
+            // success case stays memoized (read + dereferenced once per run).
+            pending = loadDescription(key).catch((err) => {
+              descriptionCache.delete(key);
+              throw err;
+            });
+            descriptionCache.set(key, pending);
+          }
+          definition.definition = await pending;
+        }
       } catch (error: any) {
         log(
           config,
@@ -141,7 +203,7 @@ async function fetchOpenApiDocuments({ config, documentArray }: { config: any; d
       openApiDocuments.push(definition);
     }
   }
-  log(config, "debug", `Fetched OpenAPI documents:\n${JSON.stringify(openApiDocuments, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `Fetched OpenAPI documents:\n${JSON.stringify(openApiDocuments, null, 2)}`);
   return openApiDocuments;
 }
 
@@ -168,7 +230,7 @@ function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<stri
   return uniqueId(base, usedIds);
 }
 
-async function resolveContext({ config, test, context, usedContextIds }: { config: any; test: any; context: any; usedContextIds: Set<string> }) {
+async function resolveContext({ config, test, context, usedContextIds, openApi }: { config: any; test: any; context: any; usedContextIds: Set<string>; openApi?: any[] }) {
   // Normalize the resolved ID back onto the context so any downstream reader
   // of `context.contextId` (not just the resolved copy) sees the same value.
   // Explicit IDs win, but are still de-duplicated: one authored context with
@@ -180,15 +242,19 @@ async function resolveContext({ config, test, context, usedContextIds }: { confi
     : deriveContextId({ context, usedIds: usedContextIds });
   const contextId = context.contextId;
   usedContextIds.add(contextId);
-  log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
   const resolvedContext = {
     ...context,
     unsafe: test.unsafe || false,
-    openApi: test.openApi || [],
+    // Prefer the caller's description-loaded set (resolvedTest.openApi, which
+    // merges spec + test and attaches each `definition`). The raw
+    // `test.openApi` carries no loaded definition and omits spec-level entries,
+    // so httpRequest would receive an empty openApiDefinitions. See ADR 01044.
+    openApi: openApi ?? test.openApi ?? [],
     steps: [...test.steps],
     contextId: contextId,
   };
-  log(config, "debug", `RESOLVED CONTEXT ${contextId}:\n${JSON.stringify(resolvedContext, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED CONTEXT ${contextId}:\n${JSON.stringify(resolvedContext, null, 2)}`);
   return resolvedContext;
 }
 
@@ -197,7 +263,7 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
   // `<specId>~<hash>` IDs for both inline and JSON/YAML tests); covers
   // programmatic callers that hand resolveTests raw specs.
   const testId = test.testId || `${spec.specId}~${contentHash(test)}`;
-  log(config, "debug", `RESOLVING TEST ID ${testId}:\n${JSON.stringify(test, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING TEST ID ${testId}:\n${JSON.stringify(test, null, 2)}`);
   const resolvedTest = {
     ...test,
     testId: testId,
@@ -223,10 +289,12 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
       test: test,
       context,
       usedContextIds,
+      // The description-loaded, spec+test-merged set — see resolveContext.
+      openApi: resolvedTest.openApi,
     });
     resolvedTest.contexts.push(resolvedContext);
   }
-  log(config, "debug", `RESOLVED TEST ${testId}:\n${JSON.stringify(resolvedTest, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED TEST ${testId}:\n${JSON.stringify(resolvedTest, null, 2)}`);
   return resolvedTest;
 }
 
@@ -237,7 +305,7 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
   const specId =
     spec.specId ||
     (spec.contentPath ? generateSpecId(spec.contentPath) : crypto.randomUUID());
-  log(config, "debug", `RESOLVING SPEC ID ${specId}:\n${JSON.stringify(spec, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING SPEC ID ${specId}:\n${JSON.stringify(spec, null, 2)}`);
   const resolvedSpec = {
     ...spec,
     specId: specId,
@@ -256,7 +324,7 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
     });
     resolvedSpec.tests.push(resolvedTest);
   }
-  log(config, "debug", `RESOLVED SPEC ${specId}:\n${JSON.stringify(resolvedSpec, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED SPEC ${specId}:\n${JSON.stringify(resolvedSpec, null, 2)}`);
   return resolvedSpec;
 }
 
@@ -269,7 +337,7 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
  * @returns {Promise<Object>} Resolved tests object with config and specs
  */
 async function resolveTests({ config, detectedTests }: { config: any; detectedTests: any[] }) {
-  log(config, "debug", `RESOLVING DETECTED TEST SPECS:\n${JSON.stringify(detectedTests, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING DETECTED TEST SPECS:\n${JSON.stringify(detectedTests, null, 2)}`);
 
   const resolvedTests = {
     resolvedTestsId: crypto.randomUUID(),
@@ -277,13 +345,19 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
     specs: [] as any[],
   };
 
+  // Seed a fresh OpenAPI description cache for this run so fetchOpenApiDocuments
+  // reads + dereferences each document once, not once per (spec + test). Fresh
+  // per resolveTests call so a config reused across runs never serves a stale
+  // description.
+  config._openApiDescriptionCache = new Map();
+
   log(config, "info", "Resolving test specs.");
   for (const spec of detectedTests) {
     const resolvedSpec = await resolveSpec({ config, spec });
     resolvedTests.specs.push(resolvedSpec);
   }
 
-  log(config, "debug", `RESOLVED TEST SPECS:\n${JSON.stringify(resolvedTests, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED TEST SPECS:\n${JSON.stringify(resolvedTests, null, 2)}`);
   return resolvedTests;
 }
 

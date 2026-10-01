@@ -1,0 +1,93 @@
+{
+  "specId": "ios-recording-a7",
+  "description": "Native app surfaces phase A7 (docs/design/native-app-surfaces.md): recording on iOS simulators. Mobile contexts record the DEVICE screen through the XCUITest driver (simctl-backed startRecordingScreen, videoType h264) — no host display is involved, so device recordings never join the ffmpeg display mutex. Settings (com.apple.Preferences) is the target app for the same reasons as ios-interactions.spec.json; the generous startSurface timeout covers the cold WebDriverAgent build. SKIPs on non-macOS hosts via the platform gate.",
+  "tests": [
+    {
+      "testId": "ios-record-mp4",
+      "description": "Record the simulator screen to .mp4 (direct write) around a find interaction — the interaction guarantees the sub-second-recording pitfall can't bite (empty payloads FAIL).",
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "settings",
+            "timeout": 900000,
+            "waitUntil": {
+              "delayMs": 5000
+            }
+          }
+        },
+        {
+          "record": {
+            "path": "ios-screen.mp4",
+            "overwrite": "true",
+            "surface": {
+              "app": "settings"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "General",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ios-record-autorecord",
+      "description": "autoRecord in an iOS app-only context: the synthetic record step is pending until the first startSurface opens the simulator session, which late-starts the device recording; the end-of-context sweep saves it.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": [
+            "ios"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "settings",
+            "timeout": 900000,
+            "waitUntil": {
+              "delayMs": 5000
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "General",
+            "surface": {
+              "app": "settings"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "specId": "requires-gate",
+  "description": "Exercises the context `requires` capability gate (context_v3.requires) in every schema form: string, array, and object ({ commands, files, env }), in both met (context runs and PASSes) and unmet (context lands SKIPPED, never FAIL) shapes. All steps are non-driver (shell echo only) so met permutations pass on every platform. `node` is always resolvable (the runner itself is Node), `$HOME` expands on every OS (USERPROFILE fallback on Windows), and `PATH` is always set — so the met permutations are deterministic. The unmet permutations name a command/env var that cannot exist; asserting their SKIPPED outcome (with the unmet-requirements reason) is the focused it() in core-core.test.js.",
+  "tests": [
+    {
+      "testId": "requires-string-met",
+      "description": "String shorthand: a resolvable command lets the context run.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": "node"
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo requires-string-met"
+        }
+      ]
+    },
+    {
+      "testId": "requires-array-met",
+      "description": "Array form: every command present, AND-ed.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": [
+            "node",
+            "npm"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo requires-array-met"
+        }
+      ]
+    },
+    {
+      "testId": "requires-object-met",
+      "description": "Object form: commands + files (with $HOME expansion) + env all met.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": {
+            "commands": [
+              "node"
+            ],
+            "files": [
+              "$HOME"
+            ],
+            "env": [
+              "PATH"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo requires-object-met"
+        }
+      ]
+    },
+    {
+      "testId": "requires-string-unmet",
+      "description": "String shorthand naming a nonexistent command: context is SKIPPED, not failed.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": "doc-detective-fixture-missing-binary"
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo should-never-run"
+        }
+      ]
+    },
+    {
+      "testId": "requires-object-unmet",
+      "description": "Object form with an unset env var: context is SKIPPED, not failed.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": {
+            "env": [
+              "DOC_DETECTIVE_FIXTURE_UNSET_ENV_VAR"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "echo should-never-run"
+        }
+      ]
+    }
+  ]
+}

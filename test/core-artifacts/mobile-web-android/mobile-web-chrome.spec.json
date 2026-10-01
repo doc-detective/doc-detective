@@ -1,0 +1,53 @@
+{
+  "specId": "mobile-web-android-chrome-a5",
+  "description": "Mobile web phase A5 (docs/design/native-app-surfaces.md): Chrome on a managed Android emulator. On a capable host (Linux + KVM with a running or bootable emulator) the android context resolves its default device, opens one Chrome session through the lazily-installed UiAutomator2 driver (chromedriver auto-downloaded to match the device's Chrome), and goTo/find/click/screenshot behave exactly as on desktop — element semantics are web DOM. On every incapable host the android preflight lands the context SKIPPED (no hardware acceleration) — asserted gating, not a gap. The page is served by the job's test server on the HOST at port 8092; from the emulator the host loopback is 10.0.2.2, hence the URL.",
+  "tests": [
+    {
+      "testId": "android-chrome-default-browser",
+      "description": "No `browsers` key on the android entry: the platform default (chrome) fills in. Navigate, assert page text, click a button, assert the click's side effect, and capture the device screen.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        },
+        {
+          "find": "Click String Shorthand Test Page"
+        },
+        {
+          "click": "Reveal by text"
+        },
+        {
+          "find": "Text click landed"
+        },
+        {
+          "screenshot": {
+            "path": "android-chrome-mobile-web.png",
+            "overwrite": "true"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "android-chrome-explicit",
+      "description": "Explicit `browsers: chrome` on the android entry — the authored form of the same supported pair.",
+      "runOn": [
+        {
+          "platforms": "android",
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        },
+        {
+          "find": "Reveal by object"
+        }
+      ]
+    }
+  ]
+}

@@ -8,8 +8,8 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-As the engine was being unbundled into `doc-detective-core`, the test/step/config contracts needed
-to live somewhere both the engine and the CLI could share without re-implementing validation. There
+As the engine was being unbundled into `doc-detective-core`, the test/step/config contracts needed a
+shared home. Both the engine and the CLI had to use them without re-implementing validation. There
 was no canonical schema shape, no agreed JSON-Schema dialect, and no mechanism to load a growing set
 of per-action schema files. What shape should a schema take, which JSON-Schema draft governs it, and
 how are the `*.schema.json` files discovered and wired together?
@@ -29,15 +29,14 @@ how are the `*.schema.json` files discovered and wired together?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a dedicated package with a convention-driven loader lets the schema set
-grow file-by-file while staying centrally consumable, and draft 2020-12 gives the needed expressive
-power.
+Chosen option: **A**. A dedicated package with a convention-driven loader lets the schema set grow
+file-by-file, while staying centrally consumable. Draft 2020-12 gives the needed expressive power.
 
 Behavior decided:
 
-1. **Schema shape** — each step schema declares an `action` enum, `additionalProperties: false`, and
+1. **Schema shape:** each step schema declares an `action` enum, `additionalProperties: false`, and
    a `required` list, on JSON-Schema **draft 2020-12** (`$schema` set accordingly).
-2. **Dynamic loader** — a loader builds the schema map from `*.schema.json` filenames using flat
+2. **Dynamic loader:** a loader builds the schema map from `*.schema.json` filenames using flat
    `<name>_v<n>` naming, assigns a dynamic `$id` of `file://…`, and rewrites relative `$ref`s so
    cross-references resolve.
 

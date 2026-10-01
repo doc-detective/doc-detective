@@ -32,48 +32,75 @@ const META_TOKEN_SOURCE = "\\$\\$([\\w.\\[\\]\\-~]+(?:#\\/[\\w\\/\\[\\]]+)*)";
  * @returns {*} - The resolved value of the expression.
  */
 async function resolveExpression({ expression, context, allowOperators = false }: { expression: any; context: any; allowOperators?: boolean }): Promise<any> {
+  try {
+    return await resolveExpressionOrThrow({ expression, context, allowOperators });
+  } catch (error: any) {
+    // Back-compat swallow for the STANDALONE path (step.variables and any direct
+    // caller): a malformed/failing expression degrades to its literal input text
+    // rather than crashing the step. Logged at "warning" (an intentional swallow,
+    // not a surfaced failure). The embedded {{...}} loop does NOT rely on this —
+    // it calls resolveExpressionOrThrow directly so it can preserve the author's
+    // original {{...}} on failure instead of leaking the internal sub-expression
+    // (#423/#424). See adrs/01014-expression-error-contract.md.
+    log(
+      `Could not resolve expression '${expression}': ${error.message}`,
+      "warning"
+    );
+    return expression;
+  }
+}
+
+/**
+ * Core resolver: the real work behind resolveExpression, WITHOUT the back-compat
+ * error swallow. Errors that escape evaluateExpression propagate to the caller so
+ * structured callers can react. In practice that means an ASYNC operator
+ * rejection — a bad jq() query rejects after evaluateExpression's synchronous
+ * try/catch has already returned, so the awaiting worker surfaces it. (A
+ * SYNCHRONOUS eval error, e.g. a `new Function` SyntaxError, is caught inside
+ * evaluateExpression and becomes `undefined`, which does NOT throw here — the
+ * embedded loop renders it as an empty string rather than preserving {{...}}.)
+ * The public resolveExpression wraps this and swallows for back-compat;
+ * resolveEmbeddedExpressions calls it directly so it can preserve the original
+ * {{...}} when an async failure propagates.
+ * @param {string} expression - The expression to resolve.
+ * @param {object} context - Context object containing meta values.
+ * @returns {*} - The resolved value of the expression.
+ */
+async function resolveExpressionOrThrow({ expression, context, allowOperators = false }: { expression: any; context: any; allowOperators?: boolean }): Promise<any> {
   if (typeof expression !== "string") {
     return expression;
   }
 
-  try {
-    // First check if this is a string with embedded expressions {{...}}
-    if (expression.includes("{{") && expression.includes("}}")) {
-      return await resolveEmbeddedExpressions(expression, context);
-    }
-
-    // For standalone expressions, replace all meta values
-    let resolvedExpression = replaceMetaValues(expression, context, allowOperators);
-
-    // Check if the expression is a single meta value with no operators
-    if (
-      resolvedExpression !== expression &&
-      !containsOperators(resolvedExpression, allowOperators)
-    ) {
-      return resolvedExpression;
-    }
-
-    // Evaluate the expression if it contains operators
-    if (containsOperators(resolvedExpression, allowOperators)) {
-      let evaluatedExpression = await evaluateExpression(
-        resolvedExpression,
-        context
-      );
-      // If the evaluated expression is an object, convert it to a string
-      if (typeof evaluatedExpression === "object") {
-        evaluatedExpression = JSON.stringify(evaluatedExpression);
-      }
-      return evaluatedExpression;
-    }
-
-    return resolvedExpression;
-  } catch (error: any) {
-    log(
-      `Error resolving expression '${expression}': ${error.message}`,
-      "error"
-    );
-    return expression;
+  // First check if this is a string with embedded expressions {{...}}
+  if (expression.includes("{{") && expression.includes("}}")) {
+    return await resolveEmbeddedExpressions(expression, context);
   }
+
+  // For standalone expressions, replace all meta values
+  let resolvedExpression = replaceMetaValues(expression, context, allowOperators);
+
+  // Check if the expression is a single meta value with no operators
+  if (
+    resolvedExpression !== expression &&
+    !containsOperators(resolvedExpression, allowOperators)
+  ) {
+    return resolvedExpression;
+  }
+
+  // Evaluate the expression if it contains operators
+  if (containsOperators(resolvedExpression, allowOperators)) {
+    let evaluatedExpression = await evaluateExpression(
+      resolvedExpression,
+      context
+    );
+    // If the evaluated expression is an object, convert it to a string
+    if (typeof evaluatedExpression === "object") {
+      evaluatedExpression = JSON.stringify(evaluatedExpression);
+    }
+    return evaluatedExpression;
+  }
+
+  return resolvedExpression;
 }
 
 /**
@@ -245,6 +272,7 @@ function resolvePathTemplateVariables(path: string, context: any): string {
  * @returns {string} - The string with embedded expressions replaced with their evaluated values.
  */
 async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> {
+  /* c8 ignore next 3 - defensive: the only caller (resolveExpressionOrThrow) already guards typeof !== "string" before reaching here */
   if (typeof str !== "string") {
     return str;
   }
@@ -255,8 +283,11 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
   for (const m of str.matchAll(expressionRegex)) {
     parts.push(str.slice(lastIdx, m.index));
     try {
-      // Resolve any meta values within the expression
-      const resolvedExpression = await resolveExpression({
+      // Resolve any meta values within the expression. Use the THROWING worker
+      // (not the swallowing public resolveExpression) so a genuine failure lands
+      // in the catch below and preserves the author's original {{...}}, rather
+      // than leaking the half-resolved internal sub-expression (#423/#424).
+      const resolvedExpression = await resolveExpressionOrThrow({
         expression: m[1].trim(),
         context: context,
       });
@@ -264,6 +295,7 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
       // Convert the result to string for embedding
       if (resolvedExpression === undefined || resolvedExpression === null) {
         parts.push("");
+        /* c8 ignore next 2 - defensive: resolveExpressionOrThrow already JSON.stringifies any object result, so an object never reaches here */
       } else if (typeof resolvedExpression === "object") {
         parts.push(JSON.stringify(resolvedExpression));
       } else {
@@ -271,10 +303,10 @@ async function resolveEmbeddedExpressions(str: any, context: any): Promise<any> 
       }
     } catch (error: any) {
       log(
-        `Error evaluating embedded expression '${m[1]}': ${error.message}`,
-        "error"
+        `Could not evaluate embedded expression '${m[1]}'; preserving it verbatim: ${error.message}`,
+        "warning"
       );
-      parts.push(m[0]); // Return the original expression if evaluation fails
+      parts.push(m[0]); // Preserve the original {{...}} when evaluation fails.
     }
     lastIdx = m.index! + m[0].length;
   }
@@ -359,6 +391,13 @@ function containsOperators(expression: string, allowOperators: boolean = false):
   return false;
 }
 
+// Compiled-evaluator cache for evaluateExpression. `new Function(...)` is a
+// full parse + JIT compile; the same (argNames, preprocessed-source) pair
+// always yields an identical function body, so caching it removes the
+// per-evaluation compile cost for conditional/routed steps that re-evaluate
+// the same expressions. See the keying rationale at the construction site.
+const compiledEvaluatorCache = new Map<string, Function>();
+
 /**
  * Evaluates an expression containing operators.
  * @param {string} expression - The expression to evaluate.
@@ -418,14 +457,32 @@ async function evaluateExpression(expression: string, context: any): Promise<any
           return null;
         }
       },
-      jq: (json: any, query: string) => {
-        try {
-          return jq.then((jq: any) => jq.json(json, query));
-        } catch (e: any) {
-          log(`jq error: ${e.message}`, "error");
-          return null;
-        }
-      },
+      // jq-web resolves to the module, then jq.json(...) does the query. A bad
+      // query REJECTS asynchronously, so a synchronous try/catch here could never
+      // catch it (it was dead code, #425). Let the rejection propagate: the
+      // awaiting resolveExpressionOrThrow surfaces it, so the embedded loop
+      // preserves the original {{...}}. (The condition path — evaluateAssertion —
+      // still calls the swallowing resolveExpression boundary, so a jq error
+      // there is unchanged by this PR; reconciling that path is out of scope.)
+      jq: (json: any, query: string) =>
+        jq.then((j: any) => {
+          // jq-web is an emscripten/WASM build of jq. On a jq COMPILE error
+          // (e.g. an invalid query) its runtime leaks jq's own exit code (3)
+          // into process.exitCode as a side effect — which would make the host
+          // process exit non-zero even though the rejection is handled and the
+          // original {{...}} is preserved (#423/#424). The clobber happens
+          // during the synchronous j.json() WASM call (as it throws), so snapshot
+          // and restore process.exitCode around it: a gracefully-handled bad
+          // jq() query must never redden the caller's exit code.
+          const prevExitCode = process.exitCode;
+          try {
+            return j.json(json, query);
+          } finally {
+            if (process.exitCode !== prevExitCode) {
+              process.exitCode = prevExitCode;
+            }
+          }
+        }),
     };
 
     // Use Function constructor for safer evaluation. The expression's string
@@ -434,10 +491,24 @@ async function evaluateExpression(expression: string, context: any): Promise<any
     // escapes its own backslashes/quotes. A previous blunt global
     // `\\` -> `\\\\` doubling here corrupted intentional escapes (e.g. \" inside
     // a literal, or a regex containing a double-quote), so it has been removed.
-    const evaluator = new Function(
-      ...Object.keys(evalContext),
-      `return ${expression};`
-    );
+    //
+    // Memoize the compiled evaluator: `new Function(...)` re-parses + re-JITs
+    // the body on every call, but the compiled function depends ONLY on the
+    // preprocessed expression source and the argument-name list (the helper
+    // names plus this call's context keys, in order). The context VALUES are
+    // passed in per call, so a cached function is reused safely across calls
+    // with the same key. Keyed by comma-joined argNames + space + source (arg
+    // names are identifiers with no spaces, so the first space is an
+    // unambiguous delimiter). Encoding arg ORDER means a different
+    // key order (which changes the positional arg binding) never reuses a
+    // function compiled for a different order.
+    const argNames = Object.keys(evalContext);
+    const cacheKey = `${argNames.join(",")} ${expression}`;
+    let evaluator = compiledEvaluatorCache.get(cacheKey);
+    if (!evaluator) {
+      evaluator = new Function(...argNames, `return ${expression};`);
+      compiledEvaluatorCache.set(cacheKey, evaluator);
+    }
     return evaluator(...Object.values(evalContext));
   } catch (error: any) {
     log(
@@ -493,6 +564,50 @@ function preprocessExpression(expression: string): string {
     return `"${token}"`;
   };
 
+  // Helper: quote bare words inside a `oneOf` options array literal, e.g.
+  // `[linux, mac, windows]` -> `["linux", "mac", "windows"]`. Unlike
+  // `contains`'s single RHS operand, `oneOf`'s RHS is a whole array literal,
+  // so quoteIfLiteral alone (applied to the full "[...]" string) never fires:
+  // the string starts with "[" and is returned unchanged, leaving bare words
+  // inside as unquoted JS identifiers that throw a ReferenceError in the
+  // generated function — caught by evaluateExpression's try/catch and
+  // surfaced as `undefined`, i.e. the condition fails closed with no
+  // diagnostic (issue #585). Only rewrite an actual "[...]" literal; a bare
+  // variable reference (e.g. an unresolved "$$opts") is left untouched so it
+  // fails the same way it always has.
+  const quoteArrayItems = (arrayLiteral: string): string => {
+    const match = arrayLiteral.match(/^\[([\s\S]*)\]$/);
+    if (!match) return arrayLiteral;
+    const inner = match[1]!;
+    if (inner.trim() === "") return arrayLiteral;
+    // Split on top-level commas only, tracking bracket/brace/paren depth so a
+    // nested literal item (e.g. a nested array) isn't split mid-way.
+    const items: string[] = [];
+    let depth = 0;
+    let current = "";
+    for (const char of inner) {
+      if (char === "[" || char === "{" || char === "(") depth++;
+      if (char === "]" || char === "}" || char === ")") depth--;
+      if (char === "," && depth === 0) {
+        items.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    items.push(current);
+    // Drop empty segments (a trailing comma, e.g. "[0, 1,]", or a hole, e.g.
+    // "[a,,b]") instead of quoting them into a spurious "" element — real JS
+    // array-literal syntax elides a trailing comma entirely, and quoting a
+    // hole into "" would let an accidental extra comma silently make "" a
+    // valid oneOf match.
+    return `[${items
+      .map((item) => item.trim())
+      .filter((item) => item !== "")
+      .map((item) => quoteIfLiteral(item))
+      .join(", ")}]`;
+  };
+
   // ReDoS hardening (CodeQL js/polynomial-redos). The infix-operator rewrites
   // below scan the WHOLE expression with a global `replace`. Their left operand
   // pattern (`LEFT`) and the bare RHS used an UNBOUNDED `\S+` (and the unrolled
@@ -536,7 +651,7 @@ function preprocessExpression(expression: string): string {
     expression = expression.replace(
       new RegExp(`${LEFT}\\s+oneOf\\s+(.+)$`),
       (_m: string, left: string, right: string) =>
-        `oneOf(${quoteIfLiteral(left)}, ${right.trim()})`
+        `oneOf(${quoteIfLiteral(left)}, ${quoteArrayItems(right.trim())})`
     );
   }
 

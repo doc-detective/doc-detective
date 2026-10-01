@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-tab child</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #echo-out { display: inline-block; min-width: 40px; border-bottom: 1px solid #999; }
+  </style>
+</head>
+<body>
+  <h1 id="child-marker">CHILD PAGE MARKER</h1>
+  <!-- The `page` query param distinguishes tabs: it lands in the title
+       ("Child <page>") and in the page-marker text ("PAGE <page>"), so tests
+       can address tabs by title/url criteria and verify which tab they hit. -->
+  <p id="page-marker">PAGE unknown</p>
+  <label for="echo-input">Echo input:</label>
+  <input id="echo-input" type="text" autocomplete="off">
+  <span id="echo-out"></span>
+  <script>
+    (function () {
+      var page = new URLSearchParams(location.search).get("page") || "unknown";
+      document.title = "Child " + page;
+      document.getElementById("page-marker").textContent = "PAGE " + page;
+      document.getElementById("echo-input").addEventListener("input", function (e) {
+        document.getElementById("echo-out").textContent = e.target.value;
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+{
+  "specId": "start-surface-process",
+  "description": "Multi-surface Phase 6: startSurface's PROCESS descriptor — first-class sugar over runShell + background, sharing the same launcher. Covers each waitUntil condition shape the descriptor accepts (httpGet against a spawned server, stdio against a REPL prompt, delayMs, and the no-waitUntil form that's ready on spawn), proves the opened surface is a real process surface (httpRequest hits the server; type drives the REPL by surface name), the tty form (PASS where the optional node-pty is installed, SKIPPED elsewhere — both fixture-legal), and closeSurface teardown. All steps are non-driver (Node only), so they run on every platform; distinct ports and names keep it safe under concurrentRunners.",
+  "tests": [
+    {
+      "testId": "start-surface-process-httpget",
+      "description": "Start a background HTTP server via the process descriptor with an httpGet readiness condition, then prove it serves requests.",
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node -e \"require('http').createServer((q,r)=>{r.setHeader('content-type','application/json');r.end('{\\\"ok\\\":true}')}).listen(8207,'127.0.0.1')\"",
+            "name": "p6-web",
+            "waitUntil": {
+              "httpGet": "http://127.0.0.1:8207"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "http://127.0.0.1:8207",
+            "method": "get",
+            "statusCodes": [
+              200
+            ]
+          }
+        },
+        {
+          "closeSurface": "p6-web"
+        }
+      ]
+    },
+    {
+      "testId": "start-surface-process-stdio-type",
+      "description": "Start node's REPL via the process descriptor with a stdio readiness condition, then drive it by surface name with type (the surface registered under the descriptor's name is a real process surface).",
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node -i",
+            "name": "p6-repl",
+            "waitUntil": {
+              "stdio": "/>/"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "6*7",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "p6-repl"
+            },
+            "waitUntil": {
+              "stdio": "42"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": {
+            "process": "p6-repl"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "start-surface-process-delay-and-spawn",
+      "description": "The delayMs condition and the no-waitUntil form (ready as soon as the process spawns).",
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node -e \"setInterval(()=>{},1000000)\"",
+            "name": "p6-delay",
+            "waitUntil": {
+              "delayMs": 500
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "startSurface": {
+            "process": "node -e \"setInterval(()=>{},1000000)\"",
+            "name": "p6-spawn"
+          }
+        },
+        {
+          "closeSurface": [
+            "p6-delay",
+            "p6-spawn"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "start-surface-process-tty",
+      "description": "The tty form spawns under a pseudo-terminal. PASSes where the optional node-pty dependency is installed; lands SKIPPED (never FAIL) where it isn't — the same graceful-absence contract as runShell background.tty.",
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node -i",
+            "name": "p6-tty",
+            "tty": true,
+            "waitUntil": {
+              "stdio": "/>/"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "p6-tty"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Derived from no-ai-slop (https://github.com/petergyang/no-ai-slop),
+# Copyright (c) 2026 Peter Yang, licensed under the MIT License. See NOTICE.
+#
+extends: existence
+message: "Recap ending: '%s'. End on the last concrete point."
+level: error
+ignorecase: true
+nonword: true
+tokens:
+  - '(?m)^(?:In conclusion|Ultimately|Overall)\b'

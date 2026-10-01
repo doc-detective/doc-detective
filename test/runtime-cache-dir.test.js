@@ -141,6 +141,49 @@ describe("runtime/cacheDir", function () {
       }
     });
 
+    it("preserves the android install slot round-trip (native app phase A3)", function () {
+      // `doc-detective install android` records what it provisioned (bootstrapped
+      // SDK, system images, AVDs) so `install status` can report it and a later
+      // run can skip re-work. readInstalledRecord must NOT drop the android slot
+      // the way it drops other unknown top-level keys.
+      const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-android-"));
+      try {
+        process.env.DOC_DETECTIVE_CACHE_DIR = tmpRoot;
+        const record = {
+          npmPackages: {},
+          browsers: {},
+          android: {
+            sdkRoot: path.join(tmpRoot, "android-sdk"),
+            bootstrapped: true,
+            systemImages: ["system-images;android-34;google_apis;x86_64"],
+            avds: ["doc-detective"],
+            installedAt: "2026-01-01T00:00:00Z",
+          },
+        };
+        writeInstalledRecord(record, {});
+        const back = readInstalledRecord({});
+        expect(back.android).to.deep.equal(record.android);
+      } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
+
+    it("drops a malformed (non-object) android slot", function () {
+      const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-android-bad-"));
+      try {
+        process.env.DOC_DETECTIVE_CACHE_DIR = tmpRoot;
+        getCacheDir({});
+        fs.writeFileSync(
+          path.join(tmpRoot, "installed.json"),
+          JSON.stringify({ npmPackages: {}, browsers: {}, android: "nope" })
+        );
+        const back = readInstalledRecord({});
+        expect(back.android).to.equal(undefined);
+      } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
+
     it("writeInstalledRecord is atomic: a partial-write crash never leaves the target half-written", function () {
       // We can't easily inject a crash, but we can assert the file ends up
       // as one valid JSON document (no leftover .tmp companion) after a
