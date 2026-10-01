@@ -56,21 +56,27 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           code=true
-          # `if files=$(...)` tolerates a non-zero gh api without tripping
-          # `set -e`, and `timeout 120` makes a hang fail-safe too.
+          # One LINE PER API RECORD, tab-separating the new path from the old one
+          # (`@tsv`, with an empty second field when there was no rename). The
+          # record count and the path list are different things and both matter:
           #
-          # Both paths of a rename are emitted. The API reports a move as
-          # `filename` (the new path) plus `previous_filename` (the old one), so
-          # asking only for `filename` would see `docs/utils.ts` for a move out
-          # of src/** and skip the matrix while a source file was deleted.
-          if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[] | .filename, (.previous_filename // empty)'); then
+          #  - Both paths of a rename are needed. The API reports a move as
+          #    `filename` plus `previous_filename`, so reading only `filename`
+          #    would see `docs/utils.ts` for a move out of src/** and skip the
+          #    matrix while a source file was deleted.
+          #  - Truncation has to be measured in RECORDS. The files API caps at
+          #    3000, and a rename emits two paths, so counting paths lets a rename
+          #    mask a lost record: 3000 records including one rename emit 3001
+          #    paths, which matches a `changed_files` of 3001 exactly and reads as
+          #    complete.
+          #
+          # `if records=$(...)` tolerates a non-zero gh api without tripping
+          # `set -e`, and `timeout 120` makes a hang fail-safe too.
+          if [ -n "$PR" ] && records=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[] | [.filename, (.previous_filename // "")] | @tsv'); then
+            # `|| true` keeps grep's no-match exit out of `set -e`.
+            got=$(printf '%s\n' "$records" | grep -c '[^[:space:]]' || true)
+            files=$(printf '%s\n' "$records" | tr '\t' '\n' | grep '[^[:space:]]' || true)
             printf 'changed files:\n%s\n' "$files"
-            # The files API caps at 3000 entries, so a call that SUCCEEDS can
-            # still be truncated, and a code path lost to truncation would
-            # wrongly skip the matrix. Renames emit two lines each, so the list
-            # can only be longer than `changed_files`; shorter means entries went
-            # missing. `|| true` keeps grep's no-match exit out of `set -e`.
-            #
             # The count must be TRUSTWORTHY before the list can be. A failed or
             # non-numeric metadata call must not read as "zero changed files":
             # that would skip the check below and hand a possibly-truncated list
@@ -78,8 +84,7 @@ jobs:
             # this `if` treats that as untrusted.
             if expected=$(timeout 60 gh api "repos/${{ github.repository }}/pulls/$PR" --jq '.changed_files') \
               && [ "$expected" -gt 0 ] 2>/dev/null; then
-              got=$(printf '%s\n' "$files" | grep -c '[^[:space:]]' || true)
-              echo "file records: $got line(s) for $expected changed file(s)"
+              echo "file records: $got for $expected changed file(s)"
               if [ "${got:-0}" -lt "$expected" ]; then
                 echo "list looks truncated; running the matrix"
               else

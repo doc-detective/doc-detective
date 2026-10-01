@@ -178,6 +178,21 @@ describe("npm-test gate reports on every pull request", function () {
       assert.match(String(test.with["run-matrix"]), /needs\.changes\.result/);
     });
 
+    it("counts API records, not emitted paths, when checking for truncation", function () {
+      // A rename emits two paths for one record, so counting paths lets a rename
+      // mask a record lost to the API's 3000-entry cap: 3000 records including
+      // one rename emit 3001 paths, which matches a changed_files of 3001
+      // exactly and reads as complete. Raised by CodeRabbit on #730, after the
+      // first version of this guard.
+      const step = caller.jobs.changes.steps.find((s) => s.id === "decide");
+      assert.match(String(step.run), /@tsv/, "records must be fetched one per line");
+      assert.match(
+        String(step.run),
+        /got=\$\(printf '%s\\n' "\$records"/,
+        "the count must come from the records, not from the expanded paths"
+      );
+    });
+
     it("runs the selector only on a trustworthy file list", function () {
       // `expected=$(… || echo 0)` made a FAILED metadata call look like zero
       // changed files, which skipped the truncation guard and fed a possibly
