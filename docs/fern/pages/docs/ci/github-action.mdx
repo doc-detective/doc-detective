@@ -230,7 +230,7 @@ jobs:
 
 ## Runtime caching
 
-Doc Detective installs large runtime assets—browsers, drivers, and npm packages such as webdriverio, Appium, sharp, and ffmpeg—the first time it needs them. The action caches these assets between runs, so the warm-up happens once per repository instead of on every run.
+Doc Detective installs large runtime assets the first time it needs them. These include browsers, drivers, and npm packages such as webdriverio, Appium, sharp, and ffmpeg. The action caches these assets between runs, so the warm-up happens once per repository instead of on every run.
 
 ### Cache the runtime automatically
 
@@ -246,13 +246,13 @@ By default, the action caches the runtime for you. Use the `cache` input to cont
 |---|---|---|
 | `cache` | `true` | Persist the runtime and browser cache across runs. Set to `false` to disable caching entirely. |
 
-When you enable `cache`, the action points Doc Detective's cache directory at a stable path, restores the cache before the run, and saves it afterward with [`actions/cache`](https://github.com/actions/cache)—even when a test fails. You don't add an `actions/cache` step of your own. The action caches only the installed runtime, downloaded browsers, and install record. On every runner platform, it always skips the multi-GB Android SDK and Java runtime—Linux runners already include an Android SDK that Doc Detective finds first, so caching it adds no benefit. The cache key includes the platform and architecture, so each runner OS keeps its own cache.
+When you enable `cache`, the action points Doc Detective's cache directory at a stable path and restores the cache before the run. After the run, it saves the cache with [`actions/cache`](https://github.com/actions/cache), even when a test fails. You don't add an `actions/cache` step of your own. The action caches only the installed runtime, downloaded browsers, and install record. On every runner platform, it skips the multi-GB Android SDK and Java runtime. Linux runners already include an Android SDK that Doc Detective finds first, so caching it adds no benefit. The cache key includes the platform and architecture, so each runner OS keeps its own cache.
 
-The cache key is `dd-deps-v1-<platform>-<arch>-node<major>-<version>`, where `<version>` is the resolved exact Doc Detective version. Because the version is part of the key, a new release produces a fresh key instead of a stale hit. The previous cache still restores as a prefix match to warm the install, so a version bump installs only the dependencies that changed rather than starting cold.
+The cache key is `dd-deps-v1-<platform>-<arch>-node<major>-<version>`, where `<version>` is the resolved exact Doc Detective version. Because the version is part of the key, a new release produces a fresh key instead of a stale hit. The previous cache still restores as a prefix match and warms the install. A version bump then installs only the changed dependencies instead of starting cold.
 
 ### Manage the cache yourself
 
-Set `cache` to `false` to restore the behavior from before this input existed: the action doesn't pin a cache directory, and each run installs its dependencies again. Turn caching off when you want to manage the cache with your own `actions/cache` step—for example, to key it differently or share it across jobs. While caching stays on, the action sets `DOC_DETECTIVE_CACHE_DIR` itself and overrides any value you set at the job or step level, so set `cache` to `false` before you manage the directory yourself.
+Set `cache` to `false` to turn off the built-in caching. The action then doesn't pin a cache directory, and each run installs its dependencies again. Turn caching off when you want to manage the cache with your own `actions/cache` step. For example, you might key it differently or share it across jobs. While caching stays on, the action sets `DOC_DETECTIVE_CACHE_DIR` itself and overrides any value you set at the job or step level. Set `cache` to `false` before you manage the directory yourself.
 
 Point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
 
