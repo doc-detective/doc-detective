@@ -210,7 +210,7 @@ Reference an [app surface](/docs/actions/startsurface) with `{ "app": … }` to 
 }
 ```
 
-To close a single window, such as a dialog, without ending the app, add a `window` selector. It accepts a window name, an index in creation order, or `{ title }` criteria matched as a substring or `/regex/`. `-1` is the newest window:
+To close a single window, such as a dialog, without ending the app, add a `window` selector. It accepts a window name, an index in creation order, or `{ title }` criteria matched as a substring or `/regex/`. `-1` is the newest window, and Windows takes only negative indexes:
 
 ```json
 {
@@ -235,4 +235,4 @@ Doc Detective won't close an app's last open window this way, because that would
 
 Window-scoped app closes work on Windows and macOS app surfaces. Android and iOS surfaces are single-window, so a `window` selector fails there. Omit it to close the app.
 
-On Windows, index selectors other than `-1` aren't supported, because the Windows driver can't enumerate an app's windows in creation order. Select by title or `/regex/` instead.
+On Windows, non-negative index selectors such as `0` or `1` fail, because the Windows driver can't enumerate an app's windows in creation order. Negative indexes such as `-1` work. Otherwise, select by title or `/regex/`.
