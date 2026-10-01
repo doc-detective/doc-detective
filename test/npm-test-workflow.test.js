@@ -145,6 +145,22 @@ describe("npm-test gate reports on every pull request", function () {
       assert.notEqual(input.required, true);
     });
 
+    it("keeps every job name templated, so a skipped job can't collide", function () {
+      // A job skipped by `if:` still emits a check run, under its name with the
+      // expressions UNEXPANDED. That is what keeps the skipped half of each pair
+      // from reporting a required context: `Test (${{ matrix.os }}, …)` matches
+      // nothing the ruleset requires. Give any job here a static name and its
+      // skipped run lands on a required context instead, as a `skipped`
+      // conclusion racing the other half's success. Caught on PR #730, where the
+      // coverage placeholders did exactly that.
+      for (const [id, job] of Object.entries(reusable.jobs)) {
+        assert.ok(
+          String(job.name).includes("${{"),
+          `job "${id}" has the static name "${job.name}"; it must be templated`
+        );
+      }
+    });
+
     it("reports every required context under both outcomes", function () {
       // Each required name must be produced whether or not the matrix runs,
       // once by the real job and once by its placeholder.
@@ -158,6 +174,7 @@ describe("npm-test gate reports on every pull request", function () {
                 .replace("${{ matrix.os }}", cell.os)
                 .replace("${{ matrix.node }}", String(cell.node))
                 .replace("${{ matrix.shard }}", String(cell.shard))
+                .replace("${{ matrix.scope }}", String(cell.scope))
             );
           }
         } else if (job.name) {

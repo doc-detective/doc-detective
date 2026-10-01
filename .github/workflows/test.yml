@@ -161,10 +161,17 @@ jobs:
   # run is enough. Both callers (PR gate + release gate) wait on this job, so a
   # coverage regression blocks merges and releases alike.
   coverage-ratchet:
-    name: Coverage ratchet (src/common)
+    # The one-cell matrix exists to keep this name TEMPLATED. A skipped job emits
+    # a check run under its unexpanded name, so a static name here would collide
+    # with the required context the placeholder reports (ADR 01103).
+    name: Coverage ratchet (${{ matrix.scope }})
     if: ${{ inputs.run-matrix }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      matrix:
+        include:
+          - scope: src/common
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -204,11 +211,16 @@ jobs:
   # means no separate full-suite coverage run is needed. The merged report is
   # uploaded so the measured percentage is always visible.
   coverage-merge:
-    name: Coverage ratchet (root, cross-platform)
+    # Templated for the same reason as coverage-ratchet above.
+    name: Coverage ratchet (${{ matrix.scope }})
     if: ${{ inputs.run-matrix }}
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      matrix:
+        include:
+          - scope: 'root, cross-platform'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -285,10 +297,14 @@ jobs:
           echo 'scripts/select-test-matrix.cjs made this call; see the changes job.'
 
   coverage-ratchet-placeholder:
-    name: Coverage ratchet (src/common)
+    name: Coverage ratchet (${{ matrix.scope }})
     if: ${{ !inputs.run-matrix }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      matrix:
+        include:
+          - scope: src/common
     steps:
       - name: Nothing to measure
         run: |
@@ -296,10 +312,14 @@ jobs:
           echo 'Reporting success to satisfy the required check (ADR 01103).'
 
   coverage-merge-placeholder:
-    name: Coverage ratchet (root, cross-platform)
+    name: Coverage ratchet (${{ matrix.scope }})
     if: ${{ !inputs.run-matrix }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      matrix:
+        include:
+          - scope: 'root, cross-platform'
     steps:
       - name: Nothing to merge
         run: |

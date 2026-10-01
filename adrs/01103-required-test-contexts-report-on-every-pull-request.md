@@ -101,6 +101,14 @@ out every bundle.
   ruleset, the real jobs, and the placeholders. A rename breaks the gate silently.
   `test/npm-test-workflow.test.js` pins the four strings against both job sets to
   catch exactly that.
+* Bad or limiting, because every job name in `test.yml` must stay TEMPLATED, which
+  is a non-obvious constraint. A job skipped by `if:` still emits a check run, under
+  its name with the expressions unexpanded. That is what keeps the skipped half of
+  each pair off the required contexts. A static name there would instead report a
+  required context as `skipped`, racing the other half's success. The first
+  implementation had exactly that bug in the two coverage placeholders, visible in
+  PR #730's own checks. The one-cell matrices keep those names templated, and a
+  test now pins the property.
 
 ### Confirmation
 
