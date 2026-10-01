@@ -288,6 +288,8 @@ You don't have to close every app explicitly. Doc Detective closes any app surfa
 
 ## Examples
 
+The docs tests run the named browser session, window size, and background server examples. The other examples are illustration-only, because they need a native app, a mobile device, or a specific local process.
+
 ### Open a native app
 
 ```json
@@ -296,12 +298,14 @@ You don't have to close every app explicitly. Doc Detective closes any app surfa
     {
       "steps": [
         {
+          "description": "Launch Character Map and wait until it's ready.",
           "startSurface": {
             "app": "C:\\Windows\\System32\\charmap.exe",
             "waitUntil": { "find": { "elementText": "Select" } }
           }
         },
         {
+          "description": "Click the Select button in Character Map.",
           "click": { "elementText": "Select", "surface": { "app": "charmap" } }
         }
       ]
@@ -479,6 +483,7 @@ Open a second, named browser session with launch options, then navigate it by na
     {
       "steps": [
         {
+          "description": "Open a headless Firefox session with an 800x600 viewport.",
           "startSurface": {
             "browser": "firefox",
             "name": "admin",
@@ -487,6 +492,7 @@ Open a second, named browser session with launch options, then navigate it by na
           }
         },
         {
+          "description": "Load the admin page in that session.",
           "goTo": {
             "url": "https://example.com/admin",
             "surface": { "browser": "firefox", "name": "admin" }
@@ -515,6 +521,7 @@ Set `size` for the outer window dimensions, or `viewport` for the page-content a
     {
       "steps": [
         {
+          "description": "Open a headless Firefox session with a 1366x768 window.",
           "startSurface": {
             "browser": "firefox",
             "name": "wide",
@@ -523,6 +530,7 @@ Set `size` for the outer window dimensions, or `viewport` for the page-content a
           }
         },
         {
+          "description": "Load the page in that session.",
           "goTo": {
             "url": "https://example.com",
             "surface": { "browser": "firefox", "name": "wide" }
@@ -551,6 +559,7 @@ Start a background server, wait until its port accepts connections, then call it
     {
       "steps": [
         {
+          "description": "Start the web server and wait for port 3000.",
           "startSurface": {
             "process": "npm start",
             "name": "web",
@@ -558,12 +567,14 @@ Start a background server, wait until its port accepts connections, then call it
           }
         },
         {
+          "description": "Check the server's health endpoint.",
           "httpRequest": {
             "url": "http://localhost:3000/health",
             "statusCodes": [200]
           }
         },
         {
+          "description": "Stop the web server.",
           "closeSurface": "web"
         }
       ]
@@ -587,6 +598,7 @@ A process descriptor takes `args`, a `workingDirectory`, and a `waitUntil` with 
     {
       "steps": [
         {
+          "description": "Start the API server and wait for its listening log line.",
           "startSurface": {
             "process": "node",
             "args": ["server.js", "--port", "3000"],
@@ -614,6 +626,7 @@ Two managed Android devices boot in parallel, giving you the "two-phone conversa
     {
       "steps": [
         {
+          "description": "Boot two Android devices and launch the chat app on each.",
           "startSurface": [
             {
               "app": "com.example.chat",
@@ -628,6 +641,7 @@ Two managed Android devices boot in parallel, giving you the "two-phone conversa
           ]
         },
         {
+          "description": "Find the sign-in button on the first phone.",
           "find": { "elementText": "Sign in", "surface": { "app": "phone-a" } }
         }
       ]

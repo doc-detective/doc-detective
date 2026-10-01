@@ -68,7 +68,7 @@ This is [`find`](/docs/actions/find)'s `timeout`, on the annotation's target. Tw
 
 ## Examples
 
-Only the first example runs in the docs tests. The others are illustration-only, because they target elements from a hypothetical app.
+The docs tests run the first example. The other examples are illustration-only, because they target elements from a hypothetical app.
 
 ### Narrate a recording
 
@@ -81,7 +81,10 @@ Annotations track the flow, moving from field to field as the walkthrough progre
   "tests": [
     {
       "steps": [
-        { "record": "sso-setup.webm" },
+        {
+          "description": "Start recording the walkthrough.",
+          "record": "sso-setup.webm"
+        },
         {
           "description": "Point at the first field.",
           "annotate": {
@@ -97,7 +100,10 @@ Annotations track the flow, moving from field to field as the walkthrough progre
             ]
           }
         },
-        { "click": "#idp" },
+        {
+          "description": "Select the identity provider.",
+          "click": "#idp"
+        },
         {
           "description": "Move the same annotations to the next field.",
           "annotate": {
@@ -107,8 +113,14 @@ Annotations track the flow, moving from field to field as the walkthrough progre
             ]
           }
         },
-        { "annotate": { "clear": true } },
-        { "stopRecord": true }
+        {
+          "description": "Clear every annotation.",
+          "annotate": { "clear": true }
+        },
+        {
+          "description": "Stop the recording.",
+          "stopRecord": true
+        }
       ]
     }
   ]
@@ -229,7 +241,10 @@ An `arrow` points at an element, while a `text` box sits at a fixed position rat
             ]
           }
         },
-        { "click": "#connect-button" },
+        {
+          "description": "Open the connect flow.",
+          "click": "#connect-button"
+        },
         {
           "description": "Clear the intro and hint, then move the guide to the dashboard.",
           "annotate": {

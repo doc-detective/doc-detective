@@ -30,7 +30,7 @@ You can specify the `runBrowserScript` action using either a string or an object
 
 ## Examples
 
-Here are a few ways you might use the `runBrowserScript` action:
+The docs tests run every example on this page except the specific-tab, regression-testing, and unsafe-script examples.
 
 ### Read a value from the page
 
@@ -43,7 +43,10 @@ This example navigates to a page and returns its title.
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Read the page title.",
           "runBrowserScript": "return document.title;"
@@ -69,7 +72,10 @@ This example checks that the current URL uses HTTP(S) via a regular expression.
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Validate the page URL.",
           "runBrowserScript": {
@@ -98,7 +104,10 @@ The script reads values from `args` through the `arguments` object.
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Concatenate two arguments in the page.",
           "runBrowserScript": {
@@ -128,7 +137,10 @@ Each item in `args` can be any JSON-serializable value, not only a string: a num
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Read the types of mixed arguments in the page.",
           "runBrowserScript": {
@@ -158,7 +170,10 @@ After navigating to the page, this example runs three `runBrowserScript` steps. 
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Seed a value to capture.",
           "runBrowserScript": "window.localStorage.setItem('token', 'abc123');"
