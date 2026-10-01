@@ -24,7 +24,7 @@ You can specify the `runBrowserScript` action using either a string or an object
 
 **Output regression testing.** If you set `path` and a reference file already exists there, the action compares the new serialized return value to the reference content. If the difference falls within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and the `overwrite` setting (`false`, `true`, or `aboveVariation`) controls whether the action rewrites the file.
 
-> Running arbitrary JavaScript in the page can modify application state. Mark a step `unsafe: true` when its script could have side effects. Unsafe steps run only when you allow them (via the `allowUnsafeSteps` config option or the `--allow-unsafe` flag); otherwise Doc Detective skips them.
+> Running arbitrary JavaScript in the page can modify application state. Mark a step `unsafe: true` when its script could have side effects. Unsafe steps run only when you allow them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. The [official Doc Detective container image](/docs/ci/docker-and-headless) allows them by default unless you set `allowUnsafeSteps` to `false`. Otherwise, Doc Detective skips them.
 
 > For comprehensive options, see the [`runBrowserScript`](/reference/schemas/runbrowserscript) reference.
 
@@ -258,7 +258,7 @@ Save the serialized return value with `path` and `directory`, and cap the script
 
 ### Mark a side-effecting script unsafe
 
-A script that changes app state has side effects. Writing `localStorage`, dispatching events, or calling an API all count. Mark the step `unsafe: true` so it runs only when you allow unsafe steps. Enable them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. Otherwise Doc Detective skips the step.
+A script that changes app state has side effects. Writing `localStorage`, dispatching events, or calling an API all count. Mark the step `unsafe: true` so it runs only when you allow unsafe steps. Enable them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. Inside the [official Doc Detective container image](/docs/ci/docker-and-headless), they run by default unless you set `allowUnsafeSteps` to `false`. Otherwise, Doc Detective skips the step.
 
 ```json
 {
