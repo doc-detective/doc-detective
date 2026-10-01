@@ -68,6 +68,8 @@ This is [`find`](/docs/actions/find)'s `timeout`, on the annotation's target. Tw
 
 ## Examples
 
+Only the first example runs in the docs tests. The others are illustration-only, because they target elements from a hypothetical app.
+
 ### Narrate a recording
 
 Annotations track the flow, moving from field to field as the walkthrough progresses.
@@ -125,17 +127,26 @@ The blur stays glued to every match while the page scrolls, and never animates i
 
 ```json
 {
-  "annotate": {
-    "add": [
-      {
-        "id": "redact",
-        "blur": { "selector": ".account-id" },
-        "all": true,
-        "track": true,
-        "transition": { "enter": "none" }
-      }
-    ]
-  }
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Blur every account ID for the rest of the test.",
+          "annotate": {
+            "add": [
+              {
+                "id": "redact",
+                "blur": { "selector": ".account-id" },
+                "all": true,
+                "track": true,
+                "transition": { "enter": "none" }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -145,15 +156,24 @@ The blur stays glued to every match while the page scrolls, and never animates i
 
 ```json
 {
-  "annotate": {
-    "add": [
-      {
-        "outline": "#usage-meter",
-        "duration": 3500,
-        "transition": { "enter": "draw", "exit": "fade", "durationMs": 400 }
-      }
-    ]
-  }
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Outline the usage meter for 3.5 seconds.",
+          "annotate": {
+            "add": [
+              {
+                "outline": "#usage-meter",
+                "duration": 3500,
+                "transition": { "enter": "draw", "exit": "fade", "durationMs": 400 }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -163,21 +183,30 @@ An `arrow` points at an element, while a `text` box sits at a fixed position rat
 
 ```json
 {
-  "annotate": {
-    "add": [
-      {
-        "id": "pointer",
-        "arrow": { "elementTestId": "checkout-button" },
-        "position": { "offset": { "x": -100, "y": -40 } },
-        "style": { "color": "#2563EB", "strokeWidth": 4 }
-      },
-      {
-        "text": { "position": "bottom-left" },
-        "label": "Sample account",
-        "style": { "background": "#1E293B", "color": "#FACC15", "padding": 10 }
-      }
-    ]
-  }
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Point at the checkout button and caption the screen.",
+          "annotate": {
+            "add": [
+              {
+                "id": "pointer",
+                "arrow": { "elementTestId": "checkout-button" },
+                "position": { "offset": { "x": -100, "y": -40 } },
+                "style": { "color": "#2563EB", "strokeWidth": 4 }
+              },
+              {
+                "text": { "position": "bottom-left" },
+                "label": "Sample account",
+                "style": { "background": "#1E293B", "color": "#FACC15", "padding": 10 }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -187,16 +216,36 @@ An `arrow` points at an element, while a `text` box sits at a fixed position rat
 
 ```json
 {
-  "annotate": {
-    "clear": ["intro", "hint"],
-    "update": [
-      {
-        "id": "guide",
-        "callout": { "elementTestId": "dashboard", "timeout": 15000 },
-        "label": "Your data lands here after the first sync"
-      }
-    ]
-  }
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Draw an intro note, a hint, and a guide callout.",
+          "annotate": {
+            "add": [
+              { "id": "intro", "text": { "position": "top" }, "label": "Welcome" },
+              { "id": "hint", "outline": "#connect-button" },
+              { "id": "guide", "callout": "#connect-button", "label": "Connect a data source" }
+            ]
+          }
+        },
+        { "click": "#connect-button" },
+        {
+          "description": "Clear the intro and hint, then move the guide to the dashboard.",
+          "annotate": {
+            "clear": ["intro", "hint"],
+            "update": [
+              {
+                "id": "guide",
+                "callout": { "elementTestId": "dashboard", "timeout": 15000 },
+                "label": "Your data lands here after the first sync"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 

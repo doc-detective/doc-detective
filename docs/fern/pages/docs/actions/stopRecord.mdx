@@ -54,6 +54,8 @@ A skipped `stopRecord` (no active recording, or a recording that never started) 
 
 ## Examples
 
+### Start recording and stop it
+
 This example starts recording, performs an action, and then stops the recording.
 
 {/* test {"testId":"stoprecord-basic","detectSteps":false} */}
@@ -86,7 +88,9 @@ This example starts recording, performs an action, and then stops the recording.
 {/* step {"stepId":"stoprecord-stop","description":"Stop the recording","stopRecord":true} */}
 {/* test end */}
 
-`stopRecord: null` stops the most recent recording too, the same as `true`, and `stopRecord: false` is an explicit no-op that stops nothing.
+### Stop with `null`, or skip the step with `false`
+
+`stopRecord: null` stops the most recent recording too, the same as `true`, and `stopRecord: false` is an explicit no-op that stops nothing and reports the step as skipped.
 
 ```json
 {
@@ -96,12 +100,18 @@ This example starts recording, performs an action, and then stops the recording.
         {
           "description": "Stop the most recent recording (last in, first out).",
           "stopRecord": null
+        },
+        {
+          "description": "Skip this step without stopping any recording.",
+          "stopRecord": false
         }
       ]
     }
   ]
 }
 ```
+
+### Stop a specific recording by name
 
 This example stops a specific recording by name while another recording is still running.
 
@@ -137,6 +147,8 @@ This example stops a specific recording by name while another recording is still
 {/* step {"stepId":"stoprecord-named-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"stoprecord-named-stop","description":"Stop the login clip by name","stopRecord":"stoprecord-login"} */}
 {/* test end */}
+
+### Stop by name using the object form
 
 The object form targets a recording by name too, and behaves the same as the string form.
 
