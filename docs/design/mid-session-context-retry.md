@@ -22,10 +22,15 @@
 
 On constrained CI runners (notably `windows-latest`), a browser session/context intermittently **dies
 mid-run**: an early step (`goTo`) passes — "Opened URL and all wait conditions met" — and then a later
-step fails because the session/DOM is no longer live. Observed symptoms, all the *same* root cause:
+step fails because the session/DOM is no longer live. Observed symptoms, grouped at the time under the
+*same* root cause (see the correction on the second bullet):
 
 - A `find` for a **static** element times out after a full **20 s** (recording `annotate-all-blur-redaction`, PR #677's guard still failing).
 - `getTitle()` returns empty + `ECONNREFUSED` on teardown (`getRunner` unit test, PR #678).
+  **Correction, [ADR 01102](../../adrs/01102-getrunner-verifies-it-left-the-blank-document.md):** the
+  empty-title half is a different mode. The session is alive and parked on Chromium's unnavigated initial
+  document, which no context retry can reach, because `getRunner` has no context. Its own `url` command
+  now verifies the navigation left that page. The `ECONNREFUSED` half is still session death.
 - "No elements matched selector or text" on `android-skip`'s `one-page-four-targets`.
 
 Two mitigations already shipped, and neither fixes the class:
