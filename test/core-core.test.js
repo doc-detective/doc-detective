@@ -1695,12 +1695,17 @@ describe("getRunner() function", function () {
 
   // Every test here drives a real Appium + Chromium session (or a runTests
   // browser flow). On constrained CI runners — notably windows-latest — that
-  // session can crash shortly after launch, surfacing as an empty getTitle()
-  // ("first runner should work" assertion) or an ECONNREFUSED on teardown: a
-  // transient infra flake, not a getRunner defect. Retry like the sibling
-  // browser suites above (this.retries(2) on the runTests cases). Retries only
-  // re-run on failure, so a deterministic bug still fails all attempts — this
-  // heals a one-off session death without masking a real regression.
+  // session can crash shortly after launch, surfacing as an ECONNREFUSED on
+  // teardown: a transient infra flake, not a getRunner defect. Retry like the
+  // sibling browser suites above (this.retries(2) on the runTests cases).
+  // Retries only re-run on failure, so a deterministic bug still fails all
+  // attempts — this heals a one-off session death without masking a real
+  // regression.
+  //
+  // These retries never covered the OTHER historical signature here, an empty
+  // getTitle() from a session still parked on `data:,`: each attempt starts a
+  // fresh session that can park again. That one is now handled in product code
+  // (ADR 01102), so a recurrence is a real regression, not a flake.
   this.retries(2);
 
   // Report WHERE the session actually was whenever a title assertion fails.
@@ -1877,6 +1882,28 @@ describe("getRunner() function", function () {
         await result.runner.getTitle(),
         "Basic HTML Elements Demo",
         `should have loaded the requested page (session at ${landedOn})`
+      );
+    } finally {
+      if (cleanup) await cleanup();
+    }
+  });
+
+  it("a navigation that never leaves the blank document throws", async function () {
+    // Acts out the flake on a real session: make the browser report that it is
+    // still on `data:,` no matter what, and the guard must say so instead of
+    // resolving and leaving the caller on a blank page. The hermetic unit tests
+    // in core-utils-coverage cover the logic; this one pins that the guard is
+    // actually attached to the WebdriverIO proxy getRunner hands out, which a
+    // fake runner cannot prove.
+    let cleanup;
+    try {
+      const result = await getRunner();
+      cleanup = result.cleanup;
+
+      result.runner.overwriteCommand("getUrl", async () => "data:,");
+      await assert.rejects(
+        () => result.runner.url("http://localhost:8092/index.html"),
+        /never left its initial blank document/
       );
     } finally {
       if (cleanup) await cleanup();

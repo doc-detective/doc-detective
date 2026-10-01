@@ -1,7 +1,8 @@
-# TEMPORARY flake-rate harness. Runs test/core-core.test.js (the file holding
-# the getRunner suite) on several windows-latest runners at once, so the
-# getRunner flake rate can be measured before and after a fix instead of
-# guessed from single reruns. Delete before merging.
+# TEMPORARY flake-rate harness. Runs the getRunner suite several times on
+# several windows-latest runners at once, so the flake rate can be measured
+# before and after a fix instead of guessed from single reruns. Each job prints
+# a FLAKE_SUMMARY line and always exits 0, so one bad iteration does not hide
+# the rest. Delete before merging.
 name: getRunner flake rate
 
 # Push-triggered rather than workflow_dispatch: a dispatchable workflow has to
@@ -16,13 +17,13 @@ permissions:
 
 jobs:
   measure:
-    name: core-core (windows-latest, run ${{ matrix.run }})
+    name: getRunner (windows-latest, job ${{ matrix.job }})
     runs-on: windows-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        run: [1, 2, 3, 4, 5, 6, 7, 8]
+        job: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -44,6 +45,25 @@ jobs:
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
 
-      - run: npx mocha --exit test/core-core.test.js
+      - name: Repeat the getRunner suite
+        shell: bash
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+        run: |
+          pass=0
+          fail=0
+          for i in 1 2 3 4 5 6; do
+            if npx mocha --exit test/core-core.test.js --grep "getRunner" > "iter-$i.log" 2>&1; then
+              pass=$((pass + 1))
+            else
+              fail=$((fail + 1))
+              echo "::group::iteration $i FAILED"
+              tail -n 60 "iter-$i.log"
+              echo "::endgroup::"
+            fi
+          done
+          # Every blank-document re-issue the guard performs logs this warning.
+          # Counting them says how often the mode fired, not just whether it
+          # was fatal, which is the point of the measurement.
+          reissues=$(cat iter-*.log | grep -c "still on its initial blank document" || true)
+          echo "FLAKE_SUMMARY pass=$pass fail=$fail reissues=$reissues"
