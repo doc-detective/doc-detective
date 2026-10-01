@@ -75,6 +75,26 @@ describe("npm-test gate reports on every pull request", function () {
       }
     });
 
+    it("selects the matrix for a local composite action", function () {
+      // test.yml runs ./.github/actions/dd-cache, so an action-only change is a
+      // change to how every matrix cell sets itself up. The old `paths:` filter
+      // missed this too; raised by CodeRabbit on #730.
+      assert.equal(
+        selectTestMatrix.codePathsChanged([".github/actions/dd-cache/action.yml"]),
+        true
+      );
+    });
+
+    it("selects the matrix when a rename moves code out of a code path", function () {
+      // The workflow emits `previous_filename` alongside `filename`, so a rename
+      // of src/core/utils.ts to docs/utils.ts arrives as BOTH paths. Seeing only
+      // the destination would skip the matrix while a source file was deleted.
+      assert.equal(
+        selectTestMatrix.codePathsChanged(["docs/utils.ts", "src/core/utils.ts"]),
+        true
+      );
+    });
+
     it("selects the matrix when a change set mixes docs and code", function () {
       // The old `paths:` filter ran on any match, so a mixed PR ran the matrix.
       // Losing that would let a code change ride in on a docs PR unexercised.
@@ -115,6 +135,24 @@ describe("npm-test gate reports on every pull request", function () {
         "the changes job must use the selector script"
       );
       assert.ok(changes.outputs && changes.outputs.code, "changes.code output missing");
+    });
+
+    it("reads a rename's source path, not just its destination", function () {
+      // The files API reports a rename as `filename` (new) plus
+      // `previous_filename` (old). Asking only for `filename` would see
+      // "docs/utils.ts" for a move out of src/** and skip the matrix while a
+      // source file was deleted. Raised by CodeRabbit on #730.
+      const step = caller.jobs.changes.steps.find((s) => s.id === "decide");
+      assert.ok(step, "decide step missing");
+      assert.match(String(step.run), /previous_filename/);
+    });
+
+    it("treats a short file list as truncated and runs the matrix", function () {
+      // The files API caps at 3000 entries, so a successful paginated call can
+      // still be incomplete, and a missing code path would wrongly skip the
+      // matrix. The job compares what it got against the PR's changed_files.
+      const step = caller.jobs.changes.steps.find((s) => s.id === "decide");
+      assert.match(String(step.run), /changed_files/);
     });
 
     it("passes the decision to the reusable matrix", function () {

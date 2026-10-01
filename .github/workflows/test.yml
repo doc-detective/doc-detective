@@ -164,6 +164,10 @@ jobs:
     # The one-cell matrix exists to keep this name TEMPLATED. A skipped job emits
     # a check run under its unexpanded name, so a static name here would collide
     # with the required context the placeholder reports (ADR 01103).
+    #
+    # `scope` feeds the NAME only. No step reads it, and the paths below are
+    # hardcoded, so adding a cell here would report a second context that tests
+    # the same thing. Change the steps first if you ever want to generalize it.
     name: Coverage ratchet (${{ matrix.scope }})
     if: ${{ inputs.run-matrix }}
     runs-on: ubuntu-latest

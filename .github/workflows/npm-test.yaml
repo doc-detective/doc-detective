@@ -58,9 +58,26 @@ jobs:
           code=true
           # `if files=$(...)` tolerates a non-zero gh api without tripping
           # `set -e`, and `timeout 120` makes a hang fail-safe too.
-          if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
+          #
+          # Both paths of a rename are emitted. The API reports a move as
+          # `filename` (the new path) plus `previous_filename` (the old one), so
+          # asking only for `filename` would see `docs/utils.ts` for a move out
+          # of src/** and skip the matrix while a source file was deleted.
+          if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[] | .filename, (.previous_filename // empty)'); then
             printf 'changed files:\n%s\n' "$files"
-            code=$(printf '%s\n' "$files" | node scripts/select-test-matrix.cjs || echo true)
+            # The files API caps at 3000 entries, so a call that SUCCEEDS can
+            # still be truncated, and a code path lost to truncation would
+            # wrongly skip the matrix. Renames emit two lines each, so the list
+            # can only be longer than `changed_files`; shorter means entries went
+            # missing. `|| true` keeps grep's no-match exit out of `set -e`.
+            expected=$(timeout 60 gh api "repos/${{ github.repository }}/pulls/$PR" --jq '.changed_files' || echo 0)
+            got=$(printf '%s\n' "$files" | grep -c '[^[:space:]]' || true)
+            echo "file records: $got line(s) for ${expected:-0} changed file(s)"
+            if [ "${expected:-0}" -gt 0 ] && [ "${got:-0}" -lt "${expected:-0}" ]; then
+              echo "list looks truncated; running the matrix"
+            else
+              code=$(printf '%s\n' "$files" | node scripts/select-test-matrix.cjs || echo true)
+            fi
           fi
           # Only an explicit "false" skips. Anything else (crash, empty,
           # unexpected) coerces to true so the matrix stays on.

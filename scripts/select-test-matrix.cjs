@@ -18,7 +18,17 @@ const CODE_PATH_PREFIXES = [
   "test/",
   "bin/",
   "scripts/",
+  // Local composite actions are part of how every matrix cell sets itself up.
+  // test.yml runs ./.github/actions/dd-cache, so an action-only change must be
+  // exercised. The old `paths:` filter missed this.
+  ".github/actions/",
 ];
+
+// Deliberately NOT here: `adrs/`, `docs/`, `README.md`, and the repo's other
+// prose. They cannot change what the suite does, and listing them would mean
+// every documentation change pays for the full matrix again, which is the cost
+// this selector exists to avoid. A change that only LOOKS like prose but alters
+// behavior belongs in one of the paths above.
 
 const CODE_PATH_FILES = [
   "coverage-thresholds.json",
