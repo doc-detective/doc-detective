@@ -23,7 +23,7 @@ For quick fixes (typos, small wording changes), use the [browser-based workflow]
 - [Node.js](https://nodejs.org/) version 22 or later
 - [Git](https://git-scm.com/) for version control
 - [VS Code](https://code.visualstudio.com/) recommended as code editor
-- [Vale](https://vale.sh/) (optional) for style checking
+- [Vale](https://vale.sh/) 3.20.0 or later (optional) for style checking, plus the `mdx2vast` parser for `.mdx` files
 - Command line access (Terminal)
 
 ### Check your Node.js version
@@ -174,19 +174,23 @@ View the production build at `http://localhost:3000`.
 
 ### Style checking with Vale
 
-Vale enforces the documentation style guide.
+Vale enforces the documentation style guide. The pull request check fails on any error-level alert, so run Vale locally to catch errors before you push. A local run also shows warnings and suggestions, which the check doesn't post.
+
+Vale reads its configuration from `docs/.vale.ini`. Run these commands from the repository root:
 
 ```bash
 # Check all documentation
-vale docs/
+vale --config=docs/.vale.ini docs/
 
 # Check specific file
-vale docs/path/to/file.mdx
+vale --config=docs/.vale.ini docs/path/to/file.mdx
 ```
+
+The house voice rules need Vale 3.20.0 or later. To check `.mdx` files, Vale also needs the `mdx2vast` parser on your `PATH`. Install the version the pull request check uses with `npm install -g mdx2vast@0.5.0`.
 
 **Interpret results:**
 
-- **Error**: Should be fixed
+- **Error**: Fix it. Any error fails the pull request check.
 - **Warning**: Strongly consider fixing
 - **Suggestion**: Optional improvement
 
@@ -295,11 +299,10 @@ npm run start
 
 ### Vale can't find its configuration
 
-Make sure you're running Vale from the repository root:
+The configuration file is `docs/.vale.ini`, not a `.vale.ini` at the repository root. Pass it with `--config` and run Vale from the repository root:
 
 ```bash
-cd /path/to/doc-detective.github.io
-vale docs/
+vale --config=docs/.vale.ini docs/
 ```
 
 ### npm install fails

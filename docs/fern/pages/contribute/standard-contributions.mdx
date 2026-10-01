@@ -195,14 +195,14 @@ Highlight important information with admonitions. Make sure you use the appropri
 
 ### Run automated checks locally (optional)
 
-If you're working locally, run these commands before submitting:
+If you're working locally, run these commands before submitting. To set up Vale, see [Style checking with Vale](/contribute/contribute/local-development#style-checking-with-vale).
 
 ```bash
 # Build the documentation
 npm run build
 
 # Run style checks (if Vale is installed)
-vale docs/
+vale --config=docs/.vale.ini docs/
 ```
 
 Don't worry if you skip these. The CI/CD pipeline runs them automatically.
@@ -244,14 +244,16 @@ Before creating a pull request:
 
 #### Vale (style checking)
 
-Vale enforces the documentation style guide. Common suggestions include
+Vale enforces the documentation style guide. The check fails on any error-level alert, so fix every error Vale reports. The most common errors are em dashes and sentences longer than 25 words.
+
+Vale also reports warnings and suggestions when you run it locally. Common ones include
 
 - Use "you" instead of "the user"
 - Avoid "please" in instructions
 - Use active voice instead of passive
 - Avoid gendered pronouns (use "they")
 
-Most Vale suggestions are exactly that: suggestions. Reviewers use judgment.
+Warnings and suggestions don't fail the check. Reviewers use judgment on them.
 
 #### Link validation
 
