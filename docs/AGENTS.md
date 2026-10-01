@@ -86,6 +86,11 @@ To verify a route rather than guess it, read the deployed site's own list. Every
 Fern preview comment, and `curl -s <preview>/sitemap.xml` is the authoritative route set.
 Deriving routes from `docs.yml` by hand produces false positives in both directions.
 
+**One page is generated: `pages/reference/cli.mdx`.** Fix a link in
+`.scripts/buildCliReference.js` and regenerate with `npm run docs:build-cli-ref`. Editing the
+page directly looks like it worked, then the `cli-ref` gate regenerates it and fails on the
+diff.
+
 ### Custom React components
 
 No custom React components at this time.
