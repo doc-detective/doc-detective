@@ -32,6 +32,9 @@ import {
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
+  issueNavigation,
+  probeStuckOnBlankDocument,
+  guardBlankDocumentNavigation,
   classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
@@ -1118,6 +1121,187 @@ describe("core/utils coverage", function () {
         }),
         false
       );
+    });
+  });
+
+  describe("issueNavigation / probeStuckOnBlankDocument", function () {
+    // The two halves of the ADR 01088 verify-left-the-blank-document guard,
+    // factored out of goTo so getRunner can reuse them (ADR 01102).
+    //
+    // `session` is the sequence of URLs the browser reports after each
+    // successive `url()` call, so a fake can act out "parked, then recovered"
+    // and "parked, stayed parked" without a real driver.
+    const fakeDriver = (session) => {
+      const calls = [];
+      let index = -1;
+      return {
+        calls,
+        async url(target) {
+          calls.push(target);
+          index += 1;
+        },
+        async getUrl() {
+          return session[Math.min(Math.max(index, 0), session.length - 1)];
+        },
+      };
+    };
+
+    it("issues the navigation once when the page actually loaded", async function () {
+      const driver = fakeDriver(["http://localhost:8092/index.html"]);
+      assert.equal(
+        await issueNavigation(driver, "http://localhost:8092/index.html"),
+        false
+      );
+      assert.deepEqual(driver.calls, ["http://localhost:8092/index.html"]);
+    });
+
+    it("re-issues the navigation when the browser is still on data:,", async function () {
+      const driver = fakeDriver(["data:,", "http://localhost:8092/index.html"]);
+      assert.equal(
+        await issueNavigation(driver, "http://localhost:8092/index.html"),
+        true
+      );
+      assert.deepEqual(driver.calls, [
+        "http://localhost:8092/index.html",
+        "http://localhost:8092/index.html",
+      ]);
+    });
+
+    it("probes nothing when no retry fired", async function () {
+      // The healthy path must not pay an extra round trip: a first attempt
+      // that landed on a real page proves nothing by being re-read.
+      let probed = false;
+      const driver = {
+        async getUrl() {
+          probed = true;
+          return "data:,";
+        },
+      };
+      assert.equal(await probeStuckOnBlankDocument(driver, false), null);
+      assert.equal(probed, false);
+    });
+
+    it("reports the blank document the browser is stuck on", async function () {
+      assert.equal(
+        await probeStuckOnBlankDocument({ getUrl: async () => " data:, " }, true),
+        "data:,"
+      );
+    });
+
+    it("reports null once the retried navigation took", async function () {
+      assert.equal(
+        await probeStuckOnBlankDocument(
+          { getUrl: async () => "http://localhost:8092/index.html" },
+          true
+        ),
+        null
+      );
+    });
+
+    it("treats an unreadable URL as not stuck", async function () {
+      // Matches isPageUnnavigated's own swallow: a thrown getUrl is evidence
+      // of a dead session, which other probes own, not of a blank page.
+      assert.equal(
+        await probeStuckOnBlankDocument(
+          {
+            getUrl: async () => {
+              throw new Error("invalid session id");
+            },
+          },
+          true
+        ),
+        null
+      );
+    });
+  });
+
+  describe("guardBlankDocumentNavigation", function () {
+    // getRunner hands callers a raw WebdriverIO session, so `runner.url(...)`
+    // never passed through goTo's guard. This wraps it (ADR 01102).
+    const fakeRunner = (session) => {
+      const calls = [];
+      let index = -1;
+      const runner = {
+        calls,
+        async url(target) {
+          calls.push(target);
+          index += 1;
+          return "navigated";
+        },
+        async getUrl() {
+          return session[Math.min(Math.max(index, 0), session.length - 1)];
+        },
+        overwriteCommand(name, wrapper) {
+          const original = runner[name].bind(runner);
+          runner[name] = (...args) => wrapper.call(runner, original, ...args);
+        },
+      };
+      return runner;
+    };
+
+    it("leaves a healthy navigation at one url() call", async function () {
+      const runner = fakeRunner(["http://localhost:8092/index.html"]);
+      guardBlankDocumentNavigation(runner, {});
+      assert.equal(
+        await runner.url("http://localhost:8092/index.html"),
+        "navigated"
+      );
+      assert.deepEqual(runner.calls, ["http://localhost:8092/index.html"]);
+    });
+
+    it("recovers a navigation that parked on the blank document", async function () {
+      const runner = fakeRunner(["data:,", "http://localhost:8092/index.html"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url("http://localhost:8092/index.html");
+      assert.deepEqual(runner.calls, [
+        "http://localhost:8092/index.html",
+        "http://localhost:8092/index.html",
+      ]);
+    });
+
+    it("throws naming the blank document when the navigation never takes", async function () {
+      // The failure mode this guard exists for: without it the session stays
+      // on data:, and the caller's next getTitle() returns "" with nothing
+      // pointing at the navigation.
+      const runner = fakeRunner(["data:,", "data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await assert.rejects(
+        () => runner.url("http://localhost:8092/index.html?token=secret"),
+        (error) => {
+          assert.match(error.message, /never left its initial blank document/);
+          assert.match(error.message, /data:,/);
+          assert.match(error.message, /localhost:8092\/index\.html/);
+          // Query strings can carry tokens; step descriptions and logs are
+          // shared artifacts, so the reported URL is redacted.
+          assert.ok(
+            !error.message.includes("secret"),
+            `query string must be redacted, got: ${error.message}`
+          );
+          return true;
+        }
+      );
+    });
+
+    it("passes a deliberate blank-document target straight through", async function () {
+      // Asking for data:, itself would otherwise read as stuck forever.
+      const runner = fakeRunner(["data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url("data:,");
+      assert.deepEqual(runner.calls, ["data:,"]);
+    });
+
+    it("passes a non-string target through to WebdriverIO's own validation", async function () {
+      const runner = fakeRunner(["data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url(undefined);
+      await runner.url("");
+      assert.deepEqual(runner.calls, [undefined, ""]);
+    });
+
+    it("is a no-op on a runner with no overwriteCommand", async function () {
+      const runner = { url: async () => "navigated" };
+      guardBlankDocumentNavigation(runner, {});
+      assert.equal(await runner.url("http://localhost:8092/index.html"), "navigated");
     });
   });
 
