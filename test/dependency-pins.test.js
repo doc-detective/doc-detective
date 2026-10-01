@@ -2,14 +2,16 @@
 // routine "update all deps" pass cannot silently undo them.
 //
 // `vscode-languageserver-textdocument` is pinned to an exact version rather
-// than the usual caret range. The registry's `latest` dist-tag is 1.0.12;
-// 1.0.13 is published only under `next`. A caret range does not express that
-// distinction — npm resolves a range to the highest *published* version
-// regardless of dist-tag, so `^1.0.12` still installs the `next`-tagged 1.0.13.
-// The exact pin is the only range that keeps the LSP on the released build.
+// than the usual caret range. The package publishes pre-release builds under a
+// `next` dist-tag using plain patch numbers (e.g. 1.0.13 was `next`-only while
+// `latest` was 1.0.12). A caret range does not express that distinction — npm
+// resolves a range to the highest *published* version regardless of dist-tag,
+// so a caret would install the next `next`-tagged build the moment one outranks
+// `latest`. The exact pin is the only range that keeps the LSP on the released
+// build.
 //
-// If a future release moves the `latest` tag to 1.0.13 or beyond, update the
-// pin (and this test) together — do not simply restore a caret.
+// When the `latest` tag moves, bump the exact pin to it — do not restore a
+// caret.
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
