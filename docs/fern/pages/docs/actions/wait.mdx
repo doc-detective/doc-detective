@@ -10,7 +10,7 @@ You can set `wait` in one of three ways:
 
 - **Number:** the duration to pause, in milliseconds. For example, `wait: 3000` pauses for 3 seconds.
 - **Environment variable:** a `$VAR` reference that resolves to a duration in milliseconds, such as `wait: "$WAIT_DURATION"`. Load the variable with [`loadVariables`](/docs/actions/loadvariables) first.
-- **Boolean:** `wait: true` pauses for the default 5000 milliseconds, and `wait: false` doesn't pause.
+- **Boolean:** `wait: true` pauses for the default 5000 milliseconds. `wait: false` skips the step without pausing and reports `SKIPPED`.
 
 > For comprehensive options, see the [`wait`](/reference/schemas/wait) reference.
 
