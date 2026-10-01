@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 When a test did not pin a specific browser, the runner chose a default from a fallback list that was
 chromium-first. But "is this browser usable?" depended only on the binary being present, not on
-whether the matching Appium driver was actually installed — so the runner would pick a browser it
-could not drive and fail at session start. Recording (`00073`) was also only reliable on headed
+whether the matching Appium driver was actually installed. So the runner would pick a browser it
+could not drive, and fail at session start. Recording (`00073`) was also only reliable on headed
 Chrome, yet nothing gated it. What should the default fallback order be, and what must be true for a
 browser to be selectable?
 
@@ -38,9 +38,9 @@ Chosen option: **A**, across two inventory rows:
    `["firefox","chrome","safari","edge"]` (was chromium-first); only the first **available** app is
    selected.
 2. **Availability gating** (`core`, commits `b43787`, `190fbd`, `ae6990`, `b9e346`, `46430f`): a
-   browser is available only if its Appium **driver is installed**; Appium is invoked via
-   `npx appium`; `browserName` caps are corrected (e.g. `edge` → `MicrosoftEdge`); recording is gated
-   to **headed Chrome**; the obsolete macOS `platformName` remap is removed.
+   browser is available only if its Appium **driver is installed**. Appium is invoked via
+   `npx appium`, and `browserName` caps are corrected, such as `edge` → `MicrosoftEdge`. Recording
+   is gated to **headed Chrome**, and the obsolete macOS `platformName` remap is removed.
 
 ## Pros and Cons of the Options
 

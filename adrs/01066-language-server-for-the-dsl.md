@@ -8,25 +8,25 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective's DSL — the JSON/YAML test-spec language defined by the `*_v3` schemas in
-`doc-detective-common` (`spec_v3`, `test_v3`, `config_v3`, and the per-action schemas) — has no
-authoring-time intelligence. Feedback arrives only at run time: an author (human or AI agent) writes
-a spec, runs `runTests`/`validate`, then maps AJV errors back to the file by hand. That loop is slow
-for humans and token-expensive for agents. It also produces one persistent failure class the
-project already fights with prose in the Claude plugin's skills **and** a single-pattern
-write-blocking hook (`pre-edit-block-action-antipattern.js`, which fired on the first draft of this
-very ADR): writing a step as an object keyed on `action` (the action name carried as a *value* under
-an `action` key) instead of the v3 compact form where the action name **is** the key, e.g.
-`{"goTo": …}`.
+Doc Detective's DSL has no authoring-time intelligence. It's the JSON and YAML test-spec language
+defined by the `*_v3` schemas in `doc-detective-common`: `spec_v3`, `test_v3`, `config_v3`, and the
+per-action schemas. Feedback arrives only at run time. An author, human or AI agent, writes
+a spec, runs `runTests` or `validate`, then maps AJV errors back to the file by hand. That loop is
+slow for humans and token-expensive for agents. It also produces one persistent failure class the
+project already fights on two fronts. There's prose in the Claude plugin's skills. There's **also** a
+single-pattern write-blocking hook, `pre-edit-block-action-antipattern.js`. It fired on the first
+draft of this very ADR. The antipattern is writing a step as an object keyed on `action`, carrying
+the action name as a *value* under an `action` key. The v3 compact form instead makes the action
+name **the** key, as in `{"goTo": …}`.
 
 The Language Server Protocol is the natural remedy: one server, written once, serves diagnostics and
-completion to every LSP client. Two consumers matter here. **Claude Code** bundles LSP servers via a
-plugin's `.lsp.json`/`lspServers` capability and injects their diagnostics into the model's context
-after each edit — closing the author-time loop for agents. **Editors** (VS Code, Neovim, JetBrains,
-Zed) consume the same server for humans.
+completion to every LSP client. Two consumers matter here. **Claude Code** bundles LSP servers
+through a plugin's `.lsp.json`/`lspServers` capability. It injects their diagnostics into the
+model's context after each edit, closing the author-time loop for agents. **Editors** like VS Code,
+Neovim, JetBrains, and Zed consume the same server for humans.
 
-The open questions were not *whether* to build it but *where the code lives* and *how tightly it
-couples to the schema set that is its entire knowledge base*.
+The open questions were not *whether* to build it. They were *where the code lives*, and *how
+tightly it couples to the schema set that is its entire knowledge base*.
 
 ## Decision Drivers
 
@@ -40,53 +40,55 @@ couples to the schema set that is its entire knowledge base*.
 * **Thin plugin.** The Claude plugin (`agent-tools`) already wraps the CLI rather than
   reimplementing it; the LSP packaging should keep that shape.
 * **Coverage discipline.** Any code compiled into the package's `dist/` joins the root coverage
-  ratchet union, so the server must be hermetically unit-testable in-process (no editor, no network).
+  ratchet union. So the server must be hermetically unit-testable in-process, with no editor and no
+  network.
 
 ## Considered Options
 
-* **A. In-package server + thin plugin launcher** (chosen) — the server lives in this repo as
-  `src/lsp/`, exposed as a lazy-loaded `doc-detective lsp` subcommand; `agent-tools` contributes only
-  an `.lsp.json` plus a resolution shim.
-* **B. Server in the `agent-tools` plugin repo** — co-locate the server with the plugin that ships
+* **A. In-package server plus a thin plugin launcher** (chosen). The server lives in this repo as
+  `src/lsp/`, exposed as a lazy-loaded `doc-detective lsp` subcommand. `agent-tools` contributes
+  only an `.lsp.json` plus a resolution shim.
+* **B. Server in the `agent-tools` plugin repo.** Co-locate the server with the plugin that ships
   it.
-* **C. New standalone `doc-detective-lsp` package/repo** — a third release artifact dedicated to
+* **C. New standalone `doc-detective-lsp` package or repo.** A third release artifact dedicated to
   editor tooling.
 
 ## Decision Outcome
 
 Chosen option: **A**, because it is the only option that makes schema drift structurally impossible.
-The server imports `doc-detective-common` as an in-repo workspace dependency and derives its entire
-language model from the `schemas` export at runtime — the action list from `schemas["step_v3"].anyOf`
-(each branch's `required[0]`/`title` is the action key), field/enum/description data from each
-action's own schema, and validation from common's existing `validate()`. Because both packages are
+The server imports `doc-detective-common` as an in-repo workspace dependency. It derives its entire
+language model from the `schemas` export at runtime. The action list comes from
+`schemas["step_v3"].anyOf`, where each branch's `required[0]`/`title` is the action key. Field,
+enum, and description data come from each action's own schema, and validation from common's
+existing `validate()`. Because both packages are
 built and versioned together, the LSP a user runs always matches the schemas the runner validates
 with.
 
 The server is reached as `doc-detective lsp --stdio`, registered as a lazy-imported `CommandModule`
-(the `install-agents` pattern) so no other subcommand pays its import cost. Diagnostics map AJV
-errors to source ranges via a position-preserving parse (`jsonc-parser` for JSON now; a `yaml`
-`parseDocument` AST for YAML in a later phase), and the `action`-keyed-step antipattern gets a
-single targeted diagnostic instead of a wall of `anyOf` failures.
+(the `install-agents` pattern), so no other subcommand pays its import cost. Diagnostics map AJV
+errors to source ranges through a position-preserving parse: `jsonc-parser` for JSON now, and a
+`yaml` `parseDocument` AST for YAML in a later phase. The `action`-keyed-step antipattern gets a
+single targeted diagnostic, instead of a wall of `anyOf` failures.
 
-A **detection gate** keeps the server silent on files that are not Doc Detective specs/configs
-(filename convention, shape sniff, explicit `$schema` opt-in), because `extensionToLanguage` maps by
-extension and specs are `.json`/`.yaml` among thousands of unrelated files. False silence is
-tolerable; false noise on an unrelated `package.json` is disqualifying.
+A **detection gate** keeps the server silent on files that are not Doc Detective specs or configs.
+It uses filename convention, a shape sniff, and an explicit `$schema` opt-in. `extensionToLanguage`
+maps by extension, and specs are `.json` or `.yaml` among thousands of unrelated files. False
+silence is tolerable; false noise on an unrelated `package.json` is disqualifying.
 
-The Claude plugin bundles the server through a launcher shim resolving project-local → global → `npx`
-`doc-detective`, so a workspace's pinned version wins and cold machines still work. The existing
+The Claude plugin bundles the server through a launcher shim, resolving project-local → global →
+`npx` `doc-detective`. A workspace's pinned version wins, and cold machines still work. The existing
 write-blocking hook is **kept** as belt-and-braces for non-LSP agent surfaces.
 
-B was rejected: an LSP in `agent-tools` would have to depend on a *published* `doc-detective-common`,
-pin a version, and chase releases — reintroducing exactly the drift A eliminates — and would
-duplicate schema-walking logic that already has a home next to the schemas. C was rejected: a third
-lockstep-released artifact adds release-management burden for no isolation benefit, since the server's
-dependency (the schemas) ships in this repo regardless.
+B was rejected. An LSP in `agent-tools` would have to depend on a *published* `doc-detective-common`,
+pin a version, and chase releases. That reintroduces exactly the drift A eliminates. It would also
+duplicate schema-walking logic that already has a home next to the schemas. C was rejected too. A
+third lockstep-released artifact adds release-management burden for no isolation benefit, since the
+server's dependency, the schemas, ships in this repo regardless.
 
 ### Consequences
 
-* Good: the editor/agent experience can never disagree with the runner about what is valid — same
-  AJV instance, same schema set, same version.
+* Good: the editor and agent experience can never disagree with the runner about what is valid. It's
+  the same AJV instance, the same schema set, and the same version.
 * Good: adding an action to the schemas automatically flows to completion/hover/diagnostics; an
   anti-drift test pins that every `step_v3.anyOf` action appears in the registry.
 * Good: the plugin stays a thin launcher; later LSP phases upgrade every plugin user for free once
@@ -94,8 +96,8 @@ dependency (the schemas) ships in this repo regardless.
 * Neutral (accepted): `doc-detective` gains new runtime deps (`vscode-languageserver`,
   `vscode-languageserver-textdocument`, `jsonc-parser`). They are lazy-loaded behind the `lsp`
   subcommand, so non-LSP invocations do not import them.
-* Neutral: the server's logic sits in the root coverage union and must be tested in-process; the
-  protocol surface is exercised by scripted stdio sessions rather than a live editor.
+* Neutral: the server's logic sits in the root coverage union and must be tested in-process. The
+  protocol surface is exercised by scripted stdio sessions, rather than a live editor.
 
 ### Confirmation
 

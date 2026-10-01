@@ -24,7 +24,7 @@ Documented procedures sometimes need a deliberate pause (for an animation, a red
 
 ## Decision Outcome
 
-Chosen option: **a `wait` action whose `duration` is in milliseconds**, because milliseconds match the underlying timer/browser APIs and remove unit ambiguity, and an explicit step gives authors deterministic control.
+Chosen option: **a `wait` action whose `duration` is in milliseconds**. Milliseconds match the underlying timer and browser APIs, and remove unit ambiguity. An explicit step gives authors deterministic control.
 
 Behavior decided:
 

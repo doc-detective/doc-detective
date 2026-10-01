@@ -3,7 +3,7 @@ title: Capture screenshots
 description: Capture a screenshot of the full viewport, a cropped element, or an element with padding.
 ---
 
-Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section and covers a single capture—the full viewport, a cropped element, or an element with padding. The section's other guides cover the three related capabilities: [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) by comparing a capture against a reference image, [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every step, and [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image. The [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema are where you look up every field. Unlike recording, screenshots capture fine in a headless or CI context.
+Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section. It covers a single capture: the full viewport, a cropped element, or an element with padding. The section's other guides cover three related capabilities. [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) compares a capture against a reference image. [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) fires after every step. [Annotate screenshots](/docs/test-docs/annotate-screenshots) marks up an image. Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema. Unlike recording, screenshots capture fine in a headless or CI context.
 
 ## Before you begin
 
@@ -13,7 +13,7 @@ Make sure you have the following:
 - A page or site to capture. The examples below capture a local page.
 - A directory where you can create a `.spec.json` file.
 
-The steps in this guide work the same whether you author them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
 ## Capture a screenshot
 
@@ -51,7 +51,7 @@ To choose where the image lands, pass a file path as a string:
 }
 ```
 
-By default (`overwrite: "aboveVariation"`), when the target path already holds a file, Doc Detective compares the new capture against it and replaces the file only when the two differ by more than `maxVariation` (default 5%), leaving the existing file in place otherwise (the [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full). Set `"overwrite": "true"` to always replace the file, or `"overwrite": "false"` to keep the existing file and skip the capture (the step reports `SKIPPED`).
+By default (`overwrite: "aboveVariation"`), a target path that already holds a file gets compared against the new capture. Doc Detective replaces the file only when the two differ by more than `maxVariation`, which defaults to 5%. Otherwise it leaves the existing file in place. The [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full. Set `"overwrite": "true"` to always replace the file. Set `"overwrite": "false"` to keep the existing file and skip the capture, which reports `SKIPPED`.
 
 For more control, use the object form. Set `crop` to a CSS selector to capture only that element:
 
@@ -71,7 +71,7 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 {/* step {"stepId":"capture-guide-crop-shot","description":"Capture only the buttons section (a selector that fits the viewport), directed at a gitignored output folder","screenshot":{"path":"guide_crop.png","directory":"./.dd-output","crop":"#buttons"}} */}
 {/* test end */}
 
-`crop` accepts the same selector grammar as `find`—a [CSS](/docs/selectors/css) or [XPath](/docs/selectors/xpath) selector. To disambiguate a selector by its visible text or add breathing room, use the object form of `crop`:
+`crop` accepts the same selector grammar as `find`, meaning a [CSS](/docs/selectors/css) or [XPath](/docs/selectors/xpath) selector. To disambiguate a selector by its visible text or add breathing room, use the object form of `crop`:
 
 ```json
 {

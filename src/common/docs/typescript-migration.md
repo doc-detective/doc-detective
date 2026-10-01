@@ -1,6 +1,6 @@
 # TypeScript Migration Guide
 
-This guide helps downstream consumers migrate to the TypeScript version of `doc-detective-common` and leverage the new type definitions.
+This guide helps downstream consumers migrate to the TypeScript version of `doc-detective-common` and use the new type definitions.
 
 ## Table of Contents
 

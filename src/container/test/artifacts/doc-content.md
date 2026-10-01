@@ -5,9 +5,9 @@ testId: doc-detective-docs
 detectSteps: false
 -->
 
-The container test harness serves the same `test/server/public/` fixtures
-the main test suite uses, but from a sidecar container on a shared
-docker network so the test container reaches it by docker DNS name
+The container tests serve the same `test/server/public/` fixtures
+the main test suite uses. A sidecar container on a shared docker network
+hosts those fixtures. The test container reaches it by docker DNS name
 (`dd-test-server`).
 
 <!-- step checkLink: "http://dd-test-server:8092" -->

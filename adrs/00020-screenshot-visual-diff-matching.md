@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-A screenshot action could capture an image, but capturing alone does not catch visual regressions — a
+A screenshot action could capture an image, but capturing alone does not catch visual regressions. A
 broken layout or changed UI would pass silently. Documentation testing benefits from comparing a new
 screenshot against a previously captured baseline and failing when the page has visibly drifted. How
 should visual regression be expressed and how should "different enough to fail" be decided?
@@ -23,13 +23,13 @@ should visual regression be expressed and how should "different enough to fail" 
 
 * **A. `matchPrevious` pixel-diff with a threshold via pixelmatch/pngjs** (chosen).
 * **B. Exact byte-for-byte image equality.**
-* **C. No comparison — capture only.**
+* **C. No comparison; capture only.**
 
 ## Decision Outcome
 
-Chosen option: **A**. The screenshot action gains a `matchPrevious` option that compares the freshly
-captured image against the prior baseline using `pixelmatch` (with `pngjs` for decoding) against a
-threshold; if the difference exceeds the threshold the action fails. A tolerance-based pixel diff
+Chosen option: **A**. The screenshot action gains a `matchPrevious` option. It compares the freshly
+captured image against the prior baseline using `pixelmatch`, with `pngjs` for decoding, against a
+threshold. If the difference exceeds the threshold, the action fails. A tolerance-based pixel diff
 avoids the brittleness of exact equality while still catching meaningful visual drift. This is the
 origin of the visual-regression contract that later grows `maxVariation`, `overwrite` enums,
 selector-based crop, and URL/reference-image comparison.
@@ -38,9 +38,9 @@ selector-based crop, and URL/reference-image comparison.
 
 * Good: screenshots become regression assertions, not just captures.
 * Good: threshold tolerance reduces false failures from sub-pixel noise.
-* Neutral: the comparison contract is substantially reshaped later — `maxVariation` (0–100, then
-  fractional 0–1), `overwrite: true/false/byVariation`, and diffs-to-WARNING behavior — but the
-  pixel-diff baseline-compare idea starts here.
+* Neutral: the comparison contract is substantially reshaped later. That covers `maxVariation`
+  (0–100, then fractional 0–1), `overwrite: true/false/byVariation`, and diffs-to-WARNING behavior.
+  The pixel-diff baseline-compare idea starts here.
 
 ### Confirmation
 
@@ -55,7 +55,7 @@ Shipped 2022-05-27 (`10c94783`): `tests.js` adds `matchPrevious` comparison back
 
 ### B. Exact equality
 * Good: trivial to implement.
-* Bad: extremely flaky — any anti-aliasing or timing difference fails the test.
+* Bad: extremely flaky, since any anti-aliasing or timing difference fails the test.
 
 ### C. Capture only
 * Good: simplest.
@@ -64,6 +64,6 @@ Shipped 2022-05-27 (`10c94783`): `tests.js` adds `matchPrevious` comparison back
 ## More Information
 
 Recorded retrospectively (ADR backfill). Origin: doc-detective commit 10c94783. Inventory ref:
-BACKFILL-INVENTORY.md Seq 24. Related: ADR 00012 (screenshot action), ADR 00066 (saveScreenshot
-directory and visual diff), ADR 00135 (regression diffs to WARNING), ADR 00139 (fractional
-maxVariation comparison), ADR 00157 (screenshot reference-image regression).
+BACKFILL-INVENTORY.md Seq 24. Related: ADR 00012 (screenshot action) and ADR 00066 (saveScreenshot
+directory and visual diff). Also ADR 00135 (regression diffs to WARNING), ADR 00139 (fractional
+maxVariation comparison), and ADR 00157 (screenshot reference-image regression).

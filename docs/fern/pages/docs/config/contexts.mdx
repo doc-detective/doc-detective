@@ -5,23 +5,23 @@ description: Define the contexts (platform and browser combinations) where tests
 
 Doc Detective uses contexts to determine *where* tests should run. A context defines a combination of a target platform (operating system) and, optionally, a target browser with specific configurations.
 
-By default, if contexts are needed but not specified, Doc Detective attempts to find a supported browser (like Chrome or Firefox) on the current platform (Windows, macOS, or Linux) and run tests there.
+Contexts are sometimes needed but not specified. Doc Detective then looks for a supported browser, such as Chrome or Firefox, on the current platform and runs tests there.
 
 If no supported browser is available, Doc Detective skips contexts that require browser automation and reports the platform it skipped, for example: `Skipping context on 'linux': no supported browser is available in the current environment.`. This lets tests complete gracefully instead of failing with a generic driver error.
 
 ## Browser fallback
 
-A browser context can fail to start for reasons beyond "not installed," most commonly a **broken driver**. For example, a partially downloaded `geckodriver` can exist on disk yet fail to run, which would otherwise make a Firefox context fail and skip. To stay resilient, Doc Detective validates each browser's driver by *executing* it (not just checking that it's present). When the requested browser can't start (because a component is missing or didn't install correctly), Doc Detective first tries to **repair** it once, reinstalling every component it needs (the browser and its driver), so the run can stay on the browser you asked for. It falls back to another available browser only when the repair doesn't help.
+A browser context can fail to start for reasons beyond "not installed," most commonly a **broken driver**. For example, a partially downloaded `geckodriver` can exist on disk yet fail to run. That would otherwise make a Firefox context fail and skip. To stay resilient, Doc Detective validates each browser's driver by *executing* it, not just checking that it's present. When the requested browser can't start, Doc Detective first tries to **repair** it once, reinstalling the browser and its driver. The run can then stay on the browser you asked for. It falls back to another available browser only when the repair doesn't help.
 
 The [`browserFallback`](/reference/schemas/config) config option (or the `--browser-fallback` CLI flag) controls this fallback:
 
-- **`auto`** (default): fall back to any other available browser. If Doc Detective auto-selected the browser (you didn't request one explicitly), the context runs on the fallback browser and reports `PASS`. If you requested the browser explicitly, the context still runs on the fallback browser but reports `WARNING`, so a degraded run never looks like a clean success.
-- **`explicit`**: fall back only when Doc Detective auto-selected the browser. If you requested a browser explicitly and its driver fails to run, Doc Detective skips the context with a diagnostic reason instead of substituting another engine.
+- **`auto`** (default): fall back to any other available browser. When Doc Detective auto-selected the browser, the context runs on the fallback browser and reports `PASS`. When you requested the browser explicitly, the context still runs on the fallback browser but reports `WARNING`. A degraded run therefore never looks like a clean success.
+- **`explicit`**: fall back only when Doc Detective auto-selected the browser. Suppose you requested a browser explicitly and its driver fails to run. Doc Detective skips the context with a diagnostic reason instead of substituting another engine.
 - **`off`**: never fall back across browsers. Driver validation and the diagnostic skip reason still apply.
 
-Fallback works the same in every direction, so Chrome, Firefox, and Safari/WebKit can each fall back to one another. When no engine can start a session, Doc Detective skips the context with a diagnostic that names the requested browser and the likely cause (for example, a partially downloaded driver), so the failure stays actionable rather than generic.
+Fallback works the same in every direction, so Chrome, Firefox, and Safari/WebKit can each fall back to one another. When no engine can start a session, Doc Detective skips the context with a diagnostic. That diagnostic names the requested browser and the likely cause, such as a partially downloaded driver. The failure stays actionable rather than generic.
 
-You can also set `browserFallback` **per context**, on an individual `runOn` entry. A context-level value takes precedence over the config-level policy for the contexts that entry expands into, so you can, for example, default the whole run to `auto` while forcing one Safari-only context to `off`:
+You can also set `browserFallback` **per context**, on an individual `runOn` entry. A context-level value takes precedence over the config-level policy for the contexts that entry expands into. You can, for example, default the whole run to `auto` while forcing one Safari-only context to `off`:
 
 ```json
 {
@@ -41,7 +41,7 @@ You can also set `browserFallback` **per context**, on an individual `runOn` ent
 
 You define contexts using an array of context objects. Each context object specifies the target `platforms` (as a string or array) and the target `browsers` (as a string, array, or object).
 
-When Doc Detective runs tests, it evaluates the defined contexts against the current environment. If the current platform matches one specified in a context, and if a browser is specified and available, the test runs in that specific browser on that platform. You can specify multiple contexts, and Doc Detective will attempt to run the relevant tests in each matching context.
+When Doc Detective runs tests, it evaluates the defined contexts against the current environment. The test runs in a specific browser on a platform when the current platform matches the context and that browser is available. You can specify multiple contexts, and Doc Detective runs the relevant tests in each matching context.
 
 For comprehensive options, see the [context](/reference/schemas/context) reference.
 
@@ -82,7 +82,7 @@ Doc Detective can perform browser-based tests on several browser engines. The fo
 
 - **Chrome** (`chrome`): Uses Chromium.
 - **Firefox** (`firefox`): Uses Firefox.
-- **WebKit** (`webkit`): Uses WebKit. On desktop platforms, the name `safari` can be used as an alias for `webkit`. On an `ios` platform entry, `safari` instead means the real Safari browser on the managed simulator — see [Mobile browsers](#mobile-browsers-android-and-ios).
+- **WebKit** (`webkit`): Uses WebKit. On desktop platforms, the name `safari` can be used as an alias for `webkit`. On an `ios` platform entry, `safari` instead means the real Safari browser on the managed simulator. See [Mobile browsers](#mobile-browsers-android-and-ios).
 
 <Note>
 When you use the object format for any browser, you must set `name`. If you omit it (for example, `{ "headless": true }`), Doc Detective can't resolve the browser and skips the context.
@@ -137,7 +137,7 @@ You can specify browser window dimensions, viewport dimensions, and visibility (
 ```
 
 <Note>
-Doc Detective sizes the `viewport` by resizing the browser window, so the browser/OS **minimum window size** applies. Desktop Chrome, for example, can't render a viewport narrower than about 500px, and this floor applies in headless mode too. When a requested `viewport` is smaller than that floor, the page renders at the larger, realized size. The run still passes (the constraint is external, not a test error), but Doc Detective logs a `warning` naming the requested and rendered dimensions, and the [`startSurface`](/docs/actions/startSurface) action reports the realized size in its `viewport` output as `{ requested, actual }`. Screenshots and measurements then reflect the size the page actually rendered rather than the size you asked for. To capture true sub-500px widths (a 375px phone, say), run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
+Doc Detective sizes the `viewport` by resizing the browser window, so the browser/OS **minimum window size** applies. Desktop Chrome, for example, can't render a viewport narrower than about 500px, and this floor applies in headless mode too. When a requested `viewport` is smaller than that floor, the page renders at the larger, realized size. The run still passes, because the constraint is external rather than a test error. Doc Detective logs a `warning` naming the requested and rendered dimensions. The [`startSurface`](/docs/actions/startSurface) action reports the realized size in its `viewport` output as `{ requested, actual }`. Screenshots and measurements then reflect the size the page actually rendered. To capture true sub-500px widths, such as a 375px phone, run the test on an `android` or `ios` platform. The device's own screen then sets the dimensions.
 </Note>
 
 ### Firefox (`firefox`)
@@ -180,7 +180,7 @@ You can use either `webkit` or `safari` as the browser name.
 Before running tests with WebKit/Safari on macOS, you might need to enable the driver:
 
 1. Run `safaridriver --enable` in your terminal.
-2. Ensure **Develop > Allow Remote Automation** is checked in Safari's menu bar (you might need to enable the Develop menu first in Safari's Advanced preferences).
+2. Ensure **Develop > Allow Remote Automation** is checked in Safari's menu bar. You might need to enable the Develop menu first in Safari's Advanced preferences.
 
 *Note: This setup is often handled automatically in CI environments like GitHub Actions.*
 
@@ -217,7 +217,7 @@ Like Chrome, WebKit/Safari sizes the `viewport` by resizing the window, so the s
 
 ### Mobile browsers (Android and iOS)
 
-With a mobile platform entry (`android` or `ios`), `browsers` means the browser **on the managed device** — Doc Detective boots (or reuses) the emulator/simulator and drives its browser, and `goTo`, `find`, `click`, and `screenshot` behave exactly as on desktop. Element semantics are web DOM, not native accessibility, and no app descriptor is involved.
+With a mobile platform entry (`android` or `ios`), `browsers` means the browser **on the managed device**. Doc Detective boots or reuses the emulator or simulator and drives its browser. `goTo`, `find`, `click`, and `screenshot` behave exactly as on desktop. Element semantics are web DOM rather than native accessibility, and no app descriptor is involved.
 
 Each mobile target supports exactly one browser:
 
@@ -226,7 +226,7 @@ Each mobile target supports exactly one browser:
 | `android` | ✓ | Skipped | Skipped | Skipped |
 | `ios` | Skipped | ✓ | Skipped | Skipped |
 
-Unsupported combinations skip the context with a reason naming the supported browser — the same non-failing outcome as a `platforms` mismatch. If you omit `browsers` on a mobile entry, the platform's browser fills in automatically, so this is a complete mobile-web context:
+Unsupported combinations skip the context with a reason naming the supported browser. That's the same non-failing outcome as a `platforms` mismatch. If you omit `browsers` on a mobile entry, the platform's browser fills in automatically, so this is a complete mobile-web context:
 
 ```json
 {
@@ -246,13 +246,13 @@ And this single entry runs one web test on four targets (the `ios` leg skips, be
 Things that work differently on a device browser:
 
 - **`safari` means Safari.** On an `ios` entry, `safari` is the device's real Safari (not the desktop `webkit` alias). `webkit` on `ios` is an unsupported combination and skips.
-- **The device owns its display.** Authored `window`/`viewport` dimensions and `headless: false` on the browser config are rejected with an error — set [`device.headless`](/reference/schemas/device-descriptor) to control emulator visibility, and pick a different `device.deviceType` if you need another screen size. (`headless: true` matches the schema default, so it's accepted and ignored.)
+- **The device owns its display.** Authored `window` and `viewport` dimensions, along with `headless: false` on the browser config, are rejected with an error. Set [`device.headless`](/reference/schemas/device-descriptor) to control emulator visibility, and pick a different `device.deviceType` if you need another screen size. (`headless: true` matches the schema default, so it's accepted and ignored.)
 - **No browser fallback.** The device browser is part of the device image, so there's no alternative engine to fall back to; [`browserFallback`](#browser-fallback) doesn't apply.
 - **One browser per device.** The device browser is the context's only browser surface; tests can't open additional browsers on the device.
-- **Native app steps live in separate tests.** A single mobile context can drive the device browser *or* native app surfaces ([`startSurface`](/reference/schemas/startsurface)), not both; a context mixing them skips with a pointer to split the test.
-- **`localhost` is the device's own loopback.** An Android emulator reaches the host machine at `10.0.2.2` (so a local test server at `http://localhost:8092` is `http://10.0.2.2:8092` from the emulator); iOS simulators share the host network, so `localhost` works directly.
+- **Native app steps live in separate tests.** A single mobile context can drive the device browser *or* native app surfaces ([`startSurface`](/reference/schemas/startsurface)), but not both. A context mixing them skips with a pointer to split the test.
+- **`localhost` is the device's own loopback.** An Android emulator reaches the host machine at `10.0.2.2`, so a local test server at `http://localhost:8092` is `http://10.0.2.2:8092` from the emulator. iOS simulators share the host network, so `localhost` works directly.
 
-Host requirements are the same as for native mobile app testing and are checked automatically: any capable host with the Android SDK and hardware acceleration for `android` (run `doc-detective install android` to prepare one), a macOS host with Xcode for `ios` (`doc-detective install ios`). Incapable hosts skip with actionable guidance. On Android, Chrome ships with `google_apis` system images — the kind `doc-detective install android` installs; images without Chrome skip with a pointer.
+Host requirements match native mobile app testing, and Doc Detective checks them automatically. `android` needs any capable host with the Android SDK and hardware acceleration, which `doc-detective install android` prepares. `ios` needs a macOS host with Xcode, which `doc-detective install ios` prepares. Incapable hosts skip with actionable guidance. On Android, Chrome ships with `google_apis` system images, the kind `doc-detective install android` installs. Images without Chrome skip with a pointer.
 
 ## Platforms
 
@@ -261,14 +261,14 @@ Doc Detective can run tests targeting the following platforms:
 - Windows (`windows`)
 - macOS (`mac`)
 - Linux (`linux`) (Tested primarily on Ubuntu)
-- Android (`android`) — a managed emulator; see [Mobile browsers](#mobile-browsers-android-and-ios) for web tests and [startSurface](/reference/schemas/startsurface) for native apps.
-- iOS (`ios`) — a managed simulator (macOS hosts only); same references as Android.
+- Android (`android`), a managed emulator. See [Mobile browsers](#mobile-browsers-android-and-ios) for web tests and [startSurface](/reference/schemas/startsurface) for native apps.
+- iOS (`ios`), a managed simulator on macOS hosts only. It uses the same references as Android.
 
-When you specify a desktop platform (or multiple platforms) in a context, Doc Detective attempts to run the associated tests only when executed on a matching operating system. If `platforms` is omitted, it defaults to the current platform.
+When you specify one or more desktop platforms in a context, Doc Detective runs the associated tests only on a matching operating system. If `platforms` is omitted, it defaults to the current platform.
 
-Mobile platforms name the **target** the test runs against, not the host: an `android` context runs on any host capable of running the emulator, and an `ios` context on any macOS host with Xcode. Incapable hosts skip the context with guidance instead of failing.
+Mobile platforms name the **target** the test runs against, not the host. An `android` context runs on any host capable of running the emulator, and an `ios` context on any macOS host with Xcode. Incapable hosts skip the context with guidance instead of failing.
 
-The desktop platforms (`windows`, `mac`, and `linux`) run browser tests and, on Windows and macOS, [native desktop app tests](/docs/actions/startsurface). The mobile platforms run either browser (web) tests or native app tests on a managed device—one context drives one surface, not both. The context's [`device`](/reference/schemas/device-descriptor) field sets the default device: `android` runs on a managed emulator, and `ios` runs on a managed simulator. See [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator) and [Run on an iOS simulator](/docs/actions/startsurface#run-on-an-ios-simulator) for native apps, and [Mobile browsers](#mobile-browsers-android-and-ios) for web tests. Because iOS tests run only on a macOS host, an `ios` context on Windows or Linux skips with a reason.
+The desktop platforms (`windows`, `mac`, and `linux`) run browser tests and, on Windows and macOS, [native desktop app tests](/docs/actions/startsurface). The mobile platforms run either browser (web) tests or native app tests on a managed device. One context drives one surface, not both. The context's [`device`](/reference/schemas/device-descriptor) field sets the default device. `android` runs on a managed emulator, and `ios` runs on a managed simulator. For native apps, see [Run on an Android emulator](/docs/actions/startsurface#run-on-an-android-emulator) and [Run on an iOS simulator](/docs/actions/startsurface#run-on-an-ios-simulator). For web tests, see [Mobile browsers](#mobile-browsers-android-and-ios). Because iOS tests run only on a macOS host, an `ios` context on Windows or Linux skips with a reason.
 
 For example, this context targets only macOS:
 
@@ -439,6 +439,6 @@ Specify contexts in the test's `runOn` array. These override config- and spec-le
 
 ## Contexts and multiple browsers
 
-`browsers` does two jobs: it names the test's **default browser surface**, and — when it lists several engines — it fans the test out to run once per engine. A test can also open **additional** browsers at runtime with a `goTo` step's `surface` field (see [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows)). Only `goTo` opens those browsers, and `runOn` never lists them.
+`browsers` does two jobs. It names the test's **default browser surface**, and when it lists several engines it fans the test out to run once per engine. A test can also open **additional** browsers at runtime with a `goTo` step's `surface` field. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows). Only `goTo` opens those browsers, and `runOn` never lists them.
 
-Pin a browser **or** fan out — not both. The engine fan-out suits browser-*agnostic* tests. A test that pins `surface: { "browser": "firefox" }` in its steps would open Firefox alongside every matrix engine, so give it a single `browsers` entry instead.
+Pin a browser **or** fan out, but not both. The engine fan-out suits browser-*agnostic* tests. A test that pins `surface: { "browser": "firefox" }` in its steps would open Firefox alongside every matrix engine, so give it a single `browsers` entry instead.
