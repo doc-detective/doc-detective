@@ -297,7 +297,10 @@ The string form and the object `url` both accept a `$VAR` reference, so you can 
   "tests": [
     {
       "steps": [
-        { "loadVariables": ".env" },
+        {
+          "description": "Load the DOCS_URL variable.",
+          "loadVariables": ".env"
+        },
         {
           "description": "Check the link named by the DOCS_URL variable.",
           "checkLink": "$DOCS_URL"
